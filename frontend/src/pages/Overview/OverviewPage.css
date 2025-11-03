@@ -1,0 +1,247 @@
+/* --- Overview Page Layout --- */
+.overview-page {
+  width: 100%;
+}
+
+.overview-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.overview-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-grey-800);
+  margin: 0;
+}
+
+.overview-header p {
+  font-size: 16px;
+  color: var(--color-grey-400);
+  margin: 4px 0 0 0;
+}
+
+/* --- Grid System --- */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* --- 1. Stat Card --- */
+.stat-card {
+  background-color: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  grid-column: span 3; /* 4 cards per row */
+  border: 1px solid var(--color-grey-200);
+}
+
+.stat-icon-wrapper {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.stat-content {
+  flex-grow: 1;
+}
+
+.stat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-grey-400);
+  margin: 0 0 4px 0;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-grey-800);
+  margin: 0;
+}
+
+/* Specific icon colors */
+.stat-card:nth-child(1) .stat-icon-wrapper { background-color: #E0F2FE; color: #0284C7; } /* Blue */
+.stat-card:nth-child(2) .stat-icon-wrapper { background-color: #E0F2F1; color: #0D9488; } /* Teal */
+.stat-card:nth-child(3) .stat-icon-wrapper { background-color: #FEF3C7; color: #D97706; } /* Yellow */
+.stat-card:nth-child(4) .stat-icon-wrapper { background-color: #FEE2E2; color: #DC2626; } /* Red */
+
+
+/* --- 2. Chart Card --- */
+.chart-card {
+  background-color: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-grey-200);
+}
+
+.large-chart {
+  grid-column: span 8;
+}
+
+.small-chart {
+  grid-column: span 4;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-grey-200);
+}
+
+.chart-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.chart-filter {
+  padding: 6px 10px;
+  border: 1px solid var(--color-grey-200);
+  border-radius: var(--border-radius-md);
+  font-family: inherit;
+  font-size: 14px;
+  background-color: var(--color-grey-100);
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 300px;
+}
+
+
+/* --- 3. Driver List Card --- */
+.driver-list-card {
+  background-color: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-grey-200);
+  grid-column: span 6;
+}
+
+.driver-list-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-grey-200);
+}
+
+.driver-list-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.driver-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.driver-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.driver-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.driver-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.driver-info strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-grey-800);
+}
+
+.driver-info span {
+  font-size: 13px;
+  color: var(--color-grey-400);
+}
+
+.driver-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.no-drivers-message {
+  font-size: 14px;
+  color: var(--color-grey-400);
+  text-align: center;
+  padding: var(--spacing-lg) 0;
+}
+
+
+/* --- Responsive --- */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .stat-card {
+    grid-column: span 6; /* 2 cards per row */
+  }
+  .large-chart {
+    grid-column: span 12; /* Full width */
+  }
+  .small-chart {
+    grid-column: span 12; /* Full width */
+  }
+  .driver-list-card {
+    grid-column: span 12; /* Full width */
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .stat-card {
+    grid-column: span 12; /* 1 card per row */
+  }
+  .overview-header h2 {
+    font-size: 24px;
+  }
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  .chart-filter {
+    width: 100%;
+  }
+}

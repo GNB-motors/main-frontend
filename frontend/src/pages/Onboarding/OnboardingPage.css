@@ -1,0 +1,198 @@
+/* Onboarding Page Styles */
+.onboarding-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  background-image: url('../../assets/login-art-pattern.png'); /* Background image */
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+/* Apply blur effect using a pseudo-element */
+.onboarding-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  filter: blur(8px); /* Adjust blur amount as needed */
+  z-index: 1;
+}
+
+.onboarding-card {
+  background-color: var(--color-white);
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  width: 100%;
+  max-width: 600px; /* Wider card for more content */
+  z-index: 2; /* Ensure card is above the blurred background */
+  position: relative; /* Needed for z-index */
+}
+
+.onboarding-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.onboarding-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-grey-800);
+  margin-bottom: var(--spacing-xs);
+}
+
+.onboarding-header p {
+  color: var(--color-grey-400);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Form Styling - Reuse styles where possible */
+.form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-grey-700);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--color-grey-100);
+  border: 1px solid var(--color-grey-100);
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  background-color: var(--color-white);
+  border-color: var(--color-primary-500);
+}
+
+.vehicle-section h4 {
+    font-size: 18px;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-grey-700);
+    border-bottom: 1px solid var(--color-grey-200);
+    padding-bottom: var(--spacing-sm);
+}
+
+.vehicle-input-group {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  align-items: flex-end; /* Align items to bottom for button alignment */
+}
+
+.vehicle-input-group .form-group {
+    flex-grow: 1;
+    margin-bottom: 0; /* Remove bottom margin inside group */
+}
+
+.add-vehicle-btn,
+.remove-vehicle-btn {
+    padding: 10px 12px;
+    height: 44px; /* Match input height */
+    border: none;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.add-vehicle-btn {
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-600);
+}
+.add-vehicle-btn:hover {
+    background-color: var(--color-primary-500);
+    color: var(--color-white);
+}
+
+.remove-vehicle-btn {
+    background-color: #ffe8e8; /* Light red */
+    color: #ff7675; /* Red */
+}
+
+.remove-vehicle-btn:hover {
+    background-color: #ff7675;
+    color: var(--color-white);
+}
+
+
+/* Make button full width */
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-primary-500);
+  color: var(--color-white);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: var(--spacing-lg); /* Add space above button */
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-600);
+}
+
+.btn-primary:disabled {
+  background-color: var(--color-grey-200);
+  cursor: not-allowed;
+}
+
+/* Color Selection Styling */
+.color-selection {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-sm);
+  justify-content: flex-start;
+}
+
+.color-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.color-swatch.selected {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Error message styling */
+.error-message {
+  color: #ff7675; /* Red */
+  background-color: #ffe8e8; /* Light red background */
+  border: 1px solid #ff7675;
+  padding: 10px;
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-lg);
+  font-size: 14px;
+}

@@ -1,0 +1,210 @@
+.sidebar {
+    width: 100px;
+    background-color: var(--color-white);
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-grey-200);
+    flex-shrink: 0;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                margin-left 0.3s ease;
+    position: fixed;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Pushes footer down */
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
+    overflow: hidden;
+    height: 40px; /* Added for stable height */
+    transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-grey-800);
+    white-space: nowrap;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logo-img {
+    flex-shrink: 0;
+    height: 64px;
+    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: var(--border-radius-md);
+    color: var(--color-grey-400);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Gap only when sidebar is hovered */
+.sidebar:hover .nav-link {
+    gap: var(--spacing-md);
+}
+
+.nav-link span {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure Lucide React icons inherit the proper colors */
+.nav-link svg {
+    color: inherit;
+    transition: color 0.2s ease, 
+                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.nav-link.active {
+    background-color: var(--primary-color);
+    color: var(--color-white);
+}
+
+.sidebar-footer {
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-grey-200);
+}
+
+.logout-btn {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    /* The padding is inherited from .nav-link */
+    color: var(--color-grey-400);
+}
+
+.logout-btn:hover span, .logout-btn:hover {
+    color: var(--primary-color);
+}
+.logout-btn:hover {
+    background-color: var(--primary-light);
+}
+
+/* === Desktop Hover Styles === */
+@media (min-width: 993px) {
+    .sidebar {
+        width: 100px;
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+
+    .sidebar:hover {
+        width: 260px;
+        padding-left: var(--spacing-lg);
+        padding-right: var(--spacing-lg);
+    }
+
+    .sidebar .nav-link svg {
+        width: 40px;
+        height: 25px;
+    }
+    
+    .sidebar .logo-img {
+        height: 70px;
+        width: 70px;
+        margin-left: 10px;
+    }
+
+    .sidebar .logo-text,
+    .sidebar .nav-link span {
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+    }
+
+    .sidebar:hover .logo-text,
+    .sidebar:hover .nav-link span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
+    }
+
+    .sidebar .sidebar-header {
+        justify-content: center;
+    }
+
+    .sidebar:hover .sidebar-header {
+        justify-content: flex-start;
+    }
+
+    .sidebar .nav-link {
+        justify-content: center;
+        gap: 0;
+    }
+
+    .sidebar:hover .nav-link {
+        justify-content: flex-start;
+    }
+}
+
+/* === Mobile Overlay Styles === */
+@media (max-width: 992px) {
+    .sidebar {
+        width: 260px;
+        margin-left: -260px;
+        box-shadow: 0 0 40px rgba(0,0,0,0.1);
+    }
+
+    .sidebar.open {
+        margin-left: 0;
+    }
+
+    .sidebar .logo-text,
+    .sidebar .nav-link span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
+    }
+
+    .sidebar .sidebar-header {
+        justify-content: flex-start;
+    }
+
+    .sidebar .nav-link {
+        justify-content: flex-start;
+        gap: var(--spacing-md);
+    }
+}

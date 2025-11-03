@@ -1,0 +1,63 @@
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap');
+
+/* Design Tokens & Global Styles */
+:root {
+    /* Color Palette */
+    --color-white: #ffffff;
+    --color-grey-100: #f7f7f9;
+    --color-grey-200: #e3e6ebff;
+    --color-grey-300: #babfc5ff;
+    --color-grey-400: #82868cff;
+    --color-grey-700: #1d212eff;
+    --color-grey-800: #121625ff;
+    --color-primary-100: #d4dbfcff;
+    --color-primary-500: #2940d3ff;
+    --color-primary-600: #1d30b5ff;
+    --color-green-500: #2cc5bd;
+
+    /* Box Shadows */
+    --shadow-card: 0px 7px 20px 0px #28293d14;
+    --shadow-form: 0px 5px 18px 0px #28293d12;
+
+    /* Spacing */
+    --spacing-xs: 8px;
+    --spacing-sm: 12px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Borders */
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: var(--color-grey-100);
+    color: var(--color-grey-700);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global button defaults: prevent unintended stretch */
+.btn {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 80px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (min-width: 993px) {
+    .sidebar:hover + .main-content {
+        filter: opacity(80%) blur(2px) grayscale(100%);
+    }
+}

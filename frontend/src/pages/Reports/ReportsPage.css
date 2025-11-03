@@ -1,0 +1,165 @@
+/* Reports Page Layout */
+.reports-page-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-grey-100);
+}
+
+.reports-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.reports-content.with-sidebar {
+  margin-left: 270px; /* Always account for collapsed main sidebar (100px) + reports sidebar (300px) */
+  /*transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);*/
+}
+
+.nav-left { display: flex; align-items: center; gap: var(--spacing-lg); }
+.nav-left h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--color-grey-800); }
+.email-report-btn { display: flex; align-items: center; gap: var(--spacing-xs); padding: var(--spacing-sm) var(--spacing-md); background-color: var(--color-primary-500); color: var(--color-white); border: none; border-radius: var(--border-radius-md); font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.email-report-btn:hover { background-color: var(--color-primary-600); }
+.nav-right { display: flex; align-items: center; gap: var(--spacing-md); }
+.location-selector { display: flex; align-items: center; gap: var(--spacing-xs); padding: var(--spacing-sm) var(--spacing-md); background-color: var(--color-grey-100); border-radius: var(--border-radius-md); cursor: pointer; transition: background-color 0.2s; }
+.location-selector:hover { background-color: var(--color-grey-200); }
+.nav-icon-btn { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: none; border: none; border-radius: 50%; cursor: pointer; color: var(--color-grey-400); transition: all 0.2s; }
+.nav-icon-btn:hover { background-color: var(--color-grey-100); color: var(--color-grey-600); }
+.user-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: var(--color-primary-500); display: flex; align-items: center; justify-content: center; color: var(--color-white); font-weight: 700; cursor: pointer; }
+
+/* Main Content Area */
+.reports-main-content {
+  flex: 1;
+  padding: var(--spacing-lg);
+  width: 100%;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.report-header h3 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-grey-900); /* Darker text */
+}
+
+.report-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.report-content {
+  background-color: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  min-height: 400px;
+  position: relative;
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-grey-200);
+}
+
+.report-content-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state { text-align: center; position: relative; }
+.empty-message h4 { margin: 0 0 var(--spacing-xl) 0; font-size: 18px; color: var(--color-grey-400); font-weight: 500; }
+.empty-graphic { position: relative; width: 200px; height: 120px; margin: 0 auto; }
+.graphic-cards { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; }
+.graphic-cards .card { width: 60px; height: 20px; background-color: var(--color-grey-200); border-radius: 4px; position: relative; }
+.graphic-cards .card::before { content: ''; position: absolute; top: 50%; left: 8px; right: 8px; height: 1px; background-color: var(--color-grey-300); transform: translateY(-50%); }
+.graphic-shapes { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+.graphic-shapes .circle { position: absolute; top: 20px; right: 20px; width: 12px; height: 12px; background-color: var(--color-grey-300); border-radius: 50%; }
+.graphic-shapes .triangle { position: absolute; bottom: 20px; left: 20px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 12px solid var(--color-grey-300); }
+.graphic-shapes .plus { position: absolute; top: 40px; left: 30px; width: 8px; height: 8px; background-color: var(--color-grey-300); border-radius: 1px; }
+.graphic-shapes .plus::before, .graphic-shapes .plus::after { content: ''; position: absolute; background-color: var(--color-grey-300); }
+.graphic-shapes .plus::before { top: 3px; left: 0; right: 0; height: 2px; }
+.graphic-shapes .plus::after { top: 0; left: 3px; bottom: 0; width: 2px; }
+.rocket-icon { position: absolute; bottom: var(--spacing-lg); right: var(--spacing-lg); }
+.rocket { font-size: 24px; cursor: pointer; transition: transform 0.2s; }
+.rocket:hover { transform: scale(1.1); }
+
+/* Mobile Responsiveness */
+@media (max-width: 1200px) {
+  .reports-content.with-sidebar {
+    margin-left: 0;
+  }
+  .reports-main-content {
+    max-width: 100%;
+    padding: var(--spacing-md);
+  }
+}
+@media (max-width: 768px) {
+  .reports-top-nav { flex-direction: column; gap: var(--spacing-md); align-items: stretch; }
+  .nav-left, .nav-right { justify-content: center; }
+}
+
+/* DataGrid styles */
+.reports-main-content .MuiDataGrid-root { border: none !important; font-family: inherit !important; }
+.reports-main-content .MuiDataGrid-cell { border-bottom: 1px solid var(--color-grey-200) !important; }
+.reports-main-content .MuiDataGrid-columnHeaders { background-color: var(--color-grey-50); border-bottom: 1px solid var(--color-grey-300) !important; }
+
+/* Outlier info button style */
+.outlier-info-button {
+  padding: 4px;
+  color: var(--color-primary-500);
+}
+.outlier-info-button:hover {
+  background-color: var(--color-primary-100);
+}
+
+/* Highlighted outlier row style */
+.highlighted-outlier {
+  background-color: var(--onboarding-color, #e3f2fd) !important;
+  font-weight: 500;
+}
+.highlighted-outlier:hover {
+    background-color: var(--onboarding-hover-color, #bbdefb) !important;
+}
+
+/* --- NEW Styling Classes for projected savings --- */
+.positive-variance,
+.positive-impact {
+  color: green;
+  font-weight: 500;
+}
+.negative-variance,
+.negative-impact {
+  color: red;
+  font-weight: 500;
+}
+
+/* Ensure alignment works correctly within cells */
+.MuiDataGrid-cell[data-field="avgVariance"],
+.MuiDataGrid-cell[data-field="diffKms"],
+.MuiDataGrid-cell[data-field="financialImpact"] {
+    justify-content: flex-end !important;
+}
+
+/* Alignment for outlier columns */
+.MuiDataGrid-cell[data-field="fleetEdgeMileage"],
+.MuiDataGrid-cell[data-field="billMileage"],
+.MuiDataGrid-cell[data-field="variance"] {
+    justify-content: flex-end !important;
+}
+
+/* Alignment for driver/vehicle report columns */
+.MuiDataGrid-cell[data-field="totalKms"],
+.MuiDataGrid-cell[data-field="instances"],
+.MuiDataGrid-cell[data-field="outliers"],
+.MuiDataGrid-cell[data-field="rating"] {
+    justify-content: flex-end !important;
+}
+
+/* Alignment for trip report columns */
+.MuiDataGrid-cell[data-field="kmsDriven"] {
+    justify-content: flex-end !important;
+}

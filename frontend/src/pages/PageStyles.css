@@ -1,0 +1,67 @@
+/* General Components used across pages */
+.card {
+  background-color: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
+}
+.form-input {
+  width: 100%;
+  padding: 12px var(--spacing-md);
+  border: 1px solid var(--color-grey-200);
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+}
+
+/* Styles for Reports Page */
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+.search-bar {
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-grey-300);
+}
+.search-bar .form-input {
+  padding-left: 40px;
+  min-width: 300px;
+}
+.table-wrapper {
+  overflow-x: auto;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th, .data-table td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-grey-200);
+  font-size: 14px;
+}
+.data-table thead th {
+  font-weight: 600;
+  color: var(--color-grey-400);
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.table-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+.table-actions a {
+  color: var(--color-grey-400);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.table-actions a:hover {
+  color: var(--color-primary-500);
+}

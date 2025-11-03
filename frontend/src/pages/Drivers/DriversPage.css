@@ -1,0 +1,859 @@
+/* Drivers Page Container */
+.drivers-container {
+    padding: var(--spacing-lg);
+    background-color: var(--color-white); /* White background like reference */
+    border-radius: var(--border-radius-lg); /* Rounded corners */
+    box-shadow: var(--shadow-card); /* Add shadow */
+}
+
+/* Header Section */
+.drivers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    /* Removed border-bottom for a cleaner look like the reference */
+}
+
+.drivers-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-grey-800);
+}
+
+.drivers-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center; /* Vertically align items in the action bar */
+}
+
+.search-filter-container {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.drivers-search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.drivers-search-input-wrapper svg {
+    position: absolute;
+    left: 12px;
+    color: var(--color-grey-300);
+    pointer-events: none;
+}
+
+.drivers-search-input {
+    padding: 10px 12px 10px 36px;
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    min-width: 250px;
+}
+
+.drivers-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 10px var(--spacing-md);
+    background-color: var(--color-white);
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-grey-700);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.drivers-filter-btn:hover {
+    background-color: var(--color-grey-100);
+}
+
+/* Filter Dropdown Styles */
+.drivers-filter-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.drivers-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 10px var(--spacing-md);
+    background-color: var(--color-white);
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-grey-700);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.drivers-filter-btn:hover {
+    background-color: var(--color-grey-100);
+}
+
+.drivers-filter-btn-active {
+    background-color: var(--color-primary-50);
+    border-color: var(--color-primary-300);
+    color: var(--color-primary-700);
+}
+
+.drivers-filter-chevron {
+    transition: transform 0.2s;
+}
+
+.drivers-filter-chevron-open {
+    transform: rotate(180deg);
+}
+
+.drivers-filter-count-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background-color: var(--color-primary-500);
+    color: var(--color-white);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    border: 2px solid var(--color-white);
+}
+
+.drivers-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-xs);
+}
+
+.drivers-filter-tag {
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-700);
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.drivers-filter-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 280px;
+    margin-top: var(--spacing-xs);
+}
+
+.drivers-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--color-grey-200);
+}
+
+.drivers-filter-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-grey-800);
+}
+
+.drivers-filter-close-btn {
+    background: none;
+    border: none;
+    color: var(--color-grey-400);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--border-radius-sm);
+    transition: background-color 0.2s;
+}
+
+.drivers-filter-close-btn:hover {
+    background-color: var(--color-grey-100);
+}
+
+.drivers-filter-content {
+    padding: var(--spacing-md);
+}
+
+.drivers-filter-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.drivers-filter-group:last-child {
+    margin-bottom: 0;
+}
+
+.drivers-filter-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-grey-700);
+}
+
+.drivers-filter-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-grey-700);
+}
+
+.drivers-filter-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981; /* Green color */
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.drivers-filter-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    background-color: var(--color-white);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.drivers-filter-group select:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.drivers-filter-group select:hover {
+    border-color: var(--color-primary-300);
+}
+
+.drivers-filter-group select:disabled {
+    background-color: var(--color-grey-100);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Selected state for applied filters */
+.drivers-filter-group select.drivers-filter-selected {
+    border-color: var(--color-primary-500);
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-700);
+}
+
+.drivers-filter-group select.drivers-filter-selected:hover {
+    border-color: var(--color-primary-600);
+    background-color: var(--color-primary-100);
+}
+
+.drivers-filter-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--color-grey-200);
+}
+
+.drivers-filter-actions .drivers-btn {
+    flex: 1;
+    padding: 8px 16px;
+    font-size: 14px;
+    min-width: auto;
+    border-radius: var(--border-radius-md);
+}
+
+.drivers-filter-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: var(--color-grey-50);
+    border-top: 1px solid var(--color-grey-200);
+    color: var(--color-grey-600);
+    font-size: 14px;
+}
+
+.drivers-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--color-grey-300);
+    border-top: 2px solid var(--color-primary-500);
+    border-radius: 50%;
+    animation: drivers-spin 1s linear infinite;
+}
+
+@keyframes drivers-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.drivers-add-driver-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 10px var(--spacing-md);
+    background-color: var(--primary-color, #3B82F6);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.drivers-add-driver-btn:hover {
+    background-color: var(--primary-color, #3B82F6);
+    color: var(--color-white);
+    filter: brightness(0.8);
+}
+
+
+
+.drivers-table {
+    width: 100%;
+    border-collapse: collapse; /* Use collapse for cleaner lines */
+    margin-top: var(--spacing-md); /* Add some space above the table */
+    border-spacing: 0; /* Remove default spacing */
+
+}
+
+.drivers-table th,
+.drivers-table td {
+    padding: 16px; /* Increased padding like reference */
+    text-align: left;
+    border-bottom: 1px solid var(--color-grey-200); /* Separator line for rows */
+    font-size: 14px;
+    vertical-align: middle;
+    white-space: nowrap; /* Prevent text wrapping, allow horizontal scroll */
+}
+
+.drivers-table thead th {
+    font-weight: 600;
+    color: var(--color-grey-400); /* Lighter header text */
+    /* text-transform: uppercase; */ /* Reference doesn't seem uppercase */
+    font-size: 14px; /* Slightly larger header font */
+    background-color: #F9FAFB; /* Very light grey header background */
+    border-bottom-width: 2px; /* Thicker bottom border for header */
+}
+
+/* Remove hover effect if not desired, or adjust */
+.drivers-table tbody tr:hover {
+     background-color: #F9FAFB; /* Subtle hover like reference */
+}
+/* Remove bottom border from the last row */
+.drivers-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* Specific Cell Styles */
+.drivers-driver-name-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.drivers-driver-initials {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.drivers-driver-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.drivers-driver-info span {
+    font-weight: 500; /* Normal weight for name */
+    color: var(--color-grey-800);
+}
+
+.drivers-driver-role {
+    font-size: 12px;
+    color: var(--color-grey-400);
+}
+
+.drivers-action-menu-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: var(--color-grey-400);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.drivers-action-menu-btn:hover {
+     background-color: var(--color-grey-200);
+     color: var(--color-grey-700);
+}
+
+/* Action Menu Styles */
+.drivers-action-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-card);
+    z-index: 10;
+    min-width: 120px;
+}
+
+.drivers-action-menu button {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 14px;
+    color: var(--color-grey-700);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: background-color 0.2s;
+}
+
+.drivers-action-menu button:hover {
+    background-color: var(--color-grey-100);
+}
+
+.drivers-action-menu button.drivers-delete {
+    color: #ff7675;
+}
+
+.drivers-action-menu button.drivers-delete:hover {
+    background-color: #ffe0e0;
+}
+
+.drivers-action-cell {
+    position: relative;
+}
+
+/* Pagination - Hide for now if not implemented */
+.drivers-pagination-controls {
+   display: none; /* Hide pagination until needed */
+    /* display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-grey-200); */
+}
+
+.drivers-pagination-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    color: var(--color-grey-700);
+    cursor: pointer;
+}
+
+.drivers-pagination-btn:disabled {
+    color: var(--color-grey-300);
+    cursor: not-allowed;
+    background-color: var(--color-grey-100);
+}
+
+.drivers-page-info {
+    font-size: 14px;
+    color: var(--color-grey-400);
+}
+
+/* Loading/Error Messages */
+.drivers-loading-message, .drivers-error-message {
+    padding: var(--spacing-xl);
+    text-align: center;
+    font-size: 16px;
+    color: var(--color-grey-400);
+}
+.drivers-error-message {
+    color: #ff7675; /* Red for errors */
+}
+
+/* LottieLoader styling when overlay is false */
+.drivers-container .lottie-loader {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 400px;
+    width: 100%;
+}
+
+
+/* Add Driver Modal Styles */
+.drivers-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.drivers-modal-content {
+    background-color: var(--color-white);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 400px;
+    position: relative;
+    margin: 20px;
+}
+
+.drivers-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 2px solid var(--color-grey-100);
+}
+
+.drivers-modal-header h4 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-grey-800);
+    letter-spacing: -0.025em;
+}
+
+.drivers-close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--color-grey-400);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.drivers-close-btn:hover {
+    background-color: var(--color-grey-100);
+    color: var(--color-grey-600);
+}
+
+.drivers-modal-form .drivers-form-group {
+    margin-bottom: var(--spacing-xl);
+}
+
+.drivers-modal-form .drivers-form-group:last-of-type {
+    margin-bottom: var(--spacing-lg);
+}
+
+.drivers-modal-form label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--color-grey-700);
+    letter-spacing: -0.01em;
+}
+
+.drivers-modal-form input,
+.drivers-modal-form select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    font-size: 15px;
+    box-sizing: border-box;
+    transition: all 0.2s;
+    background-color: var(--color-white);
+}
+
+.drivers-modal-form input:focus,
+.drivers-modal-form select:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.drivers-modal-form input:hover,
+.drivers-modal-form select:hover {
+    border-color: var(--color-primary-300);
+}
+
+.drivers-modal-form input:disabled,
+.drivers-modal-form select:disabled {
+    background-color: var(--color-grey-50);
+    border-color: var(--color-grey-200);
+    color: var(--color-grey-500);
+    cursor: not-allowed;
+}
+
+
+.drivers-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--color-grey-100);
+}
+
+.drivers-modal-actions .drivers-btn {
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    min-width: 120px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.drivers-btn-primary {
+    background-color: var(--primary-color, #3B82F6);
+    color: var(--color-white);
+    border-color: var(--primary-color, #3B82F6);
+}
+
+.drivers-btn-primary:hover {
+    background-color: var(--primary-color, #2563EB);
+    border-color: var(--primary-color, #2563EB);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--color-primary-200);
+}
+
+.drivers-btn-primary:disabled {
+    background-color: var(--color-grey-300);
+    border-color: var(--color-grey-300);
+    color: var(--color-grey-500);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.drivers-btn-secondary {
+    background-color: var(--color-white);
+    color: var(--color-grey-700);
+    border-color: var(--color-grey-300);
+}
+
+.drivers-btn-secondary:hover {
+    background-color: var(--color-grey-50);
+    border-color: var(--color-grey-400);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.drivers-btn-secondary:disabled {
+    background-color: var(--color-grey-100);
+    border-color: var(--color-grey-200);
+    color: var(--color-grey-400);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Vehicle Information Styles */
+.drivers-vehicle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.drivers-vehicle-registration {
+    font-weight: 600;
+    color: var(--color-grey-800);
+    font-size: 14px;
+}
+
+.drivers-vehicle-type {
+    font-size: 12px;
+    color: var(--color-grey-500);
+    font-style: italic;
+}
+
+.drivers-no-vehicle {
+    color: var(--color-grey-400);
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Modal form select styles */
+.drivers-modal-form select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    font-size: 15px;
+    box-sizing: border-box;
+    background-color: var(--color-white);
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 20px;
+    padding-right: 40px;
+}
+
+.drivers-modal-form select:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.drivers-modal-form select:hover {
+    border-color: var(--color-primary-300);
+}
+
+.drivers-modal-form select:disabled {
+    background-color: var(--color-grey-50);
+    border-color: var(--color-grey-200);
+    color: var(--color-grey-500);
+    cursor: not-allowed;
+}
+
+/* Delete Modal Styles */
+.drivers-delete-content {
+    padding: 0;
+}
+
+.drivers-delete-warning {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: #fef3c7;
+    border-radius: var(--border-radius-md);
+    border: 1px solid #f59e0b;
+}
+
+.drivers-warning-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-bottom: 36px;
+}
+
+.drivers-delete-warning p {
+    margin: 0;
+    font-size: 13px;
+    color: #92400e;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.drivers-delete-employee-info {
+    background-color: #f8fafc;
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid #e2e8f0;
+    margin-bottom: var(--spacing-md);
+}
+
+.drivers-delete-employee-info .drivers-driver-name-cell {
+    gap: var(--spacing-sm);
+}
+
+.drivers-delete-employee-info .drivers-driver-initials {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.drivers-delete-employee-info .drivers-driver-name {
+    font-weight: 600;
+    color: var(--color-grey-800);
+    font-size: 14px;
+}
+
+.drivers-delete-employee-info .drivers-driver-role {
+    font-size: 12px;
+    color: var(--color-grey-500);
+    font-weight: 500;
+}
+
+.drivers-btn-danger {
+    background-color: #dc2626;
+    color: var(--color-white);
+    border-color: #dc2626;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.drivers-btn-danger:hover {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.drivers-btn-danger:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+}
+
+.drivers-btn-danger:disabled {
+    background-color: #9ca3af;
+    border-color: #9ca3af;
+    color: #f3f4f6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

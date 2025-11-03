@@ -1,0 +1,47 @@
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-left: 100px; /* Always account for collapsed sidebar width */
+    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1),filter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+}
+
+.page-content {
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+/* Loading content styles */
+.dashboard-loading-content {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Override the LottieLoader overlay to only cover the main content area */
+.dashboard-loading-content .lottie-loader-overlay {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Mobile styles */
+@media (max-width: 992px) {
+    .main-content {
+        width: 100%;
+        margin-left: 0; /* No margin on mobile */
+    }
+}
