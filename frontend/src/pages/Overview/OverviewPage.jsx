@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
@@ -6,6 +6,7 @@ import {
   Truck, Map, TrendingUp, AlertTriangle, Trophy, Star, TrendingDown, Users, User, ChevronDown
 } from 'lucide-react';
 import { useProfile } from '../Profile/ProfileContext.jsx';
+import { OverviewService } from './OverviewService.jsx';
 import './OverviewPage.css'; // New CSS file for this page
 
 // --- Helper Functions ---
@@ -24,7 +25,7 @@ const getRatingColor = (rating) => {
   return '#EF4444'; // Red
 };
 
-// --- Mock Data (Replace with API calls) ---
+// --- Mock Data (will be replaced by API on load) ---
 
 // For KPI Cards (from /vehicles and /drivers endpoints)
 const mockKpiData = {
@@ -149,13 +150,38 @@ const DriverList = ({ title, drivers, icon }) => (
 
 // --- Main OverviewPage Component ---
 const OverviewPage = () => {
-    const { profile } = useProfile();
-    const [kpiData, setKpiData] = useState(mockKpiData);
-    const [dailyChartData, setDailyChartData] = useState(mockDailyChartData);
-    const [driverData, setDriverData] = useState(mockDriverData);
+    const { profile } = useProfile();
+    const [kpiData, setKpiData] = useState(mockKpiData);
+    const [dailyChartData, setDailyChartData] = useState(mockDailyChartData);
+    const [driverData, setDriverData] = useState(mockDriverData);
 
-    // TODO: Add useEffect to fetch real data from your API endpoints
-    // and setKpiData, setDailyChartData, setDriverData
+    useEffect(() => {
+        const loadOverview = async () => {
+            const businessRefId = profile?.business_ref_id;
+            const token = localStorage.getItem('authToken');
+            if (!businessRefId || !token) return;
+            try {
+                const data = await OverviewService.getOverview(businessRefId, {}, token);
+                const nextKpis = {
+                    totalVehicles: data?.kpis?.totalVehicles ?? 0,
+                    totalKms: data?.kpis?.totalKms ?? 0,
+                    avgVariance: data?.kpis?.avgVariance ?? 0,
+                    totalOutliers: data?.kpis?.totalOutliers ?? 0,
+                };
+                setKpiData(nextKpis);
+                setDailyChartData(Array.isArray(data?.daily) ? data.daily : []);
+
+                const drivers = [];
+                if (data?.bestDriver) drivers.push(data.bestDriver);
+                if (Array.isArray(data?.underperformingDrivers)) drivers.push(...data.underperformingDrivers);
+                setDriverData(drivers);
+            } catch (e) {
+                // Silently keep mocks on failure; consider toast/error later
+                console.error('Failed to load overview:', e);
+            }
+        };
+        loadOverview();
+    }, [profile?.business_ref_id]);
 
     // Memoized calculations based on mock data
     const { bestDriver, underperformingDrivers } = useMemo(() => {
