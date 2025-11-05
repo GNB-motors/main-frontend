@@ -150,7 +150,7 @@ const RequestFormPage = () => {
 
         try {
             // Step 1: Call /submit-report
-            const submitResponse = await apiClient.post('api/v1/ocr/submit-report', payload, {timeout: 120000});
+            const submitResponse = await apiClient.post('api/v1/ocr/submit-report', payload, {timeout: 240000});
             const submitResult = submitResponse.data;
 
             // Use the profile data from state
