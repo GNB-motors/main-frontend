@@ -16,6 +16,9 @@
     --color-primary-600: #1d30b5ff;
     --color-green-500: #2cc5bd;
 
+    /* Layout Dimensions */
+    --navbar-height: 72px; /* Fixed navbar height for consistent positioning */
+
     /* Box Shadows */
     --shadow-card: 0px 7px 20px 0px #28293d14;
     --shadow-form: 0px 5px 18px 0px #28293d12;
@@ -36,13 +39,22 @@
     box-sizing: border-box;
 }
 
-body {
+html, body {
     margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body {
     font-family: 'Montserrat', sans-serif;
     background-color: var(--color-grey-100);
     color: var(--color-grey-700);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Global button defaults: prevent unintended stretch */
@@ -57,7 +69,8 @@ body {
 }
 
 @media (min-width: 993px) {
-    .sidebar:hover + .main-content {
-        filter: opacity(80%) blur(2px) grayscale(100%);
+    /* Apply blur/opacity to page-content when sidebar is hovered */
+    .sidebar:hover + .main-content .page-content {
+        transition: filter 0.3s ease;
     }
 }

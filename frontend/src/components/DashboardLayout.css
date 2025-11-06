@@ -1,6 +1,7 @@
 .dashboard-layout {
     display: flex;
     min-height: 100vh;
+    position: relative;
 }
 
 .main-content {
@@ -9,14 +10,19 @@
     flex-direction: column;
     width: 100%;
     margin-left: 100px; /* Always account for collapsed sidebar width */
-    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1),filter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
+    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    height: 100vh;
+    padding-top: var(--navbar-height, 72px); /* Add padding to account for fixed navbar */
 }
 
 .page-content {
     padding: var(--spacing-lg);
     overflow-y: auto;
+    overflow-x: hidden;
     flex-grow: 1;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 /* Loading content styles */
@@ -43,5 +49,6 @@
     .main-content {
         width: 100%;
         margin-left: 0; /* No margin on mobile */
+        padding-top: var(--navbar-height, 72px); /* Still need padding for fixed navbar */
     }
 }

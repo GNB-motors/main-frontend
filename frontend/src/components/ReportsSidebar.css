@@ -1,29 +1,33 @@
 /* Reports Sidebar Styles */
+/* Portal-rendered to document.body to avoid parent transforms/filters */
 .reports-sidebar {
     width: 280px;
     background-color: var(--color-white);
     border-right: 1px solid var(--color-grey-200);
-    height: calc(100vh - 80px); /* Adjust height to start below navbar */
+    height: calc(100vh - var(--navbar-height, 72px));
     position: fixed;
-    /* left: 100px; /* Always position after collapsed main sidebar */
-    /*top: 100px; /* Start below navbar */
-    /*z-index: 999; */
+    left: 100px; /* Position after collapsed main sidebar */
+    top: var(--navbar-height, 72px); /* Start exactly where fixed navbar ends (72px from top) */
+    z-index: 999; /* Below navbar (1001) and main sidebar (1002) */
     display: flex;
     flex-direction: column;
     box-shadow: 2px 0 12px rgba(0,0,0,0.06);
-    /*transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);*/
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
 }
 
 
 .reports-sidebar-content {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 20px;
+    overflow-x: hidden;
+    padding: 8px;
 }
 
 .report-category {
     margin-bottom: 32px;
-    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -75,8 +79,6 @@
     color: #ffffff;
     text-align: left;
     border-radius: 8px;
-    transition: all 0.2s ease;
-    /*margin-left: 20px;*/
     position: relative;
     min-height: 48px;
     justify-content: center;
@@ -85,36 +87,18 @@
 .report-item:hover {
     background-color: var(--primary-color, #3B82F6);
     border-color: var(--primary-color, #3B82F6);
-    filter: brightness(0.9);
 }
 
 .report-item.active {
     background-color: var(--primary-color, #3B82F6);
     color: #ffffff;
     border-color: var(--primary-color, #3B82F6);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-    transform: translateX(6px) scale(1.05);
     font-weight: 600;
-    filter: brightness(1.1);
 }
 
 .report-item.active:hover {
     background-color: var(--primary-color, #3B82F6);
-    transform: translateX(6px) scale(1.05);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-    filter: brightness(1.1);
-}
-
-.report-item.active::before {
-    content: '';
-    position: absolute;
-    left: -10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 24px;
-    background-color: var(--primary-color, #3B82F6);
-    border-radius: 2px;
+    border-color: var(--primary-color, #3B82F6);
 }
 
 /* Mobile responsiveness */
@@ -122,6 +106,8 @@
     .reports-sidebar {
         left: 0;
         width: 100%;
-        z-index: 1001;
+        top: var(--navbar-height, 72px); /* Still respect navbar height on mobile */
+        height: calc(100vh - var(--navbar-height, 72px)); /* Adjust height for mobile */
+        z-index: 1000; /* Below navbar but above content */
     }
 }

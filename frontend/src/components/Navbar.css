@@ -1,4 +1,19 @@
-.navbar { display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md) var(--spacing-lg); background-color: var(--color-white); border-bottom: 1px solid var(--color-grey-200); }
+.navbar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: var(--spacing-md) var(--spacing-lg); 
+    background-color: var(--color-white); 
+    border-bottom: 1px solid var(--color-grey-200);
+    height: var(--navbar-height, 72px); /* Use CSS variable for consistent positioning */
+    min-height: var(--navbar-height, 72px);
+    box-sizing: border-box;
+    position: fixed; /* Fixed at top for consistent positioning */
+    top: 0;
+    left: 100px; /* Start after the main sidebar */
+    right: 0;
+    z-index: 1001; /* Ensure navbar is above ReportsSidebar */
+}
 .navbar-left { display: flex; align-items: center; gap: var(--spacing-md); }
 .navbar-left h2 { font-size: 24px; font-weight: 600; margin: 0; }
 .menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--color-grey-700); padding: 0;}
@@ -12,4 +27,15 @@
 .btn-primary:hover { 
     background-color: var(--primary-dark, #1d30b5ff); 
 }
-@media (max-width: 992px) { .menu-toggle { display: block; } }
+
+/* Mobile styles */
+@media (max-width: 992px) {
+    .navbar {
+        left: 0; /* Full width on mobile, sidebar is overlay */
+        z-index: 1003; /* Above sidebar on mobile */
+    }
+    
+    .menu-toggle { 
+        display: block; 
+    }
+}

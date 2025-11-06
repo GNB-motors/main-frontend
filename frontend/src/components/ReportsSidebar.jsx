@@ -1,6 +1,7 @@
 // src/components/ReportsSidebar.jsx
 
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import {
     BarChart3,
     User,
@@ -69,7 +70,8 @@ const ReportsSidebar = ({
 
     if (!isOpen) return null;
 
-    return (
+    // Render the sidebar using a portal to document.body to escape any parent transforms/filters
+    const sidebarContent = (
         <aside className="reports-sidebar" style={themeColors}>
             <div className="reports-sidebar-content">
                 {reportCategories.map(category => (
@@ -105,6 +107,9 @@ const ReportsSidebar = ({
             </div>
         </aside>
     );
+
+    // Use portal to render at body level, escaping any parent containing blocks
+    return ReactDOM.createPortal(sidebarContent, document.body);
 };
 
 export default ReportsSidebar;
