@@ -134,44 +134,60 @@ const RequestFormPage = () => {
         setError(prev => ({ ...prev, submit: null }));
 
         if (!tmsProfile) {
-            setError(prev => ({...prev, submit: "User profile not loaded. Cannot submit."}));
+            setError(prev => ({ ...prev, submit: "User profile not loaded. Cannot submit." }));
             setIsLoading(prev => ({ ...prev, submit: false }));
             return;
         }
 
-        const payload = {
-            extractedData: extractedData,
-            loginDetails: {
-                email: formData.email,
-                password: formData.password
+        // ✅ Clean and properly typed payload
+        const cleanPayload = {
+            extractedData: {
+                before: extractedData.before ? {
+                    date: extractedData.before.date,
+                    time: extractedData.before.time,
+                    vehicle_no: extractedData.before.vehicle_no,
+                    volume: Number(extractedData.before.volume)
+                } : null,
+                after: extractedData.after ? {
+                    date: extractedData.after.date,
+                    time: extractedData.after.time,
+                    vehicle_no: extractedData.after.vehicle_no,
+                    volume: Number(extractedData.after.volume)
+                } : null,
             },
-            selected_vehicle_registration_no: formData.selectedVehicle
+            loginDetails: { email: formData.email, password: formData.password },
+            selected_vehicle_registration_no: formData.selectedVehicle,
         };
 
         try {
-            // Step 1: Call /submit-report
-            const submitResponse = await apiClient.post('api/v1/ocr/submit-report', payload, {timeout: 240000});
+            // ✅ Single backend call — no OCR fallback now
+            const submitResponse = await apiClient.post('api/v1/ocr/submit-report', cleanPayload, { timeout: 240000 });
             const submitResult = submitResponse.data;
 
-            // Use the profile data from state
-            const analysisPayload = {
-                screenshot_path: submitResult.screenshot_path,
-                after_fuel_volume: extractedData.after.volume,
-                business_ref_id: tmsProfile.business_ref_id, // <-- Use the correct ID from state
-                vehicle_no: formData.selectedVehicle, // Use vehicle from form
-                start_date: extractedData.before.date, // Add the start date
-                end_date: extractedData.after.date
-            };
-
-            // Step 2: Call /analyze-report-screenshot
-            const analysisResponse = await apiClient.post('api/v1/ocr/analyze-report-screenshot', analysisPayload);
-            const analysisResult = analysisResponse.data;
-
-            setFinalReportData(analysisResult);
-            goToStep(3);
+            // Expect backend to directly return data
+            if (submitResult.data) {
+                console.log("✅ Report generated successfully!");
+                setFinalReportData(submitResult.data);
+                goToStep(3);
+            } else {
+                console.error("❌ Unexpected backend response:", submitResult);
+                throw new Error("Unexpected response from report generation.");
+            }
 
         } catch (err) {
-            const errorMsg = err.response?.data?.detail || err.message || 'Submission process failed.';
+            let errorMsg = 'Submission process failed.';
+            if (err.response?.data?.detail) {
+                if (Array.isArray(err.response.data.detail)) {
+                    errorMsg = err.response.data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+                } else if (typeof err.response.data.detail === 'object') {
+                    errorMsg = err.response.data.detail.msg || JSON.stringify(err.response.data.detail);
+                } else {
+                    errorMsg = err.response.data.detail;
+                }
+            } else if (err.message) {
+                errorMsg = err.message;
+            }
+
             console.error("Submission process failed:", err);
             setError(prev => ({ ...prev, submit: errorMsg }));
         } finally {
