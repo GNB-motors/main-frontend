@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../utils/axiosConfig'; 
 import './RequestFormPage.css';
+import OTP from './OTP';
 
 // Import assets
 import UkoLogo from '../../assets/uko-logo.png';
@@ -27,6 +28,9 @@ const RequestFormPage = () => {
         dieselAfter: null,
         email: '', // This is ONLY for the Fleet Edge login
         password: '', // This is ONLY for the Fleet Edge login
+        mobileNumber: '', // For OTP login
+        otp: '', // For OTP login
+        loginMethod: 'password', // 'password' or 'otp'
     });
     const [extractedData, setExtractedData] = useState({
         before: null,
@@ -155,7 +159,9 @@ const RequestFormPage = () => {
                     volume: Number(extractedData.after.volume)
                 } : null,
             },
-            loginDetails: { email: formData.email, password: formData.password },
+            loginDetails: formData.loginMethod === 'password' 
+                ? { email: formData.email, password: formData.password }
+                : { mobile: formData.mobileNumber, otp: formData.otp },
             selected_vehicle_registration_no: formData.selectedVehicle,
         };
 
@@ -229,6 +235,7 @@ const RequestFormPage = () => {
                             onSubmit={handleSubmit}
                             isLoading={isLoading.submit}
                             error={error.submit}
+                            setLoginMethod={(method) => updateFormData('loginMethod', method)}
                         />;
             case 3:
                 return <Step3FinalReport reportData={finalReportData} />;
@@ -451,29 +458,76 @@ const ImageUploader = ({ type, title, onUpload, onRemove, extractedData, preview
     );
 };
 
-const Step2Login = ({ formData, updateFormData, onBack, onSubmit, isLoading, error }) => (
-    <div className="form-step">
-        <h3>Login & Submit</h3>
-        <p>Enter your Fleet Edge credentials to generate and finalize the report.</p>
-        <form onSubmit={onSubmit}>
-            <div className="form-group">
-                <label>User ID / Email</label>
-                <input type="text" placeholder="Enter your Fleet Edge User ID" value={formData.email} onChange={e => updateFormData('email', e.target.value)} required />
-            </div>
-            <div className="form-group">
-                <label>Password</label>
-                <input type="password" placeholder="Enter your password" value={formData.password} onChange={e => updateFormData('password', e.target.value)} required />
-            </div>
-            {error && <div className="error-message submit-error">{error}</div>}
-            <div className="form-navigation">
-                <button type="button" className="btn-back" onClick={onBack}>Back</button>
-                <button type="submit" className="btn-continue" disabled={isLoading}>
-                    {isLoading ? 'Generating Report...' : 'Submit'}
+const Step2Login = ({ formData, updateFormData, onBack, onSubmit, isLoading, error, setLoginMethod }) => {
+    return (
+        <div className="form-step">
+            <h3>Login & Submit</h3>
+            <p>Enter your Fleet Edge credentials to generate and finalize the report.</p>
+            
+            {/* Tabs */}
+            <div className="login-tabs">
+                <button 
+                    type="button"
+                    className={`tab-button ${formData.loginMethod === 'password' ? 'active' : ''}`}
+                    onClick={() => setLoginMethod('password')}
+                >
+                    Password
+                </button>
+                <button 
+                    type="button"
+                    className={`tab-button ${formData.loginMethod === 'otp' ? 'active' : ''}`}
+                    onClick={() => setLoginMethod('otp')}
+                >
+                    OTP
                 </button>
             </div>
-        </form>
-    </div>
-);
+
+            {/* Tab Content */}
+            {formData.loginMethod === 'password' ? (
+                <form onSubmit={onSubmit}>
+                    <div className="form-group">
+                        <label>User ID / Email</label>
+                        <input 
+                            type="text" 
+                            placeholder="Enter your Fleet Edge User ID" 
+                            value={formData.email} 
+                            onChange={e => updateFormData('email', e.target.value)} 
+                            required 
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Password</label>
+                        <input 
+                            type="password" 
+                            placeholder="Enter your password" 
+                            value={formData.password} 
+                            onChange={e => updateFormData('password', e.target.value)} 
+                            required 
+                        />
+                    </div>
+                    {error && <div className="error-message submit-error">{error}</div>}
+                    <div className="form-navigation">
+                        <button type="button" className="btn-back" onClick={onBack}>Back</button>
+                        <button type="submit" className="btn-continue" disabled={isLoading}>
+                            {isLoading ? 'Generating Report...' : 'Submit'}
+                        </button>
+                    </div>
+                </form>
+            ) : (
+                <OTP
+                    mobileNumber={formData.mobileNumber}
+                    onMobileChange={(value) => updateFormData('mobileNumber', value)}
+                    otp={formData.otp}
+                    onOtpChange={(value) => updateFormData('otp', value)}
+                    onContinue={onSubmit}
+                    onBack={onBack}
+                    isLoading={isLoading}
+                    error={error}
+                />
+            )}
+        </div>
+    );
+};
 
 const Step3FinalReport = ({ reportData }) => {
     if (!reportData) {
