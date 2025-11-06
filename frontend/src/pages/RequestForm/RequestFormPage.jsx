@@ -280,7 +280,47 @@ const FormSidebar = ({ currentStep }) => {
 
 const Step1ReportDetails = ({ formData, updateFormData, handleImageUpload, removeImage, extractedData, previews, isLoading, error, vehicles, isLoadingVehicles, vehicleError, onNext }) => {
 
-    const isNextDisabled = !formData.selectedVehicle || !extractedData.before || !extractedData.after;
+    // Helper function to normalize vehicle numbers for comparison
+    const normalizeVehicleNo = (vehicleNo) => {
+        if (!vehicleNo) return '';
+        // Remove spaces, convert to string, trim
+        return String(vehicleNo).replace(/\s+/g, '').trim();
+    };
+
+    // Validation logic
+    const getValidationError = () => {
+        if (!formData.selectedVehicle) {
+            return null; // Don't show tooltip for missing vehicle selection
+        }
+        
+        if (!extractedData.before || !extractedData.after) {
+            return 'Please upload both before and after journey diesel bills';
+        }
+
+        const selectedVehicleNo = normalizeVehicleNo(formData.selectedVehicle);
+        const beforeVehicleNo = normalizeVehicleNo(extractedData.before?.vehicle_no);
+        const afterVehicleNo = normalizeVehicleNo(extractedData.after?.vehicle_no);
+
+        if (!beforeVehicleNo || !afterVehicleNo) {
+            return 'Vehicle number not found in one or both receipts';
+        }
+
+        // Check if before and after match each other
+        if (beforeVehicleNo !== afterVehicleNo) {
+            return `Vehicle numbers don't match: Before (${extractedData.before.vehicle_no}) ≠ After (${extractedData.after.vehicle_no})`;
+        }
+
+        // Check if extracted vehicle numbers match selected vehicle
+        if (beforeVehicleNo !== selectedVehicleNo || afterVehicleNo !== selectedVehicleNo) {
+            return `Vehicle number mismatch: Selected (${formData.selectedVehicle}) ≠ Receipt (${beforeVehicleNo})`;
+        }
+
+        return null;
+    };
+
+    const validationError = getValidationError();
+    // Disable if no vehicle selected OR if there's a validation error
+    const isNextDisabled = !formData.selectedVehicle || !extractedData.before || !extractedData.after || validationError !== null;
 
     // Find the selected vehicle to get its chassis number
     const selectedVehicle = vehicles.find(vehicle => vehicle.registration_no === formData.selectedVehicle);
@@ -327,6 +367,7 @@ const Step1ReportDetails = ({ formData, updateFormData, handleImageUpload, remov
                     preview={previews.before}
                     isLoading={isLoading.before}
                     error={error.before}
+                    selectedVehicle={formData.selectedVehicle}
                 />
                 <ImageUploader
                     type="after"
@@ -337,48 +378,78 @@ const Step1ReportDetails = ({ formData, updateFormData, handleImageUpload, remov
                     preview={previews.after}
                     isLoading={isLoading.after}
                     error={error.after}
+                    selectedVehicle={formData.selectedVehicle}
                 />
             </div>
 
             <div className="form-navigation">
-                <button className="btn-continue" onClick={onNext} disabled={isNextDisabled}>Continue</button>
+                <div className="button-wrapper">
+                    <button 
+                        className="btn-continue" 
+                        onClick={onNext} 
+                        disabled={isNextDisabled}
+                    >
+                        Continue
+                    </button>
+                    {validationError && (
+                        <div className="validation-tooltip">
+                            {validationError}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
-const ImageUploader = ({ type, title, onUpload, onRemove, extractedData, preview, isLoading, error }) => (
-    <div className="image-uploader">
-        <h5>{title}</h5>
-        {!preview ? (
-             <label className="upload-box">
-                <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files[0], type)} />
-                <img src={UploadIcon} alt="Upload" />
-                <span>Click to upload or drag & drop</span>
-            </label>
-        ) : (
-            <div className="image-preview-container">
-                <img src={preview} alt="Receipt preview" className="image-preview" />
-                <button className="remove-image-btn" onClick={() => onRemove(type)}>×</button>
-            </div>
-        )}
+const ImageUploader = ({ type, title, onUpload, onRemove, extractedData, preview, isLoading, error, selectedVehicle }) => {
+    // Helper to normalize vehicle numbers
+    const normalizeVehicleNo = (vehicleNo) => {
+        if (!vehicleNo) return '';
+        return String(vehicleNo).replace(/\s+/g, '').trim();
+    };
 
-        {isLoading && <div className="loading-spinner">Processing image...</div>}
-        {error && <div className="error-message">{error}</div>}
-        {extractedData && (
-            <div className="extracted-data-table">
-                <table>
-                    <tbody>
-                        <tr><td>Date</td><td>{extractedData.date}</td></tr>
-                        <tr><td>Time</td><td>{extractedData.time}</td></tr>
-                        <tr><td>Vehicle No</td><td>{extractedData.vehicle_no}</td></tr>
-                        <tr><td>Diesel Volume</td><td>{extractedData.volume.toFixed(2)} Litres</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        )}
-    </div>
-);
+    // Check if vehicle number matches selected vehicle
+    const vehicleMatchError = selectedVehicle && extractedData?.vehicle_no 
+        ? (normalizeVehicleNo(selectedVehicle) !== normalizeVehicleNo(extractedData.vehicle_no))
+        : null;
+
+    return (
+        <div className="image-uploader">
+            <h5>{title}</h5>
+            {!preview ? (
+                 <label className="upload-box">
+                    <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files[0], type)} />
+                    <img src={UploadIcon} alt="Upload" />
+                    <span>Click to upload or drag & drop</span>
+                </label>
+            ) : (
+                <div className="image-preview-container">
+                    <img src={preview} alt="Receipt preview" className="image-preview" />
+                    <button className="remove-image-btn" onClick={() => onRemove(type)}>×</button>
+                </div>
+            )}
+
+            {isLoading && <div className="loading-spinner">Processing image...</div>}
+            {error && <div className="error-message">{error}</div>}
+            {extractedData && (
+                <div className="extracted-data-table">
+                    <table>
+                        <tbody>
+                            <tr><td>Date</td><td>{extractedData.date}</td></tr>
+                            <tr><td>Time</td><td>{extractedData.time}</td></tr>
+                            <tr>
+                                <td>Vehicle No</td>
+                                <td>{extractedData.vehicle_no}</td>
+                            </tr>
+                            <tr><td>Diesel Volume</td><td>{extractedData.volume.toFixed(2)} Litres</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const Step2Login = ({ formData, updateFormData, onBack, onSubmit, isLoading, error }) => (
     <div className="form-step">

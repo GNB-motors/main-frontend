@@ -53,7 +53,8 @@ const Navbar = ({ toggleSidebar }) => {
                         padding: '12px 16px',
                         borderRadius: '8px',
                         textDecoration: 'none',
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        marginBottom: '10px',
                     }}
                 >
                     <Plus size={16} />

@@ -299,6 +299,11 @@
     justify-content: flex-end;
     gap: var(--spacing-md);
 }
+
+.button-wrapper {
+    position: relative;
+}
+
 .btn-back, .btn-continue {
     padding: 12px 24px;
     border-radius: var(--border-radius-md);
@@ -318,6 +323,44 @@
     color: var(--color-grey-400);
     cursor: not-allowed;
 }
+
+/* Validation Tooltip */
+.validation-tooltip {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background-color: #ECECEE;
+    color: rgb(15, 15, 15);
+    border-radius: var(--border-radius-md);
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    white-space: normal;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+}
+
+.button-wrapper:hover .validation-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.validation-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 20px;
+    border: 6px solid transparent;
+    border-top-color: #ECECEE;
+}
+
 
 /* --- NEW: Final Report Styles --- */
 .final-report-container {
