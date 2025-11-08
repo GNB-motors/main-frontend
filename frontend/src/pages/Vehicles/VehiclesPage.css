@@ -14,6 +14,8 @@
 .vehicles-page-container {
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-lg);
+    overflow: visible; /* Allow dropdowns to escape */
+    position: relative;
 }
 
 .vehicles-tabs {
@@ -63,9 +65,10 @@
 /* Table Container */
 .vehicles-table-container {
     margin-top: 0;
-    overflow-x: auto;
+    overflow-y: visible; /* Allow dropdown to escape */
     border-radius: var(--border-radius-lg);
     background-color: var(--color-white);
+    position: relative; /* Create positioning context */
 }
 
 .vehicles-loading {
@@ -84,8 +87,9 @@
     border-collapse: collapse;
     border-spacing: 0;
     border-radius: var(--border-radius-lg);
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow dropdown to escape */
     background-color: var(--color-white);
+    position: relative;
 }
 
 .vehicles-table th,
@@ -177,10 +181,13 @@
 /* Action Menu */
 .vehicles-action-cell {
     position: relative;
+    width: 60px;
+    text-align: center;
 }
 
 .vehicles-action-menu-container {
     position: relative;
+    display: inline-block;
 }
 
 .vehicles-action-menu-btn {
@@ -197,8 +204,8 @@
 }
 
 .vehicles-action-menu-btn:hover:not(:disabled) {
-    background-color: var(--color-grey-200);
-    color: var(--color-grey-700);
+    background-color: #EFF6FF;
+    border-color: #2563EB;
 }
 
 .vehicles-action-menu-btn:disabled {
@@ -207,21 +214,30 @@
 }
 
 .vehicles-action-menu-btn img {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 .vehicles-options-menu {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 8px);
     right: 0;
     background-color: var(--color-white);
     border: 1px solid var(--color-grey-200);
     border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-card);
-    z-index: 10;
-    min-width: 120px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 140px;
     margin-top: 4px;
+}
+
+/* Position dropdown upward for last row */
+.vehicles-options-menu-up {
+    top: auto;
+    bottom: calc(100% + 8px);
+    margin-top: 0;
+    margin-bottom: 4px;
 }
 
 .vehicles-options-menu button {

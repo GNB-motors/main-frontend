@@ -487,19 +487,16 @@ const Vehicles = ({ profile }) => {
                                         <table className="vehicles-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Name</th>
-                                                    <th>Operator</th>
-                                                    <th>Year</th>
-                                                    <th>Make</th>
+                                                    <th>Registration Number</th>
+                                                    <th>Vehicle Type</th>
+                                                    <th>Chassis Number</th>
                                                     <th>Status</th>
-                                                    <th>Current Meter</th>
-                                                    <th>License Plate</th>
                                                     <th>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td colSpan="8" className="vehicles-no-data">
+                                                    <td colSpan="5" className="vehicles-no-data">
                                                         No vehicles added yet. Click 'Add Vehicle' to start.
                                                     </td>
                                                 </tr>
@@ -510,59 +507,53 @@ const Vehicles = ({ profile }) => {
                                     <table className="vehicles-table">
                                         <thead>
                                             <tr>
-                                                <th>Name</th>
-                                                <th>Operator</th>
-                                                <th>Year</th>
-                                                <th>Make</th>
+                                                <th>Registration Number</th>
+                                                <th>Vehicle Type</th>
+                                                <th>Chassis Number</th>
                                                 <th>Status</th>
-                                                <th>Current Meter</th>
-                                                <th>License Plate</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {displayedVehicles.map(vehicle => (
-                                                <tr key={vehicle.id}>
-                                                    <td>
-                                                        <div className="vehicles-name-cell">
-                                                            <img src={CardVehicleIcon} alt="Vehicle" className="vehicles-icon-small" />
+                                            {displayedVehicles.map((vehicle, index) => {
+                                                const isLastRow = index === displayedVehicles.length - 1;
+                                                return (
+                                                    <tr key={vehicle.id}>
+                                                        <td>
                                                             <span>{vehicle.registration_no}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>-</td>
-                                                    <td>-</td>
-                                                    <td>{vehicle.vehicle_type || 'N/A'}</td>
-                                                    <td>
-                                                        <span className="vehicles-status-badge vehicles-status-active">Active</span>
-                                                    </td>
-                                                    <td>-</td>
-                                                    <td>{vehicle.registration_no}</td>
-                                                    <td className="vehicles-action-cell">
-                                                        <div className={`vehicles-action-menu-container vehicles-action-menu-container-${vehicle.id}`} style={{ position: 'relative' }}>
-                                                            <button
-                                                                className="vehicles-action-menu-btn"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
-                                                                }}
-                                                                disabled={isSubmitting}
-                                                            >
-                                                                <img src={OptionsIcon} alt="Options" />
-                                                            </button>
-                                                            {openMenuId === vehicle.id && (
-                                                                <div className="vehicles-options-menu">
-                                                                    <button onClick={() => handleEditVehicle(vehicle)} disabled={isSubmitting}>
-                                                                        <Edit size={16} /> Edit
-                                                                    </button>
-                                                                    <button onClick={() => handleOpenDeleteModal(vehicle)} disabled={isSubmitting}>
-                                                                        <Trash2 size={16} /> Remove
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                        </td>
+                                                        <td>{vehicle.vehicle_type || 'N/A'}</td>
+                                                        <td>{vehicle.chassis_number || '-'}</td>
+                                                        <td>
+                                                            <span className="vehicles-status-badge vehicles-status-active">Active</span>
+                                                        </td>
+                                                        <td className="vehicles-action-cell">
+                                                            <div className={`vehicles-action-menu-container vehicles-action-menu-container-${vehicle.id}`} style={{ position: 'relative' }}>
+                                                                <button
+                                                                    className="vehicles-action-menu-btn"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
+                                                                    }}
+                                                                    disabled={isSubmitting}
+                                                                >
+                                                                    <img src={OptionsIcon} alt="Options" />
+                                                                </button>
+                                                                {openMenuId === vehicle.id && (
+                                                                    <div className={`vehicles-options-menu ${isLastRow ? 'vehicles-options-menu-up' : ''}`}>
+                                                                        <button onClick={() => handleEditVehicle(vehicle)} disabled={isSubmitting}>
+                                                                            <Edit size={16} /> Edit
+                                                                        </button>
+                                                                        <button onClick={() => handleOpenDeleteModal(vehicle)} disabled={isSubmitting}>
+                                                                            <Trash2 size={16} /> Delete
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 )}
