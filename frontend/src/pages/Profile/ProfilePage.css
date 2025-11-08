@@ -12,7 +12,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 1004; /* Above navbar (1001 desktop, 1003 mobile) */
 }
 
 .profile-modal-content {
@@ -23,6 +23,8 @@
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
+    position: relative;
+    z-index: 1005; /* Above overlay */
 }
 
 .profile-modal-header {
@@ -628,7 +630,7 @@ input:checked + .slider:before {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 1004; /* Above navbar (1001 desktop, 1003 mobile) */
     padding: var(--spacing-lg);
 }
 
@@ -641,6 +643,8 @@ input:checked + .slider:before {
     max-height: 90vh;
     overflow-y: auto;
     animation: modalSlideIn 0.3s ease-out;
+    position: relative;
+    z-index: 1005; /* Above overlay */
 }
 
 @keyframes modalSlideIn {

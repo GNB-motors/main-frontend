@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import DashboardLayout from './components/DashboardLayout';
 // Updated import path for ProfileProvider
 import { ProfileProvider } from './pages/Profile/ProfileContext.jsx';
+import { VehicleActionsProvider } from './pages/Vehicles/VehicleActionsContext.jsx';
 
 // Updated page imports
 import LoginPage from './pages/Login/LoginPage.jsx';
@@ -15,6 +16,7 @@ import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage  from './pages/Drivers/DriversPage.jsx';
+import VehiclesPage from './pages/Vehicles/VehiclesPage.jsx';
 
 
 function App() {
@@ -27,17 +29,20 @@ function App() {
       <Route path="/admin/new-user" element={<SignUpPage/>} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
-      {/* Protected Routes inside DashboardLayout, wrapped by ProfileProvider */}
+      {/* Protected Routes inside DashboardLayout, wrapped by ProfileProvider and VehicleActionsProvider */}
       <Route
         element={
           <ProfileProvider> {/* <-- Wrap DashboardLayout routes */}
-            <DashboardLayout />
+            <VehicleActionsProvider>
+              <DashboardLayout />
+            </VehicleActionsProvider>
           </ProfileProvider>
         }
       >
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
+        <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/request-report" element={<RequestFormPage />} />
         <Route path="/settings" element={<SettingsPage />} />

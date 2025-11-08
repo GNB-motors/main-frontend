@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Plus, Menu } from 'lucide-react';
 import { getPrimaryColor, getThemeCSS } from '../utils/colorTheme';
+import { useVehicleActions } from '../pages/Vehicles/VehicleActionsContext.jsx';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
     const location = useLocation();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
+    const { onAddVehicle } = useVehicleActions();
+    const isVehiclesPage = location.pathname === '/vehicles';
     
     // Update theme colors when component mounts or profile color changes
     useEffect(() => {
@@ -32,6 +35,12 @@ const Navbar = ({ toggleSidebar }) => {
         return path.charAt(0).toUpperCase() + path.slice(1);
     };
 
+    const handleAddVehicle = () => {
+        if (onAddVehicle) {
+            onAddVehicle();
+        }
+    };
+
     console.log('Navbar rendering with themeColors:', themeColors);
     
     return (
@@ -41,25 +50,49 @@ const Navbar = ({ toggleSidebar }) => {
                 <h2>{getPageTitle()}</h2>
             </div>
             <div className="navbar-right">
-                <Link 
-                    to="/request-report" 
-                    className="btn btn-primary"
-                    style={{
-                        backgroundColor: themeColors['--primary-color'] || '#3B82F6',
-                        color: 'white',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        textDecoration: 'none',
-                        fontWeight: '600',
-                        marginBottom: '10px',
-                    }}
-                >
-                    <Plus size={16} />
-                    <span>Request New Report</span>
-                </Link>
+                {isVehiclesPage && onAddVehicle ? (
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleAddVehicle}
+                        style={{
+                            backgroundColor: themeColors['--primary-color'] || '#3B82F6',
+                            color: 'white',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                            fontWeight: '600',
+                            marginBottom: '10px',
+                            border: 'none',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <Plus size={16} />
+                        <span>Add Vehicle</span>
+                    </button>
+                ) : (
+                    <Link 
+                        to="/request-report" 
+                        className="btn btn-primary"
+                        style={{
+                            backgroundColor: themeColors['--primary-color'] || '#3B82F6',
+                            color: 'white',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                            fontWeight: '600',
+                            marginBottom: '10px',
+                        }}
+                    >
+                        <Plus size={16} />
+                        <span>Request New Report</span>
+                    </Link>
+                )}
             </div>
         </header>
     );

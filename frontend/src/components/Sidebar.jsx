@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User } from 'lucide-react'; // Added Users and User icons
+import { Grid, FileText, Settings, LogOut, Users, User, Truck } from 'lucide-react'; // Added Users, User, and Truck icons
 import UkoLogo from '../assets/uko-logo.png';
 import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
 import './Sidebar.css';
@@ -69,6 +69,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <span>Employees</span>
                     </NavLink>
                     {/* ------------------------- */}
+                    <NavLink to="/vehicles" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <Truck size={20} />
+                        <span>Vehicles</span>
+                    </NavLink>
                     {/* <NavLink to="/settings" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Settings size={20} /><span>Settings</span>
                     </NavLink> */}
