@@ -473,13 +473,13 @@ const Step2Login = ({ formData, updateFormData, onBack, onSubmit, isLoading, err
                 >
                     Password
                 </button>
-                <button 
+                {/* <button 
                     type="button"
                     className={`tab-button ${formData.loginMethod === 'otp' ? 'active' : ''}`}
                     onClick={() => setLoginMethod('otp')}
                 >
                     OTP
-                </button>
+                </button> */}
             </div>
 
             {/* Tab Content */}
