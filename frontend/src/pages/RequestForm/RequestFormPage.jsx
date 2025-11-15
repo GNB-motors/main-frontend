@@ -1047,51 +1047,62 @@ const ImageUploader = ({
 }) => (
   <div className="image-uploader">
     <h5>{title}</h5>
-    {!preview ? (
-      <label className="upload-box">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => onUpload(e.target.files[0], type)}
-        />
-        <img src={UploadIcon} alt="Upload" />
-        <span>Click to upload or drag & drop</span>
-      </label>
-    ) : (
-      <div className="image-preview-container">
-        <img src={preview} alt="Receipt preview" className="image-preview" />
-        <button className="remove-image-btn" onClick={() => onRemove(type)}>
-          ×
-        </button>
-      </div>
-    )}
 
-    {isLoading && <div className="loading-spinner">Processing image...</div>}
-    {error && <div className="error-message">{error}</div>}
-    {extractedData && (
-      <div className="extracted-data-table">
-        <table>
-          <tbody>
-            <tr>
-              <td>Date</td>
-              <td>{extractedData.date}</td>
-            </tr>
-            <tr>
-              <td>Time</td>
-              <td>{extractedData.time}</td>
-            </tr>
-            <tr>
-              <td>Vehicle No</td>
-              <td>{extractedData.vehicle_no}</td>
-            </tr>
-            <tr>
-              <td>Diesel Volume</td>
-              <td>{extractedData.volume.toFixed(2)} Litres</td>
-            </tr>
-          </tbody>
-        </table>
+    <div className="image-uploader-content">
+      {/* Left: Upload/Preview */}
+      <div className="upload-preview-section">
+        {!preview ? (
+          <label className="upload-box">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => onUpload(e.target.files[0], type)}
+            />
+            <img src={UploadIcon} alt="Upload" />
+            <span>Click to upload or drag & drop</span>
+          </label>
+        ) : (
+          <div className="image-preview-container">
+            <img src={preview} alt="Receipt preview" className="image-preview" />
+            <button className="remove-image-btn" onClick={() => onRemove(type)}>
+              ×
+            </button>
+          </div>
+        )}
+
+        {isLoading && <div className="loading-spinner">Processing image...</div>}
+        {error && <div className="error-message">{error}</div>}
       </div>
-    )}
+
+      {/* Right: Details in same style as Last Refuel */}
+      <div className="extracted-info-section">
+        {extractedData ? (
+          <>
+            <div className="data-header">Receipt Details</div>
+            <div className="refuel-data-grid">
+              <div className="refuel-data-item">
+                <span className="label">Date:</span>
+                <span className="value">{extractedData.date}</span>
+              </div>
+              <div className="refuel-data-item">
+                <span className="label">Time:</span>
+                <span className="value">{extractedData.time}</span>
+              </div>
+              <div className="refuel-data-item">
+                <span className="label">Vehicle:</span>
+                <span className="value">{extractedData.vehicle_no}</span>
+              </div>
+              <div className="refuel-data-item">
+                <span className="label">Volume:</span>
+                <span className="value">{extractedData.volume.toFixed(2)} L</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="waiting-state">Upload a receipt to see details.</div>
+        )}
+      </div>
+    </div>
   </div>
 );
 
