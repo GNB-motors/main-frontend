@@ -1,605 +1,1286 @@
-import React, { useState, useEffect } from 'react';
-import apiClient from '../../utils/axiosConfig'; 
-import './RequestFormPage.css';
-import OTP from './OTP';
+import React, { useState, useEffect, useMemo } from "react";
+import apiClient from "../../utils/axiosConfig";
+import "./RequestFormPage.css";
+import ReportTypeSelectionModal from "./ReportTypeSelectionModal";
 
 // Import assets
-import UkoLogo from '../../assets/uko-logo.png';
-import ReportDetailsIcon from '../../assets/report-details-icon.svg';
-import UploadIcon from '../../assets/upload-icon.svg';
-import SuccessIcon from '../../assets/success-icon.svg';
-import LoginSubmitIcon from '../../assets/login-submit-icon.svg';
+import UkoLogo from "../../assets/uko-logo.png";
+import ReportDetailsIcon from "../../assets/report-details-icon.svg";
+import UploadIcon from "../../assets/upload-icon.svg";
+import SuccessIcon from "../../assets/success-icon.svg";
+import LoginSubmitIcon from "../../assets/login-submit-icon.svg";
 
 const RequestFormPage = () => {
-    const [currentStep, setCurrentStep] = useState(1);
-    
-    // This will hold the logged-in user's profile data
-    const [tmsProfile, setTmsProfile] = useState(null);
-    const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [currentStep, setCurrentStep] = useState(1);
 
-    // Vehicle data state
-    const [vehicles, setVehicles] = useState([]);
-    const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
-    const [vehicleError, setVehicleError] = useState(null);
+  // This will hold the logged-in user's profile data
+  const [tmsProfile, setTmsProfile] = useState(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-    const [formData, setFormData] = useState({
-        selectedVehicle: '',
-        dieselBefore: null,
-        dieselAfter: null,
-        email: '', // This is ONLY for the Fleet Edge login
-        password: '', // This is ONLY for the Fleet Edge login
-        mobileNumber: '', // For OTP login
-        otp: '', // For OTP login
-        loginMethod: 'password', // 'password' or 'otp'
-    });
-    const [extractedData, setExtractedData] = useState({
-        before: null,
-        after: null,
-    });
-    const [previews, setPreviews] = useState({
-        before: null,
-        after: null,
-    });
-    const [error, setError] = useState({
-        before: null,
-        after: null,
-        submit: null,
-        profile: null,
-    });
-    const [isLoading, setIsLoading] = useState({
-        before: false,
-        after: false,
-        submit: false,
-    });
-    const [finalReportData, setFinalReportData] = useState(null);
+  // Vehicle data state
+  const [vehicles, setVehicles] = useState([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+  const [vehicleError, setVehicleError] = useState(null);
 
-    // Fetch the user's profile AND vehicles on component load
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            try {
-                // 1. Fetch Profile
-                const profileResponse = await apiClient.get('api/v1/profile/me');
-                const profile = profileResponse.data;
-                setTmsProfile(profile);
+  // Report type selection
+  const [reportType, setReportType] = useState(null); // 'custom_trip' | 'since_last_refuel'
+  const [showTypeModal, setShowTypeModal] = useState(true);
+  const [latestRefuel, setLatestRefuel] = useState(null);
+  const [refuelError, setRefuelError] = useState(null);
+  const [isLoadingRefuel, setIsLoadingRefuel] = useState(false);
 
-                // 2. Fetch Vehicles using profile data
-                if (profile.business_ref_id) {
-                    try {
-                        // Note: Adjust this endpoint if it's different in your API
-                        const vehiclesResponse = await apiClient.get(`api/v1/vehicles/${profile.business_ref_id}`);
-                        setVehicles(vehiclesResponse.data);
-                        setVehicleError(null);
-                    } catch (vehErr) {
-                        console.error('Error fetching vehicles:', vehErr);
-                        setVehicleError(vehErr.response?.data?.detail || 'Failed to load vehicles.');
-                    } finally {
-                        setIsLoadingVehicles(false);
-                    }
-                } else {
-                    setVehicleError('Business ID not found in profile. Cannot load vehicles.');
-                    setIsLoadingVehicles(false);
-                }
+  const [formData, setFormData] = useState({
+    selectedVehicle: "",
+    dieselBefore: null,
+    dieselAfter: null,
+    email: "", // This is ONLY for the Fleet Edge login
+    password: "", // This is ONLY for the Fleet Edge login
+    loginMethod: "password", // 'password' | 'otp'
+    mobileNumber: "", // For mobile OTP login
+  });
+  const [extractedData, setExtractedData] = useState({
+    before: null,
+    after: null,
+  });
+  const [previews, setPreviews] = useState({
+    before: null,
+    after: null,
+  });
+  const [error, setError] = useState({
+    before: null,
+    after: null,
+    submit: null,
+    profile: null,
+  });
+  const [isLoading, setIsLoading] = useState({
+    before: false,
+    after: false,
+    submit: false,
+  });
+  const [finalReportData, setFinalReportData] = useState(null);
 
-            } catch (profErr) {
-                // Profile fetch failed
-                const errorMsg = profErr.response?.data?.detail || 'Could not fetch your profile. Please log in again.';
-                setError(prev => ({ ...prev, profile: errorMsg }));
-                setIsLoadingVehicles(false); // Can't load vehicles if profile fails
-            } finally {
-                setIsProfileLoading(false); // Profile loading is done
+  // --- WS: OTP handling state ---
+  const [sessionId, setSessionId] = useState(() => {
+    const existing = sessionStorage.getItem("wsSessionId");
+    if (existing) return existing;
+    const gen =
+      window.crypto && window.crypto.randomUUID
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    sessionStorage.setItem("wsSessionId", gen);
+    return gen;
+  });
+  const [showOtp, setShowOtp] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpStatus, setOtpStatus] = useState(null);
+  const [backendWaitingOtp, setBackendWaitingOtp] = useState(false);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const otpRefs = React.useRef([]);
+
+  const WS_URL = useMemo(() => {
+    const api = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+    return api.replace(/^http/, "ws");
+  }, []);
+
+  const [wsReady, setWsReady] = useState(false);
+  const [wsConnecting, setWsConnecting] = useState(false);
+  const [wsRetryCount, setWsRetryCount] = useState(0);
+  const [wsKey, setWsKey] = useState(0); // bump to recreate WS
+  const backoffTimerRef = React.useRef(null);
+  const currentReconnectRunIdRef = React.useRef(0);
+  const [wsError, setWsError] = useState(null);
+  const [autoConnectExhausted, setAutoConnectExhausted] = useState(false);
+  const ws = useMemo(() => {
+    try {
+      return new WebSocket(`${WS_URL}/ws/automation?sessionId=${sessionId}`);
+    } catch (e) {
+      return null;
+    }
+  }, [WS_URL, sessionId, wsKey]);
+
+  useEffect(() => {
+    if (!ws) return;
+    setWsReady(false);
+    setWsConnecting(true);
+    ws.onopen = () => {
+      setWsReady(true);
+      setWsConnecting(false);
+      setWsRetryCount(0);
+      setWsError(null);
+      setAutoConnectExhausted(false);
+      if (backoffTimerRef.current) {
+        clearTimeout(backoffTimerRef.current);
+        backoffTimerRef.current = null;
+      }
+    };
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "connected") {
+          // No-op; wsReady already set in onopen; keep for visibility
+        } else if (
+          msg.type === "error" &&
+          msg.message === "session_already_connected"
+        ) {
+          setWsError(
+            "Another tab/device is already connected for this session.",
+          );
+          setWsConnecting(false);
+          setWsReady(false);
+          setAutoConnectExhausted(true);
+          // Cancel any ongoing reconnect loop for this tab
+          currentReconnectRunIdRef.current += 1;
+          if (backoffTimerRef.current) {
+            clearTimeout(backoffTimerRef.current);
+            backoffTimerRef.current = null;
+          }
+          try {
+            ws.close();
+          } catch {}
+        } else if (msg.type === "otp_required" || msg.type === "otp_now") {
+          setBackendWaitingOtp(true);
+          setOtpStatus(null);
+          resetOtpInputs();
+          setShowOtp(true);
+        } else if (msg.type === "status") {
+          // Could optionally surface status messages
+        } else if (msg.type === "otp_result") {
+          setBackendWaitingOtp(false);
+          if (msg.ok) {
+            setOtpStatus("ok");
+            setShowOtp(false);
+            resetOtpInputs();
+          } else {
+            setOtpStatus("error");
+            // Auto-close on timeout and surface an error
+            if (msg.message === "timeout") {
+              setShowOtp(false);
+              setError((prev) => ({
+                ...prev,
+                submit: "OTP timed out. Please try again.",
+              }));
+              setIsLoading((prev) => ({ ...prev, submit: false }));
             }
-        };
-
-        fetchInitialData();
-    }, []); // Empty array means this runs once on mount
-
-
-    const goToStep = (step) => setCurrentStep(step);
-
-    const updateFormData = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleImageUpload = async (file, type) => {
-        if (!file) return;
-
-        const previewUrl = URL.createObjectURL(file);
-        setPreviews(prev => ({ ...prev, [type]: previewUrl }));
-        updateFormData(type === 'before' ? 'dieselBefore' : 'dieselAfter', file);
-        setIsLoading(prev => ({...prev, [type]: true}));
-        setError(prev => ({...prev, [type]: null}));
-        setExtractedData(prev => ({...prev, [type]: null}));
-
-        const uploadFormData = new FormData();
-        uploadFormData.append('receipt', file);
-
-        try {
-            // Use apiClient to call your unified backend
-            const response = await apiClient.post('api/v1/ocr/process-receipt', uploadFormData);
-            setExtractedData(prev => ({ ...prev, [type]: response.data.data }));
-        } catch (err) {
-            const errorMsg = err.response?.data?.detail || 'Failed to process image.';
-            setError(prev => ({ ...prev, [type]: errorMsg }));
-            setPreviews(prev => ({ ...prev, [type]: null }));
-        } finally {
-             setIsLoading(prev => ({...prev, [type]: false}));
+          }
+        } else if (msg.type === "automation_complete") {
+          const data = msg.data;
+          if (data) {
+            setFinalReportData(data);
+            setIsLoading((prev) => ({ ...prev, submit: false }));
+            setTimeout(() => goToStep(3), 0);
+          } else {
+            setError((prev) => ({
+              ...prev,
+              submit: "Automation completed with no data.",
+            }));
+            setIsLoading((prev) => ({ ...prev, submit: false }));
+          }
+        } else if (msg.type === "automation_error") {
+          setError((prev) => ({
+            ...prev,
+            submit: msg.message || "Automation failed.",
+          }));
+          setIsLoading((prev) => ({ ...prev, submit: false }));
         }
+      } catch {
+        // ignore malformed
+      }
     };
-
-    const removeImage = (type) => {
-        setPreviews(prev => ({ ...prev, [type]: null }));
-        setExtractedData(prev => ({ ...prev, [type]: null }));
-        updateFormData(type === 'before' ? 'dieselBefore' : 'dieselAfter', null);
+    ws.onclose = () => {
+      setWsReady(false);
     };
+    return () => {
+      try {
+        ws.close();
+      } catch {}
+      setWsReady(false);
+      setBackendWaitingOtp(false);
+    };
+  }, [ws]);
 
-    const handleSubmit = async (e) => {
+  const computeBackoffDelay = (attemptNumber) => {
+    const baseMs = 1000; // 1s
+    const maxMs = 15000; // 15s cap
+    const jitterRatio = 0.25; // +/-25% jitter
+    const exponential = Math.min(baseMs * Math.pow(2, attemptNumber), maxMs);
+    const spread = exponential * jitterRatio;
+    const min = Math.max(0, exponential - spread);
+    const max = exponential + spread;
+    return Math.floor(min + Math.random() * (max - min));
+  };
+
+  const reconnectWithBackoff = (maxAttempts = 6) => {
+    if (wsReady) return;
+    setWsConnecting(true);
+    // Cancel any in-flight reconnect loop by bumping the run id
+    const runId = ++currentReconnectRunIdRef.current;
+    const attempt = (n) => {
+      // If a newer reconnect loop started, stop this one
+      if (runId !== currentReconnectRunIdRef.current) return;
+      if (wsReady) {
+        setWsConnecting(false);
+        return;
+      }
+      setWsRetryCount(n);
+      setWsKey((prev) => prev + 1); // recreate WS
+      if (n >= maxAttempts) {
+        if (runId !== currentReconnectRunIdRef.current) return;
+        setWsConnecting(false);
+        setAutoConnectExhausted(true);
+        return;
+      }
+      const delay = computeBackoffDelay(n);
+      if (backoffTimerRef.current) clearTimeout(backoffTimerRef.current);
+      backoffTimerRef.current = setTimeout(() => attempt(n + 1), delay);
+    };
+    attempt(0);
+  };
+
+  // Auto-connect WS if not connected
+  useEffect(() => {
+    if (
+      !wsReady &&
+      !wsConnecting &&
+      wsError !== "Another tab/device is already connected for this session." &&
+      !autoConnectExhausted
+    ) {
+      reconnectWithBackoff(6);
+    }
+    return () => {
+      if (backoffTimerRef.current) {
+        clearTimeout(backoffTimerRef.current);
+      }
+    };
+  }, [wsReady, wsConnecting, wsError, autoConnectExhausted]);
+
+  const submitOtpWs = () => {
+    if (!ws) return;
+    const combined = otpDigits.join("").trim() || otpValue.trim();
+    if (!combined || combined.length < 4) return;
+    ws.send(JSON.stringify({ type: "otp_submit", otp: combined }));
+  };
+
+  const resetOtpInputs = () => {
+    setOtpDigits(["", "", "", "", "", ""]);
+    setOtpValue("");
+    setTimeout(() => {
+      if (otpRefs.current && otpRefs.current[0]) {
+        otpRefs.current[0].focus();
+      }
+    }, 50);
+  };
+
+  const handleOtpChange = (index, val) => {
+    const digit = (val || "").replace(/[^0-9]/g, "").slice(0, 1);
+    setOtpDigits((prev) => {
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
+    if (digit && otpRefs.current[index + 1]) {
+      otpRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (
+      e.key === "Backspace" &&
+      !otpDigits[index] &&
+      otpRefs.current[index - 1]
+    ) {
+      otpRefs.current[index - 1].focus();
+    }
+    if (e.key === "ArrowLeft" && otpRefs.current[index - 1]) {
+      otpRefs.current[index - 1].focus();
+    }
+    if (e.key === "ArrowRight" && otpRefs.current[index + 1]) {
+      otpRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    try {
+      const text = (e.clipboardData.getData("text") || "")
+        .replace(/[^0-9]/g, "")
+        .slice(0, 6);
+      if (text) {
         e.preventDefault();
-        setIsLoading(prev => ({ ...prev, submit: true }));
-        setError(prev => ({ ...prev, submit: null }));
+        const arr = text.split("");
+        const next = ["", "", "", "", "", ""];
+        for (let i = 0; i < Math.min(arr.length, 6); i++) next[i] = arr[i];
+        setOtpDigits(next);
+        const focusIndex = Math.min(text.length, 5);
+        setTimeout(() => {
+          if (otpRefs.current[focusIndex]) otpRefs.current[focusIndex].focus();
+        }, 0);
+      }
+    } catch {}
+  };
 
-        if (!tmsProfile) {
-            setError(prev => ({ ...prev, submit: "User profile not loaded. Cannot submit." }));
-            setIsLoading(prev => ({ ...prev, submit: false }));
-            return;
+  // Fetch the user's profile AND vehicles on component load
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        // 1. Fetch Profile
+        const profileResponse = await apiClient.get("api/v1/profile/me");
+        const profile = profileResponse.data;
+        setTmsProfile(profile);
+
+        // 2. Fetch Vehicles using profile data
+        if (profile.business_ref_id) {
+          try {
+            // Note: Adjust this endpoint if it's different in your API
+            const vehiclesResponse = await apiClient.get(
+              `api/v1/vehicles/${profile.business_ref_id}`,
+            );
+            setVehicles(vehiclesResponse.data);
+            setVehicleError(null);
+          } catch (vehErr) {
+            console.error("Error fetching vehicles:", vehErr);
+            setVehicleError(
+              vehErr.response?.data?.detail || "Failed to load vehicles.",
+            );
+          } finally {
+            setIsLoadingVehicles(false);
+          }
+        } else {
+          setVehicleError(
+            "Business ID not found in profile. Cannot load vehicles.",
+          );
+          setIsLoadingVehicles(false);
         }
+      } catch (profErr) {
+        // Profile fetch failed
+        const errorMsg =
+          profErr.response?.data?.detail ||
+          "Could not fetch your profile. Please log in again.";
+        setError((prev) => ({ ...prev, profile: errorMsg }));
+        setIsLoadingVehicles(false); // Can't load vehicles if profile fails
+      } finally {
+        setIsProfileLoading(false); // Profile loading is done
+      }
+    };
 
-        // ✅ Clean and properly typed payload
-        const cleanPayload = {
-            extractedData: {
-                before: extractedData.before ? {
-                    date: extractedData.before.date,
-                    time: extractedData.before.time,
-                    vehicle_no: extractedData.before.vehicle_no,
-                    volume: Number(extractedData.before.volume)
-                } : null,
-                after: extractedData.after ? {
+    fetchInitialData();
+  }, []); // Empty array means this runs once on mount
+
+  const goToStep = (step) => setCurrentStep(step);
+
+  const updateFormData = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Handle report type selection
+  const handleSelectReportType = async (type) => {
+    setReportType(type);
+    setShowTypeModal(false);
+
+    // If "since_last_refuel", fetch the latest refuel when vehicle is selected
+    if (type === "since_last_refuel" && formData.selectedVehicle && tmsProfile) {
+      await fetchLatestRefuel(formData.selectedVehicle);
+    }
+  };
+
+  // Fetch latest refuel for selected vehicle
+  const fetchLatestRefuel = async (vehicleRegNo) => {
+    if (!tmsProfile || !vehicleRegNo) return;
+
+    setIsLoadingRefuel(true);
+    setRefuelError(null);
+    setLatestRefuel(null);
+
+    try {
+      const response = await apiClient.get(
+        `api/v1/ocr/latest-refuel/${tmsProfile.id}/${vehicleRegNo}`
+      );
+      setLatestRefuel(response.data);
+    } catch (err) {
+      const errorMsg =
+        err.response?.status === 404
+          ? "No previous refuel record found for this vehicle. Please use Custom Trip mode."
+          : err.response?.data?.detail || "Failed to fetch refuel data.";
+      setRefuelError(errorMsg);
+      setLatestRefuel(null);
+    } finally {
+      setIsLoadingRefuel(false);
+    }
+  };
+
+  // Watch for vehicle changes in "since_last_refuel" mode
+  useEffect(() => {
+    if (reportType === "since_last_refuel" && formData.selectedVehicle && tmsProfile) {
+      fetchLatestRefuel(formData.selectedVehicle);
+    }
+  }, [formData.selectedVehicle, reportType, tmsProfile]);
+
+  const handleImageUpload = async (file, type) => {
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setPreviews((prev) => ({ ...prev, [type]: previewUrl }));
+    updateFormData(type === "before" ? "dieselBefore" : "dieselAfter", file);
+    setIsLoading((prev) => ({ ...prev, [type]: true }));
+    setError((prev) => ({ ...prev, [type]: null }));
+    setExtractedData((prev) => ({ ...prev, [type]: null }));
+
+    const uploadFormData = new FormData();
+    uploadFormData.append("receipt", file);
+
+    try {
+      // Use apiClient to call your unified backend
+      const response = await apiClient.post(
+        "api/v1/ocr/process-receipt",
+        uploadFormData,
+      );
+      setExtractedData((prev) => ({ ...prev, [type]: response.data.data }));
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || "Failed to process image.";
+      setError((prev) => ({ ...prev, [type]: errorMsg }));
+      setPreviews((prev) => ({ ...prev, [type]: null }));
+    } finally {
+      setIsLoading((prev) => ({ ...prev, [type]: false }));
+    }
+  };
+
+  const removeImage = (type) => {
+    setPreviews((prev) => ({ ...prev, [type]: null }));
+    setExtractedData((prev) => ({ ...prev, [type]: null }));
+    updateFormData(type === "before" ? "dieselBefore" : "dieselAfter", null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading((prev) => ({ ...prev, submit: true }));
+    setError((prev) => ({ ...prev, submit: null }));
+
+    if (!tmsProfile) {
+      setError((prev) => ({
+        ...prev,
+        submit: "User profile not loaded. Cannot submit.",
+      }));
+      setIsLoading((prev) => ({ ...prev, submit: false }));
+      return;
+    }
+
+    // Ensure WS is connected if using OTP method
+    if (formData.loginMethod === "otp") {
+      let waitMs = 0;
+      if (!wsReady && !wsConnecting) {
+        reconnectWithBackoff(6);
+      }
+      while (!wsReady && waitMs < 10000) {
+        await new Promise((res) => setTimeout(res, 100));
+        waitMs += 100;
+      }
+    }
+
+    // ✅ Clean and properly typed payload
+    const cleanPayload = {
+      report_type: reportType || "custom_trip",
+      extractedData:
+        reportType === "since_last_refuel"
+          ? {
+              // Only send "after" image data for refuel flow
+              after: extractedData.after
+                ? {
                     date: extractedData.after.date,
                     time: extractedData.after.time,
                     vehicle_no: extractedData.after.vehicle_no,
-                    volume: Number(extractedData.after.volume)
-                } : null,
+                    volume: Number(extractedData.after.volume),
+                  }
+                : null,
+            }
+          : {
+              // Send both for custom trip
+              before: extractedData.before
+                ? {
+                    date: extractedData.before.date,
+                    time: extractedData.before.time,
+                    vehicle_no: extractedData.before.vehicle_no,
+                    volume: Number(extractedData.before.volume),
+                  }
+                : null,
+              after: extractedData.after
+                ? {
+                    date: extractedData.after.date,
+                    time: extractedData.after.time,
+                    vehicle_no: extractedData.after.vehicle_no,
+                    volume: Number(extractedData.after.volume),
+                  }
+                : null,
             },
-            loginDetails: formData.loginMethod === 'password' 
-                ? { email: formData.email, password: formData.password }
-                : { mobile: formData.mobileNumber, otp: formData.otp },
-            selected_vehicle_registration_no: formData.selectedVehicle,
-        };
+      loginDetails:
+        formData.loginMethod === "otp"
+          ? { login_method: "otp", mobile_number: formData.mobileNumber }
+          : {
+              login_method: "password",
+              email: formData.email,
+              password: formData.password,
+            },
+      selected_vehicle_registration_no: formData.selectedVehicle,
+      session_id: sessionStorage.getItem("wsSessionId") || null,
+    };
 
+    // Add refuel flow data if applicable
+    if (reportType === "since_last_refuel" && latestRefuel) {
+      cleanPayload.refuel_flow_data = {
+        use_stored_refuel: true,
+        stored_refuel_id: latestRefuel.id,
+      };
+    }
+
+    // Send over WebSocket instead of HTTP
+    if (!ws || !wsReady) {
+      setError((prev) => ({
+        ...prev,
+        submit: "OTP channel is not connected. Please connect and try again.",
+      }));
+      setIsLoading((prev) => ({ ...prev, submit: false }));
+      return;
+    }
+    try {
+      if (formData.loginMethod === "otp" && formData.mobileNumber) {
         try {
-            // ✅ Single backend call — no OCR fallback now
-            const submitResponse = await apiClient.post('api/v1/ocr/submit-report', cleanPayload, { timeout: 240000 });
-            const submitResult = submitResponse.data;
-
-            // Expect backend to directly return data
-            if (submitResult.data) {
-                console.log("✅ Report generated successfully!");
-                setFinalReportData(submitResult.data);
-                goToStep(3);
-            } else {
-                console.error("❌ Unexpected backend response:", submitResult);
-                throw new Error("Unexpected response from report generation.");
-            }
-
-        } catch (err) {
-            let errorMsg = 'Submission process failed.';
-            if (err.response?.data?.detail) {
-                if (Array.isArray(err.response.data.detail)) {
-                    errorMsg = err.response.data.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
-                } else if (typeof err.response.data.detail === 'object') {
-                    errorMsg = err.response.data.detail.msg || JSON.stringify(err.response.data.detail);
-                } else {
-                    errorMsg = err.response.data.detail;
-                }
-            } else if (err.message) {
-                errorMsg = err.message;
-            }
-
-            console.error("Submission process failed:", err);
-            setError(prev => ({ ...prev, submit: errorMsg }));
-        } finally {
-            setIsLoading(prev => ({ ...prev, submit: false }));
-        }
-    };
-
-    // Handle Profile Loading State
-    if (isProfileLoading) {
-        return <div className="form-container">Loading user profile...</div>;
+          ws.send(
+            JSON.stringify({
+              type: "mobile_number",
+              mobile: formData.mobileNumber,
+            }),
+          );
+        } catch {}
+        // small delay to ensure server stores context before start
+        await new Promise((res) => setTimeout(res, 100));
+      }
+      ws.send(
+        JSON.stringify({ type: "start_automation", payload: cleanPayload }),
+      );
+      // Result is delivered via WS 'automation_complete' or 'automation_error'
+    } catch (err) {
+      setError((prev) => ({
+        ...prev,
+        submit: "Failed to start automation over WebSocket.",
+      }));
+      setIsLoading((prev) => ({ ...prev, submit: false }));
     }
-    
-    if (error.profile) {
-        return <div className="form-container error-message">{error.profile}</div>;
+  };
+
+  // Handle Profile Loading State
+  if (isProfileLoading) {
+    return <div className="form-container">Loading user profile...</div>;
+  }
+
+  if (error.profile) {
+    return <div className="form-container error-message">{error.profile}</div>;
+  }
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <Step1ReportDetails
+            formData={formData}
+            updateFormData={updateFormData}
+            handleImageUpload={handleImageUpload}
+            removeImage={removeImage}
+            extractedData={extractedData}
+            previews={previews}
+            isLoading={isLoading}
+            error={error}
+            vehicles={vehicles}
+            isLoadingVehicles={isLoadingVehicles}
+            vehicleError={vehicleError}
+            onNext={() => goToStep(2)}
+            reportType={reportType}
+            latestRefuel={latestRefuel}
+            refuelError={refuelError}
+            isLoadingRefuel={isLoadingRefuel}
+          />
+        );
+      case 2:
+        return (
+          <Step2Login
+            formData={formData}
+            updateFormData={updateFormData}
+            onBack={() => goToStep(1)}
+            onSubmit={handleSubmit}
+            isLoading={isLoading.submit}
+            error={error.submit}
+            wsReady={wsReady}
+            backendWaitingOtp={backendWaitingOtp}
+            wsConnecting={wsConnecting}
+            wsRetryCount={wsRetryCount}
+            wsError={wsError}
+            onConnectClick={() => reconnectWithBackoff(6)}
+          />
+        );
+      case 3:
+        return <Step3FinalReport reportData={finalReportData} />;
+      default:
+        return <div>An unexpected error occurred.</div>;
     }
+  };
 
-    const renderStep = () => {
-        switch (currentStep) {
-            case 1:
-                return <Step1ReportDetails
-                            formData={formData}
-                            updateFormData={updateFormData}
-                            handleImageUpload={handleImageUpload}
-                            removeImage={removeImage}
-                            extractedData={extractedData}
-                            previews={previews}
-                            isLoading={isLoading}
-                            error={error}
-                            vehicles={vehicles} 
-                            isLoadingVehicles={isLoadingVehicles}
-                            vehicleError={vehicleError}
-                            onNext={() => goToStep(2)}
-                        />;
-            case 2:
-                return <Step2Login
-                            formData={formData}
-                            updateFormData={updateFormData}
-                            onBack={() => goToStep(1)}
-                            onSubmit={handleSubmit}
-                            isLoading={isLoading.submit}
-                            error={error.submit}
-                            setLoginMethod={(method) => updateFormData('loginMethod', method)}
-                        />;
-            case 3:
-                return <Step3FinalReport reportData={finalReportData} />;
-            default:
-                return <div>An unexpected error occurred.</div>;
-        }
-    };
+  return (
+    <div className="form-container">
+      {/* Report Type Selection Modal */}
+      <ReportTypeSelectionModal
+        isOpen={showTypeModal}
+        onSelectType={handleSelectReportType}
+      />
 
-    return (
-        <div className="form-container">
-            <FormSidebar currentStep={currentStep} />
-            <div className="form-content">
-                {renderStep()}
+      <FormSidebar currentStep={currentStep} />
+      <div className="form-content">{renderStep()}</div>
+
+      {/* OTP Modal */}
+      {showOtp && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              padding: "20px",
+              borderRadius: "8px",
+              width: "320px",
+            }}
+          >
+            <h4>Enter OTP</h4>
+            <p style={{ fontSize: "12px", color: "#666" }}>
+              An OTP is required to continue the login.
+            </p>
+            <div
+              onPaste={handleOtpPaste}
+              style={{
+                display: "flex",
+                gap: 8,
+                justifyContent: "space-between",
+                marginTop: 10,
+              }}
+            >
+              {otpDigits.map((d, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => (otpRefs.current[idx] = el)}
+                  value={d}
+                  onChange={(e) => handleOtpChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={1}
+                  style={{
+                    width: 40,
+                    height: 44,
+                    textAlign: "center",
+                    fontSize: 18,
+                    border: "1px solid #ddd",
+                    borderRadius: 6,
+                  }}
+                />
+              ))}
             </div>
+            {otpStatus === "error" && (
+              <div
+                style={{ color: "#EF4444", fontSize: "12px", marginTop: "8px" }}
+              >
+                Invalid OTP. Try again.
+              </div>
+            )}
+            <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+              <button
+                onClick={submitOtpWs}
+                disabled={otpDigits.join("").length !== 6}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: "var(--primary-color, #3B82F6)",
+                  color: "#fff",
+                  border: 0,
+                  borderRadius: "6px",
+                  opacity: otpDigits.join("").length === 6 ? 1 : 0.7,
+                }}
+              >
+                Submit
+              </button>
+              <button
+                onClick={() => setShowOtp(false)}
+                style={{
+                  padding: "10px",
+                  background: "#e5e7eb",
+                  color: "#111827",
+                  border: 0,
+                  borderRadius: "6px",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
-
 
 const FormSidebar = ({ currentStep }) => {
-    const steps = [
-        { number: 1, title: 'Report Details', description: 'Select vehicle & upload bills.', icon: ReportDetailsIcon },
-        { number: 2, title: 'Login & Submit', description: 'Finalize your report.', icon: LoginSubmitIcon },
-        { number: 3, title: 'Report Generated', description: 'View your results.', icon: SuccessIcon },
-    ];
+  const steps = [
+    {
+      number: 1,
+      title: "Report Details",
+      description: "Select vehicle & upload bills.",
+      icon: ReportDetailsIcon,
+    },
+    {
+      number: 2,
+      title: "Login & Submit",
+      description: "Finalize your report.",
+      icon: LoginSubmitIcon,
+    },
+    {
+      number: 3,
+      title: "Report Generated",
+      description: "View your results.",
+      icon: SuccessIcon,
+    },
+  ];
 
-    return (
-        <aside className="form-sidebar">
-            <div className="sidebar-header">
-                <img src={UkoLogo} alt="Uko Logo" />
-                <h3>New Report Request</h3>
+  return (
+    <aside className="form-sidebar">
+      <div className="sidebar-header">
+        <img src={UkoLogo} alt="Uko Logo" />
+        <h3>New Report Request</h3>
+      </div>
+      <nav className="step-nav">
+        {steps.map((step) => (
+          <div
+            key={step.number}
+            className={`step-item ${currentStep === step.number ? "active" : ""} ${currentStep > step.number ? "completed" : ""}`}
+          >
+            <div className="step-icon">
+              <img src={step.icon} alt={step.title} />
             </div>
-            <nav className="step-nav">
-                {steps.map(step => (
-                    <div key={step.number} className={`step-item ${currentStep === step.number ? 'active' : ''} ${currentStep > step.number ? 'completed' : ''}`}>
-                        <div className="step-icon">
-                           <img src={step.icon} alt={step.title} />
-                        </div>
-                        <div className="step-details">
-                            <h4>{step.title}</h4>
-                            <p>{step.description}</p>
-                        </div>
-                    </div>
-                ))}
-            </nav>
-        </aside>
-    );
+            <div className="step-details">
+              <h4>{step.title}</h4>
+              <p>{step.description}</p>
+            </div>
+          </div>
+        ))}
+      </nav>
+    </aside>
+  );
 };
 
-const Step1ReportDetails = ({ formData, updateFormData, handleImageUpload, removeImage, extractedData, previews, isLoading, error, vehicles, isLoadingVehicles, vehicleError, onNext }) => {
+const Step1ReportDetails = ({
+  formData,
+  updateFormData,
+  handleImageUpload,
+  removeImage,
+  extractedData,
+  previews,
+  isLoading,
+  error,
+  vehicles,
+  isLoadingVehicles,
+  vehicleError,
+  onNext,
+  reportType,
+  latestRefuel,
+  refuelError,
+  isLoadingRefuel,
+}) => {
+  // Validation based on report type
+  const isNextDisabled =
+    reportType === "since_last_refuel"
+      ? !formData.selectedVehicle || !extractedData.after || !latestRefuel
+      : !formData.selectedVehicle || !extractedData.before || !extractedData.after;
 
-    // Helper function to normalize vehicle numbers for comparison
-    const normalizeVehicleNo = (vehicleNo) => {
-        if (!vehicleNo) return '';
-        // Remove spaces, convert to string, trim
-        return String(vehicleNo).replace(/\s+/g, '').trim();
-    };
+  // Find the selected vehicle to get its chassis number
+  const selectedVehicle = vehicles.find(
+    (vehicle) => vehicle.registration_no === formData.selectedVehicle,
+  );
 
-    // Validation logic
-    const getValidationError = () => {
-        if (!formData.selectedVehicle) {
-            return null; // Don't show tooltip for missing vehicle selection
-        }
-        
-        if (!extractedData.before || !extractedData.after) {
-            return 'Please upload both before and after journey diesel bills';
-        }
+  return (
+    <div className="form-step">
+      <h3>Report Details</h3>
+      <p>
+        {reportType === "since_last_refuel"
+          ? "Using your last refuel record. Upload the current fuel receipt to complete the report."
+          : "Select your vehicle and upload the diesel bills for your trip."}
+      </p>
+      
+      {/* Report Type Badge */}
+      <div style={{ marginBottom: "16px" }}>
+        <span
+          style={{
+            display: "inline-block",
+            padding: "6px 12px",
+            borderRadius: "4px",
+            fontSize: "14px",
+            fontWeight: "600",
+            background:
+              reportType === "since_last_refuel" ? "#10B98115" : "#3B82F615",
+            color: reportType === "since_last_refuel" ? "#10B981" : "#3B82F6",
+          }}
+        >
+          {reportType === "since_last_refuel"
+            ? "Since Last Refuel"
+            : "Custom Trip"}
+        </span>
+      </div>
+      <div className="form-group">
+        <label>Select Vehicle</label>
+        <select
+          value={formData.selectedVehicle}
+          onChange={(e) => updateFormData("selectedVehicle", e.target.value)}
+          disabled={isLoadingVehicles}
+        >
+          <option value="" disabled>
+            {isLoadingVehicles
+              ? "Loading vehicles..."
+              : "Choose a vehicle from your profile"}
+          </option>
+          {/* Use the real 'vehicles' prop */}
+          {vehicles.map((vehicle) => (
+            <option key={vehicle.id} value={vehicle.registration_no}>
+              {vehicle.registration_no} -{" "}
+              {vehicle.vehicle_type || "Unknown Type"}
+            </option>
+          ))}
+        </select>
+        {vehicleError && <div className="error-message">{vehicleError}</div>}
 
-        const selectedVehicleNo = normalizeVehicleNo(formData.selectedVehicle);
-        const beforeVehicleNo = normalizeVehicleNo(extractedData.before?.vehicle_no);
-        const afterVehicleNo = normalizeVehicleNo(extractedData.after?.vehicle_no);
+        {/* Chassis Number Placeholder */}
+        {formData.selectedVehicle && selectedVehicle && (
+          <div className="chassis-placeholder">
+            <span className="chassis-label">Chassis Number:</span>
+            <span className="chassis-value">
+              {selectedVehicle.chassis_number || "Not available"}
+            </span>
+          </div>
+        )}
+      </div>
 
-        if (!beforeVehicleNo || !afterVehicleNo) {
-            return 'Vehicle number not found in one or both receipts';
-        }
-
-        // Check if before and after match each other
-        if (beforeVehicleNo !== afterVehicleNo) {
-            return `Vehicle numbers don't match: Before (${extractedData.before.vehicle_no}) ≠ After (${extractedData.after.vehicle_no})`;
-        }
-
-        // Check if extracted vehicle numbers match selected vehicle
-        if (beforeVehicleNo !== selectedVehicleNo || afterVehicleNo !== selectedVehicleNo) {
-            return `Vehicle number mismatch: Selected (${formData.selectedVehicle}) ≠ Receipt (${beforeVehicleNo})`;
-        }
-
-        return null;
-    };
-
-    const validationError = getValidationError();
-    // Disable if no vehicle selected OR if there's a validation error
-    const isNextDisabled = !formData.selectedVehicle || !extractedData.before || !extractedData.after || validationError !== null;
-
-    // Find the selected vehicle to get its chassis number
-    const selectedVehicle = vehicles.find(vehicle => vehicle.registration_no === formData.selectedVehicle);
-
-    return (
-        <div className="form-step">
-            <h3>Report Details</h3>
-            <p>Select your vehicle and upload the diesel bills for your trip.</p>
-            <div className="form-group">
-                <label>Select Vehicle</label>
-                <select 
-                    value={formData.selectedVehicle} 
-                    onChange={e => updateFormData('selectedVehicle', e.target.value)}
-                    disabled={isLoadingVehicles}
-                >
-                    <option value="" disabled>
-                        {isLoadingVehicles ? 'Loading vehicles...' : 'Choose a vehicle from your profile'}
-                    </option>
-                    {/* Use the real 'vehicles' prop */ }
-                    {vehicles.map(vehicle => (
-                        <option key={vehicle.id} value={vehicle.registration_no}>
-                            {vehicle.registration_no} - {vehicle.vehicle_type || 'Unknown Type'}
-                        </option>
-                    ))}
-                </select>
-                {vehicleError && <div className="error-message">{vehicleError}</div>}
-                
-                {/* Chassis Number Placeholder */ }
-                {formData.selectedVehicle && selectedVehicle && (
-                    <div className="chassis-placeholder">
-                        <span className="chassis-label">Chassis Number:</span>
-                        <span className="chassis-value">{selectedVehicle.chassis_number || 'Not available'}</span>
-                    </div>
-                )}
-            </div>
-
-            <div className="upload-section">
-                <ImageUploader
-                    type="before"
-                    title="Before Journey Diesel Bill"
-                    onUpload={handleImageUpload}
-                    onRemove={removeImage}
-                    extractedData={extractedData.before}
-                    preview={previews.before}
-                    isLoading={isLoading.before}
-                    error={error.before}
-                    selectedVehicle={formData.selectedVehicle}
-                />
-                <ImageUploader
-                    type="after"
-                    title="After Journey Diesel Bill"
-                    onUpload={handleImageUpload}
-                    onRemove={removeImage}
-                    extractedData={extractedData.after}
-                    preview={previews.after}
-                    isLoading={isLoading.after}
-                    error={error.after}
-                    selectedVehicle={formData.selectedVehicle}
-                />
-            </div>
-
-            <div className="form-navigation">
-                <div className="button-wrapper">
-                    <button 
-                        className="btn-continue" 
-                        onClick={onNext} 
-                        disabled={isNextDisabled}
-                    >
-                        Continue
-                    </button>
-                    {validationError && (
-                        <div className="validation-tooltip">
-                            {validationError}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const ImageUploader = ({ type, title, onUpload, onRemove, extractedData, preview, isLoading, error, selectedVehicle }) => {
-    // Helper to normalize vehicle numbers
-    const normalizeVehicleNo = (vehicleNo) => {
-        if (!vehicleNo) return '';
-        return String(vehicleNo).replace(/\s+/g, '').trim();
-    };
-
-    // Check if vehicle number matches selected vehicle
-    const vehicleMatchError = selectedVehicle && extractedData?.vehicle_no 
-        ? (normalizeVehicleNo(selectedVehicle) !== normalizeVehicleNo(extractedData.vehicle_no))
-        : null;
-
-    return (
-        <div className="image-uploader">
-            <h5>{title}</h5>
-            {!preview ? (
-                 <label className="upload-box">
-                    <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files[0], type)} />
-                    <img src={UploadIcon} alt="Upload" />
-                    <span>Click to upload or drag & drop</span>
-                </label>
-            ) : (
-                <div className="image-preview-container">
-                    <img src={preview} alt="Receipt preview" className="image-preview" />
-                    <button className="remove-image-btn" onClick={() => onRemove(type)}>×</button>
-                </div>
+      <div className="upload-section">
+        {reportType === "since_last_refuel" ? (
+          <>
+            {/* Show Latest Refuel Data (Read-Only) */}
+            {isLoadingRefuel && (
+              <div className="refuel-display-card loading">
+                <p>Loading last refuel data...</p>
+              </div>
             )}
 
-            {isLoading && <div className="loading-spinner">Processing image...</div>}
-            {error && <div className="error-message">{error}</div>}
-            {extractedData && (
-                <div className="extracted-data-table">
-                    <table>
-                        <tbody>
-                            <tr><td>Date</td><td>{extractedData.date}</td></tr>
-                            <tr><td>Time</td><td>{extractedData.time}</td></tr>
-                            <tr>
-                                <td>Vehicle No</td>
-                                <td>{extractedData.vehicle_no}</td>
-                            </tr>
-                            <tr><td>Diesel Volume</td><td>{extractedData.volume.toFixed(2)} Litres</td></tr>
-                        </tbody>
-                    </table>
+            {refuelError && (
+              <div className="refuel-display-card error">
+                <p>{refuelError}</p>
+              </div>
+            )}
+
+            {latestRefuel && !isLoadingRefuel && (
+              <div className="refuel-display-card">
+                <h4>Last Refuel Details (Starting Point)</h4>
+                <div className="refuel-data-grid">
+                  <div className="refuel-data-item">
+                    <span className="label">Date:</span>
+                    <span className="value">{latestRefuel.date}</span>
+                  </div>
+                  <div className="refuel-data-item">
+                    <span className="label">Time:</span>
+                    <span className="value">{latestRefuel.time}</span>
+                  </div>
+                  <div className="refuel-data-item">
+                    <span className="label">Vehicle:</span>
+                    <span className="value">{latestRefuel.vehicle_no}</span>
+                  </div>
+                  <div className="refuel-data-item">
+                    <span className="label">Volume:</span>
+                    <span className="value">{latestRefuel.volume} L</span>
+                  </div>
                 </div>
+                <div className="refuel-chip">
+                  ✓ Using stored data - no upload needed
+                </div>
+              </div>
             )}
-        </div>
-    );
+
+            {/* Upload After Image Only */}
+            <ImageUploader
+              type="after"
+              title="Current Fuel Receipt"
+              onUpload={handleImageUpload}
+              onRemove={removeImage}
+              extractedData={extractedData.after}
+              preview={previews.after}
+              isLoading={isLoading.after}
+              error={error.after}
+            />
+          </>
+        ) : (
+          <>
+            {/* Custom Trip: Show Both Uploads */}
+            <ImageUploader
+              type="before"
+              title="Before Journey Diesel Bill"
+              onUpload={handleImageUpload}
+              onRemove={removeImage}
+              extractedData={extractedData.before}
+              preview={previews.before}
+              isLoading={isLoading.before}
+              error={error.before}
+            />
+            <ImageUploader
+              type="after"
+              title="After Journey Diesel Bill"
+              onUpload={handleImageUpload}
+              onRemove={removeImage}
+              extractedData={extractedData.after}
+              preview={previews.after}
+              isLoading={isLoading.after}
+              error={error.after}
+            />
+          </>
+        )}
+      </div>
+
+      <div className="form-navigation">
+        <button
+          className="btn-continue"
+          onClick={onNext}
+          disabled={isNextDisabled}
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
 };
 
-const Step2Login = ({ formData, updateFormData, onBack, onSubmit, isLoading, error, setLoginMethod }) => {
-    return (
-        <div className="form-step">
-            <h3>Login & Submit</h3>
-            <p>Enter your Fleet Edge credentials to generate and finalize the report.</p>
-            
-            {/* Tabs */}
-            <div className="login-tabs">
-                <button 
-                    type="button"
-                    className={`tab-button ${formData.loginMethod === 'password' ? 'active' : ''}`}
-                    onClick={() => setLoginMethod('password')}
-                >
-                    Password
-                </button>
-                {/* <button 
-                    type="button"
-                    className={`tab-button ${formData.loginMethod === 'otp' ? 'active' : ''}`}
-                    onClick={() => setLoginMethod('otp')}
-                >
-                    OTP
-                </button> */}
-            </div>
+const ImageUploader = ({
+  type,
+  title,
+  onUpload,
+  onRemove,
+  extractedData,
+  preview,
+  isLoading,
+  error,
+}) => (
+  <div className="image-uploader">
+    <h5>{title}</h5>
+    {!preview ? (
+      <label className="upload-box">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => onUpload(e.target.files[0], type)}
+        />
+        <img src={UploadIcon} alt="Upload" />
+        <span>Click to upload or drag & drop</span>
+      </label>
+    ) : (
+      <div className="image-preview-container">
+        <img src={preview} alt="Receipt preview" className="image-preview" />
+        <button className="remove-image-btn" onClick={() => onRemove(type)}>
+          ×
+        </button>
+      </div>
+    )}
 
-            {/* Tab Content */}
-            {formData.loginMethod === 'password' ? (
-                <form onSubmit={onSubmit}>
-                    <div className="form-group">
-                        <label>User ID / Email</label>
-                        <input 
-                            type="text" 
-                            placeholder="Enter your Fleet Edge User ID" 
-                            value={formData.email} 
-                            onChange={e => updateFormData('email', e.target.value)} 
-                            required 
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input 
-                            type="password" 
-                            placeholder="Enter your password" 
-                            value={formData.password} 
-                            onChange={e => updateFormData('password', e.target.value)} 
-                            required 
-                        />
-                    </div>
-                    {error && <div className="error-message submit-error">{error}</div>}
-                    <div className="form-navigation">
-                        <button type="button" className="btn-back" onClick={onBack}>Back</button>
-                        <button type="submit" className="btn-continue" disabled={isLoading}>
-                            {isLoading ? 'Generating Report...' : 'Submit'}
-                        </button>
-                    </div>
-                </form>
-            ) : (
-                <OTP
-                    mobileNumber={formData.mobileNumber}
-                    onMobileChange={(value) => updateFormData('mobileNumber', value)}
-                    otp={formData.otp}
-                    onOtpChange={(value) => updateFormData('otp', value)}
-                    onContinue={onSubmit}
-                    onBack={onBack}
-                    isLoading={isLoading}
-                    error={error}
-                />
-            )}
-        </div>
-    );
-};
+    {isLoading && <div className="loading-spinner">Processing image...</div>}
+    {error && <div className="error-message">{error}</div>}
+    {extractedData && (
+      <div className="extracted-data-table">
+        <table>
+          <tbody>
+            <tr>
+              <td>Date</td>
+              <td>{extractedData.date}</td>
+            </tr>
+            <tr>
+              <td>Time</td>
+              <td>{extractedData.time}</td>
+            </tr>
+            <tr>
+              <td>Vehicle No</td>
+              <td>{extractedData.vehicle_no}</td>
+            </tr>
+            <tr>
+              <td>Diesel Volume</td>
+              <td>{extractedData.volume.toFixed(2)} Litres</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+);
+
+const Step2Login = ({
+  formData,
+  updateFormData,
+  onBack,
+  onSubmit,
+  isLoading,
+  error,
+  wsReady,
+  backendWaitingOtp,
+  wsConnecting,
+  wsRetryCount,
+  wsError,
+  onConnectClick,
+}) => (
+  <div className="form-step">
+    <h3>Login & Submit</h3>
+    <p>Authenticate to FleetEdge using either Email/Password or Mobile OTP.</p>
+
+    {/* Connection indicator for OTP channel */}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        margin: "8px 0 16px",
+      }}
+    >
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 9999,
+          background: wsReady ? "#10B981" : "#EF4444",
+          display: "inline-block",
+        }}
+      />
+      <span
+        style={{
+          fontSize: 12,
+          color: wsReady ? "#065f46" : wsError ? "#7f1d1d" : "#7f1d1d",
+        }}
+      >
+        {wsReady
+          ? "OTP channel connected"
+          : wsError || "OTP channel not connected yet"}
+      </span>
+      {!wsReady && (
+        <button
+          type="button"
+          onClick={onConnectClick}
+          disabled={wsConnecting}
+          style={{
+            marginLeft: 12,
+            padding: "6px 10px",
+            fontSize: 12,
+            borderRadius: 6,
+            border: 0,
+            background: wsConnecting
+              ? "#e5e7eb"
+              : "var(--primary-color, #3B82F6)",
+            color: wsConnecting ? "#6b7280" : "#fff",
+          }}
+        >
+          {wsConnecting ? `Connecting... (${wsRetryCount})` : "Connect"}
+        </button>
+      )}
+    </div>
+
+    {backendWaitingOtp && (
+      <div
+        style={{
+          background: "#FEF3C7",
+          border: "1px solid #F59E0B",
+          color: "#92400E",
+          padding: "8px 12px",
+          borderRadius: 6,
+          marginBottom: 12,
+          fontSize: 13,
+        }}
+      >
+        Backend is waiting for your OTP. Please enter the OTP sent to your
+        mobile.
+      </div>
+    )}
+
+    {/* Toggle */}
+    <div
+      className="form-group"
+      style={{ display: "flex", gap: "12px", marginBottom: "12px" }}
+    >
+      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <input
+          type="radio"
+          name="loginMethod"
+          checked={formData.loginMethod === "password"}
+          onChange={() => updateFormData("loginMethod", "password")}
+        />
+        <span>Email & Password</span>
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <input
+          type="radio"
+          name="loginMethod"
+          checked={formData.loginMethod === "otp"}
+          onChange={() => updateFormData("loginMethod", "otp")}
+        />
+        <span>Mobile OTP</span>
+      </label>
+    </div>
+
+    <form onSubmit={onSubmit}>
+      {formData.loginMethod === "password" ? (
+        <>
+          <div className="form-group">
+            <label>User ID / Email</label>
+            <input
+              type="text"
+              placeholder="Enter your Fleet Edge User ID"
+              value={formData.email}
+              onChange={(e) => updateFormData("email", e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={(e) => updateFormData("password", e.target.value)}
+              required
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="form-group">
+            <label>Mobile Number</label>
+            <input
+              type="tel"
+              placeholder="10-digit mobile number"
+              value={formData.mobileNumber}
+              onChange={(e) =>
+                updateFormData(
+                  "mobileNumber",
+                  e.target.value.replace(/[^0-9]/g, "").slice(0, 10),
+                )
+              }
+              required
+            />
+          </div>
+          <div
+            className="hint-text"
+            style={{ fontSize: 12, color: "#6b7280", marginTop: -8 }}
+          >
+            We'll request OTP after sending your number to FleetEdge.
+          </div>
+        </>
+      )}
+
+      {error && <div className="error-message submit-error">{error}</div>}
+      <div className="form-navigation">
+        <button type="button" className="btn-back" onClick={onBack}>
+          Back
+        </button>
+        <button type="submit" className="btn-continue" disabled={isLoading}>
+          {isLoading ? "Generating Report..." : "Submit"}
+        </button>
+      </div>
+    </form>
+  </div>
+);
 
 const Step3FinalReport = ({ reportData }) => {
-    if (!reportData) {
-        return (
-            <div className="success-step">
-                <div className="loading-spinner">Loading final report...</div>
-            </div>
-        );
-    }
-
-    // Helper to safely parse and calculate
-    const getBilledFuel = () => {
-        try {
-            const distance = parseFloat(reportData["Distance (Kms)"]);
-            const actualMileage = parseFloat(reportData["Actual Mileage"].split(' ')[0]);
-            if (actualMileage > 0) {
-                return `${(distance / actualMileage).toFixed(2)} L`;
-            }
-        } catch (e) {
-            return 'N/A';
-        }
-        return 'N/A';
-    };
-
+  if (!reportData) {
     return (
-        <div className="final-report-container">
-            <div className="report-header">
-                 <img src={SuccessIcon} alt="Success" className="success-icon-large" />
-                 <div>
-                    <h3>Report Generated Successfully!</h3>
-                    <p>Here is a summary of the fuel consumption analysis.</p>
-                 </div>
-            </div>
-
-            <div className="report-card">
-                <h4>Vehicle Details</h4>
-                <p>{reportData["Vehicle Details"]}</p>
-            </div>
-
-            <div className="report-grid">
-                <div className="report-card">
-                    <h4>Odometer & Distance</h4>
-                    <div className="report-item"><span>Start:</span> <strong>{reportData["Odometer Start"]} Km</strong></div>
-                    <div className="report-item"><span>End:</span> <strong>{reportData["Odometer End"]} Km</strong></div>
-                    <div className="report-item"><span>Distance:</span> <strong>{reportData["Distance (Kms)"]} Km</strong></div>
-                </div>
-                <div className="report-card">
-                    <h4>Fuel Consumption</h4>
-                    <div className="report-item"><span>FleetEdge System:</span> <strong>{reportData["Fuel Consumed"]}</strong></div>
-                    <div className="report-item"><span>From Bills:</span> <strong>{getBilledFuel()}</strong></div>
-                </div>
-            </div>
-
-            <div className="report-card mileage-summary">
-                <h4>Mileage Analysis</h4>
-                <div className="mileage-grid">
-                    <div>
-                        <p>FleetEdge System</p>
-                        <strong>{reportData["Fuel Efficiency (FleetEdge)"]}</strong>
-                    </div>
-                    <div>
-                        <p>Calculated (System Fuel)</p>
-                        <strong>{reportData["Calculated Mileage"]}</strong>
-                    </div>
-                    <div>
-                        <p>Actual (Bill Fuel)</p>
-                        <strong>{reportData["Actual Mileage"]}</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="success-step">
+        <div className="loading-spinner">Loading final report...</div>
+      </div>
     );
+  }
+
+  // Helper to safely parse and calculate
+  const getBilledFuel = () => {
+    try {
+      const distance = parseFloat(reportData["Distance (Kms)"]);
+      const actualMileage = parseFloat(
+        reportData["Actual Mileage"].split(" ")[0],
+      );
+      if (actualMileage > 0) {
+        return `${(distance / actualMileage).toFixed(2)} L`;
+      }
+    } catch (e) {
+      return "N/A";
+    }
+    return "N/A";
+  };
+
+  return (
+    <div className="final-report-container">
+      <div className="report-header">
+        <img src={SuccessIcon} alt="Success" className="success-icon-large" />
+        <div>
+          <h3>Report Generated Successfully!</h3>
+          <p>Here is a summary of the fuel consumption analysis.</p>
+        </div>
+      </div>
+
+      <div className="report-card">
+        <h4>Vehicle Details</h4>
+        <p>{reportData["Vehicle Details"]}</p>
+      </div>
+
+      <div className="report-grid">
+        <div className="report-card">
+          <h4>Odometer & Distance</h4>
+          <div className="report-item">
+            <span>Start:</span>{" "}
+            <strong>{reportData["Odometer Start"]} Km</strong>
+          </div>
+          <div className="report-item">
+            <span>End:</span> <strong>{reportData["Odometer End"]} Km</strong>
+          </div>
+          <div className="report-item">
+            <span>Distance:</span>{" "}
+            <strong>{reportData["Distance (Kms)"]} Km</strong>
+          </div>
+        </div>
+        <div className="report-card">
+          <h4>Fuel Consumption</h4>
+          <div className="report-item">
+            <span>FleetEdge System:</span>{" "}
+            <strong>{reportData["Fuel Consumed"]}</strong>
+          </div>
+          <div className="report-item">
+            <span>From Bills:</span> <strong>{getBilledFuel()}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="report-card mileage-summary">
+        <h4>Mileage Analysis</h4>
+        <div className="mileage-grid">
+          <div>
+            <p>FleetEdge System</p>
+            <strong>{reportData["Fuel Efficiency (FleetEdge)"]}</strong>
+          </div>
+          <div>
+            <p>Calculated (System Fuel)</p>
+            <strong>{reportData["Calculated Mileage"]}</strong>
+          </div>
+          <div>
+            <p>Actual (Bill Fuel)</p>
+            <strong>{reportData["Actual Mileage"]}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default RequestFormPage;

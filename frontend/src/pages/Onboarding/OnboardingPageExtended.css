@@ -1,0 +1,393 @@
+/* ADDITIONAL STYLES FOR NEW ONBOARDING COMPONENTS */
+
+/* Step Loading - Minimalist */
+.step-loading {
+  text-align: center;
+  padding: 48px 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-grey-100);
+  border-top-color: var(--color-primary-500);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.step-loading p {
+  color: var(--color-grey-400);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* Color Swatches - Rounded & Professional */
+.color-swatches {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.color-swatch:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.color-swatch.selected {
+  border-color: var(--color-grey-800);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.color-swatch svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* Custom Hex Input - Refined */
+.custom-color-input {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-grey-100);
+}
+
+.custom-hex-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-grey-600);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hex-input-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.hex-input {
+  flex: 1;
+  max-width: 180px;
+}
+
+.color-preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-grey-200);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Theme Preview - Elegant */
+.theme-preview {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid var(--color-grey-100);
+}
+
+.theme-preview h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-grey-700);
+  margin: 0 0 14px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preview-card {
+  border: 1.5px solid var(--color-grey-200);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.preview-header {
+  padding: 14px 16px;
+  color: white;
+  font-weight: 500;
+  font-size: 15px;
+  transition: background-color 0.3s ease;
+  letter-spacing: 0.2px;
+}
+
+.preview-body {
+  padding: 18px;
+  background-color: var(--color-grey-50);
+}
+
+.preview-body p {
+  margin: 0 0 14px 0;
+  color: var(--color-grey-600);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.preview-button {
+  padding: 9px 18px;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+}
+
+.preview-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Vehicle Cards - Minimalist Design */
+.vehicle-card {
+  background-color: white;
+  border: 1.5px solid var(--color-grey-200);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vehicle-card:hover {
+  border-color: var(--color-grey-300);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.vehicle-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-grey-100);
+}
+
+.vehicle-card-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-grey-700);
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-grey-400);
+}
+
+.btn-icon:hover {
+  background-color: var(--color-grey-100);
+  color: var(--color-grey-600);
+}
+
+.btn-icon.btn-danger {
+  color: #EF4444;
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+/* Step Notice - Subtle Design */
+.step-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background-color: #FEF9E7;
+  border-left: 3px solid #F59E0B;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 24px;
+}
+
+.step-notice span {
+  font-size: 12px;
+  color: #854D0E;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* Step Actions - Consistent Button Sizes */
+.step-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-grey-100);
+}
+
+.btn {
+  padding: 11px 28px;
+  min-width: 120px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.2px;
+}
+
+.btn-primary {
+  background-color: var(--color-primary-500);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-600);
+  box-shadow: 0 2px 8px rgba(41, 64, 211, 0.2);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--color-grey-600);
+  border: 1.5px solid var(--color-grey-200);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-grey-50);
+  border-color: var(--color-grey-300);
+}
+
+.btn-add-vehicle {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
+  background-color: var(--color-grey-50);
+  border: 1.5px dashed var(--color-grey-300);
+  color: var(--color-grey-600);
+}
+
+.btn-add-vehicle:hover {
+  background-color: var(--color-grey-100);
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+}
+
+/* Responsive Design - Mobile Optimized */
+@media (max-width: 768px) {
+  .onboarding-container {
+    padding: 16px;
+  }
+
+  .onboarding-wrapper {
+    max-height: 95vh;
+  }
+
+  .onboarding-brand {
+    margin-bottom: 20px;
+  }
+
+  .onboarding-main-title {
+    font-size: 20px;
+  }
+
+  .onboarding-main-subtitle {
+    font-size: 13px;
+  }
+
+  .stepper-container {
+    padding: 16px 20px;
+  }
+
+  .stepper-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .stepper-title {
+    font-size: 12px;
+  }
+
+  .stepper-description {
+    display: none;
+  }
+
+  .stepper-line-wrapper {
+    margin: 0 12px;
+    margin-bottom: 34px;
+  }
+
+  .step-container {
+    padding: 24px 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .step-header h2 {
+    font-size: 20px;
+  }
+
+  .step-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+  }
+
+  .step-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .color-swatches {
+    justify-content: flex-start;
+  }
+
+  .vehicle-card {
+    padding: 16px;
+  }
+}

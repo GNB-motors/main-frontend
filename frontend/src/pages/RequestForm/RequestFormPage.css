@@ -299,11 +299,6 @@
     justify-content: flex-end;
     gap: var(--spacing-md);
 }
-
-.button-wrapper {
-    position: relative;
-}
-
 .btn-back, .btn-continue {
     padding: 12px 24px;
     border-radius: var(--border-radius-md);
@@ -322,79 +317,6 @@
     border-color: var(--color-grey-200);
     color: var(--color-grey-400);
     cursor: not-allowed;
-}
-
-/* Validation Tooltip */
-.validation-tooltip {
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    background-color: #ECECEE;
-    color: rgb(15, 15, 15);
-    border-radius: var(--border-radius-md);
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    min-width: 200px;
-    white-space: normal;
-    text-align: left;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-    pointer-events: none;
-}
-
-.button-wrapper:hover .validation-tooltip {
-    opacity: 1;
-    visibility: visible;
-}
-
-.validation-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    right: 20px;
-    border: 6px solid transparent;
-    border-top-color: #ECECEE;
-}
-
-
-/* Login Tabs */
-.login-tabs {
-    display: flex;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-    border-bottom: 2px solid var(--color-grey-200);
-}
-
-.tab-button {
-    padding: 12px 24px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-grey-400);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: -2px;
-}
-
-.tab-button:hover {
-    color: var(--color-primary-500);
-}
-
-.tab-button.active {
-    color: var(--color-primary-500);
-    border-bottom-color: var(--color-primary-500);
-}
-
-/* OTP Container */
-.otp-container {
-    width: 100%;
 }
 
 /* --- NEW: Final Report Styles --- */
@@ -481,4 +403,87 @@
     font-size: 24px;
     font-weight: 800;
     color: var(--color-primary-600);
+}
+
+/* ==========================================================================
+   Refuel Display Card Styles (Since Last Refuel Flow)
+   ========================================================================== */
+
+.refuel-display-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid #10B981;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+}
+
+.refuel-display-card.loading {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    border-color: #9ca3af;
+    text-align: center;
+}
+
+.refuel-display-card.error {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-color: #ef4444;
+}
+
+.refuel-display-card h4 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #065f46;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.refuel-data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.refuel-data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.refuel-data-item .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.refuel-data-item .value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #064e3b;
+}
+
+.refuel-chip {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #10B981;
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+/* ==========================================================================
+   Upload Section Adjustments for Single Upload
+   ========================================================================== */
+
+.upload-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
 }
