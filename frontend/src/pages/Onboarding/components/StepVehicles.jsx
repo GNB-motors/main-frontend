@@ -51,20 +51,22 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
     };
 
     const validateVehicles = () => {
-        // Check if at least one vehicle has all fields filled
+        // Require registration number, vehicle type, and chassis number
         const completeVehicles = vehicles.filter(v => 
-            v.registration_no.trim() && v.vehicle_type.trim()
+            v.registration_no.trim() && v.vehicle_type.trim() && v.chassis_number.trim()
         );
 
         if (completeVehicles.length === 0) {
-            toast.error('Please add at least one vehicle with registration number and type');
+            toast.error('Please add at least one vehicle with registration number, type, and chassis number');
             return false;
         }
 
-        // Check for incomplete vehicles (partially filled)
-        const incompleteVehicles = vehicles.filter(v => 
-            (v.registration_no.trim() || v.chassis_number.trim()) && !v.vehicle_type.trim()
-        );
+        // Check for incomplete vehicles (any partially filled set)
+        const incompleteVehicles = vehicles.filter(v => {
+            const hasAny = v.registration_no.trim() || v.vehicle_type.trim() || v.chassis_number.trim();
+            const missingAny = !v.registration_no.trim() || !v.vehicle_type.trim() || !v.chassis_number.trim();
+            return hasAny && missingAny;
+        });
 
         if (incompleteVehicles.length > 0) {
             toast.error('Please complete all vehicle fields or remove incomplete entries');
@@ -84,7 +86,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
         try {
             // Filter out empty vehicles
             const validVehicles = vehicles.filter(v => 
-                v.registration_no.trim() && v.vehicle_type.trim()
+                v.registration_no.trim() && v.vehicle_type.trim() && v.chassis_number.trim()
             );
 
             // Save to sessionStorage
@@ -97,11 +99,11 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
 
             // Prepare payload for backend
             const onboardingPayload = {
-                profile_data: {
+                profile: {
                     business_name: companyData.companyName,
-                    profile_color: companyData.selectedColor
+                    profile_color: companyData.selectedColor || null,
                 },
-                vehicles_data: validVehicles
+                vehicles: validVehicles,
             };
 
             // Get auth token
@@ -200,7 +202,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
 
                         <div className="form-group">
                             <label htmlFor={`chassis-${index}`}>
-                                Chassis Number <span className="optional">(Optional)</span>
+                                Chassis Number <span className="required">*</span>
                             </label>
                             <input
                                 type="text"
@@ -209,6 +211,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
                                 value={vehicle.chassis_number}
                                 onChange={(e) => handleVehicleChange(index, 'chassis_number', e.target.value)}
                                 placeholder="e.g., MAT828113S2C05629"
+                                required
                             />
                         </div>
                     </div>

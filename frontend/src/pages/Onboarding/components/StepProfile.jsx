@@ -6,38 +6,89 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [location, setLocation] = useState('');
+    const [gstin, setGstin] = useState('');
+    const [userId, setUserId] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [profileData, setProfileData] = useState(null);
+    const [userData, setUserData] = useState(null);
 
     useEffect(() => {
-        // Fetch profile data from API (read-only)
-        const loadProfileData = async () => {
+        // Fetch user data from users table (profile doesn't exist yet during onboarding)
+        const loadUserData = async () => {
             setIsLoading(true);
             
             try {
-                const response = await apiClient.get('/api/v1/profile/me');
-                const profile = response.data;
+                // Try multiple possible endpoints; backends often prefix auth differently
+                const candidates = [
+                    '/api/v1/auth/me',
+                    '/api/v1/login/me',
+                    '/api/v1/users/me',
+                    '/auth/me',
+                    '/login/me',
+                    '/users/me',
+                ];
+
+                let user = null;
+                for (const ep of candidates) {
+                    try {
+                        const r = await apiClient.get(ep);
+                        user = r.data;
+                        break;
+                    } catch (e) {
+                        // keep trying next endpoint
+                    }
+                }
+
+                if (!user) {
+                    throw new Error('No user endpoint responded');
+                }
                 
-                setProfileData(profile);
-                setUsername(profile.username || '');
-                setEmail(profile.email || '');
-                setPhone(profile.mobile_number || '');
+                setUserData(user);
+                setUsername(user.username || '');
+                setEmail(user.email || '');
+                setPhone(user.mobile_number || '');
+                setLocation(user.location || '');
+                setGstin(user.gstin || '');
+                setUserId(user.id || '');
                 
                 // Store in sessionStorage for later steps
-                sessionStorage.setItem('onboardingProfile', JSON.stringify({
-                    username: profile.username,
-                    email: profile.email,
-                    phone: profile.mobile_number
+                sessionStorage.setItem('onboardingUser', JSON.stringify({
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    mobile_number: user.mobile_number,
+                    location: user.location,
+                    gstin: user.gstin,
                 }));
             } catch (error) {
-                console.error('Could not fetch profile:', error);
-                toast.error('Failed to load profile. Please try again.');
+                console.error('Could not fetch user data:', error);
+                
+                // Fallback: decode token to get basic user info
+                try {
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        setEmail(payload.sub || '');
+                        setUsername(payload.sub?.split('@')[0] || 'User');
+                        toast.warning('Loaded basic user info from session');
+                        
+                        sessionStorage.setItem('onboardingUser', JSON.stringify({
+                            username: payload.sub?.split('@')[0] || 'User',
+                            email: payload.sub || '',
+                            mobile_number: '',
+                            location: '',
+                            gstin: ''
+                        }));
+                    }
+                } catch (fallbackError) {
+                    toast.error('Failed to load user information. Please log in again.');
+                }
             } finally {
                 setIsLoading(false);
             }
         };
 
-        loadProfileData();
+        loadUserData();
     }, []);
 
     // Update parent component when data changes
@@ -45,14 +96,17 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
         onDataChange({
             username,
             email,
-            phone
+            phone,
+            location,
+            gstin,
+            id: userId,
         });
-    }, [username, email, phone, onDataChange]);
+    }, [username, email, phone, location, gstin, userId, onDataChange]);
 
     const handleSave = () => {
-        // Profile is read-only from backend, just proceed to next step
+        // User data is read-only from backend, just proceed to next step
         if (!username || !email) {
-            toast.error('Profile data is incomplete. Please contact support.');
+            toast.error('User data is incomplete. Please contact support.');
             return;
         }
 
@@ -126,6 +180,40 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
                     />
                     <small className="form-hint">Loaded from your account</small>
                 </div>
+
+                <div className="form-group">
+                    <label htmlFor="location">
+                        Location
+                    </label>
+                    <input
+                        type="text"
+                        id="location"
+                        className="form-input"
+                        value={location || 'Not provided'}
+                        readOnly
+                        disabled
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                    />
+                    <small className="form-hint">Loaded from your account</small>
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="gstin">
+                        GSTIN
+                    </label>
+                    <input
+                        type="text"
+                        id="gstin"
+                        className="form-input"
+                        value={gstin || 'Not provided'}
+                        readOnly
+                        disabled
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                    />
+                    <small className="form-hint">Loaded from your account</small>
+                </div>
+
+                
             </div>
 
             <div className="step-notice" style={{ backgroundColor: '#EFF6FF', borderColor: '#DBEAFE' }}>
