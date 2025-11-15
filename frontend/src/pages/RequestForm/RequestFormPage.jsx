@@ -1191,91 +1191,87 @@ const Step2Login = ({
       </div>
     )}
 
-    {/* Toggle */}
-    <div
-      className="form-group"
-      style={{ display: "flex", gap: "12px", marginBottom: "12px" }}
-    >
-      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <input
-          type="radio"
-          name="loginMethod"
-          checked={formData.loginMethod === "password"}
-          onChange={() => updateFormData("loginMethod", "password")}
-        />
-        <span>Email & Password</span>
-      </label>
-      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <input
-          type="radio"
-          name="loginMethod"
-          checked={formData.loginMethod === "otp"}
-          onChange={() => updateFormData("loginMethod", "otp")}
-        />
-        <span>Mobile OTP</span>
-      </label>
+    {/* Login Method Tabs */}
+    <div className="login-tabs">
+      <button
+        type="button"
+        className={`tab-button ${formData.loginMethod === "password" ? "active" : ""}`}
+        onClick={() => updateFormData("loginMethod", "password")}
+      >
+        Email & Password
+      </button>
+      <button
+        type="button"
+        className={`tab-button ${formData.loginMethod === "otp" ? "active" : ""}`}
+        onClick={() => updateFormData("loginMethod", "otp")}
+      >
+        Mobile OTP
+      </button>
     </div>
 
-    <form onSubmit={onSubmit}>
-      {formData.loginMethod === "password" ? (
-        <>
-          <div className="form-group">
-            <label>User ID / Email</label>
-            <input
-              type="text"
-              placeholder="Enter your Fleet Edge User ID"
-              value={formData.email}
-              onChange={(e) => updateFormData("email", e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={(e) => updateFormData("password", e.target.value)}
-              required
-            />
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="form-group">
-            <label>Mobile Number</label>
-            <input
-              type="tel"
-              placeholder="10-digit mobile number"
-              value={formData.mobileNumber}
-              onChange={(e) =>
-                updateFormData(
-                  "mobileNumber",
-                  e.target.value.replace(/[^0-9]/g, "").slice(0, 10),
-                )
-              }
-              required
-            />
-          </div>
-          <div
-            className="hint-text"
-            style={{ fontSize: 12, color: "#6b7280", marginTop: -8 }}
-          >
-            We'll request OTP after sending your number to FleetEdge.
-          </div>
-        </>
-      )}
+    {/* Login Form Container */}
+    <div className="login-form-container">
+      <form onSubmit={onSubmit}>
+        {formData.loginMethod === "password" ? (
+          <>
+            <div className="form-group">
+              <label>User ID / Email</label>
+              <input
+                type="text"
+                placeholder="Enter your Fleet Edge User ID"
+                value={formData.email}
+                onChange={(e) => updateFormData("email", e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={(e) => updateFormData("password", e.target.value)}
+                required
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="form-group">
+              <label>Mobile Number</label>
+              <input
+                type="tel"
+                placeholder="10-digit mobile number"
+                value={formData.mobileNumber}
+                onChange={(e) =>
+                  updateFormData(
+                    "mobileNumber",
+                    e.target.value.replace(/[^0-9]/g, "").slice(0, 10),
+                  )
+                }
+                required
+              />
+            </div>
+            <div
+              className="hint-text"
+              style={{ fontSize: 12, color: "#6b7280", marginTop: -8 }}
+            >
+              We'll request OTP after sending your number to FleetEdge.
+            </div>
+          </>
+        )}
 
-      {error && <div className="error-message submit-error">{error}</div>}
-      <div className="form-navigation">
-        <button type="button" className="btn-back" onClick={onBack}>
-          Back
-        </button>
-        <button type="submit" className="btn-continue" disabled={isLoading}>
-          {isLoading ? "Generating Report..." : "Submit"}
-        </button>
-      </div>
-    </form>
+        {error && <div className="error-message submit-error">{error}</div>}
+        <div className="form-navigation">
+          <button type="button" className="btn-back" onClick={onBack}>
+            Back
+          </button>
+          <button type="submit" className="btn-continue" disabled={isLoading}>
+            {isLoading ? "Generating Report..." : "Submit"}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 );
 
@@ -1306,60 +1302,88 @@ const Step3FinalReport = ({ reportData }) => {
 
   return (
     <div className="final-report-container">
-      <div className="report-header">
-        <img src={SuccessIcon} alt="Success" className="success-icon-large" />
-        <div>
-          <h3>Report Generated Successfully!</h3>
+      {/* Success Header */}
+      <div className="report-success-header">
+        <div className="success-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </div>
+        <div className="success-content">
+          <h2>Report Generated Successfully!</h2>
           <p>Here is a summary of the fuel consumption analysis.</p>
         </div>
       </div>
 
-      <div className="report-card">
-        <h4>Vehicle Details</h4>
-        <p>{reportData["Vehicle Details"]}</p>
-      </div>
-
-      <div className="report-grid">
-        <div className="report-card">
-          <h4>Odometer & Distance</h4>
-          <div className="report-item">
-            <span>Start:</span>{" "}
-            <strong>{reportData["Odometer Start"]} Km</strong>
-          </div>
-          <div className="report-item">
-            <span>End:</span> <strong>{reportData["Odometer End"]} Km</strong>
-          </div>
-          <div className="report-item">
-            <span>Distance:</span>{" "}
-            <strong>{reportData["Distance (Kms)"]} Km</strong>
-          </div>
+      {/* Vehicle Info Card */}
+      <div className="modern-card vehicle-card">
+        <div className="card-header">
+          <h3>Vehicle Details</h3>
         </div>
-        <div className="report-card">
-          <h4>Fuel Consumption</h4>
-          <div className="report-item">
-            <span>FleetEdge System:</span>{" "}
-            <strong>{reportData["Fuel Consumed"]}</strong>
-          </div>
-          <div className="report-item">
-            <span>From Bills:</span> <strong>{getBilledFuel()}</strong>
-          </div>
+        <div className="vehicle-info">
+          {reportData["Vehicle Details"]}
         </div>
       </div>
 
-      <div className="report-card mileage-summary">
-        <h4>Mileage Analysis</h4>
-        <div className="mileage-grid">
-          <div>
-            <p>FleetEdge System</p>
-            <strong>{reportData["Fuel Efficiency (FleetEdge)"]}</strong>
+      {/* Data Cards Grid */}
+      <div className="report-cards-grid">
+        {/* Odometer & Distance */}
+        <div className="modern-card">
+          <div className="card-header">
+            <h3>Odometer & Distance</h3>
           </div>
-          <div>
-            <p>Calculated (System Fuel)</p>
-            <strong>{reportData["Calculated Mileage"]}</strong>
+          <div className="data-rows">
+            <div className="data-row">
+              <span className="label">Start:</span>
+              <span className="value">{reportData["Odometer Start"]} Km</span>
+            </div>
+            <div className="data-row">
+              <span className="label">End:</span>
+              <span className="value">{reportData["Odometer End"]} Km</span>
+            </div>
+            <div className="data-row highlight">
+              <span className="label">Distance:</span>
+              <span className="value">{reportData["Distance (Kms)"]} Km</span>
+            </div>
           </div>
-          <div>
-            <p>Actual (Bill Fuel)</p>
-            <strong>{reportData["Actual Mileage"]}</strong>
+        </div>
+
+        {/* Fuel Consumption */}
+        <div className="modern-card">
+          <div className="card-header">
+            <h3>Fuel Consumption</h3>
+          </div>
+          <div className="data-rows">
+            <div className="data-row">
+              <span className="label">FleetEdge System:</span>
+              <span className="value">{reportData["Fuel Consumed"]}</span>
+            </div>
+            <div className="data-row highlight">
+              <span className="label">From Bills:</span>
+              <span className="value">{getBilledFuel()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mileage Analysis */}
+      <div className="modern-card mileage-analysis">
+        <div className="card-header">
+          <h3>Mileage Analysis</h3>
+        </div>
+        <div className="mileage-metrics">
+          <div className="metric">
+            <div className="metric-label">FleetEdge System</div>
+            <div className="metric-value primary">{reportData["Fuel Efficiency (FleetEdge)"]}</div>
+          </div>
+          <div className="metric">
+            <div className="metric-label">Calculated (System Fuel)</div>
+            <div className="metric-value secondary">{reportData["Calculated Mileage"]}</div>
+          </div>
+          <div className="metric">
+            <div className="metric-label">Actual (Bill Fuel)</div>
+            <div className="metric-value accent">{reportData["Actual Mileage"]}</div>
           </div>
         </div>
       </div>
