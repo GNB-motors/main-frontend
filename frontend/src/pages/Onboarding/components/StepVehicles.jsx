@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { VehicleService } from '../../../pages/Profile/VehicleService.jsx';
 import { Plus, Trash2 } from 'lucide-react';
+import { OnboardingService } from '../OnboardingService';
 
 const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
     const [vehicles, setVehicles] = useState([
@@ -10,9 +10,11 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
 
     const vehicleTypes = ['Truck', 'Van', 'Car', 'Other'];
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     useEffect(() => {
-        // Load from localStorage if available
-        const savedData = localStorage.getItem('onboardingVehicles');
+        // Load from sessionStorage if available
+        const savedData = sessionStorage.getItem('onboardingVehicles');
         if (savedData) {
             const parsed = JSON.parse(savedData);
             if (parsed.vehicles && parsed.vehicles.length > 0) {
@@ -77,45 +79,63 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
             return;
         }
 
-        // Filter out empty vehicles
-        const validVehicles = vehicles.filter(v => 
-            v.registration_no.trim() && v.vehicle_type.trim()
-        );
+        setIsSubmitting(true);
 
-        // Save to localStorage
-        const vehicleData = { vehicles: validVehicles };
-        localStorage.setItem('onboardingVehicles', JSON.stringify(vehicleData));
-
-        // SYMBOLIC SAVE: Try to post vehicles but treat as symbolic
         try {
-            const businessRefId = localStorage.getItem('profile_business_ref_id');
-            const token = localStorage.getItem('authToken');
+            // Filter out empty vehicles
+            const validVehicles = vehicles.filter(v => 
+                v.registration_no.trim() && v.vehicle_type.trim()
+            );
 
-            if (businessRefId && token) {
-                // Try to add vehicles one by one
-                for (const vehicle of validVehicles) {
-                    try {
-                        await VehicleService.addVehicle(businessRefId, vehicle, token);
-                    } catch (error) {
-                        console.log('Vehicle add symbolic save:', error);
-                    }
-                }
+            // Save to sessionStorage
+            const vehicleData = { vehicles: validVehicles };
+            sessionStorage.setItem('onboardingVehicles', JSON.stringify(vehicleData));
+
+            // Get profile and company data from sessionStorage
+            const profileData = JSON.parse(sessionStorage.getItem('onboardingProfile') || '{}');
+            const companyData = JSON.parse(sessionStorage.getItem('onboardingCompany') || '{}');
+
+            // Prepare payload for backend
+            const onboardingPayload = {
+                profile_data: {
+                    business_name: companyData.companyName,
+                    profile_color: companyData.selectedColor
+                },
+                vehicles_data: validVehicles
+            };
+
+            // Get auth token
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                throw new Error('Authentication token not found');
             }
 
-            toast.info('✓ Vehicles saved locally (backend updates disabled)', {
-                autoClose: 2000
-            });
+            // Submit to backend
+            const result = await OnboardingService.completeOnboarding(onboardingPayload, token);
+            
+            // Store the generated business_ref_id in localStorage (persistent)
+            if (result.business_ref_id) {
+                localStorage.setItem('profile_business_ref_id', result.business_ref_id);
+            }
+
+            // Mark onboarding as complete
+            localStorage.setItem('onboardingCompleted', 'true');
+            
+            // Clear sessionStorage
+            sessionStorage.removeItem('onboardingStep');
+            sessionStorage.removeItem('onboardingProfile');
+            sessionStorage.removeItem('onboardingCompany');
+            sessionStorage.removeItem('onboardingVehicles');
+
+            toast.success('Onboarding completed successfully!', { autoClose: 2000 });
+            onNext();
         } catch (error) {
-            console.log('Vehicles update symbolic save:', error);
-            toast.info('✓ Vehicles saved locally (backend updates disabled)', {
-                autoClose: 2000
-            });
+            console.error('Onboarding submission failed:', error);
+            const errorMsg = error.detail || error.message || 'Failed to complete onboarding';
+            toast.error(errorMsg);
+        } finally {
+            setIsSubmitting(false);
         }
-
-        // Mark onboarding as complete in localStorage
-        localStorage.setItem('onboardingCompleted', 'true');
-
-        onNext();
     };
 
     return (
@@ -204,11 +224,11 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
                 </button>
             </div>
 
-            <div className="step-notice">
+            <div className="step-notice" style={{ backgroundColor: '#ECFDF5', borderColor: '#D1FAE5' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#F59E0B"/>
+                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#10B981"/>
                 </svg>
-                <span>Changes are saved locally. Backend editing is currently disabled.</span>
+                <span>Vehicles will be saved to your profile when you complete setup.</span>
             </div>
 
             <div className="step-actions">
@@ -216,6 +236,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
                     type="button" 
                     className="btn btn-secondary"
                     onClick={onBack}
+                    disabled={isSubmitting}
                 >
                     Back
                 </button>
@@ -223,8 +244,9 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
                     type="button" 
                     className="btn btn-primary"
                     onClick={handleFinish}
+                    disabled={isSubmitting}
                 >
-                    Complete Setup
+                    {isSubmitting ? 'Completing Setup...' : 'Complete Setup'}
                 </button>
             </div>
         </div>

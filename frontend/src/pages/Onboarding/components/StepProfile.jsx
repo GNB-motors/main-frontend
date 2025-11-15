@@ -1,45 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { ProfileService } from '../../../pages/Profile/ProfileService.jsx';
 import apiClient from '../../../utils/axiosConfig';
 
 const StepProfile = ({ onNext, onDataChange, formData }) => {
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [profileData, setProfileData] = useState(null);
 
     useEffect(() => {
-        // Load from localStorage or fetch from API
+        // Fetch profile data from API (read-only)
         const loadProfileData = async () => {
             setIsLoading(true);
             
-            // First check localStorage for saved onboarding data
-            const savedData = localStorage.getItem('onboardingProfile');
-            if (savedData) {
-                const parsed = JSON.parse(savedData);
-                setFirstName(parsed.firstName || '');
-                setLastName(parsed.lastName || '');
-                setPhone(parsed.phone || '');
-                setIsLoading(false);
-                return;
-            }
-
-            // Try to fetch existing user info from backend
             try {
-                const userInfo = await ProfileService.getUserInfo();
+                const response = await apiClient.get('/api/v1/profile/me');
+                const profile = response.data;
                 
-                // Split username into first and last name
-                const nameParts = userInfo.username?.split(' ') || ['', ''];
-                const fName = nameParts[0] || '';
-                const lName = nameParts.slice(1).join(' ') || '';
+                setProfileData(profile);
+                setUsername(profile.username || '');
+                setEmail(profile.email || '');
+                setPhone(profile.mobile_number || '');
                 
-                setFirstName(fName);
-                setLastName(lName);
-                setPhone(userInfo.mobile_number || '');
+                // Store in sessionStorage for later steps
+                sessionStorage.setItem('onboardingProfile', JSON.stringify({
+                    username: profile.username,
+                    email: profile.email,
+                    phone: profile.mobile_number
+                }));
             } catch (error) {
-                console.error('Could not fetch user info:', error);
-                // Continue with empty fields
+                console.error('Could not fetch profile:', error);
+                toast.error('Failed to load profile. Please try again.');
             } finally {
                 setIsLoading(false);
             }
@@ -51,57 +43,20 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
     // Update parent component when data changes
     useEffect(() => {
         onDataChange({
-            firstName,
-            lastName,
+            username,
+            email,
             phone
         });
-    }, [firstName, lastName, phone, onDataChange]);
+    }, [username, email, phone, onDataChange]);
 
-    const handleSave = async () => {
-        // Validation
-        if (!firstName.trim()) {
-            toast.error('Please enter your first name');
-            return;
-        }
-        if (!lastName.trim()) {
-            toast.error('Please enter your last name');
-            return;
-        }
-        if (!phone.trim()) {
-            toast.error('Please enter your phone number');
+    const handleSave = () => {
+        // Profile is read-only from backend, just proceed to next step
+        if (!username || !email) {
+            toast.error('Profile data is incomplete. Please contact support.');
             return;
         }
 
-        // Phone validation (basic)
-        const phoneRegex = /^[0-9]{10,15}$/;
-        if (!phoneRegex.test(phone.replace(/[\s-()]/g, ''))) {
-            toast.error('Please enter a valid phone number');
-            return;
-        }
-
-        // Save to localStorage
-        const profileData = { firstName, lastName, phone };
-        localStorage.setItem('onboardingProfile', JSON.stringify(profileData));
-
-        // SYMBOLIC SAVE: backend editing disabled
-        // Try to call the API but treat as symbolic
-        try {
-            const fullName = `${firstName} ${lastName}`.trim();
-            await apiClient.put('/api/v1/profile/me', {
-                username: fullName,
-                mobile_number: phone
-            });
-            
-            toast.info('✓ Profile saved locally (backend updates disabled)', {
-                autoClose: 2000
-            });
-        } catch (error) {
-            console.log('Profile update symbolic save:', error);
-            toast.info('✓ Profile saved locally (backend updates disabled)', {
-                autoClose: 2000
-            });
-        }
-
+        toast.success('Profile confirmed', { autoClose: 1500 });
         onNext();
     };
 
@@ -124,60 +79,60 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
             </div>
 
             <div className="form-section">
-                <div className="form-row">
-                    <div className="form-group">
-                        <label htmlFor="firstName">
-                            First Name <span className="required">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="firstName"
-                            className="form-input"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="Enter your first name"
-                            required
-                        />
-                    </div>
+                <div className="form-group">
+                    <label htmlFor="username">
+                        Username
+                    </label>
+                    <input
+                        type="text"
+                        id="username"
+                        className="form-input"
+                        value={username}
+                        readOnly
+                        disabled
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                    />
+                    <small className="form-hint">Loaded from your account</small>
+                </div>
 
-                    <div className="form-group">
-                        <label htmlFor="lastName">
-                            Last Name <span className="required">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="lastName"
-                            className="form-input"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            placeholder="Enter your last name"
-                            required
-                        />
-                    </div>
+                <div className="form-group">
+                    <label htmlFor="email">
+                        Email
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        className="form-input"
+                        value={email}
+                        readOnly
+                        disabled
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                    />
+                    <small className="form-hint">Loaded from your account</small>
                 </div>
 
                 <div className="form-group">
                     <label htmlFor="phone">
-                        Phone Number <span className="required">*</span>
+                        Phone Number
                     </label>
                     <input
                         type="tel"
                         id="phone"
                         className="form-input"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="Enter your phone number"
-                        required
+                        value={phone || 'Not provided'}
+                        readOnly
+                        disabled
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
                     />
-                    <small className="form-hint">Enter 10-15 digit phone number</small>
+                    <small className="form-hint">Loaded from your account</small>
                 </div>
             </div>
 
-            <div className="step-notice">
+            <div className="step-notice" style={{ backgroundColor: '#EFF6FF', borderColor: '#DBEAFE' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#F59E0B"/>
+                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#3B82F6"/>
                 </svg>
-                <span>Changes are saved locally. Backend editing is currently disabled.</span>
+                <span>Profile information is loaded from your account and cannot be edited here.</span>
             </div>
 
             <div className="step-actions">
@@ -186,7 +141,7 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
                     className="btn btn-primary"
                     onClick={handleSave}
                 >
-                    Save & Continue
+                    Continue
                 </button>
             </div>
         </div>

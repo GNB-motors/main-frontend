@@ -16,8 +16,8 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
     ];
 
     useEffect(() => {
-        // Load from localStorage if available
-        const savedData = localStorage.getItem('onboardingCompany');
+        // Load from sessionStorage if available
+        const savedData = sessionStorage.getItem('onboardingCompany');
         if (savedData) {
             const parsed = JSON.parse(savedData);
             setCompanyName(parsed.companyName || '');
@@ -50,34 +50,18 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
         }
     };
 
-    const handleSave = async () => {
+    const handleSave = () => {
         // Validation
         if (!companyName.trim()) {
             toast.error('Please enter your company name');
             return;
         }
 
-        // Save to localStorage
+        // Save to sessionStorage for final submission
         const companyData = { companyName, selectedColor };
-        localStorage.setItem('onboardingCompany', JSON.stringify(companyData));
+        sessionStorage.setItem('onboardingCompany', JSON.stringify(companyData));
 
-        // SYMBOLIC SAVE: backend editing disabled
-        try {
-            await apiClient.put('/api/v1/profile/me', {
-                business_name: companyName,
-                profile_color: selectedColor
-            });
-            
-            toast.info('✓ Company details saved locally (backend updates disabled)', {
-                autoClose: 2000
-            });
-        } catch (error) {
-            console.log('Company update symbolic save:', error);
-            toast.info('✓ Company details saved locally (backend updates disabled)', {
-                autoClose: 2000
-            });
-        }
-
+        toast.success('Company details saved', { autoClose: 1500 });
         onNext();
     };
 

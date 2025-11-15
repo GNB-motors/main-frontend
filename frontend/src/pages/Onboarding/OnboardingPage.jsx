@@ -27,17 +27,17 @@ const OnboardingPage = () => {
         3: 0
     });
 
-    // Load saved progress from localStorage
+    // Load saved progress from sessionStorage (cleared on tab close)
     useEffect(() => {
-        const savedStep = localStorage.getItem('onboardingStep');
+        const savedStep = sessionStorage.getItem('onboardingStep');
         if (savedStep) {
             setCurrentStep(parseInt(savedStep, 10));
         }
     }, []);
 
-    // Save current step to localStorage
+    // Save current step to sessionStorage
     useEffect(() => {
-        localStorage.setItem('onboardingStep', currentStep.toString());
+        sessionStorage.setItem('onboardingStep', currentStep.toString());
     }, [currentStep]);
 
     const handleDataChange = (stepName) => (data) => {
