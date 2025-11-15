@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import apiClient from "../../utils/axiosConfig";
 import "./RequestFormPage.css";
-import ReportTypeSelectionModal from "./ReportTypeSelectionModal";
 
 // Import assets
 import UkoLogo from "../../assets/uko-logo.png";
@@ -22,9 +21,8 @@ const RequestFormPage = () => {
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
   const [vehicleError, setVehicleError] = useState(null);
 
-  // Report type selection
+  // Report type selection - Auto-determined based on backend data
   const [reportType, setReportType] = useState(null); // 'custom_trip' | 'since_last_refuel'
-  const [showTypeModal, setShowTypeModal] = useState(true);
   const [latestRefuel, setLatestRefuel] = useState(null);
   const [refuelError, setRefuelError] = useState(null);
   const [isLoadingRefuel, setIsLoadingRefuel] = useState(false);
@@ -370,48 +368,52 @@ const RequestFormPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Handle report type selection
-  const handleSelectReportType = async (type) => {
-    setReportType(type);
-    setShowTypeModal(false);
-
-    // If "since_last_refuel", fetch the latest refuel when vehicle is selected
-    if (type === "since_last_refuel" && formData.selectedVehicle && tmsProfile) {
-      await fetchLatestRefuel(formData.selectedVehicle);
-    }
-  };
-
-  // Fetch latest refuel for selected vehicle
+  // Fetch latest refuel for selected vehicle - Auto-determines flow
   const fetchLatestRefuel = async (vehicleRegNo) => {
     if (!tmsProfile || !vehicleRegNo) return;
 
     setIsLoadingRefuel(true);
     setRefuelError(null);
     setLatestRefuel(null);
+    setReportType(null); // Reset report type
 
     try {
       const response = await apiClient.get(
         `api/v1/ocr/latest-refuel/${tmsProfile.id}/${vehicleRegNo}`
       );
+      // Scenario B: Latest receipt exists - use "since_last_refuel" flow
       setLatestRefuel(response.data);
+      setReportType("since_last_refuel");
+      console.log("✅ Scenario B: Found latest refuel, using since_last_refuel flow");
     } catch (err) {
-      const errorMsg =
-        err.response?.status === 404
-          ? "No previous refuel record found for this vehicle. Please use Custom Trip mode."
-          : err.response?.data?.detail || "Failed to fetch refuel data.";
-      setRefuelError(errorMsg);
-      setLatestRefuel(null);
+      if (err.response?.status === 404) {
+        // Scenario A: No previous refuel - use "custom_trip" flow
+        setReportType("custom_trip");
+        setLatestRefuel(null);
+        console.log("✅ Scenario A: No refuel history, using custom_trip flow");
+      } else {
+        const errorMsg = err.response?.data?.detail || "Failed to fetch refuel data.";
+        setRefuelError(errorMsg);
+        setLatestRefuel(null);
+      }
     } finally {
       setIsLoadingRefuel(false);
     }
   };
 
-  // Watch for vehicle changes in "since_last_refuel" mode
+  // Auto-detect flow when vehicle is selected
   useEffect(() => {
-    if (reportType === "since_last_refuel" && formData.selectedVehicle && tmsProfile) {
+    if (formData.selectedVehicle && tmsProfile) {
       fetchLatestRefuel(formData.selectedVehicle);
+      // Reset extracted data when vehicle changes
+      setExtractedData({ before: null, after: null });
+      setPreviews({ before: null, after: null });
+    } else {
+      // Reset when no vehicle selected
+      setReportType(null);
+      setLatestRefuel(null);
     }
-  }, [formData.selectedVehicle, reportType, tmsProfile]);
+  }, [formData.selectedVehicle, tmsProfile]);
 
   const handleImageUpload = async (file, type) => {
     if (!file) return;
@@ -432,7 +434,75 @@ const RequestFormPage = () => {
         "api/v1/ocr/process-receipt",
         uploadFormData,
       );
-      setExtractedData((prev) => ({ ...prev, [type]: response.data.data }));
+      const extractedReceiptData = response.data.data;
+      
+      // ⚠️ DATE VALIDATION: Prevent uploading receipts older than latest refuel
+      // TODO: This validation logic will be enhanced later to handle edge cases
+      // like missed receipts and backfilling. Current implementation strictly
+      // prevents any receipt dated before the latest refuel.
+      if (reportType === "since_last_refuel" && latestRefuel && type === "after") {
+        try {
+          // Parse latest refuel date (ISO format from backend: "2025-10-16T06:41:00")
+          const latestDate = new Date(latestRefuel.transaction_date);
+          
+          // Parse extracted receipt date (Format: "DD/MM/YYYY" or "DD/MM/YY")
+          const dateStr = extractedReceiptData.date;
+          const [day, month, year] = dateStr.split('/');
+          
+          // Handle 2-digit or 4-digit year
+          const fullYear = year.length === 2 ? `20${year}` : year;
+          
+          // Create date object at midnight for comparison (month is 0-indexed in JS)
+          const extractedDate = new Date(parseInt(fullYear), parseInt(month) - 1, parseInt(day), 0, 0, 0);
+          const latestDateOnly = new Date(latestDate.getFullYear(), latestDate.getMonth(), latestDate.getDate(), 0, 0, 0);
+          
+          console.log('🔍 Date validation check:', {
+            latest: {
+              raw: latestRefuel.transaction_date,
+              parsed: latestDateOnly.toISOString(),
+              display: latestRefuel.date
+            },
+            extracted: {
+              raw: dateStr,
+              parsed: extractedDate.toISOString(),
+              display: extractedReceiptData.date
+            },
+            isValid: extractedDate > latestDateOnly
+          });
+          
+          // Receipt must be AFTER the latest refuel (not equal)
+          if (extractedDate <= latestDateOnly) {
+            const errorMessage = `❌ This receipt is dated ${extractedReceiptData.date}, which is on or before your latest refuel (${latestRefuel.date}). Please upload a receipt dated AFTER ${latestRefuel.date}.`;
+            console.error('❌ Date validation FAILED:', errorMessage);
+            
+            // Clear the upload and show error
+            setError((prev) => ({ 
+              ...prev, 
+              [type]: errorMessage
+            }));
+            setPreviews((prev) => ({ ...prev, [type]: null }));
+            updateFormData(type === "before" ? "dieselBefore" : "dieselAfter", null);
+            setExtractedData((prev) => ({ ...prev, [type]: null }));
+            setIsLoading((prev) => ({ ...prev, [type]: false }));
+            return; // STOP processing here
+          }
+          
+          console.log('✅ Date validation PASSED - receipt is newer than latest refuel');
+        } catch (dateErr) {
+          console.error('❌ Error during date validation:', dateErr);
+          const errorMessage = `⚠️ Could not validate receipt date. Please ensure the receipt is dated after ${latestRefuel.date}.`;
+          setError((prev) => ({ 
+            ...prev, 
+            [type]: errorMessage
+          }));
+          setPreviews((prev) => ({ ...prev, [type]: null }));
+          updateFormData(type === "before" ? "dieselBefore" : "dieselAfter", null);
+          setIsLoading((prev) => ({ ...prev, [type]: false }));
+          return; // STOP on validation error
+        }
+      }
+      
+      setExtractedData((prev) => ({ ...prev, [type]: extractedReceiptData }));
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Failed to process image.";
       setError((prev) => ({ ...prev, [type]: errorMsg }));
@@ -622,12 +692,6 @@ const RequestFormPage = () => {
 
   return (
     <div className="form-container">
-      {/* Report Type Selection Modal */}
-      <ReportTypeSelectionModal
-        isOpen={showTypeModal}
-        onSelectType={handleSelectReportType}
-      />
-
       <FormSidebar currentStep={currentStep} />
       <div className="form-content">{renderStep()}</div>
 
@@ -797,9 +861,12 @@ const Step1ReportDetails = ({
 }) => {
   // Validation based on report type
   const isNextDisabled =
-    reportType === "since_last_refuel"
-      ? !formData.selectedVehicle || !extractedData.after || !latestRefuel
-      : !formData.selectedVehicle || !extractedData.before || !extractedData.after;
+    !formData.selectedVehicle || // Must have vehicle selected
+    isLoadingRefuel || // Wait for refuel check to complete
+    !reportType || // Wait for scenario detection
+    (reportType === "since_last_refuel"
+      ? !extractedData.after || !latestRefuel // Scenario B: need after image + latest refuel
+      : !extractedData.before || !extractedData.after); // Scenario A: need both images
 
   // Find the selected vehicle to get its chassis number
   const selectedVehicle = vehicles.find(
@@ -810,30 +877,36 @@ const Step1ReportDetails = ({
     <div className="form-step">
       <h3>Report Details</h3>
       <p>
-        {reportType === "since_last_refuel"
-          ? "Using your last refuel record. Upload the current fuel receipt to complete the report."
-          : "Select your vehicle and upload the diesel bills for your trip."}
+        {!formData.selectedVehicle 
+          ? "Select your vehicle to get started." 
+          : reportType === "since_last_refuel"
+          ? "✅ Found previous refuel data. Upload only the current fuel receipt."
+          : reportType === "custom_trip"
+          ? "📋 No previous refuel found. Upload both before and after fuel receipts."
+          : "Loading vehicle data..."}
       </p>
       
-      {/* Report Type Badge */}
-      <div style={{ marginBottom: "16px" }}>
-        <span
-          style={{
-            display: "inline-block",
-            padding: "6px 12px",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontWeight: "600",
-            background:
-              reportType === "since_last_refuel" ? "#10B98115" : "#3B82F615",
-            color: reportType === "since_last_refuel" ? "#10B981" : "#3B82F6",
-          }}
-        >
-          {reportType === "since_last_refuel"
-            ? "Since Last Refuel"
-            : "Custom Trip"}
-        </span>
-      </div>
+      {/* Report Type Badge - Only show when vehicle is selected */}
+      {reportType && (
+        <div style={{ marginBottom: "16px" }}>
+          <span
+            style={{
+              display: "inline-block",
+              padding: "6px 12px",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: "600",
+              background:
+                reportType === "since_last_refuel" ? "#10B98115" : "#3B82F615",
+              color: reportType === "since_last_refuel" ? "#10B981" : "#3B82F6",
+            }}
+          >
+            {reportType === "since_last_refuel"
+              ? "Scenario B: Since Last Refuel"
+              : "Scenario A: Custom Trip"}
+          </span>
+        </div>
+      )}
       <div className="form-group">
         <label>Select Vehicle</label>
         <select
