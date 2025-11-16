@@ -294,6 +294,15 @@ const Step1ReportDetails = ({ formData, updateFormData, handleImageUpload, remov
         return String(vehicleNo).replace(/\s+/g, '').trim();
     };
 
+    // Extract last N digits from the last digit-sequence in the string
+    const getLastNDigits = (vehicleNo, n = 4) => {
+        if (!vehicleNo) return '';
+        const matches = String(vehicleNo).match(/\d+/g);
+        if (!matches || matches.length === 0) return '';
+        const lastSeq = matches[matches.length - 1];
+        return lastSeq.slice(-n);
+    };
+
     // Validation logic
     const getValidationError = () => {
         if (!formData.selectedVehicle) {
@@ -312,14 +321,22 @@ const Step1ReportDetails = ({ formData, updateFormData, handleImageUpload, remov
             return 'Vehicle number not found in one or both receipts';
         }
 
-        // Check if before and after match each other
-        if (beforeVehicleNo !== afterVehicleNo) {
+        // Check if before and after match each other (exact match OR last-4 match)
+        const last4Selected = getLastNDigits(selectedVehicleNo);
+        const last4Before = getLastNDigits(beforeVehicleNo);
+        const last4After = getLastNDigits(afterVehicleNo);
+
+        const receiptsMatch = (beforeVehicleNo === afterVehicleNo) || (last4Before && last4Before === last4After);
+        if (!receiptsMatch) {
             return `Vehicle numbers don't match: Before (${extractedData.before.vehicle_no}) ≠ After (${extractedData.after.vehicle_no})`;
         }
 
-        // Check if extracted vehicle numbers match selected vehicle
-        if (beforeVehicleNo !== selectedVehicleNo || afterVehicleNo !== selectedVehicleNo) {
-            return `Vehicle number mismatch: Selected (${formData.selectedVehicle}) ≠ Receipt (${beforeVehicleNo})`;
+        // Check if extracted vehicle numbers match selected vehicle (exact OR last-4 match)
+        const beforeMatchesSelected = (beforeVehicleNo === selectedVehicleNo) || (last4Before && last4Selected && last4Before === last4Selected);
+        const afterMatchesSelected = (afterVehicleNo === selectedVehicleNo) || (last4After && last4Selected && last4After === last4Selected);
+
+        if (!beforeMatchesSelected || !afterMatchesSelected) {
+            return `Vehicle number mismatch: Selected (${formData.selectedVehicle}) ≠ Receipt (${extractedData.before.vehicle_no})`;
         }
 
         return null;
@@ -416,10 +433,24 @@ const ImageUploader = ({ type, title, onUpload, onRemove, extractedData, preview
         return String(vehicleNo).replace(/\s+/g, '').trim();
     };
 
-    // Check if vehicle number matches selected vehicle
-    const vehicleMatchError = selectedVehicle && extractedData?.vehicle_no 
-        ? (normalizeVehicleNo(selectedVehicle) !== normalizeVehicleNo(extractedData.vehicle_no))
-        : null;
+    // Extract last N digits from the last digit-sequence in the string
+    const getLastNDigitsLocal = (vehicleNo, n = 4) => {
+        if (!vehicleNo) return '';
+        const matches = String(vehicleNo).match(/\d+/g);
+        if (!matches || matches.length === 0) return '';
+        const lastSeq = matches[matches.length - 1];
+        return lastSeq.slice(-n);
+    };
+
+    // Check if vehicle number matches selected vehicle (exact OR last-4 fallback)
+    const vehicleMatchError = selectedVehicle && extractedData?.vehicle_no ? (() => {
+        const selNorm = normalizeVehicleNo(selectedVehicle);
+        const extNorm = normalizeVehicleNo(extractedData.vehicle_no);
+        const selLast = getLastNDigitsLocal(selNorm);
+        const extLast = getLastNDigitsLocal(extNorm);
+        const match = (selNorm === extNorm) || (selLast && extLast && selLast === extLast);
+        return !match;
+    })() : null;
 
     return (
         <div className="image-uploader">
