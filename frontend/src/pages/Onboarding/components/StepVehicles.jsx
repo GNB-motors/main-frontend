@@ -5,10 +5,19 @@ import { OnboardingService } from '../OnboardingService';
 
 const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
     const [vehicles, setVehicles] = useState([
-        { registration_no: '', vehicle_type: 'Truck', chassis_number: '' }
+        { registration_no: '', vehicle_type: 'Truck', chassis_number: '', custom_vehicle_type: '' }
     ]);
 
-    const vehicleTypes = ['Truck', 'Van', 'Car', 'Other'];
+    const vehicleTypes = [
+        'Light Commercial Trucks',
+        'Trucks',
+        'Medium Duty Trucks',
+        'Heavy Duty Trucks',
+        'Multi-Axle Trucks',
+        'Dumpers',
+        'Trailers',
+        'Other'
+    ];
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,7 +46,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
     const addVehicle = () => {
         setVehicles([
             ...vehicles,
-            { registration_no: '', vehicle_type: 'Truck', chassis_number: '' }
+            { registration_no: '', vehicle_type: 'Light Commercial Trucks', chassis_number: '', custom_vehicle_type: '' }
         ]);
     };
 
@@ -52,9 +61,14 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
 
     const validateVehicles = () => {
         // Require registration number, vehicle type, and chassis number
-        const completeVehicles = vehicles.filter(v => 
-            v.registration_no.trim() && v.vehicle_type.trim() && v.chassis_number.trim()
-        );
+        const completeVehicles = vehicles.filter(v => {
+            const hasBasicFields = v.registration_no.trim() && v.vehicle_type.trim() && v.chassis_number.trim();
+            // If vehicle type is "Other", also require custom_vehicle_type
+            if (v.vehicle_type === 'Other') {
+                return hasBasicFields && v.custom_vehicle_type && v.custom_vehicle_type.trim();
+            }
+            return hasBasicFields;
+        });
 
         if (completeVehicles.length === 0) {
             toast.error('Please add at least one vehicle with registration number, type, and chassis number');
@@ -63,8 +77,8 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
 
         // Check for incomplete vehicles (any partially filled set)
         const incompleteVehicles = vehicles.filter(v => {
-            const hasAny = v.registration_no.trim() || v.vehicle_type.trim() || v.chassis_number.trim();
-            const missingAny = !v.registration_no.trim() || !v.vehicle_type.trim() || !v.chassis_number.trim();
+            const hasAny = v.registration_no.trim() || v.vehicle_type.trim() || v.chassis_number.trim() || (v.custom_vehicle_type && v.custom_vehicle_type.trim());
+            const missingAny = !v.registration_no.trim() || !v.vehicle_type.trim() || !v.chassis_number.trim() || (v.vehicle_type === 'Other' && (!v.custom_vehicle_type || !v.custom_vehicle_type.trim()));
             return hasAny && missingAny;
         });
 
@@ -84,10 +98,28 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
         setIsSubmitting(true);
 
         try {
-            // Filter out empty vehicles
-            const validVehicles = vehicles.filter(v => 
-                v.registration_no.trim() && v.vehicle_type.trim() && v.chassis_number.trim()
-            );
+            // Filter out empty vehicles and prepare them for submission
+            const validVehicles = vehicles.filter(v => {
+                const hasBasicFields = v.registration_no.trim() && v.vehicle_type.trim() && v.chassis_number.trim();
+                if (v.vehicle_type === 'Other') {
+                    return hasBasicFields && v.custom_vehicle_type && v.custom_vehicle_type.trim();
+                }
+                return hasBasicFields;
+            }).map(v => {
+                // If vehicle type is "Other", use the custom type value
+                if (v.vehicle_type === 'Other' && v.custom_vehicle_type) {
+                    return {
+                        registration_no: v.registration_no,
+                        vehicle_type: v.custom_vehicle_type,
+                        chassis_number: v.chassis_number
+                    };
+                }
+                return {
+                    registration_no: v.registration_no,
+                    vehicle_type: v.vehicle_type,
+                    chassis_number: v.chassis_number
+                };
+            });
 
             // Save to sessionStorage
             const vehicleData = { vehicles: validVehicles };
@@ -199,6 +231,23 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
                                 </select>
                             </div>
                         </div>
+
+                        {vehicle.vehicle_type === 'Other' && (
+                            <div className="form-group">
+                                <label htmlFor={`custom-type-${index}`}>
+                                    Specify Vehicle Type <span className="required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id={`custom-type-${index}`}
+                                    className="form-input"
+                                    value={vehicle.custom_vehicle_type || ''}
+                                    onChange={(e) => handleVehicleChange(index, 'custom_vehicle_type', e.target.value)}
+                                    placeholder="Enter vehicle type (e.g., Bus, Tractor, etc.)"
+                                    required
+                                />
+                            </div>
+                        )}
 
                         <div className="form-group">
                             <label htmlFor={`chassis-${index}`}>

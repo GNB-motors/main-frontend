@@ -265,6 +265,67 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+.upload-box.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    background-color: var(--color-grey-100);
+    position: relative;
+}
+
+.upload-box.disabled:hover {
+    border-color: var(--color-grey-300);
+    background-color: var(--color-grey-100);
+    transform: none;
+    box-shadow: none;
+}
+
+.upload-box.disabled span {
+    color: var(--color-grey-400);
+}
+
+/* Tooltip wrapper */
+.upload-box-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+/* Tooltip styling */
+.upload-tooltip {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Tooltip arrow */
+.upload-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+/* Show tooltip on hover */
+.upload-box-wrapper:hover .upload-tooltip {
+    opacity: 1;
+}
+
 .upload-box input[type="file"] {
     display: none;
 }

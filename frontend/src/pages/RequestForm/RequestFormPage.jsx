@@ -993,6 +993,7 @@ const Step1ReportDetails = ({
               preview={previews.after}
               isLoading={isLoading.after}
               error={error.after}
+              selectedVehicle={formData.selectedVehicle}
             />
           </>
         ) : (
@@ -1007,6 +1008,7 @@ const Step1ReportDetails = ({
               preview={previews.before}
               isLoading={isLoading.before}
               error={error.before}
+              selectedVehicle={formData.selectedVehicle}
             />
             <ImageUploader
               type="after"
@@ -1017,6 +1019,7 @@ const Step1ReportDetails = ({
               preview={previews.after}
               isLoading={isLoading.after}
               error={error.after}
+              selectedVehicle={formData.selectedVehicle}
             />
           </>
         )}
@@ -1044,6 +1047,7 @@ const ImageUploader = ({
   preview,
   isLoading,
   error,
+  selectedVehicle,
 }) => (
   <div className="image-uploader">
     <h5>{title}</h5>
@@ -1052,15 +1056,29 @@ const ImageUploader = ({
       {/* Left: Upload/Preview */}
       <div className="upload-preview-section">
         {!preview ? (
-          <label className="upload-box">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => onUpload(e.target.files[0], type)}
-            />
-            <img src={UploadIcon} alt="Upload" />
-            <span>Click to upload or drag & drop</span>
-          </label>
+          <div className="upload-box-wrapper">
+            <label 
+              className={`upload-box ${!selectedVehicle ? 'disabled' : ''}`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => onUpload(e.target.files[0], type)}
+                disabled={!selectedVehicle}
+              />
+              <img src={UploadIcon} alt="Upload" />
+              <span>
+                {!selectedVehicle 
+                  ? "Please select a vehicle first" 
+                  : "Click to upload or drag & drop"}
+              </span>
+            </label>
+            {!selectedVehicle && (
+              <div className="upload-tooltip">
+                Please select a vehicle first
+              </div>
+            )}
+          </div>
         ) : (
           <div className="image-preview-container">
             <img src={preview} alt="Receipt preview" className="image-preview" />
