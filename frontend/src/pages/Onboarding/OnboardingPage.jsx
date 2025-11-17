@@ -1,254 +1,175 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './OnboardingPage.css';
-// Import the service
-import { OnboardingService } from './OnboardingService.jsx';
+import './OnboardingPageExtended.css';
+import UkoLogo from '../../assets/uko-logo.png';
+import StepProfile from './components/StepProfile.jsx';
+import StepCompanyTheme from './components/StepCompanyTheme.jsx';
+import StepVehicles from './components/StepVehicles.jsx';
+import LaunchAnimation from './components/LaunchAnimation.jsx';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
-    const [businessName, setBusinessName] = useState('');
-    const [vehicles, setVehicles] = useState([{ registration_no: '', vehicle_type: '', chassis_number: '' }]);
-    const [primaryThemeColor, setPrimaryThemeColor] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [currentStep, setCurrentStep] = useState(1);
+    const [showLaunch, setShowLaunch] = useState(false);
+    
+    // Form data state
+    const [formData, setFormData] = useState({
+        profile: {},
+        company: {},
+        vehicles: {}
+    });
 
-    // --- Color Helper Function ---
-    const getColorValue = (colorName) => {
-        const colorMap = {
-            'Blue': '#3B82F6',
-            'Yellow': '#F59E0B',
-            'Red': '#EF4444',
-            'Black': '#1F2937',
-            'Green': '#10B981'
-        };
-        return colorMap[colorName] || '#3B82F6';
-    };
+    // Track completion percentage for progress bar
+    const [stepCompletion, setStepCompletion] = useState({
+        1: 0,
+        2: 0,
+        3: 0
+    });
 
-    // --- Vehicle Input Handlers ---
-    const handleVehicleChange = (index, field, value) => {
-        const updatedVehicles = [...vehicles];
-        updatedVehicles[index][field] = value;
-        setVehicles(updatedVehicles);
-    };
-
-    const addVehicleInput = () => {
-        setVehicles([...vehicles, { registration_no: '', vehicle_type: '', chassis_number: '' }]);
-    };
-
-    const removeVehicleInput = (index) => {
-        if (vehicles.length > 1) {
-            const updatedVehicles = vehicles.filter((_, i) => i !== index);
-            setVehicles(updatedVehicles);
+    // Load saved progress from sessionStorage (cleared on tab close)
+    useEffect(() => {
+        const savedStep = sessionStorage.getItem('onboardingStep');
+        if (savedStep) {
+            setCurrentStep(parseInt(savedStep, 10));
         }
-    };
+    }, []);
 
-    // --- Form Submission ---
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setError(null);
+    // Save current step to sessionStorage
+    useEffect(() => {
+        sessionStorage.setItem('onboardingStep', currentStep.toString());
+    }, [currentStep]);
 
-        // Basic validation
-        if (!businessName.trim()) {
-            setError('Please enter a business name.');
-            return;
-        }
-        if (!primaryThemeColor.trim()) {
-            setError('Please select a primary theme color.');
-            return;
-        }
-        // Enhanced validation for vehicles - all fields are now required
-        const validVehicles = vehicles.filter(v => 
-            v.registration_no.trim() && 
-            v.vehicle_type.trim() && 
-            v.chassis_number.trim()
-        );
-        
-        if (validVehicles.length === 0) {
-            setError('Please add at least one vehicle with all required fields: Registration Number, Vehicle Type, and Chassis Number.');
-            return;
-        }
-        
-        // Check if any vehicle is missing required fields
-        const incompleteVehicles = vehicles.filter(v => 
-            v.registration_no.trim() || v.vehicle_type.trim() || v.chassis_number.trim()
-        ).filter(v => 
-            !v.registration_no.trim() || !v.vehicle_type.trim() || !v.chassis_number.trim()
-        );
-        
-        if (incompleteVehicles.length > 0) {
-            setError('All vehicle fields are required: Registration Number, Vehicle Type, and Chassis Number.');
-            return;
-        }
+    const handleDataChange = (stepName) => (data) => {
+        setFormData(prev => ({
+            ...prev,
+            [stepName]: data
+        }));
 
-        setIsLoading(true);
-
-        const onboardingData = {
-            profile: {
-                business_name: businessName,
-                profile_color: primaryThemeColor,
-            },
-            vehicles: validVehicles.map(v => ({
-                registration_no: v.registration_no,
-                vehicle_type: v.vehicle_type,
-                chassis_number: v.chassis_number,
-            }))
-        };
-
-        console.log("Submitting Onboarding Data:", onboardingData);
-        console.log("Profile Color Selected:", primaryThemeColor);
-
-        // --- Integrate API call ---
-        try {
-            // Get the token stored during login
-            const token = localStorage.getItem('authToken');
-            if (!token) {
-                // Handle case where token is missing (e.g., redirect to login)
-                setError('Authentication token not found. Please log in again.');
-                setIsLoading(false);
-                // Optional: navigate('/login');
-                return;
+        // Calculate completion percentage based on filled fields
+        let completion = 0;
+        if (stepName === 'profile') {
+            const { firstName, lastName, phone } = data;
+            const fields = [firstName, lastName, phone];
+            completion = (fields.filter(f => f && f.trim()).length / fields.length) * 100;
+        } else if (stepName === 'company') {
+            const { companyName, selectedColor } = data;
+            completion = ((companyName?.trim() ? 50 : 0) + (selectedColor ? 50 : 0));
+        } else if (stepName === 'vehicles') {
+            const { vehicles } = data;
+            if (vehicles && vehicles.length > 0) {
+                const validVehicles = vehicles.filter(v => v.registration_no?.trim() && v.vehicle_type?.trim());
+                completion = validVehicles.length > 0 ? 100 : 0;
             }
+        }
 
-            // Call the service function
-            const profileData = await OnboardingService.completeOnboarding(onboardingData, token);
+        setStepCompletion(prev => ({
+            ...prev,
+            [currentStep]: completion
+        }));
+    };
 
-            console.log("Onboarding successful:", profileData);
-            // Store individual profile fields in localStorage
-            localStorage.setItem('profile_id', profileData.id);
-            localStorage.setItem('profile_user_id', profileData.user_id);
-            localStorage.setItem('profile_company_name', profileData.business_name);
-            localStorage.setItem('profile_business_ref_id', profileData.business_ref_id);
-            localStorage.setItem('profile_color', profileData.profile_color);
-            localStorage.setItem('profile_is_onboarded', 'true');
-            localStorage.setItem('profile_is_superadmin', 'true');
-
-            navigate('/overview'); // Navigate to dashboard on success
-
-        } catch (apiError) {
-             console.error('Onboarding failed:', apiError);
-             // Display specific error from backend if available
-             setError(apiError?.detail || 'Onboarding failed. Please try again.');
-        } finally {
-            setIsLoading(false);
+    const handleNext = () => {
+        if (currentStep < 3) {
+            setCurrentStep(currentStep + 1);
+        } else {
+            // Final step - show launch animation
+            setShowLaunch(true);
         }
     };
+
+    const handleBack = () => {
+        if (currentStep > 1) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
+
+    const steps = [
+        { number: 1, title: 'Profile', description: 'Review your details' },
+        { number: 2, title: 'Company', description: 'Setup & theme' },
+        { number: 3, title: 'Vehicles', description: 'Add your fleet' }
+    ];
+
+    if (showLaunch) {
+        return <LaunchAnimation />;
+    }
 
     return (
         <div className="onboarding-container">
-            <div className="onboarding-card">
-                <div className="onboarding-header">
-                    <h1>Welcome to FleetPro!</h1>
-                    <p>Let's set up your business profile to get started.</p>
+            <div className="onboarding-wrapper">
+                {/* Header with logo */}
+                <div className="onboarding-brand">
+                    <img src={UkoLogo} alt="Logo" className="onboarding-logo" />
+                    <h1 className="onboarding-main-title">Welcome to Your Fleet Management System</h1>
+                    <p className="onboarding-main-subtitle">Let's get you set up in just 3 simple steps</p>
                 </div>
 
-                {error && <div className="error-message">{error}</div>}
-
-                <form onSubmit={handleSubmit}>
-                    {/* Business Name */}
-                    <div className="form-group">
-                        <label htmlFor="businessName">Business Name</label>
-                        <input
-                            type="text"
-                            id="businessName"
-                            className="form-input"
-                            value={businessName}
-                            onChange={(e) => setBusinessName(e.target.value)}
-                            placeholder="Enter your company or fleet name"
-                            required
-                        />
-                    </div>
-
-                    {/* Primary Theme Color Selection */}
-                    <div className="form-group">
-                        <label htmlFor="primaryThemeColor">Primary Color</label>
-                        <div className="color-selection">
-                            {['Blue', 'Yellow', 'Red', 'Black', 'Green'].map((color) => (
-                                <button
-                                    key={color}
-                                    type="button"
-                                    className={`color-swatch ${primaryThemeColor === color ? 'selected' : ''}`}
-                                    onClick={() => {
-                                        console.log("Color selected:", color);
-                                        setPrimaryThemeColor(color);
-                                    }}
-                                    style={{
-                                        backgroundColor: getColorValue(color)
-                                    }}
-                                    title={color}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Vehicle Section */}
-                    <div className="vehicle-section">
-                         <h4>Add Your Vehicle(s)</h4>
-                        {vehicles.map((vehicle, index) => (
-                            <div key={index} className="vehicle-input-group">
-                                <div className="form-group">
-                                    <label htmlFor={`regNo-${index}`}>Registration No. *</label>
-                                    <input
-                                        type="text"
-                                        id={`regNo-${index}`}
-                                        className="form-input"
-                                        value={vehicle.registration_no}
-                                        onChange={(e) => handleVehicleChange(index, 'registration_no', e.target.value)}
-                                        placeholder="e.g., KA01AB1234"
-                                        required
-                                    />
+                {/* Stepper */}
+                <div className="stepper-container">
+                    {steps.map((step, index) => (
+                        <React.Fragment key={step.number}>
+                            <div 
+                                className={`stepper-item ${currentStep === step.number ? 'active' : ''} ${currentStep > step.number ? 'completed' : ''}`}
+                            >
+                                <div className="stepper-circle">
+                                    {currentStep > step.number ? (
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="white">
+                                            <path d="M6 11L3 8L4.4 6.6L6 8.2L11.6 2.6L13 4L6 11Z" />
+                                        </svg>
+                                    ) : (
+                                        <span>{step.number}</span>
+                                    )}
                                 </div>
-                                <div className="form-group">
-                                    <label htmlFor={`vehicleType-${index}`}>Vehicle Type *</label>
-                                    <input
-                                        type="text"
-                                        id={`vehicleType-${index}`}
-                                        className="form-input"
-                                        value={vehicle.vehicle_type}
-                                        onChange={(e) => handleVehicleChange(index, 'vehicle_type', e.target.value)}
-                                        placeholder="e.g., Truck, Tanker"
-                                        required
-                                    />
+                                <div className="stepper-content">
+                                    <div className="stepper-title">{step.title}</div>
+                                    <div className="stepper-description">{step.description}</div>
                                 </div>
-                                <div className="form-group">
-                                    <label htmlFor={`chassisNumber-${index}`}>Chassis Number *</label>
-                                    <input
-                                        type="text"
-                                        id={`chassisNumber-${index}`}
-                                        className="form-input"
-                                        value={vehicle.chassis_number}
-                                        onChange={(e) => handleVehicleChange(index, 'chassis_number', e.target.value)}
-                                        placeholder="e.g., MAT828113S2C05629"
-                                        required
-                                    />
-                                </div>
-                                {vehicles.length > 1 && (
-                                     <button
-                                         type="button"
-                                         className="remove-vehicle-btn"
-                                         onClick={() => removeVehicleInput(index)}
-                                         title="Remove Vehicle"
-                                     >
-                                         &times;
-                                     </button>
-                                )}
-
                             </div>
-                         ))}
-                         <button
-                             type="button"
-                             className="add-vehicle-btn"
-                             onClick={addVehicleInput}
-                             style={{width: 'auto', padding: '10px 15px', marginTop: '10px'}}
-                         >
-                             + Add Another Vehicle
-                         </button>
-                    </div>
+                            {step.number < 3 && (
+                                <div className="stepper-line-wrapper">
+                                    <div className="stepper-line-bg"></div>
+                                    <div 
+                                        className="stepper-line-progress"
+                                        style={{
+                                            width: currentStep > step.number 
+                                                ? '100%' 
+                                                : currentStep === step.number 
+                                                    ? `${stepCompletion[step.number] || 0}%`
+                                                    : '0%'
+                                        }}
+                                    ></div>
+                                </div>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
 
-                    {/* Submit Button */}
-                    <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                        {isLoading ? 'Setting Up...' : 'Complete Setup'}
-                    </button>
-                </form>
+                {/* Step Content Card */}
+                <div className="onboarding-card">
+                    {currentStep === 1 && (
+                        <StepProfile 
+                            onNext={handleNext}
+                            onDataChange={handleDataChange('profile')}
+                            formData={formData.profile}
+                        />
+                    )}
+                    {currentStep === 2 && (
+                        <StepCompanyTheme 
+                            onNext={handleNext}
+                            onBack={handleBack}
+                            onDataChange={handleDataChange('company')}
+                            formData={formData.company}
+                        />
+                    )}
+                    {currentStep === 3 && (
+                        <StepVehicles 
+                            onNext={handleNext}
+                            onBack={handleBack}
+                            onDataChange={handleDataChange('vehicles')}
+                            formData={formData.vehicles}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     );

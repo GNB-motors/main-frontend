@@ -1,0 +1,16 @@
+/* Report Type Selection Modal Styles */
+.report-type-card {
+  height: 100%;
+  min-height: 320px;
+}
+
+.report-type-card:hover {
+  cursor: pointer;
+}
+
+.report-type-card .MuiCardContent-root {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
