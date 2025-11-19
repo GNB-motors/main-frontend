@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import apiClient from "../../utils/axiosConfig";
+import SplitTripConfirmationDialog from "./SplitTripConfirmationDialog";
 import "./RequestFormPage.css";
 
 // Import assets
@@ -56,6 +57,13 @@ const RequestFormPage = () => {
     submit: false,
   });
   const [finalReportData, setFinalReportData] = useState(null);
+
+  // --- NEW: Overlap detection and split state ---
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [overlapData, setOverlapData] = useState(null);
+  const [pendingReceiptData, setPendingReceiptData] = useState(null);
+  const [isSplitting, setIsSplitting] = useState(false);
+  const [splitProgress, setSplitProgress] = useState([]);
 
   // --- WS: OTP handling state ---
   const [sessionId, setSessionId] = useState(() => {
@@ -415,6 +423,86 @@ const RequestFormPage = () => {
     }
   }, [formData.selectedVehicle, tmsProfile]);
 
+  // NEW: Check for receipt overlap
+  const checkReceiptOverlap = async (receiptDate, receiptVolume) => {
+    if (!tmsProfile || !formData.selectedVehicle) {
+      console.error('Missing profile or vehicle selection');
+      return null;
+    }
+
+    try {
+      console.log('🔍 Checking receipt overlap:', { receiptDate, receiptVolume });
+      
+      const response = await apiClient.post('api/v1/ocr/check-receipt-overlap', {
+        profile_id: tmsProfile.id,
+        vehicle_reg: formData.selectedVehicle,
+        receipt_date: receiptDate, // Format: DD/MM/YYYY
+      });
+
+      console.log('✅ Overlap check response:', response.data);
+      return response.data;
+    } catch (err) {
+      console.error('❌ Overlap check error:', err);
+      const errorMsg = err.response?.data?.detail || 'Failed to check receipt overlap';
+      setError((prev) => ({ ...prev, after: errorMsg }));
+      return null;
+    }
+  };
+
+  // NEW: Execute trip split
+  const executeSplit = async () => {
+    if (!pendingReceiptData || !overlapData) {
+      console.error('Missing pending receipt data or overlap data');
+      return;
+    }
+
+    try {
+      setIsSplitting(true);
+      setSplitProgress(['🔍 Validating split request...']);
+
+      console.log('🔄 Executing split:', {
+        originalReportId: overlapData.original_trip.id,
+        newReceiptDate: pendingReceiptData.receiptDate,
+        newReceiptVolume: pendingReceiptData.receiptVolume,
+      });
+
+      setSplitProgress((prev) => [...prev, '🗑️ Deleting original trip...']);
+
+      const response = await apiClient.post('api/v1/ocr/split-trip', {
+        original_report_id: overlapData.original_trip.id,
+        new_receipt_date: pendingReceiptData.receiptDate,
+        new_receipt_volume: pendingReceiptData.receiptVolume,
+        profile_id: tmsProfile.id,
+      });
+
+      setSplitProgress((prev) => [...prev, '✅ Split completed successfully!']);
+
+      console.log('✅ Split successful:', response.data);
+
+      // Show success message
+      setTimeout(() => {
+        alert(`✅ Split successful! Created trips #${response.data.trip_a_id} and #${response.data.trip_b_id}`);
+        
+        // Redirect to reports page
+        window.location.href = '/reports';
+      }, 1000);
+
+    } catch (err) {
+      console.error('❌ Split error:', err);
+      const errorMsg = err.response?.data?.detail || 'Failed to split trip';
+      alert('Split failed: ' + errorMsg);
+      setSplitProgress((prev) => [...prev, '❌ Split failed: ' + errorMsg]);
+    } finally {
+      setIsSplitting(false);
+    }
+  };
+
+  // NEW: Handle split confirmation
+  const handleConfirmSplit = () => {
+    setSplitDialogOpen(false);
+    executeSplit();
+  };
+
   const handleImageUpload = async (file, type) => {
     if (!file) return;
 
@@ -435,6 +523,38 @@ const RequestFormPage = () => {
         uploadFormData,
       );
       const extractedReceiptData = response.data.data;
+      
+      // NEW: Check for overlap in custom_trip mode
+      if (reportType === "custom_trip" && type === "after") {
+        const overlapResult = await checkReceiptOverlap(
+          extractedReceiptData.date,
+          extractedReceiptData.volume
+        );
+
+        if (overlapResult && overlapResult.overlap_detected) {
+          console.log('⚠️ Overlap detected!', overlapResult);
+          
+          // Store the pending receipt data
+          setPendingReceiptData({
+            receiptFile: file,
+            receiptDate: extractedReceiptData.date,
+            receiptVolume: extractedReceiptData.volume,
+            extractedData: extractedReceiptData,
+          });
+          
+          // Store overlap data
+          setOverlapData(overlapResult);
+          
+          // Show split confirmation dialog
+          setSplitDialogOpen(true);
+          
+          // Clear the loading state
+          setIsLoading((prev) => ({ ...prev, [type]: false }));
+          
+          // Don't proceed with normal upload - wait for user confirmation
+          return;
+        }
+      }
       
       // ⚠️ DATE VALIDATION: Prevent uploading receipts older than latest refuel
       // TODO: This validation logic will be enhanced later to handle edge cases
@@ -785,6 +905,63 @@ const RequestFormPage = () => {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Split Trip Confirmation Dialog */}
+      <SplitTripConfirmationDialog
+        open={splitDialogOpen}
+        onClose={() => {
+          setSplitDialogOpen(false);
+          setPendingReceiptData(null);
+          setOverlapData(null);
+          setSplitProgress([]);
+        }}
+        onConfirm={handleConfirmSplit}
+        overlapData={overlapData}
+        newReceiptDate={pendingReceiptData?.receiptDate}
+        newReceiptVolume={pendingReceiptData?.receiptVolume}
+        isProcessing={isSplitting}
+        progress={splitProgress}
+      />
+
+      {/* NEW: Processing Overlay */}
+      {isSplitting && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 3000,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "32px",
+              borderRadius: "12px",
+              textAlign: "center",
+              maxWidth: "400px",
+            }}
+          >
+            <div className="loading-spinner" style={{ marginBottom: "16px" }}>
+              Processing...
+            </div>
+            <h3 style={{ margin: "0 0 16px 0" }}>Splitting Trip</h3>
+            <div style={{ textAlign: "left", maxHeight: "200px", overflowY: "auto" }}>
+              {splitProgress.map((msg, idx) => (
+                <div key={idx} style={{ padding: "4px 0", fontSize: "14px" }}>
+                  {msg}
+                </div>
+              ))}
             </div>
           </div>
         </div>

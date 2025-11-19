@@ -117,6 +117,25 @@ const ReportTypeSelectionModal = ({ isOpen, onSelectType }) => {
                   {reportType.details}
                 </Typography>
 
+                {/* Warning for Custom Trip */}
+                {reportType.type === "custom_trip" && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 1.5,
+                      bgcolor: "#FEF3C7",
+                      borderRadius: 1,
+                      border: "1px solid #F59E0B",
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      <Typography variant="caption" color="#92400E" fontWeight={600}>
+                        ⚠️ Receipt overlap will trigger trip split
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
                 <Box
                   sx={{
                     mt: 3,
@@ -140,6 +159,13 @@ const ReportTypeSelectionModal = ({ isOpen, onSelectType }) => {
             <strong>Note:</strong> Both options will generate the same detailed
             report. The difference is in how you provide the starting fuel
             data.
+          </Typography>
+        </Box>
+        
+        <Box sx={{ mt: 2, p: 2, bgcolor: "#EFF6FF", borderRadius: 1, border: "1px solid #3B82F6" }}>
+          <Typography variant="body2" color="#1E40AF">
+            <strong>🆕 New Feature:</strong> When uploading a receipt that falls within an existing trip, 
+            the system will automatically split the trip into two separate trips with accurate data.
           </Typography>
         </Box>
       </DialogContent>
