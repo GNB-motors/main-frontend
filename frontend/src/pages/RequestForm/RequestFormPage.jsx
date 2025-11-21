@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import apiClient from "../../utils/axiosConfig";
 import "./RequestFormPage.css";
+import SplitBillPreview from "./SplitBillPreview";
 
 // Import assets
 import UkoLogo from "../../assets/uko-logo.png";
@@ -56,6 +57,12 @@ const RequestFormPage = () => {
     submit: false,
   });
   const [finalReportData, setFinalReportData] = useState(null);
+
+  // --- Split Bill Preview State ---
+  const [splitPreviewData, setSplitPreviewData] = useState(null);
+  const [showSplitPreview, setShowSplitPreview] = useState(false);
+  const [isLoadingSplitPreview, setIsLoadingSplitPreview] = useState(false);
+  const [pendingSplitPayload, setPendingSplitPayload] = useState(null);
 
   // --- WS: OTP handling state ---
   const [sessionId, setSessionId] = useState(() => {
@@ -435,73 +442,7 @@ const RequestFormPage = () => {
         uploadFormData,
       );
       const extractedReceiptData = response.data.data;
-      
-      // ⚠️ DATE VALIDATION: Prevent uploading receipts older than latest refuel
-      // TODO: This validation logic will be enhanced later to handle edge cases
-      // like missed receipts and backfilling. Current implementation strictly
-      // prevents any receipt dated before the latest refuel.
-      if (reportType === "since_last_refuel" && latestRefuel && type === "after") {
-        try {
-          // Parse latest refuel date (ISO format from backend: "2025-10-16T06:41:00")
-          const latestDate = new Date(latestRefuel.transaction_date);
-          
-          // Parse extracted receipt date (Format: "DD/MM/YYYY" or "DD/MM/YY")
-          const dateStr = extractedReceiptData.date;
-          const [day, month, year] = dateStr.split('/');
-          
-          // Handle 2-digit or 4-digit year
-          const fullYear = year.length === 2 ? `20${year}` : year;
-          
-          // Create date object at midnight for comparison (month is 0-indexed in JS)
-          const extractedDate = new Date(parseInt(fullYear), parseInt(month) - 1, parseInt(day), 0, 0, 0);
-          const latestDateOnly = new Date(latestDate.getFullYear(), latestDate.getMonth(), latestDate.getDate(), 0, 0, 0);
-          
-          console.log('🔍 Date validation check:', {
-            latest: {
-              raw: latestRefuel.transaction_date,
-              parsed: latestDateOnly.toISOString(),
-              display: latestRefuel.date
-            },
-            extracted: {
-              raw: dateStr,
-              parsed: extractedDate.toISOString(),
-              display: extractedReceiptData.date
-            },
-            isValid: extractedDate > latestDateOnly
-          });
-          
-          // Receipt must be AFTER the latest refuel (not equal)
-          if (extractedDate <= latestDateOnly) {
-            const errorMessage = `❌ This receipt is dated ${extractedReceiptData.date}, which is on or before your latest refuel (${latestRefuel.date}). Please upload a receipt dated AFTER ${latestRefuel.date}.`;
-            console.error('❌ Date validation FAILED:', errorMessage);
-            
-            // Clear the upload and show error
-            setError((prev) => ({ 
-              ...prev, 
-              [type]: errorMessage
-            }));
-            setPreviews((prev) => ({ ...prev, [type]: null }));
-            updateFormData(type === "before" ? "dieselBefore" : "dieselAfter", null);
-            setExtractedData((prev) => ({ ...prev, [type]: null }));
-            setIsLoading((prev) => ({ ...prev, [type]: false }));
-            return; // STOP processing here
-          }
-          
-          console.log('✅ Date validation PASSED - receipt is newer than latest refuel');
-        } catch (dateErr) {
-          console.error('❌ Error during date validation:', dateErr);
-          const errorMessage = `⚠️ Could not validate receipt date. Please ensure the receipt is dated after ${latestRefuel.date}.`;
-          setError((prev) => ({ 
-            ...prev, 
-            [type]: errorMessage
-          }));
-          setPreviews((prev) => ({ ...prev, [type]: null }));
-          updateFormData(type === "before" ? "dieselBefore" : "dieselAfter", null);
-          setIsLoading((prev) => ({ ...prev, [type]: false }));
-          return; // STOP on validation error
-        }
-      }
-      
+      // Removed legacy strict date validation (now handled by backend with optional split_by_bill flow)
       setExtractedData((prev) => ({ ...prev, [type]: extractedReceiptData }));
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Failed to process image.";
@@ -516,6 +457,135 @@ const RequestFormPage = () => {
     setPreviews((prev) => ({ ...prev, [type]: null }));
     setExtractedData((prev) => ({ ...prev, [type]: null }));
     updateFormData(type === "before" ? "dieselBefore" : "dieselAfter", null);
+  };
+
+  // Split bill preview API call
+  const callSplitPreview = async (insertedReceipt) => {
+    setIsLoadingSplitPreview(true);
+    setError((prev) => ({ ...prev, submit: null }));
+    
+    try {
+      const previewPayload = {
+        profile_id: tmsProfile?.id || null,
+        selected_vehicle_registration_no: formData.selectedVehicle,
+        inserted_receipt: insertedReceipt,
+      };
+      
+      const response = await apiClient.post("/ocr/split-bill/preview", previewPayload);
+      
+      if (response.data.error) {
+        setError((prev) => ({
+          ...prev,
+          submit: `Split preview failed: ${response.data.error}`,
+        }));
+        setIsLoading((prev) => ({ ...prev, submit: false }));
+        return;
+      }
+      
+      // Store preview data and show confirmation UI
+      setSplitPreviewData(response.data);
+      setShowSplitPreview(true);
+      
+      // Store payload for later execution
+      setPendingSplitPayload({
+        insertedReceipt,
+        segments: response.data.segments,
+      });
+      
+    } catch (err) {
+      console.error("Split preview error:", err);
+      setError((prev) => ({
+        ...prev,
+        submit: err.response?.data?.detail || "Failed to preview split. Please try again.",
+      }));
+      setIsLoading((prev) => ({ ...prev, submit: false }));
+    } finally {
+      setIsLoadingSplitPreview(false);
+    }
+  };
+
+  // Execute split after user confirmation
+  const executeSplitBill = async () => {
+    if (!pendingSplitPayload) return;
+    
+    setIsLoading((prev) => ({ ...prev, submit: true }));
+    setError((prev) => ({ ...prev, submit: null }));
+    setShowSplitPreview(false);
+    
+    // Ensure WS is connected if using OTP method
+    if (formData.loginMethod === "otp") {
+      let waitMs = 0;
+      if (!wsReady && !wsConnecting) {
+        reconnectWithBackoff(6);
+      }
+      while (!wsReady && waitMs < 10000) {
+        await new Promise((res) => setTimeout(res, 100));
+        waitMs += 100;
+      }
+    }
+    
+    try {
+      const executePayload = {
+        loginDetails:
+          formData.loginMethod === "otp"
+            ? { login_method: "otp", mobile_number: formData.mobileNumber }
+            : {
+                login_method: "password",
+                email: formData.email,
+                password: formData.password,
+              },
+        profile_id: tmsProfile?.id || null,
+        selected_vehicle_registration_no: formData.selectedVehicle,
+        inserted_receipt: pendingSplitPayload.insertedReceipt,
+        segments: pendingSplitPayload.segments,
+        session_id: sessionStorage.getItem("wsSessionId") || null,
+      };
+      
+      // Send over WebSocket for OTP flow, or could use HTTP for password flow
+      if (!ws || !wsReady) {
+        setError((prev) => ({
+          ...prev,
+          submit: "Connection not ready. Please try again.",
+        }));
+        setIsLoading((prev) => ({ ...prev, submit: false }));
+        return;
+      }
+      
+      if (formData.loginMethod === "otp" && formData.mobileNumber) {
+        try {
+          ws.send(
+            JSON.stringify({
+              type: "mobile_number",
+              mobile: formData.mobileNumber,
+            }),
+          );
+        } catch {}
+        await new Promise((res) => setTimeout(res, 100));
+      }
+      
+      // Send split execution payload
+      ws.send(
+        JSON.stringify({ 
+          type: "execute_split", 
+          payload: executePayload 
+        }),
+      );
+      
+    } catch (err) {
+      console.error("Split execution error:", err);
+      setError((prev) => ({
+        ...prev,
+        submit: "Failed to execute split. Please try again.",
+      }));
+      setIsLoading((prev) => ({ ...prev, submit: false }));
+    }
+  };
+
+  const cancelSplitPreview = () => {
+    setShowSplitPreview(false);
+    setSplitPreviewData(null);
+    setPendingSplitPayload(null);
+    setIsLoading((prev) => ({ ...prev, submit: false }));
   };
 
   const handleSubmit = async (e) => {
@@ -544,11 +614,54 @@ const RequestFormPage = () => {
       }
     }
 
-    // ✅ Clean and properly typed payload
+    // Determine dynamic report type (auto-upgrade to split_by_bill if refuel flow and uploaded date is not after latest refuel)
+    let dynamicReportType = reportType || "custom_trip";
+    let insertedReceiptForSplit = null;
+    if (
+      dynamicReportType === "since_last_refuel" && latestRefuel && extractedData.after
+    ) {
+      try {
+        // Parse latest refuel (from transaction_date ISO) and uploaded receipt (dd/mm/yyyy)
+        const latestDateObj = new Date(latestRefuel.transaction_date);
+        const [dd, mm, yy] = extractedData.after.date.split("/");
+        const fullYear = yy.length === 2 ? `20${yy}` : yy;
+        const uploadedDateObj = new Date(parseInt(fullYear), parseInt(mm) - 1, parseInt(dd), 0, 0, 0);
+        const latestMidnight = new Date(
+          latestDateObj.getFullYear(),
+          latestDateObj.getMonth(),
+          latestDateObj.getDate(),
+          0,
+          0,
+          0,
+        );
+        if (uploadedDateObj <= latestMidnight) {
+          // Switch to split_by_bill workflow - CALL PREVIEW FIRST
+          dynamicReportType = "split_by_bill";
+          // Convert date to ISO (YYYY-MM-DD) for backend helper parse_dt
+          const isoDate = `${fullYear}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+          insertedReceiptForSplit = {
+            date: isoDate,
+            time: extractedData.after.time,
+            vehicle_no: extractedData.after.vehicle_no,
+            volume: Number(extractedData.after.volume),
+          };
+          console.log("ℹ️ Auto-switched to split_by_bill workflow - calling preview", insertedReceiptForSplit);
+          
+          // Call preview API instead of immediately submitting
+          await callSplitPreview(insertedReceiptForSplit);
+          return; // Exit here - user must confirm preview
+        }
+      } catch (autoErr) {
+        console.warn("Split-by-bill auto-detection failed; continuing with original report type", autoErr);
+      }
+    }
+
+    // Build payload
     const cleanPayload = {
-      report_type: reportType || "custom_trip",
+      report_type: dynamicReportType,
+      profile_id: tmsProfile?.id || null,
       extractedData:
-        reportType === "since_last_refuel"
+        dynamicReportType === "since_last_refuel"
           ? {
               // Only send "after" image data for refuel flow
               after: extractedData.after
@@ -561,7 +674,7 @@ const RequestFormPage = () => {
                 : null,
             }
           : {
-              // Send both for custom trip
+              // Send both for custom trip; for split_by_bill backend will ignore these
               before: extractedData.before
                 ? {
                     date: extractedData.before.date,
@@ -591,8 +704,12 @@ const RequestFormPage = () => {
       session_id: sessionStorage.getItem("wsSessionId") || null,
     };
 
+    if (dynamicReportType === "split_by_bill" && insertedReceiptForSplit) {
+      cleanPayload.inserted_receipt = insertedReceiptForSplit;
+    }
+
     // Add refuel flow data if applicable
-    if (reportType === "since_last_refuel" && latestRefuel) {
+    if (dynamicReportType === "since_last_refuel" && latestRefuel) {
       cleanPayload.refuel_flow_data = {
         use_stored_refuel: true,
         stored_refuel_id: latestRefuel.id,
@@ -786,6 +903,41 @@ const RequestFormPage = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Split Bill Preview Modal */}
+      {showSplitPreview && splitPreviewData && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1001,
+            overflowY: "auto",
+          }}
+          onClick={cancelSplitPreview}
+        >
+          <div
+            style={{
+              maxWidth: "1200px",
+              width: "90%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              margin: "20px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <SplitBillPreview
+              previewData={splitPreviewData}
+              onConfirm={executeSplitBill}
+              onCancel={cancelSplitPreview}
+              isLoading={isLoading.submit}
+            />
           </div>
         </div>
       )}
