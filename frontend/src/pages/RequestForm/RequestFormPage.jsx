@@ -180,6 +180,47 @@ const RequestFormPage = () => {
             }));
             setIsLoading((prev) => ({ ...prev, submit: false }));
           }
+        } else if (msg.type === "automation_complete_split" || msg.event === "automation_complete_split") {
+          // Handle split_by_bill workflow completion
+          const createdReports = msg.created_reports || [];
+          
+          // Check if any segments succeeded
+          let hasSuccess = false;
+          let errorMessages = [];
+          
+          createdReports.forEach(tripResult => {
+            tripResult.segments?.forEach(segment => {
+              if (segment.status === "success") {
+                hasSuccess = true;
+              } else if (segment.status === "failed") {
+                errorMessages.push(`${segment.segment}: ${segment.error || "Unknown error"}`);
+              }
+            });
+          });
+          
+          if (!hasSuccess) {
+            // All segments failed
+            setError((prev) => ({
+              ...prev,
+              submit: `Split bill automation failed: ${errorMessages.join(", ") || "All segments failed"}`,
+            }));
+            setIsLoading((prev) => ({ ...prev, submit: false }));
+          } else if (errorMessages.length > 0) {
+            // Partial success
+            setError((prev) => ({
+              ...prev,
+              submit: `Some segments failed: ${errorMessages.join(", ")}`,
+            }));
+            // Still move to results if we have at least one success
+            setFinalReportData({ created_reports: createdReports });
+            setIsLoading((prev) => ({ ...prev, submit: false }));
+            setTimeout(() => goToStep(3), 0);
+          } else {
+            // Full success
+            setFinalReportData({ created_reports: createdReports });
+            setIsLoading((prev) => ({ ...prev, submit: false }));
+            setTimeout(() => goToStep(3), 0);
+          }
         } else if (msg.type === "automation_error") {
           setError((prev) => ({
             ...prev,
@@ -442,8 +483,13 @@ const RequestFormPage = () => {
         uploadFormData,
       );
       const extractedReceiptData = response.data.data;
-      // Removed legacy strict date validation (now handled by backend with optional split_by_bill flow)
       setExtractedData((prev) => ({ ...prev, [type]: extractedReceiptData }));
+      
+      // For "after" (current receipt) image, check if split is needed
+      if (type === "after" && formData.selectedVehicle && tmsProfile?.id) {
+        // Call split preview API to check if date is before last bill
+        await callSplitPreview(file);
+      }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Failed to process image.";
       setError((prev) => ({ ...prev, [type]: errorMsg }));
@@ -460,18 +506,18 @@ const RequestFormPage = () => {
   };
 
   // Split bill preview API call
-  const callSplitPreview = async (insertedReceipt) => {
+  const callSplitPreview = async (imageFile) => {
     setIsLoadingSplitPreview(true);
     setError((prev) => ({ ...prev, submit: null }));
     
     try {
-      const previewPayload = {
-        profile_id: tmsProfile?.id || null,
-        selected_vehicle_registration_no: formData.selectedVehicle,
-        inserted_receipt: insertedReceipt,
-      };
+      // Create FormData for multipart upload
+      const uploadFormData = new FormData();
+      uploadFormData.append("receipt", imageFile);
+      uploadFormData.append("profile_id", tmsProfile?.id || "");
+      uploadFormData.append("selected_vehicle_registration_no", formData.selectedVehicle);
       
-      const response = await apiClient.post("/ocr/split-bill/preview", previewPayload);
+      const response = await apiClient.post("api/v1/ocr/split-bill/preview", uploadFormData);
       
       if (response.data.error) {
         setError((prev) => ({
@@ -486,11 +532,19 @@ const RequestFormPage = () => {
       setSplitPreviewData(response.data);
       setShowSplitPreview(true);
       
-      // Store payload for later execution
-      setPendingSplitPayload({
-        insertedReceipt,
-        segments: response.data.segments,
-      });
+      // If split is required, store the extracted data for later use
+      if (response.data.requires_split && response.data.extracted_data) {
+        setPendingSplitPayload({
+          extractedData: response.data.extracted_data,
+          requiresSplit: true,
+        });
+      } else {
+        // No split required, can proceed directly
+        setPendingSplitPayload({
+          extractedData: response.data.extracted_data,
+          requiresSplit: false,
+        });
+      }
       
     } catch (err) {
       console.error("Split preview error:", err);
@@ -508,77 +562,16 @@ const RequestFormPage = () => {
   const executeSplitBill = async () => {
     if (!pendingSplitPayload) return;
     
-    setIsLoading((prev) => ({ ...prev, submit: true }));
-    setError((prev) => ({ ...prev, submit: null }));
+    // Close the split preview modal
     setShowSplitPreview(false);
     
-    // Ensure WS is connected if using OTP method
-    if (formData.loginMethod === "otp") {
-      let waitMs = 0;
-      if (!wsReady && !wsConnecting) {
-        reconnectWithBackoff(6);
-      }
-      while (!wsReady && waitMs < 10000) {
-        await new Promise((res) => setTimeout(res, 100));
-        waitMs += 100;
-      }
-    }
+    // If split is required, the backend will handle it via split_by_bill workflow
+    // We just need to move to credentials step with the data ready
+    // The actual automation will happen when user submits credentials
+    setCurrentStep(2);
     
-    try {
-      const executePayload = {
-        loginDetails:
-          formData.loginMethod === "otp"
-            ? { login_method: "otp", mobile_number: formData.mobileNumber }
-            : {
-                login_method: "password",
-                email: formData.email,
-                password: formData.password,
-              },
-        profile_id: tmsProfile?.id || null,
-        selected_vehicle_registration_no: formData.selectedVehicle,
-        inserted_receipt: pendingSplitPayload.insertedReceipt,
-        segments: pendingSplitPayload.segments,
-        session_id: sessionStorage.getItem("wsSessionId") || null,
-      };
-      
-      // Send over WebSocket for OTP flow, or could use HTTP for password flow
-      if (!ws || !wsReady) {
-        setError((prev) => ({
-          ...prev,
-          submit: "Connection not ready. Please try again.",
-        }));
-        setIsLoading((prev) => ({ ...prev, submit: false }));
-        return;
-      }
-      
-      if (formData.loginMethod === "otp" && formData.mobileNumber) {
-        try {
-          ws.send(
-            JSON.stringify({
-              type: "mobile_number",
-              mobile: formData.mobileNumber,
-            }),
-          );
-        } catch {}
-        await new Promise((res) => setTimeout(res, 100));
-      }
-      
-      // Send split execution payload
-      ws.send(
-        JSON.stringify({ 
-          type: "execute_split", 
-          payload: executePayload 
-        }),
-      );
-      
-    } catch (err) {
-      console.error("Split execution error:", err);
-      setError((prev) => ({
-        ...prev,
-        submit: "Failed to execute split. Please try again.",
-      }));
-      setIsLoading((prev) => ({ ...prev, submit: false }));
-    }
+    // Clear loading state
+    setIsLoading((prev) => ({ ...prev, submit: false }));
   };
 
   const cancelSplitPreview = () => {
@@ -614,10 +607,29 @@ const RequestFormPage = () => {
       }
     }
 
-    // Determine dynamic report type (auto-upgrade to split_by_bill if refuel flow and uploaded date is not after latest refuel)
+    // Check if we have a pending split that user already confirmed
     let dynamicReportType = reportType || "custom_trip";
     let insertedReceiptForSplit = null;
-    if (
+    
+    // If user confirmed split preview, use split_by_bill mode
+    if (pendingSplitPayload && pendingSplitPayload.requiresSplit && pendingSplitPayload.extractedData) {
+      dynamicReportType = "split_by_bill";
+      
+      // Convert extracted data to inserted_receipt format for backend
+      const extracted = pendingSplitPayload.extractedData;
+      const [dd, mm, yy] = extracted.date.split("/");
+      const fullYear = yy.length === 2 ? `20${yy}` : yy;
+      const isoDate = `${fullYear}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+      
+      insertedReceiptForSplit = {
+        date: isoDate,
+        time: extracted.time,
+        vehicle_no: extracted.vehicle_no,
+        volume: Number(extracted.volume),
+      };
+    }
+    // Fallback: Check if since_last_refuel with date before last bill (shouldn't happen with preview flow)
+    else if (
       dynamicReportType === "since_last_refuel" && latestRefuel && extractedData.after
     ) {
       try {
@@ -635,9 +647,9 @@ const RequestFormPage = () => {
           0,
         );
         if (uploadedDateObj <= latestMidnight) {
-          // Switch to split_by_bill workflow - CALL PREVIEW FIRST
+          console.warn("Date before last bill detected at submit - this should have been caught by preview");
+          // This shouldn't happen if preview flow works correctly, but handle it anyway
           dynamicReportType = "split_by_bill";
-          // Convert date to ISO (YYYY-MM-DD) for backend helper parse_dt
           const isoDate = `${fullYear}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
           insertedReceiptForSplit = {
             date: isoDate,
@@ -645,11 +657,6 @@ const RequestFormPage = () => {
             vehicle_no: extractedData.after.vehicle_no,
             volume: Number(extractedData.after.volume),
           };
-          console.log("ℹ️ Auto-switched to split_by_bill workflow - calling preview", insertedReceiptForSplit);
-          
-          // Call preview API instead of immediately submitting
-          await callSplitPreview(insertedReceiptForSplit);
-          return; // Exit here - user must confirm preview
         }
       } catch (autoErr) {
         console.warn("Split-by-bill auto-detection failed; continuing with original report type", autoErr);
