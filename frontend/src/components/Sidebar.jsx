@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User } from 'lucide-react'; // Added Users and User icons
+import { Grid, FileText, Settings, LogOut, Users, User, Upload } from 'lucide-react'; // Added Users and User icons
 import UkoLogo from '../assets/uko-logo.png';
 import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
 import './Sidebar.css';
+
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navigate = useNavigate();
@@ -67,6 +68,14 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/drivers" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Users size={20} />
                         <span>Employees</span>
+                    </NavLink>
+                    <NavLink
+                        to="/bulk-upload"
+                        className="nav-link"
+                        onClick={closeSidebarOnMobile}
+                    >
+                        <Upload size={20} />
+                        <span>Bulk Upload</span>
                     </NavLink>
                     {/* ------------------------- */}
                     {/* <NavLink to="/settings" className="nav-link" onClick={closeSidebarOnMobile}>

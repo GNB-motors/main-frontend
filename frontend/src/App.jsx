@@ -15,6 +15,7 @@ import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage  from './pages/Drivers/DriversPage.jsx';
+import BulkUploadPage from "./pages/BulkUpload/BulkUploadPage.jsx";
 
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
+           <Route path="/bulk-upload" element={<BulkUploadPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/request-report" element={<RequestFormPage />} />
         <Route path="/settings" element={<SettingsPage />} />
