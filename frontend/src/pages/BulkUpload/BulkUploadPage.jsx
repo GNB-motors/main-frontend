@@ -249,8 +249,8 @@ const BulkUploadPage = () => {
 
     const endpoint =
       mode === "vehicles"
-        ? `/vehicles/${businessRefId}/bulk`
-        : `/employees/${businessRefId}/bulk`;
+        ? `api/v1/vehicles/${businessRefId}/bulk`
+        : `api/v1/employees/${businessRefId}/bulk`;
 
     const payload = buildPayload();
 
