@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User, Upload } from 'lucide-react'; // Added Users and User icons
+import { Grid, FileText, Settings, LogOut, Users, User, Upload, Truck } from 'lucide-react'; // Added Users, User, Truck icons
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
-import FleetManagementIcon from '../pages/Trip/assets/FleetManagementIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
 import './Sidebar.css';
@@ -99,7 +98,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                             onClick={() => setIsVehicleActivityOpen(!isVehicleActivityOpen)}
                         >
                             <div className="nav-parent-left">
-                                <FleetManagementIcon size={20} />
+                                <Truck size={20} />
                                 <span>Vehicle Activity</span>
                             </div>
                             <ChevronIcon 
