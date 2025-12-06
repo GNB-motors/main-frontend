@@ -3,10 +3,13 @@ import { X, Upload, Loader } from 'lucide-react';
 import './RefuelModal.css';
 
 const RefuelModal = ({ isOpen, onClose, tripId, vehicleNo }) => {
+  // Image upload states
   const [dieselReceipt, setDieselReceipt] = useState(null);
   const [adblueReceipt, setAdblueReceipt] = useState(null);
   const [dieselPreview, setDieselPreview] = useState(null);
   const [adbluePreview, setAdbluePreview] = useState(null);
+  
+  // Processing states
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrData, setOcrData] = useState(null);
 

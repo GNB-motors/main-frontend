@@ -3,6 +3,7 @@ import { X, Upload, Loader } from 'lucide-react';
 import './EndTripModal.css';
 
 const EndTripModal = ({ isOpen, onClose, tripId, vehicleNo }) => {
+  // Image upload states
   const [odometerImage, setOdometerImage] = useState(null);
   const [odometerPreview, setOdometerPreview] = useState(null);
   const [podImage, setPodImage] = useState(null);
@@ -12,6 +13,7 @@ const EndTripModal = ({ isOpen, onClose, tripId, vehicleNo }) => {
   const [adblueReceipt, setAdblueReceipt] = useState(null);
   const [adbluePreview, setAdbluePreview] = useState(null);
 
+  // Processing states
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrData, setOcrData] = useState(null);
 

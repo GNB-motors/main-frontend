@@ -7,16 +7,19 @@ import RefuelModal from './RefuelModal';
 import TripDetailsModal from './TripDetailsModal';
 
 const TripManagementPage = () => {
+  // Filter and modal states
   const [activeFilter, setActiveFilter] = useState('Active');
   const [showNewTripModal, setShowNewTripModal] = useState(false);
-  const [selectedTrip, setSelectedTrip] = useState(null);
   const [showTripDetailsModal, setShowTripDetailsModal] = useState(false);
   const [showRefuelModal, setShowRefuelModal] = useState(false);
   const [showEndTripModal, setShowEndTripModal] = useState(false);
+  
+  // Selected trip states
+  const [selectedTrip, setSelectedTrip] = useState(null);
   const [refuelTrip, setRefuelTrip] = useState(null);
   const [endTrip, setEndTrip] = useState(null);
 
-  // Mock data - will be replaced with backend data in future
+  // Mock trips data - TODO: Replace with API call
   const mockTrips = [
     {
       id: 1,
@@ -90,14 +93,13 @@ const TripManagementPage = () => {
     }
   ];
 
-  // Listen for the start new trip event from navbar
+  // Event listeners for navbar integration
   React.useEffect(() => {
     const handleStartNewTrip = () => setShowNewTripModal(true);
     window.addEventListener('startNewTrip', handleStartNewTrip);
     return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
   }, []);
 
-  // Update active trips count in navbar
   React.useEffect(() => {
     const activeCount = mockTrips.filter(trip => trip.tripStatus === 'active').length;
     window.dispatchEvent(new CustomEvent('activeTripsUpdate', { detail: { count: activeCount } }));
@@ -122,12 +124,9 @@ const TripManagementPage = () => {
     }
   };
 
-  const filteredTrips = mockTrips.filter(trip => {
-    if (activeFilter === 'All') return true;
-    if (activeFilter === 'Active') return trip.tripStatus === 'active';
-    if (activeFilter === 'Completed') return trip.tripStatus === 'completed';
-    return true;
-  });
+  const filteredTrips = mockTrips.filter(trip => 
+    activeFilter === 'All' || trip.tripStatus === activeFilter.toLowerCase()
+  );
 
   return (
     <div className="page-container">

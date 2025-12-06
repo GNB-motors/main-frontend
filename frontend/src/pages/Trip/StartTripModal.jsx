@@ -3,12 +3,14 @@ import { X, Upload, Loader, Search } from 'lucide-react';
 import './StartTripModal.css';
 
 const StartTripModal = ({ isOpen, onClose }) => {
+  // Vehicle selection states
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [vehicles, setVehicles] = useState([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
 
+  // Image upload states
   const [odometerImage, setOdometerImage] = useState(null);
   const [odometerPreview, setOdometerPreview] = useState(null);
   const [weighInImage, setWeighInImage] = useState(null);
@@ -18,6 +20,7 @@ const StartTripModal = ({ isOpen, onClose }) => {
   const [adblueReceipt, setAdblueReceipt] = useState(null);
   const [adbluePreview, setAdbluePreview] = useState(null);
 
+  // Processing states
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrData, setOcrData] = useState(null);
 
