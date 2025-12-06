@@ -1,0 +1,319 @@
+.end-trip-modal {
+  max-width: 750px;
+}
+
+.form-section {
+  margin-bottom: 28px;
+}
+
+.form-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.required {
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.optional {
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Compact Upload Areas */
+.upload-area.compact {
+  margin-bottom: 0;
+}
+
+.upload-label.compact {
+  display: block;
+  cursor: pointer;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.upload-label.compact:hover {
+  border-color: #1a73e8;
+  background-color: #f8faff;
+}
+
+.upload-placeholder.compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.upload-placeholder.compact svg {
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.upload-placeholder.compact span {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.preview-compact {
+  position: relative;
+  width: 100%;
+  height: 140px;
+}
+
+.preview-compact img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-compact .preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: white;
+}
+
+.preview-compact:hover .preview-overlay {
+  opacity: 1;
+}
+
+/* Fuel Receipts Grid */
+.fuel-receipts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Process Button */
+.process-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  margin-top: 24px;
+}
+
+.process-btn:hover:not(:disabled) {
+  background-color: #1557b0;
+}
+
+.process-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* OCR Results */
+.ocr-results {
+  margin-top: 24px;
+  padding: 20px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.ocr-results > h4 {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.ocr-section {
+  margin-bottom: 20px;
+}
+
+.ocr-section:last-child {
+  margin-bottom: 0;
+}
+
+.ocr-section h5 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ocr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.ocr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ocr-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.ocr-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.ocr-field input {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #111827;
+  background-color: white;
+}
+
+.ocr-field input:read-only {
+  background-color: #f9fafb;
+  cursor: default;
+}
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  border-radius: 0 0 16px 16px;
+}
+
+.btn-secondary,
+.btn-primary {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-secondary {
+  background-color: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-primary {
+  background-color: #34a853;
+  color: white;
+}
+
+.btn-primary.end-trip-btn {
+  background-color: #ef4444;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2d8f47;
+}
+
+.btn-primary.end-trip-btn:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Trip Info Header */
+.trip-info-header {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.trip-info-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.trip-info-header strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .end-trip-modal {
+    max-height: 95vh;
+  }
+
+  .trip-info-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fuel-receipts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ocr-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .btn-secondary,
+  .btn-primary {
+    width: 100%;
+  }
+}

@@ -17,6 +17,7 @@
 .navbar-left { display: flex; align-items: center; gap: var(--spacing-md); }
 .navbar-left h2 { font-size: 24px; font-weight: 600; margin: 0; }
 .menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--color-grey-700); padding: 0;}
+.navbar-right { display: flex; align-items: center; gap: 12px; }
 .navbar-right .btn { text-decoration: none;}
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-xs); padding: 12px var(--spacing-md); border: none; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 600; }
 .btn-primary { 
@@ -26,6 +27,39 @@
 }
 .btn-primary:hover { 
     background-color: var(--primary-dark, #1d30b5ff); 
+}
+
+.trip-action-btn {
+    background-color: #1a73e8 !important;
+    color: white !important;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.trip-action-btn:hover {
+    background-color: #1557b0 !important;
+}
+
+.active-trips-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: #e8f0fe;
+    border-radius: 20px;
+}
+
+.active-trips-badge svg {
+    color: #1a73e8;
+    flex-shrink: 0;
+}
+
+.active-trips-badge span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a73e8;
+    white-space: nowrap;
 }
 
 /* Mobile styles */
