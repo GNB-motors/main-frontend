@@ -41,7 +41,7 @@ const Navbar = ({ toggleSidebar }) => {
                 <h2>{getPageTitle()}</h2>
             </div>
             <div className="navbar-right">
-                <Link 
+                {/* <Link 
                     to="/request-report" 
                     className="btn btn-primary"
                     style={{
@@ -59,7 +59,7 @@ const Navbar = ({ toggleSidebar }) => {
                 >
                     <Plus size={16} />
                     <span>Request New Report</span>
-                </Link>
+                </Link> */}
             </div>
         </header>
     );

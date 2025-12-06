@@ -208,3 +208,143 @@
         gap: var(--spacing-md);
     }
 }
+
+/* === Vehicle Activity Collapsible Section === */
+.nav-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-parent {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-parent-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1;
+}
+
+.nav-parent:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.nav-parent.active-parent {
+    background-color: var(--primary-color);
+    color: white;
+    opacity: 0.85;
+}
+
+.chevron-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.chevron-icon.rotated {
+    transform: rotate(180deg);
+}
+
+.nav-children {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 0;
+    opacity: 0;
+}
+
+.nav-children.open {
+    max-height: 200px;
+    opacity: 1;
+}
+
+.nav-child {
+    padding-left: 52px !important;
+    font-size: 13px;
+}
+
+.nav-child span {
+    margin-left: 0;
+}
+
+/* Desktop specific styles for collapsed sidebar */
+@media (min-width: 993px) {
+    /* When sidebar is collapsed (not hovered) */
+    .sidebar .nav-parent {
+        justify-content: center;
+    }
+    
+    .sidebar .nav-parent-left {
+        gap: 0;
+        justify-content: center;
+    }
+    
+    .sidebar .nav-parent-left svg {
+        width: 40px;
+        height: 25px;
+    }
+    
+    .sidebar .chevron-icon {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+    }
+    
+    .sidebar .nav-children {
+        display: none;
+    }
+    
+    /* When sidebar is hovered/expanded */
+    .sidebar:hover .nav-parent {
+        justify-content: space-between;
+    }
+    
+    .sidebar:hover .nav-parent-left {
+        gap: var(--spacing-md);
+    }
+    
+    .sidebar:hover .chevron-icon {
+        opacity: 1;
+        width: 16px;
+    }
+    
+    .sidebar:hover .nav-children {
+        display: flex;
+    }
+    
+    .sidebar:hover .nav-children.open {
+        opacity: 1;
+        max-height: 200px;
+    }
+    
+    .sidebar .nav-child {
+        justify-content: flex-start;
+    }
+}
+
+/* Mobile styles */
+@media (max-width: 992px) {
+    .nav-parent {
+        justify-content: space-between;
+    }
+    
+    .nav-parent-left {
+        gap: var(--spacing-md);
+    }
+    
+    .chevron-icon {
+        opacity: 1;
+        width: 16px;
+    }
+}

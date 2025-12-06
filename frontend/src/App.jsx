@@ -11,11 +11,13 @@ import ContactPage from './pages/Contact/ContactPage.jsx';
 import OverviewPage from './pages/Overview/OverviewPage.jsx';
 import ReportsPage from './pages/Reports/ReportsPage.jsx';
 import ProfilePage from './pages/Profile/ProfilePage.jsx';
-import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
+// import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage  from './pages/Drivers/DriversPage.jsx';
 import BulkUploadPage from "./pages/BulkUpload/BulkUploadPage.jsx";
+import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
+import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 
 
 function App() {
@@ -40,8 +42,10 @@ function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
            <Route path="/bulk-upload" element={<BulkUploadPage />} />
+        <Route path="/trip-management" element={<TripManagementPage />} />
+        <Route path="/refuel-logs" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/request-report" element={<RequestFormPage />} />
+        {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Routes>
