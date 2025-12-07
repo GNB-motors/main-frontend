@@ -1,18 +1,36 @@
+/* Fixed Header */
+.trip-management-header {
+  position: sticky;
+  top: 0;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 20px 32px;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .trip-filters {
   display: flex;
-  gap: 0.5rem;
+  gap: 12px;
   align-items: center;
-  margin-bottom: 1.5rem;
 }
 
 .filter-btn {
   background-color: white;
   color: #666;
-  border: 1px solid #e0e0e0;
-  padding: 0.5rem 1.5rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  border: 1.5px solid #e0e0e0;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -20,32 +38,109 @@
 .filter-btn:hover {
   border-color: #1a73e8;
   color: #1a73e8;
+  background-color: #f8faff;
 }
 
 .filter-btn.active {
-  background-color: #1a1a1a;
+  background-color: #1a73e8;
   color: white;
-  border-color: #1a1a1a;
+  border-color: #1a73e8;
 }
 
-.trips-container {
+/* Search Bar */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-width: 350px;
+  transition: all 0.2s;
+}
+
+.search-bar:focus-within {
+  border-color: #1a73e8;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+.search-bar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  color: #111827;
+}
+
+.search-bar input::placeholder {
+  color: #9ca3af;
+}
+
+/* Trips List */
+.trips-list {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 12px;
+  padding: 24px 32px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.trip-card {
+/* Horizontal Trip Card */
+.trip-card-horizontal {
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr 1.5fr auto;
+  gap: 24px;
+  align-items: center;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
-.trip-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+.trip-card-horizontal:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #1a73e8;
+  transform: translateY(-1px);
+}
+
+.trip-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.vehicle-number {
+  color: #1a73e8;
+  font-size: 16px;
+}
+
+.trip-status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .trip-card-header {
@@ -292,21 +387,55 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .trip-card-horizontal {
+    grid-template-columns: 1fr 1fr 1.5fr 1.5fr;
+    gap: 16px;
+  }
+
+  .status-section {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
 @media (max-width: 768px) {
+  .trip-management-header {
+    padding: 16px 20px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
   .trip-filters {
     width: 100%;
     justify-content: flex-start;
   }
 
-  .trip-card {
-    padding: 1rem;
+  .search-bar {
+    min-width: 100%;
   }
 
-  .trip-actions {
-    flex-direction: column;
+  .trips-list {
+    padding: 16px 20px;
   }
 
-  .action-btn {
-    width: 100%;
+  .trip-card-horizontal {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .route-section,
+  .destination-section {
+    grid-column: 1 / -1;
+  }
+
+  .status-section {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 }

@@ -17,6 +17,7 @@ import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage  from './pages/Drivers/DriversPage.jsx';
 import BulkUploadPage from "./pages/BulkUpload/BulkUploadPage.jsx";
 import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
+import TripFormPage from './pages/Trip/TripFormPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 
 
@@ -43,6 +44,8 @@ function App() {
         <Route path="/drivers" element={<DriversPage />} />
            <Route path="/bulk-upload" element={<BulkUploadPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
+        <Route path="/trip/new" element={<TripFormPage />} />
+        <Route path="/trip/:tripId" element={<TripFormPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
