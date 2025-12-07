@@ -15,12 +15,13 @@
 
 /* Header */
 .trip-form-header {
-  padding: 24px 40px;
-  border-bottom: 1px solid #e5e7eb;
-  background: white;
   position: sticky;
   top: 0;
-  z-index: 100;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 14px 28px;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .back-btn {

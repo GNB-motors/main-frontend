@@ -253,6 +253,19 @@ const TripFormPage = () => {
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
 
+  // Remove global page-content padding for add/edit trip view
+  useEffect(() => {
+    const pageContentEl = document.querySelector('.page-content');
+    if (pageContentEl) {
+      pageContentEl.classList.add('no-padding');
+    }
+    return () => {
+      if (pageContentEl) {
+        pageContentEl.classList.remove('no-padding');
+      }
+    };
+  }, []);
+
   /**
    * Load existing trip data when in edit mode
    * Pre-fills form fields and documents for editing

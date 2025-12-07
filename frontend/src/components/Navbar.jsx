@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Menu } from 'lucide-react';
 import { getPrimaryColor, getThemeCSS } from '../utils/colorTheme';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [activeTripsCount, setActiveTripsCount] = useState(0);
     
@@ -47,6 +48,7 @@ const Navbar = ({ toggleSidebar }) => {
     };
 
     const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
+    const isRefuelLogsPage = location.pathname.includes('/refuel-logs');
 
     console.log('Navbar rendering with themeColors:', themeColors);
     console.log('Current path:', location.pathname, 'Is trips page:', isTripsPage);
@@ -79,6 +81,16 @@ const Navbar = ({ toggleSidebar }) => {
                             <span>Start New Trip</span>
                         </button>
                     </>
+                )}
+
+                {!isTripsPage && isRefuelLogsPage && (
+                    <button
+                        className="btn btn-primary trip-action-btn"
+                        onClick={() => navigate('/refuel/new')}
+                    >
+                        <Plus size={16} />
+                        <span>Add Refuel</span>
+                    </button>
                 )}
             </div>
         </header>

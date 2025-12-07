@@ -16,6 +16,19 @@ import './TripManagementPage.css';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();
+  // Remove global page-content padding only for this page
+  useEffect(() => {
+    const pageContentEl = document.querySelector('.page-content');
+    if (pageContentEl) {
+      pageContentEl.classList.add('no-padding');
+    }
+    return () => {
+      if (pageContentEl) {
+        pageContentEl.classList.remove('no-padding');
+      }
+    };
+  }, []);
+  // page-content padding handled globally via route-based logic in DashboardLayout
   
   // UI state management
   const [activeFilter, setActiveFilter] = useState('Active');

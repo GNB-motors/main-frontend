@@ -19,6 +19,7 @@ import BulkUploadPage from "./pages/BulkUpload/BulkUploadPage.jsx";
 import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
 import TripFormPage from './pages/Trip/TripFormPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
+import AddRefuelPage from './pages/Trip/AddRefuelPage.jsx';
 
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
         <Route path="/trip/new" element={<TripFormPage />} />
         <Route path="/trip/:tripId" element={<TripFormPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
+  <Route path="/refuel/new" element={<AddRefuelPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
