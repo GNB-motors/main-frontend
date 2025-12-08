@@ -21,6 +21,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Upload, X, Loader, Plus, Trash2 } from 'lucide-react';
+import ImageCropperModal from '../../Global-compoent/ImageCropperModal';
 import './TripFormPage.css';
 
 /**
@@ -249,6 +250,15 @@ const TripFormPage = () => {
   // UI state
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Image Cropper state
+  const [cropperState, setCropperState] = useState({
+    isOpen: false,
+    imageSrc: null,
+    docType: null, // 'odometerStart', 'weighInSlip', 'fuelReceipt'
+    section: null, // 'start', 'fuel'
+    receiptId: null // for fuel receipts
+  });
+  
   // Dropdown options
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -348,6 +358,8 @@ const TripFormPage = () => {
   /**
    * Handle single document file upload
    * Reads file and creates preview using FileReader API
+   * For Odometer Start and Weigh-in Slip: Opens cropper
+   * For End documents: Direct upload without cropper
    * @param {string} section - 'start' or 'end' documents
    * @param {string} field - Specific document field name
    * @param {File} file - The uploaded file object
@@ -355,6 +367,23 @@ const TripFormPage = () => {
   const handleFileUpload = (section, field, file) => {
     if (!file) return;
 
+    // Open cropper for start documents (Odometer Start and Weigh-in Slip)
+    if (section === 'start' && (field === 'odometerStart' || field === 'weighInSlip')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCropperState({
+          isOpen: true,
+          imageSrc: reader.result,
+          docType: field,
+          section: 'start',
+          receiptId: null
+        });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // Direct upload for end documents (no cropper)
     const reader = new FileReader();
     reader.onloadend = () => {
       if (section === 'start') {
@@ -374,7 +403,8 @@ const TripFormPage = () => {
 
   /**
    * Handle multiple fuel receipt uploads
-   * Allows batch uploading of fuel receipts (diesel/adblue)
+   * Single file: Opens cropper
+   * Multiple files: Direct upload without cropper (Discord behavior)
    * Automatically triggers OCR processing for each file
    * @param {FileList} files - Array of uploaded files
    * @param {string} type - 'diesel' or 'adblue'
@@ -382,7 +412,29 @@ const TripFormPage = () => {
   const handleMultipleFuelReceipts = (files, type) => {
     if (!files || files.length === 0) return;
 
-    const newReceipts = Array.from(files).map((file, index) => {
+    const filesArray = Array.from(files);
+
+    // Single file: Open cropper
+    if (filesArray.length === 1) {
+      const file = filesArray[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newId = Date.now();
+        setCropperState({
+          isOpen: true,
+          imageSrc: reader.result,
+          docType: 'fuelReceipt',
+          section: 'fuel',
+          receiptId: newId,
+          fuelType: type
+        });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // Multiple files: Direct upload without cropper (like Discord)
+    const newReceipts = filesArray.map((file, index) => {
       const newId = Date.now() + index;
       const reader = new FileReader();
       
@@ -518,6 +570,71 @@ const TripFormPage = () => {
    */
   const canEndTrip = (endDocs.odometerEnd.file || endDocs.odometerEnd.ocrData) && 
                      (endDocs.proofOfDelivery.file || endDocs.proofOfDelivery.ocrData);
+
+  /**
+   * Handle cropped image completion
+   * Converts blob to file and updates the appropriate document state
+   * @param {Blob} croppedBlob - The cropped image blob from the cropper
+   */
+  const handleCropComplete = async (croppedBlob) => {
+    const { docType, section, receiptId, fuelType } = cropperState;
+    
+    // Convert blob to file
+    const croppedFile = new File(
+      [croppedBlob], 
+      `${docType}_${Date.now()}.jpg`, 
+      { type: 'image/jpeg' }
+    );
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (section === 'start') {
+        // Handle start documents (Odometer Start, Weigh-in Slip)
+        setStartDocs(prev => ({
+          ...prev,
+          [docType]: { file: croppedFile, preview: reader.result, ocrData: null }
+        }));
+        // Trigger OCR processing
+        setTimeout(() => processOCR('start', docType), 100);
+      } else if (section === 'fuel') {
+        // Handle fuel receipts
+        const newReceipt = {
+          id: receiptId,
+          type: fuelType,
+          file: croppedFile,
+          preview: reader.result,
+          ocrData: null
+        };
+        setFuelReceipts(prev => [...prev, newReceipt]);
+        // Trigger OCR processing
+        setTimeout(() => processOCR('fuel', fuelType, receiptId), 100);
+      }
+    };
+    reader.readAsDataURL(croppedFile);
+
+    // Close cropper
+    setCropperState({
+      isOpen: false,
+      imageSrc: null,
+      docType: null,
+      section: null,
+      receiptId: null
+    });
+  };
+
+  /**
+   * Handle cropper cancel
+   * Closes the cropper modal without saving
+   */
+  const handleCropCancel = () => {
+    setCropperState({
+      isOpen: false,
+      imageSrc: null,
+      docType: null,
+      section: null,
+      receiptId: null
+    });
+  };
 
   return (
     <div className="trip-form-page">
@@ -722,6 +839,23 @@ const TripFormPage = () => {
           </div>
         )}
       </div>
+
+      {/* Image Cropper Modal */}
+      <ImageCropperModal
+        isOpen={cropperState.isOpen}
+        src={cropperState.imageSrc}
+        onCropComplete={handleCropComplete}
+        onCancel={handleCropCancel}
+        title={
+          cropperState.docType === 'odometerStart' 
+            ? 'Crop Odometer Start Image' 
+            : cropperState.docType === 'weighInSlip'
+            ? 'Crop Weigh-in Slip Image'
+            : 'Crop Fuel Receipt Image'
+        }
+        aspectRatio={0} // Free crop (no aspect ratio restriction)
+        circularCrop={false}
+      />
     </div>
   );
 };
