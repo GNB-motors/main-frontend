@@ -18,6 +18,44 @@ export const fuelTypes = ['Diesel', 'Petrol', 'CNG', 'AdBlue'];
 
 export const paymentModes = ['Fuel Card', 'Company Card', 'Cash', 'UPI'];
 
+export const receiptTypes = [
+  { id: 'diesel', label: 'Diesel Slip' },
+  { id: 'adblue', label: 'AdBlue Slip' }
+];
+
+export const mockReceiptExtracts = {
+  diesel: {
+    slipType: 'Diesel Slip',
+    date: '2025-12-06',
+    time: '14:35',
+    location: 'IOCL Highway Pump, Durgapur',
+    vendor: 'IndianOil Highway Pump',
+    fuelType: 'Diesel',
+    quantity: 118.4,
+    unitPrice: 93.5,
+    totalAmount: 11070.24,
+    paymentMethod: 'Fuel Card',
+    odometer: 78412,
+    invoiceNumber: 'IOCL-582394',
+    gstNumber: '19AAACI1681G1ZX'
+  },
+  adblue: {
+    slipType: 'AdBlue Slip',
+    date: '2025-12-05',
+    time: '09:10',
+    location: 'Xtra Mile Logistics Hub, Pune',
+    vendor: 'AdBlue Express Center',
+    fuelType: 'AdBlue',
+    quantity: 22.5,
+    unitPrice: 54.2,
+    totalAmount: 1220.0,
+    paymentMethod: 'Company Card',
+    odometer: 90342,
+    invoiceNumber: 'ABX-992134',
+    gstNumber: '27AACCE9821A1Z3'
+  }
+};
+
 export const defaultRefuelLogs = [
   {
     id: 1,

@@ -1,0 +1,113 @@
+.gnb-cropper-modal {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.gnb-cropper-hidden-input {
+  display: none;
+}
+
+.gnb-cropper-stage {
+  width: 100%;
+  min-height: 420px;
+  border-radius: 12px;
+  border: 1px solid rgba(18, 18, 20, 0.12);
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  position: relative;
+}
+
+.gnb-cropper-modal .cropper-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.gnb-cropper-modal .cropper-view-box {
+  border: 1px solid rgba(248, 248, 251, 0.6) !important;
+  outline: none !important;
+}
+
+.gnb-cropper-modal .cropper-dashed {
+  opacity: 0.5;
+}
+
+.gnb-cropper-modal .cropper-center {
+  opacity: 0.8;
+}
+
+.gnb-cropper-modal.circular-mode .cropper-dashed {
+  display: none !important;
+}
+
+.gnb-cropper-modal.circular-mode .cropper-center {
+  display: none !important;
+}
+
+.gnb-cropper-modal .cropper-point {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  opacity: 1;
+}
+
+.gnb-cropper-modal.circular-mode .cropper-point.point-n,
+.gnb-cropper-modal.circular-mode .cropper-point.point-e,
+.gnb-cropper-modal.circular-mode .cropper-point.point-s,
+.gnb-cropper-modal.circular-mode .cropper-point.point-w {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+}
+
+.gnb-cropper-modal.circular-mode .cropper-point.point-nw,
+.gnb-cropper-modal.circular-mode .cropper-point.point-ne,
+.gnb-cropper-modal.circular-mode .cropper-point.point-sw,
+.gnb-cropper-modal.circular-mode .cropper-point.point-se {
+  display: none;
+}
+
+.gnb-cropper-modal.circular-mode .cropper-crop-box,
+.gnb-cropper-modal.circular-mode .cropper-view-box {
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #ffffff;
+}
+
+.gnb-cropper-modal.circular-mode .cropper-crop-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background-color: rgba(248, 248, 251, 0.2);
+}
+
+.gnb-cropper-modal.circular-mode .cropper-line {
+  display: none !important;
+}
+
+.gnb-cropper-modal .cropper-modal {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+.gnb-cropper-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+@media (max-width: 600px) {
+  .gnb-cropper-stage {
+    min-height: 360px;
+  }
+}
