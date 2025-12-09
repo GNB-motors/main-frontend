@@ -56,14 +56,14 @@ const ReportsSidebar = ({
         {
             id: 'fleet',
             name: 'FLEET REPORTS',
-            icon: Truck,
+            icon: null,
             reports: [
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
                 // --- MODIFIED ENTRY ---
                 { id: 'trip', name: 'Trip Report', icon: FileText }, // Changed id, name, icon
-                { id: 'projected', name: 'Projected Savings', icon: TrendingUp },
-                { id: 'outliers', name: 'Outlier Instances', icon: AlertTriangle }
+               // { id: 'projected', name: 'Projected Savings', icon: TrendingUp },
+               // { id: 'outliers', name: 'Outlier Instances', icon: AlertTriangle }
             ]
         }
     ];
@@ -80,7 +80,7 @@ const ReportsSidebar = ({
                             className="category-header"
                             onClick={() => toggleCategory(category.id)}
                         >
-                            <category.icon size={16} />
+                            {category.icon && <category.icon size={16} />}
                             <span>{category.name}</span>
                             {expandedCategories[category.id] ?
                                 <ChevronUp size={16} /> :
