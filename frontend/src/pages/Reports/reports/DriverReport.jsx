@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Box, Typography, TextField, InputAdornment, IconButton, CircularProgress, Alert
+    Box, Typography, TextField, InputAdornment, IconButton, CircularProgress, Alert, FormControl, Select, MenuItem
 } from '@mui/material';
 import { Search as SearchIcon, InfoOutlined, Star } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
 
 // --- **** DriverReport COMPONENT **** ---
@@ -16,7 +17,8 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
 
     // State for filters
     const [searchText, setSearchText] = useState("");
-    const [dateRange, setDateRange] = useState([null, null]); // Keep date filters for UI consistency
+    const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
+    const [selectedEmployee, setSelectedEmployee] = useState('');
 
     // Fetch Driver Data Effect
     useEffect(() => {
@@ -124,33 +126,96 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
         // IMPORTANT: Add handleViewOutliers to the dependency array
     ], [handleViewOutliers]);
 
-    // Client-side filtering based on search text
+    // Client-side filtering based on search text and filters
     const filteredRows = useMemo(() => {
-        if (!searchText) return driverReportData;
-        const lowerSearchText = searchText.toLowerCase();
-        return driverReportData.filter((row) =>
-            row.driver_name.toLowerCase().includes(lowerSearchText)
-        );
-    }, [driverReportData, searchText]);
+        let rows = driverReportData;
+
+        // Filter by search text
+        if (searchText) {
+            const lowerSearchText = searchText.toLowerCase();
+            rows = rows.filter((row) =>
+                row.driver_name.toLowerCase().includes(lowerSearchText)
+            );
+        }
+
+        // Filter by date range (using first_trip_date if available)
+        const startDate = dateRange[0];
+        const endDate = dateRange[1];
+        if (startDate || endDate) {
+            rows = rows.filter(row => {
+                if (!row.first_trip_date) return true; // Include if no date available
+                const rowDate = dayjs(row.first_trip_date);
+                const afterStart = startDate ? rowDate.isAfter(startDate.subtract(1, 'day')) : true;
+                const beforeEnd = endDate ? rowDate.isBefore(endDate.add(1, 'day')) : true;
+                return afterStart && beforeEnd;
+            });
+        }
+
+        // Filter by selected employee (driver name)
+        if (selectedEmployee !== '') {
+            rows = rows.filter(row => row.driver_name === selectedEmployee);
+        }
+
+        return rows;
+    }, [driverReportData, searchText, dateRange, selectedEmployee]);
 
     return (
         <Box>
-            <div className="report-header">
-                <h3>Driver Report</h3>
+            {/* Header Section */}
+            <div className="report-header-section">
+                <div className="report-header-top">
+                    <h3 className="report-title">Driver Report</h3>
+                </div>
+
+                {/* Filter Controls */}
                 <div className="report-filters">
-                    <TextField
-                        size="small"
-                        variant="outlined"
-                        placeholder="Search Drivers..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        InputProps={{
-                            startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>),
-                        }}
-                    />
-                    {/* Keep date pickers for UI consistency, even if not used for filtering this specific table */}
-                    <DatePicker label="Start Date" value={dateRange[0]} onChange={(newValue) => setDateRange([newValue, dateRange[1]])} slotProps={{ textField: { size: 'small' } }} />
-                    <DatePicker label="End Date" value={dateRange[1]} onChange={(newValue) => setDateRange([dateRange[0], newValue])} slotProps={{ textField: { size: 'small' } }} />
+                    <div className="date-range-container">
+                        <div className="date-input-group">
+                            <label>From</label>
+                            <DatePicker
+                                value={dateRange[0]}
+                                onChange={(newValue) => {
+                                    setDateRange([newValue, dateRange[1]]);
+                                }}
+                                slotProps={{ textField: { size: 'small' } }}
+                            />
+                        </div>
+
+                        <div className="date-input-group">
+                            <label>To</label>
+                            <DatePicker
+                                value={dateRange[1]}
+                                onChange={(newValue) => {
+                                    setDateRange([dateRange[0], newValue]);
+                                }}
+                                slotProps={{ textField: { size: 'small' } }}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="date-input-group">
+                        <label>Employee Name</label>
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <Select
+                                value={selectedEmployee}
+                                onChange={(e) => setSelectedEmployee(e.target.value)}
+                                displayEmpty
+                                renderValue={(value) => {
+                                    if (value === '') {
+                                        return 'All';
+                                    }
+                                    return value;
+                                }}
+                            >
+                                <MenuItem value="">All</MenuItem>
+                                {[...new Set(driverReportData.map(driver => driver.driver_name))].map((driver) => (
+                                    <MenuItem key={driver} value={driver}>
+                                        {driver || 'N/A'}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </div>
                 </div>
             </div>
 
@@ -165,28 +230,91 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
                 <Alert severity="error" sx={{ my: 2 }}>{driverError}</Alert>
             )}
 
-            {/* Data Grid */}
+            {/* Data Table */}
             {!isLoadingDrivers && !driverError && (
                 <div className="report-content">
-                    <Box sx={{ height: 400, width: '100%' }}>
-                        <DataGrid
-                            rows={filteredRows} // Use filtered real data
-                            columns={driverColumns} // Use the new columns
-                            disableColumnResize={true}
-                            // getRowId={(row) => row.id} // Backend maps driver_name to id, which is used by default
-                            initialState={{
-                                pagination: { paginationModel: { pageSize: 10 } },
-                                sorting: { sortModel: [{ field: 'driver_rating', sort: 'asc' }] }, // Default sort by rating ascending
-                            }}
-                            pageSizeOptions={[10, 25, 50]}
-                            localeText={{ noRowsLabel: 'No driver summary data found.' }} // Customize empty message
-                        />
-                    </Box>
+                    <div className="driver-table-container">
+                        <table className="driver-table">
+                            <thead>
+                                <tr>
+                                    <th>Driver Name</th>
+                                    <th>Total KMs Driven</th>
+                                    <th>Instances Driven</th>
+                                    <th>Avg. Variance</th>
+                                    <th>Rating (1-5)</th>
+                                    <th>Outliers</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredRows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="driver-empty-state">
+                                            No driver summary data found. Try adjusting your filters.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredRows.map((row, index) => {
+                                        const getRatingColor = (rating) => {
+                                            if (rating >= 4.5) return '#4caf50';
+                                            if (rating >= 3.5) return '#8bc34a';
+                                            if (rating >= 2.5) return '#ffc107';
+                                            if (rating >= 1.5) return '#ff9800';
+                                            return '#f44336';
+                                        };
+
+                                        return (
+                                            <tr key={index}>
+                                                <td>
+                                                    <div className="cell-primary">{row.driver_name || '-'}</div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary">{typeof row.total_kms_driven === 'number' ? row.total_kms_driven.toFixed(1) : '-'} km</div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary">{row.instances_driven || '-'}</div>
+                                                </td>
+                                                <td>
+                                                    {typeof row.average_variance === 'number' ? (
+                                                        <span style={{ color: row.average_variance > 0 ? 'green' : (row.average_variance < 0 ? 'red' : 'inherit'), fontWeight: Math.abs(row.average_variance) >= 1.5 ? 'bold' : 'normal' }}>
+                                                            {row.average_variance > 0 ? `+${row.average_variance.toFixed(2)}` : row.average_variance.toFixed(2)}
+                                                        </span>
+                                                    ) : (
+                                                        'N/A'
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    {typeof row.driver_rating === 'number' ? (
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span>{row.driver_rating.toFixed(2)}</span>
+                                                            <Star sx={{ color: getRatingColor(row.driver_rating), fontSize: '1rem' }} />
+                                                        </Box>
+                                                    ) : (
+                                                        'N/A'
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: row.outlier_count > 0 ? 'red' : 'inherit' }}>
+                                                        <span>{row.outlier_count || '-'}</span>
+                                                        {row.outlier_count > 0 && (
+                                                            <IconButton
+                                                                size="small"
+                                                                className="outlier-info-button"
+                                                                onClick={() => handleViewOutliers(row.driver_name)}
+                                                            >
+                                                                <InfoOutlined fontSize="small" />
+                                                            </IconButton>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
-
-            {/* Keep collapsible graph for potential future use or remove if not needed */}
-            {/* <CollapsibleGraph data={mockGraphData} /> */}
         </Box>
     );
 };

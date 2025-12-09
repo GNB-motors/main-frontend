@@ -59,20 +59,61 @@
   color: var(--color-grey-900); /* Darker text */
 }
 
+/* Trip Report Header Section */
+.report-header-section {
+  margin-bottom: var(--spacing-xs);
+}
+
+.report-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-md);
+}
+
+.report-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-grey-900);
+  white-space: nowrap;
+}
+
 .report-filters {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
 }
 
+.date-range-container {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-input-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-grey-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .report-content {
-  background-color: var(--color-white);
+  background-color: transparent;
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   min-height: 400px;
   position: relative;
-  padding: var(--spacing-lg);
-  border: 1px solid var(--color-grey-200);
+  padding: 0;
+  border: none;
 }
 
 .report-content-empty {
@@ -173,4 +214,186 @@
 /* Alignment for trip report columns */
 .MuiDataGrid-cell[data-field="kmsDriven"] {
     justify-content: flex-end !important;
+}
+
+/* === Trip Report Table Styles === */
+.trip-table-container {
+  flex: 1;
+  padding: 24px 0;
+  overflow-x: auto;
+}
+
+.trip-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.trip-table thead {
+  background: #f8f8fb;
+}
+
+.trip-table th {
+  padding: 18px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5d5d5e;
+  border-bottom: 1px solid #ececee;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.trip-table td {
+  padding: 18px 20px;
+  font-size: 14px;
+  color: #121214;
+  border-bottom: 1px solid #f0f0f3;
+  vertical-align: top;
+}
+
+.trip-table tr:last-child td {
+  border-bottom: none;
+}
+
+.trip-table tr:hover {
+  background-color: #fafbfc;
+}
+
+.trip-empty-state {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: #8b8b8c;
+  font-size: 14px;
+}
+
+/* === Vehicle Report Table Styles === */
+.vehicle-table-container {
+  flex: 1;
+  padding: 24px 0;
+  overflow-x: auto;
+}
+
+.vehicle-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.vehicle-table thead {
+  background: #f8f8fb;
+}
+
+.vehicle-table th {
+  padding: 18px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5d5d5e;
+  border-bottom: 1px solid #ececee;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.vehicle-table td {
+  padding: 18px 20px;
+  font-size: 14px;
+  color: #121214;
+  border-bottom: 1px solid #f0f0f3;
+  vertical-align: top;
+}
+
+.vehicle-table tr:last-child td {
+  border-bottom: none;
+}
+
+.vehicle-table tr:hover {
+  background-color: #fafbfc;
+}
+
+.vehicle-empty-state {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: #8b8b8c;
+  font-size: 14px;
+}
+
+/* === Driver Report Table Styles === */
+.driver-table-container {
+  flex: 1;
+  padding: 24px 0;
+  overflow-x: auto;
+}
+
+.driver-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.driver-table thead {
+  background: #f8f8fb;
+}
+
+.driver-table th {
+  padding: 18px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5d5d5e;
+  border-bottom: 1px solid #ececee;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.driver-table td {
+  padding: 18px 20px;
+  font-size: 14px;
+  color: #121214;
+  border-bottom: 1px solid #f0f0f3;
+  vertical-align: top;
+}
+
+.driver-table tr:last-child td {
+  border-bottom: none;
+}
+
+.driver-table tr:hover {
+  background-color: #fafbfc;
+}
+
+.driver-empty-state {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: #8b8b8c;
+  font-size: 14px;
+}
+
+/* === Cell Styling for Tables === */
+.cell-primary {
+  font-weight: 600;
+  color: #121214;
+}
+
+.cell-secondary {
+  font-size: 12px;
+  color: #8b8b8c;
 }

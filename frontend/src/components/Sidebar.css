@@ -138,8 +138,8 @@
     }
 
     .sidebar .nav-link svg {
-        width: 40px;
-        height: 25px;
+        width: 24px;
+        height: 24px;
     }
     
     .sidebar .logo-img {
@@ -206,5 +206,189 @@
     .sidebar .nav-link {
         justify-content: flex-start;
         gap: var(--spacing-md);
+    }
+}
+
+/* === Vehicle Activity Collapsible Section === */
+.nav-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-parent {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: var(--border-radius-md);
+    color: var(--color-grey-400);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    position: relative;
+    justify-content: space-between;
+    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.2s ease,
+                color 0.2s ease;
+}
+
+.nav-parent-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1;
+}
+
+.nav-parent-left svg {
+    flex-shrink: 0;
+    color: inherit;
+    transition: color 0.2s ease, 
+                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-parent:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.nav-parent.active-parent {
+    background-color: var(--primary-color);
+    color: white;
+    opacity: 0.85;
+}
+
+.chevron-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    margin-left: auto;
+    transform: rotate(0deg); /* closed: point right */
+}
+
+.chevron-icon.rotated {
+    /* open: point down */
+    transform: rotate(-180deg);
+}
+
+.nav-children {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 0;
+    opacity: 0;
+    gap: 4px;
+    padding-top: 4px;
+}
+
+.nav-children.open {
+    max-height: 200px;
+    opacity: 1;
+}
+
+.nav-child {
+    padding-left: 52px !important;
+    font-size: 13px;
+}
+
+.nav-child span {
+    margin-left: 0;
+}
+
+/* Desktop specific styles for collapsed sidebar */
+@media (min-width: 993px) {
+    /* When sidebar is collapsed (not hovered) */
+    .sidebar .nav-parent {
+        justify-content: center;
+        gap: 0;
+    }
+    
+    .sidebar .nav-parent-left {
+        gap: 0;
+        justify-content: center;
+    }
+    
+    .sidebar .nav-parent-left svg {
+        width: 24px;
+        height: 24px;
+        margin: 0px 0 0 24px;
+    }
+    }
+    
+    .sidebar .chevron-icon {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+    }
+    
+    .sidebar .nav-children {
+        display: none;
+    }
+    
+    .sidebar .nav-parent span {
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+    }
+    
+    /* When sidebar is hovered/expanded */
+    .sidebar:hover .nav-parent {
+        justify-content: space-between;
+        gap: var(--spacing-md);
+    }
+
+    .sidebar:hover .nav-parent-left svg {
+        margin: 0; 
+    }
+    .sidebar:hover .nav-parent-left {
+        gap: var(--spacing-md);
+        justify-content: flex-start;
+    }
+    
+    .sidebar:hover .nav-parent span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
+    }
+    
+    .sidebar:hover .chevron-icon {
+        opacity: 1;
+        width: 16px;
+    }
+    
+    .sidebar:hover .nav-children {
+        display: flex;
+    }
+    
+    .sidebar:hover .nav-children.open {
+        opacity: 1;
+        max-height: 200px;
+    }
+    
+    .sidebar .nav-child {
+        justify-content: flex-start;
+    }
+
+
+/* Mobile styles */
+@media (max-width: 992px) {
+    .nav-parent {
+        justify-content: space-between;
+    }
+    
+    .nav-parent-left {
+        gap: var(--spacing-md);
+    }
+    
+    .chevron-icon {
+        opacity: 1;
+        width: 16px;
     }
 }

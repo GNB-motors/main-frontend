@@ -1,0 +1,236 @@
+.refuel-logs-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: #f8f8fb;
+}
+
+.refuel-logs-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  background: #ffffff;
+  border-bottom: 1px solid #ececee;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.refuel-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.refuel-tab {
+  background-color: #ffffff;
+  color: #666666;
+  border: 1.5px solid #e0e0e0;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.refuel-tab:hover {
+  border-color: #1a73e8;
+  color: #1a73e8;
+  background-color: #f8faff;
+}
+
+.refuel-tab.active {
+  background-color: #1a73e8;
+  color: #ffffff;
+  border-color: #1a73e8;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+}
+
+.refuel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.refuel-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  min-width: 280px;
+  border-radius: 10px;
+  border: 1px solid #dfdfe2;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.refuel-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #121214;
+  flex: 1;
+}
+
+.refuel-search input::placeholder {
+  color: #8b8b8c;
+}
+
+.refuel-search:focus-within {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.refuel-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #dfdfe2;
+  background: #ffffff;
+  color: #454547;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refuel-icon-btn:hover {
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.add-refuel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  height: 42px;
+  border-radius: 10px;
+  border: none;
+  background: #1a73e8;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-refuel-btn:hover {
+  background: #155fc0;
+  box-shadow: 0 8px 16px rgba(26, 115, 232, 0.2);
+}
+
+.refuel-table-container {
+  flex: 1;
+  padding: 24px 32px 40px;
+  overflow-x: auto;
+}
+
+.refuel-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.refuel-table thead {
+  background: #f8f8fb;
+}
+
+.refuel-table th {
+  padding: 18px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5d5d5e;
+  border-bottom: 1px solid #ececee;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.refuel-table td {
+  padding: 18px 20px;
+  font-size: 14px;
+  color: #121214;
+  border-bottom: 1px solid #f0f0f3;
+  vertical-align: top;
+}
+
+.refuel-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cell-primary {
+  font-weight: 600;
+  color: #121214;
+  margin-bottom: 6px;
+}
+
+.cell-secondary {
+  font-size: 12px;
+  color: #8b8b8c;
+}
+
+.fuel-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: #ececee;
+  color: #454547;
+}
+
+.fuel-type-pill.diesel {
+  background: rgba(26, 115, 232, 0.12);
+  color: #1a73e8;
+}
+
+.fuel-type-pill.adblue {
+  background: rgba(52, 168, 83, 0.12);
+  color: #34a853;
+}
+
+.refuel-empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 15px;
+  color: #5d5d5e;
+}
+
+@media (max-width: 992px) {
+  .refuel-logs-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .refuel-header-actions {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .refuel-search {
+    flex: 1;
+    min-width: unset;
+  }
+
+  .add-refuel-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Menu } from 'lucide-react';
 import { getPrimaryColor, getThemeCSS } from '../utils/colorTheme';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
+    const [activeTripsCount, setActiveTripsCount] = useState(0);
     
     // Update theme colors when component mounts or profile color changes
     useEffect(() => {
@@ -25,6 +27,19 @@ const Navbar = ({ toggleSidebar }) => {
             window.removeEventListener('storage', updateTheme);
         };
     }, []);
+
+    // Listen for active trips count updates
+    useEffect(() => {
+        const handleTripsUpdate = (event) => {
+            setActiveTripsCount(event.detail.count);
+        };
+        
+        window.addEventListener('activeTripsUpdate', handleTripsUpdate);
+        
+        return () => {
+            window.removeEventListener('activeTripsUpdate', handleTripsUpdate);
+        };
+    }, []);
     
     const getPageTitle = () => {
         const path = location.pathname.split('/').pop().replace('-', ' ');
@@ -32,7 +47,11 @@ const Navbar = ({ toggleSidebar }) => {
         return path.charAt(0).toUpperCase() + path.slice(1);
     };
 
+    const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
+    const isRefuelLogsPage = location.pathname.includes('/refuel-logs');
+
     console.log('Navbar rendering with themeColors:', themeColors);
+    console.log('Current path:', location.pathname, 'Is trips page:', isTripsPage);
     
     return (
         <header className="navbar" style={themeColors}>
@@ -41,25 +60,38 @@ const Navbar = ({ toggleSidebar }) => {
                 <h2>{getPageTitle()}</h2>
             </div>
             <div className="navbar-right">
-                <Link 
-                    to="/request-report" 
-                    className="btn btn-primary"
-                    style={{
-                        backgroundColor: themeColors['--primary-color'] || '#3B82F6',
-                        color: 'white',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        textDecoration: 'none',
-                        fontWeight: '600',
-                        marginBottom: '10px',
-                    }}
-                >
-                    <Plus size={16} />
-                    <span>Request New Report</span>
-                </Link>
+                {isTripsPage && (
+                    <>
+                        {activeTripsCount > 0 && (
+                            <div className="active-trips-badge">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="1" y="3" width="15" height="13"/>
+                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                                    <circle cx="5.5" cy="18.5" r="2.5"/>
+                                    <circle cx="18.5" cy="18.5" r="2.5"/>
+                                </svg>
+                                <span>{activeTripsCount} Active Trip{activeTripsCount !== 1 ? 's' : ''}</span>
+                            </div>
+                        )}
+                        <button 
+                            className="btn btn-primary trip-action-btn"
+                            onClick={() => window.dispatchEvent(new CustomEvent('startNewTrip'))}
+                        >
+                            <Plus size={16} />
+                            <span>Start New Trip</span>
+                        </button>
+                    </>
+                )}
+
+                {!isTripsPage && isRefuelLogsPage && (
+                    <button
+                        className="btn btn-primary trip-action-btn"
+                        onClick={() => navigate('/refuel/new')}
+                    >
+                        <Plus size={16} />
+                        <span>Add Refuel</span>
+                    </button>
+                )}
             </div>
         </header>
     );

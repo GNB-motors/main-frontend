@@ -25,6 +25,10 @@
     box-sizing: border-box;
 }
 
+.page-content.no-padding {
+    padding: 0;
+}
+
 /* Loading content styles */
 .dashboard-loading-content {
     position: relative;

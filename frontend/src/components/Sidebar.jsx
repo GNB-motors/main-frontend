@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User, Upload } from 'lucide-react'; // Added Users and User icons
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Grid, FileText, Settings, LogOut, Users, User, Upload, Truck } from 'lucide-react'; // Added Users, User, Truck icons
+import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
 import './Sidebar.css';
@@ -8,7 +9,10 @@ import './Sidebar.css';
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
+    const [isVehicleActivityOpen, setIsVehicleActivityOpen] = useState(false);
+    const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
     // Update theme colors when component mounts or profile color changes
     useEffect(() => {
@@ -25,6 +29,29 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             window.removeEventListener('storage', updateTheme);
         };
     }, []);
+
+    // Check if any Vehicle Activity child route is active
+    useEffect(() => {
+        const vehicleActivityRoutes = ['/trip-management', '/refuel-logs'];
+        if (vehicleActivityRoutes.includes(location.pathname)) {
+            setIsVehicleActivityOpen(true);
+        }
+    }, [location.pathname]);
+
+    // Auto-close Vehicle Activity when sidebar is not hovered on desktop
+    useEffect(() => {
+        if (!isSidebarHovered && window.innerWidth > 992) {
+            // Close after a small delay when mouse leaves
+            const timer = setTimeout(() => {
+                const vehicleActivityRoutes = ['/trip-management', '/refuel-logs'];
+                // Keep it open only if we're on a child route
+                if (!vehicleActivityRoutes.includes(location.pathname)) {
+                    setIsVehicleActivityOpen(false);
+                }
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [isSidebarHovered, location.pathname]);
 
     const handleLogout = () => {
         // Clear user tokens here in a real application
@@ -51,6 +78,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         <aside 
             className="sidebar"
             style={themeColors}
+            onMouseEnter={() => setIsSidebarHovered(true)}
+            onMouseLeave={() => setIsSidebarHovered(false)}
         >
             <div className="sidebar-content">
                 <div className="sidebar-header">
@@ -61,6 +90,40 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/overview" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Grid size={20} /><span>Overview</span>
                     </NavLink>
+                    
+                    {/* Vehicle Activity Section */}
+                    <div className="nav-section">
+                        <button
+                            className={`nav-link nav-parent ${isVehicleActivityOpen ? 'active-parent' : ''}`}
+                            onClick={() => setIsVehicleActivityOpen(!isVehicleActivityOpen)}
+                        >
+                            <div className="nav-parent-left">
+                                <Truck size={20} />
+                                <span>Vehicle Activity</span>
+                            </div>
+                            <ChevronIcon 
+                                size={16} 
+                                className={`chevron-icon ${isVehicleActivityOpen ? 'rotated' : ''}`}
+                            />
+                        </button>
+                        <div className={`nav-children ${isVehicleActivityOpen ? 'open' : ''}`}>
+                            <NavLink 
+                                to="/trip-management" 
+                                className="nav-link nav-child" 
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Trip Management</span>
+                            </NavLink>
+                            <NavLink 
+                                to="/refuel-logs" 
+                                className="nav-link nav-child" 
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Refuel Logs</span>
+                            </NavLink>
+                        </div>
+                    </div>
+                    
                     <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
                         <FileText size={20} /><span>Reports</span>
                     </NavLink>
