@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Plus, ChevronLeft, ChevronRight, MoreHorizontal, Edit, Trash2, ChevronDown, X } from 'lucide-react';
+import { Search, Filter, Plus, ChevronLeft, ChevronRight, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
 import { useProfile } from '../Profile/ProfileContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
 import LottieLoader from '../../components/LottieLoader.jsx';
 
@@ -426,6 +427,7 @@ const ActionMenu = ({ driver, onEdit, onDelete }) => {
 
 // --- Main DriversPage Component ---
 const DriversPage = () => {
+    const navigate = useNavigate();
     const [drivers, setDrivers] = useState([]);
     const [availableVehicles, setAvailableVehicles] = useState([]);
     const [isLoading, setIsLoading] = useState(true); // Loading state for drivers list
@@ -793,6 +795,13 @@ const DriversPage = () => {
                     <button className="drivers-add-driver-btn" onClick={() => setIsAddModalOpen(true)}>
                         <Plus size={16} />
                         <span>Add Employee</span>
+                    </button>
+                    <button 
+                        className="drivers-add-driver-btn" 
+                        onClick={() => navigate('/drivers/bulk-upload')}
+                    >
+                        <Upload size={16} />
+                        <span>Bulk Upload</span>
                     </button>
                 </div>
 
