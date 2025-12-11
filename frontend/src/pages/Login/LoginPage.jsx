@@ -9,11 +9,9 @@ import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
 
-import { ProfileService } from '../Profile/ProfileService.jsx';
-
 const LoginPage = () => {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
+    const [emailOrMobile, setEmailOrMobile] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +24,7 @@ const LoginPage = () => {
         setError(null);
 
         const credentials = {
-            email: email,
+            emailOrMobile: emailOrMobile,
             password: password
         };
 
@@ -34,59 +32,66 @@ const LoginPage = () => {
             // Step 1: Attempt Login
             const loginData = await LoginPageService.loginUser(credentials);
             console.log('Login successful:', loginData);
-            toast.success("Login successful! Loading your profile...");
 
-            const token = loginData.access_token;
+            // Handle new API response structure
+            const token = loginData.token || loginData.access_token;
+            const user = loginData.user;
+
             // Store the token immediately
             localStorage.setItem('authToken', token);
-            localStorage.setItem('tokenType', loginData.token_type);
+            localStorage.setItem('tokenType', 'Bearer');
 
-            // Step 2: Fetch Profile to check onboarding status
-            try {
-                const profileData = await ProfileService.getProfile(token);
-                console.log('Profile fetched:', profileData);
-
-                // Store individual profile fields in localStorage
-                localStorage.setItem('profile_id', profileData.id);
-                localStorage.setItem('profile_user_id', profileData.user_id);
-                localStorage.setItem('profile_company_name', profileData.company_name);
-                localStorage.setItem('profile_business_ref_id', profileData.business_ref_id);
-                localStorage.setItem('profile_color', profileData.profile_color);
-                localStorage.setItem('profile_is_onboarded', profileData.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', profileData.is_superadmin.toString());
-
-                // Step 3: Redirect based on onboarding status
-                if (profileData.is_onboarded) {
-                    toast.success("Welcome back! Redirecting to dashboard...");
-                    setTimeout(() => {
-                        navigate('/overview'); // User is onboarded, go to dashboard
-                    }, 1500);
-                } else {
-                    toast.info("Please complete your onboarding process.");
-                    setTimeout(() => {
-                        navigate('/onboarding');
-                    }, 1500);
+            // Store user data if available (new API structure)
+            if (user) {
+                console.log('Storing user data:', {
+                    id: user._id || user.id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    mobileNumber: user.mobileNumber,
+                    role: user.role,
+                    orgId: user.orgId
+                });
+                
+                localStorage.setItem('user_id', user._id || user.id || '');
+                localStorage.setItem('user_email', user.email || '');
+                localStorage.setItem('user_role', user.role || '');
+                localStorage.setItem('user_firstName', user.firstName || '');
+                localStorage.setItem('user_lastName', user.lastName || '');
+                localStorage.setItem('user_status', user.status || '');
+                localStorage.setItem('user_mobileNumber', user.mobileNumber || '');
+                
+                // Store orgId if available
+                if (user.orgId) {
+                    localStorage.setItem('user_orgId', user.orgId);
                 }
-            } catch (profileError) {
-                // Check if the profile fetch failed specifically because it wasn't found (404)
-                // Note: Axios errors often have error.response.status
-                 if (profileError?.detail === "Profile not found for this user. Please complete onboarding.") {
-                     console.log('Profile not found, redirecting to onboarding.');
-                     toast.info("Please complete your onboarding process.");
-                     setTimeout(() => {
-                         navigate('/onboarding'); // User exists but has no profile, needs onboarding
-                     }, 1500);
-                 } else {
-                     // Handle other errors during profile fetch (e.g., server error)
-                     console.error('Failed to fetch profile:', profileError);
-                     const errorMessage = profileError?.detail || 'Logged in, but failed to retrieve profile status.';
-                     toast.error(errorMessage);
-                 }
+                
+                console.log('LocalStorage after save:', {
+                    mobileNumber: localStorage.getItem('user_mobileNumber'),
+                    firstName: localStorage.getItem('user_firstName'),
+                    email: localStorage.getItem('user_email')
+                });
+
+                // Step 2: Role-based routing
+                if (user.role === 'SUPER_ADMIN') {
+                    toast.success("Welcome Super Admin! Redirecting...");
+                    setTimeout(() => {
+                        navigate('/superadmin');
+                    }, 1500);
+                    return;
+                }
+
+                // For OWNER and other roles, redirect to onboarding
+                // The onboarding page will handle checking if they're already onboarded
+                toast.success("Login successful! Redirecting...");
+                setTimeout(() => {
+                    navigate('/onboarding');
+                }, 1500);
             }
 
         } catch (loginApiError) {
             console.error('Login failed:', loginApiError);
-            const errorMessage = loginApiError?.detail || 'Login failed. Please check your credentials.';
+            const errorMessage = loginApiError?.detail || loginApiError?.message || 'Login failed. Please check your credentials.';
             toast.error(errorMessage);
         } finally {
             setIsLoading(false);
@@ -131,13 +136,14 @@ const LoginPage = () => {
 
                     <form onSubmit={handleLogin}>
                         <div className="form-group">
-                            <label htmlFor="email">Email</label>
+                            <label htmlFor="emailOrMobile">Email or Mobile Number</label>
                             <input
-                                type="email"
-                                id="email"
+                                type="text"
+                                id="emailOrMobile"
                                 className="form-input"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Enter email or mobile number"
+                                value={emailOrMobile}
+                                onChange={(e) => setEmailOrMobile(e.target.value)}
                                 required
                             />
                         </div>

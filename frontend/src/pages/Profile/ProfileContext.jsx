@@ -28,13 +28,11 @@ export const ProfileProvider = ({ children }) => {
                 const data = await ProfileService.getProfile(token);
                 setProfile(data);
                 // Store individual profile fields in localStorage
-                localStorage.setItem('profile_id', data.id);
-                localStorage.setItem('profile_user_id', data.user_id);
-                localStorage.setItem('profile_company_name', data.company_name);
-                localStorage.setItem('profile_business_ref_id', data.business_ref_id);
-                localStorage.setItem('profile_color', data.profile_color);
-                localStorage.setItem('profile_is_onboarded', data.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', data.is_superadmin.toString());
+                if (data._id) localStorage.setItem('profile_id', data._id);
+                if (data.ownerEmail) localStorage.setItem('profile_owner_email', data.ownerEmail);
+                if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
+                if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
+                if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
                 console.log("ProfileContext: Profile data loaded:", data);
             } catch (error) {
                 console.error("ProfileContext: Failed to fetch profile:", error);
@@ -70,13 +68,11 @@ export const ProfileProvider = ({ children }) => {
                 const data = await ProfileService.getProfile(token);
                 setProfile(data);
                 // Store individual profile fields in localStorage
-                localStorage.setItem('profile_id', data.id);
-                localStorage.setItem('profile_user_id', data.user_id);
-                localStorage.setItem('profile_company_name', data.company_name);
-                localStorage.setItem('profile_business_ref_id', data.business_ref_id);
-                localStorage.setItem('profile_color', data.profile_color);
-                localStorage.setItem('profile_is_onboarded', data.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', data.is_superadmin.toString());
+                if (data._id) localStorage.setItem('profile_id', data._id);
+                if (data.ownerEmail) localStorage.setItem('profile_owner_email', data.ownerEmail);
+                if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
+                if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
+                if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
             } catch (error) {
                  console.error("ProfileContext: Failed to reload profile:", error);
                  setProfileError(error?.detail || "Failed to reload profile data.");

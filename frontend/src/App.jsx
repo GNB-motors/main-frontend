@@ -20,6 +20,9 @@ import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
 import TripFormPage from './pages/Trip/TripFormPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import AddRefuelPage from './pages/Trip/AddRefuelPage.jsx';
+import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
+import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
+import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 
 
 function App() {
@@ -31,6 +34,12 @@ function App() {
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/admin/new-user" element={<SignUpPage/>} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+
+      {/* Super Admin Routes */}
+      <Route path="/superadmin" element={<SuperAdminLayout />}>
+        <Route index element={<SuperAdminPage />} />
+        <Route path="add-user" element={<AddUserPage />} />
+      </Route>
 
       {/* Protected Routes inside DashboardLayout, wrapped by ProfileProvider */}
       <Route

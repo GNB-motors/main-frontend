@@ -52,13 +52,11 @@ const ProfilePage = () => {
                 setProfileData(profileResponse);
                 setUserInfo(userInfoResponse);
                 // Store individual profile fields in localStorage
-                localStorage.setItem('profile_id', profileResponse.id);
-                localStorage.setItem('profile_user_id', profileResponse.user_id);
-                localStorage.setItem('profile_company_name', profileResponse.company_name);
-                localStorage.setItem('profile_business_ref_id', profileResponse.business_ref_id);
-                localStorage.setItem('profile_color', profileResponse.profile_color);
-                localStorage.setItem('profile_is_onboarded', profileResponse.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', profileResponse.is_superadmin.toString());
+                if (profileResponse._id) localStorage.setItem('profile_id', profileResponse._id);
+                if (profileResponse.ownerEmail) localStorage.setItem('profile_owner_email', profileResponse.ownerEmail);
+                if (profileResponse.companyName) localStorage.setItem('profile_company_name', profileResponse.companyName);
+                if (profileResponse.gstin) localStorage.setItem('profile_gstin', profileResponse.gstin);
+                if (profileResponse.primaryThemeColor) localStorage.setItem('primaryThemeColor', profileResponse.primaryThemeColor);
                 console.log("Profile data fetched:", profileResponse);
                 console.log("User info fetched:", userInfoResponse);
             } catch (apiError) {

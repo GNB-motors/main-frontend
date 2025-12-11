@@ -1,0 +1,32 @@
+/* Super Admin Layout uses same structure as main dashboard */
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+}
+
+.main-content {
+    flex-grow: 1;
+    transition: margin-left 0.3s ease;
+    margin-left: 100px;
+    padding-top: 72px;
+}
+
+.main-content.sidebar-open {
+    margin-left: 100px;
+}
+
+.page-content {
+    padding: 24px;
+    min-height: calc(100vh - 72px);
+}
+
+@media (max-width: 992px) {
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .main-content.sidebar-open {
+        margin-left: 0;
+    }
+}

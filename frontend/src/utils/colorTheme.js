@@ -7,9 +7,9 @@
  * @returns {string} - The primary color or default blue
  */
 export const getPrimaryColor = () => {
-    const profileColor = localStorage.getItem('profile_color');
-    console.log('Profile color:', profileColor);
-    return profileColor || '#3B82F6'; // Default blue
+    const primaryThemeColor = localStorage.getItem('primaryThemeColor');
+    console.log('Primary theme color:', primaryThemeColor);
+    return primaryThemeColor || '#3B82F6'; // Default blue
 };
 
 /**

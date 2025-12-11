@@ -1,114 +1,134 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import apiClient from '../../../utils/axiosConfig';
+import { clearAuthData } from '../../../utils/authUtils';
 
 const StepProfile = ({ onNext, onDataChange, formData }) => {
-    const [username, setUsername] = useState('');
+    const navigate = useNavigate();
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [location, setLocation] = useState('');
-    const [gstin, setGstin] = useState('');
     const [userId, setUserId] = useState('');
+    const [orgId, setOrgId] = useState('');
+    const [gstin, setGstin] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [userData, setUserData] = useState(null);
 
     useEffect(() => {
-        // Fetch user data from users table (profile doesn't exist yet during onboarding)
-        const loadUserData = async () => {
+        // Check if token exists, if not logout
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.error('No auth token found. Redirecting to login.');
+            toast.error('Session expired. Please login again.');
+            clearAuthData();
+            navigate('/login');
+            return;
+        }
+
+        // Load user data from localStorage (stored during login)
+        const loadUserData = () => {
             setIsLoading(true);
             
             try {
-                // Try multiple possible endpoints; backends often prefix auth differently
-                const candidates = [
-                    '/api/v1/auth/me',
-                    '/api/v1/login/me',
-                    '/api/v1/users/me',
-                    '/auth/me',
-                    '/login/me',
-                    '/users/me',
-                ];
-
-                let user = null;
-                for (const ep of candidates) {
-                    try {
-                        const r = await apiClient.get(ep);
-                        user = r.data;
-                        break;
-                    } catch (e) {
-                        // keep trying next endpoint
-                    }
-                }
-
-                if (!user) {
-                    throw new Error('No user endpoint responded');
-                }
+                const userFirstName = localStorage.getItem('user_firstName') || '';
+                const userLastName = localStorage.getItem('user_lastName') || '';
+                const userEmail = localStorage.getItem('user_email') || '';
+                const userMobile = localStorage.getItem('user_mobileNumber') || '';
+                const userIdValue = localStorage.getItem('user_id') || '';
+                const userOrgId = localStorage.getItem('user_orgId') || '';
                 
-                setUserData(user);
-                setUsername(user.username || '');
-                setEmail(user.email || '');
-                setPhone(user.mobile_number || '');
-                setLocation(user.location || '');
-                setGstin(user.gstin || '');
-                setUserId(user.id || '');
+                console.log('Loading user data from localStorage:', {
+                    firstName: userFirstName,
+                    lastName: userLastName,
+                    email: userEmail,
+                    mobileNumber: userMobile,
+                    userId: userIdValue,
+                    orgId: userOrgId
+                });
+                
+                setFirstName(userFirstName);
+                setLastName(userLastName);
+                setEmail(userEmail);
+                setPhone(userMobile);
+                setUserId(userIdValue);
+                setOrgId(userOrgId);
+                
+                // Load saved GSTIN from sessionStorage if available
+                const savedProfile = sessionStorage.getItem('onboardingProfile');
+                if (savedProfile) {
+                    const parsed = JSON.parse(savedProfile);
+                    setGstin(parsed.gstin || '');
+                }
                 
                 // Store in sessionStorage for later steps
                 sessionStorage.setItem('onboardingUser', JSON.stringify({
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    mobile_number: user.mobile_number,
-                    location: user.location,
-                    gstin: user.gstin,
+                    id: userIdValue,
+                    orgId: userOrgId,
+                    firstName: userFirstName,
+                    lastName: userLastName,
+                    email: userEmail,
+                    mobileNumber: userMobile,
                 }));
-            } catch (error) {
-                console.error('Could not fetch user data:', error);
                 
-                // Fallback: decode token to get basic user info
-                try {
-                    const token = localStorage.getItem('authToken');
-                    if (token) {
-                        const payload = JSON.parse(atob(token.split('.')[1]));
-                        setEmail(payload.sub || '');
-                        setUsername(payload.sub?.split('@')[0] || 'User');
-                        toast.warning('Loaded basic user info from session');
-                        
-                        sessionStorage.setItem('onboardingUser', JSON.stringify({
-                            username: payload.sub?.split('@')[0] || 'User',
-                            email: payload.sub || '',
-                            mobile_number: '',
-                            location: '',
-                            gstin: ''
-                        }));
-                    }
-                } catch (fallbackError) {
-                    toast.error('Failed to load user information. Please log in again.');
+                if (userFirstName && userEmail) {
+                    toast.success('Profile loaded successfully');
+                } else {
+                    toast.warning('Some profile data may be missing');
                 }
+            } catch (error) {
+                console.error('Could not load user data from localStorage:', error);
+                toast.error('Failed to load user information. Please log in again.');
             } finally {
                 setIsLoading(false);
             }
         };
 
         loadUserData();
-    }, []);
+    }, [navigate]);
 
-    // Update parent component when data changes
+    // Update parent component when data changes - REMOVE onDataChange from dependencies to prevent infinite loop
     useEffect(() => {
-        onDataChange({
-            username,
-            email,
-            phone,
-            location,
-            gstin,
-            id: userId,
-        });
-    }, [username, email, phone, location, gstin, userId, onDataChange]);
+        if (!isLoading && firstName && email) {
+            onDataChange({
+                firstName,
+                lastName,
+                email,
+                phone,
+                id: userId,
+                orgId: orgId,
+                gstin,
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [firstName, lastName, email, phone, userId, orgId, gstin, isLoading]);
 
     const handleSave = () => {
-        // User data is read-only from backend, just proceed to next step
-        if (!username || !email) {
+        // User data is read-only from localStorage, just proceed to next step
+        if (!firstName || !email) {
             toast.error('User data is incomplete. Please contact support.');
             return;
         }
+
+        // Optional GSTIN validation
+        if (gstin && gstin.trim()) {
+            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (!gstinRegex.test(gstin.trim())) {
+                toast.warning('GSTIN format may be invalid. Please verify (format: 27ABCDE1234F1Z5)');
+                // Don't block, just warn
+            }
+        }
+
+        // Save profile data including GSTIN to sessionStorage
+        const profileData = {
+            firstName,
+            lastName,
+            email,
+            phone,
+            gstin,
+            id: userId,
+            orgId: orgId,
+        };
+        sessionStorage.setItem('onboardingProfile', JSON.stringify(profileData));
 
         toast.success('Profile confirmed', { autoClose: 1500 });
         onNext();
@@ -134,14 +154,30 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
 
             <div className="form-section">
                 <div className="form-group">
-                    <label htmlFor="username">
-                        Username
+                    <label htmlFor="firstName">
+                        First Name
                     </label>
                     <input
                         type="text"
-                        id="username"
+                        id="firstName"
                         className="form-input"
-                        value={username}
+                        value={firstName}
+                        readOnly
+                        disabled
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                    />
+                    <small className="form-hint">Loaded from your account</small>
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="lastName">
+                        Last Name
+                    </label>
+                    <input
+                        type="text"
+                        id="lastName"
+                        className="form-input"
+                        value={lastName}
                         readOnly
                         disabled
                         style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
@@ -167,45 +203,13 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
 
                 <div className="form-group">
                     <label htmlFor="phone">
-                        Phone Number
+                        Mobile Number
                     </label>
                     <input
                         type="tel"
                         id="phone"
                         className="form-input"
                         value={phone || 'Not provided'}
-                        readOnly
-                        disabled
-                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
-                    />
-                    <small className="form-hint">Loaded from your account</small>
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="location">
-                        Location
-                    </label>
-                    <input
-                        type="text"
-                        id="location"
-                        className="form-input"
-                        value={location || 'Not provided'}
-                        readOnly
-                        disabled
-                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
-                    />
-                    <small className="form-hint">Loaded from your account</small>
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="gstin">
-                        GSTIN
-                    </label>
-                    <input
-                        type="text"
-                        id="gstin"
-                        className="form-input"
-                        value={gstin || 'Not provided'}
                         readOnly
                         disabled
                         style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}

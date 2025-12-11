@@ -45,14 +45,23 @@ export const clearAuthData = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('tokenType');
     
+    // Clear user data (new API structure)
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_firstName');
+    localStorage.removeItem('user_lastName');
+    localStorage.removeItem('user_status');
+    localStorage.removeItem('user_mobileNumber');
+    localStorage.removeItem('user_orgId');
+    localStorage.removeItem('onboardingCompleted');
+    
     // Clear profile data
     localStorage.removeItem('profile_id');
-    localStorage.removeItem('profile_user_id');
+    localStorage.removeItem('profile_owner_email');
     localStorage.removeItem('profile_company_name');
-    localStorage.removeItem('profile_business_ref_id');
-    localStorage.removeItem('profile_color');
-    localStorage.removeItem('profile_is_onboarded');
-    localStorage.removeItem('profile_is_superadmin');
+    localStorage.removeItem('profile_gstin');
+    localStorage.removeItem('primaryThemeColor');
     
     console.log('Auth data cleared - user logged out');
 };

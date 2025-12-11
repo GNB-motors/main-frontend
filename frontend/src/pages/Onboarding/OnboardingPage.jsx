@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './OnboardingPage.css';
 import './OnboardingPageExtended.css';
 import UkoLogo from '../../assets/uko-logo.png';
@@ -7,6 +8,7 @@ import StepProfile from './components/StepProfile.jsx';
 import StepCompanyTheme from './components/StepCompanyTheme.jsx';
 import StepVehicles from './components/StepVehicles.jsx';
 import LaunchAnimation from './components/LaunchAnimation.jsx';
+import { clearAuthData } from '../../utils/authUtils';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
@@ -26,6 +28,18 @@ const OnboardingPage = () => {
         2: 0,
         3: 0
     });
+
+    // Check for auth token on mount
+    useEffect(() => {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.error('No auth token found on onboarding page. Redirecting to login.');
+            toast.error('Session expired. Please login again.');
+            clearAuthData();
+            navigate('/login');
+            return;
+        }
+    }, [navigate]);
 
     // Load saved progress from sessionStorage (cleared on tab close)
     useEffect(() => {
