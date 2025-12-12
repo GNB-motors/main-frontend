@@ -294,3 +294,17 @@ export const dedupeRows = (rows, key) => {
     return true;
   });
 };
+
+// For drivers: dedupe by checking entire row (all columns) for exact duplicates
+export const dedupeRowsByContent = (rows) => {
+  const seen = new Set();
+  return rows.filter((row) => {
+    // Create a unique key from all row values
+    const rowKey = JSON.stringify(row);
+    if (seen.has(rowKey)) {
+      return false;
+    }
+    seen.add(rowKey);
+    return true;
+  });
+};
