@@ -81,12 +81,22 @@ const LoginPage = () => {
                     return;
                 }
 
-                // For OWNER and other roles, redirect to onboarding
-                // The onboarding page will handle checking if they're already onboarded
-                toast.success("Login successful! Redirecting...");
-                setTimeout(() => {
-                    navigate('/onboarding');
-                }, 1500);
+                // For OWNER and other roles, check if onboarding is completed
+                const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+                
+                if (onboardingCompleted === 'true') {
+                    // User has completed onboarding, go to overview
+                    toast.success("Welcome back! Redirecting to dashboard...");
+                    setTimeout(() => {
+                        navigate('/overview');
+                    }, 1500);
+                } else {
+                    // User hasn't completed onboarding yet
+                    toast.success("Login successful! Redirecting to onboarding...");
+                    setTimeout(() => {
+                        navigate('/onboarding');
+                    }, 1500);
+                }
             }
 
         } catch (loginApiError) {

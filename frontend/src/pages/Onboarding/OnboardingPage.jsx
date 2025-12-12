@@ -29,7 +29,7 @@ const OnboardingPage = () => {
         3: 0
     });
 
-    // Check for auth token on mount
+    // Check for auth token and onboarding status on mount
     useEffect(() => {
         const token = localStorage.getItem('authToken');
         if (!token) {
@@ -37,6 +37,15 @@ const OnboardingPage = () => {
             toast.error('Session expired. Please login again.');
             clearAuthData();
             navigate('/login');
+            return;
+        }
+
+        // Check if user has already completed onboarding
+        const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+        if (onboardingCompleted === 'true') {
+            console.log('User has already completed onboarding. Redirecting to overview.');
+            toast.info('You have already completed onboarding!');
+            navigate('/overview');
             return;
         }
     }, [navigate]);
