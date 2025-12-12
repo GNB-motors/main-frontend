@@ -3,7 +3,6 @@ import { Search, Filter, Plus, ChevronLeft, ChevronRight, MoreHorizontal, Edit, 
 import { toast } from 'react-toastify';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
-import { useProfile } from '../Profile/ProfileContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
 import LottieLoader from '../../components/LottieLoader.jsx';
@@ -464,9 +463,9 @@ const DriversPage = () => {
 
     const [isSubmitting, setIsSubmitting] = useState(false); // Loading state for add/edit/delete actions
 
-    // Get profile data and loading status from context
-    const { profile, isLoadingProfile, profileError } = useProfile();
-    const businessRefId = profile?.business_ref_id; // Get businessRefId from context profile
+    // Profile context removed - drivers page should render independently
+    // Read businessRefId from localStorage as a fallback
+    const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
 
     // --- Data Fetching ---
     const fetchDrivers = async () => {
@@ -515,28 +514,15 @@ const DriversPage = () => {
     };
 
     useEffect(() => {
-        // Handle initial loading states and errors from context
-        if (isLoadingProfile) {
-            setIsLoading(true); // Keep drivers loading if profile is still loading
-            return;
-        }
-        if (profileError) {
-             setError(`Could not load profile: ${profileError}`);
-             setIsLoading(false);
-             return;
-        }
-        if (!businessRefId && !isLoadingProfile) {
-             setError("Could not retrieve Business Reference ID from profile context.");
-             setIsLoading(false);
-             return;
-        }
-
-        // Fetch drivers and vehicles if context is ready and has businessRefId
-        if(businessRefId) {
+        // If we have an org id, fetch data; otherwise, still render the UI but skip fetches.
+        if (businessRefId) {
             fetchDrivers();
             fetchVehicles();
+        } else {
+            console.warn('No businessRefId found in localStorage (profile context removed) — drivers list will be empty until set.');
+            setIsLoading(false);
         }
-    }, [businessRefId, isLoadingProfile, profileError]); // Re-run effect if these change
+    }, [businessRefId]);
 
     // --- Action Handlers ---
     const handleAddDriver = async (driverData) => {

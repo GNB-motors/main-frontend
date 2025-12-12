@@ -13,6 +13,8 @@ export const ProfileProvider = ({ children }) => {
     const [profileError, setProfileError] = useState(null);
 
     useEffect(() => {
+        const AUTO_FETCH = import.meta.env.VITE_PROFILE_AUTO_FETCH === 'true';
+
         const fetchProfileData = async () => {
             // Validate token before making request
             if (!validateTokenBeforeRequest()) {
@@ -49,7 +51,15 @@ export const ProfileProvider = ({ children }) => {
             }
         };
 
-        fetchProfileData();
+        // Make profile fetching opt-in via env var so pages that don't need profile
+        // won't trigger /api/v1/profile/me. Set VITE_PROFILE_AUTO_FETCH=true to
+        // restore previous behavior.
+        if (AUTO_FETCH) {
+            fetchProfileData();
+        } else {
+            // Skip auto fetch, leave profile null but not loading
+            setIsLoadingProfile(false);
+        }
 
         // Optional: Listen for storage changes if token might be updated elsewhere
         // window.addEventListener('storage', fetchProfileData);

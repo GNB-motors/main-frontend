@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
 
 import "../Profile/BulkUploadVehiclesPage.css";
-import { useProfile } from "../Profile/ProfileContext.jsx";
 import apiClient from "../../utils/axiosConfig";
 import { dedupeRowsByContent } from "../../utils/bulkNormalization";
 import EditRowModal from "../BulkUpload/EditRowModal";
@@ -53,7 +52,8 @@ const normalizeDriverDataset = (rows) => {
 };
 
 const BulkUploadDriversPage = () => {
-  const { profile, isLoadingProfile } = useProfile();
+  // Profile context removed - use localStorage as fallback
+  const isLoadingProfile = false;
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [rowErrors, setRowErrors] = useState([]);
@@ -68,7 +68,7 @@ const BulkUploadDriversPage = () => {
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const fileInputRef = useRef(null);
 
-  const businessRefId = profile?.business_ref_id || localStorage.getItem("profile_business_ref_id");
+  const businessRefId = localStorage.getItem("profile_business_ref_id");
 
   // Update theme colors when component mounts or profile color changes
   useEffect(() => {
