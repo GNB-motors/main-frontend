@@ -35,6 +35,9 @@ export const ProfileProvider = ({ children }) => {
                 if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
                 if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
                 if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
+                // Store business ref id if provided by backend (supports snake_case or camelCase)
+                if (data.business_ref_id) localStorage.setItem('profile_business_ref_id', data.business_ref_id);
+                else if (data.businessRefId) localStorage.setItem('profile_business_ref_id', data.businessRefId);
                 console.log("ProfileContext: Profile data loaded:", data);
             } catch (error) {
                 console.error("ProfileContext: Failed to fetch profile:", error);
@@ -83,6 +86,9 @@ export const ProfileProvider = ({ children }) => {
                 if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
                 if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
                 if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
+                    // Store business ref id if provided by backend (supports snake_case or camelCase)
+                    if (data.business_ref_id) localStorage.setItem('profile_business_ref_id', data.business_ref_id);
+                    else if (data.businessRefId) localStorage.setItem('profile_business_ref_id', data.businessRefId);
             } catch (error) {
                  console.error("ProfileContext: Failed to reload profile:", error);
                  setProfileError(error?.detail || "Failed to reload profile data.");

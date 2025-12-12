@@ -17,8 +17,13 @@ const getInitials = (name) => {
 
 // --- Add Driver Modal Component ---
 const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, availableVehicles = [] }) => {
-    const [name, setName] = useState('');
-    const [role, setRole] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [mobileNumber, setMobileNumber] = useState('');
+    const [location, setLocation] = useState('');
+    const [password, setPassword] = useState('');
+    const [role, setRole] = useState('DRIVER');
     const [vehicleRegistrationNo, setVehicleRegistrationNo] = useState(''); // Optional, backend handles nullable
     const [error, setError] = useState(null);
 
@@ -26,15 +31,19 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, av
         e.preventDefault();
         setError(null); // Clear previous errors
 
-        if (!name) {
-            setError("Driver name is required.");
+        if (!firstName) {
+            setError("First name is required.");
             return;
         }
 
         const driverData = {
-            name,
-            role: role || 'Employee', // Default role if empty
-            // Only include vehicle_registration_no if it's not empty, otherwise let backend handle null
+            firstName: firstName || null,
+            lastName: lastName || null,
+            email: email || null,
+            mobileNumber: mobileNumber || null,
+            location: location || null,
+            password: password || null,
+            role: role || 'DRIVER',
             ...(vehicleRegistrationNo && { vehicle_registration_no: vehicleRegistrationNo })
         };
 
@@ -52,8 +61,13 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, av
     // Reset form when modal opens or closes
     useEffect(() => {
         if (!isOpen) {
-            setName('');
-            setRole('');
+            setFirstName('');
+            setLastName('');
+            setEmail('');
+            setMobileNumber('');
+            setLocation('');
+            setPassword('');
+            setRole('DRIVER');
             setVehicleRegistrationNo('');
             setError(null);
         }
@@ -70,44 +84,107 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, av
                     <button onClick={onClose} className="drivers-close-btn">&times;</button>
                 </div>
                 <form onSubmit={handleSubmit} className="drivers-modal-form">
-                    <div className="drivers-form-group">
-                        <label htmlFor="driverName">Name *</label>
-                        <input
-                            id="driverName"
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Enter full name"
-                            required
-                            disabled={isSubmitting}
-                        />
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverFirstName">First Name *</label>
+                            <input
+                                id="driverFirstName"
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="First name"
+                                required
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverLastName">Last Name</label>
+                            <input
+                                id="driverLastName"
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Last name"
+                                disabled={isSubmitting}
+                            />
+                        </div>
                     </div>
-                    <div className="drivers-form-group">
-                        <label htmlFor="driverRole">Role</label>
-                        <input
-                            id="driverRole"
-                            type="text"
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            placeholder="e.g., Driver, Manager (default: Employee)"
-                            disabled={isSubmitting}
-                        />
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverEmail">Email</label>
+                            <input
+                                id="driverEmail"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="email@example.com"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverMobile">Mobile Number</label>
+                            <input
+                                id="driverMobile"
+                                type="text"
+                                value={mobileNumber}
+                                onChange={(e) => setMobileNumber(e.target.value)}
+                                placeholder="+919XXXXXXXXX"
+                                disabled={isSubmitting}
+                            />
+                        </div>
                     </div>
-                    <div className="drivers-form-group">
-                        <label htmlFor="driverVehicle">Assign Vehicle (Optional)</label>
-                        <select
-                            id="driverVehicle"
-                            value={vehicleRegistrationNo}
-                            onChange={(e) => setVehicleRegistrationNo(e.target.value)}
-                            disabled={isSubmitting}
-                        >
-                            <option value="">Select a vehicle (optional)</option>
-                            {availableVehicles.map(vehicle => (
-                                <option key={vehicle.id} value={vehicle.registration_no}>
-                                    {vehicle.registration_no} - {vehicle.vehicle_type || 'Unknown Type'}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverLocation">Location</label>
+                            <input
+                                id="driverLocation"
+                                type="text"
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                placeholder="e.g., Pune Base"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverPassword">Password</label>
+                            <input
+                                id="driverPassword"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Temporary password"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverRole">Role</label>
+                            <input
+                                id="driverRole"
+                                type="text"
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                placeholder="e.g., DRIVER, MANAGER"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="driverVehicle">Assign Vehicle (Optional)</label>
+                            <select
+                                id="driverVehicle"
+                                value={vehicleRegistrationNo}
+                                onChange={(e) => setVehicleRegistrationNo(e.target.value)}
+                                disabled={isSubmitting}
+                            >
+                                <option value="">Select a vehicle (optional)</option>
+                                {availableVehicles.map(vehicle => (
+                                    <option key={vehicle.id} value={vehicle.registration_no}>
+                                        {vehicle.registration_no} - {vehicle.vehicle_type || 'Unknown Type'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     {error && <div className="drivers-error-message">{error}</div>}
@@ -128,7 +205,11 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, av
 
 // --- Edit Driver Modal Component ---
 const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmitting, availableVehicles = [] }) => {
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [mobileNumber, setMobileNumber] = useState('');
+    const [location, setLocation] = useState('');
     const [role, setRole] = useState('');
     const [vehicleRegistrationNo, setVehicleRegistrationNo] = useState('');
     const [error, setError] = useState(null);
@@ -136,14 +217,22 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
     // Populate form when driver data is available
     useEffect(() => {
         if (driver) {
-            setName(driver.name || '');
+            setFirstName(driver.firstName || driver.first_name || '');
+            setLastName(driver.lastName || driver.last_name || '');
+            setEmail(driver.email || '');
+            setMobileNumber(driver.mobileNumber || driver.mobile_number || '');
+            setLocation(driver.location || '');
             setRole(driver.role || '');
             setVehicleRegistrationNo(driver.vehicle_registration_no || ''); // Use vehicle_registration_no from backend
             setError(null);
         }
         // Reset if modal closes or driver changes to null
         if (!isOpen || !driver) {
-            setName('');
+            setFirstName('');
+            setLastName('');
+            setEmail('');
+            setMobileNumber('');
+            setLocation('');
             setRole('');
             setVehicleRegistrationNo('');
             setError(null);
@@ -154,18 +243,21 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
         e.preventDefault();
         setError(null);
 
-        if (!name) {
-            setError("Driver name is required.");
+        if (!firstName) {
+            setError("First name is required.");
             return;
         }
 
         // Prepare only the fields allowed by EmployeeUpdate schema
         const updateData = {
-            name,
-            role: role || null, // Send null if empty to potentially clear role, adjust if needed
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+            email: email || undefined,
+            mobileNumber: mobileNumber || undefined,
+            location: location || undefined,
+            role: role || undefined,
             vehicle_registration_no: vehicleRegistrationNo || null // Send null if empty string
         };
-
 
         try {
             await onSubmit(driver.id, updateData); // Pass driver ID and updateData
@@ -183,48 +275,100 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
         <div className="drivers-modal-overlay" onClick={onClose}>
             <div className="drivers-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="drivers-modal-header">
-                    <h4>Edit Employee: {driver?.name}</h4>
+                    <h4>Edit Employee: {`${driver?.firstName || ''} ${driver?.lastName || ''}`.trim() || driver?.name}</h4>
                     <button onClick={onClose} className="drivers-close-btn">&times;</button>
                 </div>
                 <form onSubmit={handleSubmit} className="drivers-modal-form">
-                    <div className="drivers-form-group">
-                        <label htmlFor="editDriverName">Name *</label>
-                        <input
-                            id="editDriverName"
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Enter full name"
-                            required
-                            disabled={isSubmitting}
-                        />
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverFirstName">First Name *</label>
+                            <input
+                                id="editDriverFirstName"
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="First name"
+                                required
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverLastName">Last Name</label>
+                            <input
+                                id="editDriverLastName"
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Last name"
+                                disabled={isSubmitting}
+                            />
+                        </div>
                     </div>
-                    <div className="drivers-form-group">
-                        <label htmlFor="editDriverRole">Role</label>
-                        <input
-                            id="editDriverRole"
-                            type="text"
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            placeholder="e.g., Driver, Manager"
-                            disabled={isSubmitting}
-                        />
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverEmail">Email</label>
+                            <input
+                                id="editDriverEmail"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="email@example.com"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverMobile">Mobile Number</label>
+                            <input
+                                id="editDriverMobile"
+                                type="text"
+                                value={mobileNumber}
+                                onChange={(e) => setMobileNumber(e.target.value)}
+                                placeholder="+919XXXXXXXXX"
+                                disabled={isSubmitting}
+                            />
+                        </div>
                     </div>
-                    <div className="drivers-form-group">
-                        <label htmlFor="editDriverVehicle">Assign Vehicle (Optional)</label>
-                        <select
-                            id="editDriverVehicle"
-                            value={vehicleRegistrationNo}
-                            onChange={(e) => setVehicleRegistrationNo(e.target.value)}
-                            disabled={isSubmitting}
-                        >
-                            <option value="">Select a vehicle (optional)</option>
-                            {availableVehicles.map(vehicle => (
-                                <option key={vehicle.id} value={vehicle.registration_no}>
-                                    {vehicle.registration_no} - {vehicle.vehicle_type || 'Unknown Type'}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverLocation">Location</label>
+                            <input
+                                id="editDriverLocation"
+                                type="text"
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                placeholder="e.g., Pune Base"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverRole">Role</label>
+                            <input
+                                id="editDriverRole"
+                                type="text"
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                placeholder="e.g., Driver, Manager"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+                    <div className="drivers-form-row">
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverVehicle">Assign Vehicle (Optional)</label>
+                            <select
+                                id="editDriverVehicle"
+                                value={vehicleRegistrationNo}
+                                onChange={(e) => setVehicleRegistrationNo(e.target.value)}
+                                disabled={isSubmitting}
+                            >
+                                <option value="">Select a vehicle (optional)</option>
+                                {availableVehicles.map(vehicle => (
+                                    <option key={vehicle.id} value={vehicle.registration_no}>
+                                        {vehicle.registration_no} - {vehicle.vehicle_type || 'Unknown Type'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     {error && <div className="drivers-error-message">{error}</div>}
@@ -469,9 +613,7 @@ const DriversPage = () => {
 
     // --- Data Fetching ---
     const fetchDrivers = async () => {
-        if (!businessRefId) {
-            return; // Don't fetch if no ID
-        }
+        // Try to fetch drivers even if businessRefId is not present locally. Some backends may scope by token.
         setIsLoading(true); // Start loading drivers
         setError(null); // Clear general error on fetch
         setActionError(null); // Clear action errors on fetch
@@ -483,9 +625,18 @@ const DriversPage = () => {
         }
 
         try {
-            const data = await DriverService.getAllDrivers(businessRefId, token);
-            setDrivers(data);
-            console.log("Drivers fetched:", data);
+            console.log('Fetching employees list, orgId=', businessRefId || 'none');
+            const data = await DriverService.getAllDrivers(businessRefId);
+            // Normalize drivers to include a `name` convenience field used across the UI
+            const normalizedDrivers = (data || []).map(d => ({
+                ...d,
+                id: d.id || d._id || d._id,
+                firstName: d.firstName || d.first_name || d.firstName || '',
+                lastName: d.lastName || d.last_name || d.lastName || '',
+                name: d.name || `${(d.firstName || d.first_name || '').trim()} ${(d.lastName || d.last_name || '').trim()}`.trim(),
+            }));
+            setDrivers(normalizedDrivers);
+            console.log("Drivers fetched:", normalizedDrivers);
         } catch (apiError) {
             console.error("Failed to fetch drivers:", apiError);
             setError(apiError?.detail || "Could not load drivers list.");
@@ -495,17 +646,23 @@ const DriversPage = () => {
     };
 
     const fetchVehicles = async () => {
-        if (!businessRefId) {
-            return; // Don't fetch if no ID
-        }
+        // Attempt to fetch vehicles even if businessRefId is not present locally.
         const token = localStorage.getItem('authToken');
         if (!token) {
+            console.warn('No auth token present; skipping vehicles fetch.');
             return;
         }
 
         try {
             const data = await DriverService.getAvailableVehicles(businessRefId, token);
-            setAvailableVehicles(data);
+            // Normalize vehicle shape for the UI
+            const normalized = (data || []).map(v => ({
+                id: v._id || v.id || v._id,
+                registration_no: v.registrationNumber || v.registration_no || v.registrationNumber,
+                vehicle_type: v.vehicleType || v.vehicle_type || '',
+                chassis_number: v.chassisNumber || v.chassis_number || '',
+            }));
+            setAvailableVehicles(normalized);
             console.log("Vehicles fetched:", data);
         } catch (apiError) {
             console.error("Failed to fetch vehicles:", apiError);
@@ -514,14 +671,10 @@ const DriversPage = () => {
     };
 
     useEffect(() => {
-        // If we have an org id, fetch data; otherwise, still render the UI but skip fetches.
-        if (businessRefId) {
-            fetchDrivers();
-            fetchVehicles();
-        } else {
-            console.warn('No businessRefId found in localStorage (profile context removed) — drivers list will be empty until set.');
-            setIsLoading(false);
-        }
+        // Always attempt to fetch drivers and vehicles; backend may scope by token even when org id
+        // is not available locally. If token is missing, fetchDrivers will surface an auth error.
+        fetchDrivers();
+        fetchVehicles();
     }, [businessRefId]);
 
     // --- Action Handlers ---
@@ -533,8 +686,15 @@ const DriversPage = () => {
         setIsSubmitting(true);
         setActionError(null); // Clear previous action error
         try {
-            const newDriver = await DriverService.addDriver(businessRefId, driverData, token);
-            setDrivers(prevDrivers => [...prevDrivers, newDriver]); // Add new driver to state
+            const newDriver = await DriverService.addDriver(businessRefId, driverData);
+            const nd = {
+                ...newDriver,
+                id: newDriver.id || newDriver._id || newDriver._id,
+                firstName: newDriver.firstName || newDriver.first_name || '',
+                lastName: newDriver.lastName || newDriver.last_name || '',
+                name: newDriver.name || `${(newDriver.firstName || newDriver.first_name || '').trim()} ${(newDriver.lastName || newDriver.last_name || '').trim()}`.trim(),
+            };
+            setDrivers(prevDrivers => [...prevDrivers, nd]); // Add new driver to state
             setIsAddModalOpen(false); // Close modal on success
             toast.success(`Employee "${driverData.name}" added successfully!`);
         } catch (apiError) {
@@ -566,10 +726,17 @@ const DriversPage = () => {
          setIsSubmitting(true);
          setActionError(null);
          try {
-             const updatedDriver = await DriverService.updateDriver(businessRefId, driverId, updateData, token);
-             setDrivers(prevDrivers =>
-                prevDrivers.map(d => (d.id === driverId ? updatedDriver : d))
-             );
+                    const updatedDriver = await DriverService.updateDriver(businessRefId, driverId, updateData);
+                    const ud = {
+                         ...updatedDriver,
+                         id: updatedDriver.id || updatedDriver._id || updatedDriver._id,
+                         firstName: updatedDriver.firstName || updatedDriver.first_name || '',
+                         lastName: updatedDriver.lastName || updatedDriver.last_name || '',
+                         name: updatedDriver.name || `${(updatedDriver.firstName || updatedDriver.first_name || '').trim()} ${(updatedDriver.lastName || updatedDriver.last_name || '').trim()}`.trim(),
+                    };
+                    setDrivers(prevDrivers =>
+                        prevDrivers.map(d => (d.id === driverId ? ud : d))
+                    );
              setIsEditModalOpen(false); // Close modal on success
              setEditingDriver(null);
              toast.success(`Employee "${updateData.name}" updated successfully!`);
@@ -603,7 +770,7 @@ const DriversPage = () => {
         setIsSubmitting(true);
         setActionError(null);
         try {
-            await DriverService.deleteDriver(businessRefId, driverId, token);
+            await DriverService.deleteDriver(businessRefId, driverId);
             setDrivers(prev => prev.filter(d => d.id !== driverId)); // Update UI immediately
             setIsDeleteModalOpen(false); // Close modal on success
             setDeletingDriver(null);
@@ -778,7 +945,7 @@ const DriversPage = () => {
                         </div>
                     </div>
                     {/* Open the modal when button is clicked */}
-                    <button className="drivers-add-driver-btn" onClick={() => setIsAddModalOpen(true)}>
+                    <button className="drivers-add-driver-btn" onClick={() => navigate('/drivers/add')}>
                         <Plus size={16} />
                         <span>Add Employee</span>
                     </button>
@@ -875,13 +1042,7 @@ const DriversPage = () => {
                 </div>
 
              {/* Render Modals */}
-             <AddDriverModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onSubmit={handleAddDriver}
-                isLoading={isSubmitting}
-                availableVehicles={availableVehicles}
-            />
+            {/* AddDriverModal removed -- Add Employee is a separate page now at /drivers/add */}
             <EditDriverModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}

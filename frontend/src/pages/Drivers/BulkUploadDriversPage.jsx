@@ -7,6 +7,7 @@ import { getThemeCSS } from "../../utils/colorTheme.js";
 
 import "../Profile/BulkUploadVehiclesPage.css";
 import apiClient from "../../utils/axiosConfig";
+import { DriverService } from "./DriverService.jsx";
 import { dedupeRowsByContent } from "../../utils/bulkNormalization";
 import EditRowModal from "../BulkUpload/EditRowModal";
 
@@ -209,35 +210,22 @@ const BulkUploadDriversPage = () => {
 
     setIsSubmitting(true);
 
-    const payload = {
-      records: rows.map((r) => ({
-        name: r.name,
-        role: r.role || 'Employee',
-        ...(r.vehicle_registration_no && { vehicle_registration_no: r.vehicle_registration_no })
-      })),
-      dry_run: dryRun,
-      upsert: upsert,
-    };
-
     const token = localStorage.getItem("authToken");
-
     try {
-      const response = await apiClient.post(
-        `/drivers/bulk-upload/${businessRefId}`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const options = { dry_run: dryRun, upsert };
+      const resp = await DriverService.addBulkDrivers(businessRefId, rows, options);
 
-      setUploadResult(response.data);
+      // normalize response
+      const respData = resp && resp.data ? resp.data : resp;
+      setUploadResult(respData);
+
+      const created = respData?.createdCount ?? respData?.data?.createdCount ?? respData?.summary?.created ?? 0;
+      const errors = respData?.errors ?? respData?.data?.errors ?? [];
+
       toast.success(
         dryRun
-          ? `Dry run completed: ${response.data.summary?.created || 0} new, ${response.data.summary?.updated || 0} updated`
-          : `Employees uploaded successfully: ${response.data.summary?.created || 0} new, ${response.data.summary?.updated || 0} updated`
+          ? `Dry run completed: ${created} created, ${errors.length} error(s)`
+          : `Employees uploaded: ${created} created, ${errors.length} error(s)`
       );
 
       if (!dryRun) {
@@ -245,7 +233,7 @@ const BulkUploadDriversPage = () => {
       }
     } catch (error) {
       console.error("Submission error:", error);
-      const errorMsg = error.response?.data?.detail || error.message || "Upload failed";
+      const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message || "Upload failed";
       toast.error(errorMsg);
       setUploadResult(null);
     } finally {
