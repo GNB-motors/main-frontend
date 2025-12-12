@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User, Upload, Truck } from 'lucide-react'; // Added Users, User, Truck icons
+import { Grid, FileText, Settings, LogOut, Users, User, Truck } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
@@ -130,18 +130,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <Users size={20} />
                         <span>Employees</span>
                     </NavLink>
-                    <NavLink
-                        to="/bulk-upload"
-                        className="nav-link"
-                        onClick={closeSidebarOnMobile}
-                    >
-                        <Upload size={20} />
-                        <span>Bulk Upload</span>
+                    <NavLink to="/vehicles" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <Truck size={20} />
+                        <span>Vehicles</span>
                     </NavLink>
-                    {/* ------------------------- */}
-                    {/* <NavLink to="/settings" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Settings size={20} /><span>Settings</span>
-                    </NavLink> */}
                     <NavLink to="/profile" className="nav-link" onClick={closeSidebarOnMobile}>
                         <User size={20} />
                         <span>Profile</span>

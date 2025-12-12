@@ -434,6 +434,405 @@
     gap: var(--spacing-lg);
 }
 
+/* New Grid Layout for Vehicle Cards */
+.vehicles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+}
+
+.vehicle-card {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    background-color: var(--color-white);
+    border: 1px solid var(--color-grey-200);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+.vehicle-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-grey-300);
+}
+
+.vehicle-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+    position: relative;
+}
+
+.vehicle-card-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.vehicle-card-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.2s ease;
+}
+
+.vehicle-card-menu-btn:hover {
+    background-color: var(--color-grey-100);
+}
+
+.vehicle-card-menu-btn img {
+    width: 20px;
+    height: 20px;
+}
+
+.vehicle-card-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--color-white);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-card);
+    padding: var(--spacing-xs);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    width: 120px;
+    border: 1px solid var(--color-grey-200);
+    margin-top: 4px;
+}
+
+.vehicle-card-menu button {
+    background: none;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 14px;
+    color: var(--color-grey-700);
+}
+
+.vehicle-card-menu button:hover {
+    background-color: var(--color-grey-100);
+}
+
+.vehicle-card-menu button:last-child {
+    color: #dc2626;
+}
+
+.vehicle-card-menu button:last-child:hover {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+.vehicle-card-content {
+    flex: 1;
+}
+
+.vehicle-card-content h5 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-grey-900);
+}
+
+.vehicle-card-content p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--color-grey-500);
+}
+
+/* === Vehicle Table Styles === */
+.vehicle-table-container {
+    flex: 1;
+    padding: 0;
+    overflow-x: auto;
+}
+
+.vehicle-table {
+    width: 100%;
+    min-width: 800px;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #ffffff;
+    border: 1px solid #ececee;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.vehicle-table thead {
+    background: #f8f8fb;
+}
+
+.vehicle-table th {
+    padding: 18px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #5d5d5e;
+    border-bottom: 1px solid #ececee;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.vehicle-table td {
+    padding: 18px 20px;
+    font-size: 14px;
+    color: #121214;
+    border-bottom: 1px solid #f0f0f3;
+    vertical-align: top;
+}
+
+.vehicle-table tr:last-child td {
+    border-bottom: none;
+}
+
+.vehicle-table tr:hover {
+    background-color: #fafbfc;
+}
+
+.vehicle-actions-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.2s ease;
+    color: #5d5d5e;
+}
+
+.vehicle-actions-menu-btn:hover {
+    background-color: #f0f0f3;
+    color: #121214;
+}
+
+.vehicle-actions-menu-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.vehicle-actions-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--color-white);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 120px;
+    border: 1px solid #ececee;
+    margin-top: 4px;
+    pointer-events: auto;
+}
+
+.vehicle-actions-menu button {
+    background: none;
+    border: none;
+    padding: 10px 16px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #121214;
+    pointer-events: auto;
+}
+
+.vehicle-actions-menu button:hover {
+    background-color: #f0f0f3;
+}
+
+.vehicle-actions-menu button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.vehicle-actions-menu button:last-child {
+    color: #dc2626;
+}
+
+.vehicle-actions-menu button:last-child:hover {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+/* Vehicles Page Button Styles */
+.vehicles-btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: var(--primary-color, #3B82F6);
+    color: var(--color-white);
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: capitalize;
+}
+
+.vehicles-btn-primary:hover:not(:disabled) {
+    filter: brightness(0.85);
+}
+
+.vehicles-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.vehicles-btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: var(--color-grey-100);
+    color: var(--color-grey-700);
+    border: 1px solid var(--color-grey-300);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: capitalize;
+}
+
+.vehicles-btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-grey-200);
+    border-color: var(--color-grey-400);
+}
+
+.vehicles-btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Report Header Styles (Shared) */
+.report-header-section {
+    margin-bottom: var(--spacing-xs);
+}
+
+.report-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    gap: var(--spacing-md);
+}
+
+.report-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-grey-900);
+    white-space: nowrap;
+}
+
+.report-filters {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.date-range-container {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spacing-md);
+}
+
+.date-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.date-input-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-grey-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Vehicles Page Header */
+.vehicles-header {
+    background-color: var(--color-grey-100);
+    padding: var(--spacing-lg);
+    padding-bottom: var(--spacing-xs);
+}
+
+.vehicles-header h3 {
+    margin: 0 0 var(--spacing-lg) 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-grey-900);
+}
+
+.vehicles-header-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.vehicles-search-container {
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+}
+
+.vehicles-search-input {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: var(--color-white);
+    transition: border-color 0.2s;
+}
+
+.vehicles-search-input::placeholder {
+    color: #9ca3af;
+}
+
+.vehicles-search-input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Vehicles Page Container */
+.vehicles-page-container {
+    width: 100%;
+    padding: 0;
+}
+
 .vehicle-item,
 .add-new-item {
     display: flex;

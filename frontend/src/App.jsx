@@ -16,6 +16,8 @@ import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage  from './pages/Drivers/DriversPage.jsx';
 import BulkUploadPage from "./pages/BulkUpload/BulkUploadPage.jsx";
+import BulkUploadDriversPage from "./pages/Drivers/BulkUploadDriversPage.jsx";
+import BulkUploadVehiclesPage from "./pages/Profile/BulkUploadVehiclesPage.jsx";
 import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
 import TripFormPage from './pages/Trip/TripFormPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
@@ -23,6 +25,7 @@ import AddRefuelPage from './pages/Trip/AddRefuelPage.jsx';
 import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
 import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
+import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 
 
 function App() {
@@ -52,13 +55,16 @@ function App() {
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
-           <Route path="/bulk-upload" element={<BulkUploadPage />} />
+        <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
+        <Route path="/bulk-upload" element={<BulkUploadPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
         <Route path="/trip/new" element={<TripFormPage />} />
         <Route path="/trip/:tripId" element={<TripFormPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
-  <Route path="/refuel/new" element={<AddRefuelPage />} />
+        <Route path="/refuel/new" element={<AddRefuelPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/vehicles" element={<VehiclesPage />} />
+        <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
