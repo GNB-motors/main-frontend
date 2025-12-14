@@ -16,7 +16,7 @@ const getInitials = (name) => {
 };
 
 // --- Add Driver Modal Component ---
-const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, availableVehicles = [] }) => {
+const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
@@ -24,7 +24,6 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, av
     const [location, setLocation] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('DRIVER');
-    const [vehicleRegistrationNo, setVehicleRegistrationNo] = useState(''); // Optional, backend handles nullable
     const [error, setError] = useState(null);
 
     const handleSubmit = async (e) => {
@@ -44,7 +43,6 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, av
             location: location || null,
             password: password || null,
             role: role || 'DRIVER',
-            ...(vehicleRegistrationNo && { vehicle_registration_no: vehicleRegistrationNo })
         };
 
         try {
@@ -168,22 +166,6 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting, av
                                 placeholder="e.g., DRIVER, MANAGER"
                                 disabled={isSubmitting}
                             />
-                        </div>
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverVehicle">Assign Vehicle (Optional)</label>
-                            <select
-                                id="driverVehicle"
-                                value={vehicleRegistrationNo}
-                                onChange={(e) => setVehicleRegistrationNo(e.target.value)}
-                                disabled={isSubmitting}
-                            >
-                                <option value="">Select a vehicle (optional)</option>
-                                {availableVehicles.map(vehicle => (
-                                    <option key={vehicle.id} value={vehicle.registration_no}>
-                                        {vehicle.registration_no} - {vehicle.vehicle_type || 'Unknown Type'}
-                                    </option>
-                                ))}
-                            </select>
                         </div>
                     </div>
 
@@ -626,17 +608,38 @@ const DriversPage = () => {
 
         try {
             console.log('Fetching employees list, orgId=', businessRefId || 'none');
-            const data = await DriverService.getAllDrivers(businessRefId);
+            const resp = await DriverService.getAllDrivers(businessRefId);
+
+            // The backend may return either an array or a paginated envelope {status, data: [...], meta}
+            let items = [];
+            let meta = null;
+            if (Array.isArray(resp)) {
+                items = resp;
+            } else if (resp && Array.isArray(resp.data)) {
+                // resp may be { status: 'success', data: [...], meta: {...} }
+                items = resp.data;
+                meta = resp.meta || null;
+            } else if (resp && Array.isArray(resp.data && resp.data.data)) {
+                // defensive: resp.data.data
+                items = resp.data.data;
+                meta = resp.data.meta || null;
+            } else {
+                items = [];
+            }
+
             // Normalize drivers to include a `name` convenience field used across the UI
-            const normalizedDrivers = (data || []).map(d => ({
+            const normalizedDrivers = (items || []).map(d => ({
                 ...d,
                 id: d.id || d._id || d._id,
-                firstName: d.firstName || d.first_name || d.firstName || '',
-                lastName: d.lastName || d.last_name || d.lastName || '',
+                firstName: d.firstName || d.first_name || '' ,
+                lastName: d.lastName || d.last_name || '' ,
                 name: d.name || `${(d.firstName || d.first_name || '').trim()} ${(d.lastName || d.last_name || '').trim()}`.trim(),
+                // normalize contact fields used in UI
+                mobileNumber: d.mobileNumber || d.mobile_number || d.mobile || '',
+                email: d.email || d.email_address || '',
             }));
             setDrivers(normalizedDrivers);
-            console.log("Drivers fetched:", normalizedDrivers);
+            console.log("Drivers fetched:", normalizedDrivers, 'meta=', meta);
         } catch (apiError) {
             console.error("Failed to fetch drivers:", apiError);
             setError(apiError?.detail || "Could not load drivers list.");
@@ -707,9 +710,10 @@ const DriversPage = () => {
     };
 
     const handleOpenEditModal = (driver) => {
-        setEditingDriver(driver);
-        setIsEditModalOpen(true);
+        // Navigate to the Add Driver page but pass the driver to edit via location state
+        // so the same page can be used for editing with fields pre-filled.
         setOpenMenuDriverId(null); // Close action menu
+        navigate('/drivers/add', { state: { editingDriver: driver } });
     };
 
     const handleOpenDeleteModal = (driver) => {
@@ -970,7 +974,7 @@ const DriversPage = () => {
                                 <th>Emp ID</th>
                                 <th>Contact</th>
                                 <th>Role</th>
-                                <th>Vehicle</th>
+                                <th>Email</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -994,20 +998,9 @@ const DriversPage = () => {
                                             </div>
                                         </td>
                                         <td>{driver.id ? driver.id.substring(0, 8) + '...' : '-'}</td>
-                                        <td>-</td> {/* Placeholder for Contact */}
+                                        <td>{driver.mobileNumber || driver.email || '-'}</td>
                                         <td>{driver.role || '-'}</td>
-                                        <td>
-                                            {driver.vehicle_registration_no ? (
-                                                <div className="drivers-vehicle-info">
-                                                    <span className="drivers-vehicle-registration">{driver.vehicle_registration_no}</span>
-                                                    {driver.vehicle_name && (
-                                                        <span className="drivers-vehicle-type">({driver.vehicle_name})</span>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <span className="drivers-no-vehicle">No vehicle assigned</span>
-                                            )}
-                                        </td>
+                                        <td>{driver.email || '-'}</td>
                                         <td className="drivers-action-cell"> {/* Added class for easier targeting */}
                                             <div className={`drivers-action-menu-container drivers-action-menu-container-${driver.id}`} style={{ position: 'relative' }}> {/* Container for positioning */}
                                                 <button
