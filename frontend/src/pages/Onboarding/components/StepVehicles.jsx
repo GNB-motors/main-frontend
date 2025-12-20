@@ -96,7 +96,8 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
             const vehicleData = { vehicles: validVehicles };
             sessionStorage.setItem('onboardingVehicles', JSON.stringify(vehicleData));
 
-            // Get company data from sessionStorage
+            // Get profile and company data from sessionStorage
+            const profileData = JSON.parse(sessionStorage.getItem('onboardingProfile') || '{}');
             const companyData = JSON.parse(sessionStorage.getItem('onboardingCompany') || '{}');
 
             // Get orgId and token from localStorage
@@ -111,14 +112,18 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
                 throw new Error('Organization ID not found');
             }
 
-            // Prepare payload for backend according to new API structure
+            // Prepare complete onboarding payload
             const onboardingPayload = {
-                companyName: companyData.companyName,
+                // User profile data (for /auth/me endpoint)
+                firstName: profileData.firstName || '',
+                lastName: profileData.lastName || '',
                 primaryThemeColor: companyData.selectedColor || '#FF5733',
+                // Organization data (for /admin/organizations/:id endpoint)
+                companyName: companyData.companyName || '',
                 gstin: companyData.gstin || ''
             };
 
-            // Submit to backend using PATCH /admin/organizations/:id
+            // Submit to backend using the service method that handles both API calls
             const result = await OnboardingService.completeOnboarding(onboardingPayload, token, orgId);
             
             console.log('Onboarding result:', result);
