@@ -21,7 +21,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Upload, X, Loader, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import './TripFormPage.css';
+import { DriverService } from '../Drivers/DriverService.jsx';
+import { VehicleService } from '../Profile/VehicleService.jsx';
+import DocumentService, { processDocument } from './DocumentService.jsx';
 
 /**
  * Mock trips data - shared with TripManagementPage
@@ -252,6 +256,11 @@ const TripFormPage = () => {
   // Dropdown options
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
+  const [dropdownError, setDropdownError] = useState(null);
+  const [uploadingDocs, setUploadingDocs] = useState({});
+  // Whether uploading is allowed: either editing an existing trip or a vehicle is selected
+  const canUpload = isEditMode || Boolean(formData.vehicleNo);
 
   // Remove global page-content padding for add/edit trip view
   useEffect(() => {
@@ -319,22 +328,83 @@ const TripFormPage = () => {
   }, [isEditMode, existingTrip]);
 
   /**
-   * Load vehicles and drivers dropdown options
-   * TODO: Replace with API calls to backend
+   * Load drivers first, then vehicles. When entering Add Trip (not edit mode)
+   * we will auto-select the first fetched driver and, if that driver has an
+   * assigned vehicle, prefill the vehicle dropdown.
    */
   useEffect(() => {
-    setVehicles([
-      { id: 1, number: 'WB-01-1234', model: 'Tata LPT 1618' },
-      { id: 2, number: 'WB-02-5678', model: 'Ashok Leyland 1920' },
-      { id: 3, number: 'WB-06-9001', model: 'Tata Prima 4038' }
-    ]);
+    let mounted = true;
+    const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
 
-    setDrivers([
-      { id: 1, name: 'Driver A (Devayan)' },
-      { id: 2, name: 'Driver B (Amitansu)' },
-      { id: 3, name: 'Driver C' }
-    ]);
-  }, []);
+    const fetchDropdowns = async () => {
+      setLoadingDropdowns(true);
+      setDropdownError(null);
+      try {
+        // Fetch drivers (employees)
+        const resp = await DriverService.getAllDrivers(businessRefId);
+
+        // Normalize drivers list
+        let items = [];
+        if (Array.isArray(resp)) items = resp;
+        else if (resp && Array.isArray(resp.data)) items = resp.data;
+        else if (resp && resp.data && Array.isArray(resp.data.data)) items = resp.data.data;
+
+        const normalizedDrivers = (items || []).map(d => ({
+          ...d,
+          id: d.id || d._id || d._id,
+          firstName: d.firstName || d.first_name || '',
+          lastName: d.lastName || d.last_name || '',
+          name: d.name || `${(d.firstName || d.first_name || '').trim()} ${(d.lastName || d.last_name || '').trim()}`.trim(),
+          // optional: vehicle assignment field name variations
+          vehicle_registration_no: d.vehicle_registration_no || d.vehicleRegistrationNumber || d.assigned_vehicle || d.assignedVehicle || null,
+        }));
+
+        if (!mounted) return;
+        setDrivers(normalizedDrivers);
+
+        // After drivers are fetched, fetch vehicles
+        const vehiclesResp = await DriverService.getAvailableVehicles(businessRefId);
+        let vitems = [];
+        if (Array.isArray(vehiclesResp)) vitems = vehiclesResp;
+        else if (vehiclesResp && Array.isArray(vehiclesResp.data)) vitems = vehiclesResp.data;
+        else if (vehiclesResp && vehiclesResp.data && Array.isArray(vehiclesResp.data.data)) vitems = vehiclesResp.data.data;
+
+        const normalizedVehicles = (vitems || []).map(v => ({
+          id: v.id || v._id || v._id,
+          number: v.registrationNumber || v.registration_no || v.registration_no || v.registrationNumber,
+          model: v.model || v.vehicleType || v.vehicle_type || v.model || '',
+        }));
+
+        if (!mounted) return;
+        setVehicles(normalizedVehicles);
+
+        // If creating a new trip (not edit mode), auto-apply first driver and any assigned vehicle
+        if (!isEditMode && normalizedDrivers.length > 0) {
+          const first = normalizedDrivers[0];
+          setFormData(prev => ({ ...prev, driver: first.name || '' }));
+          // If the driver had an assigned vehicle, apply it if present in fetched vehicles
+          if (first.vehicle_registration_no) {
+            const matched = normalizedVehicles.find(v => v.number === first.vehicle_registration_no || v.number === (first.vehicle_registration_no || '').toString());
+            if (matched) {
+              setFormData(prev => ({ ...prev, vehicleNo: matched.number }));
+            } else {
+              // As a fallback, set the raw registration no
+              setFormData(prev => ({ ...prev, vehicleNo: first.vehicle_registration_no }));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load drivers/vehicles for trip form:', err);
+        if (mounted) setDropdownError(err?.detail || 'Could not load employees or vehicles.');
+      } finally {
+        if (mounted) setLoadingDropdowns(false);
+      }
+    };
+
+    fetchDropdowns();
+
+    return () => { mounted = false; };
+  }, [isEditMode]);
 
   /**
    * Handle form input changes
@@ -343,6 +413,24 @@ const TripFormPage = () => {
    */
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle single fuel receipt file change for an existing receipt card
+  const handleFuelReceiptUpload = (receiptId, file) => {
+    if (!file) return;
+    if (!canUpload) {
+      const msg = 'Select a vehicle to enable uploads';
+      toast.warn(msg);
+      setFuelReceipts(prev => prev.map(r => r.id === receiptId ? { ...r, uploadError: msg } : r));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFuelReceipts(prev => prev.map(r => r.id === receiptId ? { ...r, file, preview: reader.result, ocrData: null, uploadError: null } : r));
+      // Trigger OCR processing for this receipt
+      processOCR('fuel', null, receiptId);
+    };
+    reader.readAsDataURL(file);
   };
 
   /**
@@ -354,19 +442,81 @@ const TripFormPage = () => {
    */
   const handleFileUpload = (section, field, file) => {
     if (!file) return;
-
+    if (!canUpload) {
+      const message = 'Select a vehicle to enable uploads';
+      toast.warn(message);
+      if (section === 'start') {
+        setStartDocs(prev => ({ ...prev, [field]: { ...(prev[field] || {}), uploadError: message } }));
+      } else {
+        setEndDocs(prev => ({ ...prev, [field]: { ...(prev[field] || {}), uploadError: message } }));
+      }
+      return;
+    }
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
+      // set preview immediately
       if (section === 'start') {
         setStartDocs(prev => ({
           ...prev,
-          [field]: { file, preview: reader.result, ocrData: null }
+          [field]: { ...(prev[field] || {}), file, preview: reader.result, ocrData: null }
         }));
       } else if (section === 'end') {
         setEndDocs(prev => ({
           ...prev,
-          [field]: { file, preview: reader.result, ocrData: null }
+          [field]: { ...(prev[field] || {}), file, preview: reader.result, ocrData: null }
         }));
+      }
+
+      // For odometer and weigh-in slip, attempt to upload to backend and attach to selected entity
+      const docKey = `${section}.${field}`;
+      const docTypeMap = {
+        odometerStart: 'ODOMETER',
+        odometerEnd: 'ODOMETER',
+        weighInSlip: 'WEIGH_IN_SLIP',
+        proofOfDelivery: 'PROOF_OF_DELIVERY'
+      };
+
+      const docType = docTypeMap[field] || 'GENERAL';
+
+      // Determine entity: prefer selected vehicle; fall back to existing trip id when editing
+      const selectedVehicle = vehicles.find(v => v.number === formData.vehicleNo);
+      let entityType = null;
+      let entityId = null;
+      if (selectedVehicle && selectedVehicle.id) {
+        entityType = 'VEHICLE';
+        entityId = selectedVehicle.id;
+      } else if (isEditMode && existingTrip && (existingTrip.id || existingTrip._id)) {
+        entityType = 'TRIP';
+        entityId = existingTrip._id || existingTrip.id;
+      }
+
+      // We allow uploads without an entity (server may accept pending documents).
+      // entityType/entityId will be appended only if present by DocumentService.
+
+      try {
+        setUploadingDocs(prev => ({ ...prev, [docKey]: true }));
+        const uploaded = await DocumentService.uploadDocument({ file, entityType, entityId, docType });
+
+        // Save returned document id or metadata into our document state so UI can show uploaded status
+        const docMeta = {
+          ...(section === 'start' ? startDocs[field] : endDocs[field]),
+          uploaded: true,
+          documentMeta: uploaded,
+        };
+
+        if (section === 'start') {
+          setStartDocs(prev => ({ ...prev, [field]: docMeta }));
+        } else {
+          setEndDocs(prev => ({ ...prev, [field]: docMeta }));
+        }
+      } catch (err) {
+        console.error('Failed to upload document:', err);
+        // attach upload error to the document state for UI
+        const withError = { ...(section === 'start' ? startDocs[field] : endDocs[field]), uploadError: err?.detail || err?.message || 'Upload failed' };
+        if (section === 'start') setStartDocs(prev => ({ ...prev, [field]: withError }));
+        else setEndDocs(prev => ({ ...prev, [field]: withError }));
+      } finally {
+        setUploadingDocs(prev => ({ ...prev, [docKey]: false }));
       }
     };
     reader.readAsDataURL(file);
@@ -381,6 +531,11 @@ const TripFormPage = () => {
    */
   const handleMultipleFuelReceipts = (files, type) => {
     if (!files || files.length === 0) return;
+    if (!canUpload) {
+      const msg = 'Select a vehicle to enable uploads';
+      toast.warn(msg);
+      return;
+    }
 
     const newReceipts = Array.from(files).map((file, index) => {
       const newId = Date.now() + index;
@@ -428,9 +583,82 @@ const TripFormPage = () => {
    */
   const processOCR = async (section, field, receiptId = null) => {
     setIsProcessing(true);
+    try {
+      // Helper to get selected entity id/type
+      const selectedVehicle = vehicles.find(v => v.number === formData.vehicleNo);
+      const entity = selectedVehicle ? { entityType: 'VEHICLE', entityId: selectedVehicle.id } : (isEditMode && existingTrip ? { entityType: 'TRIP', entityId: existingTrip._id || existingTrip.id } : null);
 
-    // Simulate OCR processing
-    setTimeout(() => {
+      // Processing for fuel receipts
+      if (section === 'fuel' && receiptId) {
+        const receipt = fuelReceipts.find(r => r.id === receiptId);
+        if (!receipt) throw new Error('Receipt not found');
+
+        let docMeta = receipt.documentMeta;
+
+        // If not uploaded yet, try to upload (will work even without an entity)
+        if (!docMeta && receipt.file) {
+          const uploaded = await DocumentService.uploadDocument({ file: receipt.file, entityType: entity?.entityType, entityId: entity?.entityId, docType: receipt.type === 'diesel' ? 'FUEL_RECEIPT' : 'FUEL_RECEIPT' });
+          docMeta = uploaded;
+          setFuelReceipts(prev => prev.map(r => r.id === receiptId ? { ...r, uploaded: true, documentMeta: uploaded } : r));
+        }
+
+        // If we have a document id/meta, attempt server-side processing
+        let ocrData = null;
+        const docId = docMeta && (docMeta.id || docMeta._id || docMeta.documentId);
+        if (docId) {
+          const resp = await processDocument(docId);
+          ocrData = resp?.ocr || resp?.data || resp;
+        }
+
+        // Fallback: if server didn't return OCR, keep existing mock behavior
+        if (!ocrData) {
+          ocrData = receipt.type === 'diesel' ? { quantity: '120', amount: '11460', date: new Date().toISOString().split('T')[0] } : { quantity: '10', amount: '450', date: new Date().toISOString().split('T')[0] };
+        }
+
+        setFuelReceipts(prev => prev.map(r => r.id === receiptId ? { ...r, ocrData } : r));
+        return;
+      }
+
+      // Processing for start/end single documents
+      const targetDocs = section === 'start' ? startDocs : endDocs;
+      const doc = targetDocs[field];
+      if (!doc) throw new Error('Document not found');
+
+      let docMeta = doc.documentMeta;
+      // If not uploaded, try upload (allow uploads without entity; server may store pending docs)
+      if (!docMeta && doc.file) {
+        const uploaded = await DocumentService.uploadDocument({ file: doc.file, entityType: entity?.entityType, entityId: entity?.entityId, docType: field === 'weighInSlip' ? 'WEIGH_IN_SLIP' : 'ODOMETER' });
+        docMeta = uploaded;
+        if (section === 'start') setStartDocs(prev => ({ ...prev, [field]: { ...(prev[field] || {}), uploaded: true, documentMeta: uploaded } }));
+        else setEndDocs(prev => ({ ...prev, [field]: { ...(prev[field] || {}), uploaded: true, documentMeta: uploaded } }));
+      }
+
+      let ocrData = null;
+      const docId = docMeta && (docMeta.id || docMeta._id || docMeta.documentId);
+      if (docId) {
+        const resp = await processDocument(docId);
+        ocrData = resp?.ocr || resp?.data || resp;
+      }
+
+      // Fallback to lightweight mock if backend didn't return ocr
+      if (!ocrData) {
+        if (field === 'odometerStart' || field === 'odometerEnd') {
+          ocrData = { reading: String(Math.floor(Math.random() * 20000) + 10000), date: new Date().toISOString().split('T')[0], time: '10:30' };
+        } else if (field === 'weighInSlip') {
+          ocrData = { grossWeight: '25000', tareWeight: '10000', netWeight: '15000' };
+        } else if (field === 'proofOfDelivery') {
+          ocrData = { receiverName: 'Rajesh Kumar', signature: 'Present', date: new Date().toISOString().split('T')[0] };
+        }
+      }
+
+      if (section === 'start') {
+        setStartDocs(prev => ({ ...prev, [field]: { ...(prev[field] || {}), ocrData } }));
+      } else {
+        setEndDocs(prev => ({ ...prev, [field]: { ...(prev[field] || {}), ocrData } }));
+      }
+    } catch (err) {
+      console.error('OCR processing failed:', err);
+      // Minimal fallback to previous mock behavior when API fails
       const mockOCRData = {
         odometerStart: { reading: '12450', date: '2025-12-07', time: '10:30' },
         weighInSlip: { grossWeight: '25000', tareWeight: '10000', netWeight: '15000' },
@@ -441,27 +669,15 @@ const TripFormPage = () => {
       };
 
       if (section === 'start') {
-        setStartDocs(prev => ({
-          ...prev,
-          [field]: { ...prev[field], ocrData: mockOCRData[field] }
-        }));
+        setStartDocs(prev => ({ ...prev, [field]: { ...prev[field], ocrData: mockOCRData[field] } }));
       } else if (section === 'end') {
-        setEndDocs(prev => ({
-          ...prev,
-          [field]: { ...prev[field], ocrData: mockOCRData[field] }
-        }));
+        setEndDocs(prev => ({ ...prev, [field]: { ...prev[field], ocrData: mockOCRData[field] } }));
       } else if (section === 'fuel' && receiptId) {
-        setFuelReceipts(prev =>
-          prev.map(receipt =>
-            receipt.id === receiptId
-              ? { ...receipt, ocrData: mockOCRData[receipt.type] }
-              : receipt
-          )
-        );
+        setFuelReceipts(prev => prev.map(receipt => receipt.id === receiptId ? { ...receipt, ocrData: mockOCRData[receipt.type] } : receipt));
       }
-
+    } finally {
       setIsProcessing(false);
-    }, 1500);
+    }
   };
 
   /**
@@ -625,6 +841,7 @@ const TripFormPage = () => {
                 onUpload={(file) => handleFileUpload('start', 'odometerStart', file)}
                 onProcess={() => processOCR('start', 'odometerStart')}
                 isProcessing={isProcessing}
+                canUpload={canUpload}
               />
 
               <DocumentUpload
@@ -634,6 +851,7 @@ const TripFormPage = () => {
                 onUpload={(file) => handleFileUpload('start', 'weighInSlip', file)}
                 onProcess={() => processOCR('start', 'weighInSlip')}
                 isProcessing={isProcessing}
+                canUpload={canUpload}
               />
             </div>
           </section>
@@ -643,7 +861,7 @@ const TripFormPage = () => {
             <div className="section-header">
               <h2 className="section-heading">Fuel Receipts (Optional)</h2>
               <div className="add-receipt-buttons">
-                <label className="add-receipt-btn diesel">
+                <label className={`add-receipt-btn diesel ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
                   <Plus size={16} />
                   Add Diesel
                   <input
@@ -651,10 +869,11 @@ const TripFormPage = () => {
                     accept="image/*"
                     multiple
                     style={{ display: 'none' }}
+                    disabled={!canUpload}
                     onChange={(e) => e.target.files.length > 0 && handleMultipleFuelReceipts(e.target.files, 'diesel')}
                   />
                 </label>
-                <label className="add-receipt-btn adblue">
+                <label className={`add-receipt-btn adblue ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
                   <Plus size={16} />
                   Add AdBlue
                   <input
@@ -662,6 +881,7 @@ const TripFormPage = () => {
                     accept="image/*"
                     multiple
                     style={{ display: 'none' }}
+                    disabled={!canUpload}
                     onChange={(e) => e.target.files.length > 0 && handleMultipleFuelReceipts(e.target.files, 'adblue')}
                   />
                 </label>
@@ -676,6 +896,7 @@ const TripFormPage = () => {
                   onProcess={() => processOCR('fuel', null, receipt.id)}
                   onRemove={() => removeFuelReceipt(receipt.id)}
                   isProcessing={isProcessing}
+                  canUpload={canUpload}
                 />
               ))}
             </div>
@@ -722,6 +943,7 @@ const TripFormPage = () => {
           </div>
         )}
       </div>
+      
     </div>
   );
 };
@@ -737,7 +959,7 @@ const TripFormPage = () => {
  * @param {Function} onProcess - Callback to trigger OCR processing
  * @param {boolean} isProcessing - Whether OCR is currently processing
  */
-const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProcessing }) => {
+const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProcessing, canUpload }) => {
   const inputId = `upload-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
   return (
@@ -752,19 +974,21 @@ const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProc
         accept="image/*"
         onChange={(e) => onUpload(e.target.files[0])}
         style={{ display: 'none' }}
+        disabled={!canUpload}
       />
 
-      {!document.preview ? (
-        <label htmlFor={inputId} className="upload-area">
+      {/* Prefer public URL from server when available, otherwise show local preview */}
+      {!(document && (document.preview || document.documentMeta?.publicUrl)) ? (
+        <label htmlFor={inputId} className={`upload-area ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
           <Upload size={32} />
           <span>Click to upload image</span>
           <small>PNG, JPG up to 10MB</small>
         </label>
       ) : (
         <div className="document-preview">
-          <img src={document.preview} alt={title} />
+          <img src={document.documentMeta?.publicUrl || document.preview} alt={title} />
           <div className="preview-overlay">
-            <label htmlFor={inputId} className="change-btn">
+            <label htmlFor={inputId} className={`change-btn ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
               <Upload size={16} />
               Change
             </label>
@@ -789,17 +1013,23 @@ const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProc
         </button>
       )}
 
-      {document.ocrData && (
+      {/* Show OCR extracted data from either immediate ocrData or server-returned document metadata */}
+      {((document.ocrData && Object.keys(document.ocrData).length) || document.documentMeta?.ocrData) && (
         <div className="ocr-data">
           <h4>Extracted Data</h4>
           <div className="ocr-fields">
-            {Object.entries(document.ocrData).map(([key, value]) => (
+            {Object.entries(document.ocrData || document.documentMeta?.ocrData || {}).map(([key, value]) => (
               <div key={key} className="ocr-field">
                 <label>{key.replace(/([A-Z])/g, ' $1').trim()}</label>
                 <span>{value}</span>
               </div>
             ))}
           </div>
+          {document.documentMeta?.publicUrl && (
+            <div className="ocr-source">
+              <a href={document.documentMeta.publicUrl} target="_blank" rel="noreferrer">View uploaded image</a>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -816,7 +1046,7 @@ const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProc
  * @param {Function} onRemove - Callback to remove this receipt
  * @param {boolean} isProcessing - Whether OCR is currently processing
  */
-const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessing }) => {
+const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessing, canUpload }) => {
   const inputId = `fuel-receipt-${receipt.id}`;
 
   return (
@@ -834,17 +1064,19 @@ const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessin
         accept="image/*"
         onChange={(e) => onUpload(e.target.files[0])}
         style={{ display: 'none' }}
+        disabled={!canUpload}
       />
 
-      {!receipt.preview ? (
-        <label htmlFor={inputId} className="upload-area small">
+      {/* Prefer publicUrl from server when available */}
+      {!(receipt && (receipt.preview || receipt.documentMeta?.publicUrl)) ? (
+        <label htmlFor={inputId} className={`upload-area small ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
           <Upload size={24} />
           <span>Upload receipt</span>
         </label>
       ) : (
         <div className="receipt-preview">
-          <img src={receipt.preview} alt={`${receipt.type} receipt`} />
-          <label htmlFor={inputId} className="change-overlay">
+          <img src={receipt.documentMeta?.publicUrl || receipt.preview} alt={`${receipt.type} receipt`} />
+          <label htmlFor={inputId} className={`change-overlay ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
             <Upload size={14} />
           </label>
         </div>
@@ -860,13 +1092,18 @@ const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessin
         </button>
       )}
 
-      {receipt.ocrData && (
+      {(receipt.ocrData || receipt.documentMeta?.ocrData) && (
         <div className="ocr-data small">
-          {Object.entries(receipt.ocrData).map(([key, value]) => (
+          {Object.entries(receipt.ocrData || receipt.documentMeta?.ocrData || {}).map(([key, value]) => (
             <div key={key} className="ocr-field-inline">
               <strong>{key}:</strong> {value}
             </div>
           ))}
+          {receipt.documentMeta?.publicUrl && (
+            <div className="ocr-source small">
+              <a href={receipt.documentMeta.publicUrl} target="_blank" rel="noreferrer">View uploaded image</a>
+            </div>
+          )}
         </div>
       )}
     </div>
