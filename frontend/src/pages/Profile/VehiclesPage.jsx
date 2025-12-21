@@ -482,6 +482,7 @@ const VehiclesPage = () => {
                     overflow: 'auto',
                     backgroundColor: 'var(--color-white)',
                     margin: 'var(--spacing-lg)',
+                    marginBottom: 0,
                     borderRadius: 'var(--border-radius-lg)',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                 }}>
@@ -562,27 +563,38 @@ const VehiclesPage = () => {
                                     </tbody>
                                 </table>
                             )}
-                            {/* Pagination Controls */}
-                            {filteredVehicles.length > itemsPerPage && (
-                                <Stack spacing={2} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-                                    <Pagination
-                                        count={totalPages}
-                                        page={currentPage}
-                                        onChange={(event, page) => setCurrentPage(page)}
-                                        color="primary"
-                                        size="medium"
-                                    />
-                                    <span style={{
-                                        fontSize: '13px',
-                                        color: '#6b7280'
-                                    }}>
-                                        Page {currentPage} of {totalPages}
-                                    </span>
-                                </Stack>
-                            )}
                         </div>
                     )}
                 </div>
+
+                {/* Footer Section with Pagination */}
+                {!isLoadingVehicles && !vehicleError && filteredVehicles.length > 0 && (
+                    <div style={{
+                        backgroundColor: 'var(--color-white)',
+                        margin: 'var(--spacing-lg) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg)',
+                        padding: 'var(--spacing-lg)',
+                        borderRadius: 'var(--border-radius-lg)',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        {filteredVehicles.length > itemsPerPage && (
+                            <Stack spacing={2} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <Pagination
+                                    count={totalPages}
+                                    page={currentPage}
+                                    onChange={(event, page) => setCurrentPage(page)}
+                                    color="primary"
+                                    size="medium"
+                                />
+                                <span style={{
+                                    fontSize: '13px',
+                                    color: '#6b7280'
+                                }}>
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                            </Stack>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* --- Edit Vehicle Modal --- */}
