@@ -6,15 +6,24 @@ import dayjs from 'dayjs'; // Import dayjs for date formatting
  */
 export const ReportsService = {
     /**
-     * Fetches trip reports for a given business reference ID.
+     * Fetches trip reports.
+     * @param {object} params - Optional query parameters { page, limit }.
+     * @returns {Promise<Array>} - Array of trip data.
      */
-    getTripReports: async (businessRefId) => {
-        if (!businessRefId) {
-            throw new Error("Business Reference ID is required to fetch trip reports.");
-        }
+    getTripReports: async (params = {}) => {
         try {
-            const response = await apiClient.get(`/api/v1/reports/${businessRefId}/trips`);
-            return response.data || [];
+            // Call the new endpoint: /reports/trips
+            const response = await apiClient.get(`api/reports/trips`, { params });
+            
+            // Extract the data array from the response
+            // Response structure: { status: "success", data: [...], meta: {...} }
+            if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
+                console.log('Trip Reports Meta:', response.data.meta);
+                return response.data.data; // Return the data array
+            }
+            
+            // Fallback if structure is different
+            return response.data?.data || [];
         } catch (error) {
             console.error("API Error fetching trip reports:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable while fetching trip reports." };
@@ -22,16 +31,24 @@ export const ReportsService = {
     },
 
     /**
-     * Fetches aggregated vehicle report data (from summary table)
-     * for a given business reference ID.
+     * Fetches aggregated vehicle report data.
+     * @param {object} params - Optional query parameters { page, limit }.
+     * @returns {Promise<Array>} - Array of vehicle report data.
      */
-    getVehicleReports: async (businessRefId) => {
-         if (!businessRefId) {
-            throw new Error("Business Reference ID is required to fetch vehicle reports.");
-        }
+    getVehicleReports: async (params = {}) => {
         try {
-            const response = await apiClient.get(`/api/v1/reports/${businessRefId}/vehicles`);
-            return response.data || [];
+            // Call the new endpoint: /reports/vehicles
+            const response = await apiClient.get(`api/reports/vehicles`, { params });
+            
+            // Extract the data array from the response
+            // Response structure: { status: "success", data: [...], meta: {...} }
+            if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
+                console.log('Vehicle Reports Meta:', response.data.meta);
+                return response.data.data; // Return the data array
+            }
+            
+            // Fallback if structure is different
+            return response.data?.data || [];
         } catch (error) {
             console.error("API Error fetching vehicle reports:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable while fetching vehicle reports." };
@@ -69,17 +86,24 @@ export const ReportsService = {
         }
     },
     /**
-     * Fetches aggregated driver report data (from driver_reports table)
-     * for a given business reference ID.
+     * Fetches aggregated driver report data.
+     * @param {object} params - Optional query parameters { page, limit }.
+     * @returns {Promise<Array>} - Array of driver report data.
      */
-    getDriverReports: async (businessRefId) => {
-        if (!businessRefId) {
-            throw new Error("Business Reference ID is required to fetch driver reports.");
-        }
+    getDriverReports: async (params = {}) => {
         try {
-            const response = await apiClient.get(`/api/v1/reports/${businessRefId}/drivers`);
-            // Ensure response.data is always an array
-            return response.data || [];
+            // Call the new endpoint: /reports/drivers
+            const response = await apiClient.get(`api/reports/drivers`, { params });
+            
+            // Extract the data array from the response
+            // Response structure: { status: "success", data: [...], meta: {...} }
+            if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
+                console.log('Driver Reports Meta:', response.data.meta);
+                return response.data.data; // Return the data array
+            }
+            
+            // Fallback if structure is different
+            return response.data?.data || [];
         } catch (error) {
             console.error("API Error fetching driver reports:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable while fetching driver reports." };

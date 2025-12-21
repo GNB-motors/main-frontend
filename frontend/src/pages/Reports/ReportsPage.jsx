@@ -74,10 +74,6 @@ const ReportsPage = () => {
 
     // --- RENDER FUNCTION (Selects which report component to show) ---
     const renderReport = () => {
-        if (isLoadingProfile) { return (<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress /><Typography sx={{ ml: 2 }}>Loading profile...</Typography></Box>); }
-        if (profileError) { return <Alert severity="error" sx={{ my: 2 }}>Failed to load profile: {profileError}</Alert>; }
-        if (!businessRefId) { return <Alert severity="warning" sx={{ my: 2 }}>Business reference ID not found. Cannot load reports.</Alert>; }
-
         // Props to pass to all relevant reports
         const reportProps = {
             businessRefId,

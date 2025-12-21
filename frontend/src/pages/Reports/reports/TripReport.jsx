@@ -20,22 +20,11 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
     const [selectedEmployee, setSelectedEmployee] = useState('');
     
     useEffect(() => {
-        if (isLoadingProfile || profileError || !businessRefId) {
-            if (!isLoadingProfile) {
-                setIsLoadingTrips(false);
-                if (profileError) setTripError(`Profile Error: ${profileError}`);
-                else if (!businessRefId) setTripError("Business ID not found.");
-            } else {
-                setIsLoadingTrips(true);
-            }
-            return;
-        }
-
         const fetchTrips = async () => {
             setIsLoadingTrips(true);
             setTripError(null);
             try {
-                const data = await ReportsService.getTripReports(businessRefId);
+                const data = await ReportsService.getTripReports();
                 setTripData(data);
                 console.log("Trip Reports Fetched:", data);
             } catch (err) {
@@ -48,16 +37,82 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
         };
 
         fetchTrips();
-    }, [businessRefId, isLoadingProfile, profileError]);
+    }, []);
     const tripColumns = useMemo(() => [
-        { field: 'start_date', headerName: 'Start Date', flex: 1, type: 'date', valueGetter: (value) => value ? dayjs(value).toDate() : null },
-        { field: 'end_date', headerName: 'End Date', flex: 1, type: 'date', valueGetter: (value) => value ? dayjs(value).toDate() : null },
-        { field: 'driver_name', headerName: 'Driver', flex: 1.5, valueGetter: (value) => value || 'N/A' },
-        { field: 'vehicle_registration_no', headerName: 'Vehicle', flex: 1 },
-        { field: 'kms_driven', headerName: 'KMs Driven', type: 'number', flex: 1, align: 'right', headerAlign: 'right', valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : '-' },
-        { field: 'fleetedge_mileage_kml', headerName: 'FleetEdge (km/l)', type: 'number', flex: 1, align: 'right', headerAlign: 'right', valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : '-' },
-        { field: 'bill_mileage_kml', headerName: 'Bill (km/l)', type: 'number', flex: 1, align: 'right', headerAlign: 'right', valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : '-' },
-        { field: 'variance', headerName: 'Variance', type: 'number', flex: 1, align: 'right', headerAlign: 'right', renderCell: (params) => { const value = params.value; if (typeof value !== 'number') return '-'; return <span style={{ color: value > 0 ? 'green' : 'red', fontWeight: Math.abs(value) >= 1.5 ? 'bold' : 'normal' }}>{value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}</span>; } },
+        { 
+            field: 'tripDate', 
+            headerName: 'Trip Date', 
+            flex: 1, 
+            type: 'date', 
+            valueGetter: (value) => value ? dayjs(value).toDate() : null 
+        },
+        { 
+            field: 'vehicleRegNo', 
+            headerName: 'Vehicle', 
+            flex: 1 
+        },
+        { 
+            field: 'driverName', 
+            headerName: 'Driver', 
+            flex: 1.5, 
+            valueGetter: (value) => value || 'N/A' 
+        },
+        { 
+            field: 'route', 
+            headerName: 'Route', 
+            flex: 1.5 
+        },
+        { 
+            field: 'status', 
+            headerName: 'Status', 
+            flex: 1, 
+            align: 'center', 
+            headerAlign: 'center',
+            renderCell: (params) => (
+                <span style={{ 
+                    color: params.value === 'COMPLETED' ? 'green' : 'orange',
+                    fontWeight: 500
+                }}>
+                    {params.value}
+                </span>
+            )
+        },
+        { 
+            field: 'distanceKm', 
+            headerName: 'Distance (KM)', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right', 
+            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '-' 
+        },
+        { 
+            field: 'fuelLoggedLiters', 
+            headerName: 'Fuel (L)', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right', 
+            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : '-' 
+        },
+        { 
+            field: 'fuelCost', 
+            headerName: 'Fuel Cost (₹)', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right', 
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN')}` : '-' 
+        },
+        { 
+            field: 'impliedKmpl', 
+            headerName: 'Mileage (km/l)', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right', 
+            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A' 
+        },
     ], []);
 
     const formatDate = (dateStr) => {
@@ -73,31 +128,31 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
     const filteredRows = useMemo(() => {
         let rows = tripData;
 
-        // Filter by search text
+        // Filter by search text - updated to use driverName and vehicleRegNo
         if (searchText) {
             const lowerSearchText = searchText.toLowerCase();
             rows = rows.filter(row =>
-                row.driver_name?.toLowerCase().includes(lowerSearchText) ||
-                row.vehicle_registration_no?.toLowerCase().includes(lowerSearchText)
+                row.driverName?.toLowerCase().includes(lowerSearchText) ||
+                row.vehicleRegNo?.toLowerCase().includes(lowerSearchText)
             );
         }
 
-        // Filter by date range
+        // Filter by date range - updated to use tripDate
         const startDate = dateRange[0];
         const endDate = dateRange[1];
         if (startDate || endDate) {
             rows = rows.filter(row => {
-                if (!row.start_date) return false;
-                const rowStartDate = dayjs(row.start_date);
+                if (!row.tripDate) return false;
+                const rowStartDate = dayjs(row.tripDate);
                 const afterStart = startDate ? rowStartDate.isAfter(startDate.subtract(1, 'day')) : true;
                 const beforeEnd = endDate ? rowStartDate.isBefore(endDate.add(1, 'day')) : true;
                 return afterStart && beforeEnd;
             });
         }
 
-        // Filter by employee name
+        // Filter by employee name - updated to use driverName
         if (selectedEmployee !== '') {
-            rows = rows.filter(row => row.driver_name === selectedEmployee);
+            rows = rows.filter(row => row.driverName === selectedEmployee);
         }
 
         return rows;
@@ -192,52 +247,78 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
                         <table className="trip-table">
                             <thead>
                                 <tr>
-                                    <th>Date & Time</th>
+                                    <th>Trip Date</th>
                                     <th>Vehicle</th>
                                     <th>Driver</th>
-                                    <th>KMs Driven</th>
-                                    <th>FleetEdge (km/l)</th>
-                                    <th>Bill (km/l)</th>
-                                    <th>Variance</th>
+                                    <th>Route</th>
+                                    <th>Status</th>
+                                    <th>Distance (KM)</th>
+                                    <th>Fuel (L)</th>
+                                    <th>Fuel Cost (₹)</th>
+                                    <th>Mileage (km/l)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="trip-empty-state">
+                                        <td colSpan={9} className="trip-empty-state">
                                             No trips found. Try adjusting your filters.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredRows.map((row, index) => (
-                                        <tr key={index}>
+                                        <tr key={row.id || index}>
                                             <td>
-                                                <div className="cell-primary">{formatDate(row.start_date)}</div>
-                                                <div className="cell-secondary">{row.start_date ? dayjs(row.start_date).format('HH:mm') : '-'}</div>
+                                                <div className="cell-primary">{formatDate(row.tripDate)}</div>
                                             </td>
                                             <td>
-                                                <div className="cell-primary">{row.vehicle_registration_no || '-'}</div>
+                                                <div className="cell-primary">{row.vehicleRegNo || '-'}</div>
                                             </td>
                                             <td>
-                                                <div className="cell-primary">{row.driver_name || '-'}</div>
+                                                <div className="cell-primary">{row.driverName || '-'}</div>
                                             </td>
                                             <td>
-                                                <div className="cell-primary">{typeof row.kms_driven === 'number' ? row.kms_driven.toFixed(1) : '-'} km</div>
+                                                <div className="cell-primary">{row.route || '-'}</div>
                                             </td>
                                             <td>
-                                                <div className="cell-primary">{typeof row.fleetedge_mileage_kml === 'number' ? row.fleetedge_mileage_kml.toFixed(2) : '-'}</div>
+                                                <div 
+                                                    className="cell-primary" 
+                                                    style={{ 
+                                                        color: row.status === 'COMPLETED' ? 'green' : 'orange',
+                                                        fontWeight: 500,
+                                                        textAlign: 'center'
+                                                    }}
+                                                >
+                                                    {row.status || '-'}
+                                                </div>
                                             </td>
                                             <td>
-                                                <div className="cell-primary">{typeof row.bill_mileage_kml === 'number' ? row.bill_mileage_kml.toFixed(2) : '-'}</div>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.distanceKm === 'number' 
+                                                        ? row.distanceKm.toLocaleString('en-IN', { maximumFractionDigits: 1 }) 
+                                                        : '-'} km
+                                                </div>
                                             </td>
                                             <td>
-                                                {typeof row.variance === 'number' ? (
-                                                    <span style={{ color: row.variance > 0 ? 'green' : 'red', fontWeight: Math.abs(row.variance) >= 1.5 ? 'bold' : 'normal' }}>
-                                                        {row.variance > 0 ? `+${row.variance.toFixed(1)}` : row.variance.toFixed(1)}
-                                                    </span>
-                                                ) : (
-                                                    '-'
-                                                )}
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.fuelLoggedLiters === 'number' 
+                                                        ? row.fuelLoggedLiters.toFixed(1) 
+                                                        : '-'} L
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.fuelCost === 'number' 
+                                                        ? `₹${row.fuelCost.toLocaleString('en-IN')}` 
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.impliedKmpl === 'number' 
+                                                        ? row.impliedKmpl.toFixed(2) 
+                                                        : 'N/A'}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

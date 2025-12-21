@@ -22,21 +22,11 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
 
     // Fetch Driver Data Effect
     useEffect(() => {
-        // Check profile status first (from parent scope)
-        if (isLoadingProfile || profileError || !businessRefId) {
-            if (!isLoadingProfile) {
-                setIsLoadingDrivers(false);
-                if (profileError) setDriverError(`Profile Error: ${profileError}`);
-                else if (!businessRefId) setDriverError("Business ID not found.");
-            } else { setIsLoadingDrivers(true); }
-            return;
-        }
-
         const fetchDriverReports = async () => {
             setIsLoadingDrivers(true);
             setDriverError(null);
             try {
-                const data = await ReportsService.getDriverReports(businessRefId);
+                const data = await ReportsService.getDriverReports();
                 setDriverReportData(data);
                 console.log("Driver Reports Fetched:", data);
             } catch (err) {
@@ -49,17 +39,38 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
         };
 
         fetchDriverReports();
-        // Rerun fetch only when businessRefId changes (or profile status changes)
-    }, [businessRefId, isLoadingProfile, profileError]);
+        // Rerun fetch only when component mounts
+    }, []);
 
-    // Define columns based on DriverReportItem schema
+    // Define columns based on API response
     const driverColumns = useMemo(() => [
-        { field: 'driver_name', headerName: 'Driver Name', flex: 1 },
+        { field: 'driverName', headerName: 'Driver Name', flex: 1.5 },
+        { 
+            field: 'tripsCompleted', 
+            headerName: 'Trips Completed', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right' 
+        },
         {
-            field: 'total_kms_driven', headerName: 'Total KMs Driven', type: 'number', flex: 1, align: 'right', headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : '-'
-        }, // Format KMs
-        { field: 'instances_driven', headerName: 'Instances Driven', type: 'number', flex: 1, align: 'right', headerAlign: 'right' },
+            field: 'totalDistanceDrivenKm', 
+            headerName: 'Total Distance (KM)', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '-'
+        },
+        {
+            field: 'averageTripDistance', 
+            headerName: 'Avg. Trip Distance (KM)', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '-'
+        },
         {
             field: 'average_variance', headerName: 'Avg. Variance', type: 'number', flex: 1, align: 'right', headerAlign: 'right',
             description: 'Avg. Mileage Variance (km/l)',
@@ -130,11 +141,11 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
     const filteredRows = useMemo(() => {
         let rows = driverReportData;
 
-        // Filter by search text
+        // Filter by search text - updated to use driverName
         if (searchText) {
             const lowerSearchText = searchText.toLowerCase();
-            rows = rows.filter((row) =>
-                row.driver_name.toLowerCase().includes(lowerSearchText)
+            rows = rows.filter(row =>
+                row.driverName?.toLowerCase().includes(lowerSearchText)
             );
         }
 
@@ -208,7 +219,7 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
                                 }}
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {[...new Set(driverReportData.map(driver => driver.driver_name))].map((driver) => (
+                                {[...new Set(driverReportData.map(driver => driver.driverName))].map((driver) => (
                                     <MenuItem key={driver} value={driver}>
                                         {driver || 'N/A'}
                                     </MenuItem>
@@ -238,11 +249,11 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
                             <thead>
                                 <tr>
                                     <th>Driver Name</th>
-                                    <th>Total KMs Driven</th>
-                                    <th>Instances Driven</th>
-                                    <th>Avg. Variance</th>
-                                    <th>Rating (1-5)</th>
-                                    <th>Outliers</th>
+                                    <th>Trips Completed</th>
+                                    <th>Total Distance (KM)</th>
+                                    <th>Avg. Trip Distance (KM)</th>
+                                    <th>On-Time Arrival</th>
+                                    <th>Documents Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -254,56 +265,43 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
                                     </tr>
                                 ) : (
                                     filteredRows.map((row, index) => {
-                                        const getRatingColor = (rating) => {
-                                            if (rating >= 4.5) return '#4caf50';
-                                            if (rating >= 3.5) return '#8bc34a';
-                                            if (rating >= 2.5) return '#ffc107';
-                                            if (rating >= 1.5) return '#ff9800';
-                                            return '#f44336';
-                                        };
-
                                         return (
-                                            <tr key={index}>
+                                            <tr key={row.id || index}>
                                                 <td>
-                                                    <div className="cell-primary">{row.driver_name || '-'}</div>
+                                                    <div className="cell-primary">{row.driverName || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    <div className="cell-primary">{typeof row.total_kms_driven === 'number' ? row.total_kms_driven.toFixed(1) : '-'} km</div>
+                                                    <div className="cell-primary">{row.tripsCompleted || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    <div className="cell-primary">{row.instances_driven || '-'}</div>
+                                                    <div className="cell-primary">
+                                                        {typeof row.totalDistanceDrivenKm === 'number' 
+                                                            ? row.totalDistanceDrivenKm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) 
+                                                            : '-'} km
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    {typeof row.average_variance === 'number' ? (
-                                                        <span style={{ color: row.average_variance > 0 ? 'green' : (row.average_variance < 0 ? 'red' : 'inherit'), fontWeight: Math.abs(row.average_variance) >= 1.5 ? 'bold' : 'normal' }}>
-                                                            {row.average_variance > 0 ? `+${row.average_variance.toFixed(2)}` : row.average_variance.toFixed(2)}
-                                                        </span>
-                                                    ) : (
-                                                        'N/A'
-                                                    )}
+                                                    <div className="cell-primary">
+                                                        {typeof row.averageTripDistance === 'number' 
+                                                            ? row.averageTripDistance.toLocaleString('en-IN', { maximumFractionDigits: 1 }) 
+                                                            : '-'} km
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    {typeof row.driver_rating === 'number' ? (
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            <span>{row.driver_rating.toFixed(2)}</span>
-                                                            <Star sx={{ color: getRatingColor(row.driver_rating), fontSize: '1rem' }} />
-                                                        </Box>
-                                                    ) : (
-                                                        'N/A'
-                                                    )}
+                                                    <div className="cell-primary" style={{ textAlign: 'center' }}>
+                                                        {row.onTimeArrivalRate || 'N/A'}
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: row.outlier_count > 0 ? 'red' : 'inherit' }}>
-                                                        <span>{row.outlier_count || '-'}</span>
-                                                        {row.outlier_count > 0 && (
-                                                            <IconButton
-                                                                size="small"
-                                                                className="outlier-info-button"
-                                                                onClick={() => handleViewOutliers(row.driver_name)}
-                                                            >
-                                                                <InfoOutlined fontSize="small" />
-                                                            </IconButton>
-                                                        )}
+                                                    <div 
+                                                        className="cell-primary" 
+                                                        style={{ 
+                                                            textAlign: 'center',
+                                                            color: row.documentsExpired ? 'red' : 'green',
+                                                            fontWeight: 500
+                                                        }}
+                                                    >
+                                                        {row.documentsExpired ? 'Expired' : 'Valid'}
                                                     </div>
                                                 </td>
                                             </tr>
