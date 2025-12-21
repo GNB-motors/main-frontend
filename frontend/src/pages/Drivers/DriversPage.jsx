@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Plus, ChevronLeft, ChevronRight, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
+import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
 import LottieLoader from '../../components/LottieLoader.jsx';
+import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 
 // Function to get initials from name
 const getInitials = (name) => {
@@ -537,13 +538,18 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
 const ActionMenu = ({ driver, onEdit, onDelete }) => {
     return (
         <div className="drivers-action-menu">
-            <button onClick={() => onEdit(driver)}>
-                <Edit size={16} /> Edit
+            <button className="drivers-action-menu-item" onClick={() => onEdit(driver)}>
+                <Edit size={16} />
+                <span>Edit</span>
             </button>
             {!driver.is_superadmin && ( // Prevent deleting superadmin
-                <button onClick={() => onDelete(driver)} className="drivers-delete">
-                    <Trash2 size={16} /> Delete
-                </button>
+                <>
+                    <div className="drivers-action-menu-divider"></div>
+                    <button className="drivers-action-menu-item" onClick={() => onDelete(driver)}>
+                        <Trash2 size={16} />
+                        <span>Delete</span>
+                    </button>
+                </>
             )}
         </div>
     );
@@ -565,6 +571,19 @@ const DriversPage = () => {
         setThemeColors(getThemeCSS());
     }, []);
 
+    // Remove global page-content padding only for this page
+    useEffect(() => {
+        const pageContentEl = document.querySelector('.page-content');
+        if (pageContentEl) {
+            pageContentEl.classList.add('no-padding');
+        }
+        return () => {
+            if (pageContentEl) {
+                pageContentEl.classList.remove('no-padding');
+            }
+        };
+    }, []);
+
     // Modal States
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -574,6 +593,10 @@ const DriversPage = () => {
 
     // Action Menu State
     const [openMenuDriverId, setOpenMenuDriverId] = useState(null);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 30;
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -862,6 +885,60 @@ const DriversPage = () => {
         return filtered;
     }, [drivers, searchTerm, filters]);
 
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filters]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredDrivers.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedDrivers = filteredDrivers.slice(startIndex, endIndex);
+
+    // Generate page numbers for pagination
+    const generatePageNumbers = () => {
+        const pages = [];
+        
+        if (totalPages <= 5) {
+            // Show all pages if 5 or less
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Always show first page
+            pages.push(1);
+            
+            if (currentPage > 3) {
+                pages.push('...');
+            }
+            
+            // Show pages around current page
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                if (i !== 1 && i !== totalPages) {
+                    pages.push(i);
+                }
+            }
+            
+            if (currentPage < totalPages - 2) {
+                pages.push('...');
+            }
+            
+            // Always show last page
+            if (totalPages > 1) {
+                pages.push(totalPages);
+            }
+        }
+        
+        return pages;
+    };
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
     // Close action menu and filter dropdown if clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -905,89 +982,96 @@ const DriversPage = () => {
     return (
         <>
             <div className="drivers-container" style={themeColors}>
-            <div className="drivers-header">
-                <h3>Total employees ({filteredDrivers.length})</h3>
-                <div className="drivers-actions">
-                    <div className="search-filter-container">
-                        <div className="drivers-search-input-wrapper">
-                            <Search size={18} />
-                            <input
-                                type="text"
-                                placeholder="Employee name or Id"
-                                className="drivers-search-input"
-                                value={searchTerm}
-                                onChange={handleSearchChange}
-                            />
-                        </div>
-                        <div className="drivers-filter-container">
-                            <button 
-                                className={`drivers-filter-btn ${hasActiveFilters ? 'drivers-filter-btn-active' : ''}`} 
-                                onClick={toggleFilterDropdown}
-                            >
-                                <Filter size={16} />
-                                <span>Filter by</span>
-                                <ChevronDown size={14} className={`drivers-filter-chevron ${isFilterDropdownOpen ? 'drivers-filter-chevron-open' : ''}`} />
-                                {hasActiveFilters && (
-                                    <span className="drivers-filter-count-badge">
-                                        {Object.values(filters).filter(value => value !== '').length}
-                                    </span>
-                                )}
+                <div className="drivers-content-wrapper">
+                    <div className="drivers-header">
+                        <div>
+                            <h3>
+                                <span>Total employees </span>
+                                <span>({filteredDrivers.length})</span>
+                            </h3>
+                            <div className="drivers-actions">
+                            <div className="search-filter-container">
+                                <div className="drivers-search-input-wrapper">
+                                    <Search size={16} />
+                                    <input
+                                        type="text"
+                                        placeholder="Employee name or Id"
+                                        className="drivers-search-input"
+                                        value={searchTerm}
+                                        onChange={handleSearchChange}
+                                    />
+                                </div>
+                                <div className="drivers-filter-container">
+                                    <button 
+                                        className={`drivers-filter-btn ${hasActiveFilters ? 'drivers-filter-btn-active' : ''}`} 
+                                        onClick={toggleFilterDropdown}
+                                    >
+                                        <Filter size={14} />
+                                        {hasActiveFilters && (
+                                            <span className="drivers-filter-count-badge">
+                                                {Object.values(filters).filter(value => value !== '').length}
+                                            </span>
+                                        )}
+                                    </button>
+                                    
+                                    <FilterDropdown
+                                        isOpen={isFilterDropdownOpen}
+                                        onClose={() => setIsFilterDropdownOpen(false)}
+                                        filters={filters}
+                                        tempFilters={tempFilters}
+                                        onFilterChange={handleFilterChange}
+                                        onApplyFilters={handleApplyFilters}
+                                        onClearFilters={handleClearFilters}
+                                        isLoading={false}
+                                        drivers={drivers}
+                                    />
+                                </div>
+                            </div>
+                            <button className="drivers-add-driver-btn" onClick={() => navigate('/drivers/add')}>
+                                <Plus size={16} />
+                                <span>Add employee</span>
                             </button>
-                            
-                            
-                            <FilterDropdown
-                                isOpen={isFilterDropdownOpen}
-                                onClose={() => setIsFilterDropdownOpen(false)}
-                                filters={filters}
-                                tempFilters={tempFilters}
-                                onFilterChange={handleFilterChange}
-                                onApplyFilters={handleApplyFilters}
-                                onClearFilters={handleClearFilters}
-                                isLoading={false}
-                                drivers={drivers}
-                            />
+                            <button 
+                                className="drivers-add-driver-btn" 
+                                onClick={() => navigate('/drivers/bulk-upload')}
+                            >
+                                <Upload size={16} />
+                                <span>Bulk Upload</span>
+                            </button>
                         </div>
                     </div>
-                    {/* Open the modal when button is clicked */}
-                    <button className="drivers-add-driver-btn" onClick={() => navigate('/drivers/add')}>
-                        <Plus size={16} />
-                        <span>Add Employee</span>
-                    </button>
-                    <button 
-                        className="drivers-add-driver-btn" 
-                        onClick={() => navigate('/drivers/bulk-upload')}
-                    >
-                        <Upload size={16} />
-                        <span>Bulk Upload</span>
-                    </button>
+
+                    {actionError && <div className="drivers-error-message drivers-action-error">{actionError}</div>}
                 </div>
 
-                {/* Display Action Errors (e.g., delete failed) */}
-                {actionError && <div className="drivers-error-message drivers-action-error">{actionError}</div>}
-            </div>
-
                 <div className="drivers-table-container">
-                    <table className="drivers-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Emp ID</th>
-                                <th>Contact</th>
-                                <th>Role</th>
-                                <th>Email</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredDrivers.length === 0 ? (
+                    <div className="drivers-table-wrapper">
+                        <table className="drivers-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Emp ID</th>
+                                    <th>Contact</th>
+                                    <th>Role</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {paginatedDrivers.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" style={{ textAlign: 'center', color: 'var(--color-grey-400)'}}>
                                         {searchTerm ? 'No drivers match your search.' : 'No drivers found for this business.'}
                                     </td>
                                 </tr>
                             ) : (
-                                filteredDrivers.map((driver) => (
-                                    <tr key={driver.id}>
+                                paginatedDrivers.map((driver) => (
+                                    <tr 
+                                        key={driver.id} 
+                                        className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''}`}
+                                        onClick={() => navigate('/drivers/add', { state: { editingDriver: driver } })}
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         <td>
                                             <div className="drivers-driver-name-cell">
                                                 <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
@@ -1001,37 +1085,80 @@ const DriversPage = () => {
                                         <td>{driver.mobileNumber || driver.email || '-'}</td>
                                         <td>{driver.role || '-'}</td>
                                         <td>{driver.email || '-'}</td>
-                                        <td className="drivers-action-cell"> {/* Added class for easier targeting */}
-                                            <div className={`drivers-action-menu-container drivers-action-menu-container-${driver.id}`} style={{ position: 'relative' }}> {/* Container for positioning */}
-                                                <button
-                                                    className="drivers-action-menu-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // Prevent click outside handler
-                                                        setOpenMenuDriverId(openMenuDriverId === driver.id ? null : driver.id);
-                                                    }}
-                                                >
-                                                    <MoreHorizontal size={18} />
-                                                </button>
-                                                {openMenuDriverId === driver.id && (
-                                                    <ActionMenu
-                                                        driver={driver}
-                                                        onEdit={handleOpenEditModal}
-                                                        onDelete={handleOpenDeleteModal}
-                                                    />
-                                                )}
-                                             </div>
+                                        <td>
+                                            <div className="drivers-status-cell">
+                                                <div className={`drivers-status-badge drivers-status-${(driver.status || 'PENDING').toLowerCase()}`}>
+                                                    <span>{driver.status || 'PENDING'}</span>
+                                                </div>
+                                                <div className={`drivers-action-menu-container drivers-action-menu-container-${driver.id}`}>
+                                                    <button
+                                                        className="drivers-action-menu-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenMenuDriverId(openMenuDriverId === driver.id ? null : driver.id);
+                                                        }}
+                                                    >
+                                                        <MoreHorizontal size={18} />
+                                                    </button>
+                                                    {openMenuDriverId === driver.id && (
+                                                        <ActionMenu
+                                                            driver={driver}
+                                                            onEdit={handleOpenEditModal}
+                                                            onDelete={handleOpenDeleteModal}
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             )}
                         </tbody>
                     </table>
+                    </div>
+                </div>
                 </div>
 
+                {/* Footer with Pagination - Always visible */}
                 <div className="drivers-pagination-controls">
-                    <button className="drivers-pagination-btn" disabled> <ChevronLeft size={16} /> </button>
-                    <span className="drivers-page-info">Page 1 of 1</span>
-                    <button className="drivers-pagination-btn" disabled> <ChevronRight size={16} /> </button>
+                    {/* Left Arrow */}
+                    <button 
+                        className="drivers-pagination-btn" 
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || totalPages <= 1}
+                    >
+                        <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
+                    </button>
+
+                    {/* Page Numbers */}
+                    {generatePageNumbers().map((page, index) => {
+                        if (page === '...') {
+                            return (
+                                <div key={`overflow-${index}`} className="drivers-page-overflow">
+                                    <span>...</span>
+                                </div>
+                            );
+                        }
+                        return (
+                            <button
+                                key={page}
+                                className={`drivers-page-number ${currentPage === page ? 'drivers-page-number-current' : ''}`}
+                                onClick={() => handlePageChange(page)}
+                                disabled={totalPages <= 1}
+                            >
+                                <span>{page}</span>
+                            </button>
+                        );
+                    })}
+
+                    {/* Right Arrow */}
+                    <button 
+                        className="drivers-pagination-btn" 
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || totalPages <= 1}
+                    >
+                        <ChevronIcon size={12} style={{ transform: 'rotate(-90deg)' }} />
+                    </button>
                 </div>
 
              {/* Render Modals */}
