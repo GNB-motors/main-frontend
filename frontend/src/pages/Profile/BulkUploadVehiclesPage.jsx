@@ -254,8 +254,8 @@ const BulkUploadVehiclesPage = () => {
       {/* 1. Header Section */}
       <div className="bulk-upload-header">
         <button className="bulk-upload-back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={16} />
-          Back
+          <ArrowLeft size={20} />
+          <span>Back</span>
         </button>
         <h1>Bulk Upload Vehicles</h1>
         <p>Upload vehicle data via .xlsx to normalize and update the database.</p>

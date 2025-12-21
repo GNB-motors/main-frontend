@@ -289,7 +289,7 @@ const BulkUploadPage = () => {
           onClick={() => navigate(-1)}
         >
           <ArrowLeft size={20} />
-          Back
+          <span>Back</span>
         </button>
         <h1>Bulk Upload ({mode === "vehicles" ? "Vehicles" : "Drivers"})</h1>
         <p>Upload an .xlsx file, we will normalize the data locally and send cleaned JSON to the API.</p>

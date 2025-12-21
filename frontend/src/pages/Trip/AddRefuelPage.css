@@ -37,20 +37,23 @@
 .back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid #dfdfe2;
-  background: #ffffff;
-  color: #454547;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #6b7280;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 0;
+  margin-bottom: 8px;
+  transition: color 0.2s;
+  width: fit-content;
+  justify-content: flex-start;
 }
 
 .back-btn:hover {
-  border-color: #1a73e8;
-  color: #1a73e8;
+  color: #111827;
+  text-decoration: none;
 }
 
 .add-refuel-content {
