@@ -9,6 +9,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
 import { months } from '../../../utils/mockdata.jsx'; // Adjusted path
+import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
 
 // --- TripReport COMPONENT (Uses fetched data) ---
 const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
@@ -18,6 +19,8 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
     const [searchText, setSearchText] = useState("");
     const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
     const [selectedEmployee, setSelectedEmployee] = useState('');
+    const [selectedRoute, setSelectedRoute] = useState('');
+    const [routeOptions, setRouteOptions] = useState([]);
     
     useEffect(() => {
         const fetchTrips = async () => {
@@ -26,6 +29,11 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
             try {
                 const data = await ReportsService.getTripReports();
                 setTripData(data);
+                
+                // Extract unique routes from trip data
+                const uniqueRoutes = [...new Set(data.map(trip => trip.route).filter(Boolean))];
+                setRouteOptions(uniqueRoutes);
+                
                 console.log("Trip Reports Fetched:", data);
             } catch (err) {
                 console.error("Failed to fetch trip reports:", err);
@@ -155,8 +163,28 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
             rows = rows.filter(row => row.driverName === selectedEmployee);
         }
 
+        // Filter by route
+        if (selectedRoute !== '') {
+            rows = rows.filter(row => row.route === selectedRoute);
+        }
+
         return rows;
-    }, [tripData, searchText, dateRange, selectedEmployee]);
+    }, [tripData, searchText, dateRange, selectedEmployee, selectedRoute]);
+
+    const handleRouteSelect = (route) => {
+        setSelectedRoute(route);
+    };
+
+    const handleAddNewRoute = (newRoute) => {
+        // Add the new route to the options
+        setRouteOptions(prev => [...prev, newRoute]);
+        setSelectedRoute(newRoute);
+        console.log("New route added:", newRoute);
+    };
+
+    const handleClearRoute = () => {
+        setSelectedRoute('');
+    };
     return (
         <Box>
             {/* Header Section */}
@@ -228,6 +256,50 @@ const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
                                 ))}
                             </Select>
                         </FormControl>
+                    </div>
+
+                    <div className="date-input-group">
+                        <label>Route</label>
+                        <div style={{ minWidth: 200, position: 'relative' }}>
+                            <SearchableDropdown
+                                options={routeOptions}
+                                selectedOption={selectedRoute}
+                                onSelect={handleRouteSelect}
+                                onAddNew={handleAddNewRoute}
+                                placeholder="All Routes"
+                                addNewLabel="Create new route"
+                            />
+                            {selectedRoute && (
+                                <button
+                                    onClick={handleClearRoute}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '32px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        zIndex: 5
+                                    }}
+                                    title="Clear selection"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path
+                                            d="M2 2L12 12M12 2L2 12"
+                                            stroke="#666"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
