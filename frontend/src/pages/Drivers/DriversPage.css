@@ -432,7 +432,7 @@
     gap: 12px;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .drivers-table {
@@ -572,6 +572,11 @@
     vertical-align: middle;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Last column (Status) needs visible overflow for action menu dropdown */
+.drivers-table td:last-child {
+    overflow: visible;
 }
 
 /* Remove bottom border from the last row */
