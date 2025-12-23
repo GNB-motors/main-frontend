@@ -1,9 +1,6 @@
 /* Drivers Page Container */
 .drivers-container {
     padding: var(--spacing-lg);
-    background-color: var(--color-white); /* White background like reference */
-    border-radius: var(--border-radius-lg); /* Rounded corners */
-    box-shadow: var(--shadow-card); /* Add shadow */
 }
 
 /* Header Section */

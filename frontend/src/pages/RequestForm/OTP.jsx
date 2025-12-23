@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import './RequestFormPage.css';
 
 const OTP = ({ mobileNumber, onMobileChange, otp, onOtpChange, onContinue, onBack, isLoading, error }) => {
@@ -74,7 +75,10 @@ const OTP = ({ mobileNumber, onMobileChange, otp, onOtpChange, onContinue, onBac
                 {error && <div className="error-message submit-error">{error}</div>}
                 
                 <div className="form-navigation">
-                    <button type="button" className="btn-back" onClick={onBack}>Back</button>
+                    <button type="button" className="btn-back" onClick={onBack}>
+                        <ArrowLeft size={20} />
+                        <span>Back</span>
+                    </button>
                     <button type="submit" className="btn-continue" disabled={!canSubmit || isLoading}>
                         {isLoading ? 'Generating Report...' : 'Submit'}
                     </button>

@@ -520,19 +520,45 @@ const TripFormPage = () => {
                      (endDocs.proofOfDelivery.file || endDocs.proofOfDelivery.ocrData);
 
   return (
-    <div className="trip-form-page">
+      <div className="trip-form-page">
       <div className="trip-form-container">
         {/* Header */}
         <div className="trip-form-header">
-          <button className="back-btn" onClick={() => navigate('/trip-management')}>
-            <ArrowLeft size={20} />
-            <span>Back to Trips</span>
-          </button>
-          <h1>{isEditMode ? 'Edit Trip' : 'Create New Trip'}</h1>
-        </div>
-
-        {/* Main Form */}
+          <div className="page-header-section">
+            <button className="back-btn" onClick={() => navigate('/trip-management')}>
+              <ArrowLeft size={20} />
+              <span>Back to Trips</span>
+            </button>
+            <div>
+              <h1 className="page-title">{isEditMode ? 'Edit Trip' : 'Create New Trip'}</h1>
+            </div>
+          </div>
+        </div>        {/* Main Form */}
         <div className="trip-form-content">
+          {/* Start Documents */}
+          <section className="form-section">
+            <h2 className="section-heading">Start Documents</h2>
+            <div className="documents-grid">
+              <DocumentUpload
+                title="Odometer Start"
+                required
+                document={startDocs.odometerStart}
+                onUpload={(file) => handleFileUpload('start', 'odometerStart', file)}
+                onProcess={() => processOCR('start', 'odometerStart')}
+                isProcessing={isProcessing}
+              />
+
+              <DocumentUpload
+                title="Weigh-in Slip"
+                required
+                document={startDocs.weighInSlip}
+                onUpload={(file) => handleFileUpload('start', 'weighInSlip', file)}
+                onProcess={() => processOCR('start', 'weighInSlip')}
+                isProcessing={isProcessing}
+              />
+            </div>
+          </section>
+
           {/* Basic Information */}
           <section className="form-section">
             <h2 className="section-heading">Trip Information</h2>
@@ -611,30 +637,6 @@ const TripFormPage = () => {
                   ))}
                 </select>
               </div>
-            </div>
-          </section>
-
-          {/* Start Documents */}
-          <section className="form-section">
-            <h2 className="section-heading">Start Documents</h2>
-            <div className="documents-grid">
-              <DocumentUpload
-                title="Odometer Start"
-                required
-                document={startDocs.odometerStart}
-                onUpload={(file) => handleFileUpload('start', 'odometerStart', file)}
-                onProcess={() => processOCR('start', 'odometerStart')}
-                isProcessing={isProcessing}
-              />
-
-              <DocumentUpload
-                title="Weigh-in Slip"
-                required
-                document={startDocs.weighInSlip}
-                onUpload={(file) => handleFileUpload('start', 'weighInSlip', file)}
-                onProcess={() => processOCR('start', 'weighInSlip')}
-                isProcessing={isProcessing}
-              />
             </div>
           </section>
 

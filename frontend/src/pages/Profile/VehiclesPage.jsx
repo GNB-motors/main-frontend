@@ -8,6 +8,10 @@ import './ProfilePage.css';
 // Import assets and icons
 import { Plus, Edit, Trash2, MoreVertical, Upload } from 'lucide-react';
 
+// Import Material-UI components
+import Pagination from '@mui/material/Pagination';
+import Stack from '@mui/material/Stack';
+
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
 
@@ -189,6 +193,8 @@ const VehiclesPage = () => {
     const [deletingVehicle, setDeletingVehicle] = useState(null);
     const [searchVehicleNo, setSearchVehicleNo] = useState('');
     const [themeColors, setThemeColors] = useState(getThemeCSS());
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
 
     // Update theme colors when component mounts or profile color changes
     useEffect(() => {
@@ -394,6 +400,17 @@ const VehiclesPage = () => {
         return vehicle.registration_no.toLowerCase().includes(searchVehicleNo.toLowerCase());
     });
 
+    // Reset to first page when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchVehicleNo]);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
+
     // Handle loading and errors
     if (isLoadingProfile) {
         return <div className="profile-card">Loading profile...</div>;
@@ -465,6 +482,7 @@ const VehiclesPage = () => {
                     overflow: 'auto',
                     backgroundColor: 'var(--color-white)',
                     margin: 'var(--spacing-lg)',
+                    marginBottom: 0,
                     borderRadius: 'var(--border-radius-lg)',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                 }}>
@@ -495,7 +513,7 @@ const VehiclesPage = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredVehicles.map(vehicle => (
+                                        {paginatedVehicles.map(vehicle => (
                                             <tr key={vehicle.id}>
                                                 <td>{vehicle.registration_no}</td>
                                                 <td>{vehicle.vehicle_type || 'N/A'}</td>
@@ -548,6 +566,35 @@ const VehiclesPage = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Footer Section with Pagination */}
+                {!isLoadingVehicles && !vehicleError && filteredVehicles.length > 0 && (
+                    <div style={{
+                        backgroundColor: 'var(--color-white)',
+                        margin: 'var(--spacing-lg) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg)',
+                        padding: 'var(--spacing-lg)',
+                        borderRadius: 'var(--border-radius-lg)',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        {filteredVehicles.length > itemsPerPage && (
+                            <Stack spacing={2} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <Pagination
+                                    count={totalPages}
+                                    page={currentPage}
+                                    onChange={(event, page) => setCurrentPage(page)}
+                                    color="primary"
+                                    size="medium"
+                                />
+                                <span style={{
+                                    fontSize: '13px',
+                                    color: '#6b7280'
+                                }}>
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                            </Stack>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* --- Edit Vehicle Modal --- */}
