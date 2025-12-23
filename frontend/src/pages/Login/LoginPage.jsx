@@ -6,6 +6,12 @@ import { toast } from 'react-toastify';
 import UkoLogo from '../../assets/uko-logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 
+// --- Local Fallback Images (Make sure these files exist in your assets folder) ---
+import FleetLocal from '../../assets/carousel/carosel_image_1.avif';
+import AnalyticsLocal from '../../assets/carousel/carousel_image_2.avif';
+import LogisticsLocal from '../../assets/carousel/carousel_image_3.avif';
+import SafetyLocal from '../../assets/carousel/carousel_image_4.avif';
+
 // --- Styles & Services ---
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
@@ -14,22 +20,22 @@ import { ProfileService } from '../Profile/ProfileService.jsx';
 // --- Carousel Data ---
 const slideData = [
     {
-        image: "https://images.unsplash.com/photo-1616432043562-3671ea2e5242?q=80&w=2070&auto=format&fit=crop",
+        image: FleetLocal,
         title: "Fleet Tracking",
         desc: "Real-time monitoring for your entire fleet. Know where your assets are at all times.",
     },
     {
-        image: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop",
+        image: AnalyticsLocal,
         title: "Smart Analytics",
         desc: "Data-driven insights to optimize routes, reduce fuel consumption, and increase efficiency.",
     },
     {
-        image: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=2075&auto=format&fit=crop",
+        image: LogisticsLocal,
         title: "Global Logistics",
         desc: "Seamless cross-border management ensuring your cargo reaches its destination on time.",
     },
     {
-        image: "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?q=80&w=2072&auto=format&fit=crop",
+        image: SafetyLocal,
         title: "Driver Safety",
         desc: "Advanced telematics to monitor driver behavior and ensure safety compliance on the road.",
     },
@@ -62,6 +68,12 @@ const LoginPage = () => {
     const goToSlide = (index, e) => {
         if (e) e.stopPropagation();
         setCurrentSlide(index);
+    };
+
+    // --- Image Fallback Logic ---
+    const handleImageError = (e) => {
+        // Log error if local image fails to load (shouldn't happen in normal conditions)
+        console.error('Image failed to load:', e.target.src);
     };
 
     // --- Core Login Logic ---
@@ -163,7 +175,6 @@ const LoginPage = () => {
                                             checked={rememberMe}
                                             onChange={(e) => setRememberMe(e.target.checked)}
                                         />
-                                        {/* Ensure this class matches your CSS (slider vs slider-switch) */}
                                         <span className="slider-switch"></span>
                                     </label>
                                     <span>Remember Me</span>
@@ -189,8 +200,9 @@ const LoginPage = () => {
                         <img
                             key={index}
                             src={slide.image}
+                            onError={handleImageError}
                             className={`slide-bg ${index === currentSlide ? "active" : ""}`}
-                            alt={`Slide ${index + 1}`}
+                            alt={`${slide.title}`}
                         />
                     ))}
 
