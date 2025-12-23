@@ -6,67 +6,68 @@ import { toast } from 'react-toastify';
 import UkoLogo from '../../assets/uko-logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 
-// --- Carousel Images ---
-import SliderImage1 from '../../carousel/Sidebar Image_1.png';
-import SliderImage2 from '../../carousel/Sidebar_image_2.png';
-import SliderImage3 from '../../carousel/Sidebar_image_3.png';
-import SliderImage4 from '../../carousel/Sidebar_image_4.png';
-
 // --- Styles & Services ---
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
 import { ProfileService } from '../Profile/ProfileService.jsx';
 
+// --- Carousel Data ---
+const slideData = [
+    {
+        image: "https://images.unsplash.com/photo-1616432043562-3671ea2e5242?q=80&w=2070&auto=format&fit=crop",
+        title: "Fleet Tracking",
+        desc: "Real-time monitoring for your entire fleet. Know where your assets are at all times.",
+    },
+    {
+        image: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop",
+        title: "Smart Analytics",
+        desc: "Data-driven insights to optimize routes, reduce fuel consumption, and increase efficiency.",
+    },
+    {
+        image: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=2075&auto=format&fit=crop",
+        title: "Global Logistics",
+        desc: "Seamless cross-border management ensuring your cargo reaches its destination on time.",
+    },
+    {
+        image: "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?q=80&w=2072&auto=format&fit=crop",
+        title: "Driver Safety",
+        desc: "Advanced telematics to monitor driver behavior and ensure safety compliance on the road.",
+    },
+];
+
 const LoginPage = () => {
     const navigate = useNavigate();
-    
+
     // --- Form State ---
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    // eslint-disable-next-line no-unused-vars
-    const [error, setError] = useState(null);
-
-    // --- Carousel Data & State ---
-    const [currentSlide, setCurrentSlide] = useState(0);
     
-    const slides = [
-        {
-            image: SliderImage1,
-            title: "Fleet Tracking",
-            text: "Real-time monitoring for your entire fleet. Know where your assets are at all times."
-        },
-        {
-            image: SliderImage2,
-            title: "Smart Analytics",
-            text: "Advanced data to optimize every mile driven and reduce operational overhead."
-        },
-        {
-            image: SliderImage3,
-            title: "Cost Efficiency",
-            text: "Reduce fuel consumption and maintenance costs with AI-driven route planning."
-        },
-        {
-            image: SliderImage4,
-            title: "Global Logistics",
-            text: "Seamless management across borders. Scale your business operations effortlessly."
-        }
-    ];
+    // --- Carousel State ---
+    const [currentSlide, setCurrentSlide] = useState(0);
 
-    // --- Carousel Effect ---
+    // --- Carousel Logic: Auto Rotate ---
     useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % slides.length);
-        }, 5000); 
-        return () => clearInterval(interval);
-    }, [slides.length]);
+        const slideInterval = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % slideData.length);
+        }, 5000);
+        return () => clearInterval(slideInterval);
+    }, []);
+
+    const nextSlide = () => {
+        setCurrentSlide((prev) => (prev + 1) % slideData.length);
+    };
+
+    const goToSlide = (index, e) => {
+        if (e) e.stopPropagation();
+        setCurrentSlide(index);
+    };
 
     // --- Core Login Logic ---
     const handleLogin = async (event) => {
         event.preventDefault();
         setIsLoading(true);
-        setError(null);
 
         const credentials = { email, password };
 
@@ -80,7 +81,7 @@ const LoginPage = () => {
 
             try {
                 const profileData = await ProfileService.getProfile(token);
-                
+
                 // Store profile fields
                 localStorage.setItem('profile_id', profileData.id);
                 localStorage.setItem('profile_user_id', profileData.user_id);
@@ -97,13 +98,13 @@ const LoginPage = () => {
                     setTimeout(() => navigate('/onboarding'), 1500);
                 }
             } catch (profileError) {
-                 if (profileError?.detail === "Profile not found for this user. Please complete onboarding.") {
-                     toast.info("Please complete your onboarding process.");
-                     setTimeout(() => navigate('/onboarding'), 1500);
-                 } else {
-                     const errorMessage = profileError?.detail || 'Logged in, but failed to retrieve profile status.';
-                     toast.error(errorMessage);
-                 }
+                if (profileError?.detail === "Profile not found for this user. Please complete onboarding.") {
+                    toast.info("Please complete your onboarding process.");
+                    setTimeout(() => navigate('/onboarding'), 1500);
+                } else {
+                    const errorMessage = profileError?.detail || 'Logged in, but failed to retrieve profile status.';
+                    toast.error(errorMessage);
+                }
             }
 
         } catch (loginApiError) {
@@ -119,16 +120,13 @@ const LoginPage = () => {
             <LottieLoader isLoading={isLoading} size="medium" message="Signing you in..." />
 
             <div className="login-container">
+                
                 {/* --- LEFT SIDE: FORM --- */}
                 <div className="login-form-wrapper">
                     <div className="login-form-card">
                         <div className="login-header">
-                            <img src={UkoLogo} alt="Uko Logo" className="logo"/>
+                            <img src={UkoLogo} alt="Uko Logo" className="logo" />
                             <h1>Sign In</h1>
-                        </div>
-
-                        <div className="social-login-tabs">
-                            <span className="social-tab active">Sign in with</span>
                         </div>
 
                         <form onSubmit={handleLogin}>
@@ -165,7 +163,8 @@ const LoginPage = () => {
                                             checked={rememberMe}
                                             onChange={(e) => setRememberMe(e.target.checked)}
                                         />
-                                        <span className="slider"></span>
+                                        {/* Ensure this class matches your CSS (slider vs slider-switch) */}
+                                        <span className="slider-switch"></span>
                                     </label>
                                     <span>Remember Me</span>
                                 </div>
@@ -183,35 +182,52 @@ const LoginPage = () => {
                     </div>
                 </div>
 
-                {/* --- RIGHT SIDE: CAROUSEL --- */}
-                <div className="carousel-panel">
-                    
+                {/* --- RIGHT SIDE: FLOATING CAROUSEL --- */}
+                <div className="right-panel-container">
                     {/* Background Images */}
-                    {slides.map((slide, index) => (
-                        <div 
-                            key={index} 
-                            className={`carousel-slide ${index === currentSlide ? 'active' : ''}`}
-                        >
-                            <img src={slide.image} alt={slide.title} />
-                        </div>
+                    {slideData.map((slide, index) => (
+                        <img
+                            key={index}
+                            src={slide.image}
+                            className={`slide-bg ${index === currentSlide ? "active" : ""}`}
+                            alt={`Slide ${index + 1}`}
+                        />
                     ))}
 
-                    {/* Floating Overlay Card */}
-                    <div className="carousel-card">
-                        <h2>{slides[currentSlide].title}</h2>
-                        <p>{slides[currentSlide].text}</p>
+                    {/* Blue Blur Vectors */}
+                    <div className="vector-1"></div>
+                    <div className="vector-2"></div>
+                    <div className="vector-3"></div>
+                    <div className="vector-4"></div>
 
-                        <div className="carousel-indicators">
-                            {slides.map((_, index) => (
-                                <span 
+                    {/* Glass Card */}
+                    <div className="glass-card" onClick={nextSlide}>
+                        <div className="card-title">{slideData[currentSlide].title}</div>
+                        <div className="card-desc">{slideData[currentSlide].desc}</div>
+
+                        <div className="card-dots">
+                            {slideData.map((_, index) => (
+                                <div
                                     key={index}
-                                    className={`indicator ${index === currentSlide ? 'active' : ''}`}
-                                    onClick={() => setCurrentSlide(index)}
-                                ></span>
+                                    className={`card-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                    onClick={(e) => goToSlide(index, e)}
+                                ></div>
                             ))}
                         </div>
                     </div>
+
+                    {/* Bottom Navigation Pill */}
+                    <div className="bottom-pill">
+                        {slideData.map((_, index) => (
+                            <div
+                                key={index}
+                                className={`nav-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                onClick={(e) => goToSlide(index, e)}
+                            ></div>
+                        ))}
+                    </div>
                 </div>
+
             </div>
         </>
     );
