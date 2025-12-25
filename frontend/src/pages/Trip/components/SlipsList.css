@@ -1,0 +1,312 @@
+/**
+ * SlipsList.css
+ * Styles for the scrollable weight slips list in Processing Phase
+ */
+
+.slips-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f9fafb;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #ecf0f1;
+  background: white;
+}
+
+.list-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.slip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #e8f5e9;
+  color: #00c896;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.slips-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.slip-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slip-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.slip-item:active {
+  transform: translateY(0);
+}
+
+.slip-item.active {
+  border-color: #00c896;
+  background: #f0fef9;
+  box-shadow: 0 2px 8px rgba(0, 200, 150, 0.2);
+}
+
+.slip-item.done {
+  opacity: 0.8;
+}
+
+.slip-item.pending {
+  opacity: 1;
+}
+
+.slip-number {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.slip-thumbnail {
+  width: 100%;
+  height: 140px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  background: #ecf0f1;
+  position: relative;
+}
+
+.slip-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Preview Button */
+.btn-preview-slip {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: rgba(0, 200, 150, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.slip-thumbnail:hover .btn-preview-slip {
+  opacity: 1;
+}
+
+.btn-preview-slip:hover {
+  background: #00c896;
+  transform: scale(1.15);
+}
+
+/* Slip Content */
+.slip-content {
+  padding: 4px 0;
+  pointer-events: auto;
+}
+
+.slip-status {
+  padding: 4px 0;
+}
+
+.status-badge-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  width: 100%;
+  justify-content: center;
+}
+
+.status-badge-list.done {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge-list.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge-list svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Scrollbar styling */
+.slips-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.slips-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slips-scroll::-webkit-scrollbar-thumb {
+  background: #dfe3e8;
+  border-radius: 3px;
+}
+
+.slips-scroll::-webkit-scrollbar-thumb:hover {
+  background: #bcc0c8;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .slip-thumbnail {
+    height: 120px;
+  }
+
+  .slip-number {
+    font-size: 10px;
+  }
+
+  .slip-item {
+    padding: 10px;
+  }
+
+  .slip-count {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .slips-list {
+    height: auto;
+  }
+
+  .list-header {
+    padding: 12px;
+    border-bottom: 1px solid #ecf0f1;
+  }
+
+  .list-header h4 {
+    font-size: 13px;
+  }
+
+  .slip-count {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .slips-scroll {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px;
+    display: flex;
+    gap: 8px;
+    scroll-behavior: smooth;
+  }
+
+  .slip-item {
+    flex: 0 0 110px;
+    padding: 8px;
+    margin-bottom: 0;
+    border-radius: 6px;
+  }
+
+  .slip-thumbnail {
+    height: 95px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+  }
+
+  .slip-number {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
+
+  .status-badge-list {
+    font-size: 9px;
+    padding: 2px 4px;
+    gap: 2px;
+  }
+
+  .status-badge-list svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .btn-preview-slip {
+    width: 24px;
+    height: 24px;
+  }
+
+  .btn-preview-slip svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .list-header {
+    padding: 10px;
+  }
+
+  .list-header h4 {
+    font-size: 12px;
+  }
+
+  .slip-item {
+    flex: 0 0 100px;
+    padding: 6px;
+  }
+
+  .slip-thumbnail {
+    height: 85px;
+    margin-bottom: 4px;
+  }
+
+  .slip-number {
+    font-size: 8px;
+  }
+
+  .status-badge-list {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+}

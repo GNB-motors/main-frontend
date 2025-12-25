@@ -25,8 +25,7 @@ import { toast } from 'react-toastify';
 import './TripFormPage.css';
 import { DriverService } from '../Drivers/DriverService.jsx';
 import { VehicleService } from '../Profile/VehicleService.jsx';
-import DocumentService, { processDocument } from './DocumentService.jsx';
-import TripService from './TripService.jsx';
+import { DocumentService, TripService } from './services';
 import ImageCropper from '../../components/ImageCropper/ImageCropper.jsx';
 
 const TripFormPage = () => {
@@ -70,6 +69,15 @@ const TripFormPage = () => {
     proofOfDelivery: { file: null, preview: null, ocrData: null }
   });
 
+  // Expenses state
+  const [expenses, setExpenses] = useState({
+    materialCost: '',
+    toll: '',
+    driverCost: '',
+    driverTripExpense: '',
+    royalty: ''
+  });
+
   // UI state
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -81,6 +89,9 @@ const TripFormPage = () => {
   const [uploadingDocs, setUploadingDocs] = useState({});
   // Whether uploading is allowed: either editing an existing trip or a vehicle is selected
   const canUpload = isEditMode || Boolean(formData.vehicleNo);
+
+  // Expenses modal state
+  const [showExpensesModal, setShowExpensesModal] = useState(false);
 
   // Image cropper state
   const [cropperState, setCropperState] = useState({
@@ -599,7 +610,7 @@ const TripFormPage = () => {
         let ocrData = null;
         const docId = docMeta && (docMeta.id || docMeta._id || docMeta.documentId);
         if (docId) {
-          const resp = await processDocument(docId);
+          const resp = await DocumentService.processDocument(docId);
           ocrData = resp?.ocr || resp?.data || resp;
         }
 
@@ -629,7 +640,7 @@ const TripFormPage = () => {
       let ocrData = null;
       const docId = docMeta && (docMeta.id || docMeta._id || docMeta.documentId);
       if (docId) {
-        const resp = await processDocument(docId);
+        const resp = await DocumentService.processDocument(docId);
         ocrData = resp?.ocr || resp?.data || resp;
       }
 
@@ -740,7 +751,28 @@ const TripFormPage = () => {
   };
 
   /**
-   * End trip and mark as completed
+   * Show expenses modal when End Trip button is clicked
+   */
+  const handleEndTripClick = () => {
+    // Get end odometer from manual input or document
+    let endOdometerReading = undefined;
+    if (showManualOdometerEnd && manualOdometerEnd) {
+      endOdometerReading = parseInt(manualOdometerEnd);
+    } else if (endDocs.odometerEnd?.ocrData?.reading) {
+      endOdometerReading = parseInt(endDocs.odometerEnd.ocrData.reading);
+    }
+
+    if (!endOdometerReading) {
+      toast.error('Please provide end odometer reading to complete the trip');
+      return;
+    }
+
+    // Show expenses modal
+    setShowExpensesModal(true);
+  };
+
+  /**
+   * End trip and mark as completed with expenses
    * If trip is not started yet (no tripId), it will start the trip first then end it
    */
   const handleEndTrip = async () => {
@@ -829,9 +861,24 @@ const TripFormPage = () => {
       const endData = {
         endOdometer: endOdometerReading,
         startOdometer: startOdometerReading
-        // podId is optional and not included for now
+        // TODO: Include expenses data once backend is ready
+        // expenses: {
+        //   materialCost: expenses.materialCost ? parseFloat(expenses.materialCost) : null,
+        //   toll: expenses.toll ? parseFloat(expenses.toll) : null,
+        //   driverCost: expenses.driverCost ? parseFloat(expenses.driverCost) : null,
+        //   driverTripExpense: expenses.driverTripExpense ? parseFloat(expenses.driverTripExpense) : null,
+        //   royalty: expenses.royalty ? parseFloat(expenses.royalty) : null
+        // }
       };
 
+      // Log expenses data for now (will be sent to backend once API is ready)
+      console.log('Trip expenses (pending backend integration):', {
+        materialCost: expenses.materialCost ? parseFloat(expenses.materialCost) : null,
+        toll: expenses.toll ? parseFloat(expenses.toll) : null,
+        driverCost: expenses.driverCost ? parseFloat(expenses.driverCost) : null,
+        driverTripExpense: expenses.driverTripExpense ? parseFloat(expenses.driverTripExpense) : null,
+        royalty: expenses.royalty ? parseFloat(expenses.royalty) : null
+      });
       console.log('Ending trip with data:', endData);
       const response = await TripService.endTrip(currentTripId, endData);
       toast.success('Trip ended successfully');
@@ -948,39 +995,40 @@ const TripFormPage = () => {
             </div>
           </section>
 
-          {/* Start Documents */}
+          {/* Start Details Section - with Trip Information and Start Documents */}
           <section className="form-section">
-            <h2 className="section-heading">Start Documents</h2>
+            <h2 className="section-heading">Start Details</h2>
             
-            {/* Odometer Start with Manual Toggle */}
-            <div className="document-section-with-toggle">
-              <div className="toggle-container">
-                <label className="toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={showManualOdometer}
-                    onChange={(e) => setShowManualOdometer(e.target.checked)}
-                    disabled={isEditMode}
-                  />
-                  <span className="toggle-text">No Odometer Document (Enter Manually)</span>
-                </label>
-              </div>
-
-              {showManualOdometer ? (
-                <div className="manual-input-container">
-                  <div className="form-group">
-                    <label>Manual Odometer Reading <span className="required">*</span></label>
+            {/* Odometer Start and Weigh-in Slip side by side */}
+            <div className="documents-grid">
+              {/* Odometer Start with Manual Toggle */}
+              <div className="document-section-with-toggle">
+                <div className="toggle-container">
+                  <label className="toggle-label">
                     <input
-                      type="number"
-                      value={manualOdometerStart}
-                      onChange={(e) => setManualOdometerStart(e.target.value)}
-                      placeholder="Enter odometer reading"
+                      type="checkbox"
+                      checked={showManualOdometer}
+                      onChange={(e) => setShowManualOdometer(e.target.checked)}
                       disabled={isEditMode}
                     />
-                  </div>
+                    <span className="toggle-text">No Odometer Document (Enter Manually)</span>
+                  </label>
                 </div>
-              ) : (
-                <div className="documents-grid">
+
+                {showManualOdometer ? (
+                  <div className="manual-input-container">
+                    <div className="form-group">
+                      <label>Manual Odometer Reading <span className="required">*</span></label>
+                      <input
+                        type="number"
+                        value={manualOdometerStart}
+                        onChange={(e) => setManualOdometerStart(e.target.value)}
+                        placeholder="Enter odometer reading"
+                        disabled={isEditMode}
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <DocumentUpload
                     title="Odometer Start"
                     required
@@ -990,39 +1038,37 @@ const TripFormPage = () => {
                     isProcessing={isProcessing}
                     canUpload={canUpload}
                   />
-                </div>
-              )}
-            </div>
-
-            {/* Weigh-in Slip with No Slip ID Toggle */}
-            <div className="document-section-with-toggle" style={{ marginTop: '20px' }}>
-              <div className="toggle-container">
-                <label className="toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={noSlipId}
-                    onChange={(e) => setNoSlipId(e.target.checked)}
-                    disabled={isEditMode}
-                  />
-                  <span className="toggle-text">No Slip ID (Enter Payload Manually)</span>
-                </label>
+                )}
               </div>
 
-              {noSlipId ? (
-                <div className="manual-input-container">
-                  <div className="form-group">
-                    <label>Manual Payload Weight (kg) <span className="required">*</span></label>
+              {/* Weigh-in Slip with No Slip ID Toggle */}
+              <div className="document-section-with-toggle">
+                <div className="toggle-container">
+                  <label className="toggle-label">
                     <input
-                      type="text"
-                      value={manualPayload}
-                      onChange={(e) => setManualPayload(e.target.value)}
-                      placeholder="Enter payload weight (e.g., 1500 KG)"
+                      type="checkbox"
+                      checked={noSlipId}
+                      onChange={(e) => setNoSlipId(e.target.checked)}
                       disabled={isEditMode}
                     />
-                  </div>
+                    <span className="toggle-text">No Slip ID (Enter Payload Manually)</span>
+                  </label>
                 </div>
-              ) : (
-                <div className="documents-grid">
+
+                {noSlipId ? (
+                  <div className="manual-input-container">
+                    <div className="form-group">
+                      <label>Manual Payload Weight (kg) <span className="required">*</span></label>
+                      <input
+                        type="text"
+                        value={manualPayload}
+                        onChange={(e) => setManualPayload(e.target.value)}
+                        placeholder="Enter payload weight (e.g., 1500 KG)"
+                        disabled={isEditMode}
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <DocumentUpload
                     title="Weigh-in Slip"
                     required
@@ -1032,8 +1078,8 @@ const TripFormPage = () => {
                     isProcessing={isProcessing}
                     canUpload={canUpload}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </section>
 
@@ -1083,39 +1129,40 @@ const TripFormPage = () => {
             </div>
           </section>
 
-          {/* End Documents */}
+          {/* End Details Section - with End Documents side by side */}
           <section className="form-section">
-            <h2 className="section-heading">End Documents</h2>
+            <h2 className="section-heading">End Details</h2>
             
-            {/* End Odometer with Manual Toggle */}
-            <div className="document-section-with-toggle">
-              <div className="toggle-container">
-                <label className="toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={showManualOdometerEnd}
-                    onChange={(e) => setShowManualOdometerEnd(e.target.checked)}
-                    disabled={isCompletedTrip}
-                  />
-                  <span className="toggle-text">No Odometer Document (Enter Manually)</span>
-                </label>
-              </div>
-
-              {showManualOdometerEnd ? (
-                <div className="manual-input-container">
-                  <div className="form-group">
-                    <label>Manual End Odometer Reading <span className="required">*</span></label>
+            {/* Odometer End and Proof of Delivery side by side */}
+            <div className="documents-grid">
+              {/* End Odometer with Manual Toggle */}
+              <div className="document-section-with-toggle">
+                <div className="toggle-container">
+                  <label className="toggle-label">
                     <input
-                      type="number"
-                      value={manualOdometerEnd}
-                      onChange={(e) => setManualOdometerEnd(e.target.value)}
-                      placeholder="Enter end odometer reading"
+                      type="checkbox"
+                      checked={showManualOdometerEnd}
+                      onChange={(e) => setShowManualOdometerEnd(e.target.checked)}
                       disabled={isCompletedTrip}
                     />
-                  </div>
+                    <span className="toggle-text">No Odometer Document (Enter Manually)</span>
+                  </label>
                 </div>
-              ) : (
-                <div className="documents-grid">
+
+                {showManualOdometerEnd ? (
+                  <div className="manual-input-container">
+                    <div className="form-group">
+                      <label>Manual End Odometer Reading <span className="required">*</span></label>
+                      <input
+                        type="number"
+                        value={manualOdometerEnd}
+                        onChange={(e) => setManualOdometerEnd(e.target.value)}
+                        placeholder="Enter end odometer reading"
+                        disabled={isCompletedTrip}
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <DocumentUpload
                     title="Odometer End"
                     required
@@ -1123,22 +1170,20 @@ const TripFormPage = () => {
                     onUpload={(file) => handleFileUpload('end', 'odometerEnd', file)}
                     onProcess={() => processOCR('end', 'odometerEnd')}
                     isProcessing={isProcessing}
-                    canUpload={isEditMode}
+                    canUpload={canUpload}
                   />
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Proof of Delivery - Optional */}
-            <div className="document-section-with-toggle" style={{ marginTop: '20px' }}>
-              <div className="documents-grid">
+              {/* Proof of Delivery - Optional */}
+              <div className="document-section-with-toggle">
                 <DocumentUpload
                   title="Proof of Delivery (Optional)"
                   document={endDocs.proofOfDelivery}
                   onUpload={(file) => handleFileUpload('end', 'proofOfDelivery', file)}
                   onProcess={() => processOCR('end', 'proofOfDelivery')}
                   isProcessing={isProcessing}
-                  canUpload={isEditMode}
+                  canUpload={canUpload}
                 />
               </div>
             </div>
@@ -1160,7 +1205,7 @@ const TripFormPage = () => {
               
               <button 
                 className="btn-primary end-btn" 
-                onClick={handleEndTrip}
+                onClick={handleEndTripClick}
                 disabled={!canEndTrip || isProcessing}
                 style={{ opacity: !canEndTrip ? 0.5 : 1 }}
               >
@@ -1170,6 +1215,96 @@ const TripFormPage = () => {
           </div>
         )}
       </div>
+      
+      {/* Expenses Modal */}
+      {showExpensesModal && (
+        <div className="modal-overlay" onClick={() => setShowExpensesModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Trip Expenses</h2>
+              <button 
+                className="modal-close" 
+                onClick={() => setShowExpensesModal(false)}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Material Cost</label>
+                  <input
+                    type="number"
+                    value={expenses.materialCost}
+                    onChange={(e) => setExpenses({ ...expenses, materialCost: e.target.value })}
+                    placeholder="Enter material cost"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Toll</label>
+                  <input
+                    type="number"
+                    value={expenses.toll}
+                    onChange={(e) => setExpenses({ ...expenses, toll: e.target.value })}
+                    placeholder="Enter toll amount"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Driver Cost</label>
+                  <input
+                    type="number"
+                    value={expenses.driverCost}
+                    onChange={(e) => setExpenses({ ...expenses, driverCost: e.target.value })}
+                    placeholder="Enter driver cost"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Driver Trip Expense</label>
+                  <input
+                    type="number"
+                    value={expenses.driverTripExpense}
+                    onChange={(e) => setExpenses({ ...expenses, driverTripExpense: e.target.value })}
+                    placeholder="Enter driver trip expense"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Royalty</label>
+                  <input
+                    type="number"
+                    value={expenses.royalty}
+                    onChange={(e) => setExpenses({ ...expenses, royalty: e.target.value })}
+                    placeholder="Enter royalty amount"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn-secondary" 
+                onClick={() => setShowExpensesModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={() => {
+                  setShowExpensesModal(false);
+                  handleEndTrip();
+                }}
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Ending Trip...' : 'Confirm & End Trip'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Image Cropper Modal */}
       <ImageCropper

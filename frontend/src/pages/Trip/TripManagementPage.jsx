@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import './TripManagementPage.css';
-import TripService from './TripService';
+import { TripService } from './services';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();

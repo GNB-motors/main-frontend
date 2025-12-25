@@ -1,0 +1,544 @@
+/**
+ * VerificationPhase.css
+ * Styles for Phase 3: Final Verification and Submission
+ * Minimalistic and Professional Design
+ */
+
+.verification-phase {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f8f9fa;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Compact Header */
+.verification-header {
+  background: white;
+  padding: 16px 32px;
+  border-bottom: 1px solid #e8ecf1;
+  flex-shrink: 0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verification-header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: #1a202c;
+}
+
+.verification-header p {
+  font-size: 13px;
+  color: #718096;
+  margin: 4px 0 0 0;
+}
+
+/* Main Content Area - Scrollable */
+.verification-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Recap Section - Compact */
+.verification-recap {
+  background: white;
+  padding: 16px 32px;
+  border-bottom: 1px solid #e8ecf1;
+}
+
+.recap-header {
+  margin-bottom: 12px;
+}
+
+.recap-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.recap-images {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.recap-item,
+.recap-partial {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recap-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.recap-image-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.recap-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recap-image:hover {
+  border-color: #00c896;
+  box-shadow: 0 2px 8px rgba(0, 200, 150, 0.2);
+}
+
+.btn-preview {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: rgba(0, 200, 150, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.recap-image-wrapper:hover .btn-preview {
+  opacity: 1;
+}
+
+.btn-preview:hover {
+  background: #00c896;
+  transform: scale(1.1);
+}
+
+.recap-partial-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recap-partial-item {
+  position: relative;
+}
+
+.recap-image-small {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recap-image-small:hover {
+  border-color: #00c896;
+  box-shadow: 0 2px 6px rgba(0, 200, 150, 0.2);
+}
+
+.btn-preview-small {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  background: rgba(0, 200, 150, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.recap-partial-item:hover .btn-preview-small {
+  opacity: 1;
+}
+
+.btn-preview-small:hover {
+  background: #00c896;
+  transform: scale(1.1);
+}
+
+/* Table Section */
+.verification-table-section {
+  padding: 16px 32px;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.table-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-status {
+  display: flex;
+  gap: 8px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge.complete {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.incomplete {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Table Styles */
+.table-scroll {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e8ecf1;
+  overflow-x: auto;
+}
+
+.verification-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.verification-table thead {
+  background: #f7fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.verification-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+}
+
+.verification-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e8ecf1;
+  color: #2d3748;
+}
+
+.verification-table tbody tr:hover {
+  background: #f9fafc;
+}
+
+.slip-number {
+  font-weight: 600;
+  color: #00c896;
+}
+
+.slip-preview-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  position: relative;
+}
+
+.slip-preview {
+  max-width: 50px;
+  max-height: 50px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slip-preview:hover {
+  border-color: #00c896;
+  box-shadow: 0 1px 4px rgba(0, 200, 150, 0.15);
+}
+
+.btn-view-slip {
+  position: absolute;
+  right: 4px;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.slip-preview-container:hover .btn-view-slip {
+  opacity: 1;
+}
+
+.row-complete {
+  background: #f0fef9;
+}
+
+.row-incomplete {
+  background: #fffaf0;
+}
+
+/* Summary Stats */
+.verification-stats {
+  display: flex;
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px solid #e8ecf1;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: #718096;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #00c896;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Footer Actions */
+.verification-footer {
+  padding: 16px 32px;
+  background: white;
+  border-top: 1px solid #e8ecf1;
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Scrollbar */
+.verification-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.verification-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.verification-content::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+.verification-content::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .verification-header {
+    padding: 12px 24px;
+  }
+
+  .verification-header h1 {
+    font-size: 20px;
+  }
+
+  .verification-recap {
+    padding: 12px 24px;
+  }
+
+  .recap-images {
+    gap: 12px;
+  }
+
+  .recap-image {
+    width: 90px;
+    height: 90px;
+  }
+
+  .verification-table-section {
+    padding: 12px 24px;
+  }
+
+  .verification-table th,
+  .verification-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .verification-footer {
+    padding: 12px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .verification-header {
+    padding: 12px 16px;
+  }
+
+  .verification-header h1 {
+    font-size: 18px;
+  }
+
+  .verification-header p {
+    font-size: 12px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .verification-recap {
+    padding: 12px 16px;
+  }
+
+  .recap-header h3 {
+    font-size: 12px;
+  }
+
+  .recap-images {
+    gap: 10px;
+  }
+
+  .recap-image {
+    width: 80px;
+    height: 80px;
+  }
+
+  .recap-image-small {
+    width: 70px;
+    height: 70px;
+  }
+
+  .verification-table-section {
+    padding: 12px 16px;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .verification-table {
+    font-size: 12px;
+  }
+
+  .verification-table th,
+  .verification-table td {
+    padding: 8px;
+    font-size: 11px;
+  }
+
+  .verification-footer {
+    padding: 12px 16px;
+    flex-direction: column;
+  }
+
+  .verification-footer .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .verification-header {
+    padding: 10px 12px;
+  }
+
+  .verification-header h1 {
+    font-size: 16px;
+  }
+
+  .verification-recap {
+    padding: 10px 12px;
+  }
+
+  .recap-images {
+    gap: 8px;
+  }
+
+  .recap-image {
+    width: 70px;
+    height: 70px;
+  }
+
+  .recap-image-small {
+    width: 60px;
+    height: 60px;
+  }
+
+  .verification-table-section {
+    padding: 10px 12px;
+  }
+
+  .verification-table th,
+  .verification-table td {
+    padding: 6px;
+    font-size: 10px;
+  }
+
+  .slip-preview {
+    max-width: 40px;
+    max-height: 40px;
+  }
+
+  .verification-footer {
+    padding: 10px 12px;
+  }
+}
+
+.recap-partial-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

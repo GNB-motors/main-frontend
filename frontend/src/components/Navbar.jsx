@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Menu } from 'lucide-react';
 import { getPrimaryColor, getThemeCSS } from '../utils/colorTheme';
+import { useTripCreationContext } from '../contexts/TripCreationContext';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { stepName } = useTripCreationContext();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [activeTripsCount, setActiveTripsCount] = useState(0);
     
@@ -42,6 +44,9 @@ const Navbar = ({ toggleSidebar }) => {
     }, []);
     
     const getPageTitle = () => {
+        // If stepName is provided (trip creation flow), display it
+        if (stepName) return stepName;
+        
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path
         return path.charAt(0).toUpperCase() + path.slice(1);
