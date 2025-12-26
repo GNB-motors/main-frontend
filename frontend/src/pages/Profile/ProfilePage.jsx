@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { validateTokenBeforeRequest, handleAuthError } from '../../utils/authUtils';
 import './ProfilePage.css';
 
 // Import assets
 import DefaultAvatar from '../../assets/default-avatar.png';
 import UserIcon from '../../assets/user-icon.svg';
 
-// Import the services
-import { ProfileService } from './ProfileService.jsx';
+// Removed ProfileService import - using mock data instead
 import { getThemeCSS } from '../../utils/colorTheme';
+
+// Mock data for profile and user info
+const mockProfileData = {
+    _id: 'mock-profile-id',
+    ownerEmail: 'user@example.com',
+    companyName: 'Demo Company',
+    gstin: '22AAAAA0000A1Z5',
+    primaryThemeColor: '#007bff',
+    secondaryThemeColor: '#6c757d',
+    businessRefId: 'DEMO001'
+};
+
+const mockUserInfo = {
+    username: 'Demo User',
+    email: 'user@example.com',
+    role: 'user',
+    isActive: true
+};
 
 const ProfilePage = () => {
     const [profileData, setProfileData] = useState(null);
@@ -24,41 +40,30 @@ const ProfilePage = () => {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            // Validate token before making request
-            if (!validateTokenBeforeRequest()) {
-                setIsLoadingProfile(false);
-                setProfileError('Authentication token not found or expired. Please log in again.');
-                return;
-            }
-
+            // Simulate loading delay for better UX
             setIsLoadingProfile(true);
             setProfileError(null);
+
             try {
-                const token = localStorage.getItem('authToken');
-                // Fetch both profile and user info in parallel
-                const [profileResponse, userInfoResponse] = await Promise.all([
-                    ProfileService.getProfile(token),
-                    ProfileService.getUserInfo()
-                ]);
-                setProfileData(profileResponse);
-                setUserInfo(userInfoResponse);
-                // Store individual profile fields in localStorage
-                if (profileResponse._id) localStorage.setItem('profile_id', profileResponse._id);
-                if (profileResponse.ownerEmail) localStorage.setItem('profile_owner_email', profileResponse.ownerEmail);
-                if (profileResponse.companyName) localStorage.setItem('profile_company_name', profileResponse.companyName);
-                if (profileResponse.gstin) localStorage.setItem('profile_gstin', profileResponse.gstin);
-                if (profileResponse.primaryThemeColor) localStorage.setItem('primaryThemeColor', profileResponse.primaryThemeColor);
-                console.log("Profile data fetched:", profileResponse);
-                console.log("User info fetched:", userInfoResponse);
-            } catch (apiError) {
-                console.error('Failed to fetch profile:', apiError);
-                setProfileError(apiError?.detail || 'Failed to load profile information.');
-                
-                // Handle 401 errors with auto-logout
-                if (handleAuthError(apiError)) {
-                    // Auth error handled, user will be redirected
-                    return;
-                }
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Use mock data instead of API calls
+                setProfileData(mockProfileData);
+                setUserInfo(mockUserInfo);
+
+                // Store individual profile fields in localStorage (for compatibility)
+                localStorage.setItem('profile_id', mockProfileData._id);
+                localStorage.setItem('profile_owner_email', mockProfileData.ownerEmail);
+                localStorage.setItem('profile_company_name', mockProfileData.companyName);
+                localStorage.setItem('profile_gstin', mockProfileData.gstin);
+                localStorage.setItem('primaryThemeColor', mockProfileData.primaryThemeColor);
+
+                console.log("Profile data loaded (mock):", mockProfileData);
+                console.log("User info loaded (mock):", mockUserInfo);
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+                setProfileError('Failed to load profile information.');
             } finally {
                 setIsLoadingProfile(false);
             }

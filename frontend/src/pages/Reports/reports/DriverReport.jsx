@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
 
 // --- **** DriverReport COMPONENT **** ---
-const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleViewOutliers }) => {
+const DriverReport = ({ handleViewOutliers }) => {
     // State for fetched data, loading, and errors specific to this report
     const [driverReportData, setDriverReportData] = useState([]);
     const [isLoadingDrivers, setIsLoadingDrivers] = useState(true);

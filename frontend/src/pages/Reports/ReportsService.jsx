@@ -56,15 +56,10 @@ export const ReportsService = {
     },
 
     /**
-     * Fetches outlier trip reports for a given business reference ID,
-     * with optional date filtering.
-     * @param {string} businessRefId - The business reference ID.
+     * Fetches outlier trip reports with optional date filtering.
      * @param {object} filters - Optional filters { startDate: dayjsObject | null, endDate: dayjsObject | null }.
      */
-    getOutlierReports: async (businessRefId, filters = {}) => {
-        if (!businessRefId) {
-            throw new Error("Business Reference ID is required to fetch outlier reports.");
-        }
+    getOutlierReports: async (filters = {}) => {
         try {
             // Prepare query parameters for dates if they exist
             const params = {};
@@ -76,8 +71,8 @@ export const ReportsService = {
                 params.end_date = filters.endDate.format('YYYY-MM-DD');
             }
 
-            // Call the new backend endpoint with optional params
-            const response = await apiClient.get(`/api/v1/reports/${businessRefId}/outliers`, { params });
+            // Call the new backend endpoint with optional params (removed businessRefId dependency)
+            const response = await apiClient.get(`/api/v1/reports/outliers`, { params });
             // Ensure response.data is always an array
             return response.data || [];
         } catch (error) {

@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
 
 // --- VehicleReport COMPONENT (Uses fetched data) ---
-const VehicleReport = ({ businessRefId, isLoadingProfile, profileError, handleViewOutliers }) => {
+const VehicleReport = ({ handleViewOutliers }) => {
     const [vehicleReportData, setVehicleReportData] = useState([]);
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [vehicleError, setVehicleError] = useState(null);

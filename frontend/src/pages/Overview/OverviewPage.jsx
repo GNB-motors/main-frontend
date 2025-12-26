@@ -23,7 +23,7 @@ import {
   User,
   ChevronDown,
 } from "lucide-react";
-import { useProfile } from "../Profile/ProfileContext.jsx";
+// Removed useProfile import - profile logic completely removed
 import { OverviewService } from "./OverviewService.jsx";
 import "./OverviewPage.css"; // New CSS file for this page
 
@@ -221,7 +221,7 @@ const DriverList = ({ title, drivers, icon }) => (
 
 // --- Main OverviewPage Component ---
 const OverviewPage = () => {
-  const { profile } = useProfile();
+  // Removed useProfile hook - profile logic completely removed
   const [kpiData, setKpiData] = useState(mockKpiData);
   const [dailyChartData, setDailyChartData] = useState(mockDailyChartData);
   const [driverData, setDriverData] = useState(mockDriverData);
@@ -295,37 +295,9 @@ const OverviewPage = () => {
   };
 
   useEffect(() => {
-    const loadOverview = async () => {
-      const businessRefId = profile?.business_ref_id;
-      const token = localStorage.getItem("authToken");
-      if (!businessRefId || !token) return;
-      try {
-        const data = await OverviewService.getOverview(
-          businessRefId,
-          {},
-          token,
-        );
-        const nextKpis = {
-          totalVehicles: data?.kpis?.totalVehicles ?? 0,
-          totalKms: data?.kpis?.totalKms ?? 0,
-          avgVariance: data?.kpis?.avgVariance ?? 0,
-          totalOutliers: data?.kpis?.totalOutliers ?? 0,
-        };
-        setKpiData(nextKpis);
-        setDailyChartData(Array.isArray(data?.daily) ? data.daily : []);
-
-        const drivers = [];
-        if (data?.bestDriver) drivers.push(data.bestDriver);
-        if (Array.isArray(data?.underperformingDrivers))
-          drivers.push(...data.underperformingDrivers);
-        setDriverData(drivers);
-      } catch (e) {
-        // Silently keep mocks on failure; consider toast/error later
-        console.error("Failed to load overview:", e);
-      }
-    };
-    loadOverview();
-  }, [profile?.business_ref_id]); // Memoized calculations based on mock data
+    // Removed profile dependency and API call - using mock data only
+    // Profile logic completely removed from overview page
+  }, []); // No dependencies needed since using mock data
 
   const { bestDriver, underperformingDrivers } = useMemo(() => {
     if (!driverData || driverData.length === 0) {
@@ -346,7 +318,7 @@ const OverviewPage = () => {
                  {" "}
       <div className="overview-header">
                        {" "}
-        <h2>Welcome back, {profile?.company_name || "Fleet Manager"}!</h2>     
+        <h2>Welcome back, Fleet Manager!</h2>     
                   <p>Here's a summary of your fleet's performance.</p>         
          {" "}
       </div>

@@ -22,24 +22,7 @@ const updateOrganization = async (organizationData, token, orgId) => {
   }
 };
 
-const updateUserProfile = async (profileData, token) => {
-  try {
-    // PATCH /api/auth/me - Update user profile including theme color
-    const response = await axios.patch(
-      `${API_BASE_URL}/api/auth/me`,
-      profileData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Failed to update user profile.' };
-  }
-};
+// Removed updateUserProfile function - no longer calling /auth/me
 
 const completeOnboarding = async (onboardingData, token, orgId) => {
   try {
@@ -55,18 +38,8 @@ const completeOnboarding = async (onboardingData, token, orgId) => {
     
     await updateOrganization(organizationPayload, token, orgId);
     
-    // Step 2: Update user profile with theme color
-    const profilePayload = {
-      firstName: onboardingData.firstName,
-      lastName: onboardingData.lastName,
-    };
-    
-    // Only include primaryThemeColor if provided
-    if (onboardingData.primaryThemeColor) {
-      profilePayload.primaryThemeColor = onboardingData.primaryThemeColor;
-    }
-    
-    await updateUserProfile(profilePayload, token);
+    // Step 2: Removed user profile update - no longer calling /auth/me
+    // Profile logic completely removed from onboarding
     
     return { success: true, message: 'Onboarding completed successfully' };
   } catch (error) {
@@ -77,5 +50,5 @@ const completeOnboarding = async (onboardingData, token, orgId) => {
 export const OnboardingService = {
   completeOnboarding,
   updateOrganization,
-  updateUserProfile,
+  // Removed updateUserProfile - no longer calling /auth/me
 };

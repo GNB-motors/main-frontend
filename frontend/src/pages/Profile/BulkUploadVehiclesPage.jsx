@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
 
 import "./BulkUploadVehiclesPage.css";
-import { useProfile } from "./ProfileContext.jsx";
 import { VehicleService } from "./VehicleService.jsx";
 import {
   normalizeVehicleDataset,
@@ -43,7 +42,6 @@ const VEHICLE_COLUMNS = [
 ];
 
 const BulkUploadVehiclesPage = () => {
-  const { profile, isLoadingProfile } = useProfile();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [rowErrors, setRowErrors] = useState([]);
@@ -58,7 +56,7 @@ const BulkUploadVehiclesPage = () => {
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const fileInputRef = useRef(null);
 
-  const businessRefId = profile?.business_ref_id || localStorage.getItem("profile_business_ref_id");
+  const businessRefId = null; // Set to null since profile context was removed
 
   // Update theme colors when component mounts or profile color changes
   useEffect(() => {
