@@ -260,7 +260,7 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
                                 {filteredRows.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="driver-empty-state">
-                                            No driver summary data found. Try adjusting your filters.
+                                            No driver summary data found.
                                         </td>
                                     </tr>
                                 ) : (

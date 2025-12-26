@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { ArrowLeft } from "lucide-react";
 import apiClient from "../../utils/axiosConfig";
 import "./RequestFormPage.css";
 
@@ -1264,7 +1265,8 @@ const Step2Login = ({
         {error && <div className="error-message submit-error">{error}</div>}
         <div className="form-navigation">
           <button type="button" className="btn-back" onClick={onBack}>
-            Back
+            <ArrowLeft size={20} />
+            <span>Back</span>
           </button>
           <button type="submit" className="btn-continue" disabled={isLoading}>
             {isLoading ? "Generating Report..." : "Submit"}

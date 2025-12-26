@@ -43,6 +43,8 @@
   overflow-x: hidden;
   height: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .report-header {
@@ -110,10 +112,13 @@
   background-color: transparent;
   border-radius: var(--border-radius-lg);
   box-shadow: none;
-  min-height: 400px;
+  flex: 1;
   position: relative;
   padding: 0;
   border: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .report-content-empty {
@@ -335,24 +340,30 @@
   flex: 1;
   padding: 24px 0;
   overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .driver-table {
   width: 100%;
   min-width: 960px;
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
   background: #ffffff;
   border: 1px solid #ececee;
   border-radius: 12px;
   overflow: hidden;
+  flex: 1;
+  display: table;
 }
 
 .driver-table thead {
   background: #f8f8fb;
+  display: table-header-group;
 }
 
-.driver-table th {
+.driver-table thead th {
   padding: 18px 20px;
   font-size: 13px;
   font-weight: 600;
@@ -364,6 +375,10 @@
   white-space: nowrap;
 }
 
+.driver-table tbody {
+  display: table-row-group;
+}
+
 .driver-table td {
   padding: 18px 20px;
   font-size: 14px;
@@ -372,7 +387,7 @@
   vertical-align: top;
 }
 
-.driver-table tr:last-child td {
+.driver-table tbody tr:last-child td {
   border-bottom: none;
 }
 

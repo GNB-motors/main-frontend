@@ -16,6 +16,7 @@
     "@mui/material": "^7.3.4",
     "@mui/x-data-grid": "^8.15.0",
     "@mui/x-date-pickers": "^8.15.0",
+    "@mui/x-date-pickers-pro": "^8.22.1",
     "axios": "^1.12.2",
     "cropperjs": "^2.1.0",
     "dayjs": "^1.11.18",
