@@ -20,7 +20,7 @@ const LoginPage = () => {
     const navigate = useNavigate();
     
     // --- Form State ---
-    const [email, setEmail] = useState('');
+    const [emailOrMobile, setEmailOrMobile] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +67,7 @@ const LoginPage = () => {
         setIsLoading(true);
         setError(null);
 
-        const credentials = { email, password };
+        const credentials = { emailOrMobile, password };
 
         try {
             const loginData = await LoginPageService.loginUser(credentials);
@@ -107,15 +107,15 @@ const LoginPage = () => {
 
                         <form onSubmit={handleLogin}>
                             <div className="form-group">
-                                <label htmlFor="email">Email</label>
+                                <label htmlFor="emailOrMobile">Email or Mobile</label>
                                 <input
-                                    type="email"
-                                    id="email"
+                                    type="text"
+                                    id="emailOrMobile"
                                     className="form-input"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={emailOrMobile}
+                                    onChange={(e) => setEmailOrMobile(e.target.value)}
                                     required
-                                    placeholder="Enter your email"
+                                    placeholder="Enter your email or mobile number"
                                 />
                             </div>
                             <div className="form-group">
