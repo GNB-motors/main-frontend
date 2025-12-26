@@ -1,0 +1,86 @@
+/**
+ * DropZone.css
+ * Styles for drag-and-drop file upload zones
+ */
+
+.dropzone {
+  width: 100%;
+  padding: 32px 24px;
+  border: 2px dashed #bcc0c8;
+  border-radius: 8px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.dropzone:hover {
+  border-color: #00c896;
+  background: #f0fef9;
+}
+
+.dropzone.dragging {
+  border-color: #00c896;
+  background: #e8f5e9;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.2);
+}
+
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-icon {
+  color: #00c896;
+  width: 32px;
+  height: 32px;
+}
+
+.dropzone-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.dropzone-hint {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.dropzone:hover .upload-icon {
+  color: #00b876;
+}
+/* Compact mode for multi-file uploads */
+.dropzone.compact {
+  padding: 16px 20px;
+  background: #fbfcfd;
+  border: 1px solid #d1d5db;
+}
+
+.dropzone.compact:hover {
+  border-color: #00c896;
+  background: #f9fef9;
+}
+
+.dropzone.compact.dragging {
+  background: #eff9f7;
+  border-color: #00c896;
+}
+
+.dropzone.compact .dropzone-content {
+  gap: 6px;
+}
+
+.dropzone.compact .dropzone-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.dropzone.compact .dropzone-hint {
+  display: none;
+}

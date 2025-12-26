@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { useProfile } from './ProfileContext.jsx';
+// Profile context removed - vehicles page should render independently
 import { getPrimaryColor, getThemeCSS } from '../../utils/colorTheme.js';
 import './ProfilePage.css';
 
@@ -70,6 +70,7 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
 const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) => {
     const [registrationNo, setRegistrationNo] = useState('');
     const [vehicleType, setVehicleType] = useState('');
+    const [model, setModel] = useState('');
     const [chassisNumber, setChassisNumber] = useState('');
     const [error, setError] = useState(null);
 
@@ -85,7 +86,8 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
         const vehicleData = {
             registration_no: registrationNo,
             vehicle_type: vehicleType,
-            chassis_number: chassisNumber
+            chassis_number: chassisNumber,
+            model: model || null,
         };
 
         try {
@@ -103,6 +105,7 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
         if (!isOpen) {
             setRegistrationNo('');
             setVehicleType('');
+            setModel('');
             setChassisNumber('');
             setError(null);
         }
@@ -145,7 +148,18 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
                         </div>
                     </div>
                     <div className="profile-form-row">
-                        <div className="profile-form-group full-width">
+                        <div className="profile-form-group">
+                            <label htmlFor="model">Model (optional)</label>
+                            <input
+                                id="model"
+                                type="text"
+                                value={model}
+                                onChange={(e) => setModel(e.target.value)}
+                                placeholder="e.g., Ashok Leyland Dost"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="profile-form-group">
                             <label htmlFor="chassisNumber">Chassis Number *</label>
                             <input
                                 id="chassisNumber"
@@ -177,9 +191,9 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
 
 // --- Vehicles Page Component ---
 const VehiclesPage = () => {
-    // Get profile data from context
-    const { profile, isLoadingProfile, profileError } = useProfile();
     const navigate = useNavigate();
+    // Try to read business ref id from localStorage as a fallback when profile context is absent
+    const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
     const [vehicles, setVehicles] = useState([]);
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [vehicleError, setVehicleError] = useState(null);
@@ -236,23 +250,23 @@ const VehiclesPage = () => {
     // --- Fetch Vehicles ---
     useEffect(() => {
         const fetchVehicles = async () => {
-            if (!profile?.business_ref_id) {
-                setVehicleError("Business reference ID not found.");
-                setIsLoadingVehicles(false);
-                return;
-            }
             setIsLoadingVehicles(true);
             setVehicleError(null);
             const token = localStorage.getItem('authToken');
-            if (!token) {
-                setVehicleError('Authentication token not found.');
-                setIsLoadingVehicles(false);
-                return;
-            }
             try {
-                const data = await VehicleService.getAllVehicles(profile.business_ref_id, token);
-                setVehicles(data || []);
-                console.log("Vehicles fetched:", data);
+                const data = await VehicleService.getAllVehicles(businessRefId, token);
+                // Normalize API vehicle shape (camelCase) to UI expected snake_case
+                const normalized = (data || []).map(v => ({
+                    id: v._id || v.id || v._id, // keep id if present
+                    registration_no: v.registrationNumber || v.registration_no || v.registrationNumber,
+                    vehicle_type: v.vehicleType || v.vehicle_type || '',
+                    chassis_number: v.chassisNumber || v.chassis_number || '',
+                    model: v.model || '',
+                    status: v.status || '',
+                    inventory: v.inventory || [],
+                }));
+                setVehicles(normalized);
+                console.log("Vehicles fetched:", normalized);
             } catch (apiError) {
                 console.error('Failed to fetch vehicles:', apiError);
                 setVehicleError(apiError?.detail || 'Failed to load vehicles.');
@@ -261,19 +275,29 @@ const VehiclesPage = () => {
             }
         };
         fetchVehicles();
-    }, [profile]);
+    }, [businessRefId]);
 
     // --- Add Vehicle ---
     const handleAddVehicle = async (vehicleData) => {
         const token = localStorage.getItem('authToken');
-        if (!token || !profile?.business_ref_id) {
-            throw new Error("Missing auth token or business ID.");
+        if (!token) {
+            toast.warn('No auth token found. Request may fail.');
         }
         setIsSubmitting(true);
         setFormError(null);
         try {
-            const addedVehicle = await VehicleService.addVehicle(profile.business_ref_id, vehicleData, token);
-            setVehicles(prevVehicles => [...prevVehicles, addedVehicle]);
+            const addedVehicle = await VehicleService.addVehicle(businessRefId, vehicleData, token);
+            // Normalize returned vehicle to UI shape
+            const nv = {
+                id: addedVehicle._id || addedVehicle.id,
+                registration_no: addedVehicle.registrationNumber || addedVehicle.registration_no || vehicleData.registration_no,
+                vehicle_type: addedVehicle.vehicleType || addedVehicle.vehicle_type || vehicleData.vehicle_type,
+                chassis_number: addedVehicle.chassisNumber || addedVehicle.chassis_number || vehicleData.chassis_number,
+                model: addedVehicle.model || null,
+                status: addedVehicle.status || 'AVAILABLE',
+                inventory: addedVehicle.inventory || [],
+            };
+            setVehicles(prevVehicles => [...prevVehicles, nv]);
             setIsAddModalOpen(false);
             toast.success(`Vehicle "${vehicleData.registration_no}" added successfully!`);
         } catch (apiError) {
@@ -290,15 +314,13 @@ const VehiclesPage = () => {
         setIsSubmitting(true);
         setOpenMenuId(null);
         const token = localStorage.getItem('authToken');
-        if (!token || !profile?.business_ref_id) {
-            setFormError("Cannot remove vehicle: Missing auth token or business ID.");
-            setIsSubmitting(false);
-            return;
+        if (!token) {
+            toast.warn('No auth token found. Request may fail.');
         }
         const originalVehicles = [...vehicles];
         setVehicles(prevVehicles => prevVehicles.filter(v => v.registration_no !== registrationNoToRemove));
         try {
-            await VehicleService.removeVehicle(profile.business_ref_id, registrationNoToRemove, token);
+            await VehicleService.removeVehicle(businessRefId, registrationNoToRemove, token);
             toast.success(`Vehicle "${registrationNoToRemove}" removed successfully!`);
             setIsDeleteModalOpen(false);
             setDeletingVehicle(null);
@@ -336,9 +358,10 @@ const VehiclesPage = () => {
         setFormError(null);
         setIsSubmitting(true);
         
-        const regNo = e.target.regNo.value.trim();
-        const vehicleType = e.target.vehicleType.value.trim();
-        const chassisNumber = e.target.chassisNumber.value.trim();
+    const regNo = e.target.regNo.value.trim();
+    const vehicleType = e.target.vehicleType.value.trim();
+    const chassisNumber = e.target.chassisNumber.value.trim();
+    const modelValue = (e.target.model && e.target.model.value) ? e.target.model.value.trim() : null;
         const token = localStorage.getItem('authToken');
         
         if (!regNo || !vehicleType || !chassisNumber) {
@@ -347,8 +370,11 @@ const VehiclesPage = () => {
             return;
         }
         
-        if (!token || !profile?.business_ref_id || !editingVehicle) {
-            setFormError("Authentication token, business ID, or vehicle data not found.");
+        if (!token) {
+            toast.warn('No auth token found. Request may fail.');
+        }
+        if (!editingVehicle) {
+            setFormError('No vehicle selected for editing.');
             setIsSubmitting(false);
             return;
         }
@@ -356,14 +382,16 @@ const VehiclesPage = () => {
         const updatedVehicleData = { 
             registration_no: regNo, 
             vehicle_type: vehicleType,
-            chassis_number: chassisNumber
+            chassis_number: chassisNumber,
+            model: modelValue || null,
         };
         
         try {
             const updatedVehicle = await VehicleService.updateVehicle(
-                profile.business_ref_id, 
-                editingVehicle.registration_no, 
-                updatedVehicleData, 
+                businessRefId,
+                // pass the DB id (ObjectId) as required by PATCH /vehicles/{id}
+                editingVehicle.id || editingVehicle._id || editingVehicle.registration_no,
+                updatedVehicleData,
                 token
             );
             
@@ -400,29 +428,9 @@ const VehiclesPage = () => {
         return vehicle.registration_no.toLowerCase().includes(searchVehicleNo.toLowerCase());
     });
 
-    // Reset to first page when search changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchVehicleNo]);
-
-    // Calculate pagination
-    const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
-
-    // Handle loading and errors
-    if (isLoadingProfile) {
-        return <div className="profile-card">Loading profile...</div>;
-    }
-
-    if (profileError) {
-        return <div className="profile-card error-message">{profileError}</div>;
-    }
-
-    if (!profile || !profile.business_ref_id) {
-        return <div className="profile-card">Profile data not found. Please log in again.</div>;
-    }
+    // The page should render even if profile data isn't available. We will attempt to use
+    // `businessRefId` from localStorage. If it's missing, API calls will be performed
+    // without org context (server may reject), but UI remains visible.
 
     return (
         <>
@@ -506,10 +514,11 @@ const VehiclesPage = () => {
                                 <table className="vehicle-table" style={{ borderRadius: 0, border: 'none', marginTop: '-1px' }}>
                                     <thead>
                                         <tr>
-                                            <th>Vehicle No</th>
-                                            <th>Model No</th>
-                                            <th>Chassis No</th>
-                                            <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
+                            <th>Vehicle No</th>
+                            <th>Vehicle Type</th>
+                            <th>Model</th>
+                            <th>Chassis No</th>
+                            <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -517,6 +526,7 @@ const VehiclesPage = () => {
                                             <tr key={vehicle.id}>
                                                 <td>{vehicle.registration_no}</td>
                                                 <td>{vehicle.vehicle_type || 'N/A'}</td>
+                                                <td>{vehicle.model || 'N/A'}</td>
                                                 <td>{vehicle.chassis_number || 'N/A'}</td>
                                                 <td style={{ textAlign: 'center', position: 'relative' }}>
                                                     <button
@@ -625,7 +635,7 @@ const VehiclesPage = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Model No *</label>
+                                    <label>Vehicle Type *</label>
                                     <input 
                                         name="vehicleType" 
                                         type="text" 
@@ -637,6 +647,16 @@ const VehiclesPage = () => {
                                 </div>
                             </div>
                             <div className="form-row">
+                                <div className="form-group">
+                                    <label>Model (optional)</label>
+                                    <input
+                                        name="model"
+                                        type="text"
+                                        placeholder="e.g., Ashok Leyland Dost"
+                                        defaultValue={editingVehicle.model || ''}
+                                        disabled={isSubmitting}
+                                    />
+                                </div>
                                 <div className="form-group">
                                     <label>Chassis No *</label>
                                     <input 

@@ -7,7 +7,7 @@ import { getThemeCSS } from "../../utils/colorTheme.js";
 
 import "./BulkUploadVehiclesPage.css";
 import { useProfile } from "./ProfileContext.jsx";
-import apiClient from "../../utils/axiosConfig";
+import { VehicleService } from "./VehicleService.jsx";
 import {
   normalizeVehicleDataset,
   validateVehicleRow,
@@ -24,8 +24,14 @@ const VEHICLE_COLUMNS = [
   },
   {
     key: "vehicle_type",
-    label: "Model No",
+    label: "Vehicle Type",
     placeholder: "Truck / Van",
+    required: false,
+  },
+  {
+    key: "model",
+    label: "Model (optional)",
+    placeholder: "Tata Ace",
     required: false,
   },
   {
@@ -194,35 +200,24 @@ const BulkUploadVehiclesPage = () => {
 
     setIsSubmitting(true);
 
-    const payload = {
-      records: rows.map((r) => ({
-        registration_no: r.registration_no,
-        vehicle_type: r.vehicle_type || null,
-        chassis_number: r.chassis_number || null,
-      })),
-      dry_run: dryRun,
-      upsert: upsert,
-    };
-
-    const token = localStorage.getItem("authToken");
-
+    // Build payload using API expected camelCase keys
+    // Use VehicleService to handle the mapping and API call (it defaults inventory to [])
     try {
-      const response = await apiClient.post(
-        `/vehicles/bulk-upload/${businessRefId}`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const token = localStorage.getItem('authToken');
+      const options = { dry_run: dryRun, upsert };
+      const resp = await VehicleService.addBulkVehicles(businessRefId, rows, options, token);
 
-      setUploadResult(response.data);
+      // VehicleService returns response.data.data when possible, normalize it
+      const respData = resp && resp.data ? resp.data : resp;
+      setUploadResult(respData);
+
+      const created = respData?.createdCount ?? respData?.data?.createdCount ?? respData?.summary?.created ?? 0;
+      const errors = respData?.errors ?? respData?.data?.errors ?? [];
+
       toast.success(
         dryRun
-          ? `Dry run completed: ${response.data.summary?.created || 0} new, ${response.data.summary?.updated || 0} updated`
-          : `Vehicles uploaded successfully: ${response.data.summary?.created || 0} new, ${response.data.summary?.updated || 0} updated`
+          ? `Dry run completed: ${created} created, ${errors.length} error(s)`
+          : `Vehicles uploaded: ${created} created, ${errors.length} error(s)`
       );
 
       if (!dryRun) {
@@ -230,7 +225,7 @@ const BulkUploadVehiclesPage = () => {
       }
     } catch (error) {
       console.error("Submission error:", error);
-      const errorMsg = error.response?.data?.detail || error.message || "Upload failed";
+      const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message || "Upload failed";
       toast.error(errorMsg);
       setUploadResult(null);
     } finally {
@@ -518,7 +513,31 @@ const BulkUploadVehiclesPage = () => {
           )}
         </div>
       </form>
-      
+      {/* Upload Result Summary */}
+      {uploadResult && (
+        <div className="upload-result-summary" style={{ marginTop: 16 }}>
+          <div style={{ padding: 12, background: '#fff', border: '1px solid #e6e7eb', borderRadius: 8 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Upload Summary</div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div>Created: <strong>{uploadResult.createdCount ?? uploadResult.data?.createdCount ?? 0}</strong></div>
+              <div>Errors: <strong>{(uploadResult.errors ?? uploadResult.data?.errors ?? []).length}</strong></div>
+            </div>
+            { (uploadResult.errors ?? uploadResult.data?.errors ?? []).length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>Errors</div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {(uploadResult.errors ?? uploadResult.data?.errors ?? []).slice(0, 10).map((err, i) => (
+                    <li key={i} style={{ marginBottom: 6 }}>
+                      <strong>{err.registrationNumber || err.registration_no || '-'}</strong>: {err.error || err.message || JSON.stringify(err)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Edit Modal Logic */}
       <EditRowModal
         isOpen={editingRowIndex !== null}

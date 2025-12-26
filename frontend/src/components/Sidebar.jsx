@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User, Truck } from 'lucide-react';
+import { Grid, FileText, Settings, LogOut, Users, User, Truck, MapPin } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
@@ -58,12 +58,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         localStorage.removeItem('authToken'); // Clear token on logout
         // Clear individual profile fields on logout
         localStorage.removeItem('profile_id');
-        localStorage.removeItem('profile_user_id');
+        localStorage.removeItem('profile_owner_email');
         localStorage.removeItem('profile_company_name');
-        localStorage.removeItem('profile_business_ref_id');
-        localStorage.removeItem('profile_color');
-        localStorage.removeItem('profile_is_onboarded');
-        localStorage.removeItem('profile_is_superadmin');
+        localStorage.removeItem('profile_gstin');
+        localStorage.removeItem('primaryThemeColor');
         navigate('/login');
     };
 
@@ -135,6 +133,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/vehicles" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Truck size={20} />
                         <span>Vehicles</span>
+                    </NavLink>
+                    <NavLink to="/routes" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <MapPin size={20} />
+                        <span>Routes</span>
                     </NavLink>
                     <NavLink to="/profile" className="nav-link" onClick={closeSidebarOnMobile}>
                         <User size={20} />

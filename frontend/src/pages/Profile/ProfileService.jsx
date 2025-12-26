@@ -3,7 +3,11 @@ import apiClient from '../../utils/axiosConfig';
 const getProfile = async (token) => {
   try {
     const response = await apiClient.get('/api/v1/profile/me');
-    // Return the full profile data
+    // Handle new API response structure: {status: "success", data: {...}}
+    if (response.data && response.data.status === 'success') {
+      return response.data.data;
+    }
+    // Fallback for old response structure
     return response.data;
   } catch (error) {
     // Rethrow the error so the component can handle it, including 404

@@ -9,13 +9,11 @@
  */
 export const storeProfileData = (profileData) => {
     try {
-        localStorage.setItem('profile_id', profileData.id);
-        localStorage.setItem('profile_user_id', profileData.user_id);
-        localStorage.setItem('profile_company_name', profileData.company_name);
-        localStorage.setItem('profile_business_ref_id', profileData.business_ref_id);
-        localStorage.setItem('profile_color', profileData.profile_color);
-        localStorage.setItem('profile_is_onboarded', profileData.is_onboarded.toString());
-        localStorage.setItem('profile_is_superadmin', profileData.is_superadmin.toString());
+        if (profileData._id) localStorage.setItem('profile_id', profileData._id);
+        if (profileData.ownerEmail) localStorage.setItem('profile_owner_email', profileData.ownerEmail);
+        if (profileData.companyName) localStorage.setItem('profile_company_name', profileData.companyName);
+        if (profileData.gstin) localStorage.setItem('profile_gstin', profileData.gstin);
+        if (profileData.primaryThemeColor) localStorage.setItem('primaryThemeColor', profileData.primaryThemeColor);
         console.log('Profile data stored in localStorage:', profileData);
     } catch (error) {
         console.error('Failed to store profile data in localStorage:', error);
@@ -29,17 +27,15 @@ export const storeProfileData = (profileData) => {
 export const getProfileData = () => {
     try {
         const profileData = {
-            id: localStorage.getItem('profile_id'),
-            user_id: localStorage.getItem('profile_user_id'),
-            company_name: localStorage.getItem('profile_company_name'),
-            business_ref_id: localStorage.getItem('profile_business_ref_id'),
-            profile_color: localStorage.getItem('profile_color'),
-            is_onboarded: localStorage.getItem('profile_is_onboarded') === 'true',
-            is_superadmin: localStorage.getItem('profile_is_superadmin') === 'true'
+            _id: localStorage.getItem('profile_id'),
+            ownerEmail: localStorage.getItem('profile_owner_email'),
+            companyName: localStorage.getItem('profile_company_name'),
+            gstin: localStorage.getItem('profile_gstin'),
+            primaryThemeColor: localStorage.getItem('primaryThemeColor')
         };
         
         // Check if any required field is missing
-        if (!profileData.id || !profileData.user_id) {
+        if (!profileData._id) {
             return null;
         }
         
@@ -70,12 +66,10 @@ export const getProfileField = (field) => {
 export const clearProfileData = () => {
     try {
         localStorage.removeItem('profile_id');
-        localStorage.removeItem('profile_user_id');
+        localStorage.removeItem('profile_owner_email');
         localStorage.removeItem('profile_company_name');
-        localStorage.removeItem('profile_business_ref_id');
-        localStorage.removeItem('profile_color');
-        localStorage.removeItem('profile_is_onboarded');
-        localStorage.removeItem('profile_is_superadmin');
+        localStorage.removeItem('profile_gstin');
+        localStorage.removeItem('primaryThemeColor');
         console.log('Profile data cleared from localStorage');
     } catch (error) {
         console.error('Failed to clear profile data from localStorage:', error);
@@ -87,5 +81,5 @@ export const clearProfileData = () => {
  * @returns {boolean} - True if profile data exists, false otherwise
  */
 export const hasProfileData = () => {
-    return localStorage.getItem('profile_id') !== null && localStorage.getItem('profile_user_id') !== null;
+    return localStorage.getItem('profile_id') !== null;
 };

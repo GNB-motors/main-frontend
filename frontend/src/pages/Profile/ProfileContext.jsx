@@ -13,6 +13,8 @@ export const ProfileProvider = ({ children }) => {
     const [profileError, setProfileError] = useState(null);
 
     useEffect(() => {
+        const AUTO_FETCH = import.meta.env.VITE_PROFILE_AUTO_FETCH === 'true';
+
         const fetchProfileData = async () => {
             // Validate token before making request
             if (!validateTokenBeforeRequest()) {
@@ -28,13 +30,14 @@ export const ProfileProvider = ({ children }) => {
                 const data = await ProfileService.getProfile(token);
                 setProfile(data);
                 // Store individual profile fields in localStorage
-                localStorage.setItem('profile_id', data.id);
-                localStorage.setItem('profile_user_id', data.user_id);
-                localStorage.setItem('profile_company_name', data.company_name);
-                localStorage.setItem('profile_business_ref_id', data.business_ref_id);
-                localStorage.setItem('profile_color', data.profile_color);
-                localStorage.setItem('profile_is_onboarded', data.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', data.is_superadmin.toString());
+                if (data._id) localStorage.setItem('profile_id', data._id);
+                if (data.ownerEmail) localStorage.setItem('profile_owner_email', data.ownerEmail);
+                if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
+                if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
+                if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
+                // Store business ref id if provided by backend (supports snake_case or camelCase)
+                if (data.business_ref_id) localStorage.setItem('profile_business_ref_id', data.business_ref_id);
+                else if (data.businessRefId) localStorage.setItem('profile_business_ref_id', data.businessRefId);
                 console.log("ProfileContext: Profile data loaded:", data);
             } catch (error) {
                 console.error("ProfileContext: Failed to fetch profile:", error);
@@ -51,7 +54,15 @@ export const ProfileProvider = ({ children }) => {
             }
         };
 
-        fetchProfileData();
+        // Make profile fetching opt-in via env var so pages that don't need profile
+        // won't trigger /api/v1/profile/me. Set VITE_PROFILE_AUTO_FETCH=true to
+        // restore previous behavior.
+        if (AUTO_FETCH) {
+            fetchProfileData();
+        } else {
+            // Skip auto fetch, leave profile null but not loading
+            setIsLoadingProfile(false);
+        }
 
         // Optional: Listen for storage changes if token might be updated elsewhere
         // window.addEventListener('storage', fetchProfileData);
@@ -70,13 +81,14 @@ export const ProfileProvider = ({ children }) => {
                 const data = await ProfileService.getProfile(token);
                 setProfile(data);
                 // Store individual profile fields in localStorage
-                localStorage.setItem('profile_id', data.id);
-                localStorage.setItem('profile_user_id', data.user_id);
-                localStorage.setItem('profile_company_name', data.company_name);
-                localStorage.setItem('profile_business_ref_id', data.business_ref_id);
-                localStorage.setItem('profile_color', data.profile_color);
-                localStorage.setItem('profile_is_onboarded', data.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', data.is_superadmin.toString());
+                if (data._id) localStorage.setItem('profile_id', data._id);
+                if (data.ownerEmail) localStorage.setItem('profile_owner_email', data.ownerEmail);
+                if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
+                if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
+                if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
+                    // Store business ref id if provided by backend (supports snake_case or camelCase)
+                    if (data.business_ref_id) localStorage.setItem('profile_business_ref_id', data.business_ref_id);
+                    else if (data.businessRefId) localStorage.setItem('profile_business_ref_id', data.businessRefId);
             } catch (error) {
                  console.error("ProfileContext: Failed to reload profile:", error);
                  setProfileError(error?.detail || "Failed to reload profile data.");

@@ -572,7 +572,8 @@
     background: #ffffff;
     border: 1px solid #ececee;
     border-radius: 12px;
-    overflow: hidden;
+    /* allow dropdowns to overflow the table bounds */
+    overflow: visible;
 }
 
 .vehicle-table thead {
@@ -597,6 +598,11 @@
     color: #121214;
     border-bottom: 1px solid #f0f0f3;
     vertical-align: top;
+}
+
+/* Make each table cell a positioning context for absolute-positioned menus */
+.vehicle-table td {
+    position: relative;
 }
 
 .vehicle-table tr:last-child td {

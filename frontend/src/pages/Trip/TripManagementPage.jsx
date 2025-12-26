@@ -11,11 +11,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import './TripManagementPage.css';
+import { TripService } from './services';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();
+  
+  // UI state management
+  const [activeFilter, setActiveFilter] = useState('ONGOING');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0
+  });
+
   // Remove global page-content padding only for this page
   useEffect(() => {
     const pageContentEl = document.querySelector('.page-content');
@@ -28,159 +43,43 @@ const TripManagementPage = () => {
       }
     };
   }, []);
-  // page-content padding handled globally via route-based logic in DashboardLayout
-  
-  // UI state management
-  const [activeFilter, setActiveFilter] = useState('Active');
-  const [searchQuery, setSearchQuery] = useState('');
 
   /**
-   * Mock trips data
-   * TODO: Replace with API call to backend
-   * Structure includes both active and completed trips with full details
+   * Fetch trips from API
    */
-  const mockTrips = [
-    {
-      id: 1,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-01-1234',
-      driverName: 'Driver A (Devayan)',
-      startDate: '2025-12-05',
-      startLocation: 'Kolkata - 700001',
-      destination: 'Mumbai - 400001',
-      odometerStart: 12450,
-      odometerEnd: null,
-      payloadWeight: 8500,
-      lastRefillDate: '2025-12-04',
-      lastRefillQuantity: 120,
-      distance: null
-    },
-    {
-      id: 2,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-02-5678',
-      driverName: 'Driver B (Amitansu)',
-      startDate: '2025-12-03',
-      endDate: '2025-12-03',
-      startLocation: 'Ashta - 466114',
-      destination: 'Greater Thane - 421302',
-      odometerStart: 45200,
-      odometerEnd: 45380,
-      payloadWeight: 12000,
-      lastRefillDate: '2025-12-02',
-      lastRefillQuantity: 150,
-      distance: 180,
-      fuelConsumed: 16.4,
-      mileage: 11.0
-    },
-    {
-      id: 3,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-06-9001',
-      driverName: 'Driver C',
-      startDate: '2025-12-06',
-      startLocation: 'Delhi - 110001',
-      destination: 'Bangalore - 560001',
-      odometerStart: 78900,
-      odometerEnd: null,
-      payloadWeight: 15000,
-      lastRefillDate: '2025-12-05',
-      lastRefillQuantity: 180,
-      distance: null
-    },
-    {
-      id: 4,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-03-7890',
-      driverName: 'Driver D',
-      startDate: '2025-12-04',
-      endDate: '2025-12-04',
-      startLocation: 'Ahmedabad - 380001',
-      destination: 'Chennai - 600001',
-      odometerStart: 32100,
-      odometerEnd: 32310,
-      payloadWeight: 10500,
-      lastRefillDate: '2025-12-03',
-      lastRefillQuantity: 140,
-      distance: 210,
-      fuelConsumed: 21.9,
-      mileage: 9.6
-    },
-    {
-      id: 5,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-04-2345',
-      driverName: 'Driver E',
-      startDate: '2025-12-07',
-      startLocation: 'Pune - 411001',
-      destination: 'Hyderabad - 500001',
-      odometerStart: 56780,
-      odometerEnd: null,
-      payloadWeight: 9200,
-      lastRefillDate: '2025-12-07',
-      lastRefillQuantity: 110,
-      distance: null
-    },
-    {
-      id: 6,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-05-6789',
-      driverName: 'Driver F',
-      startDate: '2025-12-02',
-      endDate: '2025-12-02',
-      startLocation: 'Jaipur - 302001',
-      destination: 'Lucknow - 226001',
-      odometerStart: 23450,
-      odometerEnd: 23680,
-      payloadWeight: 11500,
-      lastRefillDate: '2025-12-01',
-      lastRefillQuantity: 135,
-      distance: 230,
-      fuelConsumed: 19.2,
-      mileage: 12.0
-    },
-    {
-      id: 7,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-07-3456',
-      driverName: 'Driver G',
-      startDate: '2025-12-06',
-      startLocation: 'Surat - 395001',
-      destination: 'Nagpur - 440001',
-      odometerStart: 67890,
-      odometerEnd: null,
-      payloadWeight: 13200,
-      lastRefillDate: '2025-12-06',
-      lastRefillQuantity: 145,
-      distance: null
-    },
-    {
-      id: 8,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-08-8901',
-      driverName: 'Driver H',
-      startDate: '2025-12-01',
-      endDate: '2025-12-01',
-      startLocation: 'Indore - 452001',
-      destination: 'Bhopal - 462001',
-      odometerStart: 89012,
-      odometerEnd: 89200,
-      payloadWeight: 8800,
-      lastRefillDate: '2025-11-30',
-      lastRefillQuantity: 95,
-      distance: 188,
-      fuelConsumed: 17.1,
-      mileage: 11.0
+  const fetchTrips = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+
+      // Add status filter
+      if (activeFilter !== 'ALL') {
+        params.status = activeFilter;
+      }
+
+      const response = await TripService.getAllTrips(params);
+      
+      setTrips(response.data || []);
+      setPagination(prev => ({
+        ...prev,
+        total: response.meta?.total || 0,
+        totalPages: response.meta?.totalPages || 0
+      }));
+    } catch (error) {
+      console.error('Failed to fetch trips:', error);
+      toast.error(error?.message || 'Failed to load trips');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Fetch trips when filter or pagination changes
+  useEffect(() => {
+    fetchTrips();
+  }, [activeFilter, pagination.page]);
 
   /**
    * Event listener for navbar "Start New Trip" button
@@ -197,16 +96,16 @@ const TripManagementPage = () => {
    * Updates the active trips badge in the navigation bar
    */
   useEffect(() => {
-    const activeCount = mockTrips.filter(trip => trip.tripStatus === 'active').length;
+    const activeCount = trips.filter(trip => trip.status === 'ONGOING').length;
     window.dispatchEvent(new CustomEvent('activeTripsUpdate', { detail: { count: activeCount } }));
-  }, [mockTrips]);
+  }, [trips]);
 
   /**
    * Handle trip card click - navigate to trip detail/edit page
    * @param {Object} trip - The trip object that was clicked
    */
   const handleTripClick = (trip) => {
-    navigate(`/trip/${trip.id}`);
+    navigate(`/trip/${trip._id}`);
   };
 
   /**
@@ -215,31 +114,54 @@ const TripManagementPage = () => {
    * @returns {string} Hex color code
    */
   const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'delivered':
+    switch (status) {
+      case 'COMPLETED':
         return '#4caf50';
-      case 'to be updated':
-        return '#5e8ba8';
-      case 'in transit':
-      case 'in progress':
+      case 'ONGOING':
         return '#ff9800';
+      case 'PLANNED':
+        return '#2196f3';
+      case 'CANCELLED':
+        return '#f44336';
       default:
         return '#757575';
     }
   };
 
   /**
-   * Filter trips based on active filter and search query
+   * Get display label for status
+   * @param {string} status - The status of the trip
+   * @returns {string} Display label
+   */
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'Completed';
+      case 'ONGOING':
+        return 'In Progress';
+      case 'PLANNED':
+        return 'Planned';
+      case 'CANCELLED':
+        return 'Cancelled';
+      default:
+        return status;
+    }
+  };
+
+  /**
+   * Filter trips based on search query
    * Searches across: vehicle number, driver name, start location, and destination
    */
-  const filteredTrips = mockTrips.filter(trip => {
-    const matchesFilter = activeFilter === 'All' || trip.tripStatus === activeFilter.toLowerCase();
-    const matchesSearch = searchQuery === '' || 
-      trip.vehicleNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      trip.driverName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (trip.startLocation && trip.startLocation.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesFilter && matchesSearch;
+  const filteredTrips = trips.filter(trip => {
+    if (searchQuery === '') return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
+      trip.driverId?.name?.toLowerCase().includes(query) ||
+      trip.routeSource?.toLowerCase().includes(query) ||
+      trip.routeDestination?.toLowerCase().includes(query)
+    );
   });
 
   return (
@@ -249,20 +171,20 @@ const TripManagementPage = () => {
         <div className="header-content">
           <div className="trip-filters">
             <button
-              className={`filter-btn ${activeFilter === 'Active' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('Active')}
+              className={`filter-btn ${activeFilter === 'ONGOING' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('ONGOING')}
             >
               Active
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'Completed' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('Completed')}
+              className={`filter-btn ${activeFilter === 'COMPLETED' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('COMPLETED')}
             >
               Completed
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'All' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('All')}
+              className={`filter-btn ${activeFilter === 'ALL' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('ALL')}
             >
               All
             </button>
@@ -284,43 +206,59 @@ const TripManagementPage = () => {
       </div>
 
       <div className="page-content">
-        <div className="trips-list">
-          {filteredTrips.map(trip => (
-            <div key={trip.id} className="trip-card-horizontal" onClick={() => handleTripClick(trip)}>
-              <div className="trip-card-section vehicle-section">
-                <div className="section-label">Vehicle Number</div>
-                <div className="section-value vehicle-number">{trip.vehicleNo}</div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px', color: '#666' }}>
+            Loading trips...
+          </div>
+        ) : (
+          <div className="trips-list">
+            {filteredTrips.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                No trips found
               </div>
+            ) : (
+              filteredTrips.map(trip => (
+                <div key={trip._id} className="trip-card-horizontal" onClick={() => handleTripClick(trip)}>
+                  <div className="trip-card-section vehicle-section">
+                    <div className="section-label">Vehicle Number</div>
+                    <div className="section-value vehicle-number">
+                      {trip.vehicleId?.registrationNumber || 'N/A'}
+                    </div>
+                  </div>
 
-              <div className="trip-card-section date-section">
-                <div className="section-label">Date</div>
-                <div className="section-value">{trip.startDate}</div>
-              </div>
+                  <div className="trip-card-section date-section">
+                    <div className="section-label">Start Date</div>
+                    <div className="section-value">
+                      {trip.startTime ? new Date(trip.startTime).toLocaleDateString() : 'N/A'}
+                    </div>
+                  </div>
 
-              <div className="trip-card-section route-section">
-                <div className="section-label">Source</div>
-                <div className="section-value">{trip.startLocation || 'Not specified'}</div>
-              </div>
+                  <div className="trip-card-section route-section">
+                    <div className="section-label">Source</div>
+                    <div className="section-value">{trip.routeSource || 'Not specified'}</div>
+                  </div>
 
-              <div className="trip-card-section destination-section">
-                <div className="section-label">Destination</div>
-                <div className="section-value">{trip.destination || 'Not specified'}</div>
-              </div>
+                  <div className="trip-card-section destination-section">
+                    <div className="section-label">Destination</div>
+                    <div className="section-value">{trip.routeDestination || 'Not specified'}</div>
+                  </div>
 
-              <div className="trip-card-section status-section">
-                <span 
-                  className="trip-status-badge"
-                  style={{ 
-                    backgroundColor: getStatusColor(trip.status) + '20',
-                    color: getStatusColor(trip.status)
-                  }}
-                >
-                  {trip.status}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div className="trip-card-section status-section">
+                    <span 
+                      className="trip-status-badge"
+                      style={{ 
+                        backgroundColor: getStatusColor(trip.status) + '20',
+                        color: getStatusColor(trip.status)
+                      }}
+                    >
+                      {getStatusLabel(trip.status)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
