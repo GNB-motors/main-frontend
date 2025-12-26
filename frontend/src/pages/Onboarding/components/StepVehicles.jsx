@@ -114,7 +114,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
 
             // Prepare complete onboarding payload
             const onboardingPayload = {
-                // User profile data (no longer calling /auth/me endpoint)
+                // User profile data (for /auth/me endpoint)
                 firstName: profileData.firstName || '',
                 lastName: profileData.lastName || '',
                 primaryThemeColor: companyData.selectedColor || '#FF5733',
