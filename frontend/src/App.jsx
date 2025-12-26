@@ -1,8 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 
 import DashboardLayout from './components/DashboardLayout';
-// Updated import path for ProfileProvider
-import { ProfileProvider } from './pages/Profile/ProfileContext.jsx';
+// Removed ProfileProvider import - profile logic completely removed
 import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
 
 // Updated page imports
@@ -28,6 +27,8 @@ import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
+import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
+import AddRefuelPage from './pages/Trip/AddRefuelPage.jsx';
 
 
 function App() {
@@ -46,14 +47,12 @@ function App() {
         <Route path="add-user" element={<AddUserPage />} />
       </Route>
 
-      {/* Protected Routes inside DashboardLayout, wrapped by ProfileProvider */}
+      {/* Protected Routes inside DashboardLayout */}
       <Route
         element={
-          <ProfileProvider> {/* <-- Wrap DashboardLayout routes */}
-            <TripCreationProvider>
-              <DashboardLayout />
-            </TripCreationProvider>
-          </ProfileProvider>
+          <TripCreationProvider>
+            <DashboardLayout />
+          </TripCreationProvider>
         }
       >
         <Route path="/overview" element={<OverviewPage />} />
@@ -65,6 +64,8 @@ function App() {
         <Route path="/trip-management" element={<TripManagementPage />} />
         <Route path="/trip/new" element={<TripCreationFlow />} />
         <Route path="/trip/:tripId" element={<TripManagementPage />} />
+        <Route path="/refuel-logs" element={<RefuelLogsPage />} />
+        <Route path="/refuel/new" element={<AddRefuelPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />

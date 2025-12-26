@@ -15,7 +15,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 // --- IMPORTS FOR CONTEXT ---
-import { useProfile } from '../Profile/ProfileContext.jsx'; // Import useProfile hook
+// Removed useProfile import - profile logic completely removed
 
 // --- IMPORTS FOR SEGREGATED REPORT COMPONENTS ---
 import DriverReport from './reports/DriverReport.jsx';
@@ -34,9 +34,8 @@ const ReportsPage = () => {
     const [selectedReport, setSelectedReport] = useState('driver'); // Default to driver report
     const [highlightedOutlierId, setHighlightedOutlierId] = useState(null); // Used for linking
 
-    // Get profile context
-    const { profile, isLoadingProfile, profileError } = useProfile();
-    const businessRefId = profile?.business_ref_id;
+    // Removed profile context - profile logic completely removed
+    const businessRefId = null;
 
     // Effect for theme
     useEffect(() => { setThemeColors(getThemeCSS()); }, []);
@@ -74,11 +73,9 @@ const ReportsPage = () => {
 
     // --- RENDER FUNCTION (Selects which report component to show) ---
     const renderReport = () => {
-        // Props to pass to all relevant reports
+        // Props to pass to all relevant reports (removed profile dependencies)
         const reportProps = {
-            businessRefId,
-            isLoadingProfile,
-            profileError,
+            // Removed businessRefId, isLoadingProfile, profileError - profile logic completely removed
         };
 
         switch (selectedReport) {

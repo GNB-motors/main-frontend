@@ -15,7 +15,6 @@ import SliderImage4 from '../../carousel/Sidebar_image_4.png';
 // --- Styles & Services ---
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
-import { ProfileService } from '../Profile/ProfileService.jsx';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -72,39 +71,14 @@ const LoginPage = () => {
 
         try {
             const loginData = await LoginPageService.loginUser(credentials);
-            toast.success("Login successful! Loading your profile...");
+            toast.success("Login successful! Redirecting...");
 
             const token = loginData.access_token;
             localStorage.setItem('authToken', token);
             localStorage.setItem('tokenType', loginData.token_type);
 
-            try {
-                const profileData = await ProfileService.getProfile(token);
-                
-                // Store profile fields
-                localStorage.setItem('profile_id', profileData.id);
-                localStorage.setItem('profile_user_id', profileData.user_id);
-                localStorage.setItem('profile_company_name', profileData.company_name);
-                localStorage.setItem('profile_business_ref_id', profileData.business_ref_id);
-                localStorage.setItem('profile_color', profileData.profile_color);
-                localStorage.setItem('profile_is_onboarded', profileData.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', profileData.is_superadmin.toString());
-
-                if (profileData.is_onboarded) {
-                    setTimeout(() => navigate('/overview'), 1500);
-                } else {
-                    toast.info("Please complete your onboarding process.");
-                    setTimeout(() => navigate('/onboarding'), 1500);
-                }
-            } catch (profileError) {
-                 if (profileError?.detail === "Profile not found for this user. Please complete onboarding.") {
-                     toast.info("Please complete your onboarding process.");
-                     setTimeout(() => navigate('/onboarding'), 1500);
-                 } else {
-                     const errorMessage = profileError?.detail || 'Logged in, but failed to retrieve profile status.';
-                     toast.error(errorMessage);
-                 }
-            }
+            // Navigate to onboarding since profile data is no longer fetched
+            setTimeout(() => navigate('/onboarding'), 1500);
 
         } catch (loginApiError) {
             const errorMessage = loginApiError?.detail || 'Login failed. Please check your credentials.';

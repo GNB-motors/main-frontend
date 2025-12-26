@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
 
 import "../Profile/BulkUploadVehiclesPage.css";
-import { useProfile } from "../Profile/ProfileContext.jsx";
+// Removed useProfile import - profile logic completely removed
 import apiClient from "../../utils/axiosConfig";
 import {
   normalizeVehicleDataset,
@@ -50,7 +50,7 @@ const DRIVER_COLUMNS = [
 ];
 
 const BulkUploadPage = () => {
-  const { profile, isLoadingProfile } = useProfile();
+  // Removed useProfile hook - profile logic completely removed
   const navigate = useNavigate();
   const [mode, setMode] = useState("vehicles");
   const [rows, setRows] = useState([]);

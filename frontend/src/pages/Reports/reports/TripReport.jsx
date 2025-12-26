@@ -12,7 +12,7 @@ import { months } from '../../../utils/mockdata.jsx'; // Adjusted path
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
 
 // --- TripReport COMPONENT (Uses fetched data) ---
-const TripReport = ({ businessRefId, isLoadingProfile, profileError }) => {
+const TripReport = ({}) => {
     const [tripData, setTripData] = useState([]);
     const [isLoadingTrips, setIsLoadingTrips] = useState(true);
     const [tripError, setTripError] = useState(null);

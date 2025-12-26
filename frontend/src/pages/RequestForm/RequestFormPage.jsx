@@ -13,9 +13,7 @@ import LoginSubmitIcon from "../../assets/login-submit-icon.svg";
 const RequestFormPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
 
-  // This will hold the logged-in user's profile data
-  const [tmsProfile, setTmsProfile] = useState(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  // Removed profile-related state - profile logic completely removed
 
   // Vehicle data state
   const [vehicles, setVehicles] = useState([]);
@@ -49,7 +47,7 @@ const RequestFormPage = () => {
     before: null,
     after: null,
     submit: null,
-    profile: null,
+    // Removed profile error - profile logic completely removed
   });
   const [isLoading, setIsLoading] = useState({
     before: false,
@@ -316,47 +314,27 @@ const RequestFormPage = () => {
     } catch {}
   };
 
-  // Fetch the user's profile AND vehicles on component load
+  // Fetch vehicles on component load (removed profile dependency)
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // 1. Fetch Profile
-        const profileResponse = await apiClient.get("api/v1/profile/me");
-        const profile = profileResponse.data;
-        setTmsProfile(profile);
-
-        // 2. Fetch Vehicles using profile data
-        if (profile.business_ref_id) {
-          try {
-            // Note: Adjust this endpoint if it's different in your API
-            const vehiclesResponse = await apiClient.get(
-              `api/v1/vehicles/${profile.business_ref_id}`,
-            );
-            setVehicles(vehiclesResponse.data);
-            setVehicleError(null);
-          } catch (vehErr) {
-            console.error("Error fetching vehicles:", vehErr);
-            setVehicleError(
-              vehErr.response?.data?.detail || "Failed to load vehicles.",
-            );
-          } finally {
-            setIsLoadingVehicles(false);
-          }
-        } else {
+        // Removed profile fetching - profile logic completely removed
+        // Fetch Vehicles without profile dependency
+        try {
+          // Note: Adjust this endpoint if it's different in your API
+          const vehiclesResponse = await apiClient.get("api/v1/vehicles");
+          setVehicles(vehiclesResponse.data);
+          setVehicleError(null);
+        } catch (vehErr) {
+          console.error("Error fetching vehicles:", vehErr);
           setVehicleError(
-            "Business ID not found in profile. Cannot load vehicles.",
+            vehErr.response?.data?.detail || "Failed to load vehicles.",
           );
+        } finally {
           setIsLoadingVehicles(false);
         }
-      } catch (profErr) {
-        // Profile fetch failed
-        const errorMsg =
-          profErr.response?.data?.detail ||
-          "Could not fetch your profile. Please log in again.";
-        setError((prev) => ({ ...prev, profile: errorMsg }));
-        setIsLoadingVehicles(false); // Can't load vehicles if profile fails
       } finally {
-        setIsProfileLoading(false); // Profile loading is done
+        setIsProfileLoading(false); // Profile loading is done (always false now)
       }
     };
 
@@ -369,37 +347,11 @@ const RequestFormPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Fetch latest refuel for selected vehicle - Auto-determines flow
+  // Fetch latest refuel for selected vehicle - disabled since profile logic removed
   const fetchLatestRefuel = async (vehicleRegNo) => {
-    if (!tmsProfile || !vehicleRegNo) return;
-
-    setIsLoadingRefuel(true);
-    setRefuelError(null);
-    setLatestRefuel(null);
-    setReportType(null); // Reset report type
-
-    try {
-      const response = await apiClient.get(
-        `api/v1/ocr/latest-refuel/${tmsProfile.id}/${vehicleRegNo}`
-      );
-      // Scenario B: Latest receipt exists - use "since_last_refuel" flow
-      setLatestRefuel(response.data);
-      setReportType("since_last_refuel");
-      console.log("✅ Scenario B: Found latest refuel, using since_last_refuel flow");
-    } catch (err) {
-      if (err.response?.status === 404) {
-        // Scenario A: No previous refuel - use "custom_trip" flow
-        setReportType("custom_trip");
-        setLatestRefuel(null);
-        console.log("✅ Scenario A: No refuel history, using custom_trip flow");
-      } else {
-        const errorMsg = err.response?.data?.detail || "Failed to fetch refuel data.";
-        setRefuelError(errorMsg);
-        setLatestRefuel(null);
-      }
-    } finally {
-      setIsLoadingRefuel(false);
-    }
+    // Profile logic removed - always use custom_trip flow
+    setReportType("custom_trip");
+    console.log("✅ Using custom_trip flow (profile logic removed)");
   };
 
   // Auto-detect flow when vehicle is selected

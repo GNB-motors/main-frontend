@@ -210,20 +210,9 @@ const VehiclesPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
 
-    // Update theme colors when component mounts or profile color changes
+    // Update theme colors when component mounts
     useEffect(() => {
-        const updateTheme = () => {
-            const newTheme = getThemeCSS();
-            console.log('VehiclesPage theme colors:', newTheme);
-            setThemeColors(newTheme);
-        };
-
-        updateTheme();
-
-        window.addEventListener('storage', updateTheme);
-        return () => {
-            window.removeEventListener('storage', updateTheme);
-        };
+        setThemeColors(getThemeCSS());
     }, []);
 
     // Handle click outside to close dropdown
@@ -428,9 +417,13 @@ const VehiclesPage = () => {
         return vehicle.registration_no.toLowerCase().includes(searchVehicleNo.toLowerCase());
     });
 
-    // The page should render even if profile data isn't available. We will attempt to use
-    // `businessRefId` from localStorage. If it's missing, API calls will be performed
-    // without org context (server may reject), but UI remains visible.
+    // --- Pagination logic ---
+    const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
+
+    // The page renders without profile context or businessRefId.
 
     return (
         <>
