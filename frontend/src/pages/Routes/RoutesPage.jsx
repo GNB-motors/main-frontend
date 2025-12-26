@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, Activity, MapPin } from 'lucide-react';
 import { toast } from 'react-toastify';
 import RouteService from './RouteService';
-import RouteFormModal from './RouteFormModal';
+import { useNavigate } from 'react-router-dom';
 import './RoutesPage.css';
 
 const RoutesPage = () => {
@@ -15,10 +15,9 @@ const RoutesPage = () => {
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
+  const navigate = useNavigate();
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
 
   // Form state - matches backend API structure
@@ -91,17 +90,11 @@ const RoutesPage = () => {
     }));
   }, []);
 
-  // Open edit modal
-  const openEditModal = useCallback((route) => {
-    setSelectedRoute(route);
-    setFormData({
-      name: route.name,
-      sourceLocation: route.sourceLocation,
-      destLocation: route.destLocation,
-      distanceKm: route.distanceKm
-    });
-    setShowEditModal(true);
-  }, []);
+
+  // Navigate to edit page
+  const openEditPage = useCallback((route) => {
+    navigate('/routes/add', { state: { editingRoute: route } });
+  }, [navigate]);
 
   // Open delete modal
   const openDeleteModal = useCallback((route) => {
@@ -109,79 +102,9 @@ const RoutesPage = () => {
     setShowDeleteModal(true);
   }, []);
 
-  // Add route
-  const handleAddRoute = useCallback(async () => {
-    try {
-      if (!formData.name.trim()) {
-        toast.error('Route name is required');
-        return;
-      }
-      if (!formData.sourceLocation.address || !formData.sourceLocation.city) {
-        toast.error('Source location is incomplete');
-        return;
-      }
-      if (!formData.destLocation.address || !formData.destLocation.city) {
-        toast.error('Destination location is incomplete');
-        return;
-      }
-      if (!formData.distanceKm) {
-        toast.error('Distance is required');
-        return;
-      }
 
-      // Prepare payload with proper types
-      const payload = {
-        ...formData,
-        distanceKm: parseFloat(formData.distanceKm) || 0,
-      };
 
-      await RouteService.createRoute(payload);
-      toast.success('Route created successfully');
-      setShowAddModal(false);
-      resetForm();
-      fetchRoutes(meta.page, searchTerm);
-    } catch (error) {
-      const errorMsg = error?.message || 'Failed to create route';
-      toast.error(errorMsg);
-    }
-  }, [formData, fetchRoutes, meta.page, searchTerm, resetForm]);
 
-  // Update route
-  const handleUpdateRoute = useCallback(async () => {
-    try {
-      if (!formData.name.trim()) {
-        toast.error('Route name is required');
-        return;
-      }
-      if (!formData.sourceLocation.address || !formData.sourceLocation.city) {
-        toast.error('Source location is incomplete');
-        return;
-      }
-      if (!formData.destLocation.address || !formData.destLocation.city) {
-        toast.error('Destination location is incomplete');
-        return;
-      }
-      if (!formData.distanceKm) {
-        toast.error('Distance is required');
-        return;
-      }
-
-      // Prepare payload with proper types
-      const payload = {
-        ...formData,
-        distanceKm: parseFloat(formData.distanceKm) || 0,
-      };
-
-      await RouteService.updateRoute(selectedRoute._id, payload);
-      toast.success('Route updated successfully');
-      setShowEditModal(false);
-      resetForm();
-      fetchRoutes(meta.page, searchTerm);
-    } catch (error) {
-      const errorMsg = error?.message || 'Failed to update route';
-      toast.error(errorMsg);
-    }
-  }, [formData, selectedRoute, fetchRoutes, meta.page, searchTerm, resetForm]);
 
   // Delete route
   const handleDeleteRoute = useCallback(async () => {
@@ -217,7 +140,7 @@ const RoutesPage = () => {
         <h1>Routes Management</h1>
         <button
           className="btn btn-primary"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => navigate('/routes/add')}
         >
           <Plus size={18} />
           Add Route
@@ -291,7 +214,7 @@ const RoutesPage = () => {
                     <td className="actions-cell">
                       <button
                         className="btn-icon edit"
-                        onClick={() => openEditModal(route)}
+                        onClick={() => openEditPage(route)}
                         title="Edit route"
                       >
                         <Edit2 size={16} />
@@ -331,35 +254,7 @@ const RoutesPage = () => {
         )}
       </div>
 
-      {/* Add Route Modal */}
-      <RouteFormModal
-        isOpen={showAddModal}
-        title="Add New Route"
-        formData={formData}
-        onClose={() => {
-          setShowAddModal(false);
-          resetForm();
-        }}
-        onSubmit={handleAddRoute}
-        onInputChange={handleInputChange}
-        onLocationChange={handleLocationChange}
-        submitButtonText="Create Route"
-      />
 
-      {/* Edit Route Modal */}
-      <RouteFormModal
-        isOpen={showEditModal}
-        title="Edit Route"
-        formData={formData}
-        onClose={() => {
-          setShowEditModal(false);
-          resetForm();
-        }}
-        onSubmit={handleUpdateRoute}
-        onInputChange={handleInputChange}
-        onLocationChange={handleLocationChange}
-        submitButtonText="Update Route"
-      />
 
       {/* Delete Route Modal */}
       {showDeleteModal && selectedRoute && (

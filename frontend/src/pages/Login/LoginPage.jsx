@@ -185,22 +185,18 @@ const LoginPage = () => {
 
                 {/* --- RIGHT SIDE: CAROUSEL --- */}
                 <div className="carousel-panel">
-                    
-                    {/* Background Images */}
-                    {slides.map((slide, index) => (
-                        <div 
-                            key={index} 
-                            className={`carousel-slide ${index === currentSlide ? 'active' : ''}`}
-                        >
-                            <img src={slide.image} alt={slide.title} />
-                        </div>
-                    ))}
+                    <div className="carousel-content-wrapper">
+                        {/* Background Images */}
+                        {slides.map((slide, index) => (
+                            <div 
+                                key={index} 
+                                className={`carousel-slide ${index === currentSlide ? 'active' : ''}`}
+                            >
+                                <img src={slide.image} alt={slide.title} />
+                            </div>
+                        ))}
 
-                    {/* Floating Overlay Card */}
-                    <div className="carousel-card">
-                        <h2>{slides[currentSlide].title}</h2>
-                        <p>{slides[currentSlide].text}</p>
-
+                        {/* Carousel Indicators */}
                         <div className="carousel-indicators">
                             {slides.map((_, index) => (
                                 <span 

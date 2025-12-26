@@ -27,6 +27,7 @@ import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
+import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 
 
 function App() {
@@ -67,7 +68,8 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
-        <Route path="/routes" element={<RoutesPage />} />
+  <Route path="/routes" element={<RoutesPage />} />
+  <Route path="/routes/add" element={<AddRoutePage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
