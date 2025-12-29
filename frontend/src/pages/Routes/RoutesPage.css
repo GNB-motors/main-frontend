@@ -645,3 +645,74 @@
     font-size: 13px;
   }
 }
+
+/* Address input wrapper for Google Maps integration */
+.address-input-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.address-input-wrapper input {
+  flex: 1;
+  padding-right: 40px; /* Space for the map button */
+}
+
+.map-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  color: #64748b;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-button:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.map-button:active {
+  background-color: #e2e8f0;
+}
+/* Address input with map button */
+.address-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.address-input-wrapper input {
+  flex: 1;
+  padding-right: 50px;
+}
+
+.map-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #e2e8f0;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-button:hover {
+  background: #cbd5e1;
+  color: #475569;
+}

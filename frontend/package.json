@@ -17,6 +17,7 @@
     "@mui/x-data-grid": "^8.15.0",
     "@mui/x-date-pickers": "^8.15.0",
     "@mui/x-date-pickers-pro": "^8.22.1",
+    "@react-google-maps/api": "^2.20.8",
     "axios": "^1.12.2",
     "cropperjs": "^2.1.0",
     "dayjs": "^1.11.18",

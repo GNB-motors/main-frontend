@@ -1,25 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { DriverService } from './DriverService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
+import PageHeader from './Component/PageHeader.jsx';
+import BasicInformationForm from './Component/BasicInformationForm.jsx';
+import FormFooter from './Component/FormFooter.jsx';
 import './DriversPage.css';
 
 const AddDriverPage = () => {
   const navigate = useNavigate();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [locationValue, setLocationValue] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('DRIVER');
+  const location = useLocation();
+  const formRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
-
-  const location = useLocation();
+  const [initialFormData, setInitialFormData] = useState({});
 
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
 
@@ -35,44 +32,53 @@ const AddDriverPage = () => {
     const editing = location?.state?.editingDriver;
     if (editing) {
       setIsEdit(true);
-      setDriverId(editing.id || editing._id || editing._id);
-  setFirstName(editing.firstName || editing.first_name || '');
-  setLastName(editing.lastName || editing.last_name || '');
-  setEmail(editing.email || '');
-  setMobileNumber(editing.mobileNumber || editing.mobile_number || '');
-  setLocationValue(editing.location || '');
-      setRole(editing.role || 'DRIVER');
-      // Do not prefill password
+      setDriverId(editing.id || editing._id);
+      const formData = {
+        firstName: editing.firstName || editing.first_name || '',
+        lastName: editing.lastName || editing.last_name || '',
+        email: editing.email || '',
+        mobileNumber: editing.mobileNumber || editing.mobile_number || '',
+        location: editing.location || '',
+        role: editing.role || 'DRIVER',
+        password: '', // Don't prefill password
+      };
+      console.log('Editing driver:', editing);
+      console.log('Setting form data:', formData);
+      setInitialFormData(formData);
+    } else {
+      // Reset to add mode when no editing driver
+      setIsEdit(false);
+      setDriverId(null);
+      setInitialFormData({});
     }
-  }, [location]);
+  }, [location?.state?.editingDriver]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (formData) => {
     setIsSubmitting(true);
     try {
       if (isEdit) {
         // Build update payload with only provided fields
         const updatePayload = {};
-        if (firstName !== undefined) updatePayload.firstName = firstName;
-        if (lastName !== undefined) updatePayload.lastName = lastName;
-        if (email !== undefined) updatePayload.email = email;
-  if (mobileNumber !== undefined) updatePayload.mobileNumber = mobileNumber;
-  if (locationValue !== undefined) updatePayload.location = locationValue;
-        if (password) updatePayload.password = password; // only include if non-empty
-        if (role !== undefined) updatePayload.role = role;
+        if (formData.firstName !== undefined) updatePayload.firstName = formData.firstName;
+        if (formData.lastName !== undefined) updatePayload.lastName = formData.lastName;
+        if (formData.email !== undefined) updatePayload.email = formData.email;
+        if (formData.mobileNumber !== undefined) updatePayload.mobileNumber = formData.mobileNumber;
+        if (formData.location !== undefined) updatePayload.location = formData.location;
+        if (formData.password) updatePayload.password = formData.password; // only include if non-empty
+        if (formData.role !== undefined) updatePayload.role = formData.role;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
         toast.success('Employee updated successfully');
         navigate('/drivers');
       } else {
         const payload = {
-          firstName: firstName || null,
-          lastName: lastName || null,
-          email: email || null,
-          mobileNumber: mobileNumber || null,
-          location: locationValue || null,
-          password: password || null,
-          role: role || 'DRIVER',
+          firstName: formData.firstName || null,
+          lastName: formData.lastName || null,
+          email: formData.email || null,
+          mobileNumber: formData.mobileNumber || null,
+          location: formData.location || null,
+          password: formData.password || null,
+          role: formData.role || 'DRIVER',
         };
 
         await DriverService.addDriver(businessRefId, payload);
@@ -88,59 +94,45 @@ const AddDriverPage = () => {
     }
   };
 
+  const handleFooterSubmit = (e) => {
+    e.preventDefault();
+    if (formRef.current) {
+      formRef.current.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }
+  };
+
   return (
     <div className="drivers-page" style={themeColors}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => navigate(-1)} className="drivers-btn drivers-btn-secondary">Back</button>
-        <h2>{isEdit ? 'Edit Employee' : 'Add Employee'}</h2>
+      <div className="drivers-content-wrapper" style={{ paddingBottom: '80px' }}>
+        <PageHeader
+          backLabel="Employees"
+          backPath="/drivers"
+          currentLabel={isEdit ? (initialFormData.firstName && initialFormData.lastName ? `${initialFormData.firstName} ${initialFormData.lastName}` : initialFormData.firstName || 'Employee') : null}
+          title="Employee Details"
+          description={
+            isEdit 
+              ? 'Update employee information including personal details, contact information, and role assignment.' 
+              : 'Configure essential employee details, including the name, contact information, location, and role assignment.'
+          }
+          onBack={() => navigate(-1)}
+        />
+
+        <BasicInformationForm
+          ref={formRef}
+          initialData={initialFormData}
+          onSubmit={handleSubmit}
+          onCancel={() => navigate(-1)}
+          isSubmitting={isSubmitting}
+          isEdit={isEdit}
+        />
       </div>
 
-      <form className="drivers-add-page-form" onSubmit={handleSubmit} style={{ marginTop: 16 }}>
-        <div className="drivers-form-row">
-          <div className="drivers-form-group">
-            <label>First Name *</label>
-            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-          </div>
-          <div className="drivers-form-group">
-            <label>Last Name</label>
-            <input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="drivers-form-row">
-          <div className="drivers-form-group">
-            <label>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="drivers-form-group">
-            <label>Mobile Number</label>
-            <input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="drivers-form-row">
-          <div className="drivers-form-group">
-            <label>Location</label>
-            <input value={locationValue} onChange={(e) => setLocationValue(e.target.value)} />
-          </div>
-          <div className="drivers-form-group">
-            <label>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="drivers-form-row">
-          <div className="drivers-form-group">
-            <label>Role</label>
-            <input value={role} onChange={(e) => setRole(e.target.value)} />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <button type="button" className="drivers-btn drivers-btn-secondary" onClick={() => navigate(-1)} disabled={isSubmitting}>Cancel</button>
-          <button type="submit" className="drivers-btn drivers-btn-primary" style={{ marginLeft: 8 }} disabled={isSubmitting}>{isSubmitting ? (isEdit ? 'Saving...' : 'Adding...') : (isEdit ? 'Save Changes' : 'Add Employee')}</button>
-        </div>
-      </form>
+      <FormFooter
+        onCancel={() => navigate(-1)}
+        onSubmit={handleFooterSubmit}
+        isSubmitting={isSubmitting}
+        isEdit={isEdit}
+      />
     </div>
   );
 };
