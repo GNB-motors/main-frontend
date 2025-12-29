@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import RouteService from './RouteService';
+import GoogleMapsModal from '../../components/GoogleMapsModal/GoogleMapsModal';
 import './RoutesPage.css';
 
 const AddRoutePage = () => {
@@ -16,6 +17,8 @@ const AddRoutePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [routeId, setRouteId] = useState(null);
+  const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
+  const [currentLocationType, setCurrentLocationType] = useState(null); // 'source' or 'destination'
 
   const location = useLocation();
 
@@ -47,6 +50,25 @@ const AddRoutePage = () => {
       [locationType]: {
         ...prev[locationType],
         [field]: value
+      }
+    }));
+  };
+
+  const handleOpenMapsModal = (locationType) => {
+    setCurrentLocationType(locationType);
+    setIsMapsModalOpen(true);
+  };
+
+  const handleApplyLocation = (locationData) => {
+    const locationType = currentLocationType === 'source' ? 'sourceLocation' : 'destLocation';
+    setFormData(prev => ({
+      ...prev,
+      [locationType]: {
+        address: locationData.address,
+        city: locationData.city,
+        state: locationData.state,
+        lat: locationData.lat,
+        lng: locationData.lng
       }
     }));
   };
@@ -132,7 +154,22 @@ const AddRoutePage = () => {
           <div className="location-grid">
             <div className="form-group">
               <label>Address *</label>
-              <input value={formData.sourceLocation.address} onChange={e => handleLocationChange('sourceLocation', 'address', e.target.value)} required />
+              <div className="address-input-wrapper">
+                <input
+                  value={formData.sourceLocation.address}
+                  onChange={e => handleLocationChange('sourceLocation', 'address', e.target.value)}
+                  required
+                  placeholder="Click to select location on map"
+                />
+                <button
+                  type="button"
+                  className="map-button"
+                  onClick={() => handleOpenMapsModal('source')}
+                  title="Select location on map"
+                >
+                  <MapPin size={16} />
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label>City *</label>
@@ -149,7 +186,22 @@ const AddRoutePage = () => {
           <div className="location-grid">
             <div className="form-group">
               <label>Address *</label>
-              <input value={formData.destLocation.address} onChange={e => handleLocationChange('destLocation', 'address', e.target.value)} required />
+              <div className="address-input-wrapper">
+                <input
+                  value={formData.destLocation.address}
+                  onChange={e => handleLocationChange('destLocation', 'address', e.target.value)}
+                  required
+                  placeholder="Click to select location on map"
+                />
+                <button
+                  type="button"
+                  className="map-button"
+                  onClick={() => handleOpenMapsModal('destination')}
+                  title="Select location on map"
+                >
+                  <MapPin size={16} />
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label>City *</label>
@@ -166,6 +218,21 @@ const AddRoutePage = () => {
           <button type="submit" className="btn btn-primary" style={{ marginLeft: 8 }} disabled={isSubmitting}>{isSubmitting ? (isEdit ? 'Saving...' : 'Adding...') : (isEdit ? 'Save Changes' : 'Create Route')}</button>
         </div>
       </form>
+
+      <GoogleMapsModal
+        isOpen={isMapsModalOpen}
+        onClose={() => setIsMapsModalOpen(false)}
+        onApply={handleApplyLocation}
+        initialLocation={
+          currentLocationType === 'source'
+            ? formData.sourceLocation.lat && formData.sourceLocation.lng
+              ? { lat: formData.sourceLocation.lat, lng: formData.sourceLocation.lng }
+              : null
+            : formData.destLocation.lat && formData.destLocation.lng
+              ? { lat: formData.destLocation.lat, lng: formData.destLocation.lng }
+              : null
+        }
+      />
     </div>
   );
 };
