@@ -66,7 +66,10 @@ const TripCreationFlow = () => {
   /**
    * Move to processing phase after intake
    */
-  const [tripId, setTripId] = useState(null);
+  const [tripId, setTripId] = useState(() => {
+    // Try to recover tripId from localStorage on component mount
+    return localStorage.getItem('tripId') || null;
+  });
   const [isIntakeLoading, setIsIntakeLoading] = useState(false);
 
   const handleStartProcessing = useCallback(async () => {
@@ -99,6 +102,8 @@ const TripCreationFlow = () => {
       const newTripId = tripResp?.tripId || tripResp?.data?.tripId || tripResp?.data?._id || tripResp?._id;
       if (!newTripId) throw new Error('Failed to get tripId from backend');
       setTripId(newTripId);
+      // Persist tripId in localStorage for recovery
+      localStorage.setItem('tripId', newTripId);
 
 
       // 2. Upload odometer document (to /documents), then associate with trip
@@ -115,6 +120,11 @@ const TripCreationFlow = () => {
         docType: 'ODOMETER',
         ocrData: sanitizedOdoOcr
       });
+      
+      if (!odoDoc || !odoDoc._id) {
+        throw new Error('Failed to upload odometer document');
+      }
+      
       await TripService.uploadDocument(newTripId, 'ODOMETER', odoDoc._id, sanitizedOdoOcr);
 
       // 3. Upload fuel documents (full tank and/or partial)
@@ -126,6 +136,11 @@ const TripCreationFlow = () => {
           docType: 'FUEL_SLIP',
           ocrData: fixedDocs.fuel.ocrData
         });
+        
+        if (!fuelDoc || !fuelDoc._id) {
+          throw new Error('Failed to upload fuel document');
+        }
+        
         await TripService.uploadDocument(newTripId, 'FUEL_SLIP', fuelDoc._id, fixedDocs.fuel.ocrData);
       }
       if (fixedDocs.partialFuel && fixedDocs.partialFuel.length > 0) {
@@ -137,6 +152,11 @@ const TripCreationFlow = () => {
             docType: 'FUEL_SLIP',
             ocrData: fuel.file.ocrData
           });
+          
+          if (!partialDoc || !partialDoc._id) {
+            throw new Error('Failed to upload partial fuel document');
+          }
+          
           await TripService.uploadDocument(newTripId, 'FUEL_SLIP', partialDoc._id, fuel.file.ocrData);
         }
       }
@@ -150,7 +170,12 @@ const TripCreationFlow = () => {
           docType: 'WEIGHT_CERTIFICATE',
           ocrData: slip.ocrData || (slip.file && slip.file.ocrData) || undefined
         });
-        await TripService.uploadDocument(newTripId, 'WEIGHT_CERTIFICATE', slipDoc._id, slip.ocrData || (slip.file && slip.file.ocrData) || undefined);
+        
+        if (!slipDoc || !slipDoc._id) {
+          throw new Error('Failed to upload weight certificate document');
+        }
+        
+        await TripService.uploadDocument(newTripId, 'WEIGHT_CERT', slipDoc._id, slip.ocrData || (slip.file && slip.file.ocrData) || undefined);
       }
 
       setActiveStep(1);
@@ -216,47 +241,57 @@ const TripCreationFlow = () => {
    * Submit the complete trip data
    */
   const handleSubmit = useCallback(async () => {
+    if (!tripId) {
+      toast.error('No trip ID found. Please restart the trip creation process.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Prepare trip data
-      const tripData = {
-        fixedDocs: {
-          odometerS3: fixedDocs.odometer?.s3Url || fixedDocs.odometer?.preview,
-          fuelS3: fixedDocs.fuel?.s3Url || fixedDocs.fuel?.preview,
-          partialFuelS3: (fixedDocs.partialFuel || []).map(fuel => ({
-            s3Url: fuel.file?.s3Url || fuel.file?.preview,
-            fuelType: fuel.fuelType,
-            index: fuel.index
-          }))
-        },
-        weightSlips: weightSlips.map(slip => ({
-          thumbnailS3: slip.file?.s3Url || slip.file?.preview,
-          origin: slip.origin,
-          destination: slip.destination,
-          weight: slip.weight,
-          isDone: slip.isDone
-        }))
+      // Prepare trip update data
+      const firstSlip = weightSlips[0];
+      const lastSlip = weightSlips[weightSlips.length - 1];
+      
+      const updateData = {
+        routeSource: firstSlip?.origin,
+        routeDestination: lastSlip?.destination,
+        startOdometer: firstSlip?.startOdometer || fixedDocs.odometer?.ocrData?.reading,
+        // Add any other final trip data here
       };
 
-      // TODO: Submit to backend API
-      console.log('Submitting trip data:', tripData);
+      // Update the trip with final data
+      await TripService.updateTrip(tripId, updateData);
+
+      // Get the updated trip data
+      const tripDetails = await TripService.getTripById(tripId);
+
       toast.success('Trip created successfully!');
       
-      // Redirect to trip management
-      navigate('/trip/management');
+      // Clear tripId from localStorage after successful completion
+      localStorage.removeItem('tripId');
+      
+      // Navigate to trip details page with trip data
+      navigate(`/trip/${tripId}`, { 
+        state: { 
+          trip: tripDetails,
+          fromCreation: true 
+        }
+      });
     } catch (error) {
       console.error('Failed to submit trip:', error);
       toast.error(error?.message || 'Failed to submit trip');
     } finally {
       setIsSubmitting(false);
     }
-  }, [fixedDocs, weightSlips, navigate]);
+  }, [tripId, weightSlips, fixedDocs.odometer, navigate]);
 
   /**
    * Handle cancel
    */
   const handleCancel = useCallback(() => {
     if (window.confirm('Are you sure? All unsaved data will be lost.')) {
+      // Clear tripId from localStorage on cancel
+      localStorage.removeItem('tripId');
       navigate('/trip/management');
     }
   }, [navigate]);
@@ -290,6 +325,7 @@ const TripCreationFlow = () => {
           onPreviousSlip={handlePreviousSlip}
           onSelectSlip={handleSelectSlip}
           onCancel={handleCancel}
+          tripId={tripId}
         />
       )}
 

@@ -35,7 +35,7 @@ const ProcessingPhase = ({
         <p>No trip is currently active. Please start a new trip from the beginning.</p>
         <button className="btn btn-primary" onClick={() => {
           localStorage.removeItem('tripId');
-          window.location.href = '/trip/create';
+          window.location.href = '/trip/new';
         }}>
           Restart Trip Creation
         </button>

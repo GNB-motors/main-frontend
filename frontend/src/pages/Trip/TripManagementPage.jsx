@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import './TripManagementPage.css';
@@ -18,12 +18,18 @@ import { TripService } from './services';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();
+  const { tripId } = useParams();
+  
+  // Determine mode: list or detail view
+  const isDetailView = !!tripId;
   
   // UI state management
   const [activeFilter, setActiveFilter] = useState('ONGOING');
   const [searchQuery, setSearchQuery] = useState('');
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [loadingTrip, setLoadingTrip] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 50,
@@ -76,10 +82,33 @@ const TripManagementPage = () => {
     }
   };
 
-  // Fetch trips when filter or pagination changes
+  // Fetch trips when filter or pagination changes (only in list view)
   useEffect(() => {
-    fetchTrips();
-  }, [activeFilter, pagination.page]);
+    if (!isDetailView) {
+      fetchTrips();
+    }
+  }, [activeFilter, pagination.page, isDetailView]);
+
+  // Fetch individual trip when in detail view
+  useEffect(() => {
+    if (isDetailView && tripId) {
+      fetchTripDetails();
+    }
+  }, [isDetailView, tripId]);
+
+  const fetchTripDetails = async () => {
+    setLoadingTrip(true);
+    try {
+      const response = await TripService.getTripById(tripId);
+      setSelectedTrip(response.data);
+    } catch (error) {
+      console.error('Failed to fetch trip details:', error);
+      toast.error('Failed to load trip details');
+      navigate('/trip-management'); // Redirect to list if trip not found
+    } finally {
+      setLoadingTrip(false);
+    }
+  };
 
   /**
    * Event listener for navbar "Start New Trip" button
@@ -166,100 +195,184 @@ const TripManagementPage = () => {
 
   return (
     <div className="page-container">
-      {/* Fixed Header */}
-      <div className="trip-management-header">
-        <div className="header-content">
-          <div className="trip-filters">
-            <button
-              className={`filter-btn ${activeFilter === 'ONGOING' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('ONGOING')}
+      {isDetailView ? (
+        // Trip Detail View
+        <div className="trip-detail-view">
+          <div className="detail-header">
+            <button 
+              className="back-btn"
+              onClick={() => navigate('/trip-management')}
             >
-              Active
+              ← Back to Trips
             </button>
-            <button
-              className={`filter-btn ${activeFilter === 'COMPLETED' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('COMPLETED')}
-            >
-              Completed
-            </button>
-            <button
-              className={`filter-btn ${activeFilter === 'ALL' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('ALL')}
-            >
-              All
-            </button>
+            <h1>Trip Details</h1>
           </div>
-
-          <div className="search-bar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              type="text"
-              placeholder="Search by vehicle, driver, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="page-content">
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px', color: '#666' }}>
-            Loading trips...
-          </div>
-        ) : (
-          <div className="trips-list">
-            {filteredTrips.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                No trips found
-              </div>
-            ) : (
-              filteredTrips.map(trip => (
-                <div key={trip._id} className="trip-card-horizontal" onClick={() => handleTripClick(trip)}>
-                  <div className="trip-card-section vehicle-section">
-                    <div className="section-label">Vehicle Number</div>
-                    <div className="section-value vehicle-number">
-                      {trip.vehicleId?.registrationNumber || 'N/A'}
-                    </div>
+          
+          {loadingTrip ? (
+            <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px', color: '#666' }}>
+              Loading trip details...
+            </div>
+          ) : selectedTrip ? (
+            <div className="trip-detail-content">
+              <div className="detail-section">
+                <h3>Trip Information</h3>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <label>Trip ID:</label>
+                    <span>{selectedTrip._id}</span>
                   </div>
-
-                  <div className="trip-card-section date-section">
-                    <div className="section-label">Start Date</div>
-                    <div className="section-value">
-                      {trip.startTime ? new Date(trip.startTime).toLocaleDateString() : 'N/A'}
-                    </div>
-                  </div>
-
-                  <div className="trip-card-section route-section">
-                    <div className="section-label">Source</div>
-                    <div className="section-value">{trip.routeSource || 'Not specified'}</div>
-                  </div>
-
-                  <div className="trip-card-section destination-section">
-                    <div className="section-label">Destination</div>
-                    <div className="section-value">{trip.routeDestination || 'Not specified'}</div>
-                  </div>
-
-                  <div className="trip-card-section status-section">
+                  <div className="detail-item">
+                    <label>Status:</label>
                     <span 
-                      className="trip-status-badge"
+                      className="status-badge"
                       style={{ 
-                        backgroundColor: getStatusColor(trip.status) + '20',
-                        color: getStatusColor(trip.status)
+                        backgroundColor: getStatusColor(selectedTrip.status) + '20',
+                        color: getStatusColor(selectedTrip.status)
                       }}
                     >
-                      {getStatusLabel(trip.status)}
+                      {getStatusLabel(selectedTrip.status)}
                     </span>
                   </div>
+                  <div className="detail-item">
+                    <label>Vehicle:</label>
+                    <span>{selectedTrip.vehicleId?.registrationNumber || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Driver:</label>
+                    <span>{selectedTrip.driverId?.name || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Source:</label>
+                    <span>{selectedTrip.routeSource || 'Not specified'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Destination:</label>
+                    <span>{selectedTrip.routeDestination || 'Not specified'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Start Odometer:</label>
+                    <span>{selectedTrip.startOdometer || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>End Odometer:</label>
+                    <span>{selectedTrip.endOdometer || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Start Time:</label>
+                    <span>{selectedTrip.startTime ? new Date(selectedTrip.startTime).toLocaleString() : 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>End Time:</label>
+                    <span>{selectedTrip.endTime ? new Date(selectedTrip.endTime).toLocaleString() : 'N/A'}</span>
+                  </div>
                 </div>
-              ))
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              Trip not found
+            </div>
+          )}
+        </div>
+      ) : (
+        // Trip List View
+        <>
+          {/* Fixed Header */}
+          <div className="trip-management-header">
+            <div className="header-content">
+              <div className="trip-filters">
+                <button
+                  className={`filter-btn ${activeFilter === 'ONGOING' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('ONGOING')}
+                >
+                  Active
+                </button>
+                <button
+                  className={`filter-btn ${activeFilter === 'COMPLETED' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('COMPLETED')}
+                >
+                  Completed
+                </button>
+                <button
+                  className={`filter-btn ${activeFilter === 'ALL' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('ALL')}
+                >
+                  All
+                </button>
+              </div>
+
+              <div className="search-bar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by vehicle, driver, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="page-content">
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px', color: '#666' }}>
+                Loading trips...
+              </div>
+            ) : (
+              <div className="trips-list">
+                {filteredTrips.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                    No trips found
+                  </div>
+                ) : (
+                  filteredTrips.map(trip => (
+                    <div key={trip._id} className="trip-card-horizontal" onClick={() => handleTripClick(trip)}>
+                      <div className="trip-card-section vehicle-section">
+                        <div className="section-label">Vehicle Number</div>
+                        <div className="section-value vehicle-number">
+                          {trip.vehicleId?.registrationNumber || 'N/A'}
+                        </div>
+                      </div>
+
+                      <div className="trip-card-section date-section">
+                        <div className="section-label">Start Date</div>
+                        <div className="section-value">
+                          {trip.startTime ? new Date(trip.startTime).toLocaleDateString() : 'N/A'}
+                        </div>
+                      </div>
+
+                      <div className="trip-card-section route-section">
+                        <div className="section-label">Source</div>
+                        <div className="section-value">{trip.routeSource || 'Not specified'}</div>
+                      </div>
+
+                      <div className="trip-card-section destination-section">
+                        <div className="section-label">Destination</div>
+                        <div className="section-value">{trip.routeDestination || 'Not specified'}</div>
+                      </div>
+
+                      <div className="trip-card-section status-section">
+                        <span 
+                          className="trip-status-badge"
+                          style={{ 
+                            backgroundColor: getStatusColor(trip.status) + '20',
+                            color: getStatusColor(trip.status)
+                          }}
+                        >
+                          {getStatusLabel(trip.status)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };
