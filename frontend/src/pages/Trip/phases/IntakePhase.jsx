@@ -25,12 +25,15 @@ const IntakePhase = ({
   setFixedDocs,
   weightSlips,
   setWeightSlips,
+  selectedVehicle,
+  setSelectedVehicle,
+  selectedDriver,
+  setSelectedDriver,
   onStartProcessing,
-  onCancel
+  onCancel,
+  tripId,
+  isIntakeLoading
 }) => {
-  // Vehicle and Driver Selection
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [selectedDriver, setSelectedDriver] = useState(null);
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [driverSearch, setDriverSearch] = useState('');
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
@@ -360,12 +363,25 @@ const IntakePhase = ({
                 setWeightSlips(prev => {
                   const updated = [...prev];
                   if (updated[actualIndex]) {
+                    // Try to get odometer reading from fixedDocs if not present in slip OCR
+                    let endOdometer = ocrResult.data?.endOdometer || updated[actualIndex].endOdometer;
+                    if (!endOdometer && fixedDocs?.odometer?.ocrData?.reading) {
+                      endOdometer = fixedDocs.odometer.ocrData.reading;
+                    }
                     updated[actualIndex] = {
                       ...updated[actualIndex],
                       ocrData: ocrResult.data,
                       ocrStatus: 'success',
-                      // Auto-fill weight if detected
-                      weight: ocrResult.data?.netWeight || ocrResult.data?.finalWeight || updated[actualIndex].weight
+                      // Autofill all available fields from OCR data
+                      weight: ocrResult.data?.netWeight || ocrResult.data?.finalWeight || updated[actualIndex].weight,
+                      endOdometer,
+                      grossWeight: ocrResult.data?.grossWeight || updated[actualIndex].grossWeight,
+                      tareWeight: ocrResult.data?.tareWeight || updated[actualIndex].tareWeight,
+                      netWeight: ocrResult.data?.netWeight || updated[actualIndex].netWeight,
+                      materialType: ocrResult.data?.materialType || updated[actualIndex].materialType,
+                      origin: ocrResult.data?.origin || updated[actualIndex].origin,
+                      destination: ocrResult.data?.destination || updated[actualIndex].destination,
+                      // Add more fields as needed
                     };
                   }
                   return updated;
@@ -421,7 +437,7 @@ const IntakePhase = ({
       };
       reader.readAsDataURL(file);
     });
-  }, [setWeightSlips, weightSlips.length]);
+  }, [setWeightSlips, weightSlips.length, fixedDocs]);
 
   // Remove fixed document
   const removeFixedDoc = useCallback((docType) => {
@@ -819,11 +835,13 @@ const IntakePhase = ({
         <button 
           className="btn btn-primary" 
           onClick={onStartProcessing}
-          disabled={ocrScanning.odometer || ocrScanning.fuel || weightSlipScanning.some(s => s)}
+          disabled={isIntakeLoading || ocrScanning.odometer || ocrScanning.fuel || weightSlipScanning.some(s => s)}
         >
-          {(ocrScanning.odometer || ocrScanning.fuel || weightSlipScanning.some(s => s)) 
-            ? 'Scanning Documents...' 
-            : 'Start Processing'}
+          {isIntakeLoading
+            ? 'Initializing Trip...'
+            : (ocrScanning.odometer || ocrScanning.fuel || weightSlipScanning.some(s => s))
+              ? 'Scanning Documents...'
+              : 'Start Processing'}
         </button>
       </div>
 

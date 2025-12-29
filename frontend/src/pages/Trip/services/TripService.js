@@ -1,10 +1,44 @@
-/**
- * TripService - Trip API operations
- * Centralized service for all trip-related API calls
- */
 import apiClient from '../../../utils/axiosConfig';
 
 class TripService {
+  /**
+   * Initiate a new trip (PLANNED)
+   * @param {Object} data - { vehicleId, driverId }
+   * @returns {Promise} API response with created trip
+   */
+  static async initiateTrip({ vehicleId, driverId }) {
+    try {
+      const response = await apiClient.post('/api/trips/initiate', { vehicleId, driverId });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to initiate trip:', error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Associate a document with a trip
+   * @param {string} tripId - Trip ID
+   * @param {string} documentType - Document type (ODOMETER, FUEL_SLIP, WEIGHT_CERT)
+   * @param {string} documentId - Document ID (from DocumentService)
+   * @param {Object} [ocrData] - Optional OCR data
+   * @returns {Promise} API response
+   */
+  static async uploadDocument(tripId, documentType, documentId, ocrData) {
+    try {
+      const body = {
+        tripId,
+        documentType,
+        documentId,
+        ocrExtracted: ocrData || undefined
+      };
+      const response = await apiClient.post(`/api/trips/${tripId}/upload-documents`, body);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to associate document:', error);
+      throw error.response?.data || error;
+    }
+  }
   /**
    * Fetch paginated trips list with optional filters
    * @param {Object} params - Query parameters

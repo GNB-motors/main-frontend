@@ -6,11 +6,13 @@
  * - Right: Detailed form for current slip
  */
 
+
 import React, { useState, useCallback, useEffect } from 'react';
 import './ProcessingPhase.css';
 import SlipsList from '../components/SlipsList';
 import TripForm from '../components/TripForm';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import TripService from '../services/TripService';
 
 const ProcessingPhase = ({
   fixedDocs,
@@ -20,9 +22,26 @@ const ProcessingPhase = ({
   onNextSlip,
   onPreviousSlip,
   onSelectSlip,
-  onCancel
+  onCancel,
+  tripId,
 }) => {
   const currentSlip = weightSlips[currentIndex];
+
+  // If tripId is missing, show error and restart option
+  if (!tripId) {
+    return (
+      <div className="processing-phase-error">
+        <h2>Trip Not Initialized</h2>
+        <p>No trip is currently active. Please start a new trip from the beginning.</p>
+        <button className="btn btn-primary" onClick={() => {
+          localStorage.removeItem('tripId');
+          window.location.href = '/trip/create';
+        }}>
+          Restart Trip Creation
+        </button>
+      </div>
+    );
+  }
 
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
@@ -51,35 +70,80 @@ const ProcessingPhase = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, weightSlips.length, onNextSlip, onPreviousSlip]);
 
-  // Handle save (mark current slip as done)
-  const handleSave = useCallback(() => {
+  // Handle save (mark current slip as done and persist to backend)
+  const handleSave = useCallback(async () => {
     if (!currentSlip.origin || !currentSlip.destination || !currentSlip.weight) {
       alert('Please fill in all required fields:\n- Origin\n- Destination\n- Weight');
       return;
     }
+    // Mark current slip as done in local state and wait for state update
+    await Promise.resolve(updateWeightSlip(currentIndex, { isDone: true }));
 
-    // Mark current slip as done
-    updateWeightSlip(currentIndex, { isDone: true });
-    alert('Slip saved successfully!');
-  }, [currentSlip, currentIndex, updateWeightSlip]);
-
-  // Handle save and go to next slip
-  const handleSaveAndNext = useCallback(() => {
-    if (!currentSlip.origin || !currentSlip.destination || !currentSlip.weight) {
-      alert('Please fill in all required fields:\n- Origin\n- Destination\n- Weight');
-      return;
+    // Persist OCR data, route assignment, revenue, and expenses for this slip
+    if (tripId) {
+      try {
+        // Debug: Log before each API call
+        console.log('Calling updateOcrData', tripId, weightSlips[currentIndex]);
+        await TripService.updateOcrData(tripId, {
+          slipIndex: currentIndex,
+          ...weightSlips[currentIndex]
+        });
+        if (weightSlips[currentIndex].routeId) {
+          console.log('Calling assignRoutes', tripId, weightSlips[currentIndex].routeId);
+          await TripService.assignRoutes(tripId, {
+            slipIndex: currentIndex,
+            routeId: weightSlips[currentIndex].routeId
+          });
+        }
+        if (weightSlips[currentIndex].amountPerKg || weightSlips[currentIndex].totalAmountReceived) {
+          console.log('Calling enterRevenue', tripId, weightSlips[currentIndex].amountPerKg, weightSlips[currentIndex].totalAmountReceived);
+          await TripService.enterRevenue(tripId, {
+            slipIndex: currentIndex,
+            amountPerKg: weightSlips[currentIndex].amountPerKg,
+            totalAmountReceived: weightSlips[currentIndex].totalAmountReceived
+          });
+        }
+        if (
+          weightSlips[currentIndex].materialCost ||
+          weightSlips[currentIndex].toll ||
+          weightSlips[currentIndex].driverCost ||
+          weightSlips[currentIndex].driverTripExpense ||
+          weightSlips[currentIndex].royalty
+        ) {
+          console.log('Calling enterExpenses', tripId, {
+            slipIndex: currentIndex,
+            materialCost: weightSlips[currentIndex].materialCost,
+            toll: weightSlips[currentIndex].toll,
+            driverCost: weightSlips[currentIndex].driverCost,
+            driverTripExpense: weightSlips[currentIndex].driverTripExpense,
+            royalty: weightSlips[currentIndex].royalty
+          });
+          await TripService.enterExpenses(tripId, {
+            slipIndex: currentIndex,
+            materialCost: weightSlips[currentIndex].materialCost,
+            toll: weightSlips[currentIndex].toll,
+            driverCost: weightSlips[currentIndex].driverCost,
+            driverTripExpense: weightSlips[currentIndex].driverTripExpense,
+            royalty: weightSlips[currentIndex].royalty
+          });
+        }
+        alert('Slip saved and synced to backend!');
+      } catch (err) {
+        alert('Failed to save slip to backend: ' + (err.message || err));
+      }
+    } else {
+      alert('Slip saved locally! (Trip not yet initialized)');
     }
-
-    // Mark current slip as done
-    updateWeightSlip(currentIndex, { isDone: true });
-    
-    // Move to next slip
+  }, [currentSlip, currentIndex, updateWeightSlip, tripId, weightSlips]);
+  const handleSaveAndNext = useCallback(async () => {
+    await handleSave();
+    // Move to next slip if not last
     if (currentIndex < weightSlips.length - 1) {
       onNextSlip();
     } else {
       alert('You have reached the last slip. Complete all slips and click "All Complete" to proceed.');
     }
-  }, [currentSlip, currentIndex, updateWeightSlip, onNextSlip, weightSlips.length]);
+  }, [handleSave, currentIndex, onNextSlip, weightSlips.length]);
 
   // Handle completion and move to next phase
   const handleCompleteProcessing = useCallback(() => {
@@ -156,7 +220,6 @@ const ProcessingPhase = ({
             <button 
               className="btn btn-primary" 
               onClick={handleSaveAndNext}
-              disabled={currentIndex === weightSlips.length - 1 && currentSlip?.isDone}
               title="Save this slip and move to next"
             >
               Save & Next →

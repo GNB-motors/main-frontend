@@ -20,6 +20,8 @@ import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useTripCreationContext } from '../../contexts/TripCreationContext';
 import './TripCreationFlow.css';
 import IntakePhase from './phases/IntakePhase';
+import TripService from './services/TripService';
+import DocumentService from './services/DocumentService';
 import ProcessingPhase from './phases/ProcessingPhase';
 import VerificationPhase from './phases/VerificationPhase';
 
@@ -54,13 +56,20 @@ const TripCreationFlow = () => {
 
   const [weightSlips, setWeightSlips] = useState([]);
 
+  // Vehicle and Driver selection state (lifted from IntakePhase)
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [selectedDriver, setSelectedDriver] = useState(null);
+
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /**
    * Move to processing phase after intake
    */
-  const handleStartProcessing = useCallback(() => {
+  const [tripId, setTripId] = useState(null);
+  const [isIntakeLoading, setIsIntakeLoading] = useState(false);
+
+  const handleStartProcessing = useCallback(async () => {
     if (!fixedDocs.odometer) {
       toast.error('Please upload an odometer image');
       return;
@@ -74,10 +83,86 @@ const TripCreationFlow = () => {
       toast.error('Please upload at least one weight slip');
       return;
     }
-    setActiveStep(1);
-    setCurrentIndex(0);
-    toast.success('Starting processing workflow');
-  }, [fixedDocs, weightSlips]);
+
+    if (!selectedVehicle || !selectedDriver) {
+      toast.error('Please select a vehicle and driver');
+      return;
+    }
+
+    setIsIntakeLoading(true);
+    try {
+      // 1. Initiate trip
+      const tripResp = await TripService.initiateTrip({
+        vehicleId: selectedVehicle.id,
+        driverId: selectedDriver.id
+      });
+      const newTripId = tripResp?.tripId || tripResp?.data?.tripId || tripResp?.data?._id || tripResp?._id;
+      if (!newTripId) throw new Error('Failed to get tripId from backend');
+      setTripId(newTripId);
+
+
+      // 2. Upload odometer document (to /documents), then associate with trip
+      // Sanitize odometer reading for backend (strip units, convert to number)
+      let sanitizedOdoOcr = { ...fixedDocs.odometer.ocrData };
+      if (sanitizedOdoOcr && sanitizedOdoOcr.reading) {
+        const match = sanitizedOdoOcr.reading.toString().replace(/,/g, '').match(/[\d.]+/);
+        sanitizedOdoOcr.reading = match ? parseFloat(match[0]) : null;
+      }
+      const odoDoc = await DocumentService.uploadWithOcrData({
+        file: fixedDocs.odometer.file,
+        entityType: 'TRIP',
+        entityId: newTripId,
+        docType: 'ODOMETER',
+        ocrData: sanitizedOdoOcr
+      });
+      await TripService.uploadDocument(newTripId, 'ODOMETER', odoDoc._id, sanitizedOdoOcr);
+
+      // 3. Upload fuel documents (full tank and/or partial)
+      if (fixedDocs.fuel) {
+        const fuelDoc = await DocumentService.uploadWithOcrData({
+          file: fixedDocs.fuel.file,
+          entityType: 'TRIP',
+          entityId: newTripId,
+          docType: 'FUEL_SLIP',
+          ocrData: fixedDocs.fuel.ocrData
+        });
+        await TripService.uploadDocument(newTripId, 'FUEL_SLIP', fuelDoc._id, fixedDocs.fuel.ocrData);
+      }
+      if (fixedDocs.partialFuel && fixedDocs.partialFuel.length > 0) {
+        for (const fuel of fixedDocs.partialFuel) {
+          const partialDoc = await DocumentService.uploadWithOcrData({
+            file: fuel.file.originalFile,
+            entityType: 'TRIP',
+            entityId: newTripId,
+            docType: 'FUEL_SLIP',
+            ocrData: fuel.file.ocrData
+          });
+          await TripService.uploadDocument(newTripId, 'FUEL_SLIP', partialDoc._id, fuel.file.ocrData);
+        }
+      }
+
+      // 4. Upload weight slips (ensure docType and ocrData are correct)
+      for (const slip of weightSlips) {
+        const slipDoc = await DocumentService.uploadWithOcrData({
+          file: slip.file.originalFile,
+          entityType: 'TRIP',
+          entityId: newTripId,
+          docType: 'WEIGHT_CERTIFICATE',
+          ocrData: slip.ocrData || (slip.file && slip.file.ocrData) || undefined
+        });
+        await TripService.uploadDocument(newTripId, 'WEIGHT_CERTIFICATE', slipDoc._id, slip.ocrData || (slip.file && slip.file.ocrData) || undefined);
+      }
+
+      setActiveStep(1);
+      setCurrentIndex(0);
+      toast.success('Trip initialized and documents uploaded!');
+    } catch (error) {
+      console.error('Trip initialization/upload failed:', error);
+      toast.error(error?.message || 'Failed to initialize trip or upload documents');
+    } finally {
+      setIsIntakeLoading(false);
+    }
+  }, [fixedDocs, weightSlips, selectedVehicle, selectedDriver]);
 
   /**
    * Update weight slip data
@@ -184,8 +269,14 @@ const TripCreationFlow = () => {
           setFixedDocs={setFixedDocs}
           weightSlips={weightSlips}
           setWeightSlips={setWeightSlips}
+          selectedVehicle={selectedVehicle}
+          setSelectedVehicle={setSelectedVehicle}
+          selectedDriver={selectedDriver}
+          setSelectedDriver={setSelectedDriver}
           onStartProcessing={handleStartProcessing}
           onCancel={handleCancel}
+          tripId={tripId}
+          isIntakeLoading={isIntakeLoading}
         />
       )}
 

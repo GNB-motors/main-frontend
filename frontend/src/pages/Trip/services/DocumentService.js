@@ -58,7 +58,7 @@ class DocumentService {
     if (entityType) form.append('entityType', entityType);
     if (entityId) form.append('entityId', entityId);
     if (docType) form.append('docType', docType);
-    if (ocrData) form.append('ocrData', JSON.stringify(ocrData));
+    // Do NOT include ocrData for file uploads; backend will run OCR
 
     try {
       const resp = await apiClient.post('/api/documents', form, {

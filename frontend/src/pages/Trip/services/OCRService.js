@@ -16,7 +16,7 @@ class OCRService {
     'WEIGH_IN',
     'WEIGH_OUT',
     'WEIGHT_SLIP',
-    'WEIGHT_CERT',
+    'WEIGHT_CERTIFICATE',
   ];
 
   /**
