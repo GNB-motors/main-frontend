@@ -23,17 +23,23 @@ const SlipsList = ({ slips, currentIndex, onSelectSlip, onPreviewClick }) => {
           >
             <div className="slip-number">#{index + 1}</div>
             <div className="slip-thumbnail">
-              <img src={slip.file.preview} alt={`Slip ${index + 1}`} />
-              <button
-                className="btn-preview-slip"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPreviewClick(slip.file.preview);
-                }}
-                title="Preview Image"
-              >
-                <Eye size={16} />
-              </button>
+              {slip?.file?.preview ? (
+                <>
+                  <img src={slip.file.preview} alt={`Slip ${index + 1}`} />
+                  <button
+                    className="btn-preview-slip"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPreviewClick(slip.file.preview);
+                    }}
+                    title="Preview Image"
+                  >
+                    <Eye size={16} />
+                  </button>
+                </>
+              ) : (
+                <div className="slip-thumbnail-placeholder">No Image</div>
+              )}
             </div>
             <div className="slip-content">
               <div className="slip-status">

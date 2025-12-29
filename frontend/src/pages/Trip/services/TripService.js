@@ -244,6 +244,69 @@ class TripService {
       throw error.response?.data || error;
     }
   }
+
+  /**
+   * Submit trip - finalize and mark submitted on server
+   * @param {string} tripId
+   * @param {Object} finalData - optional { startOdometer, endOdometer }
+   */
+  static async submitTrip(tripId, finalData = {}) {
+    try {
+      const response = await apiClient.post(`/api/trips/${tripId}/submit`, finalData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to submit trip:', error);
+      throw error.response?.data || error;
+    }
+  }
 }
 
 export default TripService;
+
+/**
+ * Add Processing Phase API methods
+ */
+
+// PATCH for update-ocr-data (corrections array)
+TripService.updateOcrData = async function(tripId, correctionsPayload) {
+  try {
+    const response = await apiClient.patch(`/api/trips/${tripId}/update-ocr-data`, correctionsPayload);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update OCR data:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// POST for assign-routes (routeIds, totalFuel)
+TripService.assignRoutes = async function(tripId, assignPayload) {
+  try {
+    const response = await apiClient.post(`/api/trips/${tripId}/assign-routes`, assignPayload);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to assign routes:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// PATCH for enter-revenue (revenues array)
+TripService.enterRevenue = async function(tripId, revenuePayload) {
+  try {
+    const response = await apiClient.patch(`/api/trips/${tripId}/enter-revenue`, revenuePayload);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to enter revenue:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// PATCH for enter-expenses (expenses array)
+TripService.enterExpenses = async function(tripId, expensesPayload) {
+  try {
+    const response = await apiClient.patch(`/api/trips/${tripId}/enter-expenses`, expensesPayload);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to enter expenses:', error);
+    throw error.response?.data || error;
+  }
+};

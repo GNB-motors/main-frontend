@@ -8,29 +8,104 @@
  * - Submit action to backend
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import TripService from '../services/TripService';
 import { Eye, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './VerificationPhase.css';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 
+
 const VerificationPhase = ({
-  fixedDocs,
-  weightSlips,
   onBack,
   onSubmit,
   isSubmitting,
-  onCancel
+  onCancel,
+  tripId: propTripId
 }) => {
+  const [tripId] = useState(propTripId || localStorage.getItem('tripId'));
+  const [trip, setTrip] = useState(null);
+  const [weightSlips, setWeightSlips] = useState([]);
+  const [fixedDocs, setFixedDocs] = useState({});
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
   const [previewModal, setPreviewModal] = useState({
     isOpen: false,
     imageSrc: null,
     title: ''
   });
 
+  useEffect(() => {
+    if (tripId) {
+      TripService.getTripById(tripId)
+        .then((apiResp) => {
+          // TripService returns response.data from API which is { status, data: <trip> }
+          const payload = apiResp && apiResp.data ? apiResp.data : apiResp;
+          setTrip(payload);
+
+          // Normalize weight slips from documents.weightCerts (same shape as ProcessingPhase)
+          const rawWeightCerts = payload.documents?.weightCerts || [];
+          const s3Refs = payload.s3References?.weightCerts || [];
+          const slips = rawWeightCerts.map((wc, idx) => ({
+            _id: wc._id || wc.documentId,
+            documentId: wc.documentId,
+            weight: wc.netWeight || wc.grossWeight || 0,
+            origin: wc.origin || '',
+            destination: wc.destination || '',
+            file: { preview: s3Refs[idx] || '' },
+            isDone: wc.isDone || false,
+          }));
+
+          setWeightSlips(slips);
+          setFixedDocs(payload.documents || {});
+        })
+        .catch((err) => {
+          console.error('Failed to fetch trip details:', err);
+        });
+    }
+  }, [tripId]);
+
   // Memoized data validation
   const isDataComplete = useMemo(
-    () => weightSlips.every(slip => slip.isDone && slip.origin && slip.destination && slip.weight),
+    // Treat a slip as complete when required fields are present. Allow either explicit isDone
+    // or fields filled in the form to mark completeness so submit enables after user completes fields.
+    () => {
+      if (!weightSlips || weightSlips.length === 0) return false;
+
+      // If server-side trip status indicates completion stages, allow submit.
+      if (trip && ['REVENUE_ENTERED', 'EXPENSES_ENTERED', 'SUBMITTED', 'SUMMARY_REVIEW'].includes(trip.status)) {
+        return true;
+      }
+
+      // Otherwise ensure each slip is either marked isDone locally, has required form fields filled,
+      // or has a matching revenue/expense/route entry on the trip (persisted on server).
+      return weightSlips.every((slip) => {
+        if (slip.isDone === true) return true;
+        if (slip.origin && slip.destination && (slip.weight || slip.netWeight)) return true;
+
+        // Check server-side revenues
+        const revExists = trip && Array.isArray(trip.revenues) && trip.revenues.some((r) => {
+          const wid = String(r.weightCertId || '');
+          return wid === String(slip.documentId || slip._id || '');
+        });
+        if (revExists) return true;
+
+        // Check server-side expenses
+        const expExists = trip && Array.isArray(trip.expenses) && trip.expenses.some((e) => {
+          const wid = String(e.weightCertId || '');
+          return wid === String(slip.documentId || slip._id || '');
+        });
+        if (expExists) return true;
+
+        // Check route assignment
+        const routeAssigned = trip && Array.isArray(trip.selectedRoutes) && trip.selectedRoutes.some((sr) => {
+          const wid = String(sr.weightCertId || '');
+          return wid === String(slip.documentId || slip._id || '');
+        });
+        if (routeAssigned) return true;
+
+        return false;
+      });
+    },
     [weightSlips]
   );
 
@@ -46,6 +121,24 @@ const VerificationPhase = ({
         .toFixed(2),
     [weightSlips]
   );
+
+  const revenueSummary = useMemo(() => {
+    if (!trip) return { totalRevenue: 0, totalCalculated: 0, totalVariance: 0 };
+    return {
+      totalRevenue: trip.revenueSummary?.totalRevenue || 0,
+      totalCalculated: trip.revenueSummary?.totalAmountCalculated || 0,
+      totalVariance: trip.revenueSummary?.totalAmountVariance || 0,
+    };
+  }, [trip]);
+
+  const totalExpense = useMemo(() => {
+    if (!trip || !Array.isArray(trip.expenses)) return 0;
+    return trip.expenses.reduce((s, e) => s + (e.totalExpense || 0), 0);
+  }, [trip]);
+
+  const profit = useMemo(() => {
+    return (revenueSummary.totalRevenue || 0) - (totalExpense || 0);
+  }, [revenueSummary, totalExpense]);
 
   const handleShowPreview = useCallback((imageSrc, title) => {
     setPreviewModal({
@@ -69,11 +162,17 @@ const VerificationPhase = ({
       return;
     }
 
+    setIsSubmittingLocal(true);
     try {
-      await onSubmit();
+      // Call backend submit endpoint
+      await TripService.submitTrip(tripId, {});
+      toast.success('Trip submitted successfully');
+      if (onSubmit) onSubmit();
     } catch (error) {
       console.error('Submit error:', error);
-      toast.error('Failed to submit. Please try again.');
+      toast.error(error?.message || 'Failed to submit. Please try again.');
+    } finally {
+      setIsSubmittingLocal(false);
     }
   }, [isDataComplete, onSubmit]);
 
@@ -100,14 +199,18 @@ const VerificationPhase = ({
               <div className="recap-item">
                 <div className="recap-label">Odometer</div>
                 <div className="recap-image-wrapper">
-                  <img
-                    src={fixedDocs.odometer.preview}
-                    alt="Odometer"
-                    className="recap-image"
-                    onClick={() =>
-                      handleShowPreview(fixedDocs.odometer.preview, 'Odometer Image')
-                    }
-                  />
+                  {fixedDocs.odometer.preview ? (
+                    <img
+                      src={fixedDocs.odometer.preview}
+                      alt="Odometer"
+                      className="recap-image"
+                      onClick={() =>
+                        handleShowPreview(fixedDocs.odometer.preview, 'Odometer Image')
+                      }
+                    />
+                  ) : (
+                    <div className="no-image">No Image</div>
+                  )}
                   <button
                     className="btn-preview"
                     onClick={() =>
@@ -125,14 +228,18 @@ const VerificationPhase = ({
               <div className="recap-item">
                 <div className="recap-label">Full Tank Fuel</div>
                 <div className="recap-image-wrapper">
-                  <img
-                    src={fixedDocs.fuel.preview}
-                    alt="Fuel Receipt"
-                    className="recap-image"
-                    onClick={() =>
-                      handleShowPreview(fixedDocs.fuel.preview, 'Fuel Receipt Image')
-                    }
-                  />
+                  {fixedDocs.fuel.preview ? (
+                    <img
+                      src={fixedDocs.fuel.preview}
+                      alt="Fuel Receipt"
+                      className="recap-image"
+                      onClick={() =>
+                        handleShowPreview(fixedDocs.fuel.preview, 'Fuel Receipt Image')
+                      }
+                    />
+                  ) : (
+                    <div className="no-image">No Image</div>
+                  )}
                   <button
                     className="btn-preview"
                     onClick={() =>
@@ -154,17 +261,21 @@ const VerificationPhase = ({
                 <div className="recap-partial-grid">
                   {fixedDocs.partialFuel.map((fuel, index) => (
                     <div key={index} className="recap-partial-item">
-                      <img
-                        src={fuel.file.preview}
-                        alt={`Partial Fuel ${index + 1}`}
-                        className="recap-image-small"
-                        onClick={() =>
-                          handleShowPreview(
-                            fuel.file.preview,
-                            `Partial Fuel #${index + 1}`
-                          )
-                        }
-                      />
+                      {fuel?.file?.preview ? (
+                        <img
+                          src={fuel.file.preview}
+                          alt={`Partial Fuel ${index + 1}`}
+                          className="recap-image-small"
+                          onClick={() =>
+                            handleShowPreview(
+                              fuel.file.preview,
+                              `Partial Fuel #${index + 1}`
+                            )
+                          }
+                        />
+                      ) : (
+                        <div className="no-image-small">No Image</div>
+                      )}
                       <button
                         className="btn-preview-small"
                         onClick={() =>
@@ -226,17 +337,21 @@ const VerificationPhase = ({
                     <td className="slip-number">#{index + 1}</td>
                     <td>
                       <div className="slip-preview-container">
-                        <img
-                          src={slip.file.preview}
-                          alt={`Slip ${index + 1}`}
-                          className="slip-preview"
-                          onClick={() =>
-                            handleShowPreview(
-                              slip.file.preview,
-                              `Weight Slip #${index + 1}`
-                            )
-                          }
-                        />
+                        {slip?.file?.preview ? (
+                          <img
+                            src={slip.file.preview}
+                            alt={`Slip ${index + 1}`}
+                            className="slip-preview"
+                            onClick={() =>
+                              handleShowPreview(
+                                slip.file.preview,
+                                `Weight Slip #${index + 1}`
+                              )
+                            }
+                          />
+                        ) : (
+                          <div className="no-image-small">No Image</div>
+                        )}
                         <button
                           className="btn-preview-small"
                           onClick={() =>
@@ -302,14 +417,14 @@ const VerificationPhase = ({
         <button
           className="btn btn-primary"
           onClick={handleSubmit}
-          disabled={!isDataComplete || isSubmitting}
+          disabled={!isDataComplete || isSubmitting || isSubmittingLocal}
           title={
             !isDataComplete
               ? 'Complete all slips before submitting'
               : 'Submit trip data'
           }
         >
-          {isSubmitting ? 'Submitting...' : '✓ Submit'}
+          {isSubmitting || isSubmittingLocal ? 'Submitting...' : '✓ Submit'}
         </button>
         <button
           className="btn btn-outline"
