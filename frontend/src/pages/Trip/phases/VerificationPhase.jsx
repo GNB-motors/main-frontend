@@ -164,8 +164,11 @@ const VerificationPhase = ({
 
     setIsSubmittingLocal(true);
     try {
+      // Get endOdometer from trip data
+      const endOdometer = trip?.documents?.odometer?.correctedReading || trip?.documents?.odometer?.ocrReading || 0;
+      
       // Call backend submit endpoint
-      await TripService.submitTrip(tripId, {});
+      await TripService.submitTrip(tripId, { endOdometer });
       toast.success('Trip submitted successfully');
       if (onSubmit) onSubmit();
     } catch (error) {
@@ -174,7 +177,7 @@ const VerificationPhase = ({
     } finally {
       setIsSubmittingLocal(false);
     }
-  }, [isDataComplete, onSubmit]);
+  }, [isDataComplete, onSubmit, trip]);
 
   return (
     <div className="verification-phase">

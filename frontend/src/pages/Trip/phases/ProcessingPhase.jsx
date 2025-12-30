@@ -211,8 +211,8 @@ const ProcessingPhase = ({
 
   // Bulk Save & Next: Call all APIs in parallel for current slip, using correct payloads
   const handleBulkSaveAndNext = useCallback(async () => {
-    if (!currentSlip.origin || !currentSlip.destination || !currentSlip.weight) {
-      alert('Please fill in all required fields:\n- Origin\n- Destination\n- Weight');
+    if (!currentSlip.weight) {
+      alert('Please fill in all required fields:\n- Weight');
       return;
     }
 
@@ -221,8 +221,6 @@ const ProcessingPhase = ({
       documentId: currentSlip.documentId || currentSlip._id || '',
       documentType: 'WEIGHT_CERT',
       correctedValues: {
-        origin: currentSlip.origin,
-        destination: currentSlip.destination,
         weight: currentSlip.weight,
       },
     };
@@ -272,7 +270,8 @@ const ProcessingPhase = ({
       if (currentIndex < weightSlips.length - 1) {
         handleNextSlip();
       } else {
-        alert('You have reached the last slip. Complete all slips and click "All Complete" to proceed.');
+        // All slips completed, proceed to next phase
+        onNextSlip();
       }
     } catch (err) {
       alert('Failed to save slip to backend: ' + (err.message || err));
@@ -323,17 +322,6 @@ const ProcessingPhase = ({
 
   return (
     <div className="processing-phase">
-      {/* Header */}
-      <div className="processing-header">
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-        </div>
-        <p>
-          Processing Slip #{currentIndex + 1} of {weightSlips.length}
-          <span className="keyboard-hint">• {completedSlips} of {weightSlips.length} completed • Use ← → arrow keys to navigate</span>
-        </p>
-      </div>
-
       <div className="processing-container">
         {/* Left Panel: Slips List */}
         <aside className="processing-sidebar">
@@ -384,27 +372,7 @@ const ProcessingPhase = ({
               Save & Next →
             </button>
           </div>
-
-          {/* Complete Processing Button */}
-          {completedSlips === weightSlips.length && weightSlips.length > 0 && (
-            <div className="form-actions form-actions-complete">
-              <button 
-                className="btn btn-success" 
-                onClick={handleCompleteProcessing}
-                title="All slips completed. Proceed to verification."
-              >
-                ✓ All Complete - Go to Verification
-              </button>
-            </div>
-          )}
         </aside>
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="processing-footer">
-        <button className="btn btn-outline" onClick={onCancel}>
-          Cancel
-        </button>
       </div>
 
       {/* Preview Modal */}

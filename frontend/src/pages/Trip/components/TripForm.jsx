@@ -2,14 +2,14 @@
  * TripForm Component
  * 
  * Form for entering trip details for a specific weight slip
- * Fields: Origin, Destination, Weight
+ * Fields: Weight, Revenue, Expenses, Route Assignment
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
 import RouteService from '../../Routes/RouteService';
 import './TripForm.css';
 
-const TripForm = ({ slip, onUpdate }) => {
+const TripForm = ({ slip, trip, onUpdate }) => {
   const handleChange = useCallback(
     (field, value) => {
       onUpdate({ [field]: value });
@@ -43,44 +43,18 @@ const TripForm = ({ slip, onUpdate }) => {
     }
   }, [slip.routeId, routes]);
 
+  // Autofill endOdometer from trip data if available and not already set
+  useEffect(() => {
+    const odometerReading = trip?.documents?.odometer?.correctedReading || trip?.documents?.odometer?.ocrReading;
+    if (odometerReading && (!slip.endOdometer || slip._autofilledEndOdometer !== odometerReading)) {
+      handleChange('endOdometer', odometerReading);
+      handleChange('_autofilledEndOdometer', odometerReading); // Track last autofilled
+    }
+  }, [trip?.documents?.odometer?.correctedReading, trip?.documents?.odometer?.ocrReading, slip.endOdometer]);
+
   return (
     <form className="trip-form">
-      {/* Basic Trip Fields */}
-      <div className="form-group">
-        <label htmlFor="origin">Starting Point (Origin) *</label>
-        <input
-          id="origin"
-          type="text"
-          placeholder="e.g., Mumbai Central"
-          value={slip.origin || ''}
-          onChange={(e) => handleChange('origin', e.target.value)}
-          className="form-input"
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="destination">Ending Point (Destination) *</label>
-        <input
-          id="destination"
-          type="text"
-          placeholder="e.g., Delhi North"
-          value={slip.destination || ''}
-          onChange={(e) => handleChange('destination', e.target.value)}
-          className="form-input"
-        />
-      </div>
       {/* Odometer Readings */}
-      <div className="form-group">
-        <label htmlFor="startOdometer">Start Odometer (km)</label>
-        <input
-          id="startOdometer"
-          type="number"
-          placeholder="0"
-          value={slip.startOdometer || ''}
-          onChange={(e) => handleChange('startOdometer', e.target.value)}
-          className="form-input"
-          min="0"
-        />
-      </div>
       <div className="form-group">
         <label htmlFor="endOdometer">End Odometer (km)</label>
         <input
@@ -93,54 +67,109 @@ const TripForm = ({ slip, onUpdate }) => {
           min="0"
         />
       </div>
+      {/* Route Assignment Fields */}
+      <fieldset className="form-section">
+        <legend>Route Assignment (per slip)</legend>
+        <div className="form-group">
+          <label htmlFor="routeId">Route</label>
+          {loadingRoutes ? (
+            <div>Loading routes...</div>
+          ) : routesError ? (
+            <div style={{ color: 'red' }}>Error: {routesError}</div>
+          ) : (
+            <select
+              id="routeId"
+              value={slip.routeId || ''}
+              onChange={(e) => handleChange('routeId', e.target.value)}
+              className="form-input"
+            >
+              <option value="">Select a route</option>
+              {routes.map((route) => (
+                <option key={route._id} value={route._id}>
+                  {route.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="form-group">
+          <label htmlFor="distanceKm">Distance (km)</label>
+          <input
+            id="distanceKm"
+            type="number"
+            placeholder="0"
+            value={slip.distanceKm || ''}
+            onChange={(e) => handleChange('distanceKm', e.target.value)}
+            className="form-input"
+            min="0"
+            step="0.01"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="allocatedFuel">Allocated Fuel (liters)</label>
+          <input
+            id="allocatedFuel"
+            type="number"
+            placeholder="0"
+            value={slip.allocatedFuel || ''}
+            onChange={(e) => handleChange('allocatedFuel', e.target.value)}
+            className="form-input"
+            min="0"
+            step="0.01"
+          />
+        </div>
+      </fieldset>
       {/* Weight Certificate Details */}
-      <div className="form-group">
-        <label htmlFor="materialType">Material Type</label>
-        <input
-          id="materialType"
-          type="text"
-          placeholder="e.g., Coal"
-          value={slip.materialType || ''}
-          onChange={(e) => handleChange('materialType', e.target.value)}
-          className="form-input"
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="grossWeight">Gross Weight (kg)</label>
-        <input
-          id="grossWeight"
-          type="number"
-          placeholder="0"
-          value={slip.grossWeight || ''}
-          onChange={(e) => handleChange('grossWeight', e.target.value)}
-          className="form-input"
-          min="0"
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="tareWeight">Tare Weight (kg)</label>
-        <input
-          id="tareWeight"
-          type="number"
-          placeholder="0"
-          value={slip.tareWeight || ''}
-          onChange={(e) => handleChange('tareWeight', e.target.value)}
-          className="form-input"
-          min="0"
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="netWeight">Net Weight (kg)</label>
-        <input
-          id="netWeight"
-          type="number"
-          placeholder="0"
-          value={slip.netWeight || ''}
-          onChange={(e) => handleChange('netWeight', e.target.value)}
-          className="form-input"
-          min="0"
-        />
-      </div>
+      <fieldset className="form-section">
+        <legend>Weight Certificate Details</legend>
+        <div className="form-group">
+          <label htmlFor="materialType">Material Type</label>
+          <input
+            id="materialType"
+            type="text"
+            placeholder="e.g., Coal"
+            value={slip.materialType || ''}
+            onChange={(e) => handleChange('materialType', e.target.value)}
+            className="form-input"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="grossWeight">Gross Weight (kg)</label>
+          <input
+            id="grossWeight"
+            type="number"
+            placeholder="0"
+            value={slip.grossWeight || ''}
+            onChange={(e) => handleChange('grossWeight', e.target.value)}
+            className="form-input"
+            min="0"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="tareWeight">Tare Weight (kg)</label>
+          <input
+            id="tareWeight"
+            type="number"
+            placeholder="0"
+            value={slip.tareWeight || ''}
+            onChange={(e) => handleChange('tareWeight', e.target.value)}
+            className="form-input"
+            min="0"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="netWeight">Net Weight (kg)</label>
+          <input
+            id="netWeight"
+            type="number"
+            placeholder="0"
+            value={slip.netWeight || ''}
+            onChange={(e) => handleChange('netWeight', e.target.value)}
+            className="form-input"
+            min="0"
+          />
+        </div>
+      </fieldset>
       {/* Revenue Fields */}
       <fieldset className="form-section">
         <legend>Revenue (per weight certificate)</legend>
@@ -234,58 +263,6 @@ const TripForm = ({ slip, onUpdate }) => {
             placeholder="0"
             value={slip.royalty || ''}
             onChange={(e) => handleChange('royalty', e.target.value)}
-            className="form-input"
-            min="0"
-            step="0.01"
-          />
-        </div>
-      </fieldset>
-      {/* Route Assignment Fields */}
-      <fieldset className="form-section">
-        <legend>Route Assignment (per slip)</legend>
-        <div className="form-group">
-          <label htmlFor="routeId">Route</label>
-          {loadingRoutes ? (
-            <div>Loading routes...</div>
-          ) : routesError ? (
-            <div style={{ color: 'red' }}>Error: {routesError}</div>
-          ) : (
-            <select
-              id="routeId"
-              value={slip.routeId || ''}
-              onChange={(e) => handleChange('routeId', e.target.value)}
-              className="form-input"
-            >
-              <option value="">Select a route</option>
-              {routes.map((route) => (
-                <option key={route._id} value={route._id}>
-                  {route.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <div className="form-group">
-          <label htmlFor="distanceKm">Distance (km)</label>
-          <input
-            id="distanceKm"
-            type="number"
-            placeholder="0"
-            value={slip.distanceKm || ''}
-            onChange={(e) => handleChange('distanceKm', e.target.value)}
-            className="form-input"
-            min="0"
-            step="0.01"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="allocatedFuel">Allocated Fuel (liters)</label>
-          <input
-            id="allocatedFuel"
-            type="number"
-            placeholder="0"
-            value={slip.allocatedFuel || ''}
-            onChange={(e) => handleChange('allocatedFuel', e.target.value)}
             className="form-input"
             min="0"
             step="0.01"
