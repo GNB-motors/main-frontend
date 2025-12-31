@@ -147,7 +147,7 @@ const ProcessingPhase = ({
           correctedValues: {
             origin: slip.origin,
             destination: slip.destination,
-            weight: slip.weight || slip.netWeight,
+            weight: toNumber(slip.weight || slip.netWeight),
           },
         });
 
@@ -159,6 +159,7 @@ const ProcessingPhase = ({
               weightCertId: slip._id,
               routeId: slip.routeId,
               order: currentIndex + 1,
+              allocatedFuel: slip.allocatedFuel && toNumber(slip.allocatedFuel) > 0 ? toNumber(slip.allocatedFuel) : undefined, // Include allocated fuel if valid and > 0
             },
           ];
           console.log('Calling assignRoutes', tripId, routeAssignments);

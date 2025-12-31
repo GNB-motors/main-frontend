@@ -129,35 +129,57 @@ const TripCreationFlow = () => {
 
       // 3. Upload fuel documents (full tank and/or partial)
       if (fixedDocs.fuel) {
+      // Sanitize fuel OCR data for backend (strip units, convert to numbers)
+        let sanitizedFuelOcr = { ...fixedDocs.fuel.ocrData };
+        if (sanitizedFuelOcr && sanitizedFuelOcr.volume) {
+          const match = sanitizedFuelOcr.volume.toString().replace(/,/g, '').match(/[\d.]+/);
+          sanitizedFuelOcr.volume = match ? parseFloat(match[0]) : undefined;
+        }
+        if (sanitizedFuelOcr && sanitizedFuelOcr.rate) {
+          const match = sanitizedFuelOcr.rate.toString().replace(/,/g, '').match(/[\d.]+/);
+          sanitizedFuelOcr.rate = match ? parseFloat(match[0]) : undefined;
+        }
+        
         const fuelDoc = await DocumentService.uploadWithOcrData({
           file: fixedDocs.fuel.file,
           entityType: 'TRIP',
           entityId: newTripId,
           docType: 'FUEL_SLIP',
-          ocrData: fixedDocs.fuel.ocrData
+          ocrData: sanitizedFuelOcr
         });
         
         if (!fuelDoc || !fuelDoc._id) {
           throw new Error('Failed to upload fuel document');
         }
         
-        await TripService.uploadDocument(newTripId, 'FUEL_SLIP', fuelDoc._id, fixedDocs.fuel.ocrData);
+        await TripService.uploadDocument(newTripId, 'FUEL_SLIP', fuelDoc._id, sanitizedFuelOcr);
       }
       if (fixedDocs.partialFuel && fixedDocs.partialFuel.length > 0) {
         for (const fuel of fixedDocs.partialFuel) {
+          // Sanitize partial fuel OCR data for backend (strip units, convert to numbers)
+          let sanitizedPartialFuelOcr = { ...fuel.ocrData };
+          if (sanitizedPartialFuelOcr && sanitizedPartialFuelOcr.volume) {
+            const match = sanitizedPartialFuelOcr.volume.toString().replace(/,/g, '').match(/[\d.]+/);
+            sanitizedPartialFuelOcr.volume = match ? parseFloat(match[0]) : undefined;
+          }
+          if (sanitizedPartialFuelOcr && sanitizedPartialFuelOcr.rate) {
+            const match = sanitizedPartialFuelOcr.rate.toString().replace(/,/g, '').match(/[\d.]+/);
+            sanitizedPartialFuelOcr.rate = match ? parseFloat(match[0]) : undefined;
+          }
+          
           const partialDoc = await DocumentService.uploadWithOcrData({
             file: fuel.file.originalFile,
             entityType: 'TRIP',
             entityId: newTripId,
             docType: 'FUEL_SLIP',
-            ocrData: fuel.file.ocrData
+            ocrData: sanitizedPartialFuelOcr
           });
           
           if (!partialDoc || !partialDoc._id) {
             throw new Error('Failed to upload partial fuel document');
           }
           
-          await TripService.uploadDocument(newTripId, 'FUEL_SLIP', partialDoc._id, fuel.file.ocrData);
+          await TripService.uploadDocument(newTripId, 'FUEL_SLIP', partialDoc._id, sanitizedPartialFuelOcr);
         }
       }
 
