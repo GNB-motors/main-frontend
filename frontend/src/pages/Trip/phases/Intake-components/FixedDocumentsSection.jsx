@@ -68,25 +68,31 @@ const FixedDocumentsSection = ({
         if (ocrResult.success) {
           console.log(`✅ OCR scan successful for ${ocrDocType}:`, ocrResult.data);
 
+          // Check if OCR data has meaningful values
+          const hasOdometerData = docType === 'odometer' && ocrResult.data?.reading;
+          const hasFuelData = docType === 'fuel' && (ocrResult.data?.volume || ocrResult.data?.rate);
+          const hasUsefulData = hasOdometerData || hasFuelData;
+
           // Update document with OCR data
           setFixedDocs(prev => ({
             ...prev,
             [docType]: {
               ...prev[docType],
               ocrData: ocrResult.data,
-              ocrStatus: 'success'
+              ocrStatus: hasUsefulData ? 'success' : 'warning'
             }
           }));
 
           setOcrResults(prev => ({ ...prev, [docType]: ocrResult }));
 
-          // Show success message with key data
+          // Show success message only if we have meaningful data
           if (docType === 'odometer' && ocrResult.data?.reading) {
             toast.success(`Odometer reading detected: ${ocrResult.data.reading}`);
           } else if (docType === 'fuel' && ocrResult.data?.volume) {
             toast.success(`Fuel volume detected: ${ocrResult.data.volume}L`);
-          } else {
-            toast.success(`${docType} scanned successfully`);
+          } else if (!hasUsefulData) {
+            // Show warning if OCR succeeded but returned no useful data
+            toast.warning(`${docType.charAt(0).toUpperCase() + docType.slice(1)} scanned but no data detected. Please enter manually.`);
           }
         } else {
           console.warn(`⚠️ OCR scan failed for ${ocrDocType}:`, ocrResult.error);

@@ -94,7 +94,7 @@ const TripCreationFlow = () => {
 
     setIsIntakeLoading(true);
     try {
-      // 1. Initiate trip
+      // 1. Initiate trip (only create the trip, don't upload documents yet)
       const tripResp = await TripService.initiateTrip({
         vehicleId: selectedVehicle.id,
         driverId: selectedDriver.id
@@ -105,107 +105,14 @@ const TripCreationFlow = () => {
       // Persist tripId in localStorage for recovery
       localStorage.setItem('tripId', newTripId);
 
-
-      // 2. Upload odometer document (to /documents), then associate with trip
-      // Sanitize odometer reading for backend (strip units, convert to number)
-      let sanitizedOdoOcr = { ...fixedDocs.odometer.ocrData };
-      if (sanitizedOdoOcr && sanitizedOdoOcr.reading) {
-        const match = sanitizedOdoOcr.reading.toString().replace(/,/g, '').match(/[\d.]+/);
-        sanitizedOdoOcr.reading = match ? parseFloat(match[0]) : null;
-      }
-      const odoDoc = await DocumentService.uploadWithOcrData({
-        file: fixedDocs.odometer.file,
-        entityType: 'TRIP',
-        entityId: newTripId,
-        docType: 'ODOMETER',
-        ocrData: sanitizedOdoOcr
-      });
-      
-      if (!odoDoc || !odoDoc._id) {
-        throw new Error('Failed to upload odometer document');
-      }
-      
-      await TripService.uploadDocument(newTripId, 'ODOMETER', odoDoc._id, sanitizedOdoOcr);
-
-      // 3. Upload fuel documents (full tank and/or partial)
-      if (fixedDocs.fuel) {
-      // Sanitize fuel OCR data for backend (strip units, convert to numbers)
-        let sanitizedFuelOcr = { ...fixedDocs.fuel.ocrData };
-        if (sanitizedFuelOcr && sanitizedFuelOcr.volume) {
-          const match = sanitizedFuelOcr.volume.toString().replace(/,/g, '').match(/[\d.]+/);
-          sanitizedFuelOcr.volume = match ? parseFloat(match[0]) : undefined;
-        }
-        if (sanitizedFuelOcr && sanitizedFuelOcr.rate) {
-          const match = sanitizedFuelOcr.rate.toString().replace(/,/g, '').match(/[\d.]+/);
-          sanitizedFuelOcr.rate = match ? parseFloat(match[0]) : undefined;
-        }
-        
-        const fuelDoc = await DocumentService.uploadWithOcrData({
-          file: fixedDocs.fuel.file,
-          entityType: 'TRIP',
-          entityId: newTripId,
-          docType: 'FUEL_SLIP',
-          ocrData: sanitizedFuelOcr
-        });
-        
-        if (!fuelDoc || !fuelDoc._id) {
-          throw new Error('Failed to upload fuel document');
-        }
-        
-        await TripService.uploadDocument(newTripId, 'FUEL_SLIP', fuelDoc._id, sanitizedFuelOcr);
-      }
-      if (fixedDocs.partialFuel && fixedDocs.partialFuel.length > 0) {
-        for (const fuel of fixedDocs.partialFuel) {
-          // Sanitize partial fuel OCR data for backend (strip units, convert to numbers)
-          let sanitizedPartialFuelOcr = { ...fuel.ocrData };
-          if (sanitizedPartialFuelOcr && sanitizedPartialFuelOcr.volume) {
-            const match = sanitizedPartialFuelOcr.volume.toString().replace(/,/g, '').match(/[\d.]+/);
-            sanitizedPartialFuelOcr.volume = match ? parseFloat(match[0]) : undefined;
-          }
-          if (sanitizedPartialFuelOcr && sanitizedPartialFuelOcr.rate) {
-            const match = sanitizedPartialFuelOcr.rate.toString().replace(/,/g, '').match(/[\d.]+/);
-            sanitizedPartialFuelOcr.rate = match ? parseFloat(match[0]) : undefined;
-          }
-          
-          const partialDoc = await DocumentService.uploadWithOcrData({
-            file: fuel.file.originalFile,
-            entityType: 'TRIP',
-            entityId: newTripId,
-            docType: 'FUEL_SLIP',
-            ocrData: sanitizedPartialFuelOcr
-          });
-          
-          if (!partialDoc || !partialDoc._id) {
-            throw new Error('Failed to upload partial fuel document');
-          }
-          
-          await TripService.uploadDocument(newTripId, 'FUEL_SLIP', partialDoc._id, sanitizedPartialFuelOcr);
-        }
-      }
-
-      // 4. Upload weight slips (ensure docType and ocrData are correct)
-      for (const slip of weightSlips) {
-        const slipDoc = await DocumentService.uploadWithOcrData({
-          file: slip.file.originalFile,
-          entityType: 'TRIP',
-          entityId: newTripId,
-          docType: 'WEIGHT_CERTIFICATE',
-          ocrData: slip.ocrData || (slip.file && slip.file.ocrData) || undefined
-        });
-        
-        if (!slipDoc || !slipDoc._id) {
-          throw new Error('Failed to upload weight certificate document');
-        }
-        
-        await TripService.uploadDocument(newTripId, 'WEIGHT_CERT', slipDoc._id, slip.ocrData || (slip.file && slip.file.ocrData) || undefined);
-      }
-
+      // Documents are kept in frontend state and will be uploaded only at final submission
+      // Move to processing phase immediately
       setActiveStep(1);
       setCurrentIndex(0);
-      toast.success('Trip initialized and documents uploaded!');
+      toast.success('Trip initialized! You can now process weight slips.');
     } catch (error) {
-      console.error('Trip initialization/upload failed:', error);
-      toast.error(error?.message || 'Failed to initialize trip or upload documents');
+      console.error('Trip initialization failed:', error);
+      toast.error(error?.message || 'Failed to initialize trip');
     } finally {
       setIsIntakeLoading(false);
     }
@@ -257,6 +164,13 @@ const TripCreationFlow = () => {
    */
   const handleBackToProcessing = useCallback(() => {
     setActiveStep(1);
+  }, []);
+
+  /**
+   * Go back to intake from processing
+   */
+  const handleBackToIntake = useCallback(() => {
+    setActiveStep(0);
   }, []);
 
   /**
@@ -346,6 +260,7 @@ const TripCreationFlow = () => {
           onNextSlip={handleNextSlip}
           onPreviousSlip={handlePreviousSlip}
           onSelectSlip={handleSelectSlip}
+          onBackToIntake={handleBackToIntake}
           onCancel={handleCancel}
           tripId={tripId}
         />

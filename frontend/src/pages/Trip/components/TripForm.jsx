@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import RouteService from '../../Routes/RouteService';
 import './TripForm.css';
 
-const TripForm = ({ slip, trip, onUpdate }) => {
+const TripForm = ({ slip, fixedDocs, onUpdate }) => {
   const handleChange = useCallback(
     (field, value) => {
       onUpdate({ [field]: value });
@@ -43,14 +43,36 @@ const TripForm = ({ slip, trip, onUpdate }) => {
     }
   }, [slip.routeId, routes]);
 
-  // Autofill endOdometer from trip data if available and not already set
+  // Autofill endOdometer from fixedDocs odometer reading if available
   useEffect(() => {
-    const odometerReading = trip?.documents?.odometer?.correctedReading || trip?.documents?.odometer?.ocrReading;
-    if (odometerReading && (!slip.endOdometer || slip._autofilledEndOdometer !== odometerReading)) {
-      handleChange('endOdometer', odometerReading);
-      handleChange('_autofilledEndOdometer', odometerReading); // Track last autofilled
+    const odometerReading = fixedDocs?.odometer?.ocrData?.reading;
+    if (odometerReading && !slip.endOdometer) {
+      // Extract numeric value from reading (e.g., "9195.7 km" -> 9195.7)
+      const numericValue = parseFloat(odometerReading.toString().replace(/[^\d.]/g, ''));
+      if (!isNaN(numericValue)) {
+        handleChange('endOdometer', numericValue);
+      }
     }
-  }, [trip?.documents?.odometer?.correctedReading, trip?.documents?.odometer?.ocrReading, slip.endOdometer]);
+  }, [fixedDocs?.odometer?.ocrData?.reading, slip.endOdometer, handleChange]);
+
+  // Autofill weight fields from OCR data if available and not already set
+  useEffect(() => {
+    if (slip.ocrData) {
+      // Auto-fill grossWeight if available and not set
+      if (slip.ocrData.grossWeight && !slip.grossWeight) {
+        handleChange('grossWeight', slip.ocrData.grossWeight);
+      }
+      // Auto-fill tareWeight if available and not set
+      if (slip.ocrData.tareWeight && !slip.tareWeight) {
+        handleChange('tareWeight', slip.ocrData.tareWeight);
+      }
+      // Auto-fill netWeight if available and not set
+      const ocrNetWeight = slip.ocrData.netWeight || slip.ocrData.finalWeight;
+      if (ocrNetWeight && !slip.netWeight) {
+        handleChange('netWeight', ocrNetWeight);
+      }
+    }
+  }, [slip.ocrData, slip.grossWeight, slip.tareWeight, slip.netWeight, handleChange]);
 
   return (
     <form className="trip-form">
@@ -66,6 +88,11 @@ const TripForm = ({ slip, trip, onUpdate }) => {
           className="form-input"
           min="0"
         />
+        {fixedDocs?.odometer?.ocrData?.reading && (
+          <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+            Start Odometer: {fixedDocs.odometer.ocrData.reading}
+          </small>
+        )}
       </div>
       {/* Route Assignment Fields */}
       <fieldset className="form-section">

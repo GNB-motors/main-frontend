@@ -614,6 +614,11 @@
   color: white;
 }
 
+.ocr-status-badge.warning {
+  background: rgba(245, 158, 11, 0.9);
+  color: white;
+}
+
 .ocr-status-badge.error {
   background: rgba(239, 68, 68, 0.9);
   color: white;
@@ -661,14 +666,14 @@
 .ocr-label {
   font-size: 10px;
   font-weight: 600;
-  color: #64748b;
+  color: #ffffff;
   text-transform: uppercase;
 }
 
 .ocr-value {
   font-size: 12px;
   font-weight: 700;
-  color: #1e293b;
+  color: #ffffff;
 }
 
 .ocr-value-truncate {
@@ -720,6 +725,11 @@
 
 .slip-ocr-status.success {
   background: rgba(34, 197, 94, 0.9);
+  color: white;
+}
+
+.slip-ocr-status.warning {
+  background: rgba(245, 158, 11, 0.9);
   color: white;
 }
 

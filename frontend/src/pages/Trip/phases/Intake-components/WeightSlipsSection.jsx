@@ -39,16 +39,20 @@ const WeightSlipsSection = ({
       return true;
     });
 
-    const newSlips = [];
-    let processed = 0;
-    const startIndex = weightSlips.length;
+    if (validFiles.length === 0) return;
 
+    const startIndex = weightSlips.length;
+    const newSlips = [];
+    let loadedCount = 0;
+
+    // First, create all slips with preview images synchronously
     validFiles.forEach((file, fileIndex) => {
       const reader = new FileReader();
-      reader.onload = async (e) => {
+      
+      reader.onload = (e) => {
         const slipIndex = startIndex + fileIndex;
 
-        // Add slip with scanning status
+        // Create slip with preview
         const newSlip = {
           file: {
             originalFile: file,
@@ -60,16 +64,21 @@ const WeightSlipsSection = ({
           weight: '',
           isDone: false,
           ocrData: null,
-          ocrStatus: 'scanning'
+          ocrStatus: 'scanning',
+          fileName: file.name, // Track filename for debugging
+          uploadIndex: slipIndex // Track original index
         };
 
-        newSlips.push(newSlip);
-        processed++;
+        // Store in the correct position
+        newSlips[fileIndex] = newSlip;
+        loadedCount++;
 
-        if (processed === validFiles.length) {
+        // When all files are loaded, add them to state and start OCR
+        if (loadedCount === validFiles.length) {
+          // Add all slips to state at once
           setWeightSlips(prev => [...prev, ...newSlips]);
 
-          // Initialize scanning states for new slips
+          // Initialize scanning states
           setWeightSlipScanning(prev => [
             ...prev,
             ...new Array(validFiles.length).fill(true)
@@ -81,15 +90,22 @@ const WeightSlipsSection = ({
 
           toast.success(`Added ${validFiles.length} weight slip(s). Scanning...`);
 
-          // Run OCR on all new slips
-          validFiles.forEach(async (f, idx) => {
+          // Start OCR for each slip sequentially to avoid race conditions
+          validFiles.forEach((file, idx) => {
             const actualIndex = startIndex + idx;
-            try {
-              console.log(`🔍 Starting OCR scan for weight slip #${actualIndex + 1}...`);
-              const ocrResult = await OCRService.scanWeightCert(f);
+            
+            // Run OCR with proper error handling
+            (async () => {
+              try {
+                console.log(`🔍 Starting OCR scan for weight slip #${actualIndex + 1} (${file.name})...`);
+                const ocrResult = await OCRService.scanWeightCert(file);
 
               if (ocrResult.success) {
                 console.log(`✅ Weight slip #${actualIndex + 1} scanned:`, ocrResult.data);
+
+                // Check if OCR data has meaningful values
+                const hasWeightData = ocrResult.data?.netWeight || ocrResult.data?.finalWeight || ocrResult.data?.grossWeight;
+                const hasUsefulData = hasWeightData || ocrResult.data?.materialType || ocrResult.data?.origin || ocrResult.data?.destination;
 
                 // Update weight slip with OCR data
                 setWeightSlips(prev => {
@@ -103,7 +119,7 @@ const WeightSlipsSection = ({
                     updated[actualIndex] = {
                       ...updated[actualIndex],
                       ocrData: ocrResult.data,
-                      ocrStatus: 'success',
+                      ocrStatus: hasUsefulData ? 'success' : 'warning',
                       // Autofill all available fields from OCR data
                       weight: ocrResult.data?.netWeight || ocrResult.data?.finalWeight || updated[actualIndex].weight,
                       endOdometer,
@@ -125,8 +141,12 @@ const WeightSlipsSection = ({
                   return updated;
                 });
 
-                if (ocrResult.data?.netWeight || ocrResult.data?.grossWeight) {
-                  toast.success(`Weight slip #${actualIndex + 1}: ${ocrResult.data.netWeight || ocrResult.data.grossWeight} kg detected`);
+                // Only show success toast if we have meaningful weight data
+                if (hasWeightData) {
+                  toast.success(`Weight slip #${actualIndex + 1}: ${ocrResult.data.netWeight || ocrResult.data.finalWeight || ocrResult.data.grossWeight} kg detected`);
+                } else if (!hasUsefulData) {
+                  // Show warning if OCR succeeded but returned no useful data
+                  toast.warning(`Weight slip #${actualIndex + 1}: OCR completed but no data detected. Please enter manually.`);
                 }
               } else {
                 console.warn(`⚠️ Weight slip #${actualIndex + 1} OCR failed:`, ocrResult.error);
@@ -164,6 +184,7 @@ const WeightSlipsSection = ({
                 return updated;
               });
             }
+            })(); // Close the async IIFE
           });
         }
       };
@@ -200,6 +221,8 @@ const WeightSlipsSection = ({
                     <Loader2 size={12} className="spinning" />
                   ) : slip.ocrStatus === 'success' ? (
                     <CheckCircle size={12} />
+                  ) : slip.ocrStatus === 'warning' ? (
+                    <AlertCircle size={12} />
                   ) : slip.ocrStatus === 'error' ? (
                     <AlertCircle size={12} />
                   ) : null}
