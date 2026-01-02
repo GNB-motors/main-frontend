@@ -28,7 +28,6 @@ import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
-import AddRefuelPage from './pages/Trip/AddRefuelPage.jsx';
 
 
 function App() {
@@ -65,7 +64,6 @@ function App() {
         <Route path="/trip/new" element={<TripCreationFlow />} />
         <Route path="/trip/:tripId" element={<TripManagementPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
-        <Route path="/refuel/new" element={<AddRefuelPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />

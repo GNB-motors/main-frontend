@@ -107,6 +107,7 @@ const RouteFormModal = ({
                   placeholder="City"
                   className="form-input"
                   required
+                  disabled
                 />
               </div>
               <div className="form-group">
@@ -120,6 +121,7 @@ const RouteFormModal = ({
                   }
                   placeholder="State"
                   className="form-input"
+                  disabled
                 />
               </div>
             </div>
@@ -155,6 +157,7 @@ const RouteFormModal = ({
                   placeholder="City"
                   className="form-input"
                   required
+                  disabled
                 />
               </div>
               <div className="form-group">
@@ -168,6 +171,7 @@ const RouteFormModal = ({
                   }
                   placeholder="State"
                   className="form-input"
+                  disabled
                 />
               </div>
             </div>

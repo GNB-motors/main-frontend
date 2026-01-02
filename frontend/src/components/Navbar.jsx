@@ -88,15 +88,6 @@ const Navbar = ({ toggleSidebar }) => {
                     </>
                 )}
 
-                {!isTripsPage && isRefuelLogsPage && (
-                    <button
-                        className="btn btn-primary trip-action-btn"
-                        onClick={() => navigate('/refuel/new')}
-                    >
-                        <Plus size={16} />
-                        <span>Add Refuel</span>
-                    </button>
-                )}
             </div>
         </header>
     );
