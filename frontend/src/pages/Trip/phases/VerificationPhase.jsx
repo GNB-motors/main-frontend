@@ -8,8 +8,7 @@
  * - Submit action to backend
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import TripService from '../services/TripService';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Eye, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './VerificationPhase.css';
@@ -21,89 +20,36 @@ const VerificationPhase = ({
   onSubmit,
   isSubmitting,
   onCancel,
-  tripId: propTripId
+  fixedDocs: propsFixedDocs = {},
+  weightSlips: propsWeightSlips = []
 }) => {
-  const [tripId] = useState(propTripId || localStorage.getItem('tripId'));
-  const [trip, setTrip] = useState(null);
-  const [weightSlips, setWeightSlips] = useState([]);
-  const [fixedDocs, setFixedDocs] = useState({});
-  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
+  // Use props directly from parent (TripCreationFlow)
+  const [weightSlips] = useState(propsWeightSlips);
+  const [fixedDocs] = useState(propsFixedDocs);
   const [previewModal, setPreviewModal] = useState({
     isOpen: false,
     imageSrc: null,
     title: ''
   });
 
-  useEffect(() => {
-    if (tripId) {
-      TripService.getTripById(tripId)
-        .then((apiResp) => {
-          // TripService returns response.data from API which is { status, data: <trip> }
-          const payload = apiResp && apiResp.data ? apiResp.data : apiResp;
-          setTrip(payload);
-
-          // Normalize weight slips from documents.weightCerts (same shape as ProcessingPhase)
-          const rawWeightCerts = payload.documents?.weightCerts || [];
-          const s3Refs = payload.s3References?.weightCerts || [];
-          const slips = rawWeightCerts.map((wc, idx) => ({
-            _id: wc._id || wc.documentId,
-            documentId: wc.documentId,
-            weight: wc.netWeight || wc.grossWeight || 0,
-            origin: wc.origin || '',
-            destination: wc.destination || '',
-            file: { preview: s3Refs[idx] || '' },
-            isDone: wc.isDone || false,
-          }));
-
-          setWeightSlips(slips);
-          setFixedDocs(payload.documents || {});
-        })
-        .catch((err) => {
-          console.error('Failed to fetch trip details:', err);
-        });
-    }
-  }, [tripId]);
-
   // Memoized data validation
   const isDataComplete = useMemo(
-    // Treat a slip as complete when required fields are present. Allow either explicit isDone
-    // or fields filled in the form to mark completeness so submit enables after user completes fields.
     () => {
       if (!weightSlips || weightSlips.length === 0) return false;
 
-      // If server-side trip status indicates completion stages, allow submit.
-      if (trip && ['REVENUE_ENTERED', 'EXPENSES_ENTERED', 'SUBMITTED', 'SUMMARY_REVIEW'].includes(trip.status)) {
-        return true;
-      }
-
-      // Otherwise ensure each slip is either marked isDone locally, has required form fields filled,
-      // or has a matching revenue/expense/route entry on the trip (persisted on server).
+      // Check if all weight slips have required data
       return weightSlips.every((slip) => {
+        // Check if slip is marked as done
         if (slip.isDone === true) return true;
-        if (slip.origin && slip.destination && (slip.weight || slip.netWeight)) return true;
-
-        // Check server-side revenues
-        const revExists = trip && Array.isArray(trip.revenues) && trip.revenues.some((r) => {
-          const wid = String(r.weightCertId || '');
-          return wid === String(slip.documentId || slip._id || '');
-        });
-        if (revExists) return true;
-
-        // Check server-side expenses
-        const expExists = trip && Array.isArray(trip.expenses) && trip.expenses.some((e) => {
-          const wid = String(e.weightCertId || '');
-          return wid === String(slip.documentId || slip._id || '');
-        });
-        if (expExists) return true;
-
-        // Check route assignment
-        const routeAssigned = trip && Array.isArray(trip.selectedRoutes) && trip.selectedRoutes.some((sr) => {
-          const wid = String(sr.weightCertId || '');
-          return wid === String(slip.documentId || slip._id || '');
-        });
-        if (routeAssigned) return true;
-
-        return false;
+        
+        // Check if slip has required fields - TripForm uses flat property names
+        const hasWeights = (slip.grossWeight || slip.weights?.grossWeight) && 
+          (slip.tareWeight || slip.weights?.tareWeight) && 
+          (slip.netWeight || slip.weights?.netWeight);
+        const hasMaterialType = slip.materialType && slip.materialType !== '';
+        const hasRoute = slip.routeId && slip.routeId !== '';
+        
+        return hasWeights && hasMaterialType && hasRoute;
       });
     },
     [weightSlips]
@@ -117,24 +63,46 @@ const VerificationPhase = ({
   const totalWeight = useMemo(
     () =>
       weightSlips
-        .reduce((sum, slip) => sum + (parseFloat(slip.weight) || 0), 0)
+        .reduce((sum, slip) => sum + (parseFloat(slip.netWeight || slip.weights?.netWeight || slip.weight) || 0), 0)
         .toFixed(2),
     [weightSlips]
   );
 
   const revenueSummary = useMemo(() => {
-    if (!trip) return { totalRevenue: 0, totalCalculated: 0, totalVariance: 0 };
+    // Calculate from weight slips - TripForm uses flat property names
+    const totalRevenue = weightSlips.reduce((sum, slip) => {
+      // TripForm uses totalAmountReceived
+      return sum + (parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || 0);
+    }, 0);
+    
+    const totalCalculated = weightSlips.reduce((sum, slip) => {
+      // TripForm uses netWeight and amountPerKg
+      const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || 0;
+      const ratePerKg = parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || 0;
+      return sum + (netWeight * ratePerKg / 1000); // Convert to calculated amount
+    }, 0);
+    
+    const totalVariance = totalRevenue - totalCalculated;
+    
     return {
-      totalRevenue: trip.revenueSummary?.totalRevenue || 0,
-      totalCalculated: trip.revenueSummary?.totalAmountCalculated || 0,
-      totalVariance: trip.revenueSummary?.totalAmountVariance || 0,
+      totalRevenue,
+      totalCalculated,
+      totalVariance
     };
-  }, [trip]);
+  }, [weightSlips]);
 
   const totalExpense = useMemo(() => {
-    if (!trip || !Array.isArray(trip.expenses)) return 0;
-    return trip.expenses.reduce((s, e) => s + (e.totalExpense || 0), 0);
-  }, [trip]);
+    // Calculate from weight slips expenses - TripForm uses flat property names
+    return weightSlips.reduce((sum, slip) => {
+      const slipTotal = (parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0) + 
+                       (parseFloat(slip.toll) || slip.expenses?.toll || 0) + 
+                       (parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0) + 
+                       (parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0) + 
+                       (parseFloat(slip.royalty) || slip.expenses?.royalty || 0) + 
+                       (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0);
+      return sum + slipTotal;
+    }, 0);
+  }, [weightSlips]);
 
   const profit = useMemo(() => {
     return (revenueSummary.totalRevenue || 0) - (totalExpense || 0);
@@ -162,22 +130,11 @@ const VerificationPhase = ({
       return;
     }
 
-    setIsSubmittingLocal(true);
-    try {
-      // Get endOdometer from trip data
-      const endOdometer = trip?.documents?.odometer?.correctedReading || trip?.documents?.odometer?.ocrReading || 0;
-      
-      // Call backend submit endpoint
-      await TripService.submitTrip(tripId, { endOdometer });
-      toast.success('Trip submitted successfully');
-      if (onSubmit) onSubmit();
-    } catch (error) {
-      console.error('Submit error:', error);
-      toast.error(error?.message || 'Failed to submit. Please try again.');
-    } finally {
-      setIsSubmittingLocal(false);
+    // Call parent's submit handler (from TripCreationFlow)
+    if (onSubmit) {
+      onSubmit();
     }
-  }, [isDataComplete, onSubmit, trip]);
+  }, [isDataComplete, onSubmit]);
 
   return (
     <div className="verification-phase">
@@ -202,13 +159,16 @@ const VerificationPhase = ({
               <div className="recap-item">
                 <div className="recap-label">Odometer</div>
                 <div className="recap-image-wrapper">
-                  {fixedDocs.odometer.preview ? (
+                  {(fixedDocs.odometer.preview || fixedDocs.odometer.file) ? (
                     <img
-                      src={fixedDocs.odometer.preview}
+                      src={fixedDocs.odometer.preview || URL.createObjectURL(fixedDocs.odometer.file)}
                       alt="Odometer"
                       className="recap-image"
                       onClick={() =>
-                        handleShowPreview(fixedDocs.odometer.preview, 'Odometer Image')
+                        handleShowPreview(
+                          fixedDocs.odometer.preview || URL.createObjectURL(fixedDocs.odometer.file), 
+                          'Odometer Image'
+                        )
                       }
                     />
                   ) : (
@@ -217,7 +177,10 @@ const VerificationPhase = ({
                   <button
                     className="btn-preview"
                     onClick={() =>
-                      handleShowPreview(fixedDocs.odometer.preview, 'Odometer Image')
+                      handleShowPreview(
+                        fixedDocs.odometer.preview || URL.createObjectURL(fixedDocs.odometer.file), 
+                        'Odometer Image'
+                      )
                     }
                     title="Preview image"
                   >
@@ -231,13 +194,16 @@ const VerificationPhase = ({
               <div className="recap-item">
                 <div className="recap-label">Full Tank Fuel</div>
                 <div className="recap-image-wrapper">
-                  {fixedDocs.fuel.preview ? (
+                  {(fixedDocs.fuel.preview || fixedDocs.fuel.file) ? (
                     <img
-                      src={fixedDocs.fuel.preview}
+                      src={fixedDocs.fuel.preview || URL.createObjectURL(fixedDocs.fuel.file)}
                       alt="Fuel Receipt"
                       className="recap-image"
                       onClick={() =>
-                        handleShowPreview(fixedDocs.fuel.preview, 'Fuel Receipt Image')
+                        handleShowPreview(
+                          fixedDocs.fuel.preview || URL.createObjectURL(fixedDocs.fuel.file), 
+                          'Fuel Receipt Image'
+                        )
                       }
                     />
                   ) : (
@@ -246,7 +212,10 @@ const VerificationPhase = ({
                   <button
                     className="btn-preview"
                     onClick={() =>
-                      handleShowPreview(fixedDocs.fuel.preview, 'Fuel Receipt Image')
+                      handleShowPreview(
+                        fixedDocs.fuel.preview || URL.createObjectURL(fixedDocs.fuel.file), 
+                        'Fuel Receipt Image'
+                      )
                     }
                     title="Preview image"
                   >
@@ -264,14 +233,14 @@ const VerificationPhase = ({
                 <div className="recap-partial-grid">
                   {fixedDocs.partialFuel.map((fuel, index) => (
                     <div key={index} className="recap-partial-item">
-                      {fuel?.file?.preview ? (
+                      {(fuel?.preview || fuel?.file) ? (
                         <img
-                          src={fuel.file.preview}
+                          src={fuel.preview || URL.createObjectURL(fuel.file)}
                           alt={`Partial Fuel ${index + 1}`}
                           className="recap-image-small"
                           onClick={() =>
                             handleShowPreview(
-                              fuel.file.preview,
+                              fuel.preview || URL.createObjectURL(fuel.file),
                               `Partial Fuel #${index + 1}`
                             )
                           }
@@ -283,7 +252,7 @@ const VerificationPhase = ({
                         className="btn-preview-small"
                         onClick={() =>
                           handleShowPreview(
-                            fuel.file.preview,
+                            fuel.preview || URL.createObjectURL(fuel.file),
                             `Partial Fuel #${index + 1}`
                           )
                         }
@@ -332,58 +301,70 @@ const VerificationPhase = ({
                 </tr>
               </thead>
               <tbody>
-                {weightSlips.map((slip, index) => (
-                  <tr
-                    key={index}
-                    className={slip.isDone ? 'row-complete' : 'row-incomplete'}
-                  >
-                    <td className="slip-number">#{index + 1}</td>
-                    <td>
-                      <div className="slip-preview-container">
-                        {slip?.file?.preview ? (
-                          <img
-                            src={slip.file.preview}
-                            alt={`Slip ${index + 1}`}
-                            className="slip-preview"
+                {weightSlips.map((slip, index) => {
+                  // Handle file preview - might be .file or .file.preview from different sources
+                  const filePreview = slip.file ? (
+                    typeof slip.file === 'string' ? slip.file :
+                    slip.file.preview ? slip.file.preview :
+                    URL.createObjectURL(slip.file)
+                  ) : null;
+                  
+                  // Get weight from either weights object or weight property
+                  const weight = slip.weights?.netWeight || slip.weight || 0;
+                  
+                  return (
+                    <tr
+                      key={index}
+                      className={slip.isDone ? 'row-complete' : 'row-incomplete'}
+                    >
+                      <td className="slip-number">#{index + 1}</td>
+                      <td>
+                        <div className="slip-preview-container">
+                          {filePreview ? (
+                            <img
+                              src={filePreview}
+                              alt={`Slip ${index + 1}`}
+                              className="slip-preview"
+                              onClick={() =>
+                                handleShowPreview(
+                                  filePreview,
+                                  `Weight Slip #${index + 1}`
+                                )
+                              }
+                            />
+                          ) : (
+                            <div className="no-image-small">No Image</div>
+                          )}
+                          <button
+                            className="btn-preview-small"
                             onClick={() =>
                               handleShowPreview(
-                                slip.file.preview,
+                                filePreview,
                                 `Weight Slip #${index + 1}`
                               )
                             }
-                          />
-                        ) : (
-                          <div className="no-image-small">No Image</div>
-                        )}
-                        <button
-                          className="btn-preview-small"
-                          onClick={() =>
-                            handleShowPreview(
-                              slip.file.preview,
-                              `Weight Slip #${index + 1}`
-                            )
-                          }
-                          title="Preview image"
-                        >
-                          <Eye size={12} />
-                        </button>
-                      </div>
-                    </td>
-                    <td>{slip.origin || '—'}</td>
-                    <td>{slip.destination || '—'}</td>
-                    <td className="text-center">{slip.weight || '—'} kg</td>
-                    <td>
-                      {slip.isDone ? (
-                        <div className="status-badge-small done">
-                          <CheckCircle size={14} />
-                          Done
+                            title="Preview image"
+                          >
+                            <Eye size={12} />
+                          </button>
                         </div>
-                      ) : (
-                        <div className="status-badge-small pending">Pending</div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>{slip.origin || slip.routeDetails?.source || '—'}</td>
+                      <td>{slip.destination || slip.routeDetails?.destination || '—'}</td>
+                      <td className="text-center">{weight} kg</td>
+                      <td>
+                        {slip.isDone ? (
+                          <div className="status-badge-small done">
+                            <CheckCircle size={14} />
+                            Done
+                          </div>
+                        ) : (
+                          <div className="status-badge-small pending">Pending</div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -420,14 +401,14 @@ const VerificationPhase = ({
         <button
           className="btn btn-primary"
           onClick={handleSubmit}
-          disabled={!isDataComplete || isSubmitting || isSubmittingLocal}
+          disabled={!isDataComplete || isSubmitting}
           title={
             !isDataComplete
               ? 'Complete all slips before submitting'
               : 'Submit trip data'
           }
         >
-          {isSubmitting || isSubmittingLocal ? 'Submitting...' : '✓ Submit'}
+          {isSubmitting ? 'Submitting...' : '✓ Submit'}
         </button>
         <button
           className="btn btn-outline"

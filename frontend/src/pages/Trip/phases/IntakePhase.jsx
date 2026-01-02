@@ -23,7 +23,6 @@ const IntakePhase = ({
   setSelectedDriver,
   onStartProcessing,
   onCancel,
-  tripId,
   isIntakeLoading
 }) => {
   // OCR Scanning States (shared across components)

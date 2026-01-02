@@ -21,6 +21,8 @@ import BulkUploadDriversPage from "./pages/Drivers/BulkUploadDriversPage.jsx";
 import BulkUploadVehiclesPage from "./pages/Profile/BulkUploadVehiclesPage.jsx";
 import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
 import TripCreationFlow from './pages/Trip/TripCreationFlow.jsx';
+import WeightSlipTripDetailPage from './pages/Trip/WeightSlipTripDetailPage.jsx';
+import TripDetailPage from './pages/Trip/TripDetailPage.jsx';
 import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
 import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
@@ -61,6 +63,8 @@ function App() {
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
         <Route path="/bulk-upload" element={<BulkUploadPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
+        <Route path="/trip-management/weight-slip/:id" element={<WeightSlipTripDetailPage />} />
+        <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />
         <Route path="/trip/new" element={<TripCreationFlow />} />
         <Route path="/trip/:tripId" element={<TripManagementPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />

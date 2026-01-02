@@ -21,14 +21,12 @@ const ProcessingPhase = ({
   onSelectSlip,
   onBackToIntake,
   onCancel,
-  tripId: propTripId,
   weightSlips: propsWeightSlips,
   fixedDocs: propsFixedDocs,
   currentIndex: propsCurrentIndex,
   updateWeightSlip: propsUpdateWeightSlip,
 }) => {
-  // Use props directly instead of fetching from API
-  const [tripId] = useState(propTripId || localStorage.getItem('tripId'));
+  // Use props directly
   const [weightSlips, setWeightSlips] = useState(propsWeightSlips || []);
   const [fixedDocs] = useState(propsFixedDocs || {});
   const [currentIndex, setCurrentIndex] = useState(propsCurrentIndex || 0);
@@ -165,22 +163,7 @@ const ProcessingPhase = ({
   const completedSlips = weightSlips.filter(slip => slip.isDone).length;
   const progress = weightSlips.length > 0 ? (completedSlips / weightSlips.length) * 100 : 0;
 
-  // After hooks are declared, guard rendering when tripId or slips are missing
-  if (!tripId) {
-    return (
-      <div className="processing-phase-error">
-        <h2>Trip Not Initialized</h2>
-        <p>No trip is currently active. Please start a new trip from the beginning.</p>
-        <button className="btn btn-primary" onClick={() => {
-          localStorage.removeItem('tripId');
-          window.location.href = '/trip/new';
-        }}>
-          Restart Trip Creation
-        </button>
-      </div>
-    );
-  }
-
+  // Guard rendering when slips are missing
   if (!currentSlip) {
     if (!weightSlips || weightSlips.length === 0) {
       return <div>No weight certificates found for this trip. Please upload documents in Intake Phase.</div>;

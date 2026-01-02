@@ -1,40 +1,47 @@
 /**
  * TripManagementPage Component
  * 
- * Main page for viewing and managing all trips (active and completed).
+ * Main page for managing trips with 2 tabs:
+ * - Tab 1: Trips (weight slip trips from /weight-slip-trips endpoint)
+ * - Tab 2: Refuel (refuel journeys from /trips endpoint)
  * Features:
- * - Fixed header with filter tabs and search functionality
- * - Horizontal card layout displaying trip information
- * - Click-through to detailed trip view/edit page
- * - Real-time search across vehicle numbers, drivers, and locations
+ * - Tab navigation
+ * - Search and filter functionality
+ * - Card layout with trip information
+ * - Click-through to detailed view page
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Search } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
-import { TripService } from './services';
+import { TripService, WeightSlipTripService } from './services';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();
-  const { tripId } = useParams();
-  
-  // Determine mode: list or detail view
-  const isDetailView = !!tripId;
-  
-  // UI state management
-  const [activeFilter, setActiveFilter] = useState('ONGOING');
+
+  // Tab and UI state
+  const [activeTab, setActiveTab] = useState('trips'); // 'trips' or 'refuel'
   const [searchQuery, setSearchQuery] = useState('');
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedTrip, setSelectedTrip] = useState(null);
-  const [loadingTrip, setLoadingTrip] = useState(false);
-  const [pagination, setPagination] = useState({
+  
+  // Trips tab state (weight slip trips)
+  const [weightSlipTrips, setWeightSlipTrips] = useState([]);
+  const [loadingWeightSlipTrips, setLoadingWeightSlipTrips] = useState(false);
+  const [weightSlipPagination, setWeightSlipPagination] = useState({
     page: 1,
-    limit: 50,
-    total: 0,
-    totalPages: 0
+    limit: 20,
+    total: 0
+  });
+
+  // Refuel tab state (trips)
+  const [refuelTrips, setRefuelTrips] = useState([]);
+  const [loadingRefuelTrips, setLoadingRefuelTrips] = useState(false);
+  const [refuelPagination, setRefuelPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0
   });
 
   // Remove global page-content padding only for this page
@@ -51,68 +58,64 @@ const TripManagementPage = () => {
   }, []);
 
   /**
-   * Fetch trips from API
+   * Fetch weight slip trips from API
    */
-  const fetchTrips = async () => {
-    setLoading(true);
+  const fetchWeightSlipTrips = async () => {
+    setLoadingWeightSlipTrips(true);
     try {
-      const params = {
-        page: pagination.page,
-        limit: pagination.limit
-      };
-
-      // Add status filter
-      if (activeFilter !== 'ALL') {
-        params.status = activeFilter;
-      }
-
-      const response = await TripService.getAllTrips(params);
+      const response = await WeightSlipTripService.getAll({
+        page: weightSlipPagination.page,
+        limit: weightSlipPagination.limit
+      });
       
-      setTrips(response.data || []);
-      setPagination(prev => ({
+      setWeightSlipTrips(response.data || []);
+      setWeightSlipPagination(prev => ({
         ...prev,
-        total: response.meta?.total || 0,
-        totalPages: response.meta?.totalPages || 0
+        total: response.pagination?.total || 0
       }));
     } catch (error) {
-      console.error('Failed to fetch trips:', error);
-      toast.error(error?.message || 'Failed to load trips');
+      console.error('Failed to fetch weight slip trips:', error);
+      toast.error('Failed to load trips');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch trips when filter or pagination changes (only in list view)
-  useEffect(() => {
-    if (!isDetailView) {
-      fetchTrips();
-    }
-  }, [activeFilter, pagination.page, isDetailView]);
-
-  // Fetch individual trip when in detail view
-  useEffect(() => {
-    if (isDetailView && tripId) {
-      fetchTripDetails();
-    }
-  }, [isDetailView, tripId]);
-
-  const fetchTripDetails = async () => {
-    setLoadingTrip(true);
-    try {
-      const response = await TripService.getTripById(tripId);
-      setSelectedTrip(response.data);
-    } catch (error) {
-      console.error('Failed to fetch trip details:', error);
-      toast.error('Failed to load trip details');
-      navigate('/trip-management'); // Redirect to list if trip not found
-    } finally {
-      setLoadingTrip(false);
+      setLoadingWeightSlipTrips(false);
     }
   };
 
   /**
+   * Fetch refuel trips (journeys) from API
+   */
+  const fetchRefuelTrips = async () => {
+    setLoadingRefuelTrips(true);
+    try {
+      const response = await TripService.getAllTrips({
+        page: refuelPagination.page,
+        limit: refuelPagination.limit
+      });
+      
+      setRefuelTrips(response.data || []);
+      setRefuelPagination(prev => ({
+        ...prev,
+        total: response.meta?.total || 0
+      }));
+    } catch (error) {
+      console.error('Failed to fetch refuel trips:', error);
+      toast.error('Failed to load refuel journeys');
+    } finally {
+      setLoadingRefuelTrips(false);
+    }
+  };
+
+  // Fetch trips when active tab changes
+  useEffect(() => {
+    if (activeTab === 'trips') {
+      fetchWeightSlipTrips();
+    } else {
+      fetchRefuelTrips();
+    }
+  }, [activeTab, weightSlipPagination.page, refuelPagination.page]);
+
+  /**
    * Event listener for navbar "Start New Trip" button
-   * Listens for custom event and navigates to trip creation page
    */
   useEffect(() => {
     const handleStartNewTrip = () => navigate('/trip/new');
@@ -121,258 +124,241 @@ const TripManagementPage = () => {
   }, [navigate]);
 
   /**
-   * Dispatch active trips count to navbar
-   * Updates the active trips badge in the navigation bar
-   */
-  useEffect(() => {
-    const activeCount = trips.filter(trip => trip.status === 'ONGOING').length;
-    window.dispatchEvent(new CustomEvent('activeTripsUpdate', { detail: { count: activeCount } }));
-  }, [trips]);
-
-  /**
-   * Handle trip card click - navigate to trip detail/edit page
-   * @param {Object} trip - The trip object that was clicked
-   */
-  const handleTripClick = (trip) => {
-    navigate(`/trip/${trip._id}`);
-  };
-
-  /**
-   * Get color for status badge based on trip status
-   * @param {string} status - The status of the trip
-   * @returns {string} Hex color code
-   */
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'COMPLETED':
-        return '#4caf50';
-      case 'ONGOING':
-        return '#ff9800';
-      case 'PLANNED':
-        return '#2196f3';
-      case 'CANCELLED':
-        return '#f44336';
-      default:
-        return '#757575';
-    }
-  };
-
-  /**
-   * Get display label for status
-   * @param {string} status - The status of the trip
-   * @returns {string} Display label
-   */
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'Completed';
-      case 'ONGOING':
-        return 'In Progress';
-      case 'PLANNED':
-        return 'Planned';
-      case 'CANCELLED':
-        return 'Cancelled';
-      default:
-        return status;
-    }
-  };
-
-  /**
    * Filter trips based on search query
-   * Searches across: vehicle number, driver name, start location, and destination
    */
-  const filteredTrips = trips.filter(trip => {
-    if (searchQuery === '') return true;
+  const filterTrips = (trips) => {
+    if (searchQuery === '') return trips;
     
     const query = searchQuery.toLowerCase();
-    return (
-      trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
-      trip.driverId?.name?.toLowerCase().includes(query) ||
-      trip.routeSource?.toLowerCase().includes(query) ||
-      trip.routeDestination?.toLowerCase().includes(query)
-    );
-  });
+    return trips.filter(trip => {
+      if (activeTab === 'trips') {
+        // Weight slip trip search
+        return (
+          trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
+          trip.driverId?.name?.toLowerCase().includes(query) ||
+          trip.routeId?.routeName?.toLowerCase().includes(query) ||
+          trip._id.includes(query)
+        );
+      } else {
+        // Refuel trip search
+        return (
+          trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
+          trip.driverId?.name?.toLowerCase().includes(query) ||
+          trip._id.includes(query)
+        );
+      }
+    });
+  };
+
+  const filteredTrips = filterTrips(activeTab === 'trips' ? weightSlipTrips : refuelTrips);
+
+  /**
+   * Navigate to trip detail page
+   */
+  const handleTripClick = (tripId, tripType) => {
+    if (tripType === 'weight-slip') {
+      navigate(`/trip-management/weight-slip/${tripId}`);
+    } else {
+      navigate(`/trip-management/trip/${tripId}`);
+    }
+  };
+
+  /**
+   * Get status badge color
+   */
+  const getStatusColor = (status) => {
+    const colors = {
+      'SUBMITTED': '#4caf50',
+      'COMPLETED': '#4caf50',
+      'DRIVER_SELECTED': '#2196f3',
+      'DOCUMENTS_UPLOADED': '#2196f3',
+      'OCR_VERIFIED': '#2196f3',
+      'ROUTES_ASSIGNED': '#2196f3',
+      'REVENUE_ENTERED': '#ff9800',
+      'EXPENSES_ENTERED': '#ff9800',
+      'ONGOING': '#ff9800',
+      'PLANNED': '#2196f3',
+      'CANCELLED': '#f44336'
+    };
+    return colors[status] || '#757575';
+  };
+
+  /**
+   * Format date to readable format
+   */
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   return (
-    <div className="page-container">
-      {isDetailView ? (
-        // Trip Detail View
-        <div className="trip-detail-view">
-          <div className="detail-header">
-            <button 
-              className="back-btn"
-              onClick={() => navigate('/trip-management')}
+    <div className="page-container trip-management-container">
+      {/* Header with Tabs */}
+      <div className="trip-management-header">
+        <div className="header-content">
+          <div className="tabs-container">
+            <button
+              className={`tab-btn ${activeTab === 'trips' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('trips');
+                setSearchQuery('');
+              }}
             >
-              ← Back to Trips
+              <span className="tab-icon">📦</span>
+              Trips
             </button>
-            <h1>Trip Details</h1>
+            <button
+              className={`tab-btn ${activeTab === 'refuel' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('refuel');
+                setSearchQuery('');
+              }}
+            >
+              <span className="tab-icon">⛽</span>
+              Refuel Journeys
+            </button>
           </div>
-          
-          {loadingTrip ? (
-            <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px', color: '#666' }}>
-              Loading trip details...
-            </div>
-          ) : selectedTrip ? (
-            <div className="trip-detail-content">
-              <div className="detail-section">
-                <h3>Trip Information</h3>
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <label>Trip ID:</label>
-                    <span>{selectedTrip._id}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Status:</label>
-                    <span 
-                      className="status-badge"
-                      style={{ 
-                        backgroundColor: getStatusColor(selectedTrip.status) + '20',
-                        color: getStatusColor(selectedTrip.status)
-                      }}
-                    >
-                      {getStatusLabel(selectedTrip.status)}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Vehicle:</label>
-                    <span>{selectedTrip.vehicleId?.registrationNumber || 'N/A'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Driver:</label>
-                    <span>{selectedTrip.driverId?.name || 'N/A'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Source:</label>
-                    <span>{selectedTrip.routeSource || 'Not specified'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Destination:</label>
-                    <span>{selectedTrip.routeDestination || 'Not specified'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Start Odometer:</label>
-                    <span>{selectedTrip.startOdometer || 'N/A'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>End Odometer:</label>
-                    <span>{selectedTrip.endOdometer || 'N/A'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Start Time:</label>
-                    <span>{selectedTrip.startTime ? new Date(selectedTrip.startTime).toLocaleString() : 'N/A'}</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>End Time:</label>
-                    <span>{selectedTrip.endTime ? new Date(selectedTrip.endTime).toLocaleString() : 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-              Trip not found
-            </div>
-          )}
+
+          <div className="search-bar">
+            <Search width={18} height={18} color="#9ca3af" />
+            <input
+              type="text"
+              placeholder={`Search ${activeTab === 'trips' ? 'trips' : 'refuel journeys'}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
-      ) : (
-        // Trip List View
-        <>
-          {/* Fixed Header */}
-          <div className="trip-management-header">
-            <div className="header-content">
-              <div className="trip-filters">
-                <button
-                  className={`filter-btn ${activeFilter === 'ONGOING' ? 'active' : ''}`}
-                  onClick={() => setActiveFilter('ONGOING')}
-                >
-                  Active
-                </button>
-                <button
-                  className={`filter-btn ${activeFilter === 'COMPLETED' ? 'active' : ''}`}
-                  onClick={() => setActiveFilter('COMPLETED')}
-                >
-                  Completed
-                </button>
-                <button
-                  className={`filter-btn ${activeFilter === 'ALL' ? 'active' : ''}`}
-                  onClick={() => setActiveFilter('ALL')}
-                >
-                  All
-                </button>
-              </div>
+      </div>
 
-              <div className="search-bar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35"/>
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search by vehicle, driver, or location..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+      {/* Content Area */}
+      <div className="trip-content-area">
+        {activeTab === 'trips' ? (
+          // Trips Tab (Weight Slip Trips)
+          <div className="trips-tab">
+            {loadingWeightSlipTrips ? (
+              <div className="loading-state">
+                <p>Loading trips...</p>
               </div>
-            </div>
-          </div>
-
-          <div className="page-content">
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px', color: '#666' }}>
-                Loading trips...
+            ) : filteredTrips.length === 0 ? (
+              <div className="empty-state">
+                <p>No trips found</p>
+                {searchQuery && <p className="empty-subtext">Try adjusting your search</p>}
               </div>
             ) : (
-              <div className="trips-list">
-                {filteredTrips.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                    No trips found
-                  </div>
-                ) : (
-                  filteredTrips.map(trip => (
-                    <div key={trip._id} className="trip-card-horizontal" onClick={() => handleTripClick(trip)}>
-                      <div className="trip-card-section vehicle-section">
-                        <div className="section-label">Vehicle Number</div>
-                        <div className="section-value vehicle-number">
-                          {trip.vehicleId?.registrationNumber || 'N/A'}
-                        </div>
-                      </div>
-
-                      <div className="trip-card-section date-section">
-                        <div className="section-label">Start Date</div>
-                        <div className="section-value">
-                          {trip.startTime ? new Date(trip.startTime).toLocaleDateString() : 'N/A'}
-                        </div>
-                      </div>
-
-                      <div className="trip-card-section route-section">
-                        <div className="section-label">Source</div>
-                        <div className="section-value">{trip.routeSource || 'Not specified'}</div>
-                      </div>
-
-                      <div className="trip-card-section destination-section">
-                        <div className="section-label">Destination</div>
-                        <div className="section-value">{trip.routeDestination || 'Not specified'}</div>
-                      </div>
-
-                      <div className="trip-card-section status-section">
-                        <span 
-                          className="trip-status-badge"
-                          style={{ 
-                            backgroundColor: getStatusColor(trip.status) + '20',
-                            color: getStatusColor(trip.status)
-                          }}
-                        >
-                          {getStatusLabel(trip.status)}
+              <div className="trips-grid">
+                {filteredTrips.map(trip => (
+                  <div
+                    key={trip._id}
+                    className="trip-card"
+                    onClick={() => handleTripClick(trip._id, 'weight-slip')}
+                  >
+                    <div className="card-header">
+                      <div className="vehicle-info">
+                        <span className="vehicle-number">{trip.vehicleId?.registrationNumber || 'N/A'}</span>
+                        <span className="status-badge" style={{ 
+                          backgroundColor: getStatusColor(trip.status) + '25',
+                          color: getStatusColor(trip.status)
+                        }}>
+                          {trip.status}
                         </span>
                       </div>
                     </div>
-                  ))
-                )}
+
+                    <div className="card-body">
+                      <div className="info-row">
+                        <span className="label">Driver:</span>
+                        <span className="value">{trip.driverId?.name || '-'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Route:</span>
+                        <span className="value">{trip.routeId?.routeName || '-'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Material:</span>
+                        <span className="value">{trip.materialType || '-'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Net Weight:</span>
+                        <span className="value">{trip.weights?.netWeight ? `${trip.weights.netWeight} kg` : '-'}</span>
+                      </div>
+                    </div>
+
+                    <div className="card-footer">
+                      <span className="date">{formatDate(trip.createdAt)}</span>
+                      <span className="arrow">→</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        </>
-      )}
+        ) : (
+          // Refuel Tab (Trips/Journeys)
+          <div className="refuel-tab">
+            {loadingRefuelTrips ? (
+              <div className="loading-state">
+                <p>Loading refuel journeys...</p>
+              </div>
+            ) : filteredTrips.length === 0 ? (
+              <div className="empty-state">
+                <p>No refuel journeys found</p>
+                {searchQuery && <p className="empty-subtext">Try adjusting your search</p>}
+              </div>
+            ) : (
+              <div className="trips-grid">
+                {filteredTrips.map(trip => (
+                  <div
+                    key={trip._id}
+                    className="trip-card"
+                    onClick={() => handleTripClick(trip._id, 'trip')}
+                  >
+                    <div className="card-header">
+                      <div className="vehicle-info">
+                        <span className="vehicle-number">{trip.vehicleId?.registrationNumber || 'N/A'}</span>
+                        <span className="status-badge" style={{ 
+                          backgroundColor: getStatusColor(trip.status) + '25',
+                          color: getStatusColor(trip.status)
+                        }}>
+                          {trip.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="card-body">
+                      <div className="info-row">
+                        <span className="label">Driver:</span>
+                        <span className="value">{trip.driverId?.name || '-'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Trips Count:</span>
+                        <span className="value">{trip.weightSlipTrips?.length || 0}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Total Fuel:</span>
+                        <span className="value">{trip.totalFuel ? `${trip.totalFuel}L` : '-'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Revenue:</span>
+                        <span className="value">{trip.totalRevenue ? `₹${trip.totalRevenue}` : '-'}</span>
+                      </div>
+                    </div>
+
+                    <div className="card-footer">
+                      <span className="date">{formatDate(trip.createdAt)}</span>
+                      <span className="arrow">→</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -2,7 +2,73 @@ import apiClient from '../../../utils/axiosConfig';
 
 class TripService {
   /**
-   * Initiate a new trip (PLANNED)
+   * Submit complete journey with all data at once (New single submission pattern)
+   * @param {Object} journeyData - Complete journey data
+   * @param {Object} files - Files object with file references
+   * @returns {Promise} API response with created journey
+   */
+  static async submitCompleteJourney(journeyData, files) {
+    try {
+      const formData = new FormData();
+
+      // Add journeyData as JSON string
+      formData.append('journeyData', JSON.stringify(journeyData));
+      console.log('📦 Journey data appended to FormData');
+
+      // Track files added
+      let fileCount = 0;
+
+      // Add odometer image
+      if (files.odometer_image) {
+        formData.append('odometer_image', files.odometer_image);
+        console.log('✅ Added odometer_image to FormData:', files.odometer_image.name || 'unnamed file');
+        fileCount++;
+      }
+
+      // Add fuel slip files (using tempId as field name)
+      if (journeyData.fuelLogs) {
+        journeyData.fuelLogs.forEach((fuelLog) => {
+          if (fuelLog.tempId && files[fuelLog.tempId]) {
+            formData.append(fuelLog.tempId, files[fuelLog.tempId]);
+            console.log('✅ Added fuel file to FormData:', fuelLog.tempId, files[fuelLog.tempId].name || 'unnamed');
+            fileCount++;
+          } else {
+            console.log('⚠️ No file found for fuel tempId:', fuelLog.tempId, 'available keys:', Object.keys(files));
+          }
+        });
+      }
+
+      // Add weight certificate files (using tempId as field name)
+      if (journeyData.weightSlipTrips) {
+        journeyData.weightSlipTrips.forEach((trip) => {
+          if (trip.tempId && files[trip.tempId]) {
+            formData.append(trip.tempId, files[trip.tempId]);
+            console.log('✅ Added weight cert file to FormData:', trip.tempId, files[trip.tempId].name || 'unnamed');
+            fileCount++;
+          } else {
+            console.log('⚠️ No file found for weight slip tempId:', trip.tempId, 'available keys:', Object.keys(files));
+          }
+        });
+      }
+
+      console.log('📤 Total files in FormData:', fileCount);
+
+      const response = await apiClient.post('/api/trips/submit-complete-journey', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 180000, // 3 minutes for complete submission
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Failed to submit complete journey:', error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Initiate a new trip (PLANNED) - Legacy method, kept for backward compatibility
    * @param {Object} data - { vehicleId, driverId }
    * @returns {Promise} API response with created trip
    */
@@ -256,6 +322,36 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to submit trip:', error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Get vehicle by ID
+   * @param {string} vehicleId - Vehicle ID
+   * @returns {Promise} API response with vehicle details
+   */
+  static async getVehicleById(vehicleId) {
+    try {
+      const response = await apiClient.get(`/api/vehicles/${vehicleId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch vehicle by ID:', error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Get driver/employee by ID
+   * @param {string} driverId - Driver ID
+   * @returns {Promise} API response with driver details
+   */
+  static async getDriverById(driverId) {
+    try {
+      const response = await apiClient.get(`/api/employees/${driverId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch driver by ID:', error);
       throw error.response?.data || error;
     }
   }

@@ -20,6 +20,55 @@ class OCRService {
   ];
 
   /**
+   * Preview OCR results for multiple files without saving to database
+   * Single submission pattern - used in new journey creation flow
+   * @param {Object} files - { odometerImage?: File, fuelSlipImages?: File[], weightCertImages?: File[] }
+   * @returns {Promise<Object>} OCR preview results with tempIds
+   */
+  static async preview(files) {
+    try {
+      const formData = new FormData();
+
+      // Add odometer image
+      if (files.odometerImage) {
+        formData.append('odometerImage', files.odometerImage);
+      }
+
+      // Add fuel slip images
+      if (files.fuelSlipImages && files.fuelSlipImages.length > 0) {
+        files.fuelSlipImages.forEach((file) => {
+          formData.append('fuelSlipImages', file);
+        });
+      }
+
+      // Add weight certificate images
+      if (files.weightCertImages && files.weightCertImages.length > 0) {
+        files.weightCertImages.forEach((file) => {
+          formData.append('weightCertImages', file);
+        });
+      }
+
+      const response = await apiClient.post('/api/ocr/preview', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes for multiple files
+      });
+
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error) {
+      console.error('OCR preview failed:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || 'OCR preview failed',
+      };
+    }
+  }
+
+  /**
    * Scan any document type using unified endpoint
    * @param {File} file - Image file to scan
    * @param {string} docType - Document type (ODOMETER, FUEL_RECEIPT, WEIGH_IN, etc.)
