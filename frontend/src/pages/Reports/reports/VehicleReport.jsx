@@ -7,6 +7,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
+import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- VehicleReport COMPONENT (Uses fetched data) ---
 const VehicleReport = ({ handleViewOutliers }) => {
@@ -113,12 +114,104 @@ const VehicleReport = ({ handleViewOutliers }) => {
         return rows;
     }, [vehicleReportData, searchText]);
 
+    // Export to CSV function
+    const handleExportCSV = () => {
+        const headers = ['Vehicle Number', 'Vehicle Type', 'Total Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.id || '-',
+                row.vehicleType || '-',
+                row.totalTrips || '-',
+                typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
+                typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
+                typeof row.totalDieselCost === 'number' ? row.totalDieselCost.toFixed(2) : '-',
+                typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A',
+                typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `vehicle_report_${dayjs().format('YYYY-MM-DD')}.csv`;
+        link.click();
+    };
+
+    // Export to Excel function
+    const handleExportExcel = () => {
+        const headers = ['Vehicle Number', 'Vehicle Type', 'Total Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.id || '-',
+                row.vehicleType || '-',
+                row.totalTrips || '-',
+                typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
+                typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
+                typeof row.totalDieselCost === 'number' ? row.totalDieselCost.toFixed(2) : '-',
+                typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A',
+                typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `vehicle_report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+        link.click();
+    };
+
     return (
         <Box>
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">
                     <h3 className="report-title">Vehicle Report</h3>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                            onClick={handleExportCSV}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to CSV"
+                        >
+                            <CsvIcon width={24} height={24} />
+                        </button>
+                        <button 
+                            onClick={handleExportExcel}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to Excel"
+                        >
+                            <ExcelIcon width={22} height={22} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filter Controls */}

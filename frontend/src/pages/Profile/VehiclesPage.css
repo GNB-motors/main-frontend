@@ -1,0 +1,186 @@
+/* ==========================================================================
+   Vehicles Page Styles
+   ========================================================================== */
+
+/* Vehicle Modal Styles (Add Vehicle Modal) */
+.vehicle-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000; /* Higher than navbar */
+}
+
+.vehicle-modal-content {
+    background-color: var(--color-white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-card);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 2001;
+}
+
+.vehicle-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-grey-100);
+}
+
+.vehicle-modal-header h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-grey-600);
+}
+
+.vehicle-modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--color-grey-400);
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s ease;
+}
+
+.vehicle-modal-close-btn:hover {
+    background-color: var(--color-grey-100);
+    color: var(--color-grey-600);
+}
+
+.vehicle-modal-form {
+    padding: var(--spacing-lg);
+}
+
+.vehicle-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.vehicle-form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.vehicle-form-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+    color: var(--color-grey-600);
+    font-size: 14px;
+}
+
+.vehicle-form-group input {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-grey-200);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.vehicle-form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px rgba(41, 64, 211, 0.1);
+}
+
+.vehicle-form-group input:disabled {
+    background-color: var(--color-grey-100);
+    color: var(--color-grey-400);
+    cursor: not-allowed;
+}
+
+.vehicle-error-message {
+    background-color: #fef2f2;
+    color: #dc2626;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid #fecaca;
+}
+
+.vehicle-modal-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--color-grey-100);
+    padding: 20px;
+}
+
+.vehicle-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.vehicle-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.vehicle-btn-secondary {
+    background-color: var(--color-grey-200);
+    color: var(--color-grey-700);
+}
+
+.vehicle-btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-grey-300);
+}
+
+.vehicle-btn-primary {
+    background-color: var(--color-primary-500);
+    color: white;
+}
+
+.vehicle-btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-600);
+}
+
+/* Responsive Design for Vehicle Modal */
+@media (max-width: 768px) {
+    .vehicle-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .vehicle-form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .vehicle-modal-actions {
+        flex-direction: column;
+    }
+
+    .vehicle-modal-actions .vehicle-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

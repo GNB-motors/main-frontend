@@ -27,7 +27,7 @@
   margin: 0;
 }
 
-.btn {
+.routes-page .btn {
   padding: 10px 16px;
   border: none;
   border-radius: 8px;
@@ -40,31 +40,31 @@
   transition: all 0.2s ease;
 }
 
-.btn-primary {
+.routes-page .btn-primary {
   background: #00c896;
   color: white;
 }
 
-.btn-primary:hover {
+.routes-page .btn-primary:hover {
   background: #00b876;
   box-shadow: 0 4px 12px rgba(0, 200, 150, 0.2);
 }
 
-.btn-secondary {
+.routes-page .btn-secondary {
   background: #e2e8f0;
   color: #1a202c;
 }
 
-.btn-secondary:hover {
+.routes-page .btn-secondary:hover {
   background: #cbd5e0;
 }
 
-.btn-danger {
+.routes-page .btn-danger {
   background: #e74c3c;
   color: white;
 }
 
-.btn-danger:hover {
+.routes-page .btn-danger:hover {
   background: #c0392b;
 }
 
@@ -73,6 +73,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  margin-top: 24px;
 }
 
 .search-icon {
@@ -105,6 +106,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  margin-top: 24px;
 }
 
 /* Routes Table */
@@ -576,7 +578,7 @@
     font-size: 18px;
   }
 
-  .btn {
+  .routes-page .btn {
     padding: 8px 12px;
     font-size: 12px;
   }
@@ -890,5 +892,131 @@
   .location-grid .form-group input {
     padding: 10px 12px;
     font-size: 14px;
+  }
+}
+
+/* ===================================
+   DELETE MODAL STYLES
+   =================================== */
+
+.delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+}
+
+.delete-modal-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 500px;
+  animation: modalSlideIn 0.25s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.delete-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 12px 12px 0 0;
+}
+
+.delete-modal-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-modal-content {
+  padding: 24px;
+}
+
+.delete-modal-content p {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.delete-modal-content p:last-child {
+  margin-bottom: 0;
+}
+
+.delete-modal-content strong {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.delete-modal-warning {
+  color: #e74c3c !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-modal-warning svg {
+  flex-shrink: 0;
+}
+
+.delete-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 12px 12px;
+}
+
+.delete-modal-actions .btn {
+  min-width: 100px;
+}
+
+/* Responsive Delete Modal */
+@media (max-width: 640px) {
+  .delete-modal-container {
+    max-width: 90%;
+  }
+
+  .delete-modal-header,
+  .delete-modal-content,
+  .delete-modal-actions {
+    padding: 16px;
+  }
+
+  .delete-modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .delete-modal-actions .btn {
+    width: 100%;
   }
 }

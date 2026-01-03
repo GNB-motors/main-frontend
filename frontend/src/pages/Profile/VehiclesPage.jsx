@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 // Profile context removed - vehicles page should render independently
 import { getPrimaryColor, getThemeCSS } from '../../utils/colorTheme.js';
 import './ProfilePage.css';
+import './VehiclesPage.css';
 
 // Import assets and icons
 import { Plus, Edit, Trash2, MoreVertical, Upload } from 'lucide-react';
@@ -110,15 +111,15 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
     if (!isOpen) return null;
 
     return (
-        <div className="profile-modal-overlay" onClick={onClose}>
-            <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="profile-modal-header">
+        <div className="vehicle-modal-overlay" onClick={onClose}>
+            <div className="vehicle-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="vehicle-modal-header">
                     <h4>Add New Vehicle</h4>
-                    <button onClick={onClose} className="profile-modal-close-btn">&times;</button>
+                    <button onClick={onClose} className="vehicle-modal-close-btn">&times;</button>
                 </div>
-                <form onSubmit={handleSubmit} className="profile-modal-form">
-                    <div className="profile-form-row">
-                        <div className="profile-form-group">
+                <form onSubmit={handleSubmit} className="vehicle-modal-form">
+                    <div className="vehicle-form-row">
+                        <div className="vehicle-form-group">
                             <label htmlFor="vehicleRegistrationNo">Registration Number *</label>
                             <input
                                 id="vehicleRegistrationNo"
@@ -130,7 +131,7 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
                                 disabled={isSubmitting}
                             />
                         </div>
-                        <div className="profile-form-group">
+                        <div className="vehicle-form-group">
                             <label htmlFor="vehicleType">Vehicle Type *</label>
                             <input
                                 id="vehicleType"
@@ -143,8 +144,8 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
                             />
                         </div>
                     </div>
-                    <div className="profile-form-row">
-                        <div className="profile-form-group">
+                    <div className="vehicle-form-row">
+                        <div className="vehicle-form-group">
                             <label htmlFor="model">Model (optional)</label>
                             <input
                                 id="model"
@@ -155,7 +156,7 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
                                 disabled={isSubmitting}
                             />
                         </div>
-                        <div className="profile-form-group">
+                        <div className="vehicle-form-group">
                             <label htmlFor="chassisNumber">Chassis Number *</label>
                             <input
                                 id="chassisNumber"
@@ -169,13 +170,13 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
                         </div>
                     </div>
 
-                    {error && <div className="profile-error-message">{error}</div>}
+                    {error && <div className="vehicle-error-message">{error}</div>}
 
-                    <div className="profile-modal-actions">
-                        <button type="button" className="profile-btn profile-btn-secondary" onClick={onClose} disabled={isSubmitting}>
+                    <div className="vehicle-modal-actions">
+                        <button type="button" className="vehicle-btn vehicle-btn-secondary" onClick={onClose} disabled={isSubmitting}>
                             Cancel
                         </button>
-                        <button type="submit" className="profile-btn profile-btn-main" disabled={isSubmitting}>
+                        <button type="submit" className="vehicle-btn vehicle-btn-primary" disabled={isSubmitting}>
                             {isSubmitting ? 'Adding...' : 'Add Vehicle'}
                         </button>
                     </div>

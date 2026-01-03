@@ -5,6 +5,8 @@ import {
 import { Search as SearchIcon } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
+import { CsvIcon, ExcelIcon } from '../../../components/Icons';
+import dayjs from 'dayjs';
 
 // --- ProjectedReport COMPONENT (Uses fetched data) ---
 const ProjectedReport = ({}) => {

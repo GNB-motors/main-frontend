@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
 import { months } from '../../../utils/mockdata.jsx'; // Adjusted path
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
+import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- TripReport COMPONENT (Uses fetched data) ---
 const TripReport = ({}) => {
@@ -185,27 +186,109 @@ const TripReport = ({}) => {
     const handleClearRoute = () => {
         setSelectedRoute('');
     };
+
+    // Export to CSV function
+    const handleExportCSV = () => {
+        const headers = ['Trip Date', 'Driver Name', 'Vehicle Reg No', 'Route', 'Start Location', 'End Location', 'Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'Efficiency (km/l)'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
+                row.driverName || '-',
+                row.vehicleRegNo || '-',
+                row.route || '-',
+                row.startLocation || '-',
+                row.endLocation || '-',
+                typeof row.distanceKm === 'number' ? row.distanceKm.toFixed(0) : '-',
+                typeof row.dieselLiters === 'number' ? row.dieselLiters.toFixed(1) : '-',
+                typeof row.dieselCost === 'number' ? row.dieselCost.toFixed(2) : '-',
+                typeof row.efficiencyKmpl === 'number' ? row.efficiencyKmpl.toFixed(2) : 'N/A'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `trip_report_${dayjs().format('YYYY-MM-DD')}.csv`;
+        link.click();
+    };
+
+    // Export to Excel function
+    const handleExportExcel = () => {
+        const headers = ['Trip Date', 'Driver Name', 'Vehicle Reg No', 'Route', 'Start Location', 'End Location', 'Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'Efficiency (km/l)'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
+                row.driverName || '-',
+                row.vehicleRegNo || '-',
+                row.route || '-',
+                row.startLocation || '-',
+                row.endLocation || '-',
+                typeof row.distanceKm === 'number' ? row.distanceKm.toFixed(0) : '-',
+                typeof row.dieselLiters === 'number' ? row.dieselLiters.toFixed(1) : '-',
+                typeof row.dieselCost === 'number' ? row.dieselCost.toFixed(2) : '-',
+                typeof row.efficiencyKmpl === 'number' ? row.efficiencyKmpl.toFixed(2) : 'N/A'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `trip_report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+        link.click();
+    };
+
     return (
         <Box>
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">
                     <h3 className="report-title">Trip Report</h3>
-                    {/* <TextField
-                        size="small"
-                        variant="outlined"
-                        placeholder="Search Driver/Vehicle..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon fontSize="small" />
-                                </InputAdornment>
-                            ),
-                        }}
-                        sx={{ width: 250 }}
-                    /> */}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                            onClick={handleExportCSV}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to CSV"
+                        >
+                            <CsvIcon width={24} height={24} />
+                        </button>
+                        <button 
+                            onClick={handleExportExcel}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to Excel"
+                        >
+                            <ExcelIcon width={22} height={22} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filter Controls */}

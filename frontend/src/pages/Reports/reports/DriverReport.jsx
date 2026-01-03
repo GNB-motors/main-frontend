@@ -7,6 +7,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
+import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- **** DriverReport COMPONENT **** ---
 const DriverReport = ({ handleViewOutliers }) => {
@@ -170,12 +171,102 @@ const DriverReport = ({ handleViewOutliers }) => {
         return rows;
     }, [driverReportData, searchText, dateRange, selectedEmployee]);
 
+    // Export to CSV function
+    const handleExportCSV = () => {
+        const headers = ['Driver Name', 'Trips Completed', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'On-Time Arrival', 'Documents Status'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.driverName || '-',
+                row.tripsCompleted || '-',
+                typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
+                typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
+                row.onTimeArrivalRate || 'N/A',
+                row.documentsExpired ? 'Expired' : 'Valid'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.csv`;
+        link.click();
+    };
+
+    // Export to Excel function
+    const handleExportExcel = () => {
+        // For now, we'll use CSV format with .xlsx extension
+        // You can integrate a library like xlsx or exceljs for proper Excel format
+        const headers = ['Driver Name', 'Trips Completed', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'On-Time Arrival', 'Documents Status'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.driverName || '-',
+                row.tripsCompleted || '-',
+                typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
+                typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
+                row.onTimeArrivalRate || 'N/A',
+                row.documentsExpired ? 'Expired' : 'Valid'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+        link.click();
+    };
+
     return (
         <Box>
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">
                     <h3 className="report-title">Driver Report</h3>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                            onClick={handleExportCSV}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to CSV"
+                        >
+                            <CsvIcon width={24} height={24} />
+                        </button>
+                        <button 
+                            onClick={handleExportExcel}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to Excel"
+                        >
+                            <ExcelIcon width={22} height={22} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filter Controls */}

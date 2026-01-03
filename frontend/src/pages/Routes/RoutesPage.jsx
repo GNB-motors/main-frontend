@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Search, Activity, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Activity, MapPin, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import RouteService from './RouteService';
 import { useNavigate } from 'react-router-dom';
@@ -167,7 +167,7 @@ const RoutesPage = () => {
           <div className="empty-state">
             <MapPin size={48} />
             <p>No routes found</p>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <button className="btn btn-primary" onClick={() => navigate('/routes/add')}>
               Create your first route
             </button>
           </div>
@@ -258,18 +258,21 @@ const RoutesPage = () => {
 
       {/* Delete Route Modal */}
       {showDeleteModal && selectedRoute && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-content modal-delete" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="delete-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="delete-modal-header">
               <h2>Delete Route</h2>
             </div>
 
-            <div className="modal-body">
+            <div className="delete-modal-content">
               <p>Are you sure you want to delete the route <strong>{selectedRoute.name}</strong>?</p>
-              <p className="warning-text">This action cannot be undone.</p>
+              <p className="delete-modal-warning">
+                <AlertTriangle size={16} />
+                This action cannot be undone.
+              </p>
             </div>
 
-            <div className="modal-footer">
+            <div className="delete-modal-actions">
               <button
                 className="btn btn-secondary"
                 onClick={() => {
