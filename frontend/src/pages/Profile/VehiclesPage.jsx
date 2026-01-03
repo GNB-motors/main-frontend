@@ -8,10 +8,6 @@ import './ProfilePage.css';
 // Import assets and icons
 import { Plus, Edit, Trash2, MoreVertical, Upload } from 'lucide-react';
 
-// Import Material-UI components
-import Pagination from '@mui/material/Pagination';
-import Stack from '@mui/material/Stack';
-
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
 
@@ -213,6 +209,19 @@ const VehiclesPage = () => {
     // Update theme colors when component mounts
     useEffect(() => {
         setThemeColors(getThemeCSS());
+    }, []);
+
+    // Remove global page-content padding only for this page
+    useEffect(() => {
+        const pageContentEl = document.querySelector('.page-content');
+        if (pageContentEl) {
+            pageContentEl.classList.add('no-padding');
+        }
+        return () => {
+            if (pageContentEl) {
+                pageContentEl.classList.remove('no-padding');
+            }
+        };
     }, []);
 
     // Handle click outside to close dropdown
@@ -423,179 +432,232 @@ const VehiclesPage = () => {
     const endIndex = startIndex + itemsPerPage;
     const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
 
+    // Generate page numbers for pagination (similar to DriversPage)
+    const generatePageNumbers = () => {
+        const pages = [];
+        const maxPagesToShow = 7;
+        
+        if (totalPages <= maxPagesToShow) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (currentPage <= 4) {
+                for (let i = 1; i <= 5; i++) {
+                    pages.push(i);
+                }
+                pages.push('...');
+                pages.push(totalPages);
+            } else if (currentPage >= totalPages - 3) {
+                pages.push(1);
+                pages.push('...');
+                for (let i = totalPages - 4; i <= totalPages; i++) {
+                    pages.push(i);
+                }
+            } else {
+                pages.push(1);
+                pages.push('...');
+                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                    pages.push(i);
+                }
+                pages.push('...');
+                pages.push(totalPages);
+            }
+        }
+        
+        return pages;
+    };
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
+    // Reset to page 1 when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchVehicleNo]);
+
     // The page renders without profile context or businessRefId.
 
     return (
         <>
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                padding: '0',
-                backgroundColor: 'var(--color-grey-100)',
-                ...themeColors
-            }}>
-                {/* Header Section */}
-                <div className="vehicles-header">
-                    <h3>Total vehicles ({filteredVehicles.length})</h3>
-                    
-                    {/* Search and Action Controls */}
-                    <div className="vehicles-header-controls">
-                        {/* Search Bar */}
-                        <div className="vehicles-search-container">
-                            <input
-                                type="text"
-                                value={searchVehicleNo}
-                                onChange={(e) => setSearchVehicleNo(e.target.value)}
-                                placeholder="Search by vehicle registration number"
-                                className="vehicles-search-input"
-                            />
-                        </div>
+            <div className="vehicles-page-container" style={themeColors}>
+                <div className="vehicles-content-wrapper">
+                    {/* Header Section */}
+                    <div className="vehicles-header">
+                        <div>
+                            <h3>
+                                <span>Total vehicles </span>
+                                <span>({filteredVehicles.length})</span>
+                            </h3>
+                            <div className="vehicles-actions">
+                                {/* Search Bar */}
+                                <div className="vehicles-search-container">
+                                    <input
+                                        type="text"
+                                        value={searchVehicleNo}
+                                        onChange={(e) => setSearchVehicleNo(e.target.value)}
+                                        placeholder="Search by vehicle registration number"
+                                        className="vehicles-search-input"
+                                    />
+                                </div>
 
-                        {/* Action Buttons */}
-                        <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
-                            <button
-                                className="vehicles-btn-secondary"
-                                onClick={() => navigate('/vehicles/bulk-upload')}
-                                disabled={isSubmitting}
-                            >
-                                <Upload size={16} />
-                                Bulk Upload
-                            </button>
-                            <button
-                                className="vehicles-btn-primary"
-                                onClick={() => setIsAddModalOpen(true)}
-                                disabled={isSubmitting}
-                            >
-                                <Plus size={16} />
-                                Add Vehicle
-                            </button>
+                                {/* Action Buttons */}
+                                <button
+                                    className="vehicles-add-btn"
+                                    onClick={() => navigate('/vehicles/bulk-upload')}
+                                    disabled={isSubmitting}
+                                >
+                                    <Upload size={16} />
+                                    <span>Bulk Upload</span>
+                                </button>
+                                <button
+                                    className="vehicles-add-btn"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setIsAddModalOpen(true);
+                                    }}
+                                    disabled={isSubmitting}
+                                >
+                                    <Plus size={16} />
+                                    <span>Add Vehicle</span>
+                                </button>
+                            </div>
                         </div>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="vehicles-table-section">
+                        {isLoadingVehicles && <p style={{ fontSize: '14px', color: '#8b8b8c', padding: '20px' }}>Loading vehicles...</p>}
+                        {vehicleError && <p className="error-message" style={{ padding: '20px' }}>{vehicleError}</p>}
+                        {formError && <p className="error-message" style={{ marginBottom: '10px', padding: '0 20px' }}>{formError}</p>}
+
+                        {!isLoadingVehicles && !vehicleError && (
+                            <div className="vehicles-table-container">
+                                {filteredVehicles.length === 0 ? (
+                                    <p style={{
+                                        textAlign: 'center',
+                                        padding: '40px 20px',
+                                        color: '#8b8b8c',
+                                        fontSize: '14px',
+                                        margin: 0
+                                    }}>
+                                        {vehicles.length === 0 ? 'No vehicles added yet. Click "Add Vehicle" to start.' : 'No vehicles match your search.'}
+                                    </p>
+                                ) : (
+                                    <div className="vehicles-table-wrapper">
+                                        <table className="vehicles-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Vehicle No</th>
+                                                    <th>Vehicle Type</th>
+                                                    <th>Model</th>
+                                                    <th>Chassis No</th>
+                                                    <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {paginatedVehicles.map(vehicle => (
+                                                    <tr key={vehicle.id}>
+                                                        <td>{vehicle.registration_no}</td>
+                                                        <td>{vehicle.vehicle_type || 'N/A'}</td>
+                                                        <td>{vehicle.model || 'N/A'}</td>
+                                                        <td>{vehicle.chassis_number || 'N/A'}</td>
+                                                        <td style={{ textAlign: 'center', position: 'relative' }}>
+                                                            <button
+                                                                className="vehicle-actions-menu-btn"
+                                                                onClick={() => setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id)}
+                                                                disabled={isSubmitting}
+                                                                title="Actions"
+                                                            >
+                                                                <MoreVertical size={18} />
+                                                            </button>
+                                                            {openMenuId === vehicle.id && (
+                                                                <div className="vehicle-actions-menu" style={{ pointerEvents: 'auto' }}>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            console.log('Edit clicked for vehicle:', vehicle);
+                                                                            handleEditVehicle(vehicle);
+                                                                        }} 
+                                                                        disabled={isSubmitting}
+                                                                        style={{ pointerEvents: 'auto' }}
+                                                                    >
+                                                                        <Edit size={16} /> Edit
+                                                                    </button>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            console.log('Delete clicked for vehicle:', vehicle);
+                                                                            handleOpenDeleteModal(vehicle);
+                                                                        }} 
+                                                                        disabled={isSubmitting}
+                                                                        style={{ pointerEvents: 'auto' }}
+                                                                    >
+                                                                        <Trash2 size={16} /> Remove
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Content Section */}
-                <div style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: 'var(--spacing-lg)',
-                    overflow: 'auto',
-                    backgroundColor: 'var(--color-white)',
-                    margin: 'var(--spacing-lg)',
-                    marginBottom: 0,
-                    borderRadius: 'var(--border-radius-lg)',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                }}>
-                    {isLoadingVehicles && <p style={{ fontSize: '14px', color: '#8b8b8c' }}>Loading vehicles...</p>}
-                    {vehicleError && <p className="error-message">{vehicleError}</p>}
-                    {formError && <p className="error-message" style={{ marginBottom: '10px' }}>{formError}</p>}
-
-                    {!isLoadingVehicles && !vehicleError && (
-                        <div className="vehicle-table-container" style={{ padding: 0 }}>
-                            {filteredVehicles.length === 0 ? (
-                                <p style={{
-                                    textAlign: 'center',
-                                    padding: '40px 20px',
-                                    color: '#8b8b8c',
-                                    fontSize: '14px',
-                                    margin: 0
-                                }}>
-                                    {vehicles.length === 0 ? 'No vehicles added yet. Click "Add Vehicle" to start.' : 'No vehicles match your search.'}
-                                </p>
-                            ) : (
-                                <table className="vehicle-table" style={{ borderRadius: 0, border: 'none', marginTop: '-1px' }}>
-                                    <thead>
-                                        <tr>
-                            <th>Vehicle No</th>
-                            <th>Vehicle Type</th>
-                            <th>Model</th>
-                            <th>Chassis No</th>
-                            <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {paginatedVehicles.map(vehicle => (
-                                            <tr key={vehicle.id}>
-                                                <td>{vehicle.registration_no}</td>
-                                                <td>{vehicle.vehicle_type || 'N/A'}</td>
-                                                <td>{vehicle.model || 'N/A'}</td>
-                                                <td>{vehicle.chassis_number || 'N/A'}</td>
-                                                <td style={{ textAlign: 'center', position: 'relative' }}>
-                                                    <button
-                                                        className="vehicle-actions-menu-btn"
-                                                        onClick={() => setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id)}
-                                                        disabled={isSubmitting}
-                                                        title="Actions"
-                                                    >
-                                                        <MoreVertical size={18} />
-                                                    </button>
-                                                    {openMenuId === vehicle.id && (
-                                                        <div className="vehicle-actions-menu" style={{ pointerEvents: 'auto' }}>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    console.log('Edit clicked for vehicle:', vehicle);
-                                                                    handleEditVehicle(vehicle);
-                                                                }} 
-                                                                disabled={isSubmitting}
-                                                                style={{ pointerEvents: 'auto' }}
-                                                            >
-                                                                <Edit size={16} /> Edit
-                                                            </button>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    console.log('Delete clicked for vehicle:', vehicle);
-                                                                    handleOpenDeleteModal(vehicle);
-                                                                }} 
-                                                                disabled={isSubmitting}
-                                                                style={{ pointerEvents: 'auto' }}
-                                                            >
-                                                                <Trash2 size={16} /> Remove
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer Section with Pagination */}
+                {/* Footer Section with Pagination - Always visible */}
                 {!isLoadingVehicles && !vehicleError && filteredVehicles.length > 0 && (
-                    <div style={{
-                        backgroundColor: 'var(--color-white)',
-                        margin: 'var(--spacing-lg) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg)',
-                        padding: 'var(--spacing-lg)',
-                        borderRadius: 'var(--border-radius-lg)',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        {filteredVehicles.length > itemsPerPage && (
-                            <Stack spacing={2} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                <Pagination
-                                    count={totalPages}
-                                    page={currentPage}
-                                    onChange={(event, page) => setCurrentPage(page)}
-                                    color="primary"
-                                    size="medium"
-                                />
-                                <span style={{
-                                    fontSize: '13px',
-                                    color: '#6b7280'
-                                }}>
-                                    Page {currentPage} of {totalPages}
-                                </span>
-                            </Stack>
-                        )}
+                    <div className="vehicles-pagination-controls">
+                        {/* Left Arrow */}
+                        <button 
+                            className="vehicles-pagination-btn" 
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1 || totalPages <= 1}
+                        >
+                            <span>←</span>
+                        </button>
+
+                        {/* Page Numbers */}
+                        {generatePageNumbers().map((page, index) => {
+                            if (page === '...') {
+                                return (
+                                    <div key={`overflow-${index}`} className="vehicles-page-overflow">
+                                        <span>...</span>
+                                    </div>
+                                );
+                            }
+                            return (
+                                <button
+                                    key={page}
+                                    className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
+                                    onClick={() => handlePageChange(page)}
+                                    disabled={totalPages <= 1}
+                                >
+                                    <span>{page}</span>
+                                </button>
+                            );
+                        })}
+
+                        {/* Right Arrow */}
+                        <button 
+                            className="vehicles-pagination-btn" 
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages || totalPages <= 1}
+                        >
+                            <span>→</span>
+                        </button>
                     </div>
                 )}
             </div>
