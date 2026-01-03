@@ -95,7 +95,7 @@ const TripManagementPage = () => {
       setRefuelTrips(response.data || []);
       setRefuelPagination(prev => ({
         ...prev,
-        total: response.meta?.total || 0
+        total: response.pagination?.total || 0
       }));
     } catch (error) {
       console.error('Failed to fetch refuel trips:', error);
@@ -133,17 +133,26 @@ const TripManagementPage = () => {
     return trips.filter(trip => {
       if (activeTab === 'trips') {
         // Weight slip trip search
+        const driverName = trip.journeyId?.driverId 
+          ? `${trip.journeyId.driverId.firstName} ${trip.journeyId.driverId.lastName}`.toLowerCase()
+          : '';
+        
         return (
           trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
-          trip.driverId?.name?.toLowerCase().includes(query) ||
-          trip.routeId?.routeName?.toLowerCase().includes(query) ||
+          driverName.includes(query) ||
+          trip.routeId?.name?.toLowerCase().includes(query) ||
+          trip.materialType?.toLowerCase().includes(query) ||
           trip._id.includes(query)
         );
       } else {
         // Refuel trip search
+        const driverName = trip.driverId 
+          ? `${trip.driverId.firstName} ${trip.driverId.lastName}`.toLowerCase()
+          : '';
+        
         return (
           trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
-          trip.driverId?.name?.toLowerCase().includes(query) ||
+          driverName.includes(query) ||
           trip._id.includes(query)
         );
       }
@@ -251,7 +260,7 @@ const TripManagementPage = () => {
               </div>
             ) : (
               <div className="trips-grid">
-                {filteredTrips.map(trip => (
+                {filteredTrips.map((trip, index) => (
                   <div
                     key={trip._id}
                     className="trip-card"
@@ -259,7 +268,7 @@ const TripManagementPage = () => {
                   >
                     <div className="card-header">
                       <div className="vehicle-info">
-                        <span className="vehicle-number">{trip.vehicleId?.registrationNumber || 'N/A'}</span>
+                        <span className="vehicle-number">{`Trip ${index + 1}`}</span>
                         <span className="status-badge" style={{ 
                           backgroundColor: getStatusColor(trip.status) + '25',
                           color: getStatusColor(trip.status)
@@ -272,11 +281,11 @@ const TripManagementPage = () => {
                     <div className="card-body">
                       <div className="info-row">
                         <span className="label">Driver:</span>
-                        <span className="value">{trip.driverId?.name || '-'}</span>
+                        <span className="value">{trip.journeyId?.driverId ? `${trip.journeyId.driverId.firstName} ${trip.journeyId.driverId.lastName}` : '-'}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Route:</span>
-                        <span className="value">{trip.routeId?.routeName || '-'}</span>
+                        <span className="value">{trip.routeId?.name || '-'}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Material:</span>
@@ -332,19 +341,31 @@ const TripManagementPage = () => {
                     <div className="card-body">
                       <div className="info-row">
                         <span className="label">Driver:</span>
-                        <span className="value">{trip.driverId?.name || '-'}</span>
+                        <span className="value">
+                          {trip.driverId?.firstName && trip.driverId?.lastName 
+                            ? `${trip.driverId.firstName} ${trip.driverId.lastName}` 
+                            : '-'}
+                        </span>
                       </div>
                       <div className="info-row">
                         <span className="label">Trips Count:</span>
-                        <span className="value">{trip.weightSlipTrips?.length || 0}</span>
+                        <span className="value">{trip.journeyFinancials?.totalTrips || trip.weightSlipTrips?.length || 0}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Total Fuel:</span>
-                        <span className="value">{trip.totalFuel ? `${trip.totalFuel}L` : '-'}</span>
+                        <span className="value">
+                          {trip.fuelManagement?.totalLiters 
+                            ? `${trip.fuelManagement.totalLiters.toFixed(2)}L` 
+                            : '-'}
+                        </span>
                       </div>
                       <div className="info-row">
                         <span className="label">Revenue:</span>
-                        <span className="value">{trip.totalRevenue ? `₹${trip.totalRevenue}` : '-'}</span>
+                        <span className="value">
+                          {trip.journeyFinancials?.totalRevenue 
+                            ? `₹${trip.journeyFinancials.totalRevenue.toFixed(2)}` 
+                            : '-'}
+                        </span>
                       </div>
                     </div>
 

@@ -9,26 +9,25 @@ const fetchRefuelLogs = async () => {
     const response = await apiClient.get('api/fuel-logs');
     if (response.data.status === 'success') {
       return response.data.data.map(log => ({
-        id: log.id,
+        id: log._id,
         date: log.refuelTime ? new Date(log.refuelTime).toISOString().split('T')[0] : null,
         time: log.refuelTime ? new Date(log.refuelTime).toTimeString().split(' ')[0] : null,
         vehicleNo: log.vehicleId?.registrationNumber || '-',
         vehicleModel: log.vehicleId?.vehicleType || '-',
-        driverName: log.driverId ? `${log.driverId.firstName} ${log.driverId.lastName}`.trim() : '-',
+        driverName: log.tripId?.driverId ? `${log.tripId.driverId.firstName} ${log.tripId.driverId.lastName}`.trim() : '-',
         driverPhone: '-', // Not available in API
-        location: log.tripId ? `${log.tripId.routeSource} to ${log.tripId.routeDestination}` : '-',
+        location: log.location || '-',
         vendor: '-', // Not available in API
         fuelType: log.fuelType ? log.fuelType.toLowerCase() : 'unknown',
         quantity: log.litres || '-',
-        unitPrice: (log.litres && log.litres > 0) ? (log.amount / log.litres) : null,
-        totalAmount: log.amount || '-',
-        odometer: '-', // Not available in API
+        unitPrice: log.rate || null,
+        totalAmount: log.totalAmount || '-',
+        odometer: log.odometerReading || '-',
         paymentMethod: '-', // Not available in API
-        notes: '-', // Not available in API
+        notes: log.fillingType ? (log.fillingType === 'FULL_TANK' ? 'Full Tank' : log.fillingType) : '-',
         tripId: log.tripId,
         vehicleId: log.vehicleId,
-        driverId: log.driverId,
-        slipKey: log.slipKey,
+        documentId: log.documentId,
         loggedBy: log.loggedBy,
         createdAt: log.createdAt
       }));
@@ -184,7 +183,7 @@ const RefuelLogsPage = () => {
               <th>Unit Price</th>
               <th>Total Amount</th>
               <th>Odometer</th>
-              <th>Payment</th>
+              <th>Type</th>
             </tr>
           </thead>
           <tbody>
@@ -248,8 +247,7 @@ const RefuelLogsPage = () => {
                       <div className="cell-secondary">Reading</div>
                     </td>
                     <td>
-                      <div className="cell-primary">{log.paymentMethod || '-'}</div>
-                      <div className="cell-secondary">{log.notes || '--'}</div>
+                      <div className="cell-primary">{log.notes || '-'}</div>
                     </td>
                   </tr>
                 );

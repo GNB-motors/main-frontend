@@ -47,6 +47,14 @@ const Navbar = ({ toggleSidebar }) => {
         // If stepName is provided (trip creation flow), display it
         if (stepName) return stepName;
         
+        // Handle trip detail pages
+        if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
+            return '';
+        }
+        if (location.pathname.match(/^\/trip-management\/weight-slip\/[a-f0-9]+$/)) {
+            return 'Trip Details';
+        }
+        
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path
         return path.charAt(0).toUpperCase() + path.slice(1);

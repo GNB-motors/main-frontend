@@ -18,8 +18,6 @@ const WeightSlipTripDetailPage = () => {
   const { id } = useParams();
   
   const [trip, setTrip] = useState(null);
-  const [vehicle, setVehicle] = useState(null);
-  const [driver, setDriver] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -34,23 +32,6 @@ const WeightSlipTripDetailPage = () => {
       const response = await WeightSlipTripService.getById(id);
       const tripData = response.data;
       setTrip(tripData);
-
-      // Fetch vehicle and driver details if IDs are available
-      const vehicleId = tripData.journeyId?.vehicleId;
-      const driverId = tripData.journeyId?.driverId;
-
-      const promises = [];
-      if (vehicleId) {
-        promises.push(TripService.getVehicleById(vehicleId).then(res => setVehicle(res.data)).catch(err => console.warn('Failed to fetch vehicle:', err)));
-      }
-      if (driverId) {
-        promises.push(TripService.getDriverById(driverId).then(res => setDriver(res.data)).catch(err => console.warn('Failed to fetch driver:', err)));
-      }
-
-      // Wait for additional details (but don't fail if they don't load)
-      if (promises.length > 0) {
-        await Promise.allSettled(promises);
-      }
     } catch (err) {
       console.error('Failed to fetch trip details:', err);
       setError('Failed to load trip details');
@@ -138,12 +119,36 @@ const WeightSlipTripDetailPage = () => {
         borderBottom: '1px solid #e5e7eb'
       }}>
         <button
-          className="back-btn"
           onClick={() => navigate('/trip-management')}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          style={{
+            width: '28px',
+            height: '28px',
+            padding: '0',
+            background: 'white',
+            borderRadius: '999px',
+            border: '1px solid #D3D3D5',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#f5f5f5';
+            e.currentTarget.style.borderColor = '#a0a0a0';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'white';
+            e.currentTarget.style.borderColor = '#D3D3D5';
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
         >
-          <ArrowLeft width={16} height={16} />
-          Back
+          <ArrowLeft width={14} height={14} color="#121214" />
         </button>
         <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '600', color: '#111827' }}>
@@ -294,25 +299,27 @@ const WeightSlipTripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Registration</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
-                {vehicle?.registrationNumber || journey?.vehicleId || '-'}
+                {typeof journey?.vehicleId === 'object' ? journey?.vehicleId?._id : journey?.vehicleId || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Type</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {vehicle?.vehicleType || '-'}
+                -
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Name</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {driver ? `${driver.firstName || ''} ${driver.lastName || ''}`.trim() : journey?.driverId || '-'}
+                {typeof journey?.driverId === 'object' 
+                  ? `${journey?.driverId?.firstName || ''} ${journey?.driverId?.lastName || ''}`.trim() || '-'
+                  : journey?.driverId || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Phone</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {driver?.mobileNumber || '-'}
+                -
               </p>
             </div>
           </div>
@@ -377,6 +384,56 @@ const WeightSlipTripDetailPage = () => {
             )}
           </div>
         </div>
+
+        {/* Route Information Section */}
+        {trip.routeId && (
+          <div style={{
+            background: 'white',
+            border: '1.5px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+              <MapPin width={20} height={20} color="#1a73e8" />
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>Route Information</h3>
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '16px'
+            }}>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Route Name</label>
+                <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                  {trip.routeId?.name || '-'}
+                </p>
+              </div>
+              {trip.routeId?.sourceLocation && (
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Source</label>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                    {trip.routeId.sourceLocation.city}, {trip.routeId.sourceLocation.state}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                    {trip.routeId.sourceLocation.address}
+                  </p>
+                </div>
+              )}
+              {trip.routeId?.destLocation && (
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Destination</label>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                    {trip.routeId.destLocation.city}, {trip.routeId.destLocation.state}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                    {trip.routeId.destLocation.address}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Weights Section */}
         <div style={{

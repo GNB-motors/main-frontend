@@ -18,8 +18,6 @@ const TripDetailPage = () => {
   const { id } = useParams();
   
   const [trip, setTrip] = useState(null);
-  const [vehicle, setVehicle] = useState(null);
-  const [driver, setDriver] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedSections, setExpandedSections] = useState({
@@ -38,23 +36,6 @@ const TripDetailPage = () => {
       const response = await TripService.getTripById(id);
       const tripData = response.data;
       setTrip(tripData);
-
-      // Fetch vehicle and driver details if IDs are available
-      const vehicleId = tripData.vehicleId;
-      const driverId = tripData.driverId;
-
-      const promises = [];
-      if (vehicleId) {
-        promises.push(TripService.getVehicleById(vehicleId).then(res => setVehicle(res.data)).catch(err => console.warn('Failed to fetch vehicle:', err)));
-      }
-      if (driverId) {
-        promises.push(TripService.getDriverById(driverId).then(res => setDriver(res.data)).catch(err => console.warn('Failed to fetch driver:', err)));
-      }
-
-      // Wait for additional details (but don't fail if they don't load)
-      if (promises.length > 0) {
-        await Promise.allSettled(promises);
-      }
     } catch (err) {
       console.error('Failed to fetch trip details:', err);
       setError('Failed to load trip details');
@@ -135,12 +116,19 @@ const TripDetailPage = () => {
     );
   }
 
-  const totalRevenue = trip.weightSlipTrips?.reduce((sum, wst) => sum + (wst.revenue?.actualAmountReceived || 0), 0) || 0;
-  const totalExpense = trip.weightSlipTrips?.reduce((sum, wst) => {
-    const exp = wst.expenses || {};
-    return sum + ((exp.materialCost || 0) + (exp.toll || 0) + (exp.driverCost || 0) + 
-                  (exp.driverTripExpense || 0) + (exp.royalty || 0));
-  }, 0) || 0;
+  // Use journeyFinancials from API response if available, otherwise calculate from weightSlipTrips
+  const totalRevenue = trip.journeyFinancials?.totalRevenue || 
+    trip.weightSlipTrips?.reduce((sum, wst) => sum + (wst.revenue?.actualAmountReceived || 0), 0) || 0;
+  
+  const totalExpense = trip.journeyFinancials?.totalExpenses || 
+    trip.weightSlipTrips?.reduce((sum, wst) => {
+      const exp = wst.expenses || {};
+      return sum + ((exp.materialCost || 0) + (exp.toll || 0) + (exp.driverCost || 0) + 
+                    (exp.driverTripExpense || 0) + (exp.royalty || 0));
+    }, 0) || 0;
+  
+  const netProfit = trip.journeyFinancials?.netProfit ?? (totalRevenue - totalExpense);
+  const totalTrips = trip.journeyFinancials?.totalTrips || trip.weightSlipTrips?.length || 0;
 
   return (
     <div className="trip-detail-view" style={{ paddingBottom: '40px' }}>
@@ -154,19 +142,43 @@ const TripDetailPage = () => {
         borderBottom: '1px solid #e5e7eb'
       }}>
         <button
-          className="back-btn"
           onClick={() => navigate('/trip-management')}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          style={{
+            width: '28px',
+            height: '28px',
+            padding: '0',
+            background: 'white',
+            borderRadius: '999px',
+            border: '1px solid #D3D3D5',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#f5f5f5';
+            e.currentTarget.style.borderColor = '#a0a0a0';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'white';
+            e.currentTarget.style.borderColor = '#D3D3D5';
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
         >
-          <ArrowLeft width={16} height={16} />
-          Back
+          <ArrowLeft width={14} height={14} color="#121214" />
         </button>
         <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '600', color: '#111827' }}>
             Journey Details
           </h1>
           <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-            {trip.status?.toUpperCase()} • {trip.weightSlipTrips?.length || 0} trips
+            {trip.status?.toUpperCase()} • {totalTrips} trip{totalTrips !== 1 ? 's' : ''}
           </p>
         </div>
         <div
@@ -219,7 +231,7 @@ const TripDetailPage = () => {
             <div>
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>Total Trips</p>
               <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: '700', color: '#111827' }}>
-                {trip.weightSlipTrips?.length || 0}
+                {totalTrips}
               </p>
             </div>
           </div>
@@ -282,9 +294,9 @@ const TripDetailPage = () => {
                 margin: '4px 0 0 0',
                 fontSize: '24px',
                 fontWeight: '700',
-                color: totalRevenue - totalExpense >= 0 ? '#16a34a' : '#dc2626'
+                color: netProfit >= 0 ? '#16a34a' : '#dc2626'
               }}>
-                {formatCurrency(totalRevenue - totalExpense)}
+                {formatCurrency(netProfit)}
               </p>
             </div>
           </div>
@@ -310,25 +322,27 @@ const TripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Registration</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
-                {vehicle?.registrationNumber || trip?.vehicleId || '-'}
+                {trip.vehicleId?.registrationNumber || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Type</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {vehicle?.vehicleType || '-'}
+                {trip.vehicleId?.vehicleType || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Name</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {driver ? `${driver.firstName || ''} ${driver.lastName || ''}`.trim() : trip?.driverId || '-'}
+                {trip.driverId?.firstName && trip.driverId?.lastName
+                  ? `${trip.driverId.firstName} ${trip.driverId.lastName}`
+                  : '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Phone</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {driver?.mobileNumber || '-'}
+                {trip.driverId?.phone || '-'}
               </p>
             </div>
           </div>
@@ -377,6 +391,48 @@ const TripDetailPage = () => {
           </div>
         )}
 
+        {/* Fuel Management Section */}
+        {trip.fuelManagement && (
+          <div style={{
+            background: 'white',
+            border: '1.5px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+              <Zap width={20} height={20} color="#1a73e8" />
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>Fuel Management</h3>
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px'
+            }}>
+              <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase' }}>Total Liters</label>
+                <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
+                  {trip.fuelManagement?.totalLiters?.toFixed(2) || '0'}
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>liters</p>
+              </div>
+              <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase' }}>Total Cost</label>
+                <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
+                  {formatCurrency(trip.fuelManagement?.totalCost)}
+                </p>
+              </div>
+              <div style={{ padding: '16px', background: '#dcfce7', borderRadius: '8px', border: '1px solid #b7e4c7' }}>
+                <label style={{ fontSize: '12px', color: '#166534', fontWeight: '500', textTransform: 'uppercase' }}>Average Rate</label>
+                <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>
+                  {formatCurrency(trip.fuelManagement?.averageRate)}
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#16a34a' }}>per liter</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Financial Summary */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '24px' }}>
           {/* Revenue */}
@@ -397,7 +453,7 @@ const TripDetailPage = () => {
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Average per Trip</label>
                 <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                  {formatCurrency(trip.weightSlipTrips?.length ? totalRevenue / trip.weightSlipTrips.length : 0)}
+                  {formatCurrency(totalTrips > 0 ? totalRevenue / totalTrips : 0)}
                 </p>
               </div>
             </div>
@@ -421,7 +477,7 @@ const TripDetailPage = () => {
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Average per Trip</label>
                 <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                  {formatCurrency(trip.weightSlipTrips?.length ? totalExpense / trip.weightSlipTrips.length : 0)}
+                  {formatCurrency(totalTrips > 0 ? totalExpense / totalTrips : 0)}
                 </p>
               </div>
             </div>
@@ -442,15 +498,16 @@ const TripDetailPage = () => {
                   margin: 0,
                   fontSize: '24px',
                   fontWeight: '700',
-                  color: totalRevenue - totalExpense >= 0 ? '#16a34a' : '#dc2626'
+                  color: netProfit >= 0 ? '#16a34a' : '#dc2626'
                 }}>
-                  {formatCurrency(totalRevenue - totalExpense)}
+                  {formatCurrency(netProfit)}
                 </p>
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Profit Margin</label>
                 <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                  {totalRevenue > 0 ? ((((totalRevenue - totalExpense) / totalRevenue) * 100).toFixed(2)) : 0}%
+                  {trip.journeyFinancials?.averageProfitMargin?.toFixed(2) || 
+                   (totalRevenue > 0 ? (((netProfit) / totalRevenue) * 100).toFixed(2) : '0')}%
                 </p>
               </div>
             </div>
@@ -478,7 +535,7 @@ const TripDetailPage = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Package width={20} height={20} color="#1a73e8" />
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                Associated Trips ({trip.weightSlipTrips?.length || 0})
+                Associated Trips ({totalTrips})
               </h3>
             </div>
             {expandedSections.weightSlips ? <ChevronUp width={20} /> : <ChevronDown width={20} />}
