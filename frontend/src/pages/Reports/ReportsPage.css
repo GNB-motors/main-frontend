@@ -20,7 +20,7 @@
 }
 
 .reports-content.with-sidebar {
-  margin-left: 280px; /* Space for reports sidebar (280px) - main sidebar is already accounted for by .main-content margin */
+  margin-left: 246px; /* Space for reports sidebar (246px) - main sidebar is already accounted for by .main-content margin */
 }
 
 .nav-left { display: flex; align-items: center; gap: var(--spacing-lg); }

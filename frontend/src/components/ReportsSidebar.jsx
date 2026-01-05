@@ -86,7 +86,6 @@ const ReportsSidebar = ({
                                         className={`report-item ${selectedReport === report.id ? 'active' : ''}`}
                                         onClick={() => setSelectedReport(report.id)}
                                     >
-                                        {report.icon && <report.icon size={16} />}
                                         <span>{report.name}</span>
                                     </button>
                                 ))}
