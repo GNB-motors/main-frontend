@@ -353,8 +353,8 @@ const VerificationPhase = ({
                           </button>
                         </div>
                       </td>
-                      <td>{slip.origin || slip.routeData?.sourceLocation || '—'}</td>
-                      <td>{slip.destination || slip.routeData?.destLocation || '—'}</td>
+                      <td>{slip.origin || (slip.routeData?.sourceLocation ? `${slip.routeData.sourceLocation.city}, ${slip.routeData.sourceLocation.state}` : '—')}</td>
+                      <td>{slip.destination || (slip.routeData?.destLocation ? `${slip.routeData.destLocation.city}, ${slip.routeData.destLocation.state}` : '—')}</td>
                       <td className="text-center">{weight} kg</td>
                       <td>
                         {slip.isDone ? (
