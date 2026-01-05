@@ -30,13 +30,15 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
     // Map UI keys (snake_case) to API expected camelCase keys
     const body = {
       registrationNumber: vehicleData.registration_no || vehicleData.registrationNumber,
-      vehicleType: vehicleData.vehicle_type || vehicleData.vehicleType || null,
       chassisNumber: vehicleData.chassis_number || vehicleData.chassisNumber || null,
       model: vehicleData.model || null,
       // Ensure inventory is always an array (backend validation requires an array)
       inventory: vehicleData.inventory || [],
       // include orgId in body for servers that expect org context in payload
       orgId: businessRefId || undefined,
+      // Include manufacturer and vehicleCategory if provided (for manual override)
+      manufacturer: vehicleData.manufacturer || undefined,
+      vehicleCategory: vehicleData.vehicleCategory || undefined,
     };
 
     const response = await axios.post(
@@ -67,11 +69,13 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
     // Map each row to API expected shape
     const vehicles = vehiclesArray.map((r) => ({
       registrationNumber: r.registration_no || r.registrationNumber,
-      vehicleType: r.vehicle_type || r.vehicleType || null,
       chassisNumber: r.chassis_number || r.chassisNumber || null,
       model: r.model || null,
       // default inventory to empty array when missing/null
       inventory: r.inventory || [],
+      // Include manufacturer and vehicleCategory if provided
+      manufacturer: r.manufacturer || undefined,
+      vehicleCategory: r.vehicleCategory || undefined,
     }));
 
     const payload = {
@@ -134,6 +138,9 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
      if (vehicleData.model !== undefined) body.model = vehicleData.model;
      if (vehicleData.status !== undefined) body.status = vehicleData.status;
      if (vehicleData.inventory !== undefined) body.inventory = vehicleData.inventory;
+     // Include manufacturer and vehicleCategory for manual override
+     if (vehicleData.manufacturer !== undefined) body.manufacturer = vehicleData.manufacturer;
+     if (vehicleData.vehicleCategory !== undefined) body.vehicleCategory = vehicleData.vehicleCategory;
      // Include orgId when provided by caller (some servers expect it)
      if (businessRefId) body.orgId = businessRefId;
 
@@ -159,10 +166,61 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
    }
  };
 
+/**
+ * Get correction logs for a specific vehicle
+ */
+const getVehicleCorrectionLogs = async (vehicleId, token) => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/api/vehicles/${vehicleId}/corrections`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.data && response.data.status === 'success') {
+      return response.data.data;
+    }
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { detail: error.message || 'Could not fetch correction logs.' };
+  }
+};
+
+/**
+ * Classify existing unclassified vehicles
+ */
+const classifyExistingVehicles = async (token) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/api/vehicles/classify-existing`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.data && response.data.status === 'success') {
+      return response.data.data;
+    }
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { detail: error.message || 'Could not classify vehicles.' };
+  }
+};
+
 
 export const VehicleService = {
   getAllVehicles,
   addVehicle,
+  addBulkVehicles,
   removeVehicle,
   updateVehicle,
+  getVehicleCorrectionLogs,
+  classifyExistingVehicles,
 };

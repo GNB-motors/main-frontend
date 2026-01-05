@@ -645,7 +645,7 @@
     border-radius: var(--border-radius-md);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 4px;
-    z-index: 20;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     min-width: 120px;
@@ -1495,7 +1495,7 @@ input:checked + .slider:before {
     justify-content: flex-start;
     align-items: center;
     display: flex;
-    overflow: hidden;
+    overflow: visible;
     flex: 1;
     min-height: 0;
     margin-bottom: 8px;
@@ -1516,10 +1516,12 @@ input:checked + .slider:before {
     gap: 12px;
     flex: 1;
     min-height: 0;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 .vehicles-table {
+    min-width: 760px;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 12px;
@@ -1560,7 +1562,7 @@ input:checked + .slider:before {
     display: block;
     width: 100%;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: visible;
     max-height: calc(100vh - 350px);
 }
 
@@ -1576,6 +1578,7 @@ input:checked + .slider:before {
     outline-offset: -1px;
     margin-bottom: 12px;
     transition: all 0.2s ease;
+    overflow: visible;
 }
 
 .vehicles-table tbody tr:hover {
@@ -1599,31 +1602,44 @@ input:checked + .slider:before {
     white-space: nowrap;
 }
 
-/* Column widths for vehicles table */
+/* Column widths for vehicles table - 6 columns total */
 .vehicles-table th:nth-child(1),
 .vehicles-table td:nth-child(1) {
-    width: 20%;
+    width: 140px;
+    min-width: 140px;
 }
 
 .vehicles-table th:nth-child(2),
 .vehicles-table td:nth-child(2) {
-    width: 20%;
+    width: 120px;
+    min-width: 120px;
 }
 
 .vehicles-table th:nth-child(3),
 .vehicles-table td:nth-child(3) {
-    width: 20%;
+    width: 140px;
+    min-width: 140px;
 }
 
 .vehicles-table th:nth-child(4),
 .vehicles-table td:nth-child(4) {
-    width: 30%;
+    width: 100px;
+    min-width: 100px;
 }
 
 .vehicles-table th:nth-child(5),
 .vehicles-table td:nth-child(5) {
-    width: 10%;
+    width: 180px;
+    min-width: 180px;
+}
+
+.vehicles-table th:nth-child(6),
+.vehicles-table td:nth-child(6) {
+    width: 80px;
+    min-width: 80px;
     text-align: center;
+    overflow: visible;
+    position: relative;
 }
 
 /* Pagination Controls - Sticky Footer */

@@ -66,7 +66,6 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
 // --- Add Vehicle Modal Component ---
 const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) => {
     const [registrationNo, setRegistrationNo] = useState('');
-    const [vehicleType, setVehicleType] = useState('');
     const [model, setModel] = useState('');
     const [chassisNumber, setChassisNumber] = useState('');
     const [error, setError] = useState(null);
@@ -75,14 +74,13 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
         e.preventDefault();
         setError(null); // Clear previous errors
 
-        if (!registrationNo || !vehicleType || !chassisNumber) {
-            setError("All fields are required: Registration Number, Vehicle Type, and Chassis Number.");
+        if (!registrationNo || !chassisNumber) {
+            setError("All fields are required: Registration Number and Chassis Number.");
             return;
         }
 
         const vehicleData = {
             registration_no: registrationNo,
-            vehicle_type: vehicleType,
             chassis_number: chassisNumber,
             model: model || null,
         };
@@ -101,7 +99,6 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
     useEffect(() => {
         if (!isOpen) {
             setRegistrationNo('');
-            setVehicleType('');
             setModel('');
             setChassisNumber('');
             setError(null);
@@ -109,6 +106,8 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
     }, [isOpen]);
 
     if (!isOpen) return null;
+
+    console.log('AddVehicleModal rendering, isOpen:', isOpen);
 
     return (
         <div className="vehicle-modal-overlay" onClick={onClose}>
@@ -126,33 +125,8 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
                                 type="text"
                                 value={registrationNo}
                                 onChange={(e) => setRegistrationNo(e.target.value)}
-                                placeholder="e.g., ABC123XYZ"
+                                placeholder="e.g., WB11F7262"
                                 required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <div className="vehicle-form-group">
-                            <label htmlFor="vehicleType">Vehicle Type *</label>
-                            <input
-                                id="vehicleType"
-                                type="text"
-                                value={vehicleType}
-                                onChange={(e) => setVehicleType(e.target.value)}
-                                placeholder="e.g., Truck, Tanker"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-                    <div className="vehicle-form-row">
-                        <div className="vehicle-form-group">
-                            <label htmlFor="model">Model (optional)</label>
-                            <input
-                                id="model"
-                                type="text"
-                                value={model}
-                                onChange={(e) => setModel(e.target.value)}
-                                placeholder="e.g., Ashok Leyland Dost"
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -164,6 +138,20 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
                                 value={chassisNumber}
                                 onChange={(e) => setChassisNumber(e.target.value)}
                                 placeholder="e.g., MAT828113S2C05629"
+                                required
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+                    <div className="vehicle-form-row">
+                        <div className="vehicle-form-group" style={{ gridColumn: '1 / -1' }}>
+                            <label htmlFor="model">Model *</label>
+                            <input
+                                id="model"
+                                type="text"
+                                value={model}
+                                onChange={(e) => setModel(e.target.value)}
+                                placeholder="e.g., 4830TC, LPT 4830"
                                 required
                                 disabled={isSubmitting}
                             />
@@ -263,6 +251,10 @@ const VehiclesPage = () => {
                     model: v.model || '',
                     status: v.status || '',
                     inventory: v.inventory || [],
+                    // New classification fields
+                    manufacturer: v.manufacturer || null,
+                    vehicleCategory: v.vehicleCategory || null,
+                    classification: v.classification || null,
                 }));
                 setVehicles(normalized);
                 console.log("Vehicles fetched:", normalized);
@@ -285,17 +277,25 @@ const VehiclesPage = () => {
         setIsSubmitting(true);
         setFormError(null);
         try {
+            console.log('Adding vehicle with data:', vehicleData);
             const addedVehicle = await VehicleService.addVehicle(businessRefId, vehicleData, token);
+            console.log('Vehicle added, API response:', addedVehicle);
+            
             // Normalize returned vehicle to UI shape
             const nv = {
                 id: addedVehicle._id || addedVehicle.id,
                 registration_no: addedVehicle.registrationNumber || addedVehicle.registration_no || vehicleData.registration_no,
-                vehicle_type: addedVehicle.vehicleType || addedVehicle.vehicle_type || vehicleData.vehicle_type,
+                vehicle_type: addedVehicle.vehicleType || addedVehicle.vehicle_type || '',
                 chassis_number: addedVehicle.chassisNumber || addedVehicle.chassis_number || vehicleData.chassis_number,
-                model: addedVehicle.model || null,
+                model: addedVehicle.model || vehicleData.model || '',
                 status: addedVehicle.status || 'AVAILABLE',
                 inventory: addedVehicle.inventory || [],
+                // New classification fields
+                manufacturer: addedVehicle.manufacturer || null,
+                vehicleCategory: addedVehicle.vehicleCategory || null,
+                classification: addedVehicle.classification || null,
             };
+            console.log('Normalized vehicle for UI:', nv);
             setVehicles(prevVehicles => [...prevVehicles, nv]);
             setIsAddModalOpen(false);
             toast.success(`Vehicle "${vehicleData.registration_no}" added successfully!`);
@@ -357,14 +357,13 @@ const VehiclesPage = () => {
         setFormError(null);
         setIsSubmitting(true);
         
-    const regNo = e.target.regNo.value.trim();
-    const vehicleType = e.target.vehicleType.value.trim();
-    const chassisNumber = e.target.chassisNumber.value.trim();
-    const modelValue = (e.target.model && e.target.model.value) ? e.target.model.value.trim() : null;
+        const regNo = e.target.regNo.value.trim();
+        const chassisNumber = e.target.chassisNumber.value.trim();
+        const modelValue = e.target.model.value.trim();
         const token = localStorage.getItem('authToken');
         
-        if (!regNo || !vehicleType || !chassisNumber) {
-            setFormError("All fields are required: Registration Number, Vehicle Type, and Chassis Number.");
+        if (!regNo || !chassisNumber || !modelValue) {
+            setFormError("All fields are required: Registration Number, Chassis Number, and Model.");
             setIsSubmitting(false);
             return;
         }
@@ -380,9 +379,8 @@ const VehiclesPage = () => {
         
         const updatedVehicleData = { 
             registration_no: regNo, 
-            vehicle_type: vehicleType,
             chassis_number: chassisNumber,
-            model: modelValue || null,
+            model: modelValue,
         };
         
         try {
@@ -394,16 +392,30 @@ const VehiclesPage = () => {
                 token
             );
             
+            // Normalize the updated vehicle response
+            const normalizedUpdated = {
+                id: updatedVehicle._id || updatedVehicle.id || editingVehicle.id,
+                registration_no: updatedVehicle.registrationNumber || updatedVehicle.registration_no || regNo,
+                vehicle_type: updatedVehicle.vehicleType || updatedVehicle.vehicle_type || '',
+                chassis_number: updatedVehicle.chassisNumber || updatedVehicle.chassis_number || chassisNumber,
+                model: updatedVehicle.model || modelValue,
+                status: updatedVehicle.status || editingVehicle.status || '',
+                inventory: updatedVehicle.inventory || [],
+                manufacturer: updatedVehicle.manufacturer || null,
+                vehicleCategory: updatedVehicle.vehicleCategory || null,
+                classification: updatedVehicle.classification || null,
+            };
+            
             setVehicles(prevVehicles => 
                 prevVehicles.map(v => 
-                    v.id === editingVehicle.id ? updatedVehicle : v
+                    v.id === editingVehicle.id ? normalizedUpdated : v
                 )
             );
             
             setShowEditForm(false);
             setEditingVehicle(null);
-            toast.success(`Vehicle "${updatedVehicleData.registration_no}" updated successfully!`);
-            console.log("Vehicle updated successfully:", updatedVehicle);
+            toast.success(`Vehicle "${regNo}" updated successfully!`);
+            console.log("Vehicle updated successfully:", normalizedUpdated);
         } catch (apiError) {
             console.error("Failed to update vehicle:", apiError);
             const errorMessage = apiError?.detail || "Could not update vehicle.";
@@ -507,6 +519,7 @@ const VehiclesPage = () => {
 
                                 {/* Action Buttons */}
                                 <button
+                                    type="button"
                                     className="vehicles-add-btn"
                                     onClick={() => navigate('/vehicles/bulk-upload')}
                                     disabled={isSubmitting}
@@ -515,10 +528,12 @@ const VehiclesPage = () => {
                                     <span>Bulk Upload</span>
                                 </button>
                                 <button
+                                    type="button"
                                     className="vehicles-add-btn"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
+                                        console.log('Add Vehicle button clicked, opening modal...');
                                         setIsAddModalOpen(true);
                                     }}
                                     disabled={isSubmitting}
@@ -553,20 +568,38 @@ const VehiclesPage = () => {
                                         <table className="vehicles-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Vehicle No</th>
-                                                    <th>Vehicle Type</th>
-                                                    <th>Model</th>
-                                                    <th>Chassis No</th>
+                                                    <th style={{ width: '140px' }}>Vehicle No</th>
+                                                    <th style={{ width: '120px' }}>Model</th>
+                                                    <th style={{ width: '140px' }}>Manufacturer</th>
+                                                    <th style={{ width: '100px' }}>Category</th>
+                                                    <th style={{ width: '180px' }}>Chassis No</th>
                                                     <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {paginatedVehicles.map(vehicle => (
                                                     <tr key={vehicle.id}>
-                                                        <td>{vehicle.registration_no}</td>
-                                                        <td>{vehicle.vehicle_type || 'N/A'}</td>
+                                                        <td style={{ fontWeight: 600 }}>{vehicle.registration_no}</td>
                                                         <td>{vehicle.model || 'N/A'}</td>
-                                                        <td>{vehicle.chassis_number || 'N/A'}</td>
+                                                        <td>
+                                                            {vehicle.manufacturer && vehicle.manufacturer !== 'UNKNOWN' ? (
+                                                                <span className={`vehicle-badge manufacturer-${vehicle.manufacturer?.toLowerCase().replace(/\s+/g, '-')}`}>
+                                                                    {vehicle.manufacturer}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="vehicle-badge vehicle-badge-unknown">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {vehicle.vehicleCategory && vehicle.vehicleCategory !== 'UNKNOWN' ? (
+                                                                <span className={`vehicle-badge category-${vehicle.vehicleCategory?.toLowerCase()}`}>
+                                                                    {vehicle.vehicleCategory}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="vehicle-badge vehicle-badge-unknown">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{vehicle.chassis_number || 'N/A'}</td>
                                                         <td style={{ textAlign: 'center', position: 'relative' }}>
                                                             <button
                                                                 className="vehicle-actions-menu-btn"
@@ -684,33 +717,10 @@ const VehiclesPage = () => {
                                     <input 
                                         name="regNo" 
                                         type="text" 
-                                        placeholder="e.g., ABC123XYZ" 
+                                        placeholder="e.g., WB11F7262" 
                                         defaultValue={editingVehicle.registration_no}
                                         required 
                                         disabled={isSubmitting} 
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Vehicle Type *</label>
-                                    <input 
-                                        name="vehicleType" 
-                                        type="text" 
-                                        placeholder="e.g., Truck, Tanker" 
-                                        defaultValue={editingVehicle.vehicle_type || ''}
-                                        required 
-                                        disabled={isSubmitting} 
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Model (optional)</label>
-                                    <input
-                                        name="model"
-                                        type="text"
-                                        placeholder="e.g., Ashok Leyland Dost"
-                                        defaultValue={editingVehicle.model || ''}
-                                        disabled={isSubmitting}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -722,6 +732,19 @@ const VehiclesPage = () => {
                                         defaultValue={editingVehicle.chassis_number || ''}
                                         required 
                                         disabled={isSubmitting} 
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label>Model *</label>
+                                    <input
+                                        name="model"
+                                        type="text"
+                                        placeholder="e.g., 4830TC, LPT 4830"
+                                        defaultValue={editingVehicle.model || ''}
+                                        required
+                                        disabled={isSubmitting}
                                     />
                                 </div>
                             </div>

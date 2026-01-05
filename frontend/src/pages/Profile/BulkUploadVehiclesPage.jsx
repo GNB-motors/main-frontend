@@ -22,22 +22,16 @@ const VEHICLE_COLUMNS = [
     required: true,
   },
   {
-    key: "vehicle_type",
-    label: "Vehicle Type",
-    placeholder: "Truck / Van",
-    required: false,
-  },
-  {
     key: "model",
-    label: "Model (optional)",
-    placeholder: "Tata Ace",
-    required: false,
+    label: "Model",
+    placeholder: "4830TC, LPT 4830",
+    required: true,
   },
   {
     key: "chassis_number",
     label: "Chassis No",
-    placeholder: "JHMCM56557C400123",
-    required: false,
+    placeholder: "MAT828113S2C05629",
+    required: true,
   },
 ];
 
