@@ -12,6 +12,7 @@ import './ProcessingPhase.css';
 import SlipsList from '../components/SlipsList';
 import TripForm from '../components/TripForm';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import RouteCreator from '../../../components/RouteCreator/RouteCreator';
 
 
 
@@ -33,16 +34,12 @@ const ProcessingPhase = ({
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Update local state when props change - but only if the array length changes
-  // This prevents unnecessary re-renders when slip data is updated
-  const prevSlipsLengthRef = useRef(propsWeightSlips?.length || 0);
-  
+  // Update local state when props change
   useEffect(() => {
-    if (propsWeightSlips && propsWeightSlips.length !== prevSlipsLengthRef.current) {
-      prevSlipsLengthRef.current = propsWeightSlips.length;
+    if (propsWeightSlips) {
       setWeightSlips(propsWeightSlips);
     }
-  }, [propsWeightSlips?.length]);
+  }, [propsWeightSlips]);
 
   useEffect(() => {
     if (typeof propsCurrentIndex === 'number') {
@@ -214,6 +211,14 @@ const ProcessingPhase = ({
           </div>
 
           <div className="form-content-wrapper">
+            {/* Route Creation Section */}
+            <RouteCreator
+              routeData={currentSlip.routeData || {}}
+              tripType={currentSlip.tripType || 'PICKUP_DROP'}
+              onRouteUpdate={(routeData) => updateWeightSlip(currentIndex, { routeData })}
+              onTripTypeChange={(tripType) => updateWeightSlip(currentIndex, { tripType })}
+            />
+            
             <TripForm
               slip={currentSlip}
               fixedDocs={fixedDocs}

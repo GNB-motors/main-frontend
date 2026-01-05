@@ -47,7 +47,11 @@ const VerificationPhase = ({
           (slip.tareWeight || slip.weights?.tareWeight) && 
           (slip.netWeight || slip.weights?.netWeight);
         const hasMaterialType = slip.materialType && slip.materialType !== '';
-        const hasRoute = slip.routeId && slip.routeId !== '';
+        const hasRoute = slip.routeData && (
+          slip.routeData.sourceLocation || 
+          slip.routeData.destLocation || 
+          Object.keys(slip.routeData).length > 0
+        );
         
         return hasWeights && hasMaterialType && hasRoute;
       });
@@ -349,8 +353,8 @@ const VerificationPhase = ({
                           </button>
                         </div>
                       </td>
-                      <td>{slip.origin || slip.routeDetails?.source || '—'}</td>
-                      <td>{slip.destination || slip.routeDetails?.destination || '—'}</td>
+                      <td>{slip.origin || slip.routeData?.sourceLocation || '—'}</td>
+                      <td>{slip.destination || slip.routeData?.destLocation || '—'}</td>
                       <td className="text-center">{weight} kg</td>
                       <td>
                         {slip.isDone ? (

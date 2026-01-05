@@ -1,6 +1,5 @@
 
-import React, { useCallback, useEffect, useState, useRef } from 'react';
-import RouteService from '../../Routes/RouteService';
+import React, { useCallback, useRef, useEffect } from 'react';
 import './TripForm.css';
 
 const TripForm = ({ slip, fixedDocs, onUpdate }) => {
@@ -17,43 +16,8 @@ const TripForm = ({ slip, fixedDocs, onUpdate }) => {
     [onUpdate]
   );
 
-  // State for available routes
-  const [routes, setRoutes] = useState([]);
-  const [loadingRoutes, setLoadingRoutes] = useState(false);
-  const [routesError, setRoutesError] = useState(null);
-
   // Track the current slip ID to detect when we switch to a different slip
   const prevSlipIdRef = useRef(slip?.tempId || slip?.id);
-  
-  // Reset manually edited fields when switching to a new slip
-  useEffect(() => {
-    const newSlipId = slip?.tempId || slip?.id;
-    // Only reset if the slip ID actually changed (not just a re-render with same slip)
-    if (newSlipId && newSlipId !== prevSlipIdRef.current) {
-      prevSlipIdRef.current = newSlipId;
-      manuallyEditedFieldsRef.current = new Set(); // Clear the manually edited fields
-    }
-  }, [slip?.tempId, slip?.id]);
-
-  useEffect(() => {
-    setLoadingRoutes(true);
-    setRoutesError(null);
-    RouteService.getRoutes({ status: 'ACTIVE', limit: 1000 })
-      .then((data) => setRoutes(data.data || []))
-      .catch((err) => setRoutesError(err.message || 'Failed to fetch routes'))
-      .finally(() => setLoadingRoutes(false));
-  }, []);
-
-  // Autofill distanceKm when routeId changes, but only if not manually edited
-  useEffect(() => {
-    if (slip.routeId && routes.length > 0 && !manuallyEditedFieldsRef.current.has('distanceKm')) {
-      const selectedRoute = routes.find(r => r._id === slip.routeId);
-      if (selectedRoute && (!slip.distanceKm || slip._autofilledDistance !== slip.routeId)) {
-        // Only autofill if distanceKm is empty or last autofilled route is different
-        onUpdate({ distanceKm: selectedRoute.distanceKm, _autofilledDistance: slip.routeId });
-      }
-    }
-  }, [slip.routeId, routes]);
 
   // Autofill endOdometer from fixedDocs odometer reading if available
   // Only run once when slip changes and field hasn't been manually edited
@@ -116,58 +80,22 @@ const TripForm = ({ slip, fixedDocs, onUpdate }) => {
           </small>
         )}
       </div>
-      {/* Route Assignment Fields */}
-      <fieldset className="form-section">
-        <legend>Route Assignment (per slip)</legend>
-        <div className="form-group">
-          <label htmlFor="routeId">Route</label>
-          {loadingRoutes ? (
-            <div>Loading routes...</div>
-          ) : routesError ? (
-            <div style={{ color: 'red' }}>Error: {routesError}</div>
-          ) : (
-            <select
-              id="routeId"
-              value={slip.routeId || ''}
-              onChange={(e) => handleChange('routeId', e.target.value)}
-              className="form-input"
-            >
-              <option value="">Select a route</option>
-              {routes.map((route) => (
-                <option key={route._id} value={route._id}>
-                  {route.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <div className="form-group">
-          <label htmlFor="distanceKm">Distance (km)</label>
-          <input
-            id="distanceKm"
-            type="number"
-            placeholder="0"
-            value={slip.distanceKm || ''}
-            onChange={(e) => handleChange('distanceKm', e.target.value)}
-            className="form-input"
-            min="0"
-            step="0.01"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="allocatedFuel">Allocated Fuel (liters)</label>
-          <input
-            id="allocatedFuel"
-            type="number"
-            placeholder="0"
-            value={slip.allocatedFuel || ''}
-            onChange={(e) => handleChange('allocatedFuel', e.target.value)}
-            className="form-input"
-            min="0"
-            step="0.01"
-          />
-        </div>
-      </fieldset>
+
+      {/* Fuel Allocation */}
+      <div className="form-group">
+        <label htmlFor="allocatedFuel">Allocated Fuel (liters)</label>
+        <input
+          id="allocatedFuel"
+          type="number"
+          placeholder="0"
+          value={slip.allocatedFuel || ''}
+          onChange={(e) => handleChange('allocatedFuel', e.target.value)}
+          className="form-input"
+          min="0"
+          step="0.01"
+        />
+      </div>
+
       {/* Weight Certificate Details */}
       <fieldset className="form-section">
         <legend>Weight Certificate Details</legend>

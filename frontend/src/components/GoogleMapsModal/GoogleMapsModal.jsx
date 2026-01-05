@@ -203,7 +203,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   }, []);
 
   const handleApply = () => {
-    if (selectedLocation) {
+    if (selectedLocation && onApply && typeof onApply === 'function') {
       onApply(selectedLocation);
       onClose();
     }

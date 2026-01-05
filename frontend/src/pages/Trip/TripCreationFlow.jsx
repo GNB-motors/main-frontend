@@ -243,7 +243,8 @@ const TripCreationFlow = () => {
             tareWeight,
             netWeight,
           },
-          routeId: slip.routeId || '',
+          routeData: slip.routeData || {}, // Use embedded route data
+          tripType: slip.tripType || 'PICKUP_DROP', // Include trip type
           revenue: {
             // TripForm uses amountPerKg, backend expects ratePerKg
             ratePerKg: parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || 0,

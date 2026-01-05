@@ -386,7 +386,7 @@ const WeightSlipTripDetailPage = () => {
         </div>
 
         {/* Route Information Section */}
-        {trip.routeId && (
+        {trip.routeData && (Object.keys(trip.routeData).length > 0 || trip.routeData.sourceLocation || trip.routeData.destLocation) && (
           <div style={{
             background: 'white',
             border: '1.5px solid #e5e7eb',
@@ -406,29 +406,48 @@ const WeightSlipTripDetailPage = () => {
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Route Name</label>
                 <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                  {trip.routeId?.name || '-'}
+                  {trip.routeData?.name || `${trip.routeData?.sourceLocation?.city || 'Unknown'} to ${trip.routeData?.destLocation?.city || 'Unknown'}`}
                 </p>
               </div>
-              {trip.routeId?.sourceLocation && (
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Trip Type</label>
+                <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                  {trip.tripType === 'ROUND_TRIP' ? 'Round Trip' : 'Pickup & Drop'}
+                </p>
+              </div>
+              {trip.routeData?.sourceLocation && (
                 <div>
                   <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Source</label>
                   <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                    {trip.routeId.sourceLocation.city}, {trip.routeId.sourceLocation.state}
+                    {trip.routeData.sourceLocation.city}, {trip.routeData.sourceLocation.state}
                   </p>
                   <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-                    {trip.routeId.sourceLocation.address}
+                    {trip.routeData.sourceLocation.address}
                   </p>
                 </div>
               )}
-              {trip.routeId?.destLocation && (
+              {trip.routeData?.destLocation && (
                 <div>
                   <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Destination</label>
                   <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                    {trip.routeId.destLocation.city}, {trip.routeId.destLocation.state}
+                    {trip.routeData.destLocation.city}, {trip.routeData.destLocation.state}
                   </p>
                   <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-                    {trip.routeId.destLocation.address}
+                    {trip.routeData.destLocation.address}
                   </p>
+                </div>
+              )}
+              {trip.routeData?.actualDistanceKm && (
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Distance</label>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                    {trip.routeData.actualDistanceKm} km
+                  </p>
+                  {trip.routeData.baseDistanceKm && trip.tripType === 'ROUND_TRIP' && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                      Base: {trip.routeData.baseDistanceKm} km (2x for round trip)
+                    </p>
+                  )}
                 </div>
               )}
             </div>

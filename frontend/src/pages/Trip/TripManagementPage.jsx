@@ -140,7 +140,9 @@ const TripManagementPage = () => {
         return (
           trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
           driverName.includes(query) ||
-          trip.routeId?.name?.toLowerCase().includes(query) ||
+          trip.routeData?.name?.toLowerCase().includes(query) ||
+          trip.routeData?.sourceLocation?.city?.toLowerCase().includes(query) ||
+          trip.routeData?.destLocation?.city?.toLowerCase().includes(query) ||
           trip.materialType?.toLowerCase().includes(query) ||
           trip._id.includes(query)
         );
@@ -285,7 +287,14 @@ const TripManagementPage = () => {
                       </div>
                       <div className="info-row">
                         <span className="label">Route:</span>
-                        <span className="value">{trip.routeId?.name || '-'}</span>
+                        <span className="value">
+                          {trip.routeData?.name || 
+                           (trip.routeData?.sourceLocation?.city && trip.routeData?.destLocation?.city 
+                            ? `${trip.routeData.sourceLocation.city} to ${trip.routeData.destLocation.city}`
+                            : '-'
+                           )
+                          }
+                        </span>
                       </div>
                       <div className="info-row">
                         <span className="label">Material:</span>
