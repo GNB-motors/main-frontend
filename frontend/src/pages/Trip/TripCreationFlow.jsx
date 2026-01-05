@@ -169,21 +169,28 @@ const TripCreationFlow = () => {
     setIsSubmitting(true);
     try {
       // 1. Prepare mileage data
-      // Start odometer: from OCR data (reading property) or extractedData
-      const startOdometerRaw = fixedDocs.odometer?.ocrData?.reading || 
-                               fixedDocs.odometer?.ocrData?.extractedData?.startOdometer || 
-                               fixedDocs.odometer?.ocrData?.extractedData?.reading || 0;
+      // End odometer: from the corrected form values in weight slips (managers can edit this)
+      // Get from the first slip that has an endOdometer value, or fallback to OCR
+      const correctedEndOdometer = weightSlips.find(slip => slip.endOdometer)?.endOdometer;
+      const endOdometerRaw = correctedEndOdometer || 
+                             fixedDocs.odometer?.ocrData?.reading || 
+                             fixedDocs.odometer?.ocrData?.extractedData?.endOdometer || 
+                             fixedDocs.odometer?.ocrData?.extractedData?.reading || 0;
       // Parse numeric value (remove "km" suffix if present)
-      const startOdometer = parseFloat(String(startOdometerRaw).replace(/[^\d.]/g, '')) || 0;
+      const endOdometer = parseFloat(String(endOdometerRaw).replace(/[^\d.]/g, '')) || 0;
       
-      // End odometer: from the last weight slip's form entry
-      const lastSlip = weightSlips[weightSlips.length - 1];
-      const endOdometer = parseFloat(lastSlip?.endOdometer) || startOdometer;
+      // Start odometer will be fetched from last fuel log by backend
+      // Pass vehicleId to backend so it can fetch the last FULL_TANK entry
+      const vehicleId = selectedVehicle?.value;
       
       const mileage = {
-        startOdometer,
         endOdometer,
-        ocrData: fixedDocs.odometer?.ocrData || null, // Include OCR data for backend
+        vehicleId, // Backend will use this to fetch startOdometer from last fuel log
+        ocrData: {
+          ...fixedDocs.odometer?.ocrData,
+          reading: endOdometer, // Save the corrected endOdometer value
+          correctedReading: correctedEndOdometer ? endOdometer : null, // Mark if it was manually corrected
+        },
       };
 
       // 2. Prepare fuel logs
@@ -191,7 +198,7 @@ const TripCreationFlow = () => {
       
       // Add full tank fuel if exists
       if (fixedDocs.fuel) {
-        // Get fuel data from OCR or form (can be in different properties)
+        // Get fuel data from OCR or form (prioritize corrected values if available)
         const fuelData = fixedDocs.fuel.ocrData || {};
         const litres = parseFloat(fuelData.volume || fuelData.litres || fuelData.extractedData?.litres) || 0;
         const rate = parseFloat(fuelData.rate || fuelData.extractedData?.rate) || 0;
@@ -203,9 +210,19 @@ const TripCreationFlow = () => {
           litres,
           rate,
           location: fuelData.location || fuelData.extractedData?.location || '',
-          ocrData: fixedDocs.fuel.ocrData || null, // Include OCR data
+          // Include corrected OCR data
+          ocrData: {
+            ...fixedDocs.fuel.ocrData,
+            // Save corrected values if any manual edits were made
+            extractedData: {
+              ...fixedDocs.fuel.ocrData?.extractedData,
+              litres: litres,
+              rate: rate,
+              volume: litres, // Some OCR might use 'volume' instead of 'litres'
+            }
+          },
           // For FULL_TANK, include the odometer reading for mileage calculation
-          odometerReading: startOdometer,
+          odometerReading: endOdometer, // Use current trip's endOdometer as fuel log odometer reading
         });
       }
 
@@ -230,14 +247,14 @@ const TripCreationFlow = () => {
 
       // 3. Prepare weight slip trips
       const weightSlipTrips = weightSlips.map((slip) => {
-        // Parse numeric values from form inputs (TripForm stores as flat properties)
-        const grossWeight = parseFloat(slip.grossWeight) || slip.weights?.grossWeight || slip.ocrData?.extractedData?.grossWeight || 0;
-        const tareWeight = parseFloat(slip.tareWeight) || slip.weights?.tareWeight || slip.ocrData?.extractedData?.tareWeight || 0;
-        const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || slip.ocrData?.extractedData?.netWeight || 0;
+        // Parse numeric values from form inputs with proper OCR fallbacks
+        const grossWeight = parseFloat(slip.grossWeight) || slip.weights?.grossWeight || slip.ocrData?.extractedData?.grossWeight || slip.ocrData?.grossWeight || 0;
+        const tareWeight = parseFloat(slip.tareWeight) || slip.weights?.tareWeight || slip.ocrData?.extractedData?.tareWeight || slip.ocrData?.tareWeight || 0;
+        const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || slip.ocrData?.extractedData?.netWeight || slip.ocrData?.netWeight || slip.ocrData?.finalWeight || 0;
         
         return {
           tempId: slip.tempId || slip.ocrData?.tempId || `temp_ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          materialType: slip.materialType || 'Sand',
+          materialType: slip.materialType || slip.ocrData?.extractedData?.materialType || 'Sand',
           weights: {
             grossWeight,
             tareWeight,
@@ -247,21 +264,55 @@ const TripCreationFlow = () => {
           tripType: slip.tripType || 'PICKUP_DROP', // Include trip type
           revenue: {
             // TripForm uses amountPerKg, backend expects ratePerKg
-            ratePerKg: parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || 0,
+            ratePerKg: parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || slip.ocrData?.extractedData?.ratePerKg || 0,
             // TripForm uses totalAmountReceived
-            actualAmountReceived: parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || 0,
+            actualAmountReceived: parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || slip.ocrData?.extractedData?.totalAmount || 0,
           },
           expenses: {
             // TripForm uses flat property names
-            materialCost: parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0,
-            toll: parseFloat(slip.toll) || slip.expenses?.toll || 0,
-            driverCost: parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0,
-            driverTripExpense: parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0,
-            royalty: parseFloat(slip.royalty) || slip.expenses?.royalty || 0,
-            otherExpenses: parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0,
+            materialCost: parseFloat(slip.materialCost) || slip.expenses?.materialCost || slip.ocrData?.extractedData?.materialCost || 0,
+            toll: parseFloat(slip.toll) || slip.expenses?.toll || slip.ocrData?.extractedData?.toll || 0,
+            driverCost: parseFloat(slip.driverCost) || slip.expenses?.driverCost || slip.ocrData?.extractedData?.driverCost || 0,
+            driverTripExpense: parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || slip.ocrData?.extractedData?.driverTripExpense || 0,
+            royalty: parseFloat(slip.royalty) || slip.expenses?.royalty || slip.ocrData?.extractedData?.royalty || 0,
+            otherExpenses: parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || slip.ocrData?.extractedData?.otherExpenses || 0,
           },
           notes: slip.notes || '',
-          ocrData: slip.ocrData || null, // Include OCR data for backend
+          // Update OCR data with corrected values
+          ocrData: slip.ocrData ? {
+            ...slip.ocrData,
+            extractedData: {
+              ...slip.ocrData.extractedData,
+              // Save corrected values back to OCR data for persistence
+              materialType: slip.materialType || slip.ocrData.extractedData?.materialType,
+              grossWeight: grossWeight,
+              tareWeight: tareWeight,
+              netWeight: netWeight,
+              ratePerKg: parseFloat(slip.amountPerKg) || slip.ocrData.extractedData?.ratePerKg,
+              totalAmount: parseFloat(slip.totalAmountReceived) || slip.ocrData.extractedData?.totalAmount,
+              materialCost: parseFloat(slip.materialCost) || slip.ocrData.extractedData?.materialCost,
+              toll: parseFloat(slip.toll) || slip.ocrData.extractedData?.toll,
+              driverCost: parseFloat(slip.driverCost) || slip.ocrData.extractedData?.driverCost,
+              driverTripExpense: parseFloat(slip.driverTripExpense) || slip.ocrData.extractedData?.driverTripExpense,
+              royalty: parseFloat(slip.royalty) || slip.ocrData.extractedData?.royalty,
+              otherExpenses: parseFloat(slip.otherExpenses) || slip.ocrData.extractedData?.otherExpenses,
+              // Track manual corrections
+              manuallyCorrected: {
+                materialType: slip.materialType !== slip.ocrData.extractedData?.materialType,
+                grossWeight: grossWeight !== slip.ocrData.extractedData?.grossWeight,
+                tareWeight: tareWeight !== slip.ocrData.extractedData?.tareWeight,
+                netWeight: netWeight !== slip.ocrData.extractedData?.netWeight,
+                ratePerKg: parseFloat(slip.amountPerKg) !== slip.ocrData.extractedData?.ratePerKg,
+                totalAmount: parseFloat(slip.totalAmountReceived) !== slip.ocrData.extractedData?.totalAmount,
+                materialCost: parseFloat(slip.materialCost) !== slip.ocrData.extractedData?.materialCost,
+                toll: parseFloat(slip.toll) !== slip.ocrData.extractedData?.toll,
+                driverCost: parseFloat(slip.driverCost) !== slip.ocrData.extractedData?.driverCost,
+                driverTripExpense: parseFloat(slip.driverTripExpense) !== slip.ocrData.extractedData?.driverTripExpense,
+                royalty: parseFloat(slip.royalty) !== slip.ocrData.extractedData?.royalty,
+                otherExpenses: parseFloat(slip.otherExpenses) !== slip.ocrData.extractedData?.otherExpenses,
+              }
+            }
+          } : null,
         };
       });
 
@@ -418,6 +469,7 @@ const TripCreationFlow = () => {
           onSelectSlip={handleSelectSlip}
           onBackToIntake={handleBackToIntake}
           onCancel={handleCancel}
+          selectedVehicle={selectedVehicle}
         />
       )}
 

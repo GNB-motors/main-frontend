@@ -26,6 +26,7 @@ const ProcessingPhase = ({
   fixedDocs: propsFixedDocs,
   currentIndex: propsCurrentIndex,
   updateWeightSlip: propsUpdateWeightSlip,
+  selectedVehicle,
 }) => {
   // Use props directly
   const [weightSlips, setWeightSlips] = useState(propsWeightSlips || []);
@@ -223,6 +224,7 @@ const ProcessingPhase = ({
               slip={currentSlip}
               fixedDocs={fixedDocs}
               onUpdate={(data) => updateWeightSlip(currentIndex, data)}
+              selectedVehicle={selectedVehicle}
             />
           </div>
 

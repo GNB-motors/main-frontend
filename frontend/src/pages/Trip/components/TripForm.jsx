@@ -1,11 +1,14 @@
 
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
+import { TripService } from '../services';
 import './TripForm.css';
 
-const TripForm = ({ slip, fixedDocs, onUpdate }) => {
+const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle }) => {
   // Track which fields have been manually edited by the user
   // Use a ref to persist across re-renders without causing re-renders itself
   const manuallyEditedFieldsRef = useRef(new Set());
+  const [startOdometer, setStartOdometer] = useState(null);
+  const [loadingStartOdometer, setLoadingStartOdometer] = useState(false);
   
   const handleChange = useCallback(
     (field, value) => {
@@ -60,6 +63,34 @@ const TripForm = ({ slip, fixedDocs, onUpdate }) => {
     }
   }, [slip?.tempId, slip?.id]); // Only depend on slip change
 
+  // Fetch start odometer from vehicle's last fuel log
+  useEffect(() => {
+    const fetchStartOdometer = async () => {
+      console.log('[TripForm] selectedVehicle:', selectedVehicle);
+      
+      if (!selectedVehicle?.id) {
+        console.log('[TripForm] No selectedVehicle.id, setting startOdometer to null');
+        setStartOdometer(null);
+        return;
+      }
+
+      console.log('[TripForm] Fetching start odometer for vehicle:', selectedVehicle.id);
+      setLoadingStartOdometer(true);
+      try {
+        const response = await TripService.getVehicleLastFuelLog(selectedVehicle.id);
+        console.log('[TripForm] API response:', response);
+        setStartOdometer(response.data.startOdometer);
+      } catch (error) {
+        console.error('[TripForm] Failed to fetch start odometer:', error);
+        setStartOdometer(0);
+      } finally {
+        setLoadingStartOdometer(false);
+      }
+    };
+
+    fetchStartOdometer();
+  }, [selectedVehicle?.id]);
+
   return (
     <form className="trip-form">
       {/* Odometer Readings */}
@@ -74,11 +105,20 @@ const TripForm = ({ slip, fixedDocs, onUpdate }) => {
           className="form-input"
           min="0"
         />
-        {fixedDocs?.odometer?.ocrData?.reading && (
-          <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-            Start Odometer: {fixedDocs.odometer.ocrData.reading}
-          </small>
-        )}
+        <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+          <div>
+            <strong>Start Odometer:</strong> {
+              loadingStartOdometer ? 'Loading...' : 
+              startOdometer !== null ? `${startOdometer.toLocaleString()} km` : 
+              'No previous fuel log'
+            }
+          </div>
+          {fixedDocs?.odometer?.ocrData?.reading && (
+            <div>
+              <strong>OCR Reading:</strong> {fixedDocs.odometer.ocrData.reading} km (Current Trip End)
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Fuel Allocation */}

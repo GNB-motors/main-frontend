@@ -355,7 +355,30 @@ class TripService {
       throw error.response?.data || error;
     }
   }
-}
+  /**
+   * Get vehicle's last fuel log for start odometer calculation
+   * @param {string} vehicleId - Vehicle ID
+   * @returns {Promise} API response with last fuel log and start odometer
+   */
+  static async getVehicleLastFuelLog(vehicleId) {
+    try {
+      const response = await apiClient.get(`/api/trips/vehicle/${vehicleId}/last-fuel-log`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch vehicle last fuel log:', error);
+      // Return default data if no fuel log found
+      if (error.response?.status === 404) {
+        return {
+          status: 'success',
+          data: {
+            lastFuelLog: null,
+            startOdometer: 0,
+          },
+        };
+      }
+      throw error.response?.data || error;
+    }
+  }}
 
 export default TripService;
 
