@@ -17,33 +17,33 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
     if (!isOpen || !vehicle) return null;
 
     return (
-        <div className="profile-modal-overlay" onClick={onClose}>
-            <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="profile-modal-header">
+        <div className="vehicle-delete-modal-overlay" onClick={onClose}>
+            <div className="vehicle-delete-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="vehicle-delete-modal-header">
                     <h4>Delete Vehicle</h4>
-                    <button onClick={onClose} className="profile-modal-close-btn">&times;</button>
+                    <button onClick={onClose} className="vehicle-delete-modal-close-btn">&times;</button>
                 </div>
                 
-                <div className="profile-delete-content">
-                    <div className="profile-delete-warning">
-                        <div className="profile-warning-icon">⚠️</div>
+                <div className="vehicle-delete-content">
+                    <div className="vehicle-delete-warning">
+                        <div className="vehicle-delete-warning-icon">⚠️</div>
                         <p>This action cannot be undone. The vehicle will be permanently removed from the system.</p>
                     </div>
                     
-                    <div className="profile-delete-vehicle-info">
-                        <div className="profile-vehicle-info">
-                            <div className="profile-vehicle-details">
-                                <span className="profile-vehicle-registration">{vehicle.registration_no}</span>
-                                <span className="profile-vehicle-type">{vehicle.vehicle_type || 'Unknown Type'}</span>
+                    <div className="vehicle-delete-vehicle-info">
+                        <div className="vehicle-delete-info">
+                            <div className="vehicle-delete-details">
+                                <span className="vehicle-delete-registration">{vehicle.registration_no}</span>
+                                <span className="vehicle-delete-type">{vehicle.vehicle_type || 'Unknown Type'}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="profile-modal-actions">
+                <div className="vehicle-delete-modal-actions">
                     <button 
                         type="button" 
-                        className="profile-btn profile-btn-secondary" 
+                        className="vehicle-delete-btn vehicle-delete-btn-secondary" 
                         onClick={onClose} 
                         disabled={isDeleting}
                     >
@@ -51,7 +51,7 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
                     </button>
                     <button 
                         type="button" 
-                        className="profile-btn profile-btn-danger" 
+                        className="vehicle-delete-btn vehicle-delete-btn-danger" 
                         onClick={() => onConfirm(vehicle.registration_no)} 
                         disabled={isDeleting}
                     >
@@ -174,6 +174,114 @@ const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting })
     );
 };
 
+// --- Edit Vehicle Modal Component ---
+const EditVehicleModal = ({ isOpen, onClose, onSubmit, vehicle, isLoading: isSubmitting }) => {
+    const [registrationNo, setRegistrationNo] = useState('');
+    const [model, setModel] = useState('');
+    const [chassisNumber, setChassisNumber] = useState('');
+    const [error, setError] = useState(null);
+
+    // Initialize form with vehicle data when modal opens
+    useEffect(() => {
+        if (isOpen && vehicle) {
+            setRegistrationNo(vehicle.registration_no || '');
+            setModel(vehicle.model || '');
+            setChassisNumber(vehicle.chassis_number || '');
+            setError(null);
+        }
+    }, [isOpen, vehicle]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(null);
+        
+        if (!registrationNo.trim() || !chassisNumber.trim() || !model.trim()) {
+            setError("All fields are required: Registration Number, Chassis Number, and Model.");
+            return;
+        }
+        
+        try {
+            await onSubmit({
+                registration_no: registrationNo.trim(),
+                model: model.trim(),
+                chassis_number: chassisNumber.trim(),
+            });
+            // If successful, parent will handle closing and success toast
+        } catch (err) {
+            console.error('Error in handleSubmit:', err);
+            const errorMessage = err?.detail || 'Failed to update vehicle. Please try again.';
+            setError(errorMessage);
+            toast.error(errorMessage);
+        }
+    };
+
+    if (!isOpen || !vehicle) return null;
+
+    return (
+        <div className="vehicle-modal-overlay" onClick={onClose}>
+            <div className="vehicle-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="vehicle-modal-header">
+                    <h4>Edit Vehicle</h4>
+                    <button onClick={onClose} className="vehicle-modal-close-btn">&times;</button>
+                </div>
+                <form onSubmit={handleSubmit} className="vehicle-modal-form">
+                    <div className="vehicle-form-row">
+                        <div className="vehicle-form-group">
+                            <label htmlFor="editVehicleRegistrationNo">Registration Number *</label>
+                            <input
+                                id="editVehicleRegistrationNo"
+                                type="text"
+                                value={registrationNo}
+                                onChange={(e) => setRegistrationNo(e.target.value)}
+                                placeholder="e.g., WB11F7262"
+                                required
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="vehicle-form-group">
+                            <label htmlFor="editChassisNumber">Chassis Number *</label>
+                            <input
+                                id="editChassisNumber"
+                                type="text"
+                                value={chassisNumber}
+                                onChange={(e) => setChassisNumber(e.target.value)}
+                                placeholder="e.g., MAT828113S2C05629"
+                                required
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+                    <div className="vehicle-form-row">
+                        <div className="vehicle-form-group" style={{ gridColumn: '1 / -1' }}>
+                            <label htmlFor="editModel">Model *</label>
+                            <input
+                                id="editModel"
+                                type="text"
+                                value={model}
+                                onChange={(e) => setModel(e.target.value)}
+                                placeholder="e.g., 4830TC, LPT 4830"
+                                required
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+
+                    {error && <div className="vehicle-error-message">{error}</div>}
+
+                    <div className="vehicle-modal-actions">
+                        <button type="button" className="vehicle-btn vehicle-btn-secondary" onClick={onClose} disabled={isSubmitting}>
+                            Cancel
+                        </button>
+                        <button type="submit" className="vehicle-btn vehicle-btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? 'Updating...' : 'Update Vehicle'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 // --- Vehicles Page Component ---
 const VehiclesPage = () => {
     const navigate = useNavigate();
@@ -186,7 +294,7 @@ const VehiclesPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [openMenuId, setOpenMenuId] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [showEditForm, setShowEditForm] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingVehicle, setDeletingVehicle] = useState(null);
@@ -194,6 +302,8 @@ const VehiclesPage = () => {
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalVehicles, setTotalVehicles] = useState(0);
 
     // Update theme colors when component mounts
     useEffect(() => {
@@ -241,9 +351,9 @@ const VehiclesPage = () => {
             setVehicleError(null);
             const token = localStorage.getItem('authToken');
             try {
-                const data = await VehicleService.getAllVehicles(businessRefId, token);
+                const result = await VehicleService.getAllVehicles(businessRefId, token, currentPage, itemsPerPage);
                 // Normalize API vehicle shape (camelCase) to UI expected snake_case
-                const normalized = (data || []).map(v => ({
+                const normalized = (result.data || []).map(v => ({
                     id: v._id || v.id || v._id, // keep id if present
                     registration_no: v.registrationNumber || v.registration_no || v.registrationNumber,
                     vehicle_type: v.vehicleType || v.vehicle_type || '',
@@ -257,7 +367,8 @@ const VehiclesPage = () => {
                     classification: v.classification || null,
                 }));
                 setVehicles(normalized);
-                console.log("Vehicles fetched:", normalized);
+                setTotalPages(result.meta.totalPages);
+                setTotalVehicles(result.meta.total);
             } catch (apiError) {
                 console.error('Failed to fetch vehicles:', apiError);
                 setVehicleError(apiError?.detail || 'Failed to load vehicles.');
@@ -266,7 +377,7 @@ const VehiclesPage = () => {
             }
         };
         fetchVehicles();
-    }, [businessRefId]);
+    }, [businessRefId, currentPage, itemsPerPage]);
 
     // --- Add Vehicle ---
     const handleAddVehicle = async (vehicleData) => {
@@ -340,7 +451,7 @@ const VehiclesPage = () => {
         console.log("Attempting to edit vehicle:", vehicleToEdit);
         setOpenMenuId(null);
         setEditingVehicle(vehicleToEdit);
-        setShowEditForm(true);
+        setIsEditModalOpen(true);
         setFormError(null);
     };
 
@@ -352,21 +463,11 @@ const VehiclesPage = () => {
     };
 
     // --- Update Vehicle ---
-    const handleUpdateVehicle = async (e) => {
-        e.preventDefault();
+    const handleUpdateVehicle = async (vehicleData) => {
         setFormError(null);
         setIsSubmitting(true);
         
-        const regNo = e.target.regNo.value.trim();
-        const chassisNumber = e.target.chassisNumber.value.trim();
-        const modelValue = e.target.model.value.trim();
         const token = localStorage.getItem('authToken');
-        
-        if (!regNo || !chassisNumber || !modelValue) {
-            setFormError("All fields are required: Registration Number, Chassis Number, and Model.");
-            setIsSubmitting(false);
-            return;
-        }
         
         if (!token) {
             toast.warn('No auth token found. Request may fail.');
@@ -377,28 +478,22 @@ const VehiclesPage = () => {
             return;
         }
         
-        const updatedVehicleData = { 
-            registration_no: regNo, 
-            chassis_number: chassisNumber,
-            model: modelValue,
-        };
-        
         try {
             const updatedVehicle = await VehicleService.updateVehicle(
                 businessRefId,
                 // pass the DB id (ObjectId) as required by PATCH /vehicles/{id}
                 editingVehicle.id || editingVehicle._id || editingVehicle.registration_no,
-                updatedVehicleData,
+                vehicleData,
                 token
             );
             
             // Normalize the updated vehicle response
             const normalizedUpdated = {
                 id: updatedVehicle._id || updatedVehicle.id || editingVehicle.id,
-                registration_no: updatedVehicle.registrationNumber || updatedVehicle.registration_no || regNo,
+                registration_no: updatedVehicle.registrationNumber || updatedVehicle.registration_no || vehicleData.registration_no,
                 vehicle_type: updatedVehicle.vehicleType || updatedVehicle.vehicle_type || '',
-                chassis_number: updatedVehicle.chassisNumber || updatedVehicle.chassis_number || chassisNumber,
-                model: updatedVehicle.model || modelValue,
+                chassis_number: updatedVehicle.chassisNumber || updatedVehicle.chassis_number || vehicleData.chassis_number,
+                model: updatedVehicle.model || vehicleData.model,
                 status: updatedVehicle.status || editingVehicle.status || '',
                 inventory: updatedVehicle.inventory || [],
                 manufacturer: updatedVehicle.manufacturer || null,
@@ -412,9 +507,9 @@ const VehiclesPage = () => {
                 )
             );
             
-            setShowEditForm(false);
+            setIsEditModalOpen(false);
             setEditingVehicle(null);
-            toast.success(`Vehicle "${regNo}" updated successfully!`);
+            toast.success(`Vehicle "${vehicleData.registration_no}" updated successfully!`);
             console.log("Vehicle updated successfully:", normalizedUpdated);
         } catch (apiError) {
             console.error("Failed to update vehicle:", apiError);
@@ -426,24 +521,18 @@ const VehiclesPage = () => {
         }
     };
 
-    // --- Cancel Edit ---
-    const handleCancelEdit = () => {
-        setShowEditForm(false);
-        setEditingVehicle(null);
-        setFormError(null);
-    };
-
     // --- Filter vehicles by registration number ---
+    // Note: For now, search is client-side. With backend pagination,
+    // ideally search should be done on the backend with an API parameter.
     const filteredVehicles = vehicles.filter(vehicle => {
         if (!searchVehicleNo.trim()) return true;
         return vehicle.registration_no.toLowerCase().includes(searchVehicleNo.toLowerCase());
     });
 
-    // --- Pagination logic ---
-    const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
+    // --- Display vehicles (already paginated from backend) ---
+    // When search is empty, show the vehicles from API (already paginated)
+    // When search has value, filter locally (but this may not show all results across pages)
+    const displayVehicles = searchVehicleNo.trim() ? filteredVehicles : vehicles;
 
     // Generate page numbers for pagination (similar to DriversPage)
     const generatePageNumbers = () => {
@@ -553,7 +642,7 @@ const VehiclesPage = () => {
 
                         {!isLoadingVehicles && !vehicleError && (
                             <div className="vehicles-table-container">
-                                {filteredVehicles.length === 0 ? (
+                                {displayVehicles.length === 0 ? (
                                     <p style={{
                                         textAlign: 'center',
                                         padding: '40px 20px',
@@ -577,7 +666,7 @@ const VehiclesPage = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {paginatedVehicles.map(vehicle => (
+                                                {displayVehicles.map(vehicle => (
                                                     <tr key={vehicle.id}>
                                                         <td style={{ fontWeight: 600 }}>{vehicle.registration_no}</td>
                                                         <td>{vehicle.model || 'N/A'}</td>
@@ -600,45 +689,48 @@ const VehiclesPage = () => {
                                                             )}
                                                         </td>
                                                         <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{vehicle.chassis_number || 'N/A'}</td>
-                                                        <td style={{ textAlign: 'center', position: 'relative' }}>
-                                                            <button
-                                                                className="vehicle-actions-menu-btn"
-                                                                onClick={() => setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id)}
-                                                                disabled={isSubmitting}
-                                                                title="Actions"
-                                                            >
-                                                                <MoreVertical size={18} />
-                                                            </button>
-                                                            {openMenuId === vehicle.id && (
-                                                                <div className="vehicle-actions-menu" style={{ pointerEvents: 'auto' }}>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
-                                                                            console.log('Edit clicked for vehicle:', vehicle);
-                                                                            handleEditVehicle(vehicle);
-                                                                        }} 
-                                                                        disabled={isSubmitting}
-                                                                        style={{ pointerEvents: 'auto' }}
-                                                                    >
-                                                                        <Edit size={16} /> Edit
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
-                                                                            console.log('Delete clicked for vehicle:', vehicle);
-                                                                            handleOpenDeleteModal(vehicle);
-                                                                        }} 
-                                                                        disabled={isSubmitting}
-                                                                        style={{ pointerEvents: 'auto' }}
-                                                                    >
-                                                                        <Trash2 size={16} /> Remove
-                                                                    </button>
-                                                                </div>
-                                                            )}
+                                                        <td style={{ textAlign: 'center' }}>
+                                                            <div className="vehicle-action-menu-container" style={{ position: 'relative' }}>
+                                                                <button
+                                                                    className="vehicle-actions-menu-btn"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
+                                                                    }}
+                                                                    disabled={isSubmitting}
+                                                                    title="Actions"
+                                                                >
+                                                                    <MoreVertical size={18} />
+                                                                </button>
+                                                                {openMenuId === vehicle.id && (
+                                                                    <div className="vehicle-actions-menu">
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                console.log('Edit clicked for vehicle:', vehicle);
+                                                                                handleEditVehicle(vehicle);
+                                                                            }} 
+                                                                            disabled={isSubmitting}
+                                                                        >
+                                                                            <Edit size={16} /> Edit
+                                                                        </button>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                console.log('Delete clicked for vehicle:', vehicle);
+                                                                                handleOpenDeleteModal(vehicle);
+                                                                            }} 
+                                                                            disabled={isSubmitting}
+                                                                        >
+                                                                            <Trash2 size={16} /> Remove
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -652,124 +744,47 @@ const VehiclesPage = () => {
                 </div>
 
                 {/* Footer Section with Pagination - Always visible */}
-                {!isLoadingVehicles && !vehicleError && filteredVehicles.length > 0 && (
-                    <div className="vehicles-pagination-controls">
-                        {/* Left Arrow */}
-                        <button 
-                            className="vehicles-pagination-btn" 
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1 || totalPages <= 1}
-                        >
-                            <span>←</span>
-                        </button>
+                <div className="vehicles-pagination-controls">
+                    {/* Left Arrow */}
+                    <button 
+                        className="vehicles-pagination-btn" 
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || totalPages <= 1}
+                    >
+                        <span>←</span>
+                    </button>
 
-                        {/* Page Numbers */}
-                        {generatePageNumbers().map((page, index) => {
-                            if (page === '...') {
-                                return (
-                                    <div key={`overflow-${index}`} className="vehicles-page-overflow">
-                                        <span>...</span>
-                                    </div>
-                                );
-                            }
+                    {/* Page Numbers */}
+                    {generatePageNumbers().map((page, index) => {
+                        if (page === '...') {
                             return (
-                                <button
-                                    key={page}
-                                    className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
-                                    onClick={() => handlePageChange(page)}
-                                    disabled={totalPages <= 1}
-                                >
-                                    <span>{page}</span>
-                                </button>
+                                <div key={`overflow-${index}`} className="vehicles-page-overflow">
+                                    <span>...</span>
+                                </div>
                             );
-                        })}
-
-                        {/* Right Arrow */}
-                        <button 
-                            className="vehicles-pagination-btn" 
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages || totalPages <= 1}
-                        >
-                            <span>→</span>
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {/* --- Edit Vehicle Modal --- */}
-            {showEditForm && editingVehicle && (
-                <div className="modal-overlay" onClick={handleCancelEdit}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Edit Vehicle: {editingVehicle.registration_no}</h3>
-                            <button 
-                                className="modal-close-btn" 
-                                onClick={handleCancelEdit}
-                                disabled={isSubmitting}
+                        }
+                        return (
+                            <button
+                                key={page}
+                                className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
+                                onClick={() => handlePageChange(page)}
+                                disabled={totalPages <= 1}
                             >
-                                ×
+                                <span>{page}</span>
                             </button>
-                        </div>
-                        <form className="modal-form" onSubmit={handleUpdateVehicle}>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Vehicle No *</label>
-                                    <input 
-                                        name="regNo" 
-                                        type="text" 
-                                        placeholder="e.g., WB11F7262" 
-                                        defaultValue={editingVehicle.registration_no}
-                                        required 
-                                        disabled={isSubmitting} 
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Chassis No *</label>
-                                    <input 
-                                        name="chassisNumber" 
-                                        type="text" 
-                                        placeholder="e.g., MAT828113S2C05629" 
-                                        defaultValue={editingVehicle.chassis_number || ''}
-                                        required 
-                                        disabled={isSubmitting} 
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                    <label>Model *</label>
-                                    <input
-                                        name="model"
-                                        type="text"
-                                        placeholder="e.g., 4830TC, LPT 4830"
-                                        defaultValue={editingVehicle.model || ''}
-                                        required
-                                        disabled={isSubmitting}
-                                    />
-                                </div>
-                            </div>
-                            {formError && <p className="error-message">{formError}</p>}
-                            <div className="modal-actions">
-                                <button 
-                                    type="button" 
-                                    className="profile-btn profile-btn-secondary" 
-                                    onClick={handleCancelEdit} 
-                                    disabled={isSubmitting}
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    className="profile-btn profile-btn-main" 
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? 'Updating...' : 'Update Vehicle'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                        );
+                    })}
+
+                    {/* Right Arrow */}
+                    <button 
+                        className="vehicles-pagination-btn" 
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || totalPages <= 1}
+                    >
+                        <span>→</span>
+                    </button>
                 </div>
-            )}
+            </div>
 
             {/* Add Vehicle Modal */}
             <AddVehicleModal
@@ -778,6 +793,19 @@ const VehiclesPage = () => {
                 onSubmit={handleAddVehicle}
                 isLoading={isSubmitting}
             />
+
+            {/* Edit Vehicle Modal */}
+            <EditVehicleModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setEditingVehicle(null);
+                }}
+                onSubmit={handleUpdateVehicle}
+                vehicle={editingVehicle}
+                isLoading={isSubmitting}
+            />
+
             {/* Delete Vehicle Modal */}
             <DeleteVehicleModal
                 isOpen={isDeleteModalOpen}

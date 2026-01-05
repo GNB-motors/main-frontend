@@ -3,22 +3,28 @@ import axios from 'axios';
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-const getAllVehicles = async (businessRefId, token) => {
+const getAllVehicles = async (businessRefId, token, page = 1, limit = 10) => {
   try {
-    // New API: GET /vehicles with optional orgId query param
-    const url = `${API_BASE_URL}/api/vehicles${businessRefId ? `?orgId=${businessRefId}` : ''}`;
+    // New API: GET /vehicles with optional orgId query param and pagination
+    let url = `${API_BASE_URL}/api/vehicles?page=${page}&limit=${limit}`;
+    if (businessRefId) {
+      url += `&orgId=${businessRefId}`;
+    }
     const response = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    // Normalize for older and newer response shapes
-    if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
-      return response.data.data;
+    // Return both data and meta for pagination
+    if (response.data && response.data.status === 'success') {
+      return {
+        data: Array.isArray(response.data.data) ? response.data.data : [],
+        meta: response.data.meta || { total: 0, page: 1, limit: 10, totalPages: 1 }
+      };
     }
 
-    return response.data;
+    return { data: response.data, meta: { total: 0, page: 1, limit: 10, totalPages: 1 } };
   } catch (error) {
     throw error.response?.data || { detail: error.message || 'Could not fetch vehicles.' };
   }
