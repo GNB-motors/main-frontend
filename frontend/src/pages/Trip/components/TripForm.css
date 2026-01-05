@@ -10,6 +10,38 @@
   padding: 0 20px 20px 20px;
 }
 
+/* Journey information display */
+.journey-info {
+  margin-bottom: 4px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.journey-info h4 {
+  margin: 0 0 12px 0;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.journey-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.journey-item {
+  font-size: 14px;
+  color: #475569;
+}
+
+.journey-item strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;

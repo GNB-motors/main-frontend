@@ -48,6 +48,42 @@
   scroll-behavior: smooth;
 }
 
+/* Journey Summary Section */
+.journey-summary {
+  margin-bottom: 24px;
+}
+
+.journey-data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.journey-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
 /* Recap Section - Compact */
 .verification-recap {
   background: white;

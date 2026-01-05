@@ -27,6 +27,7 @@ import IntakePhase from './phases/IntakePhase';
 import { TripService, OCRService } from './services';
 import ProcessingPhase from './phases/ProcessingPhase';
 import VerificationPhase from './phases/VerificationPhase';
+import JourneySetupModal from '../../components/JourneySetupModal/JourneySetupModal';
 
 const TripCreationFlow = () => {
   const navigate = useNavigate();
@@ -70,6 +71,10 @@ const TripCreationFlow = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
 
+  // Journey setup modal state
+  const [showJourneyModal, setShowJourneyModal] = useState(false);
+  const [journeyData, setJourneyData] = useState(null);
+
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isIntakeLoading, setIsIntakeLoading] = useState(false);
@@ -100,9 +105,11 @@ const TripCreationFlow = () => {
       return;
     }
 
-    // No API call here - just move to next phase
-    // OCR preview data is already stored in state
-    setActiveStep(1);
+    // Show journey setup modal instead of directly moving to processing
+    console.log('🚀 Starting processing - showing journey modal');
+    console.log('📊 Modal state before:', { showJourneyModal, selectedVehicle, selectedDriver });
+    console.log('📄 Fixed docs:', fixedDocs);
+    setShowJourneyModal(true);
     setCurrentIndex(0);
     toast.success('Starting data entry phase...');
   }, [fixedDocs, weightSlips, selectedVehicle, selectedDriver]);
@@ -168,61 +175,46 @@ const TripCreationFlow = () => {
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      // 1. Prepare mileage data
-      // End odometer: from the corrected form values in weight slips (managers can edit this)
-      // Get from the first slip that has an endOdometer value, or fallback to OCR
-      const correctedEndOdometer = weightSlips.find(slip => slip.endOdometer)?.endOdometer;
-      const endOdometerRaw = correctedEndOdometer || 
-                             fixedDocs.odometer?.ocrData?.reading || 
-                             fixedDocs.odometer?.ocrData?.extractedData?.endOdometer || 
-                             fixedDocs.odometer?.ocrData?.extractedData?.reading || 0;
-      // Parse numeric value (remove "km" suffix if present)
-      const endOdometer = parseFloat(String(endOdometerRaw).replace(/[^\d.]/g, '')) || 0;
-      
-      // Start odometer will be fetched from last fuel log by backend
-      // Pass vehicleId to backend so it can fetch the last FULL_TANK entry
-      const vehicleId = selectedVehicle?.value;
-      
+      // Debug: Log the journey data structure
+      console.log('🎯 Journey data structure:', JSON.stringify(journeyData, null, 2));
+      // 1. Prepare mileage data from journey setup modal
       const mileage = {
-        endOdometer,
-        vehicleId, // Backend will use this to fetch startOdometer from last fuel log
+        startOdometer: journeyData?.mileageData?.startOdometer || 0,
+        endOdometer: journeyData?.mileageData?.endOdometer || 0,
+        totalDistanceKm: journeyData?.mileageData?.totalDistanceKm || 0,
+        vehicleId: selectedVehicle?.id, // Pass vehicleId for validation
         ocrData: {
           ...fixedDocs.odometer?.ocrData,
-          reading: endOdometer, // Save the corrected endOdometer value
-          correctedReading: correctedEndOdometer ? endOdometer : null, // Mark if it was manually corrected
+          reading: journeyData?.mileageData?.endOdometer || 0, // Save the journey end odometer
+          correctedReading: journeyData?.mileageData?.endOdometer || 0, // Mark as journey-level data
         },
       };
 
-      // 2. Prepare fuel logs
+      // 2. Prepare fuel logs from journey setup modal
       const fuelLogs = [];
       
-      // Add full tank fuel if exists
-      if (fixedDocs.fuel) {
-        // Get fuel data from OCR or form (prioritize corrected values if available)
-        const fuelData = fixedDocs.fuel.ocrData || {};
-        const litres = parseFloat(fuelData.volume || fuelData.litres || fuelData.extractedData?.litres) || 0;
-        const rate = parseFloat(fuelData.rate || fuelData.extractedData?.rate) || 0;
-        
+      if (journeyData?.fuelData?.litres && journeyData?.fuelData?.rate) {
+        // Use the fuel data from journey setup modal
         fuelLogs.push({
-          tempId: fuelData.tempId || `temp_fuel_${Date.now()}`,
+          tempId: fixedDocs.fuel?.ocrData?.tempId || `temp_fuel_journey_${Date.now()}`,
           fuelType: 'DIESEL',
           fillingType: 'FULL_TANK',
-          litres,
-          rate,
-          location: fuelData.location || fuelData.extractedData?.location || '',
-          // Include corrected OCR data
+          litres: journeyData.fuelData.litres,
+          rate: journeyData.fuelData.rate,
+          totalCost: journeyData.fuelData.litres * journeyData.fuelData.rate,
+          location: fixedDocs.fuel?.ocrData?.extractedData?.location || '',
+          // Include original OCR data for reference
           ocrData: {
-            ...fixedDocs.fuel.ocrData,
-            // Save corrected values if any manual edits were made
-            extractedData: {
-              ...fixedDocs.fuel.ocrData?.extractedData,
-              litres: litres,
-              rate: rate,
-              volume: litres, // Some OCR might use 'volume' instead of 'litres'
+            ...fixedDocs.fuel?.ocrData,
+            // Mark as journey-level corrected data
+            correctedData: {
+              litres: journeyData.fuelData.litres,
+              rate: journeyData.fuelData.rate,
+              totalCost: journeyData.fuelData.litres * journeyData.fuelData.rate,
             }
           },
-          // For FULL_TANK, include the odometer reading for mileage calculation
-          odometerReading: endOdometer, // Use current trip's endOdometer as fuel log odometer reading
+          // For FULL_TANK, include the end odometer reading for mileage calculation
+          odometerReading: journeyData.mileageData.endOdometer,
         });
       }
 
@@ -316,8 +308,8 @@ const TripCreationFlow = () => {
         };
       });
 
-      // 4. Prepare journey data
-      const journeyData = {
+      // 4. Prepare submission data
+      const submissionData = {
         vehicleId: selectedVehicle.id,
         driverId: selectedDriver.id,
         mileage,
@@ -326,7 +318,7 @@ const TripCreationFlow = () => {
       };
 
       // Debug: Log the data being submitted
-      console.log('📤 Submitting Journey Data:', JSON.stringify(journeyData, null, 2));
+      console.log('📤 Submitting Journey Data:', JSON.stringify(submissionData, null, 2));
       console.log('📁 Weight Slips State:', weightSlips);
       console.log('📁 Fixed Docs State:', fixedDocs);
 
@@ -412,7 +404,7 @@ const TripCreationFlow = () => {
       console.log('📁 Total files to upload:', Object.keys(files).length, Object.keys(files));
 
       // 6. Submit complete journey
-      const response = await TripService.submitCompleteJourney(journeyData, files);
+      const response = await TripService.submitCompleteJourney(submissionData, files);
 
       toast.success('Journey submitted successfully!');
       
@@ -429,13 +421,43 @@ const TripCreationFlow = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [fixedDocs, weightSlips, selectedVehicle, selectedDriver, navigate]);
+  }, [fixedDocs, weightSlips, selectedVehicle, selectedDriver, journeyData, navigate]);
+
+  /**
+   * Handle journey data from modal
+   */
+  const handleJourneySubmit = useCallback((data) => {
+    setJourneyData(data);
+    setShowJourneyModal(false);
+    // Move to processing phase
+    setActiveStep(1);
+  }, []);
+
+  /**
+   * Handle journey modal cancel
+   */
+  const handleJourneyCancel = useCallback(() => {
+    setShowJourneyModal(false);
+  }, []);
 
   /**
    * Handle cancel
    */
   const handleCancel = useCallback(() => {
     if (window.confirm('Are you sure? All unsaved data will be lost.')) {
+      // Reset all state before navigating
+      setActiveStep(0);
+      setFixedDocs({ 
+        odometer: null, 
+        fuel: null, 
+        partialFuel: [],
+        weightSlips: [] 
+      });
+      setWeightSlips([]);
+      setSelectedVehicle(null);
+      setSelectedDriver(null);
+      setShowJourneyModal(false);
+      setJourneyData(null);
       navigate('/trip/management');
     }
   }, [navigate]);
@@ -470,6 +492,7 @@ const TripCreationFlow = () => {
           onBackToIntake={handleBackToIntake}
           onCancel={handleCancel}
           selectedVehicle={selectedVehicle}
+          journeyData={journeyData}
         />
       )}
 
@@ -481,6 +504,20 @@ const TripCreationFlow = () => {
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
           onCancel={handleCancel}
+          journeyData={journeyData}
+        />
+      )}
+
+      {showJourneyModal && (
+        <JourneySetupModal
+          isOpen={showJourneyModal}
+          selectedVehicle={selectedVehicle}
+          selectedDriver={selectedDriver}
+          odometerOcrData={fixedDocs.odometer?.ocrData}
+          fuelSlipData={fixedDocs.fuel?.ocrData}
+          partialFuelData={fixedDocs.partialFuel?.map(pf => pf.ocrData)}
+          onSave={handleJourneySubmit}
+          onCancel={handleJourneyCancel}
         />
       )}
     </div>

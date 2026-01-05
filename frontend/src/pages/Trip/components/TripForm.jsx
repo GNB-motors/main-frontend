@@ -3,12 +3,10 @@ import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { TripService } from '../services';
 import './TripForm.css';
 
-const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle }) => {
+const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData }) => {
   // Track which fields have been manually edited by the user
   // Use a ref to persist across re-renders without causing re-renders itself
   const manuallyEditedFieldsRef = useRef(new Set());
-  const [startOdometer, setStartOdometer] = useState(null);
-  const [loadingStartOdometer, setLoadingStartOdometer] = useState(false);
   
   const handleChange = useCallback(
     (field, value) => {
@@ -21,20 +19,6 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle }) => {
 
   // Track the current slip ID to detect when we switch to a different slip
   const prevSlipIdRef = useRef(slip?.tempId || slip?.id);
-
-  // Autofill endOdometer from fixedDocs odometer reading if available
-  // Only run once when slip changes and field hasn't been manually edited
-  useEffect(() => {
-    const odometerReading = fixedDocs?.odometer?.ocrData?.reading;
-    // Only autofill if: 1) field is empty, 2) not manually edited, 3) OCR data exists
-    if (odometerReading && !slip.endOdometer && !manuallyEditedFieldsRef.current.has('endOdometer')) {
-      // Extract numeric value from reading (e.g., "9195.7 km" -> 9195.7)
-      const numericValue = parseFloat(odometerReading.toString().replace(/[^\d.]/g, ''));
-      if (!isNaN(numericValue)) {
-        onUpdate({ endOdometer: numericValue });
-      }
-    }
-  }, [slip?.tempId, slip?.id]); // Only depend on slip change, not field value
 
   // Autofill weight fields from OCR data if available and not already set
   // Only run once when slip changes
@@ -63,63 +47,23 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle }) => {
     }
   }, [slip?.tempId, slip?.id]); // Only depend on slip change
 
-  // Fetch start odometer from vehicle's last fuel log
+  // Prevent scroll wheel from changing number input values
   useEffect(() => {
-    const fetchStartOdometer = async () => {
-      console.log('[TripForm] selectedVehicle:', selectedVehicle);
-      
-      if (!selectedVehicle?.id) {
-        console.log('[TripForm] No selectedVehicle.id, setting startOdometer to null');
-        setStartOdometer(null);
-        return;
-      }
-
-      console.log('[TripForm] Fetching start odometer for vehicle:', selectedVehicle.id);
-      setLoadingStartOdometer(true);
-      try {
-        const response = await TripService.getVehicleLastFuelLog(selectedVehicle.id);
-        console.log('[TripForm] API response:', response);
-        setStartOdometer(response.data.startOdometer);
-      } catch (error) {
-        console.error('[TripForm] Failed to fetch start odometer:', error);
-        setStartOdometer(0);
-      } finally {
-        setLoadingStartOdometer(false);
+    const preventWheelChange = (e) => {
+      if (e.target.type === 'number' && document.activeElement === e.target) {
+        e.preventDefault();
       }
     };
 
-    fetchStartOdometer();
-  }, [selectedVehicle?.id]);
+    document.addEventListener('wheel', preventWheelChange, { passive: false });
+    
+    return () => {
+      document.removeEventListener('wheel', preventWheelChange);
+    };
+  }, []);
 
   return (
     <form className="trip-form">
-      {/* Odometer Readings */}
-      <div className="form-group">
-        <label htmlFor="endOdometer">End Odometer (km)</label>
-        <input
-          id="endOdometer"
-          type="number"
-          placeholder="0"
-          value={slip.endOdometer || ''}
-          onChange={(e) => handleChange('endOdometer', e.target.value)}
-          className="form-input"
-          min="0"
-        />
-        <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-          <div>
-            <strong>Start Odometer:</strong> {
-              loadingStartOdometer ? 'Loading...' : 
-              startOdometer !== null ? `${startOdometer.toLocaleString()} km` : 
-              'No previous fuel log'
-            }
-          </div>
-          {fixedDocs?.odometer?.ocrData?.reading && (
-            <div>
-              <strong>OCR Reading:</strong> {fixedDocs.odometer.ocrData.reading} km (Current Trip End)
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Fuel Allocation */}
       <div className="form-group">

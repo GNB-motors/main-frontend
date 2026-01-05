@@ -21,7 +21,8 @@ const VerificationPhase = ({
   isSubmitting,
   onCancel,
   fixedDocs: propsFixedDocs = {},
-  weightSlips: propsWeightSlips = []
+  weightSlips: propsWeightSlips = [],
+  journeyData
 }) => {
   // Use props directly from parent (TripCreationFlow)
   const [weightSlips] = useState(propsWeightSlips);
@@ -153,6 +154,41 @@ const VerificationPhase = ({
 
       {/* Main Content - Scrollable */}
       <div className="verification-content">
+        {/* Journey Data Section */}
+        {journeyData && (
+          <div className="verification-section journey-summary">
+            <div className="section-header">
+              <h3>Journey Summary</h3>
+            </div>
+            <div className="journey-data-grid">
+              <div className="journey-metric">
+                <span className="metric-label">Start Odometer</span>
+                <span className="metric-value">{journeyData.startOdometer?.toLocaleString()} km</span>
+              </div>
+              <div className="journey-metric">
+                <span className="metric-label">End Odometer</span>
+                <span className="metric-value">{journeyData.endOdometer?.toLocaleString()} km</span>
+              </div>
+              <div className="journey-metric">
+                <span className="metric-label">Total Distance</span>
+                <span className="metric-value">{journeyData.totalDistance?.toLocaleString()} km</span>
+              </div>
+              <div className="journey-metric">
+                <span className="metric-label">Fuel Consumed</span>
+                <span className="metric-value">{journeyData.fuelLitres} L</span>
+              </div>
+              <div className="journey-metric">
+                <span className="metric-label">Fuel Efficiency</span>
+                <span className="metric-value">{journeyData.fuelEfficiency} km/L</span>
+              </div>
+              <div className="journey-metric">
+                <span className="metric-label">Fuel Cost</span>
+                <span className="metric-value">₹{journeyData.fuelCost?.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Document Recap Section */}
         <div className="verification-recap">
           <div className="recap-header">

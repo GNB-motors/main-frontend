@@ -27,6 +27,7 @@ const ProcessingPhase = ({
   currentIndex: propsCurrentIndex,
   updateWeightSlip: propsUpdateWeightSlip,
   selectedVehicle,
+  journeyData,
 }) => {
   // Use props directly
   const [weightSlips, setWeightSlips] = useState(propsWeightSlips || []);
@@ -212,6 +213,31 @@ const ProcessingPhase = ({
           </div>
 
           <div className="form-content-wrapper">
+            {/* Read-only journey summary placed at top of form (uses journeyData from parent) */}
+            {journeyData && (
+              (() => {
+                const startOdometer = journeyData?.mileageData?.startOdometer ?? journeyData?.startOdometer ?? null;
+                const endOdometer = journeyData?.mileageData?.endOdometer ?? journeyData?.endOdometer ?? null;
+                const totalDistance = journeyData?.mileageData?.totalDistanceKm ?? journeyData?.totalDistance ?? null;
+                const fuelLitres = journeyData?.fuelData?.litres ?? journeyData?.fuelLitres ?? null;
+                const fuelRate = journeyData?.fuelData?.rate ?? journeyData?.fuelRate ?? null;
+                const fuelEfficiency = journeyData?.fuelData?.efficiency ?? journeyData?.estimatedEfficiency ?? null;
+
+                return (
+                  <div className="journey-summary form-section" aria-hidden>
+                    <div className="section-header"><h3>Journey Information</h3></div>
+                    <div className="journey-details">
+                      <div className="journey-item"><strong>Start Odometer:</strong> {startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : '—'}</div>
+                      <div className="journey-item"><strong>End Odometer:</strong> {endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : '—'}</div>
+                      <div className="journey-item"><strong>Total Distance:</strong> {totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : '—'}</div>
+                      <div className="journey-item"><strong>Fuel Litres:</strong> {fuelLitres !== null ? Number(fuelLitres).toLocaleString() + ' L' : '—'}</div>
+                      <div className="journey-item"><strong>Fuel Rate:</strong> {fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : '—'}</div>
+                      <div className="journey-item"><strong>Fuel Efficiency:</strong> {fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : '—'}</div>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
             {/* Route Creation Section */}
             <RouteCreator
               routeData={currentSlip.routeData || {}}
@@ -225,6 +251,7 @@ const ProcessingPhase = ({
               fixedDocs={fixedDocs}
               onUpdate={(data) => updateWeightSlip(currentIndex, data)}
               selectedVehicle={selectedVehicle}
+              journeyData={journeyData}
             />
           </div>
 
