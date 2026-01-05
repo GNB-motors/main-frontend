@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, TrendingUp, Wallet, Percent, MapPin, DollarSign
 import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
+import { DriverService } from '../../Drivers/DriverService';
 
 // --- Summary Card Component (KPI Card from Figma) ---
 const SummaryCard = ({ icon: Icon, label, value, iconColor = '#2F58EE' }) => {
@@ -311,8 +312,12 @@ const TripLedgerReport = () => {
     // Data states
     const [ledgerData, setLedgerData] = useState([]);
     const [summaryData, setSummaryData] = useState(null);
+    const [employees, setEmployees] = useState([]);
+    const [vehicles, setVehicles] = useState([]);
     const [isLoadingLedger, setIsLoadingLedger] = useState(true);
     const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+    const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
+    const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [ledgerError, setLedgerError] = useState(null);
     const [summaryError, setSummaryError] = useState(null);
 
@@ -381,16 +386,62 @@ const TripLedgerReport = () => {
         fetchSummaryData();
     }, []);
 
-    // Extract unique options for filters
+    // Fetch employees (drivers)
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            setIsLoadingEmployees(true);
+            try {
+                // Get businessRefId from localStorage or context if available
+                const businessRefId = localStorage.getItem('businessRefId') || '';
+                const data = await DriverService.getAllDrivers(businessRefId, { limit: 100 });
+                // Filter for drivers/employees with driver role
+                const driverList = Array.isArray(data) ? data : [];
+                setEmployees(driverList);
+            } catch (err) {
+                console.error("Failed to fetch employees:", err);
+                setEmployees([]);
+            } finally {
+                setIsLoadingEmployees(false);
+            }
+        };
+
+        fetchEmployees();
+    }, []);
+
+    // Fetch vehicles
+    useEffect(() => {
+        const fetchVehicles = async () => {
+            setIsLoadingVehicles(true);
+            try {
+                // Get businessRefId from localStorage or context if available
+                const businessRefId = localStorage.getItem('businessRefId') || '';
+                const data = await DriverService.getAvailableVehicles(businessRefId);
+                setVehicles(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Failed to fetch vehicles:", err);
+                setVehicles([]);
+            } finally {
+                setIsLoadingVehicles(false);
+            }
+        };
+
+        fetchVehicles();
+    }, []);
+
+    // Extract unique options for filters from API data
     const driverOptions = useMemo(() => {
-        const drivers = [...new Set(ledgerData.map(d => d.driver?.fullName).filter(Boolean))];
-        return drivers.sort();
-    }, [ledgerData]);
+        return employees
+            .map(emp => `${emp.firstName || ''} ${emp.lastName || ''}`.trim())
+            .filter(Boolean)
+            .sort();
+    }, [employees]);
 
     const vehicleOptions = useMemo(() => {
-        const vehicles = [...new Set(ledgerData.map(d => d.vehicle?.registrationNumber).filter(Boolean))];
-        return vehicles.sort();
-    }, [ledgerData]);
+        return vehicles
+            .map(vehicle => vehicle.registrationNumber || '')
+            .filter(Boolean)
+            .sort();
+    }, [vehicles]);
 
     const routeOptions = useMemo(() => {
         const routes = [...new Set(ledgerData.map(d => d.route?.name).filter(Boolean))];
@@ -628,12 +679,12 @@ const TripLedgerReport = () => {
                 <div className="report-filters trip-ledger-filters">
                     <div className="date-input-group">
                         <label>Driver</label>
-                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <FormControl size="small" sx={{ minWidth: 140 }} disabled={isLoadingEmployees}>
                             <Select
                                 value={selectedDriver}
                                 onChange={(e) => setSelectedDriver(e.target.value)}
                                 displayEmpty
-                                renderValue={(value) => value || 'All'}
+                                renderValue={(value) => value || (isLoadingEmployees ? 'Loading...' : 'All')}
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {driverOptions.map((driver) => (
@@ -645,12 +696,12 @@ const TripLedgerReport = () => {
 
                     <div className="date-input-group">
                         <label>Vehicle</label>
-                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <FormControl size="small" sx={{ minWidth: 140 }} disabled={isLoadingVehicles}>
                             <Select
                                 value={selectedVehicle}
                                 onChange={(e) => setSelectedVehicle(e.target.value)}
                                 displayEmpty
-                                renderValue={(value) => value || 'All'}
+                                renderValue={(value) => value || (isLoadingVehicles ? 'Loading...' : 'All')}
                             >
                                 <MenuItem value="">All</MenuItem>
                                 {vehicleOptions.map((vehicle) => (

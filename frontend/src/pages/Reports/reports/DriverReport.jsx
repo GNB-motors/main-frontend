@@ -46,13 +46,22 @@ const DriverReport = ({ handleViewOutliers }) => {
     // Define columns based on API response
     const driverColumns = useMemo(() => [
         { field: 'driverName', headerName: 'Driver Name', flex: 1.5 },
+        { field: 'mobileNumber', headerName: 'Mobile Number', flex: 1.2 },
         { 
-            field: 'tripsCompleted', 
-            headerName: 'Trips Completed', 
+            field: 'journeysCompleted', 
+            headerName: 'Journeys Completed', 
             type: 'number', 
             flex: 1, 
             align: 'right', 
             headerAlign: 'right' 
+        },
+        {
+            field: 'totalWeightSlipTrips', 
+            headerName: 'Weight Slip Trips', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right'
         },
         {
             field: 'totalDistanceDrivenKm', 
@@ -73,70 +82,71 @@ const DriverReport = ({ handleViewOutliers }) => {
             valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '-'
         },
         {
-            field: 'average_variance', headerName: 'Avg. Variance', type: 'number', flex: 1, align: 'right', headerAlign: 'right',
-            description: 'Avg. Mileage Variance (km/l)',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A', // Format variance
-            renderCell: (params) => { // Color variance
-                const value = params.value;
-                if (typeof value !== 'number') return 'N/A';
-                return (
-                    <span style={{ color: value > 0 ? 'green' : (value < 0 ? 'red' : 'inherit') }}>
-                        {value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}
-                    </span>
-                );
-            }
+            field: 'totalRevenue', 
+            headerName: 'Total Revenue', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
         },
         {
-            field: 'driver_rating', headerName: 'Rating (1-5)', flex: 1, align: 'right', headerAlign: 'right',
-            type: 'number',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A', // Format rating
-            renderCell: (params) => { // Display rating with star
-                const ratingValue = params.value;
-                if (typeof ratingValue !== 'number') return 'N/A';
-
-                // Determine star color based on rating value
-                const getRatingColor = (rating) => {
-                    if (rating >= 4.5) return '#4caf50'; // Darker Green
-                    if (rating >= 3.5) return '#8bc34a'; // Light Green
-                    if (rating >= 2.5) return '#ffc107'; // Amber
-                    if (rating >= 1.5) return '#ff9800'; // Orange
-                    return '#f44336'; // Red
-                };
-                const starColor = getRatingColor(ratingValue);
-
-                return (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-                        <Typography sx={{ fontWeight: 500, mr: 0.5 }}>
-                            {ratingValue.toFixed(2)}
-                        </Typography>
-                        <Star sx={{ color: starColor, fontSize: '1rem' }} />
-                    </Box>
-                );
-            }
+            field: 'totalExpenses', 
+            headerName: 'Total Expenses', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
         },
         {
-            field: 'outlier_count', headerName: 'Outliers', type: 'number', flex: 1, align: 'right', headerAlign: 'right',
-            description: 'Count of trips with negative variance',
-            renderCell: (params) => ( // Link to outliers report if count > 0
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-                    <Typography sx={{ mr: 1, color: params.value > 0 ? 'red' : 'inherit' }}>
-                        {params.value}
-                    </Typography>
-                    {params.value > 0 && (
-                        <IconButton
-                            size="small"
-                            className="outlier-info-button"
-                            // Use handleViewOutliers from parent scope, passing driver_name
-                            onClick={() => handleViewOutliers(params.row.driver_name)}
-                        >
-                            <InfoOutlined fontSize="small" />
-                        </IconButton>
-                    )}
-                </Box>
+            field: 'totalProfit', 
+            headerName: 'Total Profit', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
+        },
+        {
+            field: 'avgRevenuePerTrip', 
+            headerName: 'Avg Revenue/Trip', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
+        },
+        {
+            field: 'profitMargin', 
+            headerName: 'Profit Margin (%)', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `${value.toFixed(2)}%` : 'N/A'
+        },
+        {
+            field: 'onTimeArrivalRate', 
+            headerName: 'On-Time Arrival', 
+            flex: 1.2, 
+            align: 'center', 
+            headerAlign: 'center',
+            valueFormatter: (value) => value || 'N/A'
+        },
+        {
+            field: 'documentsExpired', 
+            headerName: 'Docs Status', 
+            flex: 1, 
+            align: 'center', 
+            headerAlign: 'center',
+            renderCell: (params) => (
+                <Typography sx={{ color: params.value ? 'red' : 'green', fontWeight: 500 }}>
+                    {params.value ? 'Expired' : 'Valid'}
+                </Typography>
             )
         },
-        // IMPORTANT: Add handleViewOutliers to the dependency array
-    ], [handleViewOutliers]);
+    ], []);
 
     // Client-side filtering based on search text and filters
     const filteredRows = useMemo(() => {
@@ -165,7 +175,7 @@ const DriverReport = ({ handleViewOutliers }) => {
 
         // Filter by selected employee (driver name)
         if (selectedEmployee !== '') {
-            rows = rows.filter(row => row.driver_name === selectedEmployee);
+            rows = rows.filter(row => row.driverName === selectedEmployee);
         }
 
         return rows;
@@ -173,14 +183,21 @@ const DriverReport = ({ handleViewOutliers }) => {
 
     // Export to CSV function
     const handleExportCSV = () => {
-        const headers = ['Driver Name', 'Trips Completed', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'On-Time Arrival', 'Documents Status'];
+        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)', 'On-Time Arrival', 'Docs Status'];
         const csvContent = [
             headers.join(','),
             ...filteredRows.map(row => [
                 row.driverName || '-',
-                row.tripsCompleted || '-',
+                row.mobileNumber || '-',
+                row.journeysCompleted || '-',
+                row.totalWeightSlipTrips || '-',
                 typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
                 typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
+                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
+                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
+                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
+                typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
+                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
                 row.onTimeArrivalRate || 'N/A',
                 row.documentsExpired ? 'Expired' : 'Valid'
             ].join(','))
@@ -197,14 +214,21 @@ const DriverReport = ({ handleViewOutliers }) => {
     const handleExportExcel = () => {
         // For now, we'll use CSV format with .xlsx extension
         // You can integrate a library like xlsx or exceljs for proper Excel format
-        const headers = ['Driver Name', 'Trips Completed', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'On-Time Arrival', 'Documents Status'];
+        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)', 'On-Time Arrival', 'Docs Status'];
         const csvContent = [
             headers.join(','),
             ...filteredRows.map(row => [
                 row.driverName || '-',
-                row.tripsCompleted || '-',
+                row.mobileNumber || '-',
+                row.journeysCompleted || '-',
+                row.totalWeightSlipTrips || '-',
                 typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
                 typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
+                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
+                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
+                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
+                typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
+                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
                 row.onTimeArrivalRate || 'N/A',
                 row.documentsExpired ? 'Expired' : 'Valid'
             ].join(','))
@@ -340,17 +364,24 @@ const DriverReport = ({ handleViewOutliers }) => {
                             <thead>
                                 <tr>
                                     <th>Driver Name</th>
-                                    <th>Trips Completed</th>
+                                    <th>Mobile Number</th>
+                                    <th>Journeys Completed</th>
+                                    <th>Weight Slip Trips</th>
                                     <th>Total Distance (KM)</th>
                                     <th>Avg. Trip Distance (KM)</th>
+                                    <th>Total Revenue</th>
+                                    <th>Total Expenses</th>
+                                    <th>Total Profit</th>
+                                    <th>Avg Revenue/Trip</th>
+                                    <th>Profit Margin (%)</th>
                                     <th>On-Time Arrival</th>
-                                    <th>Documents Status</th>
+                                    <th>Docs Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="driver-empty-state">
+                                        <td colSpan={13} className="driver-empty-state">
                                             No driver summary data found.
                                         </td>
                                     </tr>
@@ -362,20 +393,61 @@ const DriverReport = ({ handleViewOutliers }) => {
                                                     <div className="cell-primary">{row.driverName || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    <div className="cell-primary">{row.tripsCompleted || '-'}</div>
+                                                    <div className="cell-primary">{row.mobileNumber || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    <div className="cell-primary">
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>{row.journeysCompleted || '-'}</div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>{row.totalWeightSlipTrips || '-'}</div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
                                                         {typeof row.totalDistanceDrivenKm === 'number' 
                                                             ? row.totalDistanceDrivenKm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) 
-                                                            : '-'} km
+                                                            : '-'}
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <div className="cell-primary">
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
                                                         {typeof row.averageTripDistance === 'number' 
                                                             ? row.averageTripDistance.toLocaleString('en-IN', { maximumFractionDigits: 1 }) 
-                                                            : '-'} km
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.totalRevenue === 'number' 
+                                                            ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.totalExpenses === 'number' 
+                                                            ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.totalProfit === 'number' 
+                                                            ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.avgRevenuePerTrip === 'number' 
+                                                            ? `₹${row.avgRevenuePerTrip.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.profitMargin === 'number' 
+                                                            ? `${row.profitMargin.toFixed(2)}%` 
+                                                            : 'N/A'}
                                                     </div>
                                                 </td>
                                                 <td>

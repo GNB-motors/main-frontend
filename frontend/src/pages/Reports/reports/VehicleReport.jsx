@@ -116,18 +116,27 @@ const VehicleReport = ({ handleViewOutliers }) => {
 
     // Export to CSV function
     const handleExportCSV = () => {
-        const headers = ['Vehicle Number', 'Vehicle Type', 'Total Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)'];
+        const headers = ['Registration Number', 'Vehicle Type', 'Model', 'Total Journeys', 'Weight Slip Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'AdBlue (L)', 'AdBlue Cost (₹)', 'Total Revenue (₹)', 'Total Expenses (₹)', 'Total Profit (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)', 'Revenue per KM (₹)', 'Profit Margin (%)'];
         const csvContent = [
             headers.join(','),
             ...filteredRows.map(row => [
-                row.id || '-',
+                row.registrationNumber || '-',
                 row.vehicleType || '-',
-                row.totalTrips || '-',
+                row.model || '-',
+                row.totalJourneys || '-',
+                row.totalWeightSlipTrips || '-',
                 typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
                 typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
                 typeof row.totalDieselCost === 'number' ? row.totalDieselCost.toFixed(2) : '-',
+                typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
+                typeof row.totalAdBlueCost === 'number' ? row.totalAdBlueCost.toFixed(2) : '-',
+                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
+                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
+                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
                 typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A',
-                typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-'
+                typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-',
+                typeof row.revenuePerKm === 'number' ? row.revenuePerKm.toFixed(2) : '-',
+                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-'
             ].join(','))
         ].join('\n');
 
@@ -140,18 +149,27 @@ const VehicleReport = ({ handleViewOutliers }) => {
 
     // Export to Excel function
     const handleExportExcel = () => {
-        const headers = ['Vehicle Number', 'Vehicle Type', 'Total Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)'];
+        const headers = ['Registration Number', 'Vehicle Type', 'Model', 'Total Journeys', 'Weight Slip Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'AdBlue (L)', 'AdBlue Cost (₹)', 'Total Revenue (₹)', 'Total Expenses (₹)', 'Total Profit (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)', 'Revenue per KM (₹)', 'Profit Margin (%)'];
         const csvContent = [
             headers.join(','),
             ...filteredRows.map(row => [
-                row.id || '-',
+                row.registrationNumber || '-',
                 row.vehicleType || '-',
-                row.totalTrips || '-',
+                row.model || '-',
+                row.totalJourneys || '-',
+                row.totalWeightSlipTrips || '-',
                 typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
                 typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
                 typeof row.totalDieselCost === 'number' ? row.totalDieselCost.toFixed(2) : '-',
+                typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
+                typeof row.totalAdBlueCost === 'number' ? row.totalAdBlueCost.toFixed(2) : '-',
+                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
+                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
+                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
                 typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A',
-                typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-'
+                typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-',
+                typeof row.revenuePerKm === 'number' ? row.revenuePerKm.toFixed(2) : '-',
+                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-'
             ].join(','))
         ].join('\n');
 
@@ -281,20 +299,29 @@ const VehicleReport = ({ handleViewOutliers }) => {
                         <table className="vehicle-table">
                             <thead>
                                 <tr>
-                                    <th>Vehicle Number</th>
+                                    <th>Registration Number</th>
                                     <th>Vehicle Type</th>
-                                    <th>Total Trips</th>
+                                    <th>Model</th>
+                                    <th>Total Journeys</th>
+                                    <th>Weight Slip Trips</th>
                                     <th>Total Distance (KM)</th>
                                     <th>Diesel (L)</th>
                                     <th>Diesel Cost (₹)</th>
+                                    <th>AdBlue (L)</th>
+                                    <th>AdBlue Cost (₹)</th>
+                                    <th>Total Revenue (₹)</th>
+                                    <th>Total Expenses (₹)</th>
+                                    <th>Total Profit (₹)</th>
                                     <th>Avg. Efficiency (km/l)</th>
                                     <th>Cost per KM (₹)</th>
+                                    <th>Revenue per KM (₹)</th>
+                                    <th>Profit Margin (%)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="vehicle-empty-state">
+                                        <td colSpan={17} className="vehicle-empty-state">
                                             No vehicle summary data found. Try adjusting your filters.
                                         </td>
                                     </tr>
@@ -302,7 +329,7 @@ const VehicleReport = ({ handleViewOutliers }) => {
                                     filteredRows.map((row, index) => (
                                         <tr key={row.id || index}>
                                             <td>
-                                                <div className="cell-primary">{row.id || '-'}</div>
+                                                <div className="cell-primary">{row.registrationNumber || '-'}</div>
                                             </td>
                                             <td>
                                                 <div className="cell-primary" style={{ textAlign: 'center' }}>
@@ -310,28 +337,71 @@ const VehicleReport = ({ handleViewOutliers }) => {
                                                 </div>
                                             </td>
                                             <td>
+                                                <div className="cell-primary">{row.model || '-'}</div>
+                                            </td>
+                                            <td>
                                                 <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {row.totalTrips || '-'}
+                                                    {row.totalJourneys || '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {row.totalWeightSlipTrips || '-'}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div className="cell-primary" style={{ textAlign: 'right' }}>
                                                     {typeof row.totalDistanceKm === 'number' 
                                                         ? row.totalDistanceKm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) 
-                                                        : '-'} km
+                                                        : '-'}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div className="cell-primary" style={{ textAlign: 'right' }}>
                                                     {typeof row.totalDieselLiters === 'number' 
                                                         ? row.totalDieselLiters.toFixed(1) 
-                                                        : '-'} L
+                                                        : '-'}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div className="cell-primary" style={{ textAlign: 'right' }}>
                                                     {typeof row.totalDieselCost === 'number' 
-                                                        ? `₹${row.totalDieselCost.toLocaleString('en-IN')}` 
+                                                        ? `₹${row.totalDieselCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.totalAdBlueLiters === 'number' 
+                                                        ? row.totalAdBlueLiters.toFixed(1) 
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.totalAdBlueCost === 'number' 
+                                                        ? `₹${row.totalAdBlueCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.totalRevenue === 'number' 
+                                                        ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.totalExpenses === 'number' 
+                                                        ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.totalProfit === 'number' 
+                                                        ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
                                                         : '-'}
                                                 </div>
                                             </td>
@@ -347,6 +417,20 @@ const VehicleReport = ({ handleViewOutliers }) => {
                                                     {typeof row.costPerKm === 'number' 
                                                         ? `₹${row.costPerKm.toFixed(2)}` 
                                                         : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.revenuePerKm === 'number' 
+                                                        ? `₹${row.revenuePerKm.toFixed(2)}` 
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                    {typeof row.profitMargin === 'number' 
+                                                        ? `${row.profitMargin.toFixed(2)}%` 
+                                                        : 'N/A'}
                                                 </div>
                                             </td>
                                         </tr>
