@@ -218,7 +218,7 @@ const DriverReport = ({ handleViewOutliers }) => {
     };
 
     return (
-        <Box>
+        <Box sx={{ padding: '24px' }}>
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">

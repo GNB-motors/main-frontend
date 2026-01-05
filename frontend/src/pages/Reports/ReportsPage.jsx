@@ -20,10 +20,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 // --- IMPORTS FOR SEGREGATED REPORT COMPONENTS ---
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
-import TripReport from './reports/TripReport.jsx';
-import ProjectedReport from './reports/ProjectedReport.jsx';
-import OutlierReport from './reports/OutlierReport.jsx';
-import SalesSummaryReport from './reports/SalesSummaryReport.jsx';
+import TripLedgerReport from './reports/TripLedgerReport.jsx';
 
 
 // --- MAIN REPORTS PAGE COMPONENT ---
@@ -31,7 +28,7 @@ const ReportsPage = () => {
     const [isReportsSidebarOpen, setIsReportsSidebarOpen] = useState(true);
     const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
-    const [selectedReport, setSelectedReport] = useState('driver'); // Default to driver report
+    const [selectedReport, setSelectedReport] = useState('tripLedger'); // Default to trip ledger
     const [highlightedOutlierId, setHighlightedOutlierId] = useState(null); // Used for linking
 
     // Removed profile context - profile logic completely removed
@@ -39,6 +36,19 @@ const ReportsPage = () => {
 
     // Effect for theme
     useEffect(() => { setThemeColors(getThemeCSS()); }, []);
+
+    // Remove global page-content padding only for this page
+    useEffect(() => {
+        const pageContentEl = document.querySelector('.page-content');
+        if (pageContentEl) {
+            pageContentEl.classList.add('no-padding');
+        }
+        return () => {
+            if (pageContentEl) {
+                pageContentEl.classList.remove('no-padding');
+            }
+        };
+    }, []);
 
     // Effect to track main sidebar collapse state
     useEffect(() => {
@@ -79,20 +89,14 @@ const ReportsPage = () => {
         };
 
         switch (selectedReport) {
+            case 'tripLedger':
+                return <TripLedgerReport {...reportProps} />;
             case 'driver':
                 return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
             case 'vehicle':
                 return <VehicleReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
-            case 'trip':
-                return <TripReport {...reportProps} />;
-            case 'projected':
-                return <ProjectedReport {...reportProps} />;
-            case 'outliers':
-                return <OutlierReport {...reportProps} highlightedOutlierId={highlightedOutlierId} />;
-            case 'salesSummary':
-                return <SalesSummaryReport />;
             default:
-                return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
+                return <TripLedgerReport {...reportProps} />;
         }
     };
 

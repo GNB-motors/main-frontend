@@ -413,3 +413,540 @@
   font-size: 12px;
   color: #8b8b8c;
 }
+
+/* === Trip Ledger Report Styles === */
+
+/* KPI Summary Cards */
+.trip-ledger-summary-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.trip-ledger-kpi-card {
+  min-width: 200px;
+  flex: 1;
+  height: 80px;
+  padding: 12px 16px;
+  background: linear-gradient(134deg, rgba(223, 223, 226, 0.40) 0%, rgba(255, 255, 255, 0.40) 43%, rgba(223, 223, 226, 0.40) 100%);
+  box-shadow: 1px 1px 6px rgba(18, 18, 20, 0.10) inset;
+  border-radius: 16px;
+  outline: 2px #F8F8FB solid;
+  outline-offset: -2px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trip-ledger-kpi-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(47, 88, 238, 0.10);
+  box-shadow: 1px 1px 2px #ECECEE inset;
+  border-radius: 999px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.trip-ledger-kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trip-ledger-kpi-label {
+  color: #5D5D5E;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.trip-ledger-kpi-value {
+  color: #121214;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+}
+
+/* Trip Ledger Filters */
+.trip-ledger-filters {
+  flex-wrap: wrap;
+}
+
+.profit-range-filter {
+  min-width: 200px;
+}
+
+/* Trip Ledger Table */
+.trip-ledger-table-container {
+  flex: 1;
+  padding: 24px 0;
+  overflow-x: auto;
+}
+
+.trip-ledger-table {
+  width: 100%;
+  min-width: 1100px;
+  min-height: 600px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.trip-ledger-table thead {
+  background: #f8f8fb;
+}
+
+.trip-ledger-table th {
+  padding: 16px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5d5d5e;
+  border-bottom: 1px solid #ececee;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.trip-ledger-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #121214;
+  border-bottom: 1px solid #f0f0f3;
+  vertical-align: top;
+}
+
+.trip-ledger-table tr:last-child td {
+  border-bottom: none;
+}
+
+.trip-ledger-table tbody tr:hover {
+  background-color: #fafbfc;
+  cursor: pointer;
+}
+
+.trip-ledger-empty-state {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: #8b8b8c;
+  font-size: 14px;
+}
+
+.trip-ledger-view-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #ececee;
+  background: #f8f8fb;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #5d5d5e;
+}
+
+.trip-ledger-view-btn:hover {
+  background: #2F58EE;
+  border-color: #2F58EE;
+  color: #ffffff;
+}
+
+.trip-ledger-view-btn.expanded {
+  background: #2F58EE;
+  border-color: #2F58EE;
+  color: #ffffff;
+}
+
+/* Expandable Row Details */
+.trip-detail-row {
+  background: #fafbfc;
+}
+
+.trip-detail-cell {
+  padding: 0 !important;
+  border-bottom: 1px solid #ececee !important;
+}
+
+.trip-detail-content {
+  padding: 24px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+  }
+}
+
+.trip-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.detail-section {
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.detail-section-title {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5d5d5e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #f0f0f3;
+  padding-bottom: 8px;
+}
+
+.detail-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.detail-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid #f8f8fb;
+}
+
+.detail-info-item:last-child {
+  border-bottom: none;
+}
+
+.detail-info-label {
+  font-size: 12px;
+  color: #8b8b8c;
+  font-weight: 500;
+  flex: 0 0 45%;
+}
+
+.detail-info-value {
+  font-size: 13px;
+  color: #121214;
+  font-weight: 500;
+  text-align: right;
+  flex: 1;
+}
+
+.detail-info-value.highlight {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.detail-info-value.positive {
+  color: #2ECC71;
+}
+
+.detail-info-value.negative {
+  color: #E74C3C;
+}
+
+.detail-certificate-image {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 8px;
+  border: 1px solid #ececee;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  display: block;
+  margin: 0 auto;
+}
+
+.detail-certificate-image:hover {
+  transform: scale(1.02);
+}
+
+.detail-image-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #8b8b8c;
+  margin-top: 8px;
+  display: block;
+}
+
+/* Positive/Negative cell values */
+.cell-primary.positive {
+  color: #2ECC71;
+}
+
+.cell-primary.negative {
+  color: #E74C3C;
+}
+
+/* Pagination */
+.trip-ledger-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid #ececee;
+  margin-top: 16px;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #5d5d5e;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #ececee;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5d5d5e;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8f8fb;
+  border-color: #2F58EE;
+  color: #2F58EE;
+}
+
+.pagination-btn.active {
+  background: #2F58EE;
+  border-color: #2F58EE;
+  color: #ffffff;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  padding: 0 4px;
+  color: #5d5d5e;
+}
+
+/* Export button common styles */
+.export-btn {
+  width: 44px;
+  height: 44px;
+  padding: 6px 8px;
+  background: #F8F8FB;
+  border-radius: 8px;
+  border: 1px solid #ECECEE;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+  background: #ECECEE;
+}
+
+/* === Trip Ledger Drawer Styles === */
+.trip-ledger-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.trip-ledger-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #ececee;
+  background: #f8f8fb;
+}
+
+.trip-ledger-drawer-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #121214;
+}
+
+.trip-ledger-drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.drawer-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f3;
+}
+
+.drawer-section:last-child {
+  border-bottom: none;
+}
+
+.drawer-section-title {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5d5d5e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.drawer-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.drawer-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drawer-info-item.full-width {
+  grid-column: span 2;
+}
+
+.drawer-info-label {
+  font-size: 12px;
+  color: #8b8b8c;
+  font-weight: 500;
+}
+
+.drawer-info-value {
+  font-size: 14px;
+  color: #121214;
+  font-weight: 500;
+}
+
+.drawer-info-value.drawer-highlight {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.drawer-info-value.positive {
+  color: #2ECC71;
+}
+
+.drawer-info-value.negative {
+  color: #E74C3C;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.submitted {
+  background: rgba(46, 204, 113, 0.1);
+  color: #2ECC71;
+}
+
+.status-badge.pending {
+  background: rgba(243, 156, 18, 0.1);
+  color: #F39C12;
+}
+
+.status-badge.cancelled {
+  background: rgba(231, 76, 60, 0.1);
+  color: #E74C3C;
+}
+
+/* Weight Certificate Image */
+.drawer-image-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawer-certificate-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  border: 1px solid #ececee;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.drawer-certificate-image:hover {
+  transform: scale(1.02);
+}
+
+.drawer-image-hint {
+  font-size: 12px;
+  color: #8b8b8c;
+}
+
+/* Responsive adjustments for Trip Ledger */
+@media (max-width: 1400px) {
+  .trip-ledger-summary-cards {
+    flex-wrap: wrap;
+  }
+  
+  .trip-ledger-kpi-card {
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .trip-ledger-table {
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 768px) {
+  .trip-ledger-summary-cards {
+    flex-direction: column;
+  }
+  
+  .trip-ledger-kpi-card {
+    width: 100%;
+  }
+  
+  .trip-ledger-pagination {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .drawer-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .drawer-info-item.full-width {
+    grid-column: span 1;
+  }
+}

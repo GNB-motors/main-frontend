@@ -15,7 +15,8 @@ import {
     Receipt,
     ChevronUp,
     ChevronDown,
-    AlertTriangle
+    AlertTriangle,
+    BookOpen // <-- Icon for Trip Ledger
 } from 'lucide-react';
 import './ReportsSidebar.css';
 import { getThemeCSS } from '../utils/colorTheme';
@@ -45,25 +46,14 @@ const ReportsSidebar = ({
     };
 
     const reportCategories = [
-        // {
-        //     id: 'sales',
-        //     name: 'SALES',
-        //     icon: BarChart3,
-        //     reports: [
-        //         { id: 'salesSummary', name: 'Sales Summary' }
-        //     ]
-        // },
         {
             id: 'fleet',
             name: 'FLEET REPORTS',
             icon: null,
             reports: [
+                { id: 'tripLedger', name: 'Trip Report', icon: BookOpen },
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
-                // --- MODIFIED ENTRY ---
-                { id: 'trip', name: 'Trip Report', icon: FileText }, // Changed id, name, icon
-               // { id: 'projected', name: 'Projected Savings', icon: TrendingUp },
-               // { id: 'outliers', name: 'Outlier Instances', icon: AlertTriangle }
             ]
         }
     ];

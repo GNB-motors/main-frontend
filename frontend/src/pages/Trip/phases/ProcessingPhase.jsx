@@ -7,7 +7,7 @@
  */
 
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import './ProcessingPhase.css';
 import SlipsList from '../components/SlipsList';
 import TripForm from '../components/TripForm';
@@ -33,12 +33,16 @@ const ProcessingPhase = ({
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Update local state when props change
+  // Update local state when props change - but only if the array length changes
+  // This prevents unnecessary re-renders when slip data is updated
+  const prevSlipsLengthRef = useRef(propsWeightSlips?.length || 0);
+  
   useEffect(() => {
-    if (propsWeightSlips) {
+    if (propsWeightSlips && propsWeightSlips.length !== prevSlipsLengthRef.current) {
+      prevSlipsLengthRef.current = propsWeightSlips.length;
       setWeightSlips(propsWeightSlips);
     }
-  }, [propsWeightSlips]);
+  }, [propsWeightSlips?.length]);
 
   useEffect(() => {
     if (typeof propsCurrentIndex === 'number') {
@@ -96,6 +100,19 @@ const ProcessingPhase = ({
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Don't handle navigation if user is typing in an input, textarea, or select
+      const activeElement = document.activeElement;
+      const isTyping = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.tagName === 'SELECT' ||
+        activeElement.isContentEditable
+      );
+      
+      if (isTyping) {
+        return; // Let the user type without interference
+      }
+
       if (e.key === 'ArrowRight') {
         if (currentIndex < weightSlips.length - 1) {
           onNextSlip();
@@ -103,16 +120,15 @@ const ProcessingPhase = ({
       } else if (e.key === 'ArrowLeft') {
         if (currentIndex > 0) {
           onPreviousSlip();
-        } else if (currentIndex === 0 && onBackToIntake) {
-          // If on first slip, go back to Intake phase
-          onBackToIntake();
         }
+        // Remove automatic back to Intake on left arrow from first slip
+        // User should use the explicit "Back to Intake" button instead
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, weightSlips.length, onNextSlip, onPreviousSlip, onBackToIntake]);
+  }, [currentIndex, weightSlips.length, onNextSlip, onPreviousSlip]);
 
   // Handle save (mark current slip as done - local state only, no API calls)
   const handleSave = useCallback(async () => {

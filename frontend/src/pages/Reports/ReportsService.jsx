@@ -104,4 +104,65 @@ export const ReportsService = {
             throw error.response?.data || { detail: "Network error or server unavailable while fetching driver reports." };
         }
     },
+
+    /**
+     * Fetches trip ledger data (denormalized trip entries).
+     * @returns {Promise<Array>} - Array of trip ledger entries.
+     */
+    getTripLedger: async () => {
+        try {
+            const response = await apiClient.get(`api/reports/trip-ledger`);
+            
+            if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
+                console.log('Trip Ledger fetched, count:', response.data.count);
+                return response.data.data;
+            }
+            
+            return response.data?.data || [];
+        } catch (error) {
+            console.error("API Error fetching trip ledger:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable while fetching trip ledger." };
+        }
+    },
+
+    /**
+     * Fetches trip ledger summary statistics.
+     * @returns {Promise<Object>} - Summary statistics object.
+     */
+    getTripLedgerSummary: async () => {
+        try {
+            const response = await apiClient.get(`api/reports/trip-ledger/summary`);
+            
+            if (response.data && response.data.status === 'success' && response.data.data) {
+                console.log('Trip Ledger Summary:', response.data.data);
+                return response.data.data;
+            }
+            
+            return response.data?.data || {};
+        } catch (error) {
+            console.error("API Error fetching trip ledger summary:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable while fetching trip ledger summary." };
+        }
+    },
+
+    /**
+     * Fetches a single trip ledger entry by ID.
+     * @param {string} id - The trip ledger entry ID.
+     * @returns {Promise<Object>} - Single trip ledger entry.
+     */
+    getTripLedgerById: async (id) => {
+        try {
+            const response = await apiClient.get(`api/reports/trip-ledger/${id}`);
+            
+            if (response.data && response.data.status === 'success' && response.data.data) {
+                console.log('Trip Ledger Entry:', response.data.data);
+                return response.data.data;
+            }
+            
+            return response.data?.data || null;
+        } catch (error) {
+            console.error("API Error fetching trip ledger entry:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable while fetching trip ledger entry." };
+        }
+    },
 };

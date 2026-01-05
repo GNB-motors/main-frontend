@@ -1,17 +1,17 @@
-/**
- * TripForm Component
- * 
- * Form for entering trip details for a specific weight slip
- * Fields: Weight, Revenue, Expenses, Route Assignment
- */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import RouteService from '../../Routes/RouteService';
 import './TripForm.css';
 
 const TripForm = ({ slip, fixedDocs, onUpdate }) => {
+  // Track which fields have been manually edited by the user
+  // Use a ref to persist across re-renders without causing re-renders itself
+  const manuallyEditedFieldsRef = useRef(new Set());
+  
   const handleChange = useCallback(
     (field, value) => {
+      // Mark field as manually edited when user changes it
+      manuallyEditedFieldsRef.current.add(field);
       onUpdate({ [field]: value });
     },
     [onUpdate]
@@ -22,6 +22,19 @@ const TripForm = ({ slip, fixedDocs, onUpdate }) => {
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [routesError, setRoutesError] = useState(null);
 
+  // Track the current slip ID to detect when we switch to a different slip
+  const prevSlipIdRef = useRef(slip?.tempId || slip?.id);
+  
+  // Reset manually edited fields when switching to a new slip
+  useEffect(() => {
+    const newSlipId = slip?.tempId || slip?.id;
+    // Only reset if the slip ID actually changed (not just a re-render with same slip)
+    if (newSlipId && newSlipId !== prevSlipIdRef.current) {
+      prevSlipIdRef.current = newSlipId;
+      manuallyEditedFieldsRef.current = new Set(); // Clear the manually edited fields
+    }
+  }, [slip?.tempId, slip?.id]);
+
   useEffect(() => {
     setLoadingRoutes(true);
     setRoutesError(null);
@@ -31,48 +44,57 @@ const TripForm = ({ slip, fixedDocs, onUpdate }) => {
       .finally(() => setLoadingRoutes(false));
   }, []);
 
-  // Autofill distanceKm when routeId changes, but allow manual editing
+  // Autofill distanceKm when routeId changes, but only if not manually edited
   useEffect(() => {
-    if (slip.routeId && routes.length > 0) {
+    if (slip.routeId && routes.length > 0 && !manuallyEditedFieldsRef.current.has('distanceKm')) {
       const selectedRoute = routes.find(r => r._id === slip.routeId);
       if (selectedRoute && (!slip.distanceKm || slip._autofilledDistance !== slip.routeId)) {
         // Only autofill if distanceKm is empty or last autofilled route is different
-        handleChange('distanceKm', selectedRoute.distanceKm);
-        handleChange('_autofilledDistance', slip.routeId); // Track last autofilled
+        onUpdate({ distanceKm: selectedRoute.distanceKm, _autofilledDistance: slip.routeId });
       }
     }
   }, [slip.routeId, routes]);
 
   // Autofill endOdometer from fixedDocs odometer reading if available
+  // Only run once when slip changes and field hasn't been manually edited
   useEffect(() => {
     const odometerReading = fixedDocs?.odometer?.ocrData?.reading;
-    if (odometerReading && !slip.endOdometer) {
+    // Only autofill if: 1) field is empty, 2) not manually edited, 3) OCR data exists
+    if (odometerReading && !slip.endOdometer && !manuallyEditedFieldsRef.current.has('endOdometer')) {
       // Extract numeric value from reading (e.g., "9195.7 km" -> 9195.7)
       const numericValue = parseFloat(odometerReading.toString().replace(/[^\d.]/g, ''));
       if (!isNaN(numericValue)) {
-        handleChange('endOdometer', numericValue);
+        onUpdate({ endOdometer: numericValue });
       }
     }
-  }, [fixedDocs?.odometer?.ocrData?.reading, slip.endOdometer, handleChange]);
+  }, [slip?.tempId, slip?.id]); // Only depend on slip change, not field value
 
   // Autofill weight fields from OCR data if available and not already set
+  // Only run once when slip changes
   useEffect(() => {
     if (slip.ocrData) {
-      // Auto-fill grossWeight if available and not set
-      if (slip.ocrData.grossWeight && !slip.grossWeight) {
-        handleChange('grossWeight', slip.ocrData.grossWeight);
+      const updates = {};
+      
+      // Auto-fill grossWeight if available and not manually edited
+      if (slip.ocrData.grossWeight && !slip.grossWeight && !manuallyEditedFieldsRef.current.has('grossWeight')) {
+        updates.grossWeight = slip.ocrData.grossWeight;
       }
-      // Auto-fill tareWeight if available and not set
-      if (slip.ocrData.tareWeight && !slip.tareWeight) {
-        handleChange('tareWeight', slip.ocrData.tareWeight);
+      // Auto-fill tareWeight if available and not manually edited
+      if (slip.ocrData.tareWeight && !slip.tareWeight && !manuallyEditedFieldsRef.current.has('tareWeight')) {
+        updates.tareWeight = slip.ocrData.tareWeight;
       }
-      // Auto-fill netWeight if available and not set
+      // Auto-fill netWeight if available and not manually edited
       const ocrNetWeight = slip.ocrData.netWeight || slip.ocrData.finalWeight;
-      if (ocrNetWeight && !slip.netWeight) {
-        handleChange('netWeight', ocrNetWeight);
+      if (ocrNetWeight && !slip.netWeight && !manuallyEditedFieldsRef.current.has('netWeight')) {
+        updates.netWeight = ocrNetWeight;
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updates).length > 0) {
+        onUpdate(updates);
       }
     }
-  }, [slip.ocrData, slip.grossWeight, slip.tareWeight, slip.netWeight, handleChange]);
+  }, [slip?.tempId, slip?.id]); // Only depend on slip change
 
   return (
     <form className="trip-form">
