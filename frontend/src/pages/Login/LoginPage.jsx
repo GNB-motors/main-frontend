@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import UkoLogo from '../../assets/uko-logo.png';
 import GoogleLogo from '../../assets/google.svg';
 import MobileIcon from '../../assets/mobile.png';
@@ -16,6 +17,7 @@ const LoginPage = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
 
 
     const handleLogin = async (event) => {
@@ -159,14 +161,22 @@ const LoginPage = () => {
                         </div>
                         <div className="form-group">
                             <label htmlFor="password">Password</label>
-                            <input
-                                type="password"
-                                id="password"
-                                className="form-input"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
+                            <div className="password-input-container">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    id="password"
+                                    className="form-input"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                                <div
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="password-toggle-icon"
+                                >
+                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                </div>
+                            </div>
                         </div>
 
 

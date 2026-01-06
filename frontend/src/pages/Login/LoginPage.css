@@ -107,6 +107,40 @@
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+/* Password Input Container */
+.password-input-container {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-container .form-input {
+    padding-right: 50px; /* Make room for the icon */
+}
+
+.password-toggle-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-grey-400);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    z-index: 1;
+    user-select: none;
+}
+
+.password-toggle-icon:hover {
+    color: var(--color-grey-700);
+}
+
+.password-toggle-icon .MuiSvgIcon-root {
+    font-size: 18px;
+}
+
 /* --- Form Options --- */
 .form-options {
     display: flex;
