@@ -6,6 +6,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
     const [companyName, setCompanyName] = useState('');
     const [selectedColor, setSelectedColor] = useState('#2940d3');
     const [customHex, setCustomHex] = useState('');
+    const [gstin, setGstin] = useState('');
 
     // Predefined color swatches matching the app theme
     const colorSwatches = [
@@ -23,16 +24,21 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
             setCompanyName(parsed.companyName || '');
             setSelectedColor(parsed.selectedColor || '#2940d3');
             setCustomHex(parsed.selectedColor || '');
+            setGstin(parsed.gstin || '');
         }
     }, []);
 
-    // Update parent component when data changes
+    // Update parent component when data changes - REMOVE onDataChange from dependencies
     useEffect(() => {
-        onDataChange({
-            companyName,
-            selectedColor
-        });
-    }, [companyName, selectedColor, onDataChange]);
+        if (companyName || selectedColor || gstin) {
+            onDataChange({
+                companyName,
+                selectedColor,
+                gstin
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [companyName, selectedColor, gstin]);
 
     const handleColorSelect = (hex) => {
         setSelectedColor(hex);
@@ -57,8 +63,16 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
             return;
         }
 
+        // Optional GSTIN validation (15 characters alphanumeric)
+        if (gstin && gstin.trim()) {
+            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (!gstinRegex.test(gstin.trim())) {
+                toast.warning('GSTIN format may be invalid. Please verify.');
+            }
+        }
+
         // Save to sessionStorage for final submission
-        const companyData = { companyName, selectedColor };
+        const companyData = { companyName, selectedColor, gstin };
         sessionStorage.setItem('onboardingCompany', JSON.stringify(companyData));
 
         toast.success('Company details saved', { autoClose: 1500 });
@@ -88,6 +102,24 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
                         placeholder="Enter your company or business name"
                         required
                     />
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="gstin">
+                        GSTIN (Optional)
+                    </label>
+                    <input
+                        type="text"
+                        id="gstin"
+                        className="form-input"
+                        value={gstin}
+                        onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                        placeholder="e.g., 27ABCDE1234F1Z5"
+                        maxLength={15}
+                    />
+                    <small className="form-hint">
+                        Goods and Services Tax Identification Number (15 characters)
+                    </small>
                 </div>
 
                 <div className="form-group">

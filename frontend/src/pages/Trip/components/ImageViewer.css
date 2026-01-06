@@ -1,0 +1,53 @@
+/**
+ * ImageViewer.css
+ * Styles for image display with zoom and rotation
+ */
+
+.image-viewer {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2c3e50;
+  user-select: none;
+  position: relative;
+}
+
+.viewer-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.1s ease-out;
+}
+
+/* Preview Button */
+.btn-preview-image {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 200, 150, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.btn-preview-image:hover {
+  background: #00c896;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 200, 150, 0.4);
+}
+
+.btn-preview-image:active {
+  transform: scale(0.95);
+}

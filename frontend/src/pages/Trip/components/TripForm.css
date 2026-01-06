@@ -1,0 +1,138 @@
+/**
+ * TripForm.css
+ * Styles for the trip form in Processing Phase
+ */
+
+.trip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 20px 20px 20px;
+}
+
+/* Journey information display */
+.journey-info {
+  margin-bottom: 4px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.journey-info h4 {
+  margin: 0 0 12px 0;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.journey-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.journey-item {
+  font-size: 14px;
+  color: #475569;
+}
+
+.journey-item strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input {
+  padding: 12px 14px;
+  border: 2px solid #ecf0f1;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #2c3e50;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #00c896;
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.1);
+}
+
+.form-input::placeholder {
+  color: #bcc0c8;
+}
+
+.form-input[type='number']::-webkit-outer-spin-button,
+.form-input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.form-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .trip-form {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .form-group label {
+    font-size: 12px;
+  }
+
+  .form-input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .trip-form {
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .form-group label {
+    font-size: 11px;
+    letter-spacing: 0.3px;
+  }
+
+  .form-input {
+    padding: 9px 11px;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .trip-form {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .form-group label {
+    font-size: 10px;
+  }
+
+  .form-input {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+}

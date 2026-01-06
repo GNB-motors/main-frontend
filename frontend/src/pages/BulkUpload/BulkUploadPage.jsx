@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
 
 import "../Profile/BulkUploadVehiclesPage.css";
-import { useProfile } from "../Profile/ProfileContext.jsx";
+// Removed useProfile import - profile logic completely removed
 import apiClient from "../../utils/axiosConfig";
 import {
   normalizeVehicleDataset,
@@ -50,7 +50,7 @@ const DRIVER_COLUMNS = [
 ];
 
 const BulkUploadPage = () => {
-  const { profile, isLoadingProfile } = useProfile();
+  // Removed useProfile hook - profile logic completely removed
   const navigate = useNavigate();
   const [mode, setMode] = useState("vehicles");
   const [rows, setRows] = useState([]);
@@ -289,7 +289,7 @@ const BulkUploadPage = () => {
           onClick={() => navigate(-1)}
         >
           <ArrowLeft size={20} />
-          Back
+          <span>Back</span>
         </button>
         <h1>Bulk Upload ({mode === "vehicles" ? "Vehicles" : "Drivers"})</h1>
         <p>Upload an .xlsx file, we will normalize the data locally and send cleaned JSON to the API.</p>

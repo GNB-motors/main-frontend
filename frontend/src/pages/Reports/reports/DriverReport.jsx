@@ -7,9 +7,10 @@ import { DataGrid } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
+import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- **** DriverReport COMPONENT **** ---
-const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleViewOutliers }) => {
+const DriverReport = ({ handleViewOutliers }) => {
     // State for fetched data, loading, and errors specific to this report
     const [driverReportData, setDriverReportData] = useState([]);
     const [isLoadingDrivers, setIsLoadingDrivers] = useState(true);
@@ -22,21 +23,11 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
 
     // Fetch Driver Data Effect
     useEffect(() => {
-        // Check profile status first (from parent scope)
-        if (isLoadingProfile || profileError || !businessRefId) {
-            if (!isLoadingProfile) {
-                setIsLoadingDrivers(false);
-                if (profileError) setDriverError(`Profile Error: ${profileError}`);
-                else if (!businessRefId) setDriverError("Business ID not found.");
-            } else { setIsLoadingDrivers(true); }
-            return;
-        }
-
         const fetchDriverReports = async () => {
             setIsLoadingDrivers(true);
             setDriverError(null);
             try {
-                const data = await ReportsService.getDriverReports(businessRefId);
+                const data = await ReportsService.getDriverReports();
                 setDriverReportData(data);
                 console.log("Driver Reports Fetched:", data);
             } catch (err) {
@@ -49,92 +40,123 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
         };
 
         fetchDriverReports();
-        // Rerun fetch only when businessRefId changes (or profile status changes)
-    }, [businessRefId, isLoadingProfile, profileError]);
+        // Rerun fetch only when component mounts
+    }, []);
 
-    // Define columns based on DriverReportItem schema
+    // Define columns based on API response
     const driverColumns = useMemo(() => [
-        { field: 'driver_name', headerName: 'Driver Name', flex: 1 },
-        {
-            field: 'total_kms_driven', headerName: 'Total KMs Driven', type: 'number', flex: 1, align: 'right', headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : '-'
-        }, // Format KMs
-        { field: 'instances_driven', headerName: 'Instances Driven', type: 'number', flex: 1, align: 'right', headerAlign: 'right' },
-        {
-            field: 'average_variance', headerName: 'Avg. Variance', type: 'number', flex: 1, align: 'right', headerAlign: 'right',
-            description: 'Avg. Mileage Variance (km/l)',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A', // Format variance
-            renderCell: (params) => { // Color variance
-                const value = params.value;
-                if (typeof value !== 'number') return 'N/A';
-                return (
-                    <span style={{ color: value > 0 ? 'green' : (value < 0 ? 'red' : 'inherit') }}>
-                        {value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}
-                    </span>
-                );
-            }
+        { field: 'driverName', headerName: 'Driver Name', flex: 1.5 },
+        { field: 'mobileNumber', headerName: 'Mobile Number', flex: 1.2 },
+        { 
+            field: 'journeysCompleted', 
+            headerName: 'Journeys Completed', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right' 
         },
         {
-            field: 'driver_rating', headerName: 'Rating (1-5)', flex: 1, align: 'right', headerAlign: 'right',
-            type: 'number',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A', // Format rating
-            renderCell: (params) => { // Display rating with star
-                const ratingValue = params.value;
-                if (typeof ratingValue !== 'number') return 'N/A';
-
-                // Determine star color based on rating value
-                const getRatingColor = (rating) => {
-                    if (rating >= 4.5) return '#4caf50'; // Darker Green
-                    if (rating >= 3.5) return '#8bc34a'; // Light Green
-                    if (rating >= 2.5) return '#ffc107'; // Amber
-                    if (rating >= 1.5) return '#ff9800'; // Orange
-                    return '#f44336'; // Red
-                };
-                const starColor = getRatingColor(ratingValue);
-
-                return (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-                        <Typography sx={{ fontWeight: 500, mr: 0.5 }}>
-                            {ratingValue.toFixed(2)}
-                        </Typography>
-                        <Star sx={{ color: starColor, fontSize: '1rem' }} />
-                    </Box>
-                );
-            }
+            field: 'totalWeightSlipTrips', 
+            headerName: 'Weight Slip Trips', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right'
         },
         {
-            field: 'outlier_count', headerName: 'Outliers', type: 'number', flex: 1, align: 'right', headerAlign: 'right',
-            description: 'Count of trips with negative variance',
-            renderCell: (params) => ( // Link to outliers report if count > 0
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%' }}>
-                    <Typography sx={{ mr: 1, color: params.value > 0 ? 'red' : 'inherit' }}>
-                        {params.value}
-                    </Typography>
-                    {params.value > 0 && (
-                        <IconButton
-                            size="small"
-                            className="outlier-info-button"
-                            // Use handleViewOutliers from parent scope, passing driver_name
-                            onClick={() => handleViewOutliers(params.row.driver_name)}
-                        >
-                            <InfoOutlined fontSize="small" />
-                        </IconButton>
-                    )}
-                </Box>
+            field: 'totalDistanceDrivenKm', 
+            headerName: 'Total Distance (KM)', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '-'
+        },
+        {
+            field: 'averageTripDistance', 
+            headerName: 'Avg. Trip Distance (KM)', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '-'
+        },
+        {
+            field: 'totalRevenue', 
+            headerName: 'Total Revenue', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
+        },
+        {
+            field: 'totalExpenses', 
+            headerName: 'Total Expenses', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
+        },
+        {
+            field: 'totalProfit', 
+            headerName: 'Total Profit', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
+        },
+        {
+            field: 'avgRevenuePerTrip', 
+            headerName: 'Avg Revenue/Trip', 
+            type: 'number', 
+            flex: 1.2, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
+        },
+        {
+            field: 'profitMargin', 
+            headerName: 'Profit Margin (%)', 
+            type: 'number', 
+            flex: 1, 
+            align: 'right', 
+            headerAlign: 'right',
+            valueFormatter: (value) => typeof value === 'number' ? `${value.toFixed(2)}%` : 'N/A'
+        },
+        {
+            field: 'onTimeArrivalRate', 
+            headerName: 'On-Time Arrival', 
+            flex: 1.2, 
+            align: 'center', 
+            headerAlign: 'center',
+            valueFormatter: (value) => value || 'N/A'
+        },
+        {
+            field: 'documentsExpired', 
+            headerName: 'Docs Status', 
+            flex: 1, 
+            align: 'center', 
+            headerAlign: 'center',
+            renderCell: (params) => (
+                <Typography sx={{ color: params.value ? 'red' : 'green', fontWeight: 500 }}>
+                    {params.value ? 'Expired' : 'Valid'}
+                </Typography>
             )
         },
-        // IMPORTANT: Add handleViewOutliers to the dependency array
-    ], [handleViewOutliers]);
+    ], []);
 
     // Client-side filtering based on search text and filters
     const filteredRows = useMemo(() => {
         let rows = driverReportData;
 
-        // Filter by search text
+        // Filter by search text - updated to use driverName
         if (searchText) {
             const lowerSearchText = searchText.toLowerCase();
-            rows = rows.filter((row) =>
-                row.driver_name.toLowerCase().includes(lowerSearchText)
+            rows = rows.filter(row =>
+                row.driverName?.toLowerCase().includes(lowerSearchText)
             );
         }
 
@@ -153,18 +175,122 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
 
         // Filter by selected employee (driver name)
         if (selectedEmployee !== '') {
-            rows = rows.filter(row => row.driver_name === selectedEmployee);
+            rows = rows.filter(row => row.driverName === selectedEmployee);
         }
 
         return rows;
     }, [driverReportData, searchText, dateRange, selectedEmployee]);
 
+    // Export to CSV function
+    const handleExportCSV = () => {
+        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)', 'On-Time Arrival', 'Docs Status'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.driverName || '-',
+                row.mobileNumber || '-',
+                row.journeysCompleted || '-',
+                row.totalWeightSlipTrips || '-',
+                typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
+                typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
+                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
+                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
+                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
+                typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
+                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
+                row.onTimeArrivalRate || 'N/A',
+                row.documentsExpired ? 'Expired' : 'Valid'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.csv`;
+        link.click();
+    };
+
+    // Export to Excel function
+    const handleExportExcel = () => {
+        // For now, we'll use CSV format with .xlsx extension
+        // You can integrate a library like xlsx or exceljs for proper Excel format
+        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)', 'On-Time Arrival', 'Docs Status'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredRows.map(row => [
+                row.driverName || '-',
+                row.mobileNumber || '-',
+                row.journeysCompleted || '-',
+                row.totalWeightSlipTrips || '-',
+                typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
+                typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
+                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
+                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
+                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
+                typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
+                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
+                row.onTimeArrivalRate || 'N/A',
+                row.documentsExpired ? 'Expired' : 'Valid'
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+        link.click();
+    };
+
     return (
-        <Box>
+        <Box sx={{ padding: '24px' }}>
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">
                     <h3 className="report-title">Driver Report</h3>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                            onClick={handleExportCSV}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to CSV"
+                        >
+                            <CsvIcon width={24} height={24} />
+                        </button>
+                        <button 
+                            onClick={handleExportExcel}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                padding: '6px 8px',
+                                background: '#F8F8FB',
+                                borderRadius: '8px',
+                                border: '1px solid #ECECEE',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
+                            title="Export to Excel"
+                        >
+                            <ExcelIcon width={22} height={22} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filter Controls */}
@@ -208,7 +334,7 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
                                 }}
                             >
                                 <MenuItem value="">All</MenuItem>
-                                {[...new Set(driverReportData.map(driver => driver.driver_name))].map((driver) => (
+                                {[...new Set(driverReportData.map(driver => driver.driverName))].map((driver) => (
                                     <MenuItem key={driver} value={driver}>
                                         {driver || 'N/A'}
                                     </MenuItem>
@@ -238,72 +364,107 @@ const DriverReport = ({ businessRefId, isLoadingProfile, profileError, handleVie
                             <thead>
                                 <tr>
                                     <th>Driver Name</th>
-                                    <th>Total KMs Driven</th>
-                                    <th>Instances Driven</th>
-                                    <th>Avg. Variance</th>
-                                    <th>Rating (1-5)</th>
-                                    <th>Outliers</th>
+                                    <th>Mobile Number</th>
+                                    <th>Journeys Completed</th>
+                                    <th>Weight Slip Trips</th>
+                                    <th>Total Distance (KM)</th>
+                                    <th>Avg. Trip Distance (KM)</th>
+                                    <th>Total Revenue</th>
+                                    <th>Total Expenses</th>
+                                    <th>Total Profit</th>
+                                    <th>Avg Revenue/Trip</th>
+                                    <th>Profit Margin (%)</th>
+                                    <th>On-Time Arrival</th>
+                                    <th>Docs Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="driver-empty-state">
-                                            No driver summary data found. Try adjusting your filters.
+                                        <td colSpan={13} className="driver-empty-state">
+                                            No driver summary data found.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredRows.map((row, index) => {
-                                        const getRatingColor = (rating) => {
-                                            if (rating >= 4.5) return '#4caf50';
-                                            if (rating >= 3.5) return '#8bc34a';
-                                            if (rating >= 2.5) return '#ffc107';
-                                            if (rating >= 1.5) return '#ff9800';
-                                            return '#f44336';
-                                        };
-
                                         return (
-                                            <tr key={index}>
+                                            <tr key={row.id || index}>
                                                 <td>
-                                                    <div className="cell-primary">{row.driver_name || '-'}</div>
+                                                    <div className="cell-primary">{row.driverName || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    <div className="cell-primary">{typeof row.total_kms_driven === 'number' ? row.total_kms_driven.toFixed(1) : '-'} km</div>
+                                                    <div className="cell-primary">{row.mobileNumber || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    <div className="cell-primary">{row.instances_driven || '-'}</div>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>{row.journeysCompleted || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    {typeof row.average_variance === 'number' ? (
-                                                        <span style={{ color: row.average_variance > 0 ? 'green' : (row.average_variance < 0 ? 'red' : 'inherit'), fontWeight: Math.abs(row.average_variance) >= 1.5 ? 'bold' : 'normal' }}>
-                                                            {row.average_variance > 0 ? `+${row.average_variance.toFixed(2)}` : row.average_variance.toFixed(2)}
-                                                        </span>
-                                                    ) : (
-                                                        'N/A'
-                                                    )}
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>{row.totalWeightSlipTrips || '-'}</div>
                                                 </td>
                                                 <td>
-                                                    {typeof row.driver_rating === 'number' ? (
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            <span>{row.driver_rating.toFixed(2)}</span>
-                                                            <Star sx={{ color: getRatingColor(row.driver_rating), fontSize: '1rem' }} />
-                                                        </Box>
-                                                    ) : (
-                                                        'N/A'
-                                                    )}
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.totalDistanceDrivenKm === 'number' 
+                                                            ? row.totalDistanceDrivenKm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) 
+                                                            : '-'}
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: row.outlier_count > 0 ? 'red' : 'inherit' }}>
-                                                        <span>{row.outlier_count || '-'}</span>
-                                                        {row.outlier_count > 0 && (
-                                                            <IconButton
-                                                                size="small"
-                                                                className="outlier-info-button"
-                                                                onClick={() => handleViewOutliers(row.driver_name)}
-                                                            >
-                                                                <InfoOutlined fontSize="small" />
-                                                            </IconButton>
-                                                        )}
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.averageTripDistance === 'number' 
+                                                            ? row.averageTripDistance.toLocaleString('en-IN', { maximumFractionDigits: 1 }) 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.totalRevenue === 'number' 
+                                                            ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.totalExpenses === 'number' 
+                                                            ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.totalProfit === 'number' 
+                                                            ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.avgRevenuePerTrip === 'number' 
+                                                            ? `₹${row.avgRevenuePerTrip.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                                            : '-'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
+                                                        {typeof row.profitMargin === 'number' 
+                                                            ? `${row.profitMargin.toFixed(2)}%` 
+                                                            : 'N/A'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="cell-primary" style={{ textAlign: 'center' }}>
+                                                        {row.onTimeArrivalRate || 'N/A'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div 
+                                                        className="cell-primary" 
+                                                        style={{ 
+                                                            textAlign: 'center',
+                                                            color: row.documentsExpired ? 'red' : 'green',
+                                                            fontWeight: 500
+                                                        }}
+                                                    >
+                                                        {row.documentsExpired ? 'Expired' : 'Valid'}
                                                     </div>
                                                 </td>
                                             </tr>

@@ -23,10 +23,13 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
         }
     }, []);
 
-    // Update parent component when data changes
+    // Update parent component when data changes - REMOVE onDataChange from dependencies
     useEffect(() => {
-        onDataChange({ vehicles });
-    }, [vehicles, onDataChange]);
+        if (vehicles && vehicles.length > 0) {
+            onDataChange({ vehicles });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [vehicles]);
 
     const handleVehicleChange = (index, field, value) => {
         const updatedVehicles = [...vehicles];
@@ -97,28 +100,33 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
             const profileData = JSON.parse(sessionStorage.getItem('onboardingProfile') || '{}');
             const companyData = JSON.parse(sessionStorage.getItem('onboardingCompany') || '{}');
 
-            // Prepare payload for backend
-            const onboardingPayload = {
-                profile: {
-                    business_name: companyData.companyName,
-                    profile_color: companyData.selectedColor || null,
-                },
-                vehicles: validVehicles,
-            };
-
-            // Get auth token
+            // Get orgId and token from localStorage
             const token = localStorage.getItem('authToken');
+            const orgId = localStorage.getItem('user_orgId');
+            
             if (!token) {
                 throw new Error('Authentication token not found');
             }
-
-            // Submit to backend
-            const result = await OnboardingService.completeOnboarding(onboardingPayload, token);
             
-            // Store the generated business_ref_id in localStorage (persistent)
-            if (result.business_ref_id) {
-                localStorage.setItem('profile_business_ref_id', result.business_ref_id);
+            if (!orgId) {
+                throw new Error('Organization ID not found');
             }
+
+            // Prepare complete onboarding payload
+            const onboardingPayload = {
+                // User profile data (for /auth/me endpoint)
+                firstName: profileData.firstName || '',
+                lastName: profileData.lastName || '',
+                primaryThemeColor: companyData.selectedColor || '#FF5733',
+                // Organization data (for /admin/organizations/:id endpoint)
+                companyName: companyData.companyName || '',
+                gstin: companyData.gstin || ''
+            };
+
+            // Submit to backend using the service method that handles both API calls
+            const result = await OnboardingService.completeOnboarding(onboardingPayload, token, orgId);
+            
+            console.log('Onboarding result:', result);
 
             // Mark onboarding as complete
             localStorage.setItem('onboardingCompleted', 'true');
@@ -128,6 +136,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
             sessionStorage.removeItem('onboardingProfile');
             sessionStorage.removeItem('onboardingCompany');
             sessionStorage.removeItem('onboardingVehicles');
+            sessionStorage.removeItem('onboardingUser');
 
             toast.success('Onboarding completed successfully!', { autoClose: 2000 });
             onNext();

@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { validateTokenBeforeRequest, handleAuthError } from '../../utils/authUtils';
 import './ProfilePage.css';
 
 // Import assets
 import DefaultAvatar from '../../assets/default-avatar.png';
 import UserIcon from '../../assets/user-icon.svg';
 
-// Import the services
-import { ProfileService } from './ProfileService.jsx';
+// Import ProfileService for API calls
+import { ProfileService } from './ProfileService';
 import { getThemeCSS } from '../../utils/colorTheme';
 
 const ProfilePage = () => {
-    const [profileData, setProfileData] = useState(null);
-    const [userInfo, setUserInfo] = useState(null);
+    const [userData, setUserData] = useState(null);
+    const [organizationData, setOrganizationData] = useState(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [profileError, setProfileError] = useState(null);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
@@ -24,43 +23,37 @@ const ProfilePage = () => {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            // Validate token before making request
-            if (!validateTokenBeforeRequest()) {
-                setIsLoadingProfile(false);
-                setProfileError('Authentication token not found or expired. Please log in again.');
-                return;
-            }
-
             setIsLoadingProfile(true);
             setProfileError(null);
+
             try {
-                const token = localStorage.getItem('authToken');
-                // Fetch both profile and user info in parallel
-                const [profileResponse, userInfoResponse] = await Promise.all([
-                    ProfileService.getProfile(token),
-                    ProfileService.getUserInfo()
-                ]);
-                setProfileData(profileResponse);
-                setUserInfo(userInfoResponse);
-                // Store individual profile fields in localStorage
-                localStorage.setItem('profile_id', profileResponse.id);
-                localStorage.setItem('profile_user_id', profileResponse.user_id);
-                localStorage.setItem('profile_company_name', profileResponse.company_name);
-                localStorage.setItem('profile_business_ref_id', profileResponse.business_ref_id);
-                localStorage.setItem('profile_color', profileResponse.profile_color);
-                localStorage.setItem('profile_is_onboarded', profileResponse.is_onboarded.toString());
-                localStorage.setItem('profile_is_superadmin', profileResponse.is_superadmin.toString());
-                console.log("Profile data fetched:", profileResponse);
-                console.log("User info fetched:", userInfoResponse);
-            } catch (apiError) {
-                console.error('Failed to fetch profile:', apiError);
-                setProfileError(apiError?.detail || 'Failed to load profile information.');
+                // Call /auth/me endpoint
+                const response = await ProfileService.getProfile();
                 
-                // Handle 401 errors with auto-logout
-                if (handleAuthError(apiError)) {
-                    // Auth error handled, user will be redirected
-                    return;
+                // Extract user and organization data from response
+                const { user, organization } = response;
+                
+                setUserData(user);
+                setOrganizationData(organization);
+
+                // Store individual profile fields in localStorage (for compatibility)
+                if (user) {
+                    localStorage.setItem('profile_id', user.id);
+                    localStorage.setItem('profile_owner_email', user.email);
+                    localStorage.setItem('primaryThemeColor', user.primaryThemeColor || '#007bff');
                 }
+                
+                if (organization) {
+                    localStorage.setItem('profile_company_name', organization.companyName);
+                    localStorage.setItem('profile_gstin', organization.gstin);
+                    localStorage.setItem('profile_owner_email', organization.ownerEmail);
+                }
+
+                console.log("User data loaded:", user);
+                console.log("Organization data loaded:", organization);
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+                setProfileError('Failed to load profile information.');
             } finally {
                 setIsLoadingProfile(false);
             }
@@ -69,29 +62,27 @@ const ProfilePage = () => {
     }, []);
 
     const renderContent = () => {
-        // Profile loading is now handled by DashboardLayout
-        if (profileError) return <div className="profile-card error-message">{profileError}</div>;
-        if (!profileData) return <div className="profile-card">Could not load profile data.</div>;
-        return <UserInfo profile={profileData} userInfo={userInfo} />;
+        if (isLoadingProfile) {
+            return <div className="profile-card">Loading profile...</div>;
+        }
+        if (profileError) {
+            return <div className="profile-card error-message">{profileError}</div>;
+        }
+        if (!userData || !organizationData) {
+            return <div className="profile-card">Could not load profile data.</div>;
+        }
+        return <UserInfo user={userData} organization={organizationData} />;
     };
 
     return (
         <div className="profile-container" style={themeColors}>
-            <div className="profile-sidebar">
-                <h3>User Profile</h3>
-            </div>
             <div className="profile-content">{renderContent()}</div>
         </div>
     );
 };
 
 // UserInfo component - Display only, no editing
-const UserInfo = ({ profile, userInfo }) => {
-    // Split username into first and last name
-    const nameParts = userInfo?.username?.split(' ') || [];
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
-
+const UserInfo = ({ user, organization }) => {
     return (
         <div className="profile-card">
             <h4>Your account information</h4>
@@ -100,9 +91,10 @@ const UserInfo = ({ profile, userInfo }) => {
                      <img src={DefaultAvatar} alt="User Avatar" className="avatar-img" />
                  </div>
                  <div className="avatar-details">
-                     <h5>{profile?.company_name || 'Company Name'}</h5>
-                     <p>Business Ref: {profile?.business_ref_id || 'N/A'}</p>
-                      <p>Role: {profile?.is_superadmin ? 'Super Admin' : 'Admin'}</p>
+                     <h5>{organization?.companyName || 'Company Name'}</h5>
+                     <p>Email: {organization?.ownerEmail || 'N/A'}</p>
+                     <p>Role: {user?.role || 'N/A'}</p>
+                     <p>Status: {user?.status || 'N/A'}</p>
                  </div>
             </div>
             <div className="info-form">
@@ -111,7 +103,7 @@ const UserInfo = ({ profile, userInfo }) => {
                          <label>First Name</label>
                          <input 
                              type="text" 
-                             value={firstName} 
+                             value={user?.firstName || ''} 
                              disabled 
                              className="profile-input-disabled"
                          />
@@ -120,7 +112,7 @@ const UserInfo = ({ profile, userInfo }) => {
                          <label>Last Name</label>
                          <input 
                              type="text" 
-                             value={lastName} 
+                             value={user?.lastName || ''} 
                              disabled 
                              className="profile-input-disabled"
                          />
@@ -131,7 +123,7 @@ const UserInfo = ({ profile, userInfo }) => {
                          <label>Location</label>
                          <input 
                              type="text" 
-                             value={userInfo?.location || 'N/A'} 
+                             value={user?.location || 'N/A'} 
                              disabled 
                              className="profile-input-disabled"
                          />
@@ -140,7 +132,7 @@ const UserInfo = ({ profile, userInfo }) => {
                          <label>Mobile Number</label>
                          <input 
                              type="tel" 
-                             value={userInfo?.mobile_number || 'N/A'} 
+                             value={user?.mobileNumber || 'N/A'} 
                              disabled 
                              className="profile-input-disabled"
                          />
@@ -151,7 +143,7 @@ const UserInfo = ({ profile, userInfo }) => {
                          <label>GSTIN</label>
                          <input 
                              type="text" 
-                             value={userInfo?.gstin || 'N/A'} 
+                             value={organization?.gstin || 'N/A'} 
                              disabled 
                              className="profile-input-disabled"
                          />
@@ -160,7 +152,27 @@ const UserInfo = ({ profile, userInfo }) => {
                          <label>Email</label>
                          <input 
                              type="email" 
-                             value={userInfo?.email || ''} 
+                             value={user?.email || ''} 
+                             disabled 
+                             className="profile-input-disabled"
+                         />
+                     </div>
+                </div>
+                <div className="form-row">
+                     <div className="form-group">
+                         <label>Company Name</label>
+                         <input 
+                             type="text" 
+                             value={organization?.companyName || 'N/A'} 
+                             disabled 
+                             className="profile-input-disabled"
+                         />
+                     </div>
+                     <div className="form-group">
+                         <label>Organization ID</label>
+                         <input 
+                             type="text" 
+                             value={organization?._id || 'N/A'} 
                              disabled 
                              className="profile-input-disabled"
                          />

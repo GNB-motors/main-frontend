@@ -1,0 +1,213 @@
+/* Route Creator uses form-section styling to match TripForm */
+.form-section {
+  border: 1px solid #ecf0f1;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.form-section legend {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  padding: 0 8px;
+  background: white;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label,
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input {
+  padding: 12px 14px;
+  border: 2px solid #ecf0f1;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #2c3e50;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #00c896;
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.1);
+}
+
+.form-input::placeholder {
+  color: #bcc0c8;
+}
+
+.form-input[type='number']::-webkit-outer-spin-button,
+.form-input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.form-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Toggle group styling */
+.toggle-group {
+  display: flex;
+  border: 2px solid #ecf0f1;
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.toggle-btn {
+  padding: 10px 16px;
+  border: none;
+  background: white;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-right: 1px solid #ecf0f1;
+}
+
+.toggle-btn:last-child {
+  border-right: none;
+}
+
+.toggle-btn:hover {
+  background: #f9fafb;
+}
+
+.toggle-btn.active {
+  background: #00c896;
+  color: white;
+}
+
+/* Location input group */
+.location-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.location-input {
+  flex: 1;
+  cursor: pointer;
+}
+
+.map-select-btn {
+  padding: 12px;
+  background: #00c896;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-width: 44px;
+  flex-shrink: 0;
+}
+
+.map-select-btn:hover {
+  background: #00b876;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 200, 150, 0.25);
+}
+
+.location-details {
+  font-size: 11px;
+  color: #64748b;
+  font-style: italic;
+  margin-top: 4px;
+  display: block;
+}
+
+.distance-calculation {
+  font-size: 11px;
+  color: #00c896;
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .form-section {
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-group label,
+  .form-label {
+    font-size: 12px;
+  }
+  
+  .form-input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .toggle-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  
+  .map-select-btn {
+    padding: 10px;
+    min-width: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-section {
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  
+  .form-group {
+    margin-bottom: 14px;
+  }
+  
+  .form-group label,
+  .form-label {
+    font-size: 11px;
+    letter-spacing: 0.3px;
+  }
+  
+  .form-input {
+    padding: 9px 11px;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+  
+  .toggle-btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  
+  .map-select-btn {
+    padding: 9px;
+    min-width: 38px;
+  }
+}

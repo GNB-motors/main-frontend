@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Menu } from 'lucide-react';
 import { getPrimaryColor, getThemeCSS } from '../utils/colorTheme';
+import { useTripCreationContext } from '../contexts/TripCreationContext';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { stepName } = useTripCreationContext();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [activeTripsCount, setActiveTripsCount] = useState(0);
     
@@ -42,6 +44,17 @@ const Navbar = ({ toggleSidebar }) => {
     }, []);
     
     const getPageTitle = () => {
+        // If stepName is provided (trip creation flow), display it
+        if (stepName) return stepName;
+        
+        // Handle trip detail pages
+        if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
+            return '';
+        }
+        if (location.pathname.match(/^\/trip-management\/weight-slip\/[a-f0-9]+$/)) {
+            return 'Trip Details';
+        }
+        
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path
         return path.charAt(0).toUpperCase() + path.slice(1);
@@ -83,15 +96,6 @@ const Navbar = ({ toggleSidebar }) => {
                     </>
                 )}
 
-                {!isTripsPage && isRefuelLogsPage && (
-                    <button
-                        className="btn btn-primary trip-action-btn"
-                        onClick={() => navigate('/refuel/new')}
-                    >
-                        <Plus size={16} />
-                        <span>Add Refuel</span>
-                    </button>
-                )}
             </div>
         </header>
     );

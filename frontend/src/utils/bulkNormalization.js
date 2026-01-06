@@ -44,7 +44,18 @@ const VEHICLE_ALIAS_MAP = {
     "regnumber",
     "regnum",
   ],
-  vehicle_type: ["vehicle_type", "type", "category", "bodytype"],
+  model: [
+    "model",
+    "vehicle_model",
+    "model_no",
+    "model_number",
+    "vehicle model",
+    "modelno",
+    "vehicle_type",
+    "type",
+    "category",
+    "bodytype",
+  ],
   chassis_number: ["chassis_number", "chassis", "vin", "vinnumber", "serialnumber"],
 };
 
@@ -91,7 +102,7 @@ const detectColumnMappings = (rows, mode = "vehicles") => {
           aliasScore: {
             registration: 0,
             chassis: 0,
-            type: 0,
+            model: 0,
             name: 0,
             role: 0
           }
@@ -110,7 +121,7 @@ const detectColumnMappings = (rows, mode = "vehicles") => {
     // Header Heuristics
     if (aliases.registration_no?.some(a => cleanKey.includes(sanitizeKey(a)))) stats.aliasScore.registration = 100;
     if (aliases.chassis_number?.some(a => cleanKey.includes(sanitizeKey(a)))) stats.aliasScore.chassis = 100;
-    if (aliases.vehicle_type?.some(a => cleanKey.includes(sanitizeKey(a)))) stats.aliasScore.type = 100;
+    if (aliases.model?.some(a => cleanKey.includes(sanitizeKey(a)))) stats.aliasScore.model = 100;
     if (aliases.name?.some(a => cleanKey.includes(sanitizeKey(a)))) stats.aliasScore.name = 100;
     if (aliases.role?.some(a => cleanKey.includes(sanitizeKey(a)))) stats.aliasScore.role = 100;
 
@@ -158,7 +169,7 @@ const detectColumnMappings = (rows, mode = "vehicles") => {
       // Prioritize explicit header match
       if (field === "registration_no" && stats.aliasScore.registration) score += 1000;
       if (field === "chassis_number" && stats.aliasScore.chassis) score += 1000;
-      if (field === "vehicle_type" && stats.aliasScore.type) score += 1000;
+      if (field === "model" && stats.aliasScore.model) score += 1000;
       if (field === "name" && stats.aliasScore.name) score += 1000;
       if (field === "role" && stats.aliasScore.role) score += 1000;
       // For drivers, vehicle_registration_no uses registration alias
@@ -173,7 +184,7 @@ const detectColumnMappings = (rows, mode = "vehicles") => {
         if (regPercent > 50) score += regPercent;
       }
       if (field === "chassis_number" && chassisPercent > 50) score += chassisPercent;
-      if (field === "vehicle_type" && typePercent > 50) score += typePercent;
+      if (field === "model" && typePercent > 50) score += typePercent;
 
       if (score > maxScore && score > 0) {
         maxScore = score;
@@ -190,7 +201,7 @@ const detectColumnMappings = (rows, mode = "vehicles") => {
   if (mode === "vehicles") {
     findBestKey("registration_no");
     findBestKey("chassis_number");
-    findBestKey("vehicle_type");
+    findBestKey("model");
   } else {
     findBestKey("name");
     findBestKey("vehicle_registration_no");
@@ -220,7 +231,7 @@ export const normalizeVehicleDataset = (rows) => {
 
   return rows.map(row => {
     const regValue = mapping.registration_no ? row[mapping.registration_no] : "";
-    const typeValue = mapping.vehicle_type ? row[mapping.vehicle_type] : "";
+    const modelValue = mapping.model ? row[mapping.model] : "";
     const chassisValue = mapping.chassis_number ? row[mapping.chassis_number] : "";
 
     // Fallback for extra fields: exclude keys used in mapping
@@ -228,7 +239,7 @@ export const normalizeVehicleDataset = (rows) => {
     
     return {
       registration_no: standardizeRegistration(regValue),
-      vehicle_type: normalizeWhitespace(typeValue),
+      model: normalizeWhitespace(modelValue),
       chassis_number: standardizeChassis(chassisValue),
       extra: buildExtraFields(row, rowUsedKeys)
     };
@@ -262,8 +273,11 @@ export const validateVehicleRow = (row) => {
   if (!row.registration_no || !REGISTRATION_REGEX.test(row.registration_no)) {
     issues.push("Registration number must be at least 5 characters (A-Z/0-9).");
   }
-  if (row.chassis_number && !CHASSIS_REGEX.test(row.chassis_number)) {
-    issues.push("Chassis number must be at least 6 alphanumeric characters.");
+  if (!row.model || row.model.trim().length < 2) {
+    issues.push("Model is required (at least 2 characters).");
+  }
+  if (!row.chassis_number || !CHASSIS_REGEX.test(row.chassis_number)) {
+    issues.push("Chassis number is required (at least 6 alphanumeric characters).");
   }
   return issues;
 };

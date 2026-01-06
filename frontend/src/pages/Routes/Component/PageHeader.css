@@ -1,0 +1,148 @@
+/* Page Header Container */
+.page-header-container {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Breadcrumb Navigation */
+.page-header-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+/* Back Button */
+.page-header-back-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--core-semantics-universal-white, white);
+  border: 1px solid var(--core-morning-fog-solids-morning-fog-700, #DFDFE2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-header-back-button:hover {
+  background: var(--core-morning-fog-solids-morning-fog-900, #F8F8FB);
+  border-color: var(--core-midnight-black-solids-midnight-black-800, #171719);
+}
+
+.page-header-back-button:active {
+  transform: scale(0.95);
+}
+
+/* Back Label */
+.page-header-back-label {
+  color: var(--core-midnight-black-solids-midnight-black-800, #171719);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.page-header-back-label:hover {
+  color: var(--core-midnight-black-solids-midnight-black-600, #52525B);
+}
+
+/* Separator */
+.page-header-separator {
+  color: var(--alias-type-type-secondary, #5D5D5E);
+  font-weight: 400;
+}
+
+/* Current Label */
+.page-header-current-label {
+  color: var(--alias-type-type-secondary, #5D5D5E);
+  font-weight: 500;
+}
+
+/* Page Content */
+.page-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Page Title */
+.page-header-title {
+  color: var(--alias-type-type-primary, #121214);
+  font-size: 32px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  line-height: 40px;
+  margin: 0;
+}
+
+/* Page Description */
+.page-header-description {
+  color: var(--alias-type-type-secondary, #5D5D5E);
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  line-height: 24px;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-header-container {
+    padding: 20px 0;
+    gap: 12px;
+  }
+
+  .page-header-title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .page-header-description {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .page-header-breadcrumb {
+    font-size: 13px;
+  }
+
+  .page-header-back-button {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header-container {
+    padding: 16px 0;
+    gap: 8px;
+  }
+
+  .page-header-title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .page-header-description {
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .page-header-breadcrumb {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .page-header-back-button {
+    width: 24px;
+    height: 24px;
+  }
+}

@@ -10,6 +10,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
   Truck,
@@ -22,13 +25,16 @@ import {
   Users,
   User,
   ChevronDown,
+  DollarSign,
+  Calendar,
+  Filter,
+  TrendingUpIcon,
+  Activity,
 } from "lucide-react";
-import { useProfile } from "../Profile/ProfileContext.jsx";
 import { OverviewService } from "./OverviewService.jsx";
-import "./OverviewPage.css"; // New CSS file for this page
+import "./OverviewPage.css";
 
 // --- Helper Functions ---
-// Re-using the getInitials function from your DriversPage
 const getInitials = (name) => {
   if (!name) return "?";
   const parts = name.split(" ");
@@ -45,448 +51,647 @@ const getRatingColor = (rating) => {
   return "#EF4444"; // Red
 };
 
-// --- Mock Data (will be replaced by API on load) ---
-
-// For KPI Cards (from /vehicles and /drivers endpoints)
-const mockKpiData = {
-  totalVehicles: 12,
-  totalKms: 18450.5,
-  avgVariance: -0.85, // Fleet-wide average
-  totalOutliers: 14, // Total outlier instances this month
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
 };
 
-// For Line/Bar Charts (from new /daily-summary endpoint)
-const mockDailyChartData = [
-  { date: "Oct 20", variance: 0.5, outliers: 1 },
-  { date: "Oct 21", variance: -1.2, outliers: 3 },
-  { date: "Oct 22", variance: -0.3, outliers: 2 },
-  { date: "Oct 23", variance: 0.1, outliers: 0 },
-  { date: "Oct 24", variance: -1.9, outliers: 4 },
-  { date: "Oct 25", variance: -0.7, outliers: 2 },
-  { date: "Oct 26", variance: 0.2, outliers: 0 },
-];
+const formatNumber = (value) => {
+  return new Intl.NumberFormat("en-IN").format(value || 0);
+};
 
-// For Driver Lists (from /drivers endpoint)
-const mockDriverData = [
-  { id: "1", name: "Amitansu", rating: 4.8, variance: 0.06 },
-  { id: "2", name: "Rohan Sharma", rating: 4.5, variance: 0.02 },
-  { id: "3", name: "Priya Singh", rating: 3.1, variance: -1.1 },
-  { id: "4", name: "Sanjay Verma", rating: 2.1, variance: -2.8 },
-  { id: "5", name: "Deepak Kumar", rating: 1.8, variance: -3.4 },
-];
+const getDateLabel = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+};
 
 // --- Sub-Components ---
 
+// 0. Date Range Selector
+const DateRangeSelector = ({ onDaysChange, onDateRangeChange, selectedDays }) => {
+  const [showCustom, setShowCustom] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const customBtnRef = React.useRef(null);
+
+  const quickOptions = [
+    { label: "Last 7 Days", days: 7 },
+    { label: "Last 14 Days", days: 14 },
+    { label: "Last 30 Days", days: 30 },
+    { label: "Last 90 Days", days: 90 },
+  ];
+
+  const handleQuickSelect = (days) => {
+    setShowCustom(false);
+    onDaysChange(days);
+    onDateRangeChange(null, null);
+  };
+
+  const handleCustomApply = () => {
+    if (startDate && endDate) {
+      onDateRangeChange(startDate, endDate);
+      setShowCustom(false);
+    }
+  };
+
+  return (
+    <div className="date-range-selector">
+      <div className="date-selector-header">
+        <Calendar size={18} />
+        <span className="date-selector-label">Date Range</span>
+      </div>
+
+      <div className="date-quick-options">
+        {quickOptions.map((opt) => (
+          <button
+            key={opt.days}
+            className={`quick-option-btn ${selectedDays === opt.days ? "active" : ""}`}
+            onClick={() => handleQuickSelect(opt.days)}
+          >
+            {opt.label}
+          </button>
+        ))}
+        <div className="custom-wrapper" ref={customBtnRef}>
+          <button
+            className={`quick-option-btn ${showCustom ? "active" : ""}`}
+            onClick={() => setShowCustom(!showCustom)}
+          >
+            Custom
+          </button>
+          {showCustom && (
+            <div className="custom-date-modal">
+              <div className="date-input-group">
+                <label>From</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="date-input"
+                />
+              </div>
+              <div className="date-input-group">
+                <label>To</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="date-input"
+                />
+              </div>
+              <button className="apply-date-btn" onClick={handleCustomApply}>
+                Apply
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 1. KPI Stat Card
-const StatCard = ({ title, value, icon }) => (
+const StatCard = ({ title, value, subtext, icon, trend }) => (
   <div className="stat-card">
-        <div className="stat-icon-wrapper">      {icon}    </div>   {" "}
+    <div className="stat-icon-wrapper">{icon}</div>
     <div className="stat-content">
-            <h4 className="stat-title">{title}</h4>     {" "}
-      <p className="stat-value">{value}</p>   {" "}
+      <h4 className="stat-title">{title}</h4>
+      <p className="stat-value">{value}</p>
+      {subtext && <p className="stat-subtext">{subtext}</p>}
     </div>
-     {" "}
+    {trend && (
+      <div className={`stat-trend ${trend.direction}`}>
+        {trend.direction === "up" ? (
+          <TrendingUp size={16} />
+        ) : (
+          <TrendingDown size={16} />
+        )}
+        <span>{trend.value}%</span>
+      </div>
+    )}
   </div>
 );
 
-// 2. Average Variance Chart
-const VarianceChart = ({ data }) => (
-  <div className="chart-card large-chart">
-       {" "}
-    <div className="chart-header">
-            <h4>Average Variance (Last 7 Days)</h4>     {" "}
-      <select className="chart-filter" defaultValue="all">
-                <option value="all">All Vehicles</option>       {" "}
-        <option value="vehicle1">KA01AB1234</option>       {" "}
-        <option value="vehicle2">MH04CD5678</option>     {" "}
-      </select>
-         {" "}
-    </div>
-       {" "}
-    <div className="chart-wrapper">
-           {" "}
-      <ResponsiveContainer width="100%" height={300}>
-               {" "}
-        <LineChart
-          data={data}
-          margin={{ top: 5, right: 20, left: -20, bottom: 5 }}
-        >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" fontSize={12} />
-                   {" "}
-          <YAxis
-            fontSize={12}
-            label={{ value: "km/l", angle: -90, position: "insideLeft" }}
-          />
-                    <Tooltip />
-                    <Legend />
-                   {" "}
-          <Line
-            type="monotone"
-            dataKey="variance"
-            name="Avg. Variance"
-            stroke="var(--primary-color, #3B82F6)"
-            strokeWidth={3}
-          />
-                 {" "}
-        </LineChart>
-             {" "}
-      </ResponsiveContainer>
-         {" "}
-    </div>
-     {" "}
-  </div>
-);
+// 2. Fuel Analytics Chart
+const FuelAnalyticsChart = ({ data, dateRange }) => {
+  const hasData = data && data.length > 0;
 
-// 3. Outlier Instances Chart
-const OutlierChart = ({ data }) => (
-  <div className="chart-card small-chart">
-       {" "}
-    <div className="chart-header">
-            <h4>Daily Outlier Instances</h4>   {" "}
-    </div>
-       {" "}
-    <div className="chart-wrapper">
-           {" "}
-      <ResponsiveContainer width="100%" height={300}>
-               {" "}
-        <BarChart
-          data={data}
-          margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
-        >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" fontSize={12} />
-                    <YAxis fontSize={12} />
-                    <Tooltip />
-                   {" "}
-          <Bar dataKey="outliers" name="Outlier Trips" fill="#EF4444" />     
-           {" "}
-        </BarChart>
-             {" "}
-      </ResponsiveContainer>
-         {" "}
-    </div>
-     {" "}
-  </div>
-);
-
-// 4. Driver List Card (Reusable for Best/Underperforming)
-const DriverList = ({ title, drivers, icon }) => (
-  <div className="driver-list-card">
-       {" "}
-    <div className="driver-list-header">
-            {icon}      <h4>{title}</h4>   {" "}
-    </div>
-       {" "}
-    <ul className="driver-list">
-           {" "}
-      {drivers.length === 0 ? (
-        <p className="no-drivers-message">No drivers match this criteria.</p>
+  return (
+    <div className="chart-card large-chart">
+      <div className="chart-header">
+        <div>
+          <h4>Fuel Consumption Variance</h4>
+          <p className="chart-subtext">Daily fuel efficiency variance (km/l)</p>
+        </div>
+      </div>
+      {hasData ? (
+        <div className="chart-wrapper">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis
+                dataKey="date"
+                fontSize={12}
+                tickFormatter={(value) => getDateLabel(value)}
+              />
+              <YAxis
+                fontSize={12}
+                label={{ value: "km/l", angle: -90, position: "insideLeft" }}
+              />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#fff", border: "1px solid #E5E7EB" }}
+                formatter={(value) => value.toFixed(2)}
+                labelFormatter={(label) => getDateLabel(label)}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="averageVariance"
+                name="Avg. Variance"
+                stroke="#3B82F6"
+                strokeWidth={2}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       ) : (
-        drivers.map((driver) => (
-          <li key={driver.id} className="driver-item">
-                       {" "}
-            <div
-              className="driver-avatar"
-              style={{
-                backgroundColor: "var(--primary-light)",
-                color: "var(--primary-color)",
-              }}
-            >
-                            {getInitials(driver.name)}           {" "}
-            </div>
-                       {" "}
-            <div className="driver-info">
-                            <strong>{driver.name}</strong>             {" "}
-              <span>Avg. Variance: {driver.variance.toFixed(2)} km/l</span>     
-                   {" "}
-            </div>
-                       {" "}
-            <div
-              className="driver-rating"
-              style={{ color: getRatingColor(driver.rating) }}
-            >
-                            <Star size={16} />             {" "}
-              <span>{driver.rating.toFixed(1)}</span>           {" "}
-            </div>
-                     {" "}
-          </li>
-        ))
+        <div className="no-data-placeholder">No variance data available</div>
       )}
-         {" "}
-    </ul>
-     {" "}
-  </div>
-);
+    </div>
+  );
+};
+
+// 3. Outlier Detection Chart
+const OutlierChart = ({ data, dateRange }) => {
+  const hasData = data && data.length > 0;
+
+  return (
+    <div className="chart-card small-chart">
+      <div className="chart-header">
+        <div>
+          <h4>Daily Outliers</h4>
+          <p className="chart-subtext">Abnormal fuel consumption days</p>
+        </div>
+      </div>
+      {hasData ? (
+        <div className="chart-wrapper">
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis
+                dataKey="date"
+                fontSize={12}
+                tickFormatter={(value) => getDateLabel(value)}
+              />
+              <YAxis fontSize={12} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#fff", border: "1px solid #E5E7EB" }}
+                labelFormatter={(label) => getDateLabel(label)}
+              />
+              <Bar
+                dataKey="outlierCount"
+                name="Outlier Count"
+                fill="#EF4444"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="no-data-placeholder">No outlier data available</div>
+      )}
+    </div>
+  );
+};
+
+// 4. Driver Performance Card
+const DriverPerformanceCard = ({ data, icon, title }) => {
+  if (!data) {
+    return (
+      <div className="driver-card">
+        <div className="driver-card-header">
+          {icon}
+          <h4>{title}</h4>
+        </div>
+        <p className="no-drivers-message">No data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="driver-card">
+      <div className="driver-card-header">
+        {icon}
+        <h4>{title}</h4>
+      </div>
+      <div className="driver-card-content">
+        <div className="driver-avatar" style={{ backgroundColor: "#E0F2FE", color: "#0284C7" }}>
+          {getInitials(data.driverName)}
+        </div>
+        <div className="driver-details">
+          <h5>{data.driverName}</h5>
+          {data.mobileNumber && <p className="driver-mobile">{data.mobileNumber}</p>}
+          <div className="driver-stats">
+            <span className="stat-badge">
+              <span className="badge-label">Trips:</span> {data.tripCount || 0}
+            </span>
+            <span className="stat-badge">
+              <span className="badge-label">Fuel:</span>{" "}
+              {formatNumber(data.totalFuelLitres || 0)} L
+            </span>
+          </div>
+        </div>
+        <div className="driver-rating" style={{ color: getRatingColor(data.rating) }}>
+          <Star size={18} fill="currentColor" />
+          <span>{(data.rating || 0).toFixed(1)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 5. Underperforming Drivers List
+const UnderperformingDriversList = ({ drivers, icon, title }) => {
+  return (
+    <div className="driver-list-card">
+      <div className="driver-list-header">
+        {icon}
+        <h4>{title}</h4>
+      </div>
+      {drivers && drivers.length > 0 ? (
+        <ul className="driver-list">
+          {drivers.map((driver) => (
+            <li key={driver.driverId || driver.id} className="driver-item">
+              <div className="driver-avatar" style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}>
+                {getInitials(driver.driverName)}
+              </div>
+              <div className="driver-info">
+                <strong>{driver.driverName}</strong>
+                {driver.mobileNumber && <span>{driver.mobileNumber}</span>}
+              </div>
+              <div className="driver-rating" style={{ color: getRatingColor(driver.rating) }}>
+                <Star size={16} fill="currentColor" />
+                <span>{(driver.rating || 0).toFixed(1)}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="no-drivers-message">No underperforming drivers</p>
+      )}
+    </div>
+  );
+};
+
+// 6. Financial Summary Card
+const FinancialSummaryCard = ({ data }) => {
+  if (!data || !data.summary) {
+    return (
+      <div className="financial-summary-card">
+        <h4>Financial Summary</h4>
+        <p className="no-drivers-message">No financial data available</p>
+      </div>
+    );
+  }
+
+  const { summary } = data;
+  const profitColor = (summary.netProfit || 0) >= 0 ? "#10B981" : "#EF4444";
+
+  return (
+    <div className="financial-summary-card">
+      <h4>Financial Summary</h4>
+      <div className="financial-metrics">
+        <div className="financial-metric">
+          <span className="metric-label">Total Revenue</span>
+          <span className="metric-value" style={{ color: "#10B981" }}>
+            {formatCurrency(summary.totalRevenue || 0)}
+          </span>
+        </div>
+        <div className="financial-metric">
+          <span className="metric-label">Total Expenses</span>
+          <span className="metric-value" style={{ color: "#EF4444" }}>
+            {formatCurrency(summary.totalExpenses || 0)}
+          </span>
+        </div>
+        <div className="financial-metric">
+          <span className="metric-label">Net Profit</span>
+          <span className="metric-value" style={{ color: profitColor, fontWeight: 700 }}>
+            {formatCurrency(summary.netProfit || 0)}
+          </span>
+        </div>
+        <div className="financial-metric">
+          <span className="metric-label">Profit Margin</span>
+          <span className="metric-value" style={{ color: "#F59E0B" }}>
+            {(summary.profitMargin || 0).toFixed(2)}%
+          </span>
+        </div>
+      </div>
+
+      {data.dailyTrend && data.dailyTrend.length > 0 && (
+        <div className="financial-chart-wrapper">
+          <h5>Daily Trend</h5>
+          <div className="mini-chart">
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={data.dailyTrend}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis
+                  dataKey="date"
+                  fontSize={12}
+                  tickFormatter={(value) => getDateLabel(value)}
+                />
+                <YAxis fontSize={12} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#fff", border: "1px solid #E5E7EB" }}
+                  formatter={(value) => formatCurrency(value)}
+                  labelFormatter={(label) => getDateLabel(label)}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  name="Revenue"
+                  stroke="#10B981"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="expenses"
+                  name="Expenses"
+                  stroke="#EF4444"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="profit"
+                  name="Profit"
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- Main OverviewPage Component ---
 const OverviewPage = () => {
-  const { profile } = useProfile();
-  const [kpiData, setKpiData] = useState(mockKpiData);
-  const [dailyChartData, setDailyChartData] = useState(mockDailyChartData);
-  const [driverData, setDriverData] = useState(mockDriverData);
+  // State for dashboard data
+  const [summaryData, setSummaryData] = useState(null);
+  const [fuelAnalytics, setFuelAnalytics] = useState(null);
+  const [driverPerformance, setDriverPerformance] = useState(null);
+  const [financials, setFinancials] = useState(null);
 
-  // --- WS: OTP handling state ---
-  const [sessionId, setSessionId] = useState(() => {
-    const existing = localStorage.getItem("wsSessionId");
-    if (existing) return existing;
-    const gen =
-      window.crypto && window.crypto.randomUUID
-        ? window.crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    localStorage.setItem("wsSessionId", gen);
-    return gen;
-  });
-  const [showOtp, setShowOtp] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [otpStatus, setOtpStatus] = useState(null); // 'ok' | 'error' | null
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const WS_URL = useMemo(() => {
-    const api = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-    return api.replace(/^http/, "ws");
-  }, []);
+  // Date range parameters
+  const [selectedDays, setSelectedDays] = useState(7);
+  const [customDateRange, setCustomDateRange] = useState(null);
+  const [dateRange, setDateRange] = useState(null);
 
-  const ws = useMemo(() => {
-    try {
-      return new WebSocket(`${WS_URL}/ws/automation?sessionId=${sessionId}`);
-    } catch (e) {
-      return null;
-    }
-  }, [WS_URL, sessionId]);
-
+  // Fetch all dashboard data
   useEffect(() => {
-    if (!ws) return;
-    ws.onopen = () => {
-      // Optionally notify ready
-    };
-    ws.onmessage = (e) => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === "otp_required") {
-          setOtpStatus(null);
-          setOtpValue("");
-          setShowOtp(true);
-        } else if (msg.type === "otp_result") {
-          if (msg.ok) {
-            setOtpStatus("ok");
-            setShowOtp(false);
-            setOtpValue("");
-          } else {
-            setOtpStatus("error");
-          }
+        let params = {};
+
+        // Use custom date range if selected, otherwise use days
+        if (customDateRange && customDateRange.start && customDateRange.end) {
+          params.startDate = new Date(customDateRange.start).toISOString();
+          params.endDate = new Date(customDateRange.end).toISOString();
+        } else {
+          params.days = selectedDays;
+        }
+
+        // Fetch all data in parallel
+        const [summary, fuel, drivers, fin] = await Promise.all([
+          OverviewService.getDashboardSummary(params),
+          OverviewService.getFuelAnalytics(params),
+          OverviewService.getDriverPerformance(params),
+          OverviewService.getFinancials(params),
+        ]);
+
+        setSummaryData(summary?.summaryCards);
+        setFuelAnalytics(fuel);
+        setDriverPerformance(drivers);
+        setFinancials(fin);
+        
+        // Set the date range from the response
+        if (summary?.dateRange) {
+          setDateRange(summary.dateRange);
         }
       } catch (err) {
-        // ignore malformed
+        console.error("Failed to fetch dashboard data:", err);
+        setError(err.detail || "Could not load dashboard data. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     };
-    ws.onclose = () => {
-      // no-op
-    };
-    return () => {
-      try {
-        ws.close();
-      } catch {}
-    };
-  }, [ws]);
 
-  const submitOtp = () => {
-    if (!ws || !otpValue) return;
-    ws.send(JSON.stringify({ type: "otp_submit", otp: otpValue }));
+    fetchDashboardData();
+  }, [selectedDays, customDateRange]);
+
+  const handleDaysChange = (days) => {
+    setSelectedDays(days);
+    setCustomDateRange(null);
   };
 
-  useEffect(() => {
-    const loadOverview = async () => {
-      const businessRefId = profile?.business_ref_id;
-      const token = localStorage.getItem("authToken");
-      if (!businessRefId || !token) return;
-      try {
-        const data = await OverviewService.getOverview(
-          businessRefId,
-          {},
-          token,
-        );
-        const nextKpis = {
-          totalVehicles: data?.kpis?.totalVehicles ?? 0,
-          totalKms: data?.kpis?.totalKms ?? 0,
-          avgVariance: data?.kpis?.avgVariance ?? 0,
-          totalOutliers: data?.kpis?.totalOutliers ?? 0,
-        };
-        setKpiData(nextKpis);
-        setDailyChartData(Array.isArray(data?.daily) ? data.daily : []);
+  const handleDateRangeChange = (start, end) => {
+    if (start && end) {
+      setCustomDateRange({ start, end });
+    }
+  };
 
-        const drivers = [];
-        if (data?.bestDriver) drivers.push(data.bestDriver);
-        if (Array.isArray(data?.underperformingDrivers))
-          drivers.push(...data.underperformingDrivers);
-        setDriverData(drivers);
-      } catch (e) {
-        // Silently keep mocks on failure; consider toast/error later
-        console.error("Failed to load overview:", e);
-      }
-    };
-    loadOverview();
-  }, [profile?.business_ref_id]); // Memoized calculations based on mock data
+  if (isLoading) {
+    return (
+      <div className="overview-page">
+        <div className="loading-state">
+          <div className="loader-spinner"></div>
+          <p>Loading dashboard analytics...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const { bestDriver, underperformingDrivers } = useMemo(() => {
-    if (!driverData || driverData.length === 0) {
-      return { bestDriver: null, underperformingDrivers: [] };
-    } // Find the best driver (highest rating)
-
-    const best = [...driverData].sort((a, b) => b.rating - a.rating)[0]; // Find underperforming drivers (rating < 2.5)
-
-    const underperforming = driverData
-      .filter((driver) => driver.rating < 2.5)
-      .sort((a, b) => a.rating - b.rating); // Show worst first
-
-    return { bestDriver: best, underperformingDrivers: underperforming };
-  }, [driverData]);
+  if (error) {
+    return (
+      <div className="overview-page">
+        <div className="error-state">
+          <AlertTriangle size={40} />
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="retry-btn"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="overview-page">
-                 {" "}
+      {/* Header with Date Filter */}
       <div className="overview-header">
-                       {" "}
-        <h2>Welcome back, {profile?.company_name || "Fleet Manager"}!</h2>     
-                  <p>Here's a summary of your fleet's performance.</p>         
-         {" "}
-      </div>
-                  {/* 1. KPI Cards Row */}           {" "}
-      <div className="overview-grid kpi-grid">
-                       {" "}
-        <StatCard
-          title="Vehicles Subscribed"
-          value={kpiData.totalVehicles}
-          icon={<Truck size={22} />}
-        />
-                       {" "}
-        <StatCard
-          title="Total KMs Monitored"
-          value={`${kpiData.totalKms.toLocaleString()} km`}
-          icon={<Map size={22} />}
-        />
-                       {" "}
-        <StatCard
-          title="Average Variance"
-          value={`${kpiData.avgVariance.toFixed(2)} km/l`}
-          icon={<TrendingUp size={22} />}
-        />
-                       {" "}
-        <StatCard
-          title="Outlier Instances"
-          value={kpiData.totalOutliers}
-          icon={<AlertTriangle size={22} />}
-        />
-                   {" "}
-      </div>
-                  {/* 2. Charts Row */}           {" "}
-      <div className="overview-grid chart-grid">
-                        <VarianceChart data={dailyChartData} />
-                        <OutlierChart data={dailyChartData} />           {" "}
-      </div>
-                  {/* 3. Driver Lists Row */}           {" "}
-      <div className="overview-grid driver-grid">
-                       {" "}
-        {bestDriver && (
-          <DriverList
-            title="Best Driver"
-            drivers={[bestDriver]}
-            icon={<Trophy size={20} color="#F59E0B" />}
+        <div className="header-content">
+          <div>
+            <h2>Dashboard Overview</h2>
+            <p>Complete fleet analytics and performance metrics</p>
+          </div>
+          <DateRangeSelector
+            onDaysChange={handleDaysChange}
+            onDateRangeChange={handleDateRangeChange}
+            selectedDays={selectedDays}
           />
-        )}
-                       {" "}
-        <DriverList
-          title="Underperforming Drivers (< 2.5 Rating)"
-          drivers={underperformingDrivers}
-          icon={<TrendingDown size={20} color="#EF4444" />}
-        />
-                   {" "}
+        </div>
       </div>
-                  {/* OTP Modal */}           {" "}
-      {showOtp && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-                             {" "}
-          <div
-            style={{
-              background: "#fff",
-              padding: "20px",
-              borderRadius: "8px",
-              width: "320px",
-            }}
-          >
-                                    <h4>Enter OTP</h4>                       {" "}
-            <p style={{ fontSize: "12px", color: "#666" }}>
-              We sent an OTP to your registered method.
-            </p>
-                                   {" "}
-            <input
-              value={otpValue}
-              onChange={(e) => setOtpValue(e.target.value)}
-              placeholder="6-digit OTP"
-              style={{
-                width: "100%",
-                padding: "10px",
-                marginTop: "10px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-              }}
+
+      {/* 1. Summary KPI Cards Row */}
+      <div className="section-title">Fleet Overview</div>
+      <div className="overview-grid kpi-grid">
+        {summaryData?.vehicles && (
+          <>
+            <StatCard
+              title="Total Vehicles"
+              value={formatNumber(summaryData.vehicles.total || 0)}
+              subtext={`${formatNumber(summaryData.vehicles.active || 0)} active • ${formatNumber(summaryData.vehicles.onTrip || 0)} on trip`}
+              icon={<Truck size={22} />}
             />
-                                   {" "}
-            {otpStatus === "error" && (
-              <div
-                style={{ color: "#EF4444", fontSize: "12px", marginTop: "8px" }}
-              >
-                Invalid OTP. Try again.
+            <StatCard
+              title="Total Drivers"
+              value={formatNumber(summaryData.drivers?.total || 0)}
+              subtext={`${formatNumber(summaryData.drivers?.active || 0)} active`}
+              icon={<Users size={22} />}
+            />
+            <StatCard
+              title="Total Trips"
+              value={formatNumber(summaryData.trips?.total || 0)}
+              subtext={`${formatNumber(summaryData.trips?.completed || 0)} completed • ${formatNumber(summaryData.trips?.ongoing || 0)} ongoing`}
+              icon={<Activity size={22} />}
+            />
+            <StatCard
+              title="Distance Covered"
+              value={`${formatNumber(summaryData.kilometers?.total || 0)} km`}
+              icon={<Map size={22} />}
+            />
+          </>
+        )}
+      </div>
+
+      {/* 2. Fuel Metrics Row */}
+      {summaryData?.fuel && (summaryData.fuel.totalLitres > 0 || summaryData.fuel.totalCost > 0) && (
+        <>
+          <div className="section-title">Fuel Analytics</div>
+          <div className="overview-grid fuel-grid">
+            <StatCard
+              title="Total Fuel Consumed"
+              value={`${formatNumber(summaryData.fuel.totalLitres || 0)} L`}
+              subtext={`Total Cost: ${formatCurrency(summaryData.fuel.totalCost || 0)}`}
+              icon={<TrendingUp size={22} />}
+            />
+            <StatCard
+              title="Fleet Avg Efficiency"
+              value={`${(summaryData.fuel.avgKmpl || 0).toFixed(2)} km/l`}
+              subtext="Overall fuel efficiency"
+              icon={<TrendingUp size={22} />}
+            />
+            {fuelAnalytics?.summary && (
+              <>
+                <StatCard
+                  title="Avg Variance"
+                  value={`${(fuelAnalytics.summary.averageVariance || 0).toFixed(2)} km/l`}
+                  subtext={`Fleet-wide average: ${(fuelAnalytics.fleetWideAverageVariance || 0).toFixed(2)}`}
+                  icon={<TrendingUp size={22} />}
+                />
+                <StatCard
+                  title="Outliers Detected"
+                  value={formatNumber(fuelAnalytics.summary.outlierCount || 0)}
+                  subtext={`Out of ${formatNumber(fuelAnalytics.summary.totalTrips || 0)} trips`}
+                  icon={<AlertTriangle size={22} />}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Fuel Analytics Charts */}
+          {fuelAnalytics?.dailyVariance?.length > 0 && (
+            <div className="overview-grid chart-grid">
+              <FuelAnalyticsChart data={fuelAnalytics.dailyVariance} dateRange={dateRange} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 3. Financial Overview */}
+      {financials && financials.summary && (financials.summary.totalRevenue > 0 || financials.summary.totalExpenses > 0) && (
+        <>
+          <div className="section-title">Financial Overview</div>
+          <div className="overview-grid financial-grid">
+            <FinancialSummaryCard data={financials} />
+          </div>
+        </>
+      )}
+
+      {/* 4. Driver Performance Section */}
+      {driverPerformance && (driverPerformance.topPerformingDriver || driverPerformance.averageDriverRating) && (
+        <>
+          <div className="section-title">Driver Performance</div>
+          <div className="overview-grid driver-performance-grid">
+            {driverPerformance.topPerformingDriver && (
+              <DriverPerformanceCard
+                data={driverPerformance.topPerformingDriver}
+                icon={<Trophy size={20} style={{ color: "#F59E0B" }} />}
+                title="Top Performing Driver"
+              />
+            )}
+            {driverPerformance.averageDriverRating !== undefined && (
+              <div className="driver-card">
+                <div className="driver-card-header">
+                  <Star size={20} style={{ color: "#3B82F6" }} />
+                  <h4>Average Driver Rating</h4>
+                </div>
+                <div className="driver-card-content center">
+                  <div className="rating-display" style={{ color: getRatingColor(driverPerformance.averageDriverRating) }}>
+                    <div className="rating-number">{(driverPerformance.averageDriverRating || 0).toFixed(1)}</div>
+                    <div className="rating-stars">
+                      <Star size={20} fill="currentColor" />
+                    </div>
+                    <div className="rating-text">
+                      out of 5 ({formatNumber(driverPerformance.totalDrivers || 0)} drivers)
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
-                                   {" "}
-            <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                                         {" "}
-              <button
-                onClick={submitOtp}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  background: "var(--primary-color, #3B82F6)",
-                  color: "#fff",
-                  border: 0,
-                  borderRadius: "6px",
-                }}
-              >
-                                                Submit                          
-                 {" "}
-              </button>
-                                         {" "}
-              <button
-                onClick={() => setShowOtp(false)}
-                style={{
-                  padding: "10px",
-                  background: "#e5e7eb",
-                  color: "#111827",
-                  border: 0,
-                  borderRadius: "6px",
-                }}
-              >
-                                                Cancel                          
-                 {" "}
-              </button>
-                                     {" "}
-            </div>
-                               {" "}
           </div>
-                         {" "}
-        </div>
+
+          {/* Underperforming Drivers */}
+          {driverPerformance.underperformingDrivers && 
+           driverPerformance.underperformingDrivers.length > 0 && 
+           driverPerformance.underperformingDrivers[0].driverName && (
+            <div className="overview-grid">
+              <UnderperformingDriversList
+                drivers={driverPerformance.underperformingDrivers}
+                icon={<TrendingDown size={20} style={{ color: "#EF4444" }} />}
+                title="Underperforming Drivers"
+              />
+            </div>
+          )}
+        </>
       )}
-             {" "}
     </div>
   );
 };

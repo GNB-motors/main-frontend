@@ -5,16 +5,20 @@
 :root {
     /* Color Palette */
     --color-white: #ffffff;
+    --color-grey-50: #f9fafb;
     --color-grey-100: #f7f7f9;
     --color-grey-200: #e3e6ebff;
     --color-grey-300: #babfc5ff;
     --color-grey-400: #82868cff;
+    --color-grey-500: #6b7280;
     --color-grey-700: #1d212eff;
     --color-grey-800: #121625ff;
     --color-primary-100: #d4dbfcff;
     --color-primary-500: #2940d3ff;
     --color-primary-600: #1d30b5ff;
     --color-green-500: #2cc5bd;
+    --primary-color: #2940d3ff;
+    --primary-light: #eff6ff;
 
     /* Layout Dimensions */
     --navbar-height: 72px; /* Fixed navbar height for consistent positioning */

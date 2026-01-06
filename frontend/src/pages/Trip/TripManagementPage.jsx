@@ -1,21 +1,49 @@
 /**
  * TripManagementPage Component
  * 
- * Main page for viewing and managing all trips (active and completed).
+ * Main page for managing trips with 2 tabs:
+ * - Tab 1: Trips (weight slip trips from /weight-slip-trips endpoint)
+ * - Tab 2: Refuel (refuel journeys from /trips endpoint)
  * Features:
- * - Fixed header with filter tabs and search functionality
- * - Horizontal card layout displaying trip information
- * - Click-through to detailed trip view/edit page
- * - Real-time search across vehicle numbers, drivers, and locations
+ * - Tab navigation
+ * - Search and filter functionality
+ * - Card layout with trip information
+ * - Click-through to detailed view page
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { Search } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
+import { TripService, WeightSlipTripService } from './services';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();
+
+  // Tab and UI state
+  const [activeTab, setActiveTab] = useState('trips'); // 'trips' or 'refuel'
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Trips tab state (weight slip trips)
+  const [weightSlipTrips, setWeightSlipTrips] = useState([]);
+  const [loadingWeightSlipTrips, setLoadingWeightSlipTrips] = useState(false);
+  const [weightSlipPagination, setWeightSlipPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0
+  });
+
+  // Refuel tab state (trips)
+  const [refuelTrips, setRefuelTrips] = useState([]);
+  const [loadingRefuelTrips, setLoadingRefuelTrips] = useState(false);
+  const [refuelPagination, setRefuelPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0
+  });
+
   // Remove global page-content padding only for this page
   useEffect(() => {
     const pageContentEl = document.querySelector('.page-content');
@@ -28,163 +56,66 @@ const TripManagementPage = () => {
       }
     };
   }, []);
-  // page-content padding handled globally via route-based logic in DashboardLayout
-  
-  // UI state management
-  const [activeFilter, setActiveFilter] = useState('Active');
-  const [searchQuery, setSearchQuery] = useState('');
 
   /**
-   * Mock trips data
-   * TODO: Replace with API call to backend
-   * Structure includes both active and completed trips with full details
+   * Fetch weight slip trips from API
    */
-  const mockTrips = [
-    {
-      id: 1,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-01-1234',
-      driverName: 'Driver A (Devayan)',
-      startDate: '2025-12-05',
-      startLocation: 'Kolkata - 700001',
-      destination: 'Mumbai - 400001',
-      odometerStart: 12450,
-      odometerEnd: null,
-      payloadWeight: 8500,
-      lastRefillDate: '2025-12-04',
-      lastRefillQuantity: 120,
-      distance: null
-    },
-    {
-      id: 2,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-02-5678',
-      driverName: 'Driver B (Amitansu)',
-      startDate: '2025-12-03',
-      endDate: '2025-12-03',
-      startLocation: 'Ashta - 466114',
-      destination: 'Greater Thane - 421302',
-      odometerStart: 45200,
-      odometerEnd: 45380,
-      payloadWeight: 12000,
-      lastRefillDate: '2025-12-02',
-      lastRefillQuantity: 150,
-      distance: 180,
-      fuelConsumed: 16.4,
-      mileage: 11.0
-    },
-    {
-      id: 3,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-06-9001',
-      driverName: 'Driver C',
-      startDate: '2025-12-06',
-      startLocation: 'Delhi - 110001',
-      destination: 'Bangalore - 560001',
-      odometerStart: 78900,
-      odometerEnd: null,
-      payloadWeight: 15000,
-      lastRefillDate: '2025-12-05',
-      lastRefillQuantity: 180,
-      distance: null
-    },
-    {
-      id: 4,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-03-7890',
-      driverName: 'Driver D',
-      startDate: '2025-12-04',
-      endDate: '2025-12-04',
-      startLocation: 'Ahmedabad - 380001',
-      destination: 'Chennai - 600001',
-      odometerStart: 32100,
-      odometerEnd: 32310,
-      payloadWeight: 10500,
-      lastRefillDate: '2025-12-03',
-      lastRefillQuantity: 140,
-      distance: 210,
-      fuelConsumed: 21.9,
-      mileage: 9.6
-    },
-    {
-      id: 5,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-04-2345',
-      driverName: 'Driver E',
-      startDate: '2025-12-07',
-      startLocation: 'Pune - 411001',
-      destination: 'Hyderabad - 500001',
-      odometerStart: 56780,
-      odometerEnd: null,
-      payloadWeight: 9200,
-      lastRefillDate: '2025-12-07',
-      lastRefillQuantity: 110,
-      distance: null
-    },
-    {
-      id: 6,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-05-6789',
-      driverName: 'Driver F',
-      startDate: '2025-12-02',
-      endDate: '2025-12-02',
-      startLocation: 'Jaipur - 302001',
-      destination: 'Lucknow - 226001',
-      odometerStart: 23450,
-      odometerEnd: 23680,
-      payloadWeight: 11500,
-      lastRefillDate: '2025-12-01',
-      lastRefillQuantity: 135,
-      distance: 230,
-      fuelConsumed: 19.2,
-      mileage: 12.0
-    },
-    {
-      id: 7,
-      status: 'In Progress',
-      tripStatus: 'active',
-      vehicleNo: 'WB-07-3456',
-      driverName: 'Driver G',
-      startDate: '2025-12-06',
-      startLocation: 'Surat - 395001',
-      destination: 'Nagpur - 440001',
-      odometerStart: 67890,
-      odometerEnd: null,
-      payloadWeight: 13200,
-      lastRefillDate: '2025-12-06',
-      lastRefillQuantity: 145,
-      distance: null
-    },
-    {
-      id: 8,
-      status: 'Completed',
-      tripStatus: 'completed',
-      vehicleNo: 'WB-08-8901',
-      driverName: 'Driver H',
-      startDate: '2025-12-01',
-      endDate: '2025-12-01',
-      startLocation: 'Indore - 452001',
-      destination: 'Bhopal - 462001',
-      odometerStart: 89012,
-      odometerEnd: 89200,
-      payloadWeight: 8800,
-      lastRefillDate: '2025-11-30',
-      lastRefillQuantity: 95,
-      distance: 188,
-      fuelConsumed: 17.1,
-      mileage: 11.0
+  const fetchWeightSlipTrips = async () => {
+    setLoadingWeightSlipTrips(true);
+    try {
+      const response = await WeightSlipTripService.getAll({
+        page: weightSlipPagination.page,
+        limit: weightSlipPagination.limit
+      });
+      
+      setWeightSlipTrips(response.data || []);
+      setWeightSlipPagination(prev => ({
+        ...prev,
+        total: response.pagination?.total || 0
+      }));
+    } catch (error) {
+      console.error('Failed to fetch weight slip trips:', error);
+      toast.error('Failed to load trips');
+    } finally {
+      setLoadingWeightSlipTrips(false);
     }
-  ];
+  };
+
+  /**
+   * Fetch refuel trips (journeys) from API
+   */
+  const fetchRefuelTrips = async () => {
+    setLoadingRefuelTrips(true);
+    try {
+      const response = await TripService.getAllTrips({
+        page: refuelPagination.page,
+        limit: refuelPagination.limit
+      });
+      
+      setRefuelTrips(response.data || []);
+      setRefuelPagination(prev => ({
+        ...prev,
+        total: response.pagination?.total || 0
+      }));
+    } catch (error) {
+      console.error('Failed to fetch refuel trips:', error);
+      toast.error('Failed to load refuel journeys');
+    } finally {
+      setLoadingRefuelTrips(false);
+    }
+  };
+
+  // Fetch trips when active tab changes
+  useEffect(() => {
+    if (activeTab === 'trips') {
+      fetchWeightSlipTrips();
+    } else {
+      fetchRefuelTrips();
+    }
+  }, [activeTab, weightSlipPagination.page, refuelPagination.page]);
 
   /**
    * Event listener for navbar "Start New Trip" button
-   * Listens for custom event and navigates to trip creation page
    */
   useEffect(() => {
     const handleStartNewTrip = () => navigate('/trip/new');
@@ -193,89 +124,121 @@ const TripManagementPage = () => {
   }, [navigate]);
 
   /**
-   * Dispatch active trips count to navbar
-   * Updates the active trips badge in the navigation bar
+   * Filter trips based on search query
    */
-  useEffect(() => {
-    const activeCount = mockTrips.filter(trip => trip.tripStatus === 'active').length;
-    window.dispatchEvent(new CustomEvent('activeTripsUpdate', { detail: { count: activeCount } }));
-  }, [mockTrips]);
-
-  /**
-   * Handle trip card click - navigate to trip detail/edit page
-   * @param {Object} trip - The trip object that was clicked
-   */
-  const handleTripClick = (trip) => {
-    navigate(`/trip/${trip.id}`);
+  const filterTrips = (trips) => {
+    if (searchQuery === '') return trips;
+    
+    const query = searchQuery.toLowerCase();
+    return trips.filter(trip => {
+      if (activeTab === 'trips') {
+        // Weight slip trip search
+        const driverName = trip.journeyId?.driverId 
+          ? `${trip.journeyId.driverId.firstName} ${trip.journeyId.driverId.lastName}`.toLowerCase()
+          : '';
+        
+        return (
+          trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
+          driverName.includes(query) ||
+          trip.routeData?.name?.toLowerCase().includes(query) ||
+          trip.routeData?.sourceLocation?.city?.toLowerCase().includes(query) ||
+          trip.routeData?.destLocation?.city?.toLowerCase().includes(query) ||
+          trip.materialType?.toLowerCase().includes(query) ||
+          trip._id.includes(query)
+        );
+      } else {
+        // Refuel trip search
+        const driverName = trip.driverId 
+          ? `${trip.driverId.firstName} ${trip.driverId.lastName}`.toLowerCase()
+          : '';
+        
+        return (
+          trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
+          driverName.includes(query) ||
+          trip._id.includes(query)
+        );
+      }
+    });
   };
 
+  const filteredTrips = filterTrips(activeTab === 'trips' ? weightSlipTrips : refuelTrips);
+
   /**
-   * Get color for status badge based on trip status
-   * @param {string} status - The status of the trip
-   * @returns {string} Hex color code
+   * Navigate to trip detail page
    */
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'delivered':
-        return '#4caf50';
-      case 'to be updated':
-        return '#5e8ba8';
-      case 'in transit':
-      case 'in progress':
-        return '#ff9800';
-      default:
-        return '#757575';
+  const handleTripClick = (tripId, tripType) => {
+    if (tripType === 'weight-slip') {
+      navigate(`/trip-management/weight-slip/${tripId}`);
+    } else {
+      navigate(`/trip-management/trip/${tripId}`);
     }
   };
 
   /**
-   * Filter trips based on active filter and search query
-   * Searches across: vehicle number, driver name, start location, and destination
+   * Get status badge color
    */
-  const filteredTrips = mockTrips.filter(trip => {
-    const matchesFilter = activeFilter === 'All' || trip.tripStatus === activeFilter.toLowerCase();
-    const matchesSearch = searchQuery === '' || 
-      trip.vehicleNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      trip.driverName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (trip.startLocation && trip.startLocation.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (trip.destination && trip.destination.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesFilter && matchesSearch;
-  });
+  const getStatusColor = (status) => {
+    const colors = {
+      'SUBMITTED': '#4caf50',
+      'COMPLETED': '#4caf50',
+      'DRIVER_SELECTED': '#2196f3',
+      'DOCUMENTS_UPLOADED': '#2196f3',
+      'OCR_VERIFIED': '#2196f3',
+      'ROUTES_ASSIGNED': '#2196f3',
+      'REVENUE_ENTERED': '#ff9800',
+      'EXPENSES_ENTERED': '#ff9800',
+      'ONGOING': '#ff9800',
+      'PLANNED': '#2196f3',
+      'CANCELLED': '#f44336'
+    };
+    return colors[status] || '#757575';
+  };
+
+  /**
+   * Format date to readable format
+   */
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   return (
-    <div className="page-container">
-      {/* Fixed Header */}
+    <div className="page-container trip-management-container">
+      {/* Header with Tabs */}
       <div className="trip-management-header">
         <div className="header-content">
-          <div className="trip-filters">
+          <div className="tabs-container">
             <button
-              className={`filter-btn ${activeFilter === 'Active' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('Active')}
+              className={`tab-btn ${activeTab === 'trips' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('trips');
+                setSearchQuery('');
+              }}
             >
-              Active
+              <span className="tab-icon">📦</span>
+              Trips
             </button>
             <button
-              className={`filter-btn ${activeFilter === 'Completed' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('Completed')}
+              className={`tab-btn ${activeTab === 'refuel' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('refuel');
+                setSearchQuery('');
+              }}
             >
-              Completed
-            </button>
-            <button
-              className={`filter-btn ${activeFilter === 'All' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('All')}
-            >
-              All
+              <span className="tab-icon">⛽</span>
+              Refuel Journeys
             </button>
           </div>
 
           <div className="search-bar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
-            </svg>
+            <Search width={18} height={18} color="#9ca3af" />
             <input
               type="text"
-              placeholder="Search by vehicle, driver, or location..."
+              placeholder={`Search ${activeTab === 'trips' ? 'trips' : 'refuel journeys'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -283,44 +246,148 @@ const TripManagementPage = () => {
         </div>
       </div>
 
-      <div className="page-content">
-        <div className="trips-list">
-          {filteredTrips.map(trip => (
-            <div key={trip.id} className="trip-card-horizontal" onClick={() => handleTripClick(trip)}>
-              <div className="trip-card-section vehicle-section">
-                <div className="section-label">Vehicle Number</div>
-                <div className="section-value vehicle-number">{trip.vehicleNo}</div>
+      {/* Content Area */}
+      <div className="trip-content-area">
+        {activeTab === 'trips' ? (
+          // Trips Tab (Weight Slip Trips)
+          <div className="trips-tab">
+            {loadingWeightSlipTrips ? (
+              <div className="loading-state">
+                <p>Loading trips...</p>
               </div>
+            ) : filteredTrips.length === 0 ? (
+              <div className="empty-state">
+                <p>No trips found</p>
+                {searchQuery && <p className="empty-subtext">Try adjusting your search</p>}
+              </div>
+            ) : (
+              <div className="trips-grid">
+                {filteredTrips.map((trip, index) => (
+                  <div
+                    key={trip._id}
+                    className="trip-card"
+                    onClick={() => handleTripClick(trip._id, 'weight-slip')}
+                  >
+                    <div className="card-header">
+                      <div className="vehicle-info">
+                        <span className="vehicle-number">{`Trip ${index + 1}`}</span>
+                        <span className="status-badge" style={{ 
+                          backgroundColor: getStatusColor(trip.status) + '25',
+                          color: getStatusColor(trip.status)
+                        }}>
+                          {trip.status}
+                        </span>
+                      </div>
+                    </div>
 
-              <div className="trip-card-section date-section">
-                <div className="section-label">Date</div>
-                <div className="section-value">{trip.startDate}</div>
-              </div>
+                    <div className="card-body">
+                      <div className="info-row">
+                        <span className="label">Driver:</span>
+                        <span className="value">{trip.journeyId?.driverId ? `${trip.journeyId.driverId.firstName} ${trip.journeyId.driverId.lastName}` : '-'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Route:</span>
+                        <span className="value">
+                          {trip.routeData?.name || 
+                           (trip.routeData?.sourceLocation?.city && trip.routeData?.destLocation?.city 
+                            ? `${trip.routeData.sourceLocation.city} to ${trip.routeData.destLocation.city}`
+                            : '-'
+                           )
+                          }
+                        </span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Material:</span>
+                        <span className="value">{trip.materialType || '-'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Net Weight:</span>
+                        <span className="value">{trip.weights?.netWeight ? `${trip.weights.netWeight} kg` : '-'}</span>
+                      </div>
+                    </div>
 
-              <div className="trip-card-section route-section">
-                <div className="section-label">Source</div>
-                <div className="section-value">{trip.startLocation || 'Not specified'}</div>
+                    <div className="card-footer">
+                      <span className="date">{formatDate(trip.createdAt)}</span>
+                      <span className="arrow">→</span>
+                    </div>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
+        ) : (
+          // Refuel Tab (Trips/Journeys)
+          <div className="refuel-tab">
+            {loadingRefuelTrips ? (
+              <div className="loading-state">
+                <p>Loading refuel journeys...</p>
+              </div>
+            ) : filteredTrips.length === 0 ? (
+              <div className="empty-state">
+                <p>No refuel journeys found</p>
+                {searchQuery && <p className="empty-subtext">Try adjusting your search</p>}
+              </div>
+            ) : (
+              <div className="trips-grid">
+                {filteredTrips.map(trip => (
+                  <div
+                    key={trip._id}
+                    className="trip-card"
+                    onClick={() => handleTripClick(trip._id, 'trip')}
+                  >
+                    <div className="card-header">
+                      <div className="vehicle-info">
+                        <span className="vehicle-number">{trip.vehicleId?.registrationNumber || 'N/A'}</span>
+                        <span className="status-badge" style={{ 
+                          backgroundColor: getStatusColor(trip.status) + '25',
+                          color: getStatusColor(trip.status)
+                        }}>
+                          {trip.status}
+                        </span>
+                      </div>
+                    </div>
 
-              <div className="trip-card-section destination-section">
-                <div className="section-label">Destination</div>
-                <div className="section-value">{trip.destination || 'Not specified'}</div>
-              </div>
+                    <div className="card-body">
+                      <div className="info-row">
+                        <span className="label">Driver:</span>
+                        <span className="value">
+                          {trip.driverId?.firstName && trip.driverId?.lastName 
+                            ? `${trip.driverId.firstName} ${trip.driverId.lastName}` 
+                            : '-'}
+                        </span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Trips Count:</span>
+                        <span className="value">{trip.journeyFinancials?.totalTrips || trip.weightSlipTrips?.length || 0}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Total Fuel:</span>
+                        <span className="value">
+                          {trip.fuelManagement?.totalLiters 
+                            ? `${trip.fuelManagement.totalLiters.toFixed(2)}L` 
+                            : '-'}
+                        </span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Revenue:</span>
+                        <span className="value">
+                          {trip.journeyFinancials?.totalRevenue 
+                            ? `₹${trip.journeyFinancials.totalRevenue.toFixed(2)}` 
+                            : '-'}
+                        </span>
+                      </div>
+                    </div>
 
-              <div className="trip-card-section status-section">
-                <span 
-                  className="trip-status-badge"
-                  style={{ 
-                    backgroundColor: getStatusColor(trip.status) + '20',
-                    color: getStatusColor(trip.status)
-                  }}
-                >
-                  {trip.status}
-                </span>
+                    <div className="card-footer">
+                      <span className="date">{formatDate(trip.createdAt)}</span>
+                      <span className="arrow">→</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

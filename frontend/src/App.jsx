@@ -1,8 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 
 import DashboardLayout from './components/DashboardLayout';
-// Updated import path for ProfileProvider
-import { ProfileProvider } from './pages/Profile/ProfileContext.jsx';
+// Removed ProfileProvider import - profile logic completely removed
+import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
 
 // Updated page imports
 import LoginPage from './pages/Login/LoginPage.jsx';
@@ -15,14 +15,21 @@ import ProfilePage from './pages/Profile/ProfilePage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage  from './pages/Drivers/DriversPage.jsx';
+import AddDriverPage from './pages/Drivers/AddDriverPage.jsx';
 import BulkUploadPage from "./pages/BulkUpload/BulkUploadPage.jsx";
 import BulkUploadDriversPage from "./pages/Drivers/BulkUploadDriversPage.jsx";
 import BulkUploadVehiclesPage from "./pages/Profile/BulkUploadVehiclesPage.jsx";
 import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
-import TripFormPage from './pages/Trip/TripFormPage.jsx';
-import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
-import AddRefuelPage from './pages/Trip/AddRefuelPage.jsx';
+import TripCreationFlow from './pages/Trip/TripCreationFlow.jsx';
+import WeightSlipTripDetailPage from './pages/Trip/WeightSlipTripDetailPage.jsx';
+import TripDetailPage from './pages/Trip/TripDetailPage.jsx';
+import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
+import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
+import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
+import RoutesPage from './pages/Routes/RoutesPage.jsx';
+import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
+import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 
 
 function App() {
@@ -35,27 +42,37 @@ function App() {
       <Route path="/admin/new-user" element={<SignUpPage/>} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
-      {/* Protected Routes inside DashboardLayout, wrapped by ProfileProvider */}
+      {/* Super Admin Routes */}
+      <Route path="/superadmin" element={<SuperAdminLayout />}>
+        <Route index element={<SuperAdminPage />} />
+        <Route path="add-user" element={<AddUserPage />} />
+      </Route>
+
+      {/* Protected Routes inside DashboardLayout */}
       <Route
         element={
-          <ProfileProvider> {/* <-- Wrap DashboardLayout routes */}
+          <TripCreationProvider>
             <DashboardLayout />
-          </ProfileProvider>
+          </TripCreationProvider>
         }
       >
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
+  <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
         <Route path="/bulk-upload" element={<BulkUploadPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
-        <Route path="/trip/new" element={<TripFormPage />} />
-        <Route path="/trip/:tripId" element={<TripFormPage />} />
+        <Route path="/trip-management/weight-slip/:id" element={<WeightSlipTripDetailPage />} />
+        <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />
+        <Route path="/trip/new" element={<TripCreationFlow />} />
+        <Route path="/trip/:tripId" element={<TripManagementPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
-        <Route path="/refuel/new" element={<AddRefuelPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
+  <Route path="/routes" element={<RoutesPage />} />
+  <Route path="/routes/add" element={<AddRoutePage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

@@ -15,15 +15,12 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 // --- IMPORTS FOR CONTEXT ---
-import { useProfile } from '../Profile/ProfileContext.jsx'; // Import useProfile hook
+// Removed useProfile import - profile logic completely removed
 
 // --- IMPORTS FOR SEGREGATED REPORT COMPONENTS ---
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
-import TripReport from './reports/TripReport.jsx';
-import ProjectedReport from './reports/ProjectedReport.jsx';
-import OutlierReport from './reports/OutlierReport.jsx';
-import SalesSummaryReport from './reports/SalesSummaryReport.jsx';
+import TripLedgerReport from './reports/TripLedgerReport.jsx';
 
 
 // --- MAIN REPORTS PAGE COMPONENT ---
@@ -31,15 +28,27 @@ const ReportsPage = () => {
     const [isReportsSidebarOpen, setIsReportsSidebarOpen] = useState(true);
     const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
-    const [selectedReport, setSelectedReport] = useState('driver'); // Default to driver report
+    const [selectedReport, setSelectedReport] = useState('tripLedger'); // Default to trip ledger
     const [highlightedOutlierId, setHighlightedOutlierId] = useState(null); // Used for linking
 
-    // Get profile context
-    const { profile, isLoadingProfile, profileError } = useProfile();
-    const businessRefId = profile?.business_ref_id;
+    // Removed profile context - profile logic completely removed
+    const businessRefId = null;
 
     // Effect for theme
     useEffect(() => { setThemeColors(getThemeCSS()); }, []);
+
+    // Remove global page-content padding only for this page
+    useEffect(() => {
+        const pageContentEl = document.querySelector('.page-content');
+        if (pageContentEl) {
+            pageContentEl.classList.add('no-padding');
+        }
+        return () => {
+            if (pageContentEl) {
+                pageContentEl.classList.remove('no-padding');
+            }
+        };
+    }, []);
 
     // Effect to track main sidebar collapse state
     useEffect(() => {
@@ -74,32 +83,20 @@ const ReportsPage = () => {
 
     // --- RENDER FUNCTION (Selects which report component to show) ---
     const renderReport = () => {
-        if (isLoadingProfile) { return (<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress /><Typography sx={{ ml: 2 }}>Loading profile...</Typography></Box>); }
-        if (profileError) { return <Alert severity="error" sx={{ my: 2 }}>Failed to load profile: {profileError}</Alert>; }
-        if (!businessRefId) { return <Alert severity="warning" sx={{ my: 2 }}>Business reference ID not found. Cannot load reports.</Alert>; }
-
-        // Props to pass to all relevant reports
+        // Props to pass to all relevant reports (removed profile dependencies)
         const reportProps = {
-            businessRefId,
-            isLoadingProfile,
-            profileError,
+            // Removed businessRefId, isLoadingProfile, profileError - profile logic completely removed
         };
 
         switch (selectedReport) {
+            case 'tripLedger':
+                return <TripLedgerReport {...reportProps} />;
             case 'driver':
                 return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
             case 'vehicle':
                 return <VehicleReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
-            case 'trip':
-                return <TripReport {...reportProps} />;
-            case 'projected':
-                return <ProjectedReport {...reportProps} />;
-            case 'outliers':
-                return <OutlierReport {...reportProps} highlightedOutlierId={highlightedOutlierId} />;
-            case 'salesSummary':
-                return <SalesSummaryReport />;
             default:
-                return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
+                return <TripLedgerReport {...reportProps} />;
         }
     };
 
