@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Gauge, Fuel, MapPin, Calculator } from 'lucide-react';
 import { TripService } from '../../pages/Trip/services';
-import './JourneySetupModal.css';
+import './modal.css';
 
 const JourneySetupModal = ({
   isOpen = true,
@@ -283,10 +283,10 @@ const JourneySetupModal = ({
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onCancel()}>
-      <div className="journey-modal">
+      <div className="modal">
         <div className="modal-header">
-          <h2>Journey Setup</h2>
-          <p>Configure odometer readings and fuel consumption for this journey</p>
+          <h2>Trip Setup</h2>
+    
           <button className="close-btn" onClick={onCancel}>
             <X size={20} />
           </button>
