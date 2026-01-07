@@ -73,7 +73,6 @@ const AddUserPage = () => {
       <div className="add-user-page">
         <div className="form-container">
           <div className="form-header">
-            <h2>Add New User</h2>
             <p>Register a new owner account</p>
           </div>
 

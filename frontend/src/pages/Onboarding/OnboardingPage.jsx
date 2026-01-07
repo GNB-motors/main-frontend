@@ -6,7 +6,6 @@ import './OnboardingPageExtended.css';
 import UkoLogo from '../../assets/uko-logo.png';
 import StepProfile from './components/StepProfile.jsx';
 import StepCompanyTheme from './components/StepCompanyTheme.jsx';
-import StepVehicles from './components/StepVehicles.jsx';
 import LaunchAnimation from './components/LaunchAnimation.jsx';
 import { clearAuthData } from '../../utils/authUtils';
 
@@ -18,15 +17,13 @@ const OnboardingPage = () => {
     // Form data state
     const [formData, setFormData] = useState({
         profile: {},
-        company: {},
-        vehicles: {}
+        company: {}
     });
 
     // Track completion percentage for progress bar
     const [stepCompletion, setStepCompletion] = useState({
         1: 0,
-        2: 0,
-        3: 0
+        2: 0
     });
 
     // Check for auth token and onboarding status on mount
@@ -78,12 +75,6 @@ const OnboardingPage = () => {
         } else if (stepName === 'company') {
             const { companyName, selectedColor } = data;
             completion = ((companyName?.trim() ? 50 : 0) + (selectedColor ? 50 : 0));
-        } else if (stepName === 'vehicles') {
-            const { vehicles } = data;
-            if (vehicles && vehicles.length > 0) {
-                const validVehicles = vehicles.filter(v => v.registration_no?.trim() && v.vehicle_type?.trim());
-                completion = validVehicles.length > 0 ? 100 : 0;
-            }
         }
 
         setStepCompletion(prev => ({
@@ -93,7 +84,7 @@ const OnboardingPage = () => {
     };
 
     const handleNext = () => {
-        if (currentStep < 3) {
+        if (currentStep < 2) {
             setCurrentStep(currentStep + 1);
         } else {
             // Final step - show launch animation
@@ -109,8 +100,7 @@ const OnboardingPage = () => {
 
     const steps = [
         { number: 1, title: 'Profile', description: 'Review your details' },
-        { number: 2, title: 'Company', description: 'Setup & theme' },
-        { number: 3, title: 'Vehicles', description: 'Add your fleet' }
+        { number: 2, title: 'Company', description: 'Setup & theme' }
     ];
 
     if (showLaunch) {
@@ -124,7 +114,7 @@ const OnboardingPage = () => {
                 <div className="onboarding-brand">
                     <img src={UkoLogo} alt="Logo" className="onboarding-logo" />
                     <h1 className="onboarding-main-title">Welcome to Your Fleet Management System</h1>
-                    <p className="onboarding-main-subtitle">Let's get you set up in just 3 simple steps</p>
+                    <p className="onboarding-main-subtitle">Let's get you set up in just 2 simple steps</p>
                 </div>
 
                 {/* Stepper */}
@@ -148,7 +138,7 @@ const OnboardingPage = () => {
                                     <div className="stepper-description">{step.description}</div>
                                 </div>
                             </div>
-                            {step.number < 3 && (
+                            {step.number < 2 && (
                                 <div className="stepper-line-wrapper">
                                     <div className="stepper-line-bg"></div>
                                     <div 
@@ -182,14 +172,6 @@ const OnboardingPage = () => {
                             onBack={handleBack}
                             onDataChange={handleDataChange('company')}
                             formData={formData.company}
-                        />
-                    )}
-                    {currentStep === 3 && (
-                        <StepVehicles 
-                            onNext={handleNext}
-                            onBack={handleBack}
-                            onDataChange={handleDataChange('vehicles')}
-                            formData={formData.vehicles}
                         />
                     )}
                 </div>

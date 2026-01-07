@@ -3,21 +3,61 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import UkoLogo from '../../assets/uko-logo.png';
-import GoogleLogo from '../../assets/google.svg';
-import MobileIcon from '../../assets/mobile.png';
-import LoginArtPattern from '../../assets/login-art-pattern.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
+
+// --- Carousel Data ---
+const slideData = [
+    {
+        image: "https://images.unsplash.com/photo-1616432043562-3671ea2e5242?q=80&w=2070&auto=format&fit=crop",
+        title: "Fleet Tracking",
+        desc: " Monitoring for your entire fleet. Know where your assets are at all times.",
+    },
+    {
+        image: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop",
+        title: "Smart Analytics",
+        desc: "Data-driven insights to optimize routes, reduce fuel consumption, and increase efficiency.",
+    },
+    {
+        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop",
+        title: "Profitability Reports",
+        desc: "Detailed insights into trip profitability, cost analysis, and revenue optimization to maximize your business returns.",
+    },
+    {
+        image: "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?q=80&w=2072&auto=format&fit=crop",
+        title: "Driver Safety",
+        desc: "Advanced telematics to monitor driver behavior and ensure safety compliance on the road.",
+    },
+];
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const [emailOrMobile, setEmailOrMobile] = useState('');
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
+
+    // --- Carousel State ---
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    // --- Carousel Logic: Auto Rotate ---
+    useEffect(() => {
+        const slideInterval = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % slideData.length);
+        }, 5000);
+        return () => clearInterval(slideInterval);
+    }, []);
+
+    const nextSlide = () => {
+        setCurrentSlide((prev) => (prev + 1) % slideData.length);
+    };
+
+    const goToSlide = (index, e) => {
+        if (e) e.stopPropagation();
+        setCurrentSlide(index);
+    };
 
 
     const handleLogin = async (event) => {
@@ -127,10 +167,6 @@ const LoginPage = () => {
                         <h1>Sign In</h1>
                     </div>
 
-                    <div className="social-login-tabs">
-                        <a href="#" className="social-tab active">Sign in with</a>
-                    </div>
-
                     {/* <div className="social-login-options">
                         <button className="social-btn">
                             <img src={GoogleLogo} alt="Google" />
@@ -181,17 +217,6 @@ const LoginPage = () => {
 
 
                         <div className="form-options">
-                            <div className="remember-me">
-                                <label className="toggle-switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
-                                    />
-                                    <span className="slider"></span>
-                                 </label>
-                                <span>Remember Me</span>
-                            </div>
                             <Link to="#" className="forgot-password">Forgot Password?</Link>
                         </div>
 
@@ -205,9 +230,50 @@ const LoginPage = () => {
                     </div>
                 </div>
             </div>
-            <div className="login-art-panel">
-                 <img src={LoginArtPattern} alt="Decorative Art" />
-            </div>
+                <div className="right-panel-container">
+                    {/* Background Images */}
+                    {slideData.map((slide, index) => (
+                        <img
+                            key={index}
+                            src={slide.image}
+                            className={`slide-bg ${index === currentSlide ? "active" : ""}`}
+                            alt={`Slide ${index + 1}`}
+                        />
+                    ))}
+
+                    {/* Blue Blur Vectors */}
+                    <div className="vector-1"></div>
+                    <div className="vector-2"></div>
+                    <div className="vector-3"></div>
+                    <div className="vector-4"></div>
+
+                    {/* Glass Card */}
+                    <div className="glass-card" onClick={nextSlide}>
+                        <div className="card-title">{slideData[currentSlide].title}</div>
+                        <div className="card-desc">{slideData[currentSlide].desc}</div>
+
+                        <div className="card-dots">
+                            {slideData.map((_, index) => (
+                                <div
+                                    key={index}
+                                    className={`card-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                    onClick={(e) => goToSlide(index, e)}
+                                ></div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Bottom Navigation Pill */}
+                    <div className="bottom-pill">
+                        {slideData.map((_, index) => (
+                            <div
+                                key={index}
+                                className={`nav-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                onClick={(e) => goToSlide(index, e)}
+                            ></div>
+                        ))}
+                    </div>
+                </div>
         </div>
         </>
     );
