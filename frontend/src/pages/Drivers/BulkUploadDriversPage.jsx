@@ -1,197 +1,209 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
-import { Trash2, FileSpreadsheet, Send, Upload, Eye, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
+import { Trash2, FileSpreadsheet, Send, Upload, Eye, AlertCircle, CheckCircle, ArrowLeft, Download, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
-
 import "../Profile/BulkUploadVehiclesPage.css";
-import apiClient from "../../utils/axiosConfig";
 import { DriverService } from "./DriverService.jsx";
-import { dedupeRowsByContent } from "../../utils/bulkNormalization";
-import EditRowModal from "../BulkUpload/EditRowModal";
+import BulkEmployeeMappingModal from "./Component/BulkEmployeeMappingModal.jsx";
+import {
+  splitName,
+  normalizePhone,
+  normalizeEmail,
+  normalizeRole,
+  generatePassword,
+  validateEmployeeRow,
+  checkPayloadSize,
+} from "../../utils/bulkEmployees.js";
 
-const DRIVER_COLUMNS = [
-  {
-    key: "name",
-    label: "Name",
-    placeholder: "John Doe",
-    required: true,
-  },
-  {
-    key: "role",
-    label: "Role",
-    placeholder: "Driver, Manager, etc.",
-    required: false,
-  },
-  {
-    key: "vehicle_registration_no",
-    label: "Vehicle Registration",
-    placeholder: "KA01AB1234",
-    required: false,
-  },
-];
-
-// Simple validation for driver data
-const validateDriverRow = (row) => {
-  const errors = {};
-  
-  if (!row.name || typeof row.name !== 'string' || row.name.trim() === '') {
-    errors.name = "Name is required";
-  }
-  
-  return errors;
-};
-
-// Simple normalization for driver data
-const normalizeDriverDataset = (rows) => {
-  return rows.map(row => ({
-    name: row.name ? String(row.name).trim() : '',
-    role: row.role ? String(row.role).trim() : '',
-    vehicle_registration_no: row.vehicle_registration_no ? String(row.vehicle_registration_no).trim() : '',
-  }));
-};
+const MAX_ROWS = 500;
 
 const BulkUploadDriversPage = () => {
-  // Profile context removed - use localStorage as fallback
-  const isLoadingProfile = false;
   const navigate = useNavigate();
-  const [rows, setRows] = useState([]);
+  const [rawRows, setRawRows] = useState([]);
+  const [fileColumns, setFileColumns] = useState([]);
+  const [columnMapping, setColumnMapping] = useState(null);
+  const [normalizedRows, setNormalizedRows] = useState([]);
   const [rowErrors, setRowErrors] = useState([]);
-  const [dryRun, setDryRun] = useState(false);
-  const [upsert, setUpsert] = useState(true);
+  const [passwordMap, setPasswordMap] = useState(new Map()); // clientRowId -> password
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [fileName, setFileName] = useState("");
   const [uploadResult, setUploadResult] = useState(null);
-  const [editingRowIndex, setEditingRowIndex] = useState(null);
+  const [showMappingModal, setShowMappingModal] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const fileInputRef = useRef(null);
 
-  const businessRefId = localStorage.getItem("profile_business_ref_id");
-
-  // Update theme colors when component mounts or profile color changes
+  // Update theme colors
   useEffect(() => {
     const updateTheme = () => {
       const newTheme = getThemeCSS();
-      console.log('BulkUploadDriversPage theme colors:', newTheme);
       setThemeColors(newTheme);
     };
-
     updateTheme();
-
     window.addEventListener('storage', updateTheme);
-    return () => {
-      window.removeEventListener('storage', updateTheme);
-    };
+    return () => window.removeEventListener('storage', updateTheme);
   }, []);
 
-  const columns = useMemo(() => DRIVER_COLUMNS, []);
-  const validator = useMemo(() => validateDriverRow, []);
-  const datasetNormalizer = useMemo(() => normalizeDriverDataset, []);
-
   const resetState = () => {
-    setRows([]);
+    setRawRows([]);
+    setFileColumns([]);
+    setColumnMapping(null);
+    setNormalizedRows([]);
     setRowErrors([]);
+    setPasswordMap(new Map());
     setUploadResult(null);
     setFileName("");
     setFilterStatus("all");
+    setShowResultsModal(false);
   };
 
-  const handleFileChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
-    parseWorkbook(file);
-  };
-
-  const openFilePicker = () => {
-    if (isParsing || isSubmitting) return;
-    fileInputRef.current?.click();
-  };
-
-  const parseWorkbook = (file) => {
+  const parseFile = (file) => {
     setIsParsing(true);
-    setUploadResult(null);
     const reader = new FileReader();
+    
     reader.onload = (evt) => {
       try {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const firstSheet = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheet];
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-        if (!rawRows.length) {
-          toast.warn("No rows detected in the sheet. Please check the template.");
+        let rawData = [];
+        let headers = [];
+        
+        if (file.name.endsWith('.csv')) {
+          // Parse CSV - use XLSX library which handles quoted fields properly
+          const text = evt.target.result;
+          const workbook = XLSX.read(text, { type: "string" });
+          const firstSheet = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheet];
+          rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+          
+          if (rawData.length > 0) {
+            headers = Object.keys(rawData[0]);
+          }
+        } else {
+          // Parse XLSX/XLS
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheet = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheet];
+          rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+          
+          if (rawData.length > 0) {
+            headers = Object.keys(rawData[0]);
+          }
+        }
+        
+        if (rawData.length === 0) {
+          toast.warn("No rows detected in the file.");
           resetState();
           setIsParsing(false);
           return;
         }
-
-        // 1. Normalize entire dataset
-        let normalizedRows = datasetNormalizer(rawRows).map((row, idx) => ({
-          ...row,
-          _rowId: `${Date.now()}-${idx}`,
-          _rawRow: rawRows[idx],
-        }));
         
-        console.log(`Raw rows from file: ${rawRows.length}`);
-        console.log(`After normalization: ${normalizedRows.length}`);
+        // Limit to MAX_ROWS
+        if (rawData.length > MAX_ROWS) {
+          toast.warn(`File has ${rawData.length} rows. Only the first ${MAX_ROWS} will be processed.`);
+          rawData = rawData.slice(0, MAX_ROWS);
+        }
         
-        // 2. Filter empty rows
-        const beforeEmptyFilter = normalizedRows.length;
-        normalizedRows = normalizedRows.filter((row) => 
-          Object.values(row).some((value) => value && typeof value === 'string' && value.trim() !== '')
-        );
-        console.log(`After empty row filter: ${normalizedRows.length} (removed: ${beforeEmptyFilter - normalizedRows.length})`);
-
-        // 3. Dedupe and Limit
-        const beforeDedupe = normalizedRows.length;
-        const trimmedRows = dedupeRowsByContent(normalizedRows).slice(0, 500);
-        console.log(`After deduplication: ${trimmedRows.length} (removed: ${beforeDedupe - trimmedRows.length} duplicates)`);
-        
-        // 4. Validate
-        const nextErrors = trimmedRows.map((row) => validator(row));
-
-        setRows(trimmedRows);
-        setRowErrors(nextErrors);
+        setRawRows(rawData);
+        setFileColumns(headers);
+        setShowMappingModal(true);
         setIsParsing(false);
-        toast.success(`Loaded ${trimmedRows.length} row(s) from ${file.name}`);
       } catch (error) {
         setIsParsing(false);
         toast.error(`Failed to parse file: ${error.message}`);
         resetState();
       }
     };
-    reader.readAsArrayBuffer(file);
+    
+    if (file.name.endsWith('.csv')) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const validExtensions = ['.xlsx', '.xls', '.csv'];
+    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+    if (!validExtensions.includes(fileExt)) {
+      toast.error("Please upload a .xlsx, .xls, or .csv file");
+      return;
+    }
+    
+    setFileName(file.name);
+    parseFile(file);
+  };
+
+  const handleMappingSave = (mapping) => {
+    setColumnMapping(mapping);
+    setShowMappingModal(false);
+    applyMapping(mapping);
+  };
+
+  const applyMapping = (mapping) => {
+    // Apply mapping to raw rows and normalize
+    const normalized = [];
+    const errors = [];
+    const newPasswordMap = new Map();
+    
+    rawRows.forEach((rawRow, index) => {
+      // Extract values based on mapping
+      const name = mapping.name ? (rawRow[mapping.name] || '') : '';
+      const phone = mapping.phone ? (rawRow[mapping.phone] || '') : '';
+      const email = mapping.email ? (rawRow[mapping.email] || '') : '';
+      const role = mapping.role ? (rawRow[mapping.role] || '') : '';
+      const location = mapping.location ? (rawRow[mapping.location] || '') : '';
+      
+      // Generate clientRowId
+      const clientRowId = `row-${Date.now()}-${index}`;
+      
+      // Split name
+      const { firstName, lastName } = splitName(name);
+      
+      // Normalize fields
+      const normalizedPhone = normalizePhone(phone);
+      const normalizedEmail = normalizeEmail(email);
+      const normalizedRole = normalizeRole(role);
+      const normalizedLocation = location.trim() || 'Kolkata';
+      
+      // Generate password
+      const password = generatePassword(12);
+      newPasswordMap.set(clientRowId, password);
+      
+      // Build normalized row
+      const normalizedRow = {
+        clientRowId,
+        firstName,
+        lastName,
+        email: normalizedEmail,
+        mobileNumber: normalizedPhone,
+        location: normalizedLocation,
+        password,
+        role: normalizedRole,
+        _rawRow: rawRow,
+        _index: index,
+      };
+      
+      // Validate
+      const validationErrors = validateEmployeeRow(normalizedRow);
+      errors.push(validationErrors);
+      normalized.push(normalizedRow);
+    });
+    
+    setNormalizedRows(normalized);
+    setRowErrors(errors);
+    setPasswordMap(newPasswordMap);
   };
 
   const handleClearRows = () => {
     resetState();
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleEditRow = (index) => {
-    setEditingRowIndex(index);
-  };
-
-  const handleSaveEditedRow = (index, updatedRow) => {
-    const nextRows = [...rows];
-    nextRows[index] = { ...updatedRow };
-    setRows(nextRows);
-    const nextErrors = nextRows.map((row) => validator(row));
-    setRowErrors(nextErrors);
-    setEditingRowIndex(null);
-    toast.success("Row updated successfully");
-  };
-
-  const handleDeleteRow = (index) => {
-    const nextRows = rows.filter((_, i) => i !== index);
-    const nextErrors = nextRows.map((row) => validator(row));
-    setRows(nextRows);
-    setRowErrors(nextErrors);
-    toast.success("Row deleted");
   };
 
   const handleSubmit = async (event) => {
@@ -203,45 +215,110 @@ const BulkUploadDriversPage = () => {
       return;
     }
 
-    if (rows.length === 0) {
+    if (normalizedRows.length === 0) {
       toast.error("No rows to submit");
+      return;
+    }
+
+    // Check payload size
+    const sizeCheck = checkPayloadSize(normalizedRows, 1);
+    if (sizeCheck.exceeds) {
+      toast.error(`Payload size (${sizeCheck.sizeMB}MB) exceeds limit (${sizeCheck.maxMB}MB). Please reduce the number of rows.`);
       return;
     }
 
     setIsSubmitting(true);
 
-    const token = localStorage.getItem("authToken");
     try {
-      const options = { dry_run: dryRun, upsert };
-      const resp = await DriverService.addBulkDrivers(businessRefId, rows, options);
+      // Build employees array (remove internal fields)
+      const employees = normalizedRows.map((row) => ({
+        clientRowId: row.clientRowId,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        email: row.email || null,
+        mobileNumber: row.mobileNumber,
+        location: row.location || null,
+        password: row.password,
+        role: row.role,
+      }));
 
-      // normalize response
+      const resp = await DriverService.addBulkDrivers(employees);
+
+      // Normalize response
       const respData = resp && resp.data ? resp.data : resp;
       setUploadResult(respData);
+      setShowResultsModal(true);
 
-      const created = respData?.createdCount ?? respData?.data?.createdCount ?? respData?.summary?.created ?? 0;
-      const errors = respData?.errors ?? respData?.data?.errors ?? [];
+      const createdCount = respData?.createdCount ?? 0;
+      const errorCount = respData?.errorCount ?? (respData?.errors?.length ?? 0);
 
       toast.success(
-        dryRun
-          ? `Dry run completed: ${created} created, ${errors.length} error(s)`
-          : `Employees uploaded: ${created} created, ${errors.length} error(s)`
+        `Upload completed: ${createdCount} created, ${errorCount} error(s)`
       );
-
-      if (!dryRun) {
-        setTimeout(() => navigate("/drivers"), 2000);
-      }
     } catch (error) {
       console.error("Submission error:", error);
-      const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message || "Upload failed";
-      toast.error(errorMsg);
+      
+      // Handle 413 specifically
+      if (error.response?.status === 413) {
+        toast.error("Payload too large. Please reduce the number of rows or split into multiple uploads.");
+      } else {
+        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message || "Upload failed";
+        toast.error(errorMsg);
+      }
       setUploadResult(null);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const filteredRows = rows.filter((row, index) => {
+  const handleDownloadCredentials = () => {
+    if (!uploadResult?.created) return;
+    
+    // Join created rows with passwords from our map
+    const credentials = uploadResult.created.map((created) => {
+      const password = passwordMap.get(created.clientRowId) || 'N/A';
+      return {
+        firstName: created.firstName,
+        lastName: created.lastName,
+        email: created.email || '',
+        mobileNumber: created.mobileNumber,
+        role: created.role,
+        location: created.location || '',
+        password: password,
+      };
+    });
+    
+    // Convert to CSV
+    const headers = ['firstName', 'lastName', 'email', 'mobileNumber', 'role', 'location', 'password'];
+    const csvRows = [
+      headers.join(','),
+      ...credentials.map(row => 
+        headers.map(header => {
+          const value = row[header] || '';
+          // Escape commas and quotes
+          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(',')
+      )
+    ];
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `employee-credentials-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success("Credentials CSV downloaded");
+  };
+
+  const filteredRows = normalizedRows.filter((row, index) => {
     if (filterStatus === "all") return true;
     const error = rowErrors[index];
     if (filterStatus === "error") return error && Object.keys(error).length > 0;
@@ -250,62 +327,33 @@ const BulkUploadDriversPage = () => {
   });
 
   const errorCount = rowErrors.filter((e) => e && Object.keys(e).length > 0).length;
-  const validCount = rows.length - errorCount;
+  const validCount = normalizedRows.length - errorCount;
+
+  const openFilePicker = () => {
+    if (isParsing || isSubmitting) return;
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="bulk-upload-vehicles-container" style={themeColors}>
-      {/* 1. Header Section */}
       <div className="bulk-upload-header">
         <button className="bulk-upload-back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
           <span>Back</span>
         </button>
         <h1>Bulk Upload Employees</h1>
-        <p>Upload employee data via .xlsx to normalize and update the database.</p>
+        <p>Upload employee data via .xlsx or .csv file. Map columns and preview before submitting.</p>
       </div>
 
       <form onSubmit={handleSubmit}>
-        
-        {/* 2. Options Toolbar (Like the Filters in the image) */}
-        <div className="bulk-upload-toolbar">
-          <div className="bulk-upload-input-group">
-            <label>Mode</label>
-            <label className="checkbox-card">
-              <input
-                type="checkbox"
-                checked={dryRun}
-                onChange={(e) => setDryRun(e.target.checked)}
-                disabled={isSubmitting}
-              />
-              <span>Dry-run only</span>
-            </label>
-          </div>
-
-          <div className="bulk-upload-input-group">
-            <label>Update Policy</label>
-            <label className="checkbox-card">
-              <input
-                type="checkbox"
-                checked={upsert}
-                onChange={(e) => setUpsert(e.target.checked)}
-                disabled={isSubmitting}
-              />
-              <span>Upsert (Update if exists)</span>
-            </label>
-          </div>
-        </div>
-
-        {/* 3. Main Card Content */}
         <div className="bulk-upload-card">
-          
-          {/* Upload State: Active File */}
           {fileName ? (
             <div className="file-info-bar">
               <div className="file-info-text">
                 <FileSpreadsheet size={18} />
                 <span>{fileName}</span>
                 <span style={{color: '#64748b', fontWeight: 400, marginLeft: 8}}>
-                   — {rows.length} records found
+                  — {normalizedRows.length} records
                 </span>
               </div>
               <button
@@ -319,14 +367,13 @@ const BulkUploadDriversPage = () => {
               </button>
             </div>
           ) : (
-            /* Upload State: Dropzone */
             <div className="bulk-upload-dropzone">
               <div className="bulk-upload-icon-circle">
                 <Upload size={24} />
               </div>
               <div className="bulk-upload-text-primary">Click to upload spreadsheet</div>
               <div className="bulk-upload-text-secondary">
-                Supports .xlsx files with headers: Name, Role, Vehicle Registration
+                Supports .xlsx, .xls, and .csv files
               </div>
               <button
                 type="button"
@@ -339,167 +386,129 @@ const BulkUploadDriversPage = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.csv"
                 onChange={handleFileChange}
                 style={{ display: "none" }}
               />
             </div>
           )}
 
-          {/* 4. Data Table / Empty State */}
-          <div className="bulk-upload-table-container">
-            {rows.length > 0 ? (
-              <>
-                {/* Error Summary Header */}
-                {errorCount > 0 && (
+          {normalizedRows.length > 0 && (
+            <div className="bulk-upload-table-container">
+              {errorCount > 0 && (
+                <div style={{
+                  padding: '16px 24px',
+                  backgroundColor: '#fff',
+                  borderBottom: '1px solid #e5e7eb',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}>
                   <div style={{
-                    padding: '16px 24px',
-                    backgroundColor: '#fff',
-                    borderBottom: '1px solid #e5e7eb',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '16px'
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    fontWeight: '500'
                   }}>
-                    <div style={{
-                      fontSize: '14px',
-                      color: '#6b7280',
-                      fontWeight: '500'
-                    }}>
-                      Some rows have errors. Click 'View/Edit' to correct them.
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      gap: '12px',
-                      flexWrap: 'wrap'
-                    }}>
-                      <button
-                        type="button"
-                        onClick={() => setFilterStatus('all')}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          backgroundColor: filterStatus === 'all' ? '#6366f1' : '#f3f4f6',
-                          color: filterStatus === 'all' ? '#fff' : '#374151',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        All ({rows.length})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFilterStatus('valid')}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          backgroundColor: filterStatus === 'valid' ? '#6366f1' : '#f3f4f6',
-                          color: filterStatus === 'valid' ? '#fff' : '#374151',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Valid ({validCount})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFilterStatus('error')}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          backgroundColor: filterStatus === 'error' ? '#6366f1' : '#fef2f2',
-                          color: filterStatus === 'error' ? '#fff' : '#991b1b',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Issues ({errorCount})
-                      </button>
-                    </div>
+                    Some rows have errors. Please fix them before submitting.
                   </div>
-                )}
-                <table className="bulk-upload-table">
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => setFilterStatus('all')}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        backgroundColor: filterStatus === 'all' ? '#6366f1' : '#f3f4f6',
+                        color: filterStatus === 'all' ? '#fff' : '#374151',
+                      }}
+                    >
+                      All ({normalizedRows.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterStatus('valid')}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        backgroundColor: filterStatus === 'valid' ? '#6366f1' : '#f3f4f6',
+                        color: filterStatus === 'valid' ? '#fff' : '#374151',
+                      }}
+                    >
+                      Valid ({validCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterStatus('error')}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        backgroundColor: filterStatus === 'error' ? '#6366f1' : '#fef2f2',
+                        color: filterStatus === 'error' ? '#fff' : '#991b1b',
+                      }}
+                    >
+                      Issues ({errorCount})
+                    </button>
+                  </div>
+                </div>
+              )}
+              <table className="bulk-upload-table">
                 <thead>
                   <tr>
                     <th style={{ width: "50px" }}>#</th>
-                    {columns.map((col) => (
-                      <th key={col.key}>{col.label}</th>
-                    ))}
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Location</th>
                     <th style={{ width: "120px" }}>Status</th>
-                    <th style={{ width: "80px", textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRows.map((row, displayIndex) => {
-                      const actualIndex = rows.indexOf(row);
-                      const error = rowErrors[actualIndex];
-                      const isValid = !error || Object.keys(error).length === 0;
+                    const actualIndex = normalizedRows.indexOf(row);
+                    const error = rowErrors[actualIndex];
+                    const isValid = !error || Object.keys(error).length === 0;
 
-                      return (
-                        <tr key={row._rowId}>
-                          <td>{displayIndex + 1}</td>
-                          {columns.map((col) => (
-                            <td key={col.key}>{row[col.key] || "-"}</td>
-                          ))}
-                          <td style={{ paddingLeft: '24px', textAlign: 'left' }}>
-                            {isValid ? (
-                              <span className="status-badge status-valid">Valid</span>
-                            ) : (
-                              <span className="status-badge status-error">Error</span>
-                            )}
-                          </td>
-                          <td style={{ backgroundColor: !isValid ? '#fef2f2' : 'transparent' }}>
-                             <div className="row-actions" style={{ gap: !isValid ? '12px' : '8px' }}>
-                              {!isValid && (
-                                <button
-                                  type="button"
-                                  className="row-action-btn row-action-fix"
-                                  onClick={() => handleEditRow(actualIndex)}
-                                >
-                                  <AlertCircle size={18} />
-                                  <span>Fix</span>
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="row-action-btn"
-                                onClick={() => handleEditRow(actualIndex)}
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                className="row-action-btn row-action-delete"
-                                onClick={() => handleDeleteRow(actualIndex)}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    return (
+                      <tr key={row.clientRowId}>
+                        <td>{displayIndex + 1}</td>
+                        <td>{row.firstName} {row.lastName}</td>
+                        <td>{row.email || '-'}</td>
+                        <td>{row.mobileNumber || '-'}</td>
+                        <td>{row.role}</td>
+                        <td>{row.location}</td>
+                        <td style={{ paddingLeft: '24px', textAlign: 'left' }}>
+                          {isValid ? (
+                            <span className="status-badge status-valid">Valid</span>
+                          ) : (
+                            <span className="status-badge status-error">Error</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
-              </>
-            ) : (
-              // Empty State matching the image style
-              <div className="empty-state-container">
-                {fileName ? "No valid rows found in file." : "No data found. Upload a file to see preview."}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* 5. Footer Actions */}
-          {rows.length > 0 && (
+          {normalizedRows.length > 0 && (
             <div className="action-row">
               <button
                 type="button"
@@ -521,15 +530,123 @@ const BulkUploadDriversPage = () => {
           )}
         </div>
       </form>
-      
-      {/* Edit Modal Logic */}
-      <EditRowModal
-        isOpen={editingRowIndex !== null}
-        row={editingRowIndex !== null ? rows[editingRowIndex] : null}
-        columns={columns}
-        onSave={(updatedRow) => handleSaveEditedRow(editingRowIndex, updatedRow)}
-        onClose={() => setEditingRowIndex(null)}
+
+      {/* Mapping Modal */}
+      <BulkEmployeeMappingModal
+        isOpen={showMappingModal}
+        fileColumns={fileColumns}
+        onSave={handleMappingSave}
+        onClose={() => {
+          setShowMappingModal(false);
+          if (!columnMapping) {
+            resetState();
+          }
+        }}
       />
+
+      {/* Results Modal */}
+      {showResultsModal && uploadResult && (
+        <div className="mapping-modal-overlay" onClick={() => setShowResultsModal(false)}>
+          <div className="mapping-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="mapping-modal-header">
+              <h3>Upload Results</h3>
+              <button onClick={() => setShowResultsModal(false)} className="mapping-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                  <strong>{uploadResult.createdCount || 0}</strong> employees created,{' '}
+                  <strong>{uploadResult.errorCount || uploadResult.errors?.length || 0}</strong> errors
+                </p>
+              </div>
+
+              {uploadResult.created && uploadResult.created.length > 0 && (
+                <div>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Created Employees</h4>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <th style={{ textAlign: 'left', padding: '8px' }}>Name</th>
+                          <th style={{ textAlign: 'left', padding: '8px' }}>Email</th>
+                          <th style={{ textAlign: 'left', padding: '8px' }}>Phone</th>
+                          <th style={{ textAlign: 'left', padding: '8px' }}>Password</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {uploadResult.created.map((created) => {
+                          const password = passwordMap.get(created.clientRowId) || 'N/A';
+                          return (
+                            <tr key={created.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                              <td style={{ padding: '8px' }}>{created.firstName} {created.lastName}</td>
+                              <td style={{ padding: '8px' }}>{created.email || '-'}</td>
+                              <td style={{ padding: '8px' }}>{created.mobileNumber}</td>
+                              <td style={{ padding: '8px', fontFamily: 'monospace' }}>{password}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadCredentials}
+                    className="mapping-btn-primary"
+                    style={{ marginTop: '12px' }}
+                  >
+                    <Download size={16} />
+                    Download Credentials CSV
+                  </button>
+                </div>
+              )}
+
+              {uploadResult.errors && uploadResult.errors.length > 0 && (
+                <div>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#dc2626' }}>Errors</h4>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {uploadResult.errors.map((error, idx) => (
+                      <div key={idx} style={{
+                        padding: '12px',
+                        marginBottom: '8px',
+                        backgroundColor: '#fef2f2',
+                        border: '1px solid #fee2e2',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}>
+                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                          Row {error.index + 1}: {error.code || 'ERROR'}
+                        </div>
+                        <div style={{ color: '#991b1b' }}>{error.error}</div>
+                        {error.field && (
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                            Field: {error.field}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mapping-modal-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResultsModal(false);
+                  setTimeout(() => navigate("/drivers"), 1000);
+                }}
+                className="mapping-btn-primary"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

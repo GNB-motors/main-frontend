@@ -76,28 +76,12 @@ export const DriverService = {
     },
 
     // --- Bulk create drivers/employees ---
-    addBulkDrivers: async (businessRefId, driversArray, options = {}) => {
+    addBulkDrivers: async (employeesArray) => {
         try {
-            const employees = driversArray.map((r) => {
-                const parts = (r.name || '').trim().split(/\s+/);
-                const firstName = parts.shift() || null;
-                const lastName = parts.join(' ') || null;
-                return {
-                    firstName,
-                    lastName,
-                    email: r.email || null,
-                    mobileNumber: r.mobileNumber || null,
-                    location: r.location || null,
-                    password: r.password || null,
-                    role: r.role || 'DRIVER',
-                };
-            });
-
+            // employeesArray should already be normalized with clientRowId, firstName, lastName, etc.
+            // Backend contract: only send { employees: [...] } - no orgId, dry_run, upsert
             const payload = {
-                employees,
-                ...(options.dry_run !== undefined ? { dry_run: !!options.dry_run } : {}),
-                ...(options.upsert !== undefined ? { upsert: !!options.upsert } : {}),
-                orgId: businessRefId || undefined,
+                employees: employeesArray,
             };
 
             const response = await apiClient.post(`/api/employees/bulk`, payload, { headers: { 'Content-Type': 'application/json' } });
