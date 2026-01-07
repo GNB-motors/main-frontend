@@ -289,6 +289,7 @@
 .vehicle-table {
   width: 100%;
   min-width: 960px;
+  min-height: 400px;
   border-collapse: separate;
   border-spacing: 0;
   background: #ffffff;

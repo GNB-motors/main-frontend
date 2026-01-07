@@ -1,10 +1,12 @@
 /* ==========================================================================
-   Login Page - Split Screen with Carousel
+   Login Page - Split Screen with Floating Carousel
    ========================================================================== */
 
-/* Define Variables for consistency */
+/* Import Fonts used in the new design */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap');
+
 :root {
-    --color-primary-500: #4F46E5; /* Match your brand color */
+    --color-primary-500: #4F46E5;
     --color-primary-600: #4338CA;
     --color-white: #ffffff;
     --color-grey-100: #F3F4F6;
@@ -13,28 +15,31 @@
     --color-grey-700: #374151;
     --color-grey-800: #1F2937;
     --border-radius-md: 8px;
-    --transition-speed: 0.5s;
 }
 
+/* --- Main Container --- */
 .login-container {
+    position: relative; /* Essential for absolute positioning of right panel */
     display: flex;
     width: 100%;
     min-height: 100vh;
     background-color: var(--color-white);
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Poppins', sans-serif; /* Updated to match new design */
     overflow: hidden;
 }
 
 /* --- Left Column: Form Area --- */
 .login-form-wrapper {
-    flex: 1;
+    /* Updated logic to match the 'calc(100% - 880px)' from your sample */
+    position: relative;
+    width: calc(100% - 880px); 
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 40px;
+    padding: 60px;
     z-index: 2;
     background: var(--color-white);
-    max-width: 50%; /* Ensures 50/50 split on large screens */
 }
 
 .login-form-card {
@@ -42,81 +47,43 @@
     max-width: 420px;
 }
 
-.login-header {
-    margin-bottom: 32px;
-}
-
-.login-header .logo {
-    width: 80px; /* Adjusted for better proportion */
-    height: auto;
-    margin-bottom: 24px;
-}
-
+/* Header & Logo */
+.login-header { margin-bottom: 40px; }
+.login-header .logo { width: 80px; height: auto; margin-bottom: 24px; }
 .login-header h1 {
     font-size: 36px;
     font-weight: 800;
-    color: var(--color-grey-800);
-    margin: 0;
-}
-
-/* Social Tabs (Visual only per your request) */
-.social-login-tabs {
-    margin-bottom: 24px;
-}
-.social-tab {
-    display: inline-block;
-    padding-bottom: 4px;
-    text-decoration: none;
-    font-weight: 600;
-    color: var(--color-grey-400);
-    border-bottom: 2px solid transparent;
-}
-.social-tab.active {
     color: var(--color-primary-500);
-    border-bottom-color: var(--color-primary-500);
+    margin: 0;
+    font-family: 'Montserrat', sans-serif; /* Keep branding font for headers */
+    letter-spacing: -0.5px;
 }
 
-/* --- Form Inputs --- */
-.form-group {
-    margin-bottom: 20px;
-}
-
+/* --- Form Elements (Kept consistent) --- */
+.form-group { margin-bottom: 20px; }
 .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--color-grey-700);
-    font-size: 14px;
-    font-weight: 600;
+    display: block; margin-bottom: 8px;
+    color: var(--color-grey-700); font-size: 14px; font-weight: 600;
 }
-
 .form-input {
-    width: 100%;
-    padding: 14px;
+    width: 100%; padding: 14px;
     background-color: var(--color-grey-100);
-    border: 1px solid transparent;
-    border-radius: var(--border-radius-md);
-    font-size: 14px;
-    transition: all 0.2s;
-    box-sizing: border-box;
+    border: 1px solid transparent; border-radius: var(--border-radius-md);
+    font-size: 14px; transition: all 0.2s; box-sizing: border-box;
 }
-
 .form-input:focus {
-    outline: none;
-    background-color: var(--color-white);
+    outline: none; background-color: var(--color-white);
     border-color: var(--color-primary-500);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-/* Password Input Container */
 .password-input-container {
     position: relative;
     width: 100%;
 }
-
 .password-input-container .form-input {
-    padding-right: 50px; /* Make room for the icon */
+    padding-right: 50px;
 }
-
 .password-toggle-icon {
     position: absolute;
     right: 14px;
@@ -132,253 +99,164 @@
     z-index: 1;
     user-select: none;
 }
-
 .password-toggle-icon:hover {
     color: var(--color-grey-700);
 }
-
 .password-toggle-icon .MuiSvgIcon-root {
     font-size: 18px;
 }
 
-/* --- Form Options --- */
 .form-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
 }
-
 .remember-me {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: var(--color-grey-700);
-    font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; color: var(--color-grey-700); font-weight: 500;
 }
-
 .forgot-password {
-    color: var(--color-primary-500);
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
+    color: var(--color-primary-500); text-decoration: none;
+    font-size: 14px; font-weight: 600;
 }
-
-/* --- Toggle Switch --- */
-.toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-}
-.toggle-switch input { display: none; }
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: var(--color-grey-200);
-    transition: .4s;
-    border-radius: 24px;
-}
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 18px; width: 18px;
-    left: 3px; bottom: 3px;
-    background-color: white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    transition: .4s;
-    border-radius: 50%;
-}
-input:checked + .slider { background-color: var(--color-primary-500); }
-input:checked + .slider:before { transform: translateX(20px); }
-
-/* --- Buttons --- */
 .signin-button {
-    width: 100%;
-    padding: 16px;
-    border: none;
+    width: 100%; padding: 16px; border: none;
     border-radius: var(--border-radius-md);
     background-color: var(--color-primary-500);
     color: var(--color-white);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
+    font-size: 16px; font-weight: 600; cursor: pointer;
     transition: background-color 0.2s;
 }
-
-.signin-button:hover {
-    background-color: var(--color-primary-600);
-}
-
+.signin-button:hover { background-color: var(--color-primary-600); }
 .signin-button:disabled {
     opacity: 0.7;
     cursor: wait;
 }
-
 .signup-link {
-    text-align: center;
-    margin-top: 24px;
-    font-size: 14px;
-    color: var(--color-grey-400);
+    text-align: center; margin-top: 24px;
+    font-size: 14px; color: var(--color-grey-400);
 }
-
 .signup-link a {
-    color: var(--color-primary-500);
-    text-decoration: none;
-    font-weight: 600;
+    color: var(--color-primary-500); text-decoration: none; font-weight: 600;
 }
 
-/* --- Right Column: Carousel Panel --- */
-.carousel-panel {
-    flex: 1; /* Takes up remaining 50% */
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    overflow: hidden;
+/* Toggle Switch */
+.toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.toggle-switch input { display: none; }
+.slider-switch { /* Renamed to avoid conflict with carousel logic */
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--color-grey-200); transition: .4s; border-radius: 24px;
 }
-
-.carousel-content-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    border-radius: 24px;
-    overflow: hidden;
+.slider-switch:before {
+    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+    background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: .4s; border-radius: 50%;
 }
+input:checked + .slider-switch { background-color: var(--color-primary-500); }
+input:checked + .slider-switch:before { transform: translateX(20px); }
 
-.carousel-slide {
+
+/* ==========================================================================
+   RIGHT PANEL: NEW CAROUSEL DESIGN
+   ========================================================================== */
+
+.right-panel-container {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    width: 800px;
+    height: 96vh;
+    right: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 28px;
+    overflow: hidden;
+    background: #000;
+    z-index: 10;
+}
+
+/* --- Carousel Images --- */
+.slide-bg {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
     opacity: 0;
     transition: opacity 1s ease-in-out;
     z-index: 0;
 }
+.slide-bg.active { opacity: 1; }
 
-.carousel-slide.active {
-    opacity: 1;
-    z-index: 1;
-}
+/* --- Blur Vectors (Blue Overlay) --- */
+.vector-1 { position: absolute; width: 280px; height: 286px; left: -20px; top: -26px; background: #1D83EB; filter: blur(118.95px); z-index: 1; opacity: 0.9; }
+.vector-2 { position: absolute; width: 348px; height: 284px; left: 191px; top: -46px; background: #38B2E5; filter: blur(118.95px); z-index: 1; opacity: 0.9; }
+.vector-3 { position: absolute; width: 280px; height: 284px; left: 469px; top: -46px; background: #2084EB; filter: blur(118.95px); z-index: 1; opacity: 0.9; }
+.vector-4 { position: absolute; width: 136px; height: 284px; left: -50px; top: 700px; background: #385D7F; filter: blur(118.95px); z-index: 1; }
 
-.carousel-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Carousel Indicators */
-.carousel-indicators {
+/* --- Glass Card --- */
+.glass-card {
     position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    z-index: 3;
-}
-
-.indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.5);
+    left: 39px; top: 30px;
+    width: 617px; height: 218px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 30px 40px;
+    display: flex; flex-direction: column; justify-content: center;
+    gap: 20px; z-index: 10;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    transition: all 0.5s ease;
     cursor: pointer;
-    transition: all 0.3s ease;
+    user-select: none;
+}
+.glass-card:active { transform: scale(0.99); }
+
+.card-title {
+    font-family: 'Manrope', sans-serif; font-weight: 700;
+    font-size: 40px; line-height: 40px; letter-spacing: 0.3px; color: #FFFFFF;
+}
+.card-desc {
+    font-family: 'Manrope', sans-serif; font-weight: 500;
+    font-size: 18px; line-height: 30px; letter-spacing: 0.3px; color: #FFFFFF;
+    max-width: 532px;
 }
 
-.indicator.active {
-    background-color: var(--color-primary-500);
-    width: 32px;
-    border-radius: 5px;
+/* Inner Dots */
+.card-dots { display: flex; gap: 10px; margin-top: 10px; }
+.card-dot {
+    height: 12px; background: #FFFFFF; border-radius: 20px;
+    transition: all 0.3s ease; cursor: pointer;
 }
+.card-dot:hover { opacity: 0.8; }
+.card-dot.active { width: 43px; opacity: 1; }
+.card-dot.inactive { width: 12px; opacity: 0.5; }
 
-/* Optional Overlay Gradient for text readability on images */
-.carousel-overlay {
+/* --- Bottom Pill Navigation --- */
+.bottom-pill {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%);
-    z-index: 2;
-    pointer-events: none;
+    left: 50%; transform: translateX(-50%);
+    bottom: 40px;
+    width: 86px; height: 21px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(2px);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; z-index: 10; cursor: pointer;
+}
+.nav-dot {
+    height: 6px; border-radius: 20px; transition: all 0.3s ease;
+}
+.nav-dot.active { width: 30px; background: #ffffff; }
+.nav-dot.inactive { width: 6px; background: #CACACA; }
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 1400px) {
+    .right-panel-container { width: 600px; right: 30px; }
+    .glass-card { width: 90%; left: 5%; }
+    /* Adjust left panel to fill space */
+    .login-form-wrapper { width: calc(100% - 660px); }
 }
 
-/* --- Responsive --- */
-@media (max-width: 992px) {
-    .carousel-panel {
-        display: none;
-    }
-    .login-form-wrapper {
-        max-width: 100%;
-    }
-}
-.toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-}
-
-.toggle-switch input { display: none; }
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--color-grey-200);
-    transition: .4s;
-    border-radius: 24px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    transition: .4s;
-    border-radius: 50%;
-}
-
-input:checked + .slider {
-    background-color: var(--color-primary-500);
-}
-
-input:checked + .slider:before {
-    transform: translateX(20px);
-}
-
-/* Right Column: Decorative Art Panel */
-.login-art-panel {
-    flex-basis: 45%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #eef2ff; /* Light blue background */
-    overflow: hidden;
-}
-
-.login-art-panel img {
-    max-width: 100%;
-    max-height: 100%;
-}
-
-/* Responsive Design */
-@media (max-width: 992px) {
-    .login-art-panel {
-        display: none;
-    }
-    .login-form-wrapper {
-        flex-basis: 100%;
-    }
+@media (max-width: 1200px) {
+    /* Stacked layout or mobile view */
+    .login-form-wrapper { width: 100%; height: auto; min-height: 100vh; }
+    
+    /* On mobile, we might hide the complex right panel or make it a background */
+    .right-panel-container { display: none; }
 }

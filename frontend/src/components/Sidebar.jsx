@@ -134,10 +134,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <Truck size={20} />
                         <span>Vehicles</span>
                     </NavLink>
-                    <NavLink to="/routes" className="nav-link" onClick={closeSidebarOnMobile}>
+                    {/* <NavLink to="/routes" className="nav-link" onClick={closeSidebarOnMobile}>
                         <MapPin size={20} />
                         <span>Routes</span>
-                    </NavLink>
+                    </NavLink> */}
                     <NavLink to="/profile" className="nav-link" onClick={closeSidebarOnMobile}>
                         <User size={20} />
                         <span>Profile</span>

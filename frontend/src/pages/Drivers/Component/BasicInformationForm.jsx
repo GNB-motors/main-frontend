@@ -146,13 +146,14 @@ const BasicInformationForm = forwardRef(({
             <div className="basic-info-form-row">
               <div className="basic-info-form-field">
                 <label className="basic-info-label">Role</label>
-                <input 
-                  type="text"
+                <select 
                   className="basic-info-input"
                   value={formData.role}
                   onChange={(e) => handleInputChange('role', e.target.value)}
-                  placeholder="Enter role"
-                />
+                >
+                  <option value="DRIVER">Driver</option>
+                  <option value="MANAGER">manager</option>
+                </select>
               </div>
             </div>
           </form>
