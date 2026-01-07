@@ -33,6 +33,7 @@ const BulkUploadDriversPage = () => {
   const [uploadResult, setUploadResult] = useState(null);
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [selectedRowForError, setSelectedRowForError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const fileInputRef = useRef(null);
@@ -154,11 +155,12 @@ const BulkUploadDriversPage = () => {
     
     rawRows.forEach((rawRow, index) => {
       // Extract values based on mapping
-      const name = mapping.name ? (rawRow[mapping.name] || '') : '';
-      const phone = mapping.phone ? (rawRow[mapping.phone] || '') : '';
-      const email = mapping.email ? (rawRow[mapping.email] || '') : '';
-      const role = mapping.role ? (rawRow[mapping.role] || '') : '';
-      const location = mapping.location ? (rawRow[mapping.location] || '') : '';
+      // Handle both string and number types from Excel/CSV
+      const name = mapping.name ? (rawRow[mapping.name] != null ? String(rawRow[mapping.name]) : '') : '';
+      const phone = mapping.phone ? (rawRow[mapping.phone] != null ? rawRow[mapping.phone] : '') : '';
+      const email = mapping.email ? (rawRow[mapping.email] != null ? String(rawRow[mapping.email]) : '') : '';
+      const role = mapping.role ? (rawRow[mapping.role] != null ? String(rawRow[mapping.role]) : '') : '';
+      const location = mapping.location ? (rawRow[mapping.location] != null ? String(rawRow[mapping.location]) : '') : '';
       
       // Generate clientRowId
       const clientRowId = `row-${Date.now()}-${index}`;
@@ -261,8 +263,10 @@ const BulkUploadDriversPage = () => {
       // Handle 413 specifically
       if (error.response?.status === 413) {
         toast.error("Payload too large. Please reduce the number of rows or split into multiple uploads.");
+      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.detail?.includes('timeout')) {
+        toast.error("Request timed out. The upload may still be processing on the server. Please check the employees list or try again with fewer rows.");
       } else {
-        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message || "Upload failed";
+        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.detail || error.message || "Upload failed";
         toast.error(errorMsg);
       }
       setUploadResult(null);
@@ -486,7 +490,25 @@ const BulkUploadDriversPage = () => {
                     const isValid = !error || Object.keys(error).length === 0;
 
                     return (
-                      <tr key={row.clientRowId}>
+                      <tr 
+                        key={row.clientRowId}
+                        onClick={() => !isValid && setSelectedRowForError({ row, error, index: actualIndex })}
+                        style={{ 
+                          cursor: !isValid ? 'pointer' : 'default',
+                          backgroundColor: !isValid ? '#fef2f2' : 'transparent',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isValid) {
+                            e.currentTarget.style.backgroundColor = '#fee2e2';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isValid) {
+                            e.currentTarget.style.backgroundColor = '#fef2f2';
+                          }
+                        }}
+                      >
                         <td>{displayIndex + 1}</td>
                         <td>{row.firstName} {row.lastName}</td>
                         <td>{row.email || '-'}</td>
@@ -543,6 +565,117 @@ const BulkUploadDriversPage = () => {
           }
         }}
       />
+
+      {/* Row Error Details Modal */}
+      {selectedRowForError && (
+        <div className="mapping-modal-overlay" onClick={() => setSelectedRowForError(null)}>
+          <div className="mapping-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="mapping-modal-header">
+              <h3>Row {selectedRowForError.index + 1} - Validation Errors</h3>
+              <button onClick={() => setSelectedRowForError(null)} className="mapping-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+                  Employee Details
+                </h4>
+                <div style={{ 
+                  padding: '12px', 
+                  backgroundColor: '#f9fafb', 
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  gap: '8px 16px'
+                }}>
+                  <div style={{ fontWeight: '600', color: '#6b7280' }}>Name:</div>
+                  <div>{selectedRowForError.row.firstName} {selectedRowForError.row.lastName}</div>
+                  <div style={{ fontWeight: '600', color: '#6b7280' }}>Email:</div>
+                  <div>{selectedRowForError.row.email || '-'}</div>
+                  <div style={{ fontWeight: '600', color: '#6b7280' }}>Phone:</div>
+                  <div>{selectedRowForError.row.mobileNumber || '-'}</div>
+                  <div style={{ fontWeight: '600', color: '#6b7280' }}>Role:</div>
+                  <div>{selectedRowForError.row.role}</div>
+                  <div style={{ fontWeight: '600', color: '#6b7280' }}>Location:</div>
+                  <div>{selectedRowForError.row.location}</div>
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#dc2626' }}>
+                  Validation Errors
+                </h4>
+                {Object.keys(selectedRowForError.error).length === 0 ? (
+                  <div style={{ 
+                    padding: '12px', 
+                    backgroundColor: '#f0fdf4', 
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '8px',
+                    color: '#166534',
+                    fontSize: '14px'
+                  }}>
+                    No errors found. This row is valid.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {Object.entries(selectedRowForError.error).map(([field, message]) => (
+                      <div 
+                        key={field}
+                        style={{
+                          padding: '12px',
+                          backgroundColor: '#fef2f2',
+                          border: '1px solid #fee2e2',
+                          borderRadius: '8px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', color: '#991b1b', marginBottom: '4px' }}>
+                          {field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1').trim()}
+                        </div>
+                        <div style={{ color: '#b91c1c' }}>{message}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selectedRowForError.row._rawRow && (
+                <div>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+                    Original File Data
+                  </h4>
+                  <div style={{ 
+                    padding: '12px', 
+                    backgroundColor: '#f9fafb', 
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    maxHeight: '200px',
+                    overflow: 'auto'
+                  }}>
+                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                      {JSON.stringify(selectedRowForError.row._rawRow, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mapping-modal-actions">
+              <button
+                type="button"
+                onClick={() => setSelectedRowForError(null)}
+                className="mapping-btn-primary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Results Modal */}
       {showResultsModal && uploadResult && (

@@ -24,14 +24,19 @@ export const splitName = (name) => {
 /**
  * Normalize phone number to E.164-ish format
  * Assumes India (+91) for 10-digit numbers without country code
- * @param {string} phone - Phone number
+ * @param {string|number} phone - Phone number (can be string or number from Excel)
  * @returns {string|null} - Normalized phone or null if invalid
  */
 export const normalizePhone = (phone) => {
-  if (!phone || typeof phone !== 'string') return null;
+  // Handle null, undefined, empty string
+  if (phone === null || phone === undefined || phone === '') return null;
   
-  // Remove all spaces, dashes, parentheses
-  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  // Convert to string (handles numbers from Excel/CSV)
+  let phoneStr = String(phone).trim();
+  if (!phoneStr) return null;
+  
+  // Remove all spaces, dashes, parentheses, dots
+  let cleaned = phoneStr.replace(/[\s\-\(\)\.]/g, '');
   
   // If already starts with +, keep it
   if (cleaned.startsWith('+')) {
