@@ -30,9 +30,9 @@ export const DriverService = {
             const response = await apiClient.get(`/api/employees`, { params: query });
             // Prefer new response shape
             if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
-                return response.data.data;
+                return { data: response.data.data, meta: response.data.meta };
             }
-            return response.data;
+            return { data: response.data, meta: null };
         } catch (error) {
             console.error("API Error fetching drivers:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable." };

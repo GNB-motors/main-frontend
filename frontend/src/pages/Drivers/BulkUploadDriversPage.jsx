@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
 import "../Profile/BulkUploadVehiclesPage.css";
 import { DriverService } from "./DriverService.jsx";
-import BulkEmployeeMappingModal from "./Component/BulkEmployeeMappingModal.jsx";
+import BulkEmployeeMappingSidePanel from "./Component/BulkEmployeeMappingSidePanel.jsx";
+import BulkUploadResultsSidePanel from "./Component/BulkUploadResultsSidePanel.jsx";
 import {
   splitName,
   normalizePhone,
@@ -553,8 +554,8 @@ const BulkUploadDriversPage = () => {
         </div>
       </form>
 
-      {/* Mapping Modal */}
-      <BulkEmployeeMappingModal
+      {/* Mapping Side Panel */}
+      <BulkEmployeeMappingSidePanel
         isOpen={showMappingModal}
         fileColumns={fileColumns}
         onSave={handleMappingSave}
@@ -677,109 +678,17 @@ const BulkUploadDriversPage = () => {
         </div>
       )}
 
-      {/* Results Modal */}
-      {showResultsModal && uploadResult && (
-        <div className="mapping-modal-overlay" onClick={() => setShowResultsModal(false)}>
-          <div className="mapping-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="mapping-modal-header">
-              <h3>Upload Results</h3>
-              <button onClick={() => setShowResultsModal(false)} className="mapping-close-btn">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-                  <strong>{uploadResult.createdCount || 0}</strong> employees created,{' '}
-                  <strong>{uploadResult.errorCount || uploadResult.errors?.length || 0}</strong> errors
-                </p>
-              </div>
-
-              {uploadResult.created && uploadResult.created.length > 0 && (
-                <div>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Created Employees</h4>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{ textAlign: 'left', padding: '8px' }}>Name</th>
-                          <th style={{ textAlign: 'left', padding: '8px' }}>Email</th>
-                          <th style={{ textAlign: 'left', padding: '8px' }}>Phone</th>
-                          <th style={{ textAlign: 'left', padding: '8px' }}>Password</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {uploadResult.created.map((created) => {
-                          const password = passwordMap.get(created.clientRowId) || 'N/A';
-                          return (
-                            <tr key={created.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                              <td style={{ padding: '8px' }}>{created.firstName} {created.lastName}</td>
-                              <td style={{ padding: '8px' }}>{created.email || '-'}</td>
-                              <td style={{ padding: '8px' }}>{created.mobileNumber}</td>
-                              <td style={{ padding: '8px', fontFamily: 'monospace' }}>{password}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleDownloadCredentials}
-                    className="mapping-btn-primary"
-                    style={{ marginTop: '12px' }}
-                  >
-                    <Download size={16} />
-                    Download Credentials CSV
-                  </button>
-                </div>
-              )}
-
-              {uploadResult.errors && uploadResult.errors.length > 0 && (
-                <div>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#dc2626' }}>Errors</h4>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {uploadResult.errors.map((error, idx) => (
-                      <div key={idx} style={{
-                        padding: '12px',
-                        marginBottom: '8px',
-                        backgroundColor: '#fef2f2',
-                        border: '1px solid #fee2e2',
-                        borderRadius: '8px',
-                        fontSize: '14px'
-                      }}>
-                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-                          Row {error.index + 1}: {error.code || 'ERROR'}
-                        </div>
-                        <div style={{ color: '#991b1b' }}>{error.error}</div>
-                        {error.field && (
-                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                            Field: {error.field}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mapping-modal-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowResultsModal(false);
-                  setTimeout(() => navigate("/drivers"), 1000);
-                }}
-                className="mapping-btn-primary"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Upload Results Side Panel */}
+      <BulkUploadResultsSidePanel
+        isOpen={showResultsModal}
+        uploadResult={uploadResult}
+        passwordMap={passwordMap}
+        onDownloadCredentials={handleDownloadCredentials}
+        onClose={() => {
+          setShowResultsModal(false);
+          setTimeout(() => navigate("/drivers"), 1000);
+        }}
+      />
     </div>
   );
 };
