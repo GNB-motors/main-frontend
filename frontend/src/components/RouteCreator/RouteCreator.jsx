@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SearchableDropdown from '../SearchableDropdown/SearchableDropdown';
 import GoogleMapsModal from '../GoogleMapsModal/GoogleMapsModal';
 import './RouteCreator.css';
 
@@ -10,6 +11,30 @@ const RouteCreator = ({
 }) => {
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
   const [currentLocationType, setCurrentLocationType] = useState(null);
+
+  // Common location options for dropdown
+  const [locationOptions, setLocationOptions] = useState([
+    'Kolkata, West Bengal',
+    'Delhi, Delhi',
+    'Mumbai, Maharashtra',
+    'Chennai, Tamil Nadu',
+    'Bangalore, Karnataka',
+    'Hyderabad, Telangana',
+    'Pune, Maharashtra',
+    'Ahmedabad, Gujarat',
+    'Jaipur, Rajasthan',
+    'Surat, Gujarat',
+    'Kanpur, Uttar Pradesh',
+    'Nagpur, Maharashtra',
+    'Indore, Madhya Pradesh',
+    'Thane, Maharashtra',
+    'Bhopal, Madhya Pradesh',
+    'Visakhapatnam, Andhra Pradesh',
+    'Pimpri-Chinchwad, Maharashtra',
+    'Patna, Bihar',
+    'Vadodara, Gujarat',
+    'Ghaziabad, Uttar Pradesh'
+  ]);
 
   const handleLocationSelect = (locationType, locationData) => {
     const updates = {
@@ -28,6 +53,41 @@ const RouteCreator = ({
     }
     
     setIsMapsModalOpen(false);
+  };
+
+  const handleLocationDropdownSelect = (locationType, selectedLocation) => {
+    // Parse location string to extract city and state if possible
+    const locationParts = selectedLocation.split(', ');
+    const city = locationParts[0] || '';
+    const state = locationParts[1] || '';
+    
+    const updates = {
+      ...routeData,
+      [`${locationType}Location`]: {
+        address: selectedLocation,
+        lat: null,
+        lng: null,
+        city: city,
+        state: state,
+      }
+    };
+    
+    if (onRouteUpdate && typeof onRouteUpdate === 'function') {
+      onRouteUpdate(updates);
+    }
+  };
+
+  const handleAddNewLocation = (locationType, newLocation) => {
+    // Add new location to options
+    setLocationOptions(prev => [...prev, newLocation]);
+    
+    // Select the new location
+    handleLocationDropdownSelect(locationType, newLocation);
+  };
+
+  const openMapsModal = (locationType) => {
+    setCurrentLocationType(locationType);
+    setIsMapsModalOpen(true);
   };
 
   const handleDistanceChange = (baseDistance) => {
@@ -62,11 +122,6 @@ const RouteCreator = ({
     }
   };
 
-  const openMapsModal = (locationType) => {
-    setCurrentLocationType(locationType);
-    setIsMapsModalOpen(true);
-  };
-
   return (
     <fieldset className="form-section">
       <legend>Route Information</legend>
@@ -96,28 +151,29 @@ const RouteCreator = ({
       <div className="form-group">
         <label>Source Location</label>
         <div className="location-input-group">
-          <input
-            type="text"
-            value={routeData.sourceLocation?.address || ''}
-            placeholder="Click to select source location"
-            onClick={() => openMapsModal('source')}
-            readOnly
-            className="form-input location-input"
-          />
+          <div className="dropdown-container">
+            <SearchableDropdown
+              options={locationOptions}
+              selectedOption={routeData.sourceLocation?.address || ''}
+              onSelect={(location) => handleLocationDropdownSelect('source', location)}
+              onAddNew={(location) => handleAddNewLocation('source', location)}
+              placeholder="Select source location"
+              addNewLabel="Add new location"
+            />
+          </div>
           <button
             type="button"
             onClick={() => openMapsModal('source')}
             className="map-select-btn"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="currentColor"/>
-              <circle cx="12" cy="10" r="3" fill="white"/>
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
             </svg>
           </button>
         </div>
         {routeData.sourceLocation?.city && (
           <small className="location-details">
-            {routeData.sourceLocation.city}, {routeData.sourceLocation.state}
+            {routeData.sourceLocation.city}
           </small>
         )}
       </div>
@@ -126,28 +182,29 @@ const RouteCreator = ({
       <div className="form-group">
         <label>Destination Location</label>
         <div className="location-input-group">
-          <input
-            type="text"
-            value={routeData.destLocation?.address || ''}
-            placeholder="Click to select destination location"
-            onClick={() => openMapsModal('dest')}
-            readOnly
-            className="form-input location-input"
-          />
+          <div className="dropdown-container">
+            <SearchableDropdown
+              options={locationOptions}
+              selectedOption={routeData.destLocation?.address || ''}
+              onSelect={(location) => handleLocationDropdownSelect('dest', location)}
+              onAddNew={(location) => handleAddNewLocation('dest', location)}
+              placeholder="Select destination location"
+              addNewLabel="Add new location"
+            />
+          </div>
           <button
             type="button"
             onClick={() => openMapsModal('dest')}
             className="map-select-btn"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="currentColor"/>
-              <circle cx="12" cy="10" r="3" fill="white"/>
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
             </svg>
           </button>
         </div>
         {routeData.destLocation?.city && (
           <small className="location-details">
-            {routeData.destLocation.city}, {routeData.destLocation.state}
+            {routeData.destLocation.city}
           </small>
         )}
       </div>

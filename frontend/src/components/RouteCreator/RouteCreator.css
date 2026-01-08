@@ -61,6 +61,7 @@
 }
 
 .form-input[type='number'] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
@@ -95,7 +96,7 @@
 }
 
 .toggle-btn.active {
-  background: #00c896;
+  background: #3b82f6;
   color: white;
 }
 
@@ -105,6 +106,10 @@
   gap: 8px;
 }
 
+.dropdown-container {
+  flex: 1;
+}
+
 .location-input {
   flex: 1;
   cursor: pointer;
@@ -112,7 +117,7 @@
 
 .map-select-btn {
   padding: 12px;
-  background: #00c896;
+  background: #3b82f6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -126,9 +131,9 @@
 }
 
 .map-select-btn:hover {
-  background: #00b876;
+  background: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 200, 150, 0.25);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 }
 
 .location-details {
