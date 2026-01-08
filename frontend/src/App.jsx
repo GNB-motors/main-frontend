@@ -16,7 +16,6 @@ import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage  from './pages/Drivers/DriversPage.jsx';
 import AddDriverPage from './pages/Drivers/AddDriverPage.jsx';
-import BulkUploadPage from "./pages/BulkUpload/BulkUploadPage.jsx";
 import BulkUploadDriversPage from "./pages/Drivers/BulkUploadDriversPage.jsx";
 import BulkUploadVehiclesPage from "./pages/Profile/BulkUploadVehiclesPage.jsx";
 import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
@@ -61,7 +60,6 @@ function App() {
         <Route path="/drivers" element={<DriversPage />} />
   <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
-        <Route path="/bulk-upload" element={<BulkUploadPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
         <Route path="/trip-management/weight-slip/:id" element={<WeightSlipTripDetailPage />} />
         <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />

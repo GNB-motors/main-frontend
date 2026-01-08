@@ -538,14 +538,14 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
 const ActionMenu = ({ driver, onEdit, onDelete }) => {
     return (
         <div className="drivers-action-menu">
-            <button className="drivers-action-menu-item" onClick={() => onEdit(driver)}>
+            <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
                 <Edit size={16} />
                 <span>Edit</span>
             </button>
             {!driver.is_superadmin && ( // Prevent deleting superadmin
                 <>
                     <div className="drivers-action-menu-divider"></div>
-                    <button className="drivers-action-menu-item" onClick={() => onDelete(driver)}>
+                    <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDelete(driver); }}>
                         <Trash2 size={16} />
                         <span>Delete</span>
                     </button>
@@ -596,7 +596,7 @@ const DriversPage = () => {
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 30;
+    const itemsPerPage = 10;
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -611,6 +611,9 @@ const DriversPage = () => {
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false); // Loading state for add/edit/delete actions
+
+    const [totalDrivers, setTotalDrivers] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Profile context removed - drivers page should render independently
     // Read businessRefId from localStorage as a fallback
@@ -631,24 +634,12 @@ const DriversPage = () => {
 
         try {
             console.log('Fetching employees list, orgId=', businessRefId || 'none');
-            const resp = await DriverService.getAllDrivers(businessRefId);
+            const params = { page: currentPage, limit: itemsPerPage };
+            if (searchTerm) params.search = searchTerm;
+            if (filters.role) params.role = filters.role;
+            const result = await DriverService.getAllDrivers(businessRefId, params);
 
-            // The backend may return either an array or a paginated envelope {status, data: [...], meta}
-            let items = [];
-            let meta = null;
-            if (Array.isArray(resp)) {
-                items = resp;
-            } else if (resp && Array.isArray(resp.data)) {
-                // resp may be { status: 'success', data: [...], meta: {...} }
-                items = resp.data;
-                meta = resp.meta || null;
-            } else if (resp && Array.isArray(resp.data && resp.data.data)) {
-                // defensive: resp.data.data
-                items = resp.data.data;
-                meta = resp.data.meta || null;
-            } else {
-                items = [];
-            }
+            const { data: items, meta } = result;
 
             // Normalize drivers to include a `name` convenience field used across the UI
             const normalizedDrivers = (items || []).map(d => ({
@@ -662,6 +653,13 @@ const DriversPage = () => {
                 email: d.email || d.email_address || '',
             }));
             setDrivers(normalizedDrivers);
+            if (meta) {
+                setTotalDrivers(meta.total);
+                setTotalPages(meta.totalPages);
+            } else {
+                setTotalDrivers(normalizedDrivers.length);
+                setTotalPages(Math.ceil(normalizedDrivers.length / itemsPerPage));
+            }
             console.log("Drivers fetched:", normalizedDrivers, 'meta=', meta);
         } catch (apiError) {
             console.error("Failed to fetch drivers:", apiError);
@@ -701,7 +699,7 @@ const DriversPage = () => {
         // is not available locally. If token is missing, fetchDrivers will surface an auth error.
         fetchDrivers();
         fetchVehicles();
-    }, [businessRefId]);
+    }, [businessRefId, currentPage, searchTerm, filters.role]);
 
     // --- Action Handlers ---
     const handleAddDriver = async (driverData) => {
@@ -854,25 +852,6 @@ const DriversPage = () => {
     const filteredDrivers = useMemo(() => {
         let filtered = drivers;
 
-        // Apply search filter
-        if (searchTerm) {
-            const lowerSearchTerm = searchTerm.toLowerCase();
-            filtered = filtered.filter(driver =>
-                driver.name?.toLowerCase().includes(lowerSearchTerm) ||
-                driver.id?.toLowerCase().includes(lowerSearchTerm)
-            );
-        }
-
-        // Apply role filter
-        if (filters.role) {
-            filtered = filtered.filter(driver => {
-                if (filters.role === 'Super Admin') {
-                    return driver.is_superadmin;
-                }
-                return driver.role === filters.role;
-            });
-        }
-
         // Apply vehicle assignment filter
         if (filters.vehicleAssignment) {
             if (filters.vehicleAssignment === 'assigned') {
@@ -883,7 +862,7 @@ const DriversPage = () => {
         }
 
         return filtered;
-    }, [drivers, searchTerm, filters]);
+    }, [drivers, filters.vehicleAssignment]);
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -891,10 +870,7 @@ const DriversPage = () => {
     }, [searchTerm, filters]);
 
     // Pagination calculations
-    const totalPages = Math.ceil(filteredDrivers.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedDrivers = filteredDrivers.slice(startIndex, endIndex);
+    const paginatedDrivers = filteredDrivers;
 
     // Generate page numbers for pagination
     const generatePageNumbers = () => {
@@ -987,7 +963,7 @@ const DriversPage = () => {
                         <div>
                             <h3>
                                 <span>Total employees </span>
-                                <span>({filteredDrivers.length})</span>
+                                <span>({totalDrivers})</span>
                             </h3>
                             <div className="drivers-actions">
                             <div className="search-filter-container">

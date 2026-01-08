@@ -30,9 +30,9 @@ export const DriverService = {
             const response = await apiClient.get(`/api/employees`, { params: query });
             // Prefer new response shape
             if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
-                return response.data.data;
+                return { data: response.data.data, meta: response.data.meta };
             }
-            return response.data;
+            return { data: response.data, meta: null };
         } catch (error) {
             console.error("API Error fetching drivers:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable." };
@@ -76,35 +76,32 @@ export const DriverService = {
     },
 
     // --- Bulk create drivers/employees ---
-    addBulkDrivers: async (businessRefId, driversArray, options = {}) => {
+    addBulkDrivers: async (employeesArray) => {
         try {
-            const employees = driversArray.map((r) => {
-                const parts = (r.name || '').trim().split(/\s+/);
-                const firstName = parts.shift() || null;
-                const lastName = parts.join(' ') || null;
-                return {
-                    firstName,
-                    lastName,
-                    email: r.email || null,
-                    mobileNumber: r.mobileNumber || null,
-                    location: r.location || null,
-                    password: r.password || null,
-                    role: r.role || 'DRIVER',
-                };
-            });
-
+            // employeesArray should already be normalized with clientRowId, firstName, lastName, etc.
+            // Backend contract: only send { employees: [...] } - no orgId, dry_run, upsert
             const payload = {
-                employees,
-                ...(options.dry_run !== undefined ? { dry_run: !!options.dry_run } : {}),
-                ...(options.upsert !== undefined ? { upsert: !!options.upsert } : {}),
-                orgId: businessRefId || undefined,
+                employees: employeesArray,
             };
 
-            const response = await apiClient.post(`/api/employees/bulk`, payload, { headers: { 'Content-Type': 'application/json' } });
+            // Increase timeout for bulk operations (up to 500 employees can take time)
+            // Estimate: ~100ms per employee = 50 seconds for 500, add buffer = 2 minutes
+            const timeout = Math.max(120000, employeesArray.length * 200); // At least 2 minutes, or 200ms per employee
+
+            const response = await apiClient.post(`/api/employees/bulk`, payload, { 
+                headers: { 'Content-Type': 'application/json' },
+                timeout: timeout
+            });
             if (response.data && response.data.status === 'success' && response.data.data) return response.data.data;
             return response.data;
         } catch (error) {
             console.error("API Error bulk adding drivers:", error.response?.data || error.message);
+            
+            // Handle timeout specifically
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                throw { detail: "Request timed out. The upload may still be processing. Please check the employees list." };
+            }
+            
             throw error.response?.data || { detail: "Network error or server unavailable." };
         }
     },
