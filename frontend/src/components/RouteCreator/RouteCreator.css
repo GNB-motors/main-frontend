@@ -61,6 +61,7 @@
 }
 
 .form-input[type='number'] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
@@ -95,7 +96,7 @@
 }
 
 .toggle-btn.active {
-  background: #00c896;
+  background: #3b82f6;
   color: white;
 }
 
@@ -105,6 +106,10 @@
   gap: 8px;
 }
 
+.dropdown-container {
+  flex: 1;
+}
+
 .location-input {
   flex: 1;
   cursor: pointer;
@@ -112,7 +117,7 @@
 
 .map-select-btn {
   padding: 12px;
-  background: #00c896;
+  background: #3b82f6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -126,9 +131,9 @@
 }
 
 .map-select-btn:hover {
-  background: #00b876;
+  background: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 200, 150, 0.25);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 }
 
 .location-details {
@@ -210,4 +215,152 @@
     padding: 9px;
     min-width: 38px;
   }
+}
+
+/* Delete Location Modal Styles */
+.location-delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.location-delete-modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.location-delete-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.location-delete-modal-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.location-delete-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #8b8b8c;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-delete-content {
+  padding: 24px;
+}
+
+.location-delete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+}
+
+.location-delete-warning-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.location-delete-warning p {
+  margin: 0;
+  font-size: 14px;
+  color: #856404;
+  line-height: 1.4;
+}
+
+.location-delete-location-info {
+  margin-bottom: 24px;
+}
+
+.location-delete-info {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #ecf0f1;
+}
+
+.location-delete-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.location-delete-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.location-delete-address,
+.location-delete-type {
+  font-size: 14px;
+  color: #8b8b8c;
+}
+
+.location-delete-modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 24px 24px;
+  justify-content: flex-end;
+}
+
+.location-delete-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.location-delete-btn-secondary {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.location-delete-btn-secondary:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.location-delete-btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.location-delete-btn-danger:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.location-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
