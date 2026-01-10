@@ -1,7 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createLocation, deleteLocation } from '../../utils/locationApi';
+import { fetchLocations } from '../../utils/fetchLocations';
 import SearchableDropdown from '../SearchableDropdown/SearchableDropdown';
 import GoogleMapsModal from '../GoogleMapsModal/GoogleMapsModal';
 import './RouteCreator.css';
+
+// --- Delete Location Modal Component ---
+const DeleteLocationModal = ({ isOpen, onClose, onConfirm, location, isLoading: isDeleting }) => {
+    if (!isOpen || !location) return null;
+
+    return (
+        <div className="location-delete-modal-overlay" onClick={onClose}>
+            <div className="location-delete-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="location-delete-modal-header">
+                    <h4>Delete Location</h4>
+                    <button onClick={onClose} className="location-delete-modal-close-btn">&times;</button>
+                </div>
+                
+                <div className="location-delete-content">
+                    <div className="location-delete-warning">
+                        <div className="location-delete-warning-icon">⚠️</div>
+                        <p>This action cannot be undone. The location will be permanently removed from the system.</p>
+                    </div>
+                    
+                    <div className="location-delete-location-info">
+                        <div className="location-delete-info">
+                            <div className="location-delete-details">
+                                <span className="location-delete-name">{location.name}</span>
+                                <span className="location-delete-address">{location.address}</span>
+                                <span className="location-delete-type">{location.type}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="location-delete-modal-actions">
+                    <button 
+                        type="button" 
+                        className="location-delete-btn location-delete-btn-secondary" 
+                        onClick={onClose} 
+                        disabled={isDeleting}
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="button" 
+                        className="location-delete-btn location-delete-btn-danger" 
+                        onClick={() => onConfirm(location._id)} 
+                        disabled={isDeleting}
+                    >
+                        {isDeleting ? 'Deleting...' : 'Delete Location'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const RouteCreator = ({ 
   routeData = {}, 
@@ -12,29 +66,27 @@ const RouteCreator = ({
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
   const [currentLocationType, setCurrentLocationType] = useState(null);
 
-  // Common location options for dropdown
-  const [locationOptions, setLocationOptions] = useState([
-    'Kolkata, West Bengal',
-    'Delhi, Delhi',
-    'Mumbai, Maharashtra',
-    'Chennai, Tamil Nadu',
-    'Bangalore, Karnataka',
-    'Hyderabad, Telangana',
-    'Pune, Maharashtra',
-    'Ahmedabad, Gujarat',
-    'Jaipur, Rajasthan',
-    'Surat, Gujarat',
-    'Kanpur, Uttar Pradesh',
-    'Nagpur, Maharashtra',
-    'Indore, Madhya Pradesh',
-    'Thane, Maharashtra',
-    'Bhopal, Madhya Pradesh',
-    'Visakhapatnam, Andhra Pradesh',
-    'Pimpri-Chinchwad, Maharashtra',
-    'Patna, Bihar',
-    'Vadodara, Gujarat',
-    'Ghaziabad, Uttar Pradesh'
-  ]);
+  // Location options as objects: { id, name, address, city, state, lat, lng, type }
+  const [locationOptions, setLocationOptions] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(true);
+  // Fetch locations from API (can be called after delete as well)
+  const loadLocations = async () => {
+    setLoadingLocations(true);
+    try {
+      const data = await fetchLocations();
+      setLocationOptions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setLocationOptions([]);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+  useEffect(() => {
+    loadLocations();
+  }, []);
+  const [isAddingLocation, setIsAddingLocation] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingLocation, setDeletingLocation] = useState(null);
 
   const handleLocationSelect = (locationType, locationData) => {
     const updates = {
@@ -56,33 +108,105 @@ const RouteCreator = ({
   };
 
   const handleLocationDropdownSelect = (locationType, selectedLocation) => {
-    // Parse location string to extract city and state if possible
-    const locationParts = selectedLocation.split(', ');
-    const city = locationParts[0] || '';
-    const state = locationParts[1] || '';
-    
+    // Accepts either string or object
+    let locObj = selectedLocation;
+    if (typeof selectedLocation === 'string') {
+      // fallback for legacy string
+      const locationParts = selectedLocation.split(', ');
+      locObj = {
+        name: selectedLocation,
+        address: selectedLocation,
+        city: locationParts[0] || '',
+        state: locationParts[1] || '',
+        lat: null,
+        lng: null,
+        type: locationType === 'source' ? 'SOURCE' : 'DESTINATION',
+      };
+    }
     const updates = {
       ...routeData,
       [`${locationType}Location`]: {
-        address: selectedLocation,
-        lat: null,
-        lng: null,
-        city: city,
-        state: state,
+        address: locObj.address || locObj.name,
+        lat: locObj.lat,
+        lng: locObj.lng,
+        city: locObj.city,
+        state: locObj.state,
+        id: locObj._id || locObj.id,
       }
     };
-    
     if (onRouteUpdate && typeof onRouteUpdate === 'function') {
       onRouteUpdate(updates);
     }
   };
 
-  const handleAddNewLocation = (locationType, newLocation) => {
-    // Add new location to options
-    setLocationOptions(prev => [...prev, newLocation]);
-    
-    // Select the new location
-    handleLocationDropdownSelect(locationType, newLocation);
+  // Called after map modal and API
+  const handleAddNewLocation = (locationType, locationObj) => {
+    setLocationOptions(prev => [...prev, locationObj]);
+    handleLocationDropdownSelect(locationType, locationObj);
+  };
+
+  // Open map modal for add new (used by both dropdown and map button)
+  const handleRequestAddNew = (locationType, clearSearch) => {
+    setCurrentLocationType(locationType);
+    setIsAddingLocation(true);
+    setIsMapsModalOpen(true);
+    if (clearSearch) clearSearch();
+  };
+
+  // Called when user selects location in map modal for add new
+  const handleMapAddNewLocation = async (locationData) => {
+    if (!currentLocationType) return;
+    setIsMapsModalOpen(false);
+    setIsAddingLocation(false);
+    try {
+      // Compose payload for API
+      const payload = {
+        type: currentLocationType === 'source' ? 'SOURCE' : 'DESTINATION',
+        name: locationData.address || locationData.name || '',
+        address: locationData.address || '',
+        city: locationData.city || '',
+        state: locationData.state || '',
+        lat: locationData.lat,
+        lng: locationData.lng,
+      };
+      const created = await createLocation(payload);
+      setLocationOptions(prev => [...prev, created]);
+      handleLocationDropdownSelect(currentLocationType, created);
+    } catch (err) {
+      alert('Failed to add location. Please try again.');
+    }
+  };
+
+  // Delete location handler
+  const handleDeleteLocation = async (option) => {
+    setDeletingLocation(option);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Confirm delete
+  const confirmDeleteLocation = async (locationId) => {
+    setIsDeleteModalOpen(false);
+    setDeletingLocation(null);
+    try {
+      await deleteLocation(locationId);
+      await loadLocations(); // Refresh list from API
+      
+      // Clear selected location if it was deleted
+      if (routeData.sourceLocation?.id === locationId) {
+        onRouteUpdate({
+          ...routeData,
+          sourceLocation: null,
+        });
+      }
+      if (routeData.destLocation?.id === locationId) {
+        onRouteUpdate({
+          ...routeData,
+          destLocation: null,
+        });
+      }
+    } catch (err) {
+      alert('Failed to delete location.');
+    }
   };
 
   const openMapsModal = (locationType) => {
@@ -153,17 +277,18 @@ const RouteCreator = ({
         <div className="location-input-group">
           <div className="dropdown-container">
             <SearchableDropdown
-              options={locationOptions}
+              options={locationOptions.filter(l => l.type === 'SOURCE')}
               selectedOption={routeData.sourceLocation?.address || ''}
               onSelect={(location) => handleLocationDropdownSelect('source', location)}
-              onAddNew={(location) => handleAddNewLocation('source', location)}
-              placeholder="Select source location"
+              onRequestAddNew={(searchTerm, clearSearch) => handleRequestAddNew('source', clearSearch)}
+              onDeleteOption={handleDeleteLocation}
+              placeholder={loadingLocations ? 'Loading...' : 'Select source location'}
               addNewLabel="Add new location"
             />
           </div>
           <button
             type="button"
-            onClick={() => openMapsModal('source')}
+            onClick={() => handleRequestAddNew('source')}
             className="map-select-btn"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -184,17 +309,18 @@ const RouteCreator = ({
         <div className="location-input-group">
           <div className="dropdown-container">
             <SearchableDropdown
-              options={locationOptions}
+              options={locationOptions.filter(l => l.type === 'DESTINATION')}
               selectedOption={routeData.destLocation?.address || ''}
               onSelect={(location) => handleLocationDropdownSelect('dest', location)}
-              onAddNew={(location) => handleAddNewLocation('dest', location)}
-              placeholder="Select destination location"
+              onRequestAddNew={(searchTerm, clearSearch) => handleRequestAddNew('dest', clearSearch)}
+              onDeleteOption={handleDeleteLocation}
+              placeholder={loadingLocations ? 'Loading...' : 'Select destination location'}
               addNewLabel="Add new location"
             />
           </div>
           <button
             type="button"
-            onClick={() => openMapsModal('dest')}
+            onClick={() => handleRequestAddNew('dest')}
             className="map-select-btn"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -234,11 +360,29 @@ const RouteCreator = ({
       {isMapsModalOpen && (
         <GoogleMapsModal
           isOpen={isMapsModalOpen}
-          onClose={() => setIsMapsModalOpen(false)}
-          onApply={(locationData) => handleLocationSelect(currentLocationType, locationData)}
+          onClose={() => {
+            setIsMapsModalOpen(false);
+            setIsAddingLocation(false);
+          }}
+          onApply={isAddingLocation
+            ? handleMapAddNewLocation
+            : (locationData) => handleLocationSelect(currentLocationType, locationData)
+          }
           initialLocation={routeData[`${currentLocationType}Location`]}
         />
       )}
+
+      {/* Delete Location Modal */}
+      <DeleteLocationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeletingLocation(null);
+        }}
+        onConfirm={confirmDeleteLocation}
+        location={deletingLocation}
+        isLoading={false} // You can add a loading state if needed
+      />
     </fieldset>
   );
 };
