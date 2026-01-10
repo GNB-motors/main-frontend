@@ -107,6 +107,17 @@ const WeightSlipTripDetailPage = () => {
   const journey = trip.journeyId;
   const performance = trip.performance || {};
 
+  // Normalize mileage: prefer journey.mileage (contains odometer), fallback to top-level trip.mileage
+  const journeyMileage = journey?.mileage || {};
+  const topMileage = trip.mileage || {};
+  const displayMileage = {
+    startOdometer: journeyMileage.startOdometer ?? topMileage.startOdometer,
+    endOdometer: journeyMileage.endOdometer ?? topMileage.endOdometer,
+    totalDistanceKm: journeyMileage.totalDistanceKm ?? topMileage.totalDistanceKm ?? topMileage.distanceKm,
+    fuelLitres: journeyMileage.totalFuelUsedL ?? topMileage.fuelLitres ?? topMileage.totalFuelUsedL ?? topMileage.fuelLitres,
+    fuelMileageKmPerL: journeyMileage.fuelMileageKmPerL ?? topMileage.fuelMileageKmPerL
+  };
+
   return (
     <div className="trip-detail-view" style={{ paddingBottom: '40px' }}>
       {/* Header */}
@@ -360,24 +371,36 @@ const WeightSlipTripDetailPage = () => {
                 #{trip.journeySequence || '-'}
               </p>
             </div>
-            {journey?.mileage && (
+            {(displayMileage.startOdometer || displayMileage.endOdometer || displayMileage.totalDistanceKm || displayMileage.fuelLitres || displayMileage.fuelMileageKmPerL) && (
               <>
                 <div>
                   <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Start Odometer</label>
                   <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {journey.mileage.startOdometer?.toLocaleString() || '-'} km
+                    {displayMileage.startOdometer ? displayMileage.startOdometer.toLocaleString() : '-'} km
                   </p>
                 </div>
                 <div>
                   <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>End Odometer</label>
                   <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {journey.mileage.endOdometer?.toLocaleString() || '-'} km
+                    {displayMileage.endOdometer ? displayMileage.endOdometer.toLocaleString() : '-'} km
                   </p>
                 </div>
                 <div>
                   <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Total Distance</label>
                   <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {journey.mileage.totalDistanceKm?.toLocaleString() || '-'} km
+                    {displayMileage.totalDistanceKm ? displayMileage.totalDistanceKm.toLocaleString() : '-'} km
+                  </p>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Fuel Used</label>
+                  <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                    {displayMileage.fuelLitres ? Number(displayMileage.fuelLitres).toLocaleString(undefined, {maximumFractionDigits:2}) : '-'} liters
+                  </p>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Fuel Mileage</label>
+                  <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                    {displayMileage.fuelMileageKmPerL ? Number(displayMileage.fuelMileageKmPerL).toFixed(2) : '-'} km / liter
                   </p>
                 </div>
               </>

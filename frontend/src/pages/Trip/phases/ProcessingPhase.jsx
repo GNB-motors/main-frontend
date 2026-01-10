@@ -216,27 +216,39 @@ const ProcessingPhase = ({
             {/* Read-only journey summary placed at top of form (uses journeyData from parent) */}
             {journeyData && (
               (() => {
-                const startOdometer = journeyData?.mileageData?.startOdometer ?? journeyData?.startOdometer ?? null;
-                const endOdometer = journeyData?.mileageData?.endOdometer ?? journeyData?.endOdometer ?? null;
-                const totalDistance = journeyData?.mileageData?.totalDistanceKm ?? journeyData?.totalDistance ?? null;
-                const fuelLitres = journeyData?.fuelData?.litres ?? journeyData?.fuelLitres ?? null;
-                const fuelRate = journeyData?.fuelData?.rate ?? journeyData?.fuelRate ?? null;
-                const fuelEfficiency = journeyData?.fuelData?.efficiency ?? journeyData?.estimatedEfficiency ?? null;
+                  const startOdometer = journeyData?.mileageData?.startOdometer ?? journeyData?.startOdometer ?? null;
+                  const endOdometer = journeyData?.mileageData?.endOdometer ?? journeyData?.endOdometer ?? null;
+                  const totalDistance = journeyData?.mileageData?.totalDistanceKm ?? journeyData?.totalDistance ?? null;
+                  const fuelLitres = journeyData?.fuelData?.litres ?? journeyData?.fuelLitres ?? 0;
+                  const fuelRate = journeyData?.fuelData?.rate ?? journeyData?.fuelRate ?? null;
 
-                return (
-                  <div className="journey-summary form-section" aria-hidden>
-                    <div className="section-header"><h3>Journey Information</h3></div>
-                    <div className="journey-details">
-                      <div className="journey-item"><strong>Start Odometer:</strong> {startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : '—'}</div>
-                      <div className="journey-item"><strong>End Odometer:</strong> {endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : '—'}</div>
-                      <div className="journey-item"><strong>Total Distance:</strong> {totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : '—'}</div>
-                      <div className="journey-item"><strong>Fuel Litres:</strong> {fuelLitres !== null ? Number(fuelLitres).toLocaleString() + ' L' : '—'}</div>
-                      <div className="journey-item"><strong>Fuel Rate:</strong> {fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : '—'}</div>
-                      <div className="journey-item"><strong>Fuel Efficiency:</strong> {fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : '—'}</div>
+                  // Sum partial fuel volumes from fixedDocs.partialFuel (if available)
+                  const partialSum = (fixedDocs?.partialFuel || []).reduce((s, pf) => {
+                    const ocr = pf?.ocrData || pf?.file?.ocrData || {};
+                    const v = parseFloat(ocr?.volume || ocr?.litres || ocr?.liters || ocr?.quantity || 0) || 0;
+                    return s + v;
+                  }, 0);
+
+                  const totalFuelUsed = Number(fuelLitres || 0) + Number(partialSum || 0);
+
+                  const fuelEfficiency = (totalDistance && totalFuelUsed > 0) ? (Number(totalDistance) / Number(totalFuelUsed)) : (journeyData?.fuelData?.efficiency ?? journeyData?.estimatedEfficiency ?? null);
+
+                  return (
+                    <div className="journey-summary form-section" aria-hidden>
+                      <div className="section-header"><h3>Journey Information</h3></div>
+                      <div className="journey-details">
+                        <div className="journey-item"><strong>Start Odometer:</strong> {startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : '—'}</div>
+                        <div className="journey-item"><strong>End Odometer:</strong> {endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : '—'}</div>
+                        <div className="journey-item"><strong>Total Distance:</strong> {totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : '—'}</div>
+                        <div className="journey-item"><strong>Fuel Litres:</strong> {fuelLitres !== null ? Number(fuelLitres).toLocaleString() + ' L' : '—'}</div>
+                        <div className="journey-item"><strong>Partial Fuel (sum):</strong> {partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : '—'}</div>
+                        <div className="journey-item"><strong>Total Fuel Used:</strong> {totalFuelUsed > 0 ? Number(totalFuelUsed).toLocaleString() + ' L' : '—'}</div>
+                        <div className="journey-item"><strong>Fuel Rate:</strong> {fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : '—'}</div>
+                        <div className="journey-item"><strong>Fuel Efficiency:</strong> {fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : '—'}</div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })()
+                  );
+                })()
             )}
             {/* Route Creation Section */}
             <RouteCreator
