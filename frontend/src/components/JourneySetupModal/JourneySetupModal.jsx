@@ -16,6 +16,7 @@ const JourneySetupModal = ({
   onCancel,
   odometerOcrData,
   fuelSlipData,
+  partialFuelData = [],
   selectedVehicle,
   selectedDriver
 }) => {
@@ -42,7 +43,8 @@ const JourneySetupModal = ({
     selectedVehicle, 
     selectedDriver, 
     odometerOcrData, 
-    fuelSlipData 
+    fuelSlipData,
+    partialFuelData
   });
 
   console.log('🎯 JourneySetupModal rendering with state:', { journeyData, loading, errors });
@@ -154,6 +156,14 @@ const JourneySetupModal = ({
       }
     }
   }, [isOpen, odometerOcrData, fuelSlipData]);
+
+  // Compute partial fills sum and total fuel used (full tank + partials)
+  const partialFillsSum = (partialFuelData || []).reduce((sum, pf) => {
+    const v = parseFloat(pf?.volume || pf?.litres || pf?.liters || pf?.quantity || pf?.extractedData?.volume || pf?.extractedData?.litres || 0) || 0;
+    return sum + v;
+  }, 0);
+
+  const totalFuelUsed = Number(journeyData.fuelLitres || 0) + Number(partialFillsSum || 0);
 
   const fetchStartOdometer = async () => {
     if (!selectedVehicle?.id) {
@@ -353,8 +363,8 @@ const JourneySetupModal = ({
                 <div className="calculated-field">
                   <Gauge size={16} />
                   <span><strong>{
-                    journeyData.totalDistance > 0 && journeyData.fuelLitres > 0 
-                      ? journeyData.estimatedEfficiency.toFixed(2) 
+                    journeyData.totalDistance > 0 && totalFuelUsed > 0 
+                      ? (journeyData.totalDistance / totalFuelUsed).toFixed(2) 
                       : '--'
                   } km/L</strong></span>
                 </div>
@@ -423,6 +433,36 @@ const JourneySetupModal = ({
                 <div className="calculated-field">
                   <Calculator size={16} />
                   <span><strong>₹{(journeyData.fuelLitres * journeyData.fuelRate).toLocaleString()}</strong></span>
+                </div>
+              </div>
+              {/* Partial fuel slips & totals */}
+              <div style={{ gridColumn: '1/-1', marginTop: '8px' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Partial Fuel Slips</label>
+                {partialFuelData && partialFuelData.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {partialFuelData.map((pf, idx) => (
+                      <div key={pf?.tempId || idx} style={{ padding: '10px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#111827' }}>{pf?.station || pf?.location || `Partial Fill ${idx+1}`}</div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>{pf?.extractedData?.notes || pf?.notes || ''}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: 700, color: '#111827' }}>{(parseFloat(pf?.volume || pf?.litres || pf?.quantity || pf?.extractedData?.volume || pf?.extractedData?.litres || 0) || 0).toLocaleString(undefined, {maximumFractionDigits:2})} L</div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>{pf?.tempId ? 'Unsaved' : ''}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '10px', color: '#9ca3af' }}>No partial fuel slips added</div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Total Fuel Used (L)</label>
+                <div className="calculated-field">
+                  <Fuel size={16} />
+                  <span><strong>{totalFuelUsed ? Number(totalFuelUsed).toLocaleString(undefined, {maximumFractionDigits:2}) : '0.00'} L</strong></span>
                 </div>
               </div>
             </div>
