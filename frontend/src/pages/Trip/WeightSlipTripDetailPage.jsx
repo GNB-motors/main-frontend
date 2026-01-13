@@ -17,7 +17,7 @@ import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../uti
 const WeightSlipTripDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  
+
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,6 +25,13 @@ const WeightSlipTripDetailPage = () => {
   useEffect(() => {
     fetchTripDetails();
   }, [id]);
+
+  // Enable Start New Trip button to work from this page
+  useEffect(() => {
+    const handleStartNewTrip = () => navigate('/trip/new');
+    window.addEventListener('startNewTrip', handleStartNewTrip);
+    return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
+  }, [navigate]);
 
   const fetchTripDetails = async () => {
     setLoading(true);
@@ -119,6 +126,8 @@ const WeightSlipTripDetailPage = () => {
     fuelMileageKmPerL: journeyMileage.fuelMileageKmPerL ?? topMileage.fuelMileageKmPerL
   };
 
+
+
   return (
     <div className="trip-detail-view" style={{ paddingBottom: '40px' }}>
       {/* Header */}
@@ -187,7 +196,7 @@ const WeightSlipTripDetailPage = () => {
 
       {/* Main Content */}
       <div className="trip-detail-content" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        
+
         {/* Summary Cards */}
         <div style={{
           display: 'grid',
@@ -311,25 +320,27 @@ const WeightSlipTripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Registration</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
-                {getVehicleRegistration(journey?.vehicleId)}
+                {journey?.vehicleId?.registrationNumber || (typeof journey?.vehicleId === 'object' ? journey?.vehicleId?._id : journey?.vehicleId) || '-'}
               </p>
             </div>
             <div>
-              <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Type</label>
+              <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Model</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                -
+                {journey?.vehicleId?.model || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Name</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {getDriverName(journey?.driverId)}
+                {typeof journey?.driverId === 'object'
+                  ? `${journey?.driverId?.firstName || ''} ${journey?.driverId?.lastName || ''}`.trim() || '-'
+                  : journey?.driverId || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Phone</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {getDriverPhone(journey?.driverId)}
+                {journey?.driverId?.mobileNumber || '-'}
               </p>
             </div>
           </div>
@@ -393,7 +404,7 @@ const WeightSlipTripDetailPage = () => {
                 <div>
                   <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Fuel Used</label>
                   <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {displayMileage.fuelLitres ? Number(displayMileage.fuelLitres).toLocaleString(undefined, {maximumFractionDigits:2}) : '-'} liters
+                    {displayMileage.fuelLitres ? Number(displayMileage.fuelLitres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'} liters
                   </p>
                 </div>
                 <div>
@@ -526,9 +537,9 @@ const WeightSlipTripDetailPage = () => {
             <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600', color: '#111827' }}>Revenue Details</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Rate per kg</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Rate per Ton</label>
                 <p style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#111827' }}>
-                  ₹{trip.revenue?.ratePerKg?.toLocaleString() || '-'}
+                  {trip.revenue?.ratePerTon !== undefined ? `₹${trip.revenue.ratePerTon}` : '-'}
                 </p>
               </div>
               <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>

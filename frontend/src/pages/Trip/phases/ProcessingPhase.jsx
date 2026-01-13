@@ -107,7 +107,7 @@ const ProcessingPhase = ({
         activeElement.tagName === 'SELECT' ||
         activeElement.isContentEditable
       );
-      
+
       if (isTyping) {
         return; // Let the user type without interference
       }
@@ -149,7 +149,7 @@ const ProcessingPhase = ({
 
     // Mark current slip as done in local state
     updateWeightSlip(currentIndex, { isDone: true });
-    
+
     // Move to next slip or complete processing
     if (currentIndex < weightSlips.length - 1) {
       handleNextSlip();
@@ -163,7 +163,7 @@ const ProcessingPhase = ({
   const handleCompleteProcessing = useCallback(() => {
     // Check if all slips are completed
     const allCompleted = weightSlips.every(slip => slip.isDone);
-    
+
     if (!allCompleted) {
       const pending = weightSlips.filter(slip => !slip.isDone).length;
       alert(`Please complete all slips first.\n\nPending: ${pending} slip(s)`);
@@ -216,39 +216,39 @@ const ProcessingPhase = ({
             {/* Read-only journey summary placed at top of form (uses journeyData from parent) */}
             {journeyData && (
               (() => {
-                  const startOdometer = journeyData?.mileageData?.startOdometer ?? journeyData?.startOdometer ?? null;
-                  const endOdometer = journeyData?.mileageData?.endOdometer ?? journeyData?.endOdometer ?? null;
-                  const totalDistance = journeyData?.mileageData?.totalDistanceKm ?? journeyData?.totalDistance ?? null;
-                  const fuelLitres = journeyData?.fuelData?.litres ?? journeyData?.fuelLitres ?? 0;
-                  const fuelRate = journeyData?.fuelData?.rate ?? journeyData?.fuelRate ?? null;
+                const startOdometer = journeyData?.mileageData?.startOdometer ?? journeyData?.startOdometer ?? null;
+                const endOdometer = journeyData?.mileageData?.endOdometer ?? journeyData?.endOdometer ?? null;
+                const totalDistance = journeyData?.mileageData?.totalDistanceKm ?? journeyData?.totalDistance ?? null;
+                const fuelLitres = journeyData?.fuelData?.litres ?? journeyData?.fuelLitres ?? 0;
+                const fuelRate = journeyData?.fuelData?.rate ?? journeyData?.fuelRate ?? null;
 
-                  // Sum partial fuel volumes from fixedDocs.partialFuel (if available)
-                  const partialSum = (fixedDocs?.partialFuel || []).reduce((s, pf) => {
-                    const ocr = pf?.ocrData || pf?.file?.ocrData || {};
-                    const v = parseFloat(ocr?.volume || ocr?.litres || ocr?.liters || ocr?.quantity || 0) || 0;
-                    return s + v;
-                  }, 0);
+                // Sum partial fuel volumes from fixedDocs.partialFuel (if available)
+                const partialSum = (fixedDocs?.partialFuel || []).reduce((s, pf) => {
+                  const ocr = pf?.ocrData || pf?.file?.ocrData || {};
+                  const v = parseFloat(ocr?.volume || ocr?.litres || ocr?.liters || ocr?.quantity || 0) || 0;
+                  return s + v;
+                }, 0);
 
-                  const totalFuelUsed = Number(fuelLitres || 0) + Number(partialSum || 0);
+                const totalFuelUsed = Number(fuelLitres || 0) + Number(partialSum || 0);
 
-                  const fuelEfficiency = (totalDistance && totalFuelUsed > 0) ? (Number(totalDistance) / Number(totalFuelUsed)) : (journeyData?.fuelData?.efficiency ?? journeyData?.estimatedEfficiency ?? null);
+                const fuelEfficiency = (totalDistance && totalFuelUsed > 0) ? (Number(totalDistance) / Number(totalFuelUsed)) : (journeyData?.fuelData?.efficiency ?? journeyData?.estimatedEfficiency ?? null);
 
-                  return (
-                    <div className="journey-summary form-section" aria-hidden>
-                      <div className="section-header"><h3>Journey Information</h3></div>
-                      <div className="journey-details">
-                        <div className="journey-item"><strong>Start Odometer:</strong> {startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : '—'}</div>
-                        <div className="journey-item"><strong>End Odometer:</strong> {endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : '—'}</div>
-                        <div className="journey-item"><strong>Total Distance:</strong> {totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : '—'}</div>
-                        <div className="journey-item"><strong>Fuel Litres:</strong> {fuelLitres !== null ? Number(fuelLitres).toLocaleString() + ' L' : '—'}</div>
-                        <div className="journey-item"><strong>Partial Fuel (sum):</strong> {partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : '—'}</div>
-                        <div className="journey-item"><strong>Total Fuel Used:</strong> {totalFuelUsed > 0 ? Number(totalFuelUsed).toLocaleString() + ' L' : '—'}</div>
-                        <div className="journey-item"><strong>Fuel Rate:</strong> {fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : '—'}</div>
-                        <div className="journey-item"><strong>Fuel Efficiency:</strong> {fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : '—'}</div>
-                      </div>
+                return (
+                  <div className="journey-summary form-section" aria-hidden>
+                    <div className="section-header"><h3>Journey Information</h3></div>
+                    <div className="journey-details">
+                      <div className="journey-item"><strong>Start Odometer:</strong> {startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : '—'}</div>
+                      <div className="journey-item"><strong>End Odometer:</strong> {endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : '—'}</div>
+                      <div className="journey-item"><strong>Total Distance:</strong> {totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : '—'}</div>
+                      <div className="journey-item"><strong>Fuel Litres:</strong> {fuelLitres !== null ? Number(fuelLitres).toLocaleString() + ' L' : '—'}</div>
+                      <div className="journey-item"><strong>Partial Fuel (sum):</strong> {partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : '—'}</div>
+                      <div className="journey-item"><strong>Total Fuel Used:</strong> {totalFuelUsed > 0 ? Number(totalFuelUsed).toLocaleString() + ' L' : '—'}</div>
+                      <div className="journey-item"><strong>Fuel Rate:</strong> {fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : '—'}</div>
+                      <div className="journey-item"><strong>Fuel Efficiency:</strong> {fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : '—'}</div>
                     </div>
-                  );
-                })()
+                  </div>
+                );
+              })()
             )}
             {/* Route Creation Section */}
             <RouteCreator
@@ -257,7 +257,7 @@ const ProcessingPhase = ({
               onRouteUpdate={(routeData) => updateWeightSlip(currentIndex, { routeData })}
               onTripTypeChange={(tripType) => updateWeightSlip(currentIndex, { tripType })}
             />
-            
+
             <TripForm
               slip={currentSlip}
               fixedDocs={fixedDocs}
@@ -276,8 +276,8 @@ const ProcessingPhase = ({
             >
               ← {currentIndex === 0 ? 'Back to Intake' : 'Previous'}
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleBulkSaveAndNext}
               title="Save this slip and move to next (bulk)"
             >
@@ -290,7 +290,7 @@ const ProcessingPhase = ({
       {/* Preview Modal */}
       {showPreview && (
         <ImagePreviewModal
-          imageSource={previewImage}
+          imageSrc={previewImage}
           title={`Weight Slip #${currentIndex + 1}`}
           onClose={() => setShowPreview(false)}
         />
