@@ -12,6 +12,7 @@ import { ArrowLeft, Download, MapPin, Users, FileText, DollarSign, Package, Tren
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { WeightSlipTripService, TripService } from './services';
+import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
 
 const WeightSlipTripDetailPage = () => {
   const navigate = useNavigate();

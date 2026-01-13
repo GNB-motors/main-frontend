@@ -18,6 +18,7 @@ import { Search } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService, WeightSlipTripService } from './services';
+import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();
@@ -133,12 +134,13 @@ const TripManagementPage = () => {
     return trips.filter(trip => {
       if (activeTab === 'trips') {
         // Weight slip trip search
+        const vehicleReg = (trip.journeyId?.vehicleId?.registrationNumber || trip.vehicleId?.registrationNumber || trip.vehicleId || '').toString().toLowerCase();
         const driverName = trip.journeyId?.driverId 
           ? `${trip.journeyId.driverId.firstName} ${trip.journeyId.driverId.lastName}`.toLowerCase()
-          : '';
+          : (trip.driverId ? `${trip.driverId.firstName || ''} ${trip.driverId.lastName || ''}`.toLowerCase() : '');
         
         return (
-          trip.vehicleId?.registrationNumber?.toLowerCase().includes(query) ||
+          vehicleReg.includes(query) ||
           driverName.includes(query) ||
           trip.routeData?.name?.toLowerCase().includes(query) ||
           trip.routeData?.sourceLocation?.city?.toLowerCase().includes(query) ||
@@ -271,7 +273,7 @@ const TripManagementPage = () => {
                     <div className="card-header">
                       <div className="vehicle-info">
                         <span className="vehicle-number">{`Trip ${index + 1}`}</span>
-                        <span className="status-badge" style={{ 
+                        <span className="vehicle-number">{getVehicleRegistration(trip.journeyId?.vehicleId || trip.vehicleId)}</span>                        <span className="status-badge" style={{ 
                           backgroundColor: getStatusColor(trip.status) + '25',
                           color: getStatusColor(trip.status)
                         }}>
@@ -283,7 +285,7 @@ const TripManagementPage = () => {
                     <div className="card-body">
                       <div className="info-row">
                         <span className="label">Driver:</span>
-                        <span className="value">{trip.journeyId?.driverId ? `${trip.journeyId.driverId.firstName} ${trip.journeyId.driverId.lastName}` : '-'}</span>
+                        <span className="value">{getDriverName(trip.journeyId?.driverId || trip.driverId)}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Route:</span>
@@ -337,7 +339,7 @@ const TripManagementPage = () => {
                   >
                     <div className="card-header">
                       <div className="vehicle-info">
-                        <span className="vehicle-number">{trip.vehicleId?.registrationNumber || 'N/A'}</span>
+                        <span className="vehicle-number">{getVehicleRegistration(trip.journeyId?.vehicleId || trip.vehicleId) || 'N/A'}</span>
                         <span className="status-badge" style={{ 
                           backgroundColor: getStatusColor(trip.status) + '25',
                           color: getStatusColor(trip.status)

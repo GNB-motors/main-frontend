@@ -12,6 +12,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Users, MapPin, Package, DollarSign, 
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService } from './services';
+import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
 
 const TripDetailPage = () => {
   const navigate = useNavigate();
@@ -134,6 +135,10 @@ const TripDetailPage = () => {
     fuelLitres: journeyMileage.totalFuelUsedL ?? topMileage.fuelLitres ?? topMileage.totalFuelUsedL,
     fuelMileageKmPerL: journeyMileage.fuelMileageKmPerL ?? topMileage.fuelMileageKmPerL
   };
+
+  // Prefer journey-level vehicle/driver when available, otherwise fall back to top-level trip fields
+  const vehicle = trip.journeyId?.vehicleId || trip.vehicleId;
+  const driver = trip.journeyId?.driverId || trip.driverId;
 
   // Use journeyFinancials from API response if available, otherwise calculate from weightSlipTrips
   const totalRevenue = trip.journeyFinancials?.totalRevenue ||
