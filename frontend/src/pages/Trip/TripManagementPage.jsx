@@ -271,14 +271,18 @@ const TripManagementPage = () => {
                     onClick={() => handleTripClick(trip._id, 'weight-slip')}
                   >
                     <div className="card-header">
-                      <div className="vehicle-info">
-                        <span className="vehicle-number">{`Trip ${index + 1}`}</span>
-                        <span className="vehicle-number">{getVehicleRegistration(trip.journeyId?.vehicleId || trip.vehicleId)}</span>                        <span className="status-badge" style={{ 
+                      <div className="header-left">
+                        <span className="trip-identifier">{`Trip ${index + 1}`}</span>
+                        <span className="status-badge" style={{ 
                           backgroundColor: getStatusColor(trip.status) + '25',
                           color: getStatusColor(trip.status)
                         }}>
                           {trip.status}
                         </span>
+                      </div>
+                      <div className="header-right">
+                        <span className="vehicle-number">{getVehicleRegistration(trip.journeyId?.vehicleId || trip.vehicleId)}</span>
+                        <span className="header-date">{formatDate(trip.createdAt)}</span>
                       </div>
                     </div>
 
@@ -308,8 +312,7 @@ const TripManagementPage = () => {
                       </div>
                     </div>
 
-                    <div className="card-footer">
-                      <span className="date">{formatDate(trip.createdAt)}</span>
+                    <div className="card-footer" style={{ borderTop: 'none', paddingTop: 0, justifyContent: 'flex-end' }}>
                       <span className="arrow">→</span>
                     </div>
                   </div>
