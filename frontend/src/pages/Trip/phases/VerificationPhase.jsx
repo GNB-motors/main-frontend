@@ -250,7 +250,7 @@ const VerificationPhase = ({
                     <span className="metric-value">{fullTankLitres !== null ? Number(fullTankLitres).toLocaleString() + ' L' : '—'}</span>
                   </div>
                   <div className="journey-metric">
-                    <span className="metric-label">Partial Fuel (sum)</span>
+                    <span className="metric-label">Partial Fuel Used</span>
                     <span className="metric-value">{partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : '—'}</span>
                   </div>
                   <div className="journey-metric">
