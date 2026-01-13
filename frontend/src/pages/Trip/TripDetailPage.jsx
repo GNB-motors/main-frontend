@@ -12,6 +12,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Users, MapPin, Package, DollarSign, 
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService } from './services';
+import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
 
 const TripDetailPage = () => {
   const navigate = useNavigate();
@@ -127,6 +128,10 @@ const TripDetailPage = () => {
     fuelLitres: journeyMileage.totalFuelUsedL ?? topMileage.fuelLitres ?? topMileage.totalFuelUsedL,
     fuelMileageKmPerL: journeyMileage.fuelMileageKmPerL ?? topMileage.fuelMileageKmPerL
   };
+
+  // Prefer journey-level vehicle/driver when available, otherwise fall back to top-level trip fields
+  const vehicle = trip.journeyId?.vehicleId || trip.vehicleId;
+  const driver = trip.journeyId?.driverId || trip.driverId;
 
   // Use journeyFinancials from API response if available, otherwise calculate from weightSlipTrips
   const totalRevenue = trip.journeyFinancials?.totalRevenue || 
@@ -334,27 +339,25 @@ const TripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Registration</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
-                {trip.vehicleId?.registrationNumber || '-'}
+                {getVehicleRegistration(vehicle)}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Type</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {trip.vehicleId?.vehicleType || '-'}
+                {vehicle?.vehicleType || vehicle?.vehicleCategory || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Name</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {trip.driverId?.firstName && trip.driverId?.lastName
-                  ? `${trip.driverId.firstName} ${trip.driverId.lastName}`
-                  : '-'}
+                {getDriverName(driver)}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Phone</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {trip.driverId?.phone || '-'}
+                {getDriverPhone(driver)}
               </p>
             </div>
           </div>

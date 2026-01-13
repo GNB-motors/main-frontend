@@ -26,6 +26,7 @@ import './TripFormPage.css';
 import { DriverService } from '../Drivers/DriverService.jsx';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import { DocumentService, TripService } from './services';
+import { getVehicleRegistration, getDriverName } from '../../utils/dataFormatters';
 import ImageCropper from '../../components/ImageCropper/ImageCropper.jsx';
 
 const TripFormPage = () => {
@@ -140,13 +141,8 @@ const TripFormPage = () => {
         destination: trip.routeDestination || '',
         payload: trip.weighInWeight || '',
         date: trip.startTime ? new Date(trip.startTime).toISOString().split('T')[0] : '',
-        vehicleNo: trip.vehicleId?.registrationNumber || trip.vehicleId || '',
-        driver: trip.driverId?.name || trip.driverId || ''
-      });
-
-      // Load start odometer reading if available
-      if (trip.startOdometer) {
-        setManualOdometerStart(trip.startOdometer.toString());
+        vehicleNo: getVehicleRegistration(trip.journeyId?.vehicleId || trip.vehicleId) || '',
+        driver: getDriverName(trip.journeyId?.driverId || trip.driverId) || ''
         setShowManualOdometer(true);
         setStartDocs(prev => ({
           ...prev,

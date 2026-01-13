@@ -12,6 +12,7 @@ import { ArrowLeft, Download, MapPin, Users, FileText, DollarSign, Package, Tren
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { WeightSlipTripService, TripService } from './services';
+import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
 
 const WeightSlipTripDetailPage = () => {
   const navigate = useNavigate();
@@ -310,7 +311,7 @@ const WeightSlipTripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Registration</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
-                {typeof journey?.vehicleId === 'object' ? journey?.vehicleId?._id : journey?.vehicleId || '-'}
+                {getVehicleRegistration(journey?.vehicleId)}
               </p>
             </div>
             <div>
@@ -322,15 +323,13 @@ const WeightSlipTripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Name</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {typeof journey?.driverId === 'object' 
-                  ? `${journey?.driverId?.firstName || ''} ${journey?.driverId?.lastName || ''}`.trim() || '-'
-                  : journey?.driverId || '-'}
+                {getDriverName(journey?.driverId)}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Phone</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                -
+                {getDriverPhone(journey?.driverId)}
               </p>
             </div>
           </div>
