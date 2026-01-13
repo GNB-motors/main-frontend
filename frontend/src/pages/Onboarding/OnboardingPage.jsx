@@ -7,6 +7,7 @@ import UkoLogo from '../../assets/uko-logo.png';
 import StepProfile from './components/StepProfile.jsx';
 import StepCompanyTheme from './components/StepCompanyTheme.jsx';
 import LaunchAnimation from './components/LaunchAnimation.jsx';
+import { OnboardingService } from './OnboardingService.jsx';
 import { clearAuthData } from '../../utils/authUtils';
 
 const OnboardingPage = () => {
@@ -87,8 +88,43 @@ const OnboardingPage = () => {
         if (currentStep < 2) {
             setCurrentStep(currentStep + 1);
         } else {
-            // Final step - show launch animation
-            setShowLaunch(true);
+            // Final step - submit onboarding to backend, then show launch animation
+            const submitOnboarding = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const orgId = localStorage.getItem('user_orgId');
+
+                    // Gather saved data from sessionStorage
+                    const profileRaw = sessionStorage.getItem('onboardingProfile');
+                    const companyRaw = sessionStorage.getItem('onboardingCompany');
+                    const profile = profileRaw ? JSON.parse(profileRaw) : {};
+                    const company = companyRaw ? JSON.parse(companyRaw) : {};
+
+                    const onboardingData = {
+                        firstName: profile.firstName || localStorage.getItem('user_firstName'),
+                        lastName: profile.lastName || localStorage.getItem('user_lastName'),
+                        companyName: company.companyName,
+                        gstin: company.gstin,
+                        primaryThemeColor: company.selectedColor || company.primaryThemeColor,
+                    };
+
+                    await OnboardingService.completeOnboarding(onboardingData, token, orgId);
+
+                    // Mark onboarding completed locally
+                    localStorage.setItem('onboardingCompleted', 'true');
+                    if (onboardingData.primaryThemeColor) {
+                        localStorage.setItem('user_primaryThemeColor', onboardingData.primaryThemeColor);
+                    }
+
+                    setShowLaunch(true);
+                } catch (err) {
+                    console.error('Onboarding submission failed', err);
+                    // Show a toast if available
+                    try { toast.error('Failed to complete onboarding. Please try again.'); } catch (e) {}
+                }
+            };
+
+            submitOnboarding();
         }
     };
 
