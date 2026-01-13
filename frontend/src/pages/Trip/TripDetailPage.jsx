@@ -16,7 +16,7 @@ import { TripService } from './services';
 const TripDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  
+
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,6 +28,13 @@ const TripDetailPage = () => {
   useEffect(() => {
     fetchTripDetails();
   }, [id]);
+
+  // Enable Start New Trip button to work from this page
+  useEffect(() => {
+    const handleStartNewTrip = () => navigate('/trip/new');
+    window.addEventListener('startNewTrip', handleStartNewTrip);
+    return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
+  }, [navigate]);
 
   const fetchTripDetails = async () => {
     setLoading(true);
@@ -129,18 +136,20 @@ const TripDetailPage = () => {
   };
 
   // Use journeyFinancials from API response if available, otherwise calculate from weightSlipTrips
-  const totalRevenue = trip.journeyFinancials?.totalRevenue || 
+  const totalRevenue = trip.journeyFinancials?.totalRevenue ||
     trip.weightSlipTrips?.reduce((sum, wst) => sum + (wst.revenue?.actualAmountReceived || 0), 0) || 0;
-  
-  const totalExpense = trip.journeyFinancials?.totalExpenses || 
+
+  const totalExpense = trip.journeyFinancials?.totalExpenses ||
     trip.weightSlipTrips?.reduce((sum, wst) => {
       const exp = wst.expenses || {};
-      return sum + ((exp.materialCost || 0) + (exp.toll || 0) + (exp.driverCost || 0) + 
-                    (exp.driverTripExpense || 0) + (exp.royalty || 0));
+      return sum + ((exp.materialCost || 0) + (exp.toll || 0) + (exp.driverCost || 0) +
+        (exp.driverTripExpense || 0) + (exp.royalty || 0));
     }, 0) || 0;
-  
+
   const netProfit = trip.journeyFinancials?.netProfit ?? (totalRevenue - totalExpense);
   const totalTrips = trip.journeyFinancials?.totalTrips || trip.weightSlipTrips?.length || 0;
+
+
 
   return (
     <div className="trip-detail-view" style={{ paddingBottom: '40px' }}>
@@ -210,7 +219,7 @@ const TripDetailPage = () => {
 
       {/* Main Content */}
       <div className="trip-detail-content" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        
+
         {/* Summary Cards */}
         <div style={{
           display: 'grid',
@@ -405,7 +414,7 @@ const TripDetailPage = () => {
               <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase' }}>Fuel Used</label>
                 <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
-                  {displayMileage.fuelLitres ? Number(displayMileage.fuelLitres).toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}
+                  {displayMileage.fuelLitres ? Number(displayMileage.fuelLitres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'}
                 </p>
                 <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>liters</p>
               </div>
@@ -535,8 +544,8 @@ const TripDetailPage = () => {
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Profit Margin</label>
                 <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                  {trip.journeyFinancials?.averageProfitMargin?.toFixed(2) || 
-                   (totalRevenue > 0 ? (((netProfit) / totalRevenue) * 100).toFixed(2) : '0')}%
+                  {trip.journeyFinancials?.averageProfitMargin?.toFixed(2) ||
+                    (totalRevenue > 0 ? (((netProfit) / totalRevenue) * 100).toFixed(2) : '0')}%
                 </p>
               </div>
             </div>
@@ -629,8 +638,8 @@ const TripDetailPage = () => {
                       <br />
                       <span style={{ fontSize: '14px', color: '#dc2626', fontWeight: '600' }}>
                         {formatCurrency(
-                          (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) + 
-                          (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) + 
+                          (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) +
+                          (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) +
                           (wst.expenses?.royalty || 0)
                         )}
                       </span>
@@ -641,16 +650,16 @@ const TripDetailPage = () => {
                       <span style={{
                         fontSize: '14px',
                         color: ((wst.revenue?.actualAmountReceived || 0) - (
-                          (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) + 
-                          (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) + 
+                          (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) +
+                          (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) +
                           (wst.expenses?.royalty || 0)
                         )) >= 0 ? '#16a34a' : '#dc2626',
                         fontWeight: '600'
                       }}>
                         {formatCurrency(
                           (wst.revenue?.actualAmountReceived || 0) - (
-                            (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) + 
-                            (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) + 
+                            (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) +
+                            (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) +
                             (wst.expenses?.royalty || 0)
                           )
                         )}

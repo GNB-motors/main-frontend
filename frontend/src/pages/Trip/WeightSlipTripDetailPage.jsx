@@ -16,7 +16,7 @@ import { WeightSlipTripService, TripService } from './services';
 const WeightSlipTripDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  
+
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,6 +24,13 @@ const WeightSlipTripDetailPage = () => {
   useEffect(() => {
     fetchTripDetails();
   }, [id]);
+
+  // Enable Start New Trip button to work from this page
+  useEffect(() => {
+    const handleStartNewTrip = () => navigate('/trip/new');
+    window.addEventListener('startNewTrip', handleStartNewTrip);
+    return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
+  }, [navigate]);
 
   const fetchTripDetails = async () => {
     setLoading(true);
@@ -118,6 +125,8 @@ const WeightSlipTripDetailPage = () => {
     fuelMileageKmPerL: journeyMileage.fuelMileageKmPerL ?? topMileage.fuelMileageKmPerL
   };
 
+
+
   return (
     <div className="trip-detail-view" style={{ paddingBottom: '40px' }}>
       {/* Header */}
@@ -186,7 +195,7 @@ const WeightSlipTripDetailPage = () => {
 
       {/* Main Content */}
       <div className="trip-detail-content" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        
+
         {/* Summary Cards */}
         <div style={{
           display: 'grid',
@@ -394,7 +403,7 @@ const WeightSlipTripDetailPage = () => {
                 <div>
                   <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Fuel Used</label>
                   <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {displayMileage.fuelLitres ? Number(displayMileage.fuelLitres).toLocaleString(undefined, {maximumFractionDigits:2}) : '-'} liters
+                    {displayMileage.fuelLitres ? Number(displayMileage.fuelLitres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'} liters
                   </p>
                 </div>
                 <div>
