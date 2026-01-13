@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 
 import DashboardLayout from './components/DashboardLayout';
-// Removed ProfileProvider import - profile logic completely removed
+import { ProfileProvider } from './pages/Profile/ProfileContext.jsx';
 import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
 
 // Updated page imports
@@ -14,7 +14,7 @@ import ProfilePage from './pages/Profile/ProfilePage.jsx';
 // import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
-import DriversPage  from './pages/Drivers/DriversPage.jsx';
+import DriversPage from './pages/Drivers/DriversPage.jsx';
 import AddDriverPage from './pages/Drivers/AddDriverPage.jsx';
 import BulkUploadDriversPage from "./pages/Drivers/BulkUploadDriversPage.jsx";
 import BulkUploadVehiclesPage from "./pages/Profile/BulkUploadVehiclesPage.jsx";
@@ -38,7 +38,7 @@ function App() {
       <Route path="/" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/contact" element={<ContactPage />} />
-      <Route path="/admin/new-user" element={<SignUpPage/>} />
+      <Route path="/admin/new-user" element={<SignUpPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Super Admin Routes */}
@@ -50,15 +50,17 @@ function App() {
       {/* Protected Routes inside DashboardLayout */}
       <Route
         element={
-          <TripCreationProvider>
-            <DashboardLayout />
-          </TripCreationProvider>
+          <ProfileProvider>
+            <TripCreationProvider>
+              <DashboardLayout />
+            </TripCreationProvider>
+          </ProfileProvider>
         }
       >
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
-  <Route path="/drivers/add" element={<AddDriverPage />} />
+        <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
         <Route path="/trip-management/weight-slip/:id" element={<WeightSlipTripDetailPage />} />
@@ -69,8 +71,8 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
-  <Route path="/routes" element={<RoutesPage />} />
-  <Route path="/routes/add" element={<AddRoutePage />} />
+        <Route path="/routes" element={<RoutesPage />} />
+        <Route path="/routes/add" element={<AddRoutePage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
