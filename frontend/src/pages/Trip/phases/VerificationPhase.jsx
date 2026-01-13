@@ -42,18 +42,18 @@ const VerificationPhase = ({
       return weightSlips.every((slip) => {
         // Check if slip is marked as done
         if (slip.isDone === true) return true;
-        
+
         // Check if slip has required fields - TripForm uses flat property names
-        const hasWeights = (slip.grossWeight || slip.weights?.grossWeight) && 
-          (slip.tareWeight || slip.weights?.tareWeight) && 
+        const hasWeights = (slip.grossWeight || slip.weights?.grossWeight) &&
+          (slip.tareWeight || slip.weights?.tareWeight) &&
           (slip.netWeight || slip.weights?.netWeight);
         const hasMaterialType = slip.materialType && slip.materialType !== '';
         const hasRoute = slip.routeData && (
-          slip.routeData.sourceLocation || 
-          slip.routeData.destLocation || 
+          slip.routeData.sourceLocation ||
+          slip.routeData.destLocation ||
           Object.keys(slip.routeData).length > 0
         );
-        
+
         return hasWeights && hasMaterialType && hasRoute;
       });
     },
@@ -79,16 +79,16 @@ const VerificationPhase = ({
       // TripForm uses totalAmountReceived
       return sum + (parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || 0);
     }, 0);
-    
+
     const totalCalculated = weightSlips.reduce((sum, slip) => {
       // TripForm uses netWeight and amountPerKg
       const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || 0;
       const ratePerKg = parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || 0;
       return sum + (netWeight * ratePerKg / 1000); // Convert to calculated amount
     }, 0);
-    
+
     const totalVariance = totalRevenue - totalCalculated;
-    
+
     return {
       totalRevenue,
       totalCalculated,
@@ -99,12 +99,12 @@ const VerificationPhase = ({
   const totalExpense = useMemo(() => {
     // Calculate from weight slips expenses - TripForm uses flat property names
     return weightSlips.reduce((sum, slip) => {
-      const slipTotal = (parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0) + 
-                       (parseFloat(slip.toll) || slip.expenses?.toll || 0) + 
-                       (parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0) + 
-                       (parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0) + 
-                       (parseFloat(slip.royalty) || slip.expenses?.royalty || 0) + 
-                       (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0);
+      const slipTotal = (parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0) +
+        (parseFloat(slip.toll) || slip.expenses?.toll || 0) +
+        (parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0) +
+        (parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0) +
+        (parseFloat(slip.royalty) || slip.expenses?.royalty || 0) +
+        (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0);
       return sum + slipTotal;
     }, 0);
   }, [weightSlips]);
@@ -182,14 +182,7 @@ const VerificationPhase = ({
 
   return (
     <div className="verification-phase">
-      {/* Compact Header */}
-      <div className="verification-header">
-        <div className="header-content">
-          <div>
-            <p>Review and submit your trip data</p>
-          </div>
-        </div>
-      </div>
+
 
       {/* Main Content - Scrollable */}
       <div className="verification-content">
@@ -234,41 +227,41 @@ const VerificationPhase = ({
                 <div className="journey-data-grid">
                   <div className="journey-metric">
                     <span className="metric-label">Start Odometer</span>
-                    <span className="metric-value">{startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : '—'}</span>
+                    <span className="metric-value">{startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : 'NA'}</span>
                   </div>
                   <div className="journey-metric">
                     <span className="metric-label">End Odometer</span>
-                    <span className="metric-value">{endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : '—'}</span>
+                    <span className="metric-value">{endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : 'NA'}</span>
                   </div>
                   <div className="journey-metric">
                     <span className="metric-label">Total Distance</span>
-                    <span className="metric-value">{totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : '—'}</span>
+                    <span className="metric-value">{totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : 'NA'}</span>
                   </div>
 
                   <div className="journey-metric">
                     <span className="metric-label">Full Tank Fuel</span>
-                    <span className="metric-value">{fullTankLitres !== null ? Number(fullTankLitres).toLocaleString() + ' L' : '—'}</span>
+                    <span className="metric-value">{fullTankLitres !== null ? Number(fullTankLitres).toLocaleString() + ' L' : 'NA'}</span>
                   </div>
                   <div className="journey-metric">
                     <span className="metric-label">Partial Fuel Used</span>
-                    <span className="metric-value">{partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : '—'}</span>
+                    <span className="metric-value">{partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : 'NA'}</span>
                   </div>
                   <div className="journey-metric">
                     <span className="metric-label">Total Fuel Used</span>
-                    <span className="metric-value">{totalFuelUsed > 0 ? Number(totalFuelUsed).toLocaleString() + ' L' : '—'}</span>
+                    <span className="metric-value">{totalFuelUsed > 0 ? Number(totalFuelUsed).toLocaleString() + ' L' : 'NA'}</span>
                   </div>
 
                   <div className="journey-metric">
                     <span className="metric-label">Fuel Rate</span>
-                    <span className="metric-value">{fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : '—'}</span>
+                    <span className="metric-value">{fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : 'NA'}</span>
                   </div>
                   <div className="journey-metric">
                     <span className="metric-label">Fuel Efficiency</span>
-                    <span className="metric-value">{fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : '—'}</span>
+                    <span className="metric-value">{fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : 'NA'}</span>
                   </div>
                   <div className="journey-metric">
                     <span className="metric-label">Fuel Cost</span>
-                    <span className="metric-value">{fuelCost !== null ? '₹' + Number(fuelCost).toLocaleString() : '—'}</span>
+                    <span className="metric-value">{fuelCost !== null ? '₹' + Number(fuelCost).toLocaleString() : 'NA'}</span>
                   </div>
                 </div>
               );
@@ -321,7 +314,7 @@ const VerificationPhase = ({
               <div className="recap-item">
                 <div className="recap-label">Full Tank Fuel</div>
                 <div className="recap-image-wrapper">
-                    {(fixedDocs.fuel.preview || fixedDocs.fuel.file) ? (
+                  {(fixedDocs.fuel.preview || fixedDocs.fuel.file) ? (
                     (() => {
                       const src = resolveImageSrc(fixedDocs.fuel.preview || fixedDocs.fuel.file || fixedDocs.fuel);
                       return src ? (
@@ -431,10 +424,10 @@ const VerificationPhase = ({
                 {weightSlips.map((slip, index) => {
                   // Handle file preview - might be .file or .file.preview from different sources
                   const filePreview = resolveImageSrc(slip.file || slip);
-                  
+
                   // Get weight from either weights object or weight property
                   const weight = slip.weights?.netWeight || slip.weight || 0;
-                  
+
                   return (
                     <tr
                       key={index}
@@ -472,8 +465,8 @@ const VerificationPhase = ({
                           </button>
                         </div>
                       </td>
-                      <td>{slip.origin || (slip.routeData?.sourceLocation ? `${slip.routeData.sourceLocation.city}, ${slip.routeData.sourceLocation.state}` : '—')}</td>
-                      <td>{slip.destination || (slip.routeData?.destLocation ? `${slip.routeData.destLocation.city}, ${slip.routeData.destLocation.state}` : '—')}</td>
+                      <td>{slip.origin || (slip.routeData?.sourceLocation ? `${slip.routeData.sourceLocation.city}, ${slip.routeData.sourceLocation.state}` : 'NA')}</td>
+                      <td>{slip.destination || (slip.routeData?.destLocation ? `${slip.routeData.destLocation.city}, ${slip.routeData.destLocation.state}` : 'NA')}</td>
                       <td className="text-center">{weight} kg</td>
                       <td>
                         {slip.isDone ? (
