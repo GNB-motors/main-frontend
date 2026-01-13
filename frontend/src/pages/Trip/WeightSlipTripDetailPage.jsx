@@ -310,19 +310,19 @@ const WeightSlipTripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Registration</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
-                {typeof journey?.vehicleId === 'object' ? journey?.vehicleId?._id : journey?.vehicleId || '-'}
+                {journey?.vehicleId?.registrationNumber || (typeof journey?.vehicleId === 'object' ? journey?.vehicleId?._id : journey?.vehicleId) || '-'}
               </p>
             </div>
             <div>
-              <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Type</label>
+              <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Model</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                -
+                {journey?.vehicleId?.model || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Name</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {typeof journey?.driverId === 'object' 
+                {typeof journey?.driverId === 'object'
                   ? `${journey?.driverId?.firstName || ''} ${journey?.driverId?.lastName || ''}`.trim() || '-'
                   : journey?.driverId || '-'}
               </p>
@@ -330,7 +330,7 @@ const WeightSlipTripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Phone</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                -
+                {journey?.driverId?.mobileNumber || '-'}
               </p>
             </div>
           </div>
@@ -527,9 +527,9 @@ const WeightSlipTripDetailPage = () => {
             <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600', color: '#111827' }}>Revenue Details</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Rate per kg</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Rate per Ton</label>
                 <p style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#111827' }}>
-                  ₹{trip.revenue?.ratePerKg?.toLocaleString() || '-'}
+                  {trip.revenue?.ratePerTon !== undefined ? `₹${trip.revenue.ratePerTon}` : '-'}
                 </p>
               </div>
               <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>

@@ -334,27 +334,29 @@ const TripDetailPage = () => {
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Registration</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
-                {trip.vehicleId?.registrationNumber || '-'}
+                {trip.vehicleId?.registrationNumber || trip.journeyId?.vehicleId?.registrationNumber || '-'}
               </p>
             </div>
             <div>
-              <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Type</label>
+              <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Vehicle Model</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {trip.vehicleId?.vehicleType || '-'}
+                {trip.vehicleId?.model || trip.journeyId?.vehicleId?.model || '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Name</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {trip.driverId?.firstName && trip.driverId?.lastName
+                {(trip.driverId?.firstName && trip.driverId?.lastName)
                   ? `${trip.driverId.firstName} ${trip.driverId.lastName}`
-                  : '-'}
+                  : (trip.journeyId?.driverId?.firstName && trip.journeyId?.driverId?.lastName)
+                    ? `${trip.journeyId.driverId.firstName} ${trip.journeyId.driverId.lastName}`
+                    : '-'}
               </p>
             </div>
             <div>
               <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Driver Phone</label>
               <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                {trip.driverId?.phone || '-'}
+                {trip.driverId?.mobileNumber || trip.journeyId?.driverId?.mobileNumber || '-'}
               </p>
             </div>
           </div>
