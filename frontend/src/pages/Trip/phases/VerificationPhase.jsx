@@ -526,13 +526,6 @@ const VerificationPhase = ({
         >
           {isSubmitting ? 'Submitting...' : '✓ Submit'}
         </button>
-        <button
-          className="btn btn-outline"
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          Cancel
-        </button>
       </div>
 
       {/* Image Preview Modal */}

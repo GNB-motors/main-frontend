@@ -82,7 +82,6 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             <div className="sidebar-content">
                 <div className="sidebar-header">
                     <img src={UkoLogo} alt="Uko Logo" className="logo-img" />
-                    <h1 className="logo-text">FleetPro</h1>
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/overview" className="nav-link" onClick={closeSidebarOnMobile}>

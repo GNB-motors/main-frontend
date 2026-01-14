@@ -35,19 +35,13 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   }, [loadError]);
 
   useEffect(() => {
+    // Only apply incoming initialLocation to internal state when it is provided.
+    // Avoid force-resetting to the default (Kolkata) whenever initialLocation becomes falsy,
+    // because that can unexpectedly override the parent's selected location.
     if (initialLocation) {
       setSelectedLocation(initialLocation);
       setMapCenter({ lat: initialLocation.lat, lng: initialLocation.lng });
       setSearchValue(initialLocation.address || '');
-    } else {
-      // Reset to Kolkata when no initial location
-      setSelectedLocation({
-        lat: 22.5726,
-        lng: 88.3639,
-        address: 'Kolkata, West Bengal, India'
-      });
-      setMapCenter({ lat: 22.5726, lng: 88.3639 });
-      setSearchValue('Kolkata, West Bengal, India');
     }
   }, [initialLocation]);
 
@@ -119,13 +113,6 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
     height: '100%'
   };
 
-  useEffect(() => {
-    if (initialLocation) {
-      setSelectedLocation(initialLocation);
-      setMapCenter({ lat: initialLocation.lat, lng: initialLocation.lng });
-      setSearchValue(initialLocation.address || '');
-    }
-  }, [initialLocation]);
 
   const handleSuggestionSelect = async (suggestion) => {
     try {
@@ -202,17 +189,122 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
     });
   }, []);
 
-  const handleApply = () => {
-    if (selectedLocation && onApply && typeof onApply === 'function') {
+  const handleApply = async () => {
+    if (!selectedLocation) return;
+
+    // If selectedLocation already has place_id (from suggestion) and lat/lng,
+    // we can apply immediately. Otherwise, attempt to geocode the current
+    // searchValue to resolve a proper place (this handles the Kolkata case
+    // where the input is prefilled but wasn't confirmed via Places).
+    const needsGeocode = !selectedLocation.place_id || !selectedLocation.city || !selectedLocation.state;
+
+    if (needsGeocode && searchValue && window.google) {
+      try {
+        const geocoder = new window.google.maps.Geocoder();
+        const geocodePromise = new Promise((resolve, reject) => {
+          geocoder.geocode({ address: searchValue }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              resolve(results[0]);
+            } else {
+              reject(new Error('Geocode failed: ' + status));
+            }
+          });
+        });
+
+        const result = await geocodePromise;
+        const lat = result.geometry.location.lat();
+        const lng = result.geometry.location.lng();
+        const address = result.formatted_address;
+
+        const addressComponents = result.address_components || [];
+        let city = '';
+        let state = '';
+
+        addressComponents.forEach(component => {
+          if (component.types.includes('locality')) {
+            city = component.long_name;
+          }
+          if (component.types.includes('administrative_area_level_1')) {
+            state = component.long_name;
+          }
+        });
+
+        const confirmed = {
+          address,
+          city,
+          state,
+          lat,
+          lng,
+          place_id: result.place_id
+        };
+
+        setSelectedLocation(confirmed);
+        if (onApply && typeof onApply === 'function') {
+          onApply(confirmed);
+        }
+        onClose();
+        return;
+      } catch (err) {
+        // If geocoding fails, fall back to applying the existing selection
+        console.warn('Geocoding failed during Apply:', err);
+      }
+    }
+
+    // Default behavior: apply what's in selectedLocation
+    if (onApply && typeof onApply === 'function') {
       onApply(selectedLocation);
       onClose();
     }
   };
 
   const handleClose = () => {
-    setSelectedLocation(null);
-    setSearchValue('');
+    // Do not null-out selectedLocation here. Let the parent control persistence
+    // and avoid desyncs when reopening the modal. Only close the modal.
     onClose();
+  };
+
+  // Handle Enter key from the search input: geocode the typed address and
+  // treat it like a confirmed selection (fills city/state/lat/lng).
+  const handleEnter = async (typedAddress) => {
+    try {
+      if (!typedAddress || !window.google) return;
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address: typedAddress }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const lat = results[0].geometry.location.lat();
+          const lng = results[0].geometry.location.lng();
+          const address = results[0].formatted_address;
+
+          const addressComponents = results[0].address_components || [];
+          let city = '';
+          let state = '';
+
+          addressComponents.forEach(component => {
+            if (component.types.includes('locality')) {
+              city = component.long_name;
+            }
+            if (component.types.includes('administrative_area_level_1')) {
+              state = component.long_name;
+            }
+          });
+
+          setSelectedLocation({
+            address,
+            city,
+            state,
+            lat,
+            lng,
+            place_id: results[0].place_id
+          });
+          setMapCenter({ lat, lng });
+          setSearchValue(address);
+        } else {
+          console.error('Geocoding failed for address:', typedAddress, status);
+        }
+      });
+    } catch (error) {
+      console.error('Error geocoding typed address:', error);
+    }
   };
 
   if (!isOpen) return null;
@@ -280,6 +372,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
                 searchValue={searchValue}
                 setSearchValue={setSearchValue}
                 onSuggestionSelect={handleSuggestionSelect}
+                onEnter={handleEnter}
               />
             </GoogleMap>
           </div>
@@ -292,7 +385,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
           <button
             className="btn btn-primary"
             onClick={handleApply}
-            disabled={!selectedLocation}
+            disabled={!selectedLocation?.lat || !selectedLocation?.lng}
           >
             <Check size={18} />
             Apply Location

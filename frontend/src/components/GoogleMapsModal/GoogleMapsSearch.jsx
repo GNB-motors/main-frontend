@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search } from 'lucide-react';
 
-const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionSelect, className }) => {
+// Added onEnter prop: called when the user presses Enter without choosing
+// a dropdown suggestion. Parent can geocode the typed text and confirm selection.
+const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionSelect, onEnter, className }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -78,6 +80,18 @@ const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionS
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // If there are suggestions, pick the first one (behaves like selecting it).
+      if (suggestions && suggestions.length > 0) {
+        handleSuggestionClick(suggestions[0]);
+      } else if (onEnter) {
+        onEnter(searchValue);
+      }
+    }
+  };
+
   return (
     <div className={`search-input-wrapper ${className || ''}`}>
       <Search size={20} className="search-icon" />
@@ -91,6 +105,7 @@ const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionS
             setIsInitialLoad(false);
           }
         }}
+        onKeyDown={handleKeyDown}
         className="search-input"
       />
       {suggestions.length > 0 && (

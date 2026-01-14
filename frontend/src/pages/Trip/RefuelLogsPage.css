@@ -25,9 +25,9 @@
 }
 
 .refuel-tab {
-  background-color: #ffffff;
+
   color: #666666;
-  border: 1.5px solid #e0e0e0;
+
   padding: 10px 24px;
   border-radius: 8px;
   font-size: 14px;
@@ -37,11 +37,6 @@
   min-width: 100px;
 }
 
-.refuel-tab:hover {
-  border-color: #1a73e8;
-  color: #1a73e8;
-  background-color: #f8faff;
-}
 
 .refuel-tab.active {
   background-color: #1a73e8;

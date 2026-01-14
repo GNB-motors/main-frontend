@@ -272,7 +272,8 @@ const TripManagementPage = () => {
                   >
                     <div className="card-header">
                       <div className="header-left">
-                        <span className="trip-identifier">{`Trip ${index + 1}`}</span>
+                        {/* Show numbering so that oldest = Trip 1 and newest = last */}
+                        <span className="trip-identifier">{`Trip ${filteredTrips.length - index}`}</span>
                         <span className="status-badge" style={{ 
                           backgroundColor: getStatusColor(trip.status) + '25',
                           color: getStatusColor(trip.status)
