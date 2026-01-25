@@ -135,7 +135,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData }) =
       <fieldset className="form-section">
         <legend>Revenue (per weight certificate)</legend>
         <div className="form-group">
-          <label htmlFor="amountPerKg">Amount per Kg</label>
+          <label htmlFor="amountPerKg">Amount per Ton</label>
           <input
             id="amountPerKg"
             type="number"
