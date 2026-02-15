@@ -13,9 +13,11 @@
 .drivers-content-wrapper {
     flex: 1;
     padding: 24px 24px 0 24px;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 /* Header Section */

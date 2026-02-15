@@ -5,6 +5,7 @@ import { DriverService } from './DriverService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
+import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
 import './DriversPage.css';
 
@@ -17,6 +18,20 @@ const AddDriverPage = () => {
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
+  const [documents, setDocuments] = useState({
+    driverLicense: {
+      file: null,
+      preview: null,
+      imageUrl: null,
+      name: '',
+    },
+    panCard: {
+      file: null,
+      preview: null,
+      imageUrl: null,
+      name: '',
+    },
+  });
 
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
 
@@ -124,6 +139,12 @@ const AddDriverPage = () => {
           onCancel={() => navigate(-1)}
           isSubmitting={isSubmitting}
           isEdit={isEdit}
+        />
+
+        <DocumentUpload
+          initialData={documents}
+          onDocumentsChange={setDocuments}
+          isSubmitting={isSubmitting}
         />
       </div>
 
