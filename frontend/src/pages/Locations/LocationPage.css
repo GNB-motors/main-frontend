@@ -417,6 +417,30 @@
   border-top: 1px solid #e2e8f0;
 }
 
+/* Split View Layout (Desktop Default) */
+.location-split-view {
+  display: flex;
+  gap: 24px;
+  height: calc(100vh - 140px);
+}
+
+.location-form-panel {
+  flex: 2;
+  min-width: 350px;
+  overflow-y: auto;
+  padding-right: 12px;
+}
+
+.location-map-panel {
+  flex: 3;
+  height: 100%;
+  min-height: 400px;
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .location-page {
@@ -447,5 +471,23 @@
   .btn-icon {
     width: 32px;
     height: 32px;
+  }
+
+  .location-split-view {
+    flex-direction: column;
+    height: auto !important;
+  }
+
+  .location-form-panel {
+    width: 100%;
+    padding-right: 0 !important;
+    overflow-y: visible !important;
+    max-height: none !important;
+  }
+
+  .location-map-panel {
+    width: 100%;
+    height: 400px !important;
+    min-height: 400px;
   }
 }

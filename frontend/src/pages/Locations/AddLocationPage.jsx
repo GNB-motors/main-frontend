@@ -1,15 +1,14 @@
 /**
  * Add/Edit Location Page
- * Form to create or update a location
+ * Form to create or update a location with side-by-side map
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { MapPin, Save, X } from 'lucide-react';
-import { useLoadScript } from '@react-google-maps/api';
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
 import LocationService from './LocationService';
-import GoogleMapsModal from '../../components/GoogleMapsModal/GoogleMapsModal';
 import GoogleMapsSearch from '../../components/GoogleMapsModal/GoogleMapsSearch';
 import './LocationPage.css';
 
@@ -21,8 +20,10 @@ const AddLocationPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
     const [locationId, setLocationId] = useState(null);
-    const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
     const [searchValue, setSearchValue] = useState('');
+
+    const mapRef = useRef(null);
+    const [mapCenter, setMapCenter] = useState({ lat: 22.5726, lng: 88.3639 }); // Default Kolkata
 
     const { isLoaded } = useLoadScript({
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -37,8 +38,8 @@ const AddLocationPage = () => {
         city: '',
         state: '',
         pincode: '',
-        lat: null,
-        lng: null
+        lat: 22.5726, // Initialize with defaults or null, but map needs valid lat/lng to render marker
+        lng: 88.3639
     });
 
     // Load existing data if editing
@@ -54,10 +55,13 @@ const AddLocationPage = () => {
                 city: editing.city || '',
                 state: editing.state || '',
                 pincode: editing.pincode || '',
-                lat: editing.lat || null,
-                lng: editing.lng || null
+                lat: editing.lat || 22.5726,
+                lng: editing.lng || 88.3639
             });
             setSearchValue(editing.address || ''); // Initialize search with address
+            if (editing.lat && editing.lng) {
+                setMapCenter({ lat: editing.lat, lng: editing.lng });
+            }
         }
     }, [location?.state?.editingLocation]);
 
@@ -69,28 +73,52 @@ const AddLocationPage = () => {
         }));
     };
 
-    const handleApplyLocation = (locationDataFromMap) => {
-        // When coming from the map modal, we might not have the pincode unless we reverse geocode specifically for it.
-        // For now, we trust the map's address/city/state/lat/lng.
-        // Attempt to extract pincode from address string if possible or leave as is.
+    // Helper to extract location details including pincode
+    const extractLocationDetails = (result) => {
+        const lat = result.geometry.location.lat();
+        const lng = result.geometry.location.lng();
+        const address = result.formatted_address;
 
-        let extractedPincode = formData.pincode;
-        // Simple regex to find 6 digit pincode in address if not already present
-        const pinMatch = locationDataFromMap.address.match(/\b\d{6}\b/);
-        if (pinMatch) {
-            extractedPincode = pinMatch[0];
+        const addressComponents = result.address_components || [];
+        let city = '';
+        let state = '';
+        let pincode = '';
+
+        addressComponents.forEach(component => {
+            if (component.types.includes('locality')) {
+                city = component.long_name;
+            }
+            if (component.types.includes('administrative_area_level_1')) {
+                state = component.long_name;
+            }
+            if (component.types.includes('postal_code')) {
+                pincode = component.long_name;
+            }
+        });
+
+        // Fallback: Try regex on formatted address if pincode is still empty
+        if (!pincode && address) {
+            const pinMatch = address.match(/\b\d{6}\b/);
+            if (pinMatch) {
+                pincode = pinMatch[0];
+            }
         }
 
+        return { lat, lng, address, city, state, pincode };
+    };
+
+    const updateFormWithLocation = (details) => {
         setFormData(prev => ({
             ...prev,
-            address: locationDataFromMap.address,
-            city: locationDataFromMap.city,
-            state: locationDataFromMap.state,
-            pincode: extractedPincode,
-            lat: locationDataFromMap.lat,
-            lng: locationDataFromMap.lng
+            address: details.address,
+            city: details.city,
+            state: details.state,
+            pincode: details.pincode,
+            lat: details.lat,
+            lng: details.lng
         }));
-        setSearchValue(locationDataFromMap.address);
+        setSearchValue(details.address);
+        setMapCenter({ lat: details.lat, lng: details.lng });
     };
 
     const handleSuggestionSelect = (suggestion) => {
@@ -99,48 +127,11 @@ const AddLocationPage = () => {
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ placeId: suggestion.place_id }, (results, status) => {
             if (status === 'OK' && results[0]) {
-                const lat = results[0].geometry.location.lat();
-                const lng = results[0].geometry.location.lng();
-                const address = results[0].formatted_address;
-
-                const addressComponents = results[0].address_components || [];
-                let city = '';
-                let state = '';
-                let pincode = '';
-
-                addressComponents.forEach(component => {
-                    if (component.types.includes('locality')) {
-                        city = component.long_name;
-                    }
-                    if (component.types.includes('administrative_area_level_1')) {
-                        state = component.long_name;
-                    }
-                    if (component.types.includes('postal_code')) {
-                        pincode = component.long_name;
-                    }
-                });
-
-                // Fallback: Try regex on formatted address if pincode is still empty
-                if (!pincode) {
-                    const pinMatch = address.match(/\b\d{6}\b/);
-                    if (pinMatch) {
-                        pincode = pinMatch[0];
-                    }
-                }
-
-                setFormData(prev => ({
-                    ...prev,
-                    address,
-                    city,
-                    state,
-                    pincode,
-                    lat,
-                    lng
-                }));
-                setSearchValue(address);
+                const details = extractLocationDetails(results[0]);
+                updateFormWithLocation(details);
                 setSearchValue(suggestion.description);
 
-                if (!pincode) {
+                if (!details.pincode) {
                     toast.info("Pincode not found for this location. Please enter it manually.");
                 }
             } else {
@@ -156,53 +147,43 @@ const AddLocationPage = () => {
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ address: typedAddress }, (results, status) => {
             if (status === 'OK' && results[0]) {
-                const lat = results[0].geometry.location.lat();
-                const lng = results[0].geometry.location.lng();
-                const address = results[0].formatted_address;
-
-                const addressComponents = results[0].address_components || [];
-                let city = '';
-                let state = '';
-                let pincode = '';
-
-                addressComponents.forEach(component => {
-                    if (component.types.includes('locality')) {
-                        city = component.long_name;
-                    }
-                    if (component.types.includes('administrative_area_level_1')) {
-                        state = component.long_name;
-                    }
-                    if (component.types.includes('postal_code')) {
-                        pincode = component.long_name;
-                    }
-                });
-
-                // Fallback: Try regex on formatted address
-                if (!pincode) {
-                    const pinMatch = address.match(/\b\d{6}\b/);
-                    if (pinMatch) {
-                        pincode = pinMatch[0];
-                    }
-                }
-
-                setFormData(prev => ({
-                    ...prev,
-                    address,
-                    city,
-                    state,
-                    pincode,
-                    lat,
-                    lng
-                }));
-                setSearchValue(address);
-
-                if (!pincode) {
+                const details = extractLocationDetails(results[0]);
+                updateFormWithLocation(details);
+                if (!details.pincode) {
                     toast.info("Pincode not found. Please enter manually.");
                 }
             }
         });
     };
 
+    // Handle Map Click
+    const handleMapClick = useCallback((event) => {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const details = extractLocationDetails(results[0]);
+                // Use clicked lat/lng for precision, but address details from geocoder
+                updateFormWithLocation({ ...details, lat, lng });
+            }
+        });
+    }, []);
+
+    // Handle Marker Drag End
+    const handleMarkerDragEnd = useCallback((event) => {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const details = extractLocationDetails(results[0]);
+                updateFormWithLocation({ ...details, lat, lng });
+            }
+        });
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -221,7 +202,7 @@ const AddLocationPage = () => {
                 return;
             }
             if (!formData.pincode.trim()) {
-                toast.error('Pincode is required'); // Enforce pincode if desired
+                toast.error('Pincode is required');
                 setIsSubmitting(false);
                 return;
             }
@@ -244,9 +225,25 @@ const AddLocationPage = () => {
         }
     };
 
+    const mapContainerStyle = {
+        width: '100%',
+        height: '100%',
+        borderRadius: '8px',
+    };
+
+    // Custom Marker Icon (reused from GoogleMapsModal)
+    const markerIcon = window.google ? {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="50" height="49" viewBox="0 0 50 49" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M25.0561 48.4531C38.1543 48.4531 48.7724 37.835 48.7724 24.7368C48.7724 11.6387 38.1543 1.02051 25.0561 1.02051C11.958 1.02051 1.33984 11.6387 1.33984 24.7368C1.33984 37.835 11.958 48.4531 25.0561 48.4531Z" fill="white" fill-opacity="0.8" stroke="#FF8A00"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M19.9121 22.8976C19.9121 19.6725 22.536 17.0486 25.7612 17.0486C28.9864 17.0486 31.6102 19.6725 31.6103 22.8976C31.6103 26.9002 26.3759 32.7762 26.1531 33.0244C25.9441 33.2571 25.5787 33.2575 25.3693 33.0244C25.1465 32.7762 19.9121 26.9002 19.9121 22.8976ZM22.8183 22.8976C22.8183 24.5203 24.1384 25.8404 25.7611 25.8404C27.3837 25.8404 28.7039 24.5203 28.7039 22.8976C28.7039 21.275 27.3837 19.9548 25.7611 19.9548C24.1384 19.9548 22.8183 21.2749 22.8183 22.8976Z" fill="#FF6600"/>
+            </svg>
+        `),
+        anchor: new window.google.maps.Point(25, 49),
+    } : null;
+
     return (
         <div className="location-page">
-            {/* Header */}
             <div className="location-header">
                 <h1>{isEdit ? 'Edit Location' : 'Add New Location'}</h1>
                 <button className="btn btn-secondary" onClick={() => navigate('/locations')}>
@@ -255,86 +252,79 @@ const AddLocationPage = () => {
                 </button>
             </div>
 
-            <div className="location-container" style={{ padding: '24px', maxWidth: '800px', margin: '24px auto' }}>
-                <form onSubmit={handleSubmit}>
+            <div className="location-container location-split-view" style={{ padding: '24px', maxWidth: '100%', margin: '24px' }}>
+                {/* Left Side: Form */}
+                <div className="location-form-panel">
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Location Name</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                className="search-input"
+                                style={{ maxWidth: '100%' }}
+                                placeholder="e.g. Warehouse 1, Main Office"
+                            />
+                        </div>
 
-                    <div className="form-group" style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Location Name</label>
-                        <input
-                            type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            className="search-input" /* reusing input style */
-                            style={{ maxWidth: '100%' }}
-                            placeholder="e.g. Warehouse 1, Main Office"
-                        />
-                    </div>
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Location Type</label>
+                            <select
+                                name="type"
+                                value={formData.type}
+                                onChange={handleInputChange}
+                                className="search-input"
+                                style={{ maxWidth: '100%' }}
+                            >
+                                <option value="SOURCE">Source (Pickup)</option>
+                                <option value="DESTINATION">Destination (Drop-off)</option>
+                            </select>
+                        </div>
 
-                    <div className="form-group" style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Location Type</label>
-                        <select
-                            name="type"
-                            value={formData.type}
-                            onChange={handleInputChange}
-                            className="search-input"
-                            style={{ maxWidth: '100%' }}
-                        >
-                            <option value="SOURCE">Source (Pickup)</option>
-                            <option value="DESTINATION">Destination (Drop-off)</option>
-                        </select>
-                    </div>
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Address</label>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                <div style={{ flex: 1 }}>
+                                    <GoogleMapsSearch
+                                        isLoaded={isLoaded}
+                                        searchValue={searchValue}
+                                        setSearchValue={setSearchValue}
+                                        onSuggestionSelect={handleSuggestionSelect}
+                                        onEnter={handleSearchEnter}
+                                        className="search-input-wrapper-form"
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
-                    <div className="form-group" style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Address</label>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                            <div style={{ flex: 1 }}>
-                                <GoogleMapsSearch
-                                    isLoaded={isLoaded}
-                                    searchValue={searchValue}
-                                    setSearchValue={setSearchValue}
-                                    onSuggestionSelect={handleSuggestionSelect}
-                                    onEnter={handleSearchEnter}
-                                    className="search-input-wrapper-form" // You might need to add specific styling
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>City</label>
+                                <input
+                                    type="text"
+                                    name="city"
+                                    value={formData.city}
+                                    onChange={handleInputChange}
+                                    className="search-input"
+                                    style={{ maxWidth: '100%' }}
                                 />
                             </div>
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => setIsMapsModalOpen(true)}
-                                title="Select on Map"
-                                style={{ height: '46px' }} // Match input height
-                            >
-                                <MapPin size={18} />
-                            </button>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>State</label>
+                                <input
+                                    type="text"
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleInputChange}
+                                    className="search-input"
+                                    style={{ maxWidth: '100%' }}
+                                />
+                            </div>
                         </div>
-                        {/* Hidden input to ensure state binding if needed for some logic, but search drives it */}
-                    </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>City</label>
-                            <input
-                                type="text"
-                                name="city"
-                                value={formData.city}
-                                onChange={handleInputChange}
-                                className="search-input"
-                                style={{ maxWidth: '100%' }}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>State</label>
-                            <input
-                                type="text"
-                                name="state"
-                                value={formData.state}
-                                onChange={handleInputChange}
-                                className="search-input"
-                                style={{ maxWidth: '100%' }}
-                            />
-                        </div>
-                        <div className="form-group">
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Pincode</label>
                             <input
                                 type="text"
@@ -346,65 +336,87 @@ const AddLocationPage = () => {
                                 placeholder="e.g. 700001"
                             />
                         </div>
-                    </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Latitude</label>
-                            <input
-                                type="number"
-                                name="lat"
-                                value={formData.lat || ''}
-                                readOnly
-                                className="search-input"
-                                style={{ maxWidth: '100%', backgroundColor: '#f1f5f9' }}
-                            />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Latitude</label>
+                                <input
+                                    type="number"
+                                    name="lat"
+                                    value={formData.lat || ''}
+                                    readOnly
+                                    className="search-input"
+                                    style={{ maxWidth: '100%', backgroundColor: '#f1f5f9' }}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Longitude</label>
+                                <input
+                                    type="number"
+                                    name="lng"
+                                    value={formData.lng || ''}
+                                    readOnly
+                                    className="search-input"
+                                    style={{ maxWidth: '100%', backgroundColor: '#f1f5f9' }}
+                                />
+                            </div>
                         </div>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Longitude</label>
-                            <input
-                                type="number"
-                                name="lng"
-                                value={formData.lng || ''}
-                                readOnly
-                                className="search-input"
-                                style={{ maxWidth: '100%', backgroundColor: '#f1f5f9' }}
-                            />
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: 'auto' }}>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() => navigate('/locations')}
+                                disabled={isSubmitting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="btn btn-primary"
+                                disabled={isSubmitting}
+                            >
+                                <Save size={18} />
+                                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Location' : 'Save Location')}
+                            </button>
                         </div>
-                    </div>
+                    </form>
+                </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={() => navigate('/locations')}
-                            disabled={isSubmitting}
+                {/* Right Side: Map */}
+                <div className="location-map-panel">
+                    {isLoaded ? (
+                        <GoogleMap
+                            mapContainerStyle={mapContainerStyle}
+                            center={mapCenter}
+                            zoom={15}
+                            onClick={handleMapClick}
+                            onLoad={(map) => {
+                                mapRef.current = map;
+                            }}
+                            options={{
+                                draggableCursor: 'pointer',
+                                draggingCursor: 'pointer',
+                                streetViewControl: false,
+                                mapTypeControl: false,
+                            }}
                         >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={isSubmitting}
-                        >
-                            <Save size={18} />
-                            {isSubmitting ? 'Saving...' : (isEdit ? 'Update Location' : 'Save Location')}
-                        </button>
-                    </div>
-
-                </form>
+                            {formData.lat && formData.lng && (
+                                <Marker
+                                    position={{ lat: formData.lat, lng: formData.lng }}
+                                    draggable={true}
+                                    onDragEnd={handleMarkerDragEnd}
+                                    icon={markerIcon}
+                                />
+                            )}
+                        </GoogleMap>
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                            Loading Map...
+                        </div>
+                    )}
+                </div>
             </div>
-
-            <GoogleMapsModal
-                isOpen={isMapsModalOpen}
-                onClose={() => setIsMapsModalOpen(false)}
-                onApply={handleApplyLocation}
-                initialLocation={
-                    formData.lat && formData.lng
-                        ? { lat: formData.lat, lng: formData.lng }
-                        : null
-                }
-            />
         </div>
     );
 };
