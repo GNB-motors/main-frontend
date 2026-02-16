@@ -1,0 +1,451 @@
+/**
+ * Location Management Page - Styling
+ * Professional, responsive design for location management
+ * Reuse styles from RoutesPage.css where possible
+ */
+
+.location-page {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  background: #f8fafc;
+  min-height: 100vh;
+  margin: -24px;
+  /* Remove the 24px page-content padding */
+}
+
+/* Header */
+.location-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.location-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.location-page .btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.location-page .btn-primary {
+  background: #00c896;
+  color: white;
+}
+
+.location-page .btn-primary:hover {
+  background: #00b876;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.2);
+}
+
+.location-page .btn-secondary {
+  background: #e2e8f0;
+  color: #1a202c;
+}
+
+.location-page .btn-secondary:hover {
+  background: #cbd5e0;
+}
+
+.location-page .btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.location-page .btn-danger:hover {
+  background: #c0392b;
+}
+
+/* Search Bar */
+.location-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 600px;
+  padding: 12px 12px 12px 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #00c896;
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.1);
+}
+
+/* Google Maps Search Integration overrides */
+.search-input-wrapper-form.search-input-wrapper {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  max-width: 100% !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  background: transparent !important;
+  z-index: 10 !important;
+}
+
+.search-input-wrapper-form .search-input {
+  padding-left: 40px;
+  /* Space for search icon */
+  width: 100%;
+}
+
+.search-input-wrapper-form .search-icon {
+  left: 12px;
+  z-index: 2;
+}
+
+.search-input-wrapper-form .suggestions-dropdown {
+  z-index: 1000;
+  top: calc(100% + 4px);
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Location Container */
+.location-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-top: 24px;
+}
+
+/* Location Table */
+/* Location Table (Matching Reports Page Design) */
+.location-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+}
+
+.location-table thead {
+  background: #f8f8fb;
+  border-bottom: none;
+}
+
+.location-table th {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5d5d5e;
+  border-bottom: 1px solid #ececee;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.location-table tbody tr {
+  border-bottom: none;
+  transition: background-color 0.2s ease;
+}
+
+.location-table tbody tr:hover {
+  background-color: #fafbfc;
+}
+
+.location-table td {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #121214;
+  border-bottom: 1px solid #f0f0f3;
+  vertical-align: top;
+}
+
+.location-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Specific Column widths/styles */
+.location-name-cell {
+  width: 15%;
+  /* Less space for name */
+  font-weight: 600;
+  color: #121214;
+}
+
+.location-address-cell {
+  width: 40%;
+  /* More space for address */
+}
+
+.location-pincode-cell {
+  width: 10%;
+  white-space: nowrap;
+}
+
+.location-type-cell {
+  width: 10%;
+}
+
+.location-actions-cell {
+  width: 10%;
+  text-align: right;
+}
+
+/* Inheriting styles from table common */
+
+.type-cell {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.type-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.type-badge.source {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.type-badge.destination {
+  background-color: #fce7f3;
+  color: #be185d;
+}
+
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #64748b;
+}
+
+.btn-icon:hover {
+  background: #f1f5f9;
+}
+
+.btn-icon.edit:hover {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.btn-icon.delete:hover {
+  background: #fef2f2;
+  color: #e74c3c;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination button {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  border-color: #00c896;
+  color: #00c896;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: #64748b;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Loading & Empty States */
+.loading-state,
+.empty-state {
+  padding: 80px 32px;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.empty-state svg {
+  color: #cbd5e0;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Modal Overlay (Reused from RoutesPage, ensuring consistency) */
+.delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+
+.delete-modal-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+.delete-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.delete-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #1a202c;
+}
+
+.delete-modal-content {
+  padding: 24px;
+}
+
+.delete-modal-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e74c3c;
+  /* Red */
+  background: #fef2f2;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.delete-modal-actions {
+  padding: 16px 24px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .location-page {
+    padding: 16px;
+  }
+
+  .location-header h1 {
+    font-size: 20px;
+  }
+
+  .search-input {
+    max-width: 100%;
+  }
+
+  .location-table {
+    font-size: 12px;
+  }
+
+  .location-table th,
+  .location-table td {
+    padding: 12px 8px;
+  }
+
+  .actions-cell {
+    gap: 4px;
+  }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+  }
+}

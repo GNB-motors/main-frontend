@@ -19,12 +19,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         const updateTheme = () => {
             setThemeColors(getThemeCSS());
         };
-        
+
         updateTheme();
-        
+
         // Listen for storage changes (when profile color is updated)
         window.addEventListener('storage', updateTheme);
-        
+
         return () => {
             window.removeEventListener('storage', updateTheme);
         };
@@ -73,7 +73,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     };
 
     return (
-        <aside 
+        <aside
             className="sidebar"
             style={themeColors}
             onMouseEnter={() => setIsSidebarHovered(true)}
@@ -87,7 +87,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/overview" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Grid size={20} /><span>Overview</span>
                     </NavLink>
-                    
+
                     {/* Vehicle Activity Section */}
                     <div className="nav-section">
                         <button
@@ -98,29 +98,29 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                                 <Truck size={20} />
                                 <span>Vehicle Activity</span>
                             </div>
-                            <ChevronIcon 
-                                size={16} 
+                            <ChevronIcon
+                                size={16}
                                 className={`chevron-icon ${isVehicleActivityOpen ? 'rotated' : ''}`}
                             />
                         </button>
                         <div className={`nav-children ${isVehicleActivityOpen ? 'open' : ''}`}>
-                            <NavLink 
-                                to="/trip-management" 
-                                className="nav-link nav-child" 
+                            <NavLink
+                                to="/trip-management"
+                                className="nav-link nav-child"
                                 onClick={closeSidebarOnMobile}
                             >
                                 <span>Trip Management</span>
                             </NavLink>
-                            <NavLink 
-                                to="/refuel-logs" 
-                                className="nav-link nav-child" 
+                            <NavLink
+                                to="/refuel-logs"
+                                className="nav-link nav-child"
                                 onClick={closeSidebarOnMobile}
                             >
                                 <span>Refuel Logs</span>
                             </NavLink>
                         </div>
                     </div>
-                    
+
                     <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
                         <FileText size={20} /><span>Reports</span>
                     </NavLink>
@@ -132,6 +132,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/vehicles" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Truck size={20} />
                         <span>Vehicles</span>
+                    </NavLink>
+                    <NavLink to="/locations" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <MapPin size={20} />
+                        <span>Locations</span>
                     </NavLink>
                     {/* <NavLink to="/routes" className="nav-link" onClick={closeSidebarOnMobile}>
                         <MapPin size={20} />
