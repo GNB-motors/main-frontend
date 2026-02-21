@@ -17,7 +17,13 @@ const LocationService = {
      */
     getLocations: async (params = {}) => {
         try {
-            const response = await apiClient.get('/api/locations', { params });
+            const allowedParams = ['search', 'type'];
+            const filteredParams = Object.fromEntries(
+                Object.entries(params).filter(([key, value]) =>
+                    allowedParams.includes(key) && value !== undefined && value !== ''
+                )
+            );
+            const response = await apiClient.get('/api/locations', { params: filteredParams });
             return response.data;
         } catch (error) {
             console.error('Failed to fetch locations:', error.response?.data || error.message);

@@ -6,7 +6,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { MapPin, Save, X } from 'lucide-react';
+import { MapPin, Save, ArrowLeft } from 'lucide-react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
 import LocationService from './LocationService';
 import GoogleMapsSearch from '../../components/GoogleMapsModal/GoogleMapsSearch';
@@ -247,8 +247,8 @@ const AddLocationPage = () => {
             <div className="location-header">
                 <h1>{isEdit ? 'Edit Location' : 'Add New Location'}</h1>
                 <button className="btn btn-secondary" onClick={() => navigate('/locations')}>
-                    <X size={18} />
-                    Cancel
+                    <ArrowLeft size={18} />
+                    Back
                 </button>
             </div>
 
