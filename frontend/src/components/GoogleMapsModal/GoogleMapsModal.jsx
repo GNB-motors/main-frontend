@@ -75,7 +75,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
             <path fill-rule="evenodd" clip-rule="evenodd" d="M19.9121 22.8976C19.9121 19.6725 22.536 17.0486 25.7612 17.0486C28.9864 17.0486 31.6102 19.6725 31.6103 22.8976C31.6103 26.9002 26.3759 32.7762 26.1531 33.0244C25.9441 33.2571 25.5787 33.2575 25.3693 33.0244C25.1465 32.7762 19.9121 26.9002 19.9121 22.8976ZM22.8183 22.8976C22.8183 24.5203 24.1384 25.8404 25.7611 25.8404C27.3837 25.8404 28.7039 24.5203 28.7039 22.8976C28.7039 21.275 27.3837 19.9548 25.7611 19.9548C24.1384 19.9548 22.8183 21.2749 22.8183 22.8976Z" fill="#FF6600"/>
           </svg>
         `;
-        
+
         // Create marker with custom icon
         markerRef.current = new window.google.maps.Marker({
           map: mapRef.current,
@@ -114,36 +114,48 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   };
 
 
+  // Helper to extract location details including pincode
+  const extractLocationDetails = (result) => {
+    const lat = result.geometry.location.lat();
+    const lng = result.geometry.location.lng();
+    const address = result.formatted_address;
+
+    const addressComponents = result.address_components || [];
+    let city = '';
+    let state = '';
+    let pincode = '';
+
+    addressComponents.forEach(component => {
+      if (component.types.includes('locality')) {
+        city = component.long_name;
+      }
+      if (component.types.includes('administrative_area_level_1')) {
+        state = component.long_name;
+      }
+      if (component.types.includes('postal_code')) {
+        pincode = component.long_name;
+      }
+    });
+
+    // Fallback: Try regex on formatted address if pincode is still empty
+    if (!pincode && address) {
+      const pinMatch = address.match(/\b\d{6}\b/);
+      if (pinMatch) {
+        pincode = pinMatch[0];
+      }
+    }
+
+    return { lat, lng, address, city, state, pincode, place_id: result.place_id };
+  };
+
   const handleSuggestionSelect = async (suggestion) => {
     try {
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ placeId: suggestion.place_id }, (results, status) => {
         if (status === 'OK' && results[0]) {
-          const lat = results[0].geometry.location.lat();
-          const lng = results[0].geometry.location.lng();
-          const address = results[0].formatted_address;
-
-          const addressComponents = results[0].address_components || [];
-          let city = '';
-          let state = '';
-
-          addressComponents.forEach(component => {
-            if (component.types.includes('locality')) {
-              city = component.long_name;
-            }
-            if (component.types.includes('administrative_area_level_1')) {
-              state = component.long_name;
-            }
-          });
-
-          setSelectedLocation({
-            address,
-            city,
-            state,
-            lat,
-            lng
-          });
-          setMapCenter({ lat, lng });
+          const details = extractLocationDetails(results[0]);
+          setSelectedLocation(details);
+          setMapCenter({ lat: details.lat, lng: details.lng });
           setSearchValue(suggestion.description);
         } else {
           console.error('Geocoding failed for place_id:', suggestion.place_id, status);
@@ -162,40 +174,32 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
       if (status === 'OK' && results[0]) {
-        const address = results[0].formatted_address;
-        const addressComponents = results[0].address_components;
+        const details = extractLocationDetails(results[0]);
+        // Override lat/lng with clicked position to be precise (geocoding might snap to nearest address)
+        // Actually, for address creation, snapping to address is usually better, but let's keep clicked lat/lng if preferred.
+        // But extractLocationDetails uses result.geometry.location, which is the address location.
+        // Let's stick to the result's location for consistency with address, or use clicked if we want exact pin.
+        // The previous code used clicked lat/lng but fetched address components.
+        // Let's use the details but override lat/lng with the click if we want to support "middle of nowhere" pins?
+        // Usually for "Location" entities, address-bound is better. Let's use the result from geocoder for consistency.
 
-        let city = '';
-        let state = '';
-
-        addressComponents.forEach(component => {
-          if (component.types.includes('locality')) {
-            city = component.long_name;
-          }
-          if (component.types.includes('administrative_area_level_1')) {
-            state = component.long_name;
-          }
-        });
-
+        // However, existing code used event lat/lng. Let's respect that intent but mix in the address details.
         setSelectedLocation({
-          address,
-          city,
-          state,
-          lat,
-          lng
+          ...details,
+          lat, // use clicked lat
+          lng  // use clicked lng
         });
-        setSearchValue(address);
+        setSearchValue(details.address);
       }
     });
-  }, []);
+  }, []); // extractLocationDetails is defined inside component but depends on nothing, but better to move it out or useRef? 
+  // actually extractLocationDetails doesn't depend on state, so it can be defined outside or inside without deps.
+  // BUT handleMapClick uses it, so it needs to be available. 
+  // I will duplicate the helper or put it outside component in the same file to avoid dependency issues in useCallback.
 
   const handleApply = async () => {
     if (!selectedLocation) return;
 
-    // If selectedLocation already has place_id (from suggestion) and lat/lng,
-    // we can apply immediately. Otherwise, attempt to geocode the current
-    // searchValue to resolve a proper place (this handles the Kolkata case
-    // where the input is prefilled but wasn't confirmed via Places).
     const needsGeocode = !selectedLocation.place_id || !selectedLocation.city || !selectedLocation.state;
 
     if (needsGeocode && searchValue && window.google) {
@@ -212,40 +216,15 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
         });
 
         const result = await geocodePromise;
-        const lat = result.geometry.location.lat();
-        const lng = result.geometry.location.lng();
-        const address = result.formatted_address;
+        const details = extractLocationDetails(result);
 
-        const addressComponents = result.address_components || [];
-        let city = '';
-        let state = '';
-
-        addressComponents.forEach(component => {
-          if (component.types.includes('locality')) {
-            city = component.long_name;
-          }
-          if (component.types.includes('administrative_area_level_1')) {
-            state = component.long_name;
-          }
-        });
-
-        const confirmed = {
-          address,
-          city,
-          state,
-          lat,
-          lng,
-          place_id: result.place_id
-        };
-
-        setSelectedLocation(confirmed);
+        setSelectedLocation(details);
         if (onApply && typeof onApply === 'function') {
-          onApply(confirmed);
+          onApply(details);
         }
         onClose();
         return;
       } catch (err) {
-        // If geocoding fails, fall back to applying the existing selection
         console.warn('Geocoding failed during Apply:', err);
       }
     }
@@ -258,46 +237,20 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   };
 
   const handleClose = () => {
-    // Do not null-out selectedLocation here. Let the parent control persistence
-    // and avoid desyncs when reopening the modal. Only close the modal.
     onClose();
   };
 
-  // Handle Enter key from the search input: geocode the typed address and
-  // treat it like a confirmed selection (fills city/state/lat/lng).
+  // Handle Enter key from the search input
   const handleEnter = async (typedAddress) => {
     try {
       if (!typedAddress || !window.google) return;
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ address: typedAddress }, (results, status) => {
         if (status === 'OK' && results[0]) {
-          const lat = results[0].geometry.location.lat();
-          const lng = results[0].geometry.location.lng();
-          const address = results[0].formatted_address;
-
-          const addressComponents = results[0].address_components || [];
-          let city = '';
-          let state = '';
-
-          addressComponents.forEach(component => {
-            if (component.types.includes('locality')) {
-              city = component.long_name;
-            }
-            if (component.types.includes('administrative_area_level_1')) {
-              state = component.long_name;
-            }
-          });
-
-          setSelectedLocation({
-            address,
-            city,
-            state,
-            lat,
-            lng,
-            place_id: results[0].place_id
-          });
-          setMapCenter({ lat, lng });
-          setSearchValue(address);
+          const details = extractLocationDetails(results[0]);
+          setSelectedLocation(details);
+          setMapCenter({ lat: details.lat, lng: details.lng });
+          setSearchValue(details.address);
         } else {
           console.error('Geocoding failed for address:', typedAddress, status);
         }

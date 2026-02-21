@@ -10,6 +10,7 @@ const SearchableDropdown = ({
     onRemove,
     onRequestAddNew, // new: callback to open map modal
     onDeleteOption, // new: callback to delete an option
+    onSearchChange, // new: callback for search input change
     placeholder = "Select option",
     addNewLabel = "Create new",
 }) => {
@@ -64,40 +65,40 @@ const SearchableDropdown = ({
                 <div className="searchable-dropdown-content">
                     {selectedOptions && selectedOptions.length > 0
                         ? selectedOptions.map((tag) => (
-                              <span key={getOptionLabel(tag)} className="searchable-selected-tag">
-                                  {getOptionLabel(tag)}
-                                  {onRemove && (
-                                      <div className="searchable-remove-tag">
-                                          <span
-                                              onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  onRemove(tag);
-                                              }}
-                                          >
-                                              <svg
-                                                  width={12}
-                                                  height={12}
-                                                  viewBox="0 0 12 12"
-                                                  fill="none"
-                                                  xmlns="http://www.w3.org/2000/svg"
-                                                  style={{ display: "block" }}
-                                              >
-                                                  <path
-                                                      d="M2 2L10 10M10 2L2 10"
-                                                      stroke="#454547"
-                                                      strokeWidth="1.5"
-                                                      strokeLinecap="round"
-                                                      strokeLinejoin="round"
-                                                  />
-                                              </svg>
-                                          </span>
-                                      </div>
-                                  )}
-                              </span>
-                          ))
+                            <span key={getOptionLabel(tag)} className="searchable-selected-tag">
+                                {getOptionLabel(tag)}
+                                {onRemove && (
+                                    <div className="searchable-remove-tag">
+                                        <span
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onRemove(tag);
+                                            }}
+                                        >
+                                            <svg
+                                                width={12}
+                                                height={12}
+                                                viewBox="0 0 12 12"
+                                                fill="none"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                style={{ display: "block" }}
+                                            >
+                                                <path
+                                                    d="M2 2L10 10M10 2L2 10"
+                                                    stroke="#454547"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                )}
+                            </span>
+                        ))
                         : selectedOption || (
-                              <span className="searchable-placeholder">{placeholder}</span>
-                          )}
+                            <span className="searchable-placeholder">{placeholder}</span>
+                        )}
                 </div>
                 <span className={`searchable-chevron-icon ${isOpen ? "open" : ""}`}>
                     <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
@@ -118,7 +119,10 @@ const SearchableDropdown = ({
                             type="text"
                             placeholder="Search"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                if (onSearchChange) onSearchChange(e.target.value); // Notify parent
+                            }}
                             className="searchable-search-input"
                         />
                         <div className="searchable-search-icon">
@@ -178,7 +182,7 @@ const SearchableDropdown = ({
                                             }}
                                         >
                                             <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
-                                                <path d="M2 4h10M4.5 4V3a1.5 1.5 0 011.5-1.5h2.5A1.5 1.5 0 0110 3v1m1 0v8a1.5 1.5 0 01-1.5 1.5h-5A1.5 1.5 0 013 12V4h8z" stroke="#D32F2F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                <path d="M2 4h10M4.5 4V3a1.5 1.5 0 011.5-1.5h2.5A1.5 1.5 0 0110 3v1m1 0v8a1.5 1.5 0 01-1.5 1.5h-5A1.5 1.5 0 013 12V4h8z" stroke="#D32F2F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                             </svg>
                                         </span>
                                     )}

@@ -14,7 +14,7 @@ import ProfilePage from './pages/Profile/ProfilePage.jsx';
 // import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
-import DriversPage  from './pages/Drivers/DriversPage.jsx';
+import DriversPage from './pages/Drivers/DriversPage.jsx';
 import AddDriverPage from './pages/Drivers/AddDriverPage.jsx';
 import BulkUploadDriversPage from "./pages/Drivers/BulkUploadDriversPage.jsx";
 import BulkUploadVehiclesPage from "./pages/Profile/BulkUploadVehiclesPage.jsx";
@@ -28,6 +28,8 @@ import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
+import LocationPage from './pages/Locations/LocationPage.jsx';
+import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 
 
@@ -38,7 +40,7 @@ function App() {
       <Route path="/" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/contact" element={<ContactPage />} />
-      <Route path="/admin/new-user" element={<SignUpPage/>} />
+      <Route path="/admin/new-user" element={<SignUpPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Super Admin Routes */}
@@ -58,7 +60,7 @@ function App() {
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
-  <Route path="/drivers/add" element={<AddDriverPage />} />
+        <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
         <Route path="/trip-management/weight-slip/:id" element={<WeightSlipTripDetailPage />} />
@@ -69,8 +71,10 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
-  <Route path="/routes" element={<RoutesPage />} />
-  <Route path="/routes/add" element={<AddRoutePage />} />
+        <Route path="/routes" element={<RoutesPage />} />
+        <Route path="/routes/add" element={<AddRoutePage />} />
+        <Route path="/locations" element={<LocationPage />} />
+        <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
