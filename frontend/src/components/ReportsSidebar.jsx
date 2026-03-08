@@ -16,16 +16,17 @@ import {
     ChevronUp,
     ChevronDown,
     AlertTriangle,
-    BookOpen // <-- Icon for Trip Ledger
+    BookOpen, // <-- Icon for Trip Ledger
+    Fuel,     // <-- Icon for Fuel Comparison
 } from 'lucide-react';
 import './ReportsSidebar.css';
 import { getThemeCSS } from '../utils/colorTheme';
 
 const ReportsSidebar = ({
-  isOpen,
-  isMainSidebarCollapsed,
-  selectedReport,
-  setSelectedReport
+    isOpen,
+    isMainSidebarCollapsed,
+    selectedReport,
+    setSelectedReport
 }) => {
 
     const [expandedCategories, setExpandedCategories] = useState({
@@ -54,6 +55,7 @@ const ReportsSidebar = ({
                 { id: 'tripLedger', name: 'Trip Report', icon: BookOpen },
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
+                { id: 'fuelComparison', name: 'Fuel Comparison', icon: Fuel },
             ]
         }
     ];

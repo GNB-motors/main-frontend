@@ -14,14 +14,14 @@ export const ReportsService = {
         try {
             // Call the new endpoint: /reports/trips
             const response = await apiClient.get(`api/reports/trips`, { params });
-            
+
             // Extract the data array from the response
             // Response structure: { status: "success", data: [...], meta: {...} }
             if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
                 console.log('Trip Reports Meta:', response.data.meta);
                 return response.data.data; // Return the data array
             }
-            
+
             // Fallback if structure is different
             return response.data?.data || [];
         } catch (error) {
@@ -39,14 +39,14 @@ export const ReportsService = {
         try {
             // Call the new endpoint: /reports/vehicles
             const response = await apiClient.get(`api/reports/vehicles`, { params });
-            
+
             // Extract the data array from the response
             // Response structure: { status: "success", data: [...], meta: {...} }
             if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
                 console.log('Vehicle Reports Meta:', response.data.meta);
                 return response.data.data; // Return the data array
             }
-            
+
             // Fallback if structure is different
             return response.data?.data || [];
         } catch (error) {
@@ -89,14 +89,14 @@ export const ReportsService = {
         try {
             // Call the new endpoint: /reports/drivers
             const response = await apiClient.get(`api/reports/drivers`, { params });
-            
+
             // Extract the data array from the response
             // Response structure: { status: "success", data: [...], meta: {...} }
             if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
                 console.log('Driver Reports Meta:', response.data.meta);
                 return response.data.data; // Return the data array
             }
-            
+
             // Fallback if structure is different
             return response.data?.data || [];
         } catch (error) {
@@ -112,12 +112,12 @@ export const ReportsService = {
     getTripLedger: async () => {
         try {
             const response = await apiClient.get(`api/reports/trip-ledger`);
-            
+
             if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
                 console.log('Trip Ledger fetched, count:', response.data.count);
                 return response.data.data;
             }
-            
+
             return response.data?.data || [];
         } catch (error) {
             console.error("API Error fetching trip ledger:", error.response?.data || error.message);
@@ -132,12 +132,12 @@ export const ReportsService = {
     getTripLedgerSummary: async () => {
         try {
             const response = await apiClient.get(`api/reports/trip-ledger/summary`);
-            
+
             if (response.data && response.data.status === 'success' && response.data.data) {
                 console.log('Trip Ledger Summary:', response.data.data);
                 return response.data.data;
             }
-            
+
             return response.data?.data || {};
         } catch (error) {
             console.error("API Error fetching trip ledger summary:", error.response?.data || error.message);
@@ -153,16 +153,62 @@ export const ReportsService = {
     getTripLedgerById: async (id) => {
         try {
             const response = await apiClient.get(`api/reports/trip-ledger/${id}`);
-            
+
             if (response.data && response.data.status === 'success' && response.data.data) {
                 console.log('Trip Ledger Entry:', response.data.data);
                 return response.data.data;
             }
-            
+
             return response.data?.data || null;
         } catch (error) {
             console.error("API Error fetching trip ledger entry:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable while fetching trip ledger entry." };
+        }
+    },
+
+    // ─── Extension API ───────────────────────────────────────────────────────
+
+    /**
+     * Fetches the current fuel comparison sync status.
+     * @returns {Promise<Object>} - { pending, inProgress, completed, failed, flagged, total, lastSyncAt, isUpToDate }
+     */
+    getExtensionStatus: async () => {
+        try {
+            const response = await apiClient.get(`api/extension/status`);
+            return response.data?.data || response.data || {};
+        } catch (error) {
+            console.error("API Error fetching extension status:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error fetching sync status." };
+        }
+    },
+
+    /**
+     * Fetches flagged fuel comparison records (bill > FleetEdge).
+     * @param {object} params - { page, limit }
+     * @returns {Promise<Object>} - { records, total, page, limit, totalPages }
+     */
+    getExtensionFlagged: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`api/extension/flagged`, { params });
+            return response.data?.data || response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+        } catch (error) {
+            console.error("API Error fetching flagged records:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error fetching flagged records." };
+        }
+    },
+
+    /**
+     * Fetches all fuel comparison records with optional filtering.
+     * @param {object} params - { page, limit, vehicleId, driverId, flaggedOnly }
+     * @returns {Promise<Object>} - { records, total, page, limit, totalPages }
+     */
+    getExtensionComparisons: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`api/extension/comparisons`, { params });
+            return response.data?.data || response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+        } catch (error) {
+            console.error("API Error fetching comparisons:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error fetching comparisons." };
         }
     },
 };
