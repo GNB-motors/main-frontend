@@ -55,7 +55,6 @@ const ReportsSidebar = ({
                 { id: 'tripLedger', name: 'Trip Report', icon: BookOpen },
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
-                { id: 'fuelComparison', name: 'Fuel Comparison', icon: Fuel },
             ]
         }
     ];
