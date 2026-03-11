@@ -84,6 +84,9 @@ const RouteCreator = ({
   const autocompleteServiceRef = useRef(null);
   const sessionTokenRef = useRef(null);
 
+  // Distance Calculation State
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+
   // Initialize Autocomplete Service
   useEffect(() => {
     if (isLoaded && window.google && !autocompleteServiceRef.current) {
@@ -378,6 +381,50 @@ const RouteCreator = ({
     }
   };
 
+  // Calculate distance when both source and destination are set
+  useEffect(() => {
+    const calculateDistance = async () => {
+      const source = routeData.sourceLocation;
+      const dest = routeData.destLocation;
+
+      if (source?.lat && source?.lng && dest?.lat && dest?.lng && window.google?.maps?.DirectionsService) {
+        setIsCalculatingDistance(true);
+        try {
+          const directionsService = new window.google.maps.DirectionsService();
+          const results = await new Promise((resolve, reject) => {
+            directionsService.route(
+              {
+                origin: { lat: source.lat, lng: source.lng },
+                destination: { lat: dest.lat, lng: dest.lng },
+                travelMode: window.google.maps.TravelMode.DRIVING,
+              },
+              (result, status) => {
+                if (status === window.google.maps.DirectionsStatus.OK) {
+                  resolve(result);
+                } else {
+                  reject(status);
+                }
+              }
+            );
+          });
+
+          if (results.routes && results.routes[0] && results.routes[0].legs && results.routes[0].legs[0]) {
+            const distanceMeters = results.routes[0].legs[0].distance.value;
+            const distanceKm = (distanceMeters / 1000).toFixed(1);
+            handleDistanceChange(distanceKm);
+          }
+        } catch (error) {
+          console.error("Error calculating routes distance:", error);
+        } finally {
+          setIsCalculatingDistance(false);
+        }
+      }
+    };
+
+    calculateDistance();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeData.sourceLocation?.lat, routeData.sourceLocation?.lng, routeData.destLocation?.lat, routeData.destLocation?.lng]);
+
   // Merge saved locations with predictions
   const getOptions = (type) => {
     const saved = locationOptions.filter(l => l.type === (type === 'source' ? 'SOURCE' : 'DESTINATION'));
@@ -478,16 +525,25 @@ const RouteCreator = ({
       {/* Distance Input */}
       <div className="form-group">
         <label htmlFor="baseDistance">Base Distance (km)</label>
-        <input
-          id="baseDistance"
-          type="number"
-          value={routeData.baseDistanceKm || ''}
-          onChange={(e) => handleDistanceChange(e.target.value)}
-          placeholder="Enter one-way distance"
-          min="0"
-          step="0.1"
-          className="form-input"
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <input
+            id="baseDistance"
+            type="number"
+            value={routeData.baseDistanceKm || ''}
+            onChange={(e) => handleDistanceChange(e.target.value)}
+            placeholder="Enter one-way distance"
+            min="0"
+            step="0.1"
+            className="form-input"
+            disabled={isCalculatingDistance}
+            style={{ flex: 1 }}
+          />
+          {isCalculatingDistance && (
+            <span style={{ fontSize: '0.85rem', color: '#6c757d', whiteSpace: 'nowrap' }}>
+              Calculating...
+            </span>
+          )}
+        </div>
         <small className="distance-calculation">
           {tripType === 'ROUND_TRIP'
             ? `Total Distance: ${(routeData.actualDistanceKm || 0).toFixed(1)} km (2x base distance)`
