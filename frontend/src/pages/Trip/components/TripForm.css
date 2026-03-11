@@ -84,6 +84,30 @@
 
 .form-input[type='number'] {
   -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Validation styles */
+.form-input-error {
+  border-color: #e74c3c !important;
+  background-color: #fdf2f2;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+}
+
+.form-input-error::placeholder {
+  color: #e74c3c !important;
+  font-weight: 500;
+}
+
+.required {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.form-input:focus.form-input-error {
+  outline: none;
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
 }
 
 /* Responsive Design */

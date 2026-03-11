@@ -8,6 +8,7 @@
 
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
 import './ProcessingPhase.css';
 import SlipsList from '../components/SlipsList';
 import TripForm from '../components/TripForm';
@@ -35,6 +36,9 @@ const ProcessingPhase = ({
   const [currentIndex, setCurrentIndex] = useState(propsCurrentIndex || 0);
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [formErrors, setFormErrors] = useState(new Set());
+  const [showValidation, setShowValidation] = useState(false);
 
   // Update local state when props change
   useEffect(() => {
@@ -48,6 +52,12 @@ const ProcessingPhase = ({
       setCurrentIndex(propsCurrentIndex);
     }
   }, [propsCurrentIndex]);
+
+  // Handle form validation changes
+  const handleFormValidationChange = useCallback((isValid, errors) => {
+    setIsFormValid(isValid);
+    setFormErrors(errors);
+  }, []);
 
   // Helper to coerce values to safe numbers (avoid NaN)
   const toNumber = (v) => {
@@ -142,13 +152,32 @@ const ProcessingPhase = ({
 
   // Bulk Save & Next: Save locally and move to next slip
   const handleBulkSaveAndNext = useCallback(async () => {
-    if (!currentSlip.weight) {
-      alert('Please fill in weight field');
+    if (!isFormValid) {
+      setShowValidation(true);
+      const missingFields = Array.from(formErrors).join(', ');
+      toast.error(
+        `Please fill all required fields before proceeding. Missing: ${missingFields}`,
+        {
+          position: 'top-right',
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
       return;
     }
+    setShowValidation(false);
 
     // Mark current slip as done in local state
     updateWeightSlip(currentIndex, { isDone: true });
+
+    // Show success message
+    toast.success('Slip saved successfully!', {
+      position: 'top-right',
+      autoClose: 2000,
+    });
 
     // Move to next slip or complete processing
     if (currentIndex < weightSlips.length - 1) {
@@ -157,7 +186,7 @@ const ProcessingPhase = ({
       // All slips completed, proceed to next phase
       onNextSlip();
     }
-  }, [currentSlip, currentIndex, updateWeightSlip, weightSlips.length, handleNextSlip, onNextSlip]);
+  }, [currentSlip, currentIndex, updateWeightSlip, weightSlips.length, handleNextSlip, onNextSlip, isFormValid, formErrors]);
 
   // Handle completion and move to next phase
   const handleCompleteProcessing = useCallback(() => {
@@ -264,6 +293,8 @@ const ProcessingPhase = ({
               onUpdate={(data) => updateWeightSlip(currentIndex, data)}
               selectedVehicle={selectedVehicle}
               journeyData={journeyData}
+              onValidationChange={handleFormValidationChange}
+              showValidation={showValidation}
             />
           </div>
 
@@ -277,9 +308,10 @@ const ProcessingPhase = ({
               ← {currentIndex === 0 ? 'Back to Intake' : 'Previous'}
             </button>
             <button
-              className="btn btn-primary"
+              className={`btn ${!isFormValid ? 'btn-secondary disabled' : 'btn-primary'}`}
               onClick={handleBulkSaveAndNext}
-              title="Save this slip and move to next (bulk)"
+              disabled={!isFormValid}
+              title={!isFormValid ? "Please fill all required fields" : "Save this slip and move to next (bulk)"}
             >
               Save & Next →
             </button>

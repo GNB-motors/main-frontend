@@ -204,17 +204,24 @@ const JourneySetupModal = ({
     // Mark field as user-edited
     setUserEditedFields(prev => new Set(prev).add(field));
 
-    const numericValue = parseFloat(value) || 0;
+    let newValue = value;
+    // For number fields, allow empty string, otherwise parse
+    if (["endOdometer", "startOdometer", "fuelLitres", "fuelRate"].includes(field)) {
+      newValue = value === '' ? '' : parseFloat(value) || 0;
+    }
 
     setJourneyData(prev => {
-      const updated = { ...prev, [field]: numericValue };
+      const updated = { ...prev, [field]: newValue };
 
       // Recalculate dependent values
-      if (field === 'endOdometer' || field === 'startOdometer') {
-        updated.totalDistance = Math.max(0, updated.endOdometer - updated.startOdometer);
+      if (["endOdometer", "startOdometer"].includes(field)) {
+        const end = updated.endOdometer === '' ? 0 : Number(updated.endOdometer);
+        const start = updated.startOdometer === '' ? 0 : Number(updated.startOdometer);
+        updated.totalDistance = Math.max(0, end - start);
         updated.estimatedEfficiency = updated.fuelLitres > 0 ? updated.totalDistance / updated.fuelLitres : 0;
-      } else if (field === 'fuelLitres') {
-        updated.estimatedEfficiency = numericValue > 0 ? updated.totalDistance / numericValue : 0;
+      } else if (field === "fuelLitres") {
+        const litres = updated.fuelLitres === '' ? 0 : Number(updated.fuelLitres);
+        updated.estimatedEfficiency = litres > 0 ? updated.totalDistance / litres : 0;
       }
 
       return updated;
@@ -336,7 +343,7 @@ const JourneySetupModal = ({
                 <label>End Odometer (km)</label>
                 <input
                   type="number"
-                  value={journeyData.endOdometer}
+                  value={userEditedFields.has('endOdometer') && journeyData.endOdometer === '' ? '' : journeyData.endOdometer}
                   onChange={(e) => handleInputChange('endOdometer', e.target.value)}
                   className={errors.endOdometer ? 'error' : ''}
                   placeholder="Enter end odometer reading"
@@ -397,7 +404,7 @@ const JourneySetupModal = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={journeyData.fuelLitres}
+                  value={userEditedFields.has('fuelLitres') && journeyData.fuelLitres === '' ? '' : journeyData.fuelLitres}
                   onChange={(e) => handleInputChange('fuelLitres', e.target.value)}
                   className={errors.fuelLitres ? 'error' : ''}
                   placeholder="Enter fuel litres"
@@ -416,7 +423,7 @@ const JourneySetupModal = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={journeyData.fuelRate}
+                  value={userEditedFields.has('fuelRate') && journeyData.fuelRate === '' ? '' : journeyData.fuelRate}
                   onChange={(e) => handleInputChange('fuelRate', e.target.value)}
                   className={errors.fuelRate ? 'error' : ''}
                   placeholder="Enter rate per litre"
