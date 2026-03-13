@@ -830,6 +830,15 @@
     outline-offset: -1px;
     margin-bottom: 12px;
     overflow: visible;
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.vehicles-table tbody tr:hover {
+    background-color: var(--primary-light);
+    outline-color: rgba(41, 64, 211, 0.2);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-card-premium);
 }
 
 .vehicles-table td {

@@ -14,6 +14,10 @@
   border-radius: var(--border-radius-xl);
   box-shadow: var(--shadow-card-premium);
   border: 1px solid rgba(255, 255, 255, 0.6);
+  /* backdrop-filter creates a new stacking context — give it a z-index
+     so the date picker dropdown renders above the stat cards below */
+  position: relative;
+  z-index: 5;
 }
 
 .header-content {
