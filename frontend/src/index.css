@@ -37,6 +37,48 @@
     /* Borders */
     --border-radius-md: 8px;
     --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+
+    /* ── Glass & Premium Design Tokens ── */
+    /* Glassmorphism panel — light frosted */
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.55);
+    --glass-blur: blur(16px) saturate(160%);
+    --glass-shadow:
+        0 4px 6px -1px rgba(40, 41, 61, 0.06),
+        0 8px 24px -4px rgba(40, 41, 61, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.80);
+
+    /* Neumorphic card (light surface) */
+    --neu-bg: #f0f2f8;
+    --neu-shadow-out:
+        6px 6px 14px rgba(166, 175, 195, 0.50),
+        -6px -6px 14px rgba(255, 255, 255, 0.90);
+    --neu-shadow-in:
+        inset 4px 4px 10px rgba(166, 175, 195, 0.45),
+        inset -4px -4px 10px rgba(255, 255, 255, 0.85);
+
+    /* Refined card shadow */
+    --shadow-card-premium:
+        0 1px 3px rgba(40, 41, 61, 0.06),
+        0 6px 20px rgba(40, 41, 61, 0.09),
+        0 0 0 1px rgba(40, 41, 61, 0.04);
+    --shadow-card-hover:
+        0 4px 8px rgba(40, 41, 61, 0.08),
+        0 12px 32px rgba(40, 41, 61, 0.14),
+        0 0 0 1px rgba(40, 41, 61, 0.06);
+
+    /* Primary glow */
+    --glow-primary: 0 0 20px rgba(41, 64, 211, 0.20);
+
+    /* Easing curves */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+    /* Transitions */
+    --transition-card: transform 0.22s var(--ease-smooth), box-shadow 0.22s var(--ease-smooth);
+    --transition-btn: transform 0.18s var(--ease-spring), box-shadow 0.18s ease, background 0.18s ease;
 }
 
 *, *::before, *::after {
@@ -77,4 +119,153 @@ body {
     .sidebar:hover + .main-content .page-content {
         transition: filter 0.3s ease;
     }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Premium UI — Global Glass, Neumorphic & Animation Utilities
+   These classes are additive — they don't override existing component styles.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Page entrance animation ─── */
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-content > * {
+    animation: page-enter 0.35s var(--ease-out) both;
+}
+
+/* Stagger children slightly for a cascade effect */
+.page-content > *:nth-child(2) { animation-delay: 0.05s; }
+.page-content > *:nth-child(3) { animation-delay: 0.08s; }
+.page-content > *:nth-child(4) { animation-delay: 0.11s; }
+.page-content > *:nth-child(n+5) { animation-delay: 0.13s; }
+
+/* ─── Glass card utility ─── */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--glass-shadow);
+}
+
+/* ─── Premium card hover ─── */
+.card-hover {
+    transition: var(--transition-card);
+    cursor: pointer;
+}
+
+.card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+.card-hover:active {
+    transform: translateY(-1px);
+}
+
+/* ─── Neumorphic interactive button ─── */
+.neu-btn {
+    background: var(--neu-bg);
+    box-shadow: var(--neu-shadow-out);
+    border: none;
+    border-radius: var(--border-radius-lg);
+    transition: var(--transition-btn);
+    cursor: pointer;
+}
+
+.neu-btn:hover {
+    box-shadow:
+        8px 8px 18px rgba(166, 175, 195, 0.55),
+        -8px -8px 18px rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+}
+
+.neu-btn:active {
+    box-shadow: var(--neu-shadow-in);
+    transform: translateY(0) scale(0.98);
+}
+
+/* ─── Smooth skeleton shimmer ─── */
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #e3e6eb 25%,
+        #eef0f4 50%,
+        #e3e6eb 75%
+    );
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: var(--border-radius-md);
+}
+
+/* ─── Fade + scale pop for modals / dropdowns ─── */
+@keyframes pop-in {
+    from {
+        opacity: 0;
+        transform: scale(0.94) translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.pop-in {
+    animation: pop-in 0.22s var(--ease-spring) both;
+}
+
+/* ─── Subtle stat number count animation ─── */
+@keyframes count-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.stat-value {
+    animation: count-up 0.4s var(--ease-out) both;
+}
+
+/* ─── Focus ring (keyboard accessibility, consistent across the app) ─── */
+:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 3px;
+    border-radius: var(--border-radius-md);
+}
+
+/* ─── Scrollbar styling (webkit) ─── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-grey-300);
+    border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-grey-400);
+}
+
+/* ─── Bottom dock clearance: ensure page content doesn't hide behind the dock ─── */
+.page-content {
+    padding-bottom: calc(var(--spacing-lg) + 88px);
 }
