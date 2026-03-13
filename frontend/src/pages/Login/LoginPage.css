@@ -2,13 +2,12 @@
    Login Page - Split Screen with Floating Carousel
    ========================================================================== */
 
-/* Import Fonts used in the new design */
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap');
 
 :root {
     --color-primary-500: #4F46E5;
     --color-primary-600: #4338CA;
-    --color-white: #ffffff;
+    --color-white: #472c2c;
     --color-grey-100: #F3F4F6;
     --color-grey-200: #E5E7EB;
     --color-grey-400: #9CA3AF;
@@ -19,27 +18,28 @@
 
 /* --- Main Container --- */
 .login-container {
-    position: relative; /* Essential for absolute positioning of right panel */
     display: flex;
     width: 100%;
-    min-height: 100vh;
     background-color: var(--color-white);
-    font-family: 'Poppins', sans-serif; /* Updated to match new design */
+    font-family: 'Poppins', sans-serif;
     overflow: hidden;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 /* --- Left Column: Form Area --- */
 .login-form-wrapper {
-    /* Updated logic to match the 'calc(100% - 880px)' from your sample */
     position: relative;
-    width: calc(100% - 880px); 
-    height: 100vh;
+    width: 50%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 60px;
     z-index: 2;
     background: var(--color-white);
+    box-sizing: border-box;
 }
 
 .login-form-card {
@@ -48,31 +48,57 @@
 }
 
 /* Header & Logo */
-.login-header { margin-bottom: 40px; }
-.login-header .logo { width: 80px; height: auto; margin-bottom: 24px; }
+.login-header {
+    margin-bottom: 40px;
+    text-align: center;
+}
+.login-header .logo {
+    width: 280px;
+    height: auto;
+    margin-bottom: 28px;
+}
 .login-header h1 {
-    font-size: 36px;
-    font-weight: 800;
-    color: var(--color-primary-500);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--color-grey-800);
     margin: 0;
-    font-family: 'Montserrat', sans-serif; /* Keep branding font for headers */
-    letter-spacing: -0.5px;
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: -0.3px;
+    text-align: left;
 }
 
-/* --- Form Elements (Kept consistent) --- */
+/* --- Form Elements --- */
 .form-group { margin-bottom: 20px; }
 .form-group label {
-    display: block; margin-bottom: 8px;
-    color: var(--color-grey-700); font-size: 14px; font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+    color: var(--color-grey-400);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 .form-input {
-    width: 100%; padding: 14px;
+    width: 100%;
+    padding: 14px 16px;
     background-color: var(--color-grey-100);
-    border: 1px solid transparent; border-radius: var(--border-radius-md);
-    font-size: 14px; transition: all 0.2s; box-sizing: border-box;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    color: var(--color-grey-700);
+}
+.form-input::placeholder {
+    color: var(--color-grey-400);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
 }
 .form-input:focus {
-    outline: none; background-color: var(--color-white);
+    outline: none;
+    background-color: var(--color-white);
     border-color: var(--color-primary-500);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
@@ -107,41 +133,67 @@
 }
 
 .form-options {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 28px;
 }
 .remember-me {
     display: flex; align-items: center; gap: 10px;
     font-size: 14px; color: var(--color-grey-700); font-weight: 500;
 }
 .forgot-password {
-    color: var(--color-primary-500); text-decoration: none;
-    font-size: 14px; font-weight: 600;
+    color: var(--color-grey-700);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
 }
+.forgot-password:hover {
+    color: var(--color-primary-500);
+}
+
 .signin-button {
-    width: 100%; padding: 16px; border: none;
-    border-radius: var(--border-radius-md);
-    background-color: var(--color-primary-500);
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #2c3e6b 0%, #5b7fb5 50%, #8badd4 100%);
     color: var(--color-white);
-    font-size: 16px; font-weight: 600; cursor: pointer;
-    transition: background-color 0.2s;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
 }
-.signin-button:hover { background-color: var(--color-primary-600); }
+.signin-button:hover {
+    background: linear-gradient(135deg, #1e2d4f 0%, #4a6da3 50%, #7a9bc2 100%);
+    box-shadow: 0 4px 15px rgba(44, 62, 107, 0.3);
+}
 .signin-button:disabled {
     opacity: 0.7;
     cursor: wait;
 }
+
 .signup-link {
-    text-align: center; margin-top: 24px;
-    font-size: 14px; color: var(--color-grey-400);
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--color-grey-400);
 }
 .signup-link a {
-    color: var(--color-primary-500); text-decoration: none; font-weight: 600;
+    color: var(--color-grey-700);
+    text-decoration: none;
+    font-weight: 600;
+}
+.signup-link a:hover {
+    color: var(--color-primary-500);
 }
 
 /* Toggle Switch */
 .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
 .toggle-switch input { display: none; }
-.slider-switch { /* Renamed to avoid conflict with carousel logic */
+.slider-switch {
     position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
     background-color: var(--color-grey-200); transition: .4s; border-radius: 24px;
 }
@@ -155,20 +207,15 @@ input:checked + .slider-switch:before { transform: translateX(20px); }
 
 
 /* ==========================================================================
-   RIGHT PANEL: NEW CAROUSEL DESIGN
+   RIGHT PANEL: CAROUSEL
    ========================================================================== */
 
 .right-panel-container {
-    position: absolute;
-    width: 800px;
-    height: 96vh;
-    right: 50px;
-    top: 50%;
-    transform: translateY(-50%);
-    border-radius: 28px;
+    position: relative;
+    width: 50%;
+    height: 100%;
     overflow: hidden;
     background: #000;
-    z-index: 10;
 }
 
 /* --- Carousel Images --- */
@@ -192,7 +239,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); }
 .glass-card {
     position: absolute;
     left: 39px; top: 30px;
-    width: 617px; height: 218px;
+    width: calc(100% - 78px);
+    height: 218px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-radius: 28px;
@@ -204,17 +252,18 @@ input:checked + .slider-switch:before { transform: translateX(20px); }
     transition: all 0.5s ease;
     cursor: pointer;
     user-select: none;
+    box-sizing: border-box;
 }
 .glass-card:active { transform: scale(0.99); }
 
 .card-title {
     font-family: 'Manrope', sans-serif; font-weight: 700;
-    font-size: 40px; line-height: 40px; letter-spacing: 0.3px; color: #FFFFFF;
+    font-size: 36px; line-height: 40px; letter-spacing: 0.3px; color: #FFFFFF;
 }
 .card-desc {
     font-family: 'Manrope', sans-serif; font-weight: 500;
-    font-size: 18px; line-height: 30px; letter-spacing: 0.3px; color: #FFFFFF;
-    max-width: 532px;
+    font-size: 16px; line-height: 26px; letter-spacing: 0.3px; color: #FFFFFF;
+    max-width: 90%;
 }
 
 /* Inner Dots */
@@ -232,31 +281,32 @@ input:checked + .slider-switch:before { transform: translateX(20px); }
     position: absolute;
     left: 50%; transform: translateX(-50%);
     bottom: 40px;
-    width: 86px; height: 21px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(2px);
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    gap: 10px; z-index: 10; cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+    cursor: pointer;
 }
 .nav-dot {
-    height: 6px; border-radius: 20px; transition: all 0.3s ease;
+    height: 4px; border-radius: 20px; transition: all 0.3s ease;
 }
-.nav-dot.active { width: 30px; background: #ffffff; }
-.nav-dot.inactive { width: 6px; background: #CACACA; }
+.nav-dot.active { width: 36px; background: #ffffff; }
+.nav-dot.inactive { width: 24px; background: rgba(255, 255, 255, 0.4); }
 
 /* --- Responsive Adjustments --- */
-@media (max-width: 1400px) {
-    .right-panel-container { width: 600px; right: 30px; }
-    .glass-card { width: 90%; left: 5%; }
-    /* Adjust left panel to fill space */
-    .login-form-wrapper { width: calc(100% - 660px); }
+@media (max-width: 1200px) {
+    .login-form-wrapper { width: 50%; padding: 40px; }
+    .right-panel-container { width: 50%; }
 }
 
-@media (max-width: 1200px) {
-    /* Stacked layout or mobile view */
-    .login-form-wrapper { width: 100%; height: auto; min-height: 100vh; }
-    
-    /* On mobile, we might hide the complex right panel or make it a background */
+@media (max-width: 900px) {
+    .login-container { padding: 0; }
+    .login-form-wrapper {
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+        border-radius: 0;
+    }
     .right-panel-container { display: none; }
 }

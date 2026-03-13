@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import UkoLogo from '../../assets/uko-logo.png';
+import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
@@ -163,7 +163,7 @@ const LoginPage = () => {
             <div className="login-form-wrapper">
                 <div className="login-form-card">
                     <div className="login-header">
-                        <img src={UkoLogo} alt="Uko Logo" className="logo"/>
+                        <img src={GNBLogo} alt="GNB Logo" className="logo"/>
                         <h1>Sign In</h1>
                     </div>
 
