@@ -7,11 +7,13 @@
 
 .overview-header {
   margin-bottom: var(--spacing-lg);
-  background-color: var(--color-white);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
   padding: var(--spacing-lg);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--color-grey-200);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-card-premium);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .header-content {
@@ -135,16 +137,16 @@
 }
 
 .quick-option-btn:hover {
-  border-color: #3B82F6;
-  background-color: #EFF6FF;
-  color: #3B82F6;
+  border-color: var(--color-primary-500);
+  background-color: var(--primary-light);
+  color: var(--color-primary-500);
 }
 
 .quick-option-btn.active {
-  background-color: #3B82F6;
+  background-color: var(--color-primary-500);
   color: white;
-  border-color: #3B82F6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  border-color: var(--color-primary-500);
+  box-shadow: 0 2px 8px rgba(41, 64, 211, 0.3);
 }
 
 .custom-date-modal {
@@ -247,20 +249,20 @@
 .stat-card {
   background-color: var(--color-white);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card-premium);
   padding: var(--spacing-lg);
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  border: 1px solid var(--color-grey-200);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(40, 41, 61, 0.05);
+  transition: var(--transition-card);
   position: relative;
   overflow: hidden;
 }
 
 .stat-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
 }
 
 .stat-card::before {
@@ -270,7 +272,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-green-500));
 }
 
 .stat-icon-wrapper {
@@ -352,14 +354,15 @@
 .chart-card {
   background-color: var(--color-white);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card-premium);
   padding: var(--spacing-lg);
-  border: 1px solid var(--color-grey-200);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(40, 41, 61, 0.05);
+  transition: var(--transition-card);
 }
 
 .chart-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .large-chart {
@@ -437,14 +440,14 @@
   background-color: var(--color-white);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
-  border: 1px solid var(--color-grey-200);
-  box-shadow: var(--shadow-card);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(40, 41, 61, 0.05);
+  box-shadow: var(--shadow-card-premium);
+  transition: var(--transition-card);
 }
 
 .driver-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
 }
 
 .driver-card-header {
@@ -633,14 +636,15 @@
   background-color: var(--color-white);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
-  border: 1px solid var(--color-grey-200);
-  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(40, 41, 61, 0.05);
+  box-shadow: var(--shadow-card-premium);
   grid-column: span 12;
-  transition: all 0.3s ease;
+  transition: var(--transition-card);
 }
 
 .financial-summary-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .financial-summary-card h4 {
@@ -700,12 +704,13 @@
   background-color: var(--color-white);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
-  border: 1px solid var(--color-grey-200);
-  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(40, 41, 61, 0.05);
+  box-shadow: var(--shadow-card-premium);
   grid-column: span 12;
-  transition: all 0.3s ease;
+  transition: var(--transition-card);
 }
 
 .driver-list-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }

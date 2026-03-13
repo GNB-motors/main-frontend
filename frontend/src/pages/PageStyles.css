@@ -2,8 +2,15 @@
 .card {
   background-color: var(--color-white);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card-premium);
   padding: var(--spacing-lg);
+  border: 1px solid rgba(40, 41, 61, 0.05);
+  transition: var(--transition-card);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 .form-input {
   width: 100%;
@@ -46,12 +53,17 @@
   text-align: left;
   border-bottom: 1px solid var(--color-grey-200);
   font-size: 14px;
+  transition: background-color 0.15s ease;
 }
 .data-table thead th {
   font-weight: 600;
   color: var(--color-grey-400);
   text-transform: uppercase;
   font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.data-table tbody tr:hover td {
+  background-color: var(--primary-light);
 }
 .table-actions {
   display: flex;

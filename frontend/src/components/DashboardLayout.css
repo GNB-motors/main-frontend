@@ -2,6 +2,13 @@
     display: flex;
     min-height: 100vh;
     position: relative;
+    /* Subtle brand-aligned gradient backdrop */
+    background: linear-gradient(
+        145deg,
+        #f0f2ff 0%,
+        #f7f8fd 40%,
+        var(--color-grey-100) 100%
+    );
 }
 
 .main-content {

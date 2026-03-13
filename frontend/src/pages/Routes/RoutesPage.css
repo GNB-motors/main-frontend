@@ -103,8 +103,9 @@
 /* Routes Container */
 .routes-container {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-card-premium);
+  border: 1px solid rgba(40, 41, 61, 0.05);
   overflow: hidden;
   margin-top: 24px;
 }
@@ -137,7 +138,7 @@
 }
 
 .routes-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--primary-light);
 }
 
 .routes-table td {

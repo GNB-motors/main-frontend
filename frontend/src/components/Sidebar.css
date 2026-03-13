@@ -1,20 +1,24 @@
 .sidebar {
     width: 120px;
-    background-color: var(--color-white);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
     padding: 8px !important;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--color-grey-200);
+    border-right: 1px solid rgba(255, 255, 255, 0.55);
     flex-shrink: 0;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 margin-left 0.3s ease;
     position: fixed;
     height: 100vh;
     top: 0;
     left: 0;
     z-index: 1004 !important;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    box-shadow:
+        2px 0 8px rgba(40, 41, 61, 0.06),
+        4px 0 24px rgba(40, 41, 61, 0.08);
 }
 
 .sidebar-content {
@@ -103,9 +107,9 @@
 }
 
 .nav-link.active {
-    /* Use a light primary background and primary-color text to match other sidebars */
-    background-color:  #dbeafe !important;
-    color:  #2563eb !important;
+    background-color: var(--color-primary-100) !important;
+    color: var(--color-primary-500) !important;
+    box-shadow: 0 2px 8px rgba(41, 64, 211, 0.15);
 }
 
 .sidebar-footer {
@@ -266,10 +270,9 @@
 }
 
 .nav-parent.active-parent {
-    /* Use the same fixed active styling as .nav-link.active so Vehicle Activity
-       does not inherit profile primary color. */
-    background-color: #dbeafe !important;
-    color: #2563eb !important;
+    background-color: var(--color-primary-100) !important;
+    color: var(--color-primary-500) !important;
+    box-shadow: 0 2px 8px rgba(41, 64, 211, 0.15);
 }
 
 .chevron-icon {

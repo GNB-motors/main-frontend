@@ -10,11 +10,15 @@
 .trip-management-header {
   position: sticky;
   top: 0;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.6);
   padding: 20px 32px;
   z-index: 50;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 1px 3px rgba(40, 41, 61, 0.04),
+    0 4px 16px rgba(40, 41, 61, 0.06);
 }
 
 .header-content {
@@ -65,9 +69,10 @@
 }
 
 .tab-btn.active {
-  background-color: #1a73e8;
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
   color: white;
-  border-color: #1a73e8;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(41, 64, 211, 0.35);
 }
 
 .tab-icon {
@@ -131,20 +136,21 @@
 /* Trip Card - Minimalistic Design */
 .trip-card {
   background: white;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
+  border: 1px solid rgba(40, 41, 61, 0.06);
+  border-radius: var(--border-radius-lg);
   padding: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-card);
   display: flex;
   flex-direction: column;
   height: 100%;
+  box-shadow: var(--shadow-card-premium);
 }
 
 .trip-card:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  border-color: rgba(41, 64, 211, 0.12);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
 }
 
 .card-header {

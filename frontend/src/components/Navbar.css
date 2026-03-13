@@ -1,10 +1,15 @@
-.navbar { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: var(--spacing-md) var(--spacing-lg); 
-    background-color: var(--color-white); 
-    border-bottom: 1px solid var(--color-grey-200);
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow:
+        0 1px 3px rgba(40, 41, 61, 0.05),
+        0 4px 16px rgba(40, 41, 61, 0.06);
     height: var(--navbar-height, 72px); /* Use CSS variable for consistent positioning */
     min-height: var(--navbar-height, 72px);
     box-sizing: border-box;
