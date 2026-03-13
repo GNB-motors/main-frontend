@@ -49,10 +49,10 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
                     >
                         Cancel
                     </button>
-                    <button 
-                        type="button" 
-                        className="vehicle-delete-btn vehicle-delete-btn-danger" 
-                        onClick={() => onConfirm(vehicle.registration_no)} 
+                    <button
+                        type="button"
+                        className="vehicle-delete-btn vehicle-delete-btn-danger"
+                        onClick={() => onConfirm(vehicle.id)}
                         disabled={isDeleting}
                     >
                         {isDeleting ? 'Deleting...' : 'Delete Vehicle'}
@@ -419,7 +419,7 @@ const VehiclesPage = () => {
     };
 
     // --- Remove Vehicle ---
-    const handleRemoveVehicle = async (registrationNoToRemove) => {
+    const handleRemoveVehicle = async (vehicleIdToRemove) => {
         setFormError(null);
         setIsSubmitting(true);
         setOpenMenuId(null);
@@ -428,16 +428,16 @@ const VehiclesPage = () => {
             toast.warn('No auth token found. Request may fail.');
         }
         const originalVehicles = [...vehicles];
-        setVehicles(prevVehicles => prevVehicles.filter(v => v.registration_no !== registrationNoToRemove));
+        const removedVehicle = vehicles.find(v => v.id === vehicleIdToRemove);
+        setVehicles(prevVehicles => prevVehicles.filter(v => v.id !== vehicleIdToRemove));
         try {
-            await VehicleService.removeVehicle(businessRefId, registrationNoToRemove, token);
-            toast.success(`Vehicle "${registrationNoToRemove}" removed successfully!`);
+            await VehicleService.removeVehicle(businessRefId, vehicleIdToRemove, token);
+            toast.success(`Vehicle "${removedVehicle?.registration_no || vehicleIdToRemove}" removed successfully!`);
             setIsDeleteModalOpen(false);
             setDeletingVehicle(null);
-            console.log("Vehicle remove request sent successfully for:", registrationNoToRemove);
         } catch (apiError) {
             console.error("Failed to remove vehicle:", apiError);
-            const errorMessage = apiError?.detail || "Could not remove vehicle. Backend endpoint might be missing.";
+            const errorMessage = apiError?.detail || "Could not remove vehicle.";
             setFormError(errorMessage);
             toast.error(errorMessage);
             setVehicles(originalVehicles);

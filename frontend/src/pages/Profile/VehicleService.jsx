@@ -113,18 +113,17 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
   }
 };
 
-// Placeholder for Remove Vehicle API call (adjust endpoint if needed based on API design)
-const removeVehicle = async (businessRefId, registrationNo, token) => {
+const removeVehicle = async (businessRefId, vehicleId, token) => {
     try {
         const response = await axios.delete(
-            `${API_BASE_URL}/api/v1/vehicles/${businessRefId}/vehicle/${registrationNo}`, // Assuming deletion by reg_no
+            `${API_BASE_URL}/api/vehicles/${vehicleId}`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             }
         );
-        return response.data; // Or handle 204 No Content
+        return response.data;
     } catch (error) {
         throw error.response?.data || { detail: error.message || 'Could not remove vehicle.' };
     }
