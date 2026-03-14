@@ -24,19 +24,31 @@ apiClient.interceptors.request.use(
     }
 );
 
-// Response interceptor to handle 401 errors globally
+// Response interceptor to handle global error cases
 apiClient.interceptors.response.use(
     (response) => {
         return response;
     },
     (error) => {
+        // Log X-Request-ID on every error so we can correlate with backend logs
+        const requestId = error.response?.headers?.['x-request-id'];
+        if (requestId) {
+            console.error(`[API Error] status=${error.response?.status} url=${error.config?.url} requestId=${requestId}`);
+        }
+
         // Handle 401 errors with auto-logout
         if (error.response?.status === 401) {
-            console.log('401 Unauthorized detected in axios interceptor - Auto logging out user');
             handleAuthError(error);
             return Promise.reject(error);
         }
-        
+
+        // Handle 429 Too Many Requests — surface a clear message instead of a generic error
+        if (error.response?.status === 429) {
+            const msg = error.response?.data?.message || 'Too many requests. Please wait a moment and try again.';
+            error.userMessage = msg;
+            return Promise.reject(error);
+        }
+
         // For other errors, just pass them through
         return Promise.reject(error);
     }

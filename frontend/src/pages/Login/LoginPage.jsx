@@ -73,7 +73,6 @@ const LoginPage = () => {
         try {
             // Step 1: Attempt Login
             const loginData = await LoginPageService.loginUser(credentials);
-            console.log('Login successful:', loginData);
 
             // Handle new API response structure
             const token = loginData.token || loginData.access_token;
@@ -85,16 +84,6 @@ const LoginPage = () => {
 
             // Store user data if available (new API structure)
             if (user) {
-                console.log('Storing user data:', {
-                    id: user._id || user.id,
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    mobileNumber: user.mobileNumber,
-                    role: user.role,
-                    orgId: user.orgId
-                });
-                
                 localStorage.setItem('user_id', user._id || user.id || '');
                 localStorage.setItem('user_email', user.email || '');
                 localStorage.setItem('user_role', user.role || '');
@@ -108,12 +97,6 @@ const LoginPage = () => {
                     localStorage.setItem('user_orgId', user.orgId);
                 }
                 
-                console.log('LocalStorage after save:', {
-                    mobileNumber: localStorage.getItem('user_mobileNumber'),
-                    firstName: localStorage.getItem('user_firstName'),
-                    email: localStorage.getItem('user_email')
-                });
-
                 // Step 2: Role-based routing
                 if (user.role === 'SUPER_ADMIN') {
                     toast.success("Welcome Super Admin! Redirecting...");
@@ -142,8 +125,11 @@ const LoginPage = () => {
             }
 
         } catch (loginApiError) {
-            console.error('Login failed:', loginApiError);
-            const errorMessage = loginApiError?.detail || loginApiError?.message || 'Login failed. Please check your credentials.';
+            const errorMessage = loginApiError?.userMessage
+                || loginApiError?.response?.data?.message
+                || loginApiError?.detail
+                || loginApiError?.message
+                || 'Login failed. Please check your credentials.';
             toast.error(errorMessage);
         } finally {
             setIsLoading(false);
