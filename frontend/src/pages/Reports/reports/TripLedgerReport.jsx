@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Box, Typography, FormControl, Select, MenuItem, CircularProgress, Alert,
+    Box, Typography, CircularProgress, Alert,
     IconButton, Slider, Collapse
 } from '@mui/material';
-import { ChevronDown, ChevronUp, TrendingUp, Wallet, Percent, MapPin, DollarSign } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, Wallet, Percent, MapPin, DollarSign } from 'lucide-react';
 import dayjs from 'dayjs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Pagination, PaginationContent, PaginationEllipsis,
+    PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+} from '@/components/ui/pagination';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 import { DriverService } from '../../Drivers/DriverService';
@@ -322,9 +327,9 @@ const TripLedgerReport = () => {
     const [summaryError, setSummaryError] = useState(null);
 
     // Filter states
-    const [selectedDriver, setSelectedDriver] = useState('');
-    const [selectedVehicle, setSelectedVehicle] = useState('');
-    const [selectedRoute, setSelectedRoute] = useState('');
+    const [selectedDriver, setSelectedDriver] = useState('all');
+    const [selectedVehicle, setSelectedVehicle] = useState('all');
+    const [selectedRoute, setSelectedRoute] = useState('all');
     const [profitRange, setProfitRange] = useState([-1000000, 10000000]);
     const [minProfit, setMinProfit] = useState(-1000000);
     const [maxProfit, setMaxProfit] = useState(10000000);
@@ -391,11 +396,8 @@ const TripLedgerReport = () => {
         const fetchEmployees = async () => {
             setIsLoadingEmployees(true);
             try {
-                // Get businessRefId from localStorage or context if available
-                const businessRefId = localStorage.getItem('businessRefId') || '';
-                const data = await DriverService.getAllDrivers(businessRefId, { limit: 100 });
-                // Filter for drivers/employees with driver role
-                const driverList = Array.isArray(data) ? data : [];
+                const data = await DriverService.getAllDrivers(null, { limit: 100 });
+                const driverList = Array.isArray(data?.data || data) ? (data?.data || data) : [];
                 setEmployees(driverList);
             } catch (err) {
                 console.error("Failed to fetch employees:", err);
@@ -413,9 +415,7 @@ const TripLedgerReport = () => {
         const fetchVehicles = async () => {
             setIsLoadingVehicles(true);
             try {
-                // Get businessRefId from localStorage or context if available
-                const businessRefId = localStorage.getItem('businessRefId') || '';
-                const data = await DriverService.getAvailableVehicles(businessRefId);
+                const data = await DriverService.getAvailableVehicles(null);
                 setVehicles(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Failed to fetch vehicles:", err);
@@ -453,17 +453,17 @@ const TripLedgerReport = () => {
         let rows = ledgerData;
 
         // Filter by driver
-        if (selectedDriver) {
+        if (selectedDriver && selectedDriver !== 'all') {
             rows = rows.filter(row => row.driver?.fullName === selectedDriver);
         }
 
         // Filter by vehicle
-        if (selectedVehicle) {
+        if (selectedVehicle && selectedVehicle !== 'all') {
             rows = rows.filter(row => row.vehicle?.registrationNumber === selectedVehicle);
         }
 
         // Filter by route
-        if (selectedRoute) {
+        if (selectedRoute && selectedRoute !== 'all') {
             rows = rows.filter(row => row.route?.name === selectedRoute);
         }
 
@@ -527,31 +527,16 @@ const TripLedgerReport = () => {
         return `${value.toLocaleString('en-IN')} kg`;
     };
 
-    // Generate page numbers
-    const generatePageNumbers = () => {
-        const pages = [];
-        const maxPagesToShow = 7;
-        
-        if (totalPages <= maxPagesToShow) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
+    const renderPageItems = () => {
+        const items = [];
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+                items.push(i);
+            } else if (items[items.length - 1] !== '...') {
+                items.push('...');
             }
-        } else {
-            pages.push(1);
-            if (currentPage > 3) pages.push('...');
-            
-            const start = Math.max(2, currentPage - 1);
-            const end = Math.min(totalPages - 1, currentPage + 1);
-            
-            for (let i = start; i <= end; i++) {
-                pages.push(i);
-            }
-            
-            if (currentPage < totalPages - 2) pages.push('...');
-            pages.push(totalPages);
         }
-        
-        return pages;
+        return items;
     };
 
     // Export to CSV
@@ -679,53 +664,53 @@ const TripLedgerReport = () => {
                 <div className="report-filters trip-ledger-filters">
                     <div className="date-input-group">
                         <label>Driver</label>
-                        <FormControl size="small" sx={{ minWidth: 140 }} disabled={isLoadingEmployees}>
-                            <Select
-                                value={selectedDriver}
-                                onChange={(e) => setSelectedDriver(e.target.value)}
-                                displayEmpty
-                                renderValue={(value) => value || (isLoadingEmployees ? 'Loading...' : 'All')}
-                            >
-                                <MenuItem value="">All</MenuItem>
+                        <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={isLoadingEmployees}>
+                            <SelectTrigger className="h-10 w-[180px] text-sm">
+                                <SelectValue>
+                                    {isLoadingEmployees ? 'Loading...' : selectedDriver === 'all' ? 'All Drivers' : selectedDriver}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Drivers</SelectItem>
                                 {driverOptions.map((driver) => (
-                                    <MenuItem key={driver} value={driver}>{driver}</MenuItem>
+                                    <SelectItem key={driver} value={driver}>{driver}</SelectItem>
                                 ))}
-                            </Select>
-                        </FormControl>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="date-input-group">
                         <label>Vehicle</label>
-                        <FormControl size="small" sx={{ minWidth: 140 }} disabled={isLoadingVehicles}>
-                            <Select
-                                value={selectedVehicle}
-                                onChange={(e) => setSelectedVehicle(e.target.value)}
-                                displayEmpty
-                                renderValue={(value) => value || (isLoadingVehicles ? 'Loading...' : 'All')}
-                            >
-                                <MenuItem value="">All</MenuItem>
+                        <Select value={selectedVehicle} onValueChange={setSelectedVehicle} disabled={isLoadingVehicles}>
+                            <SelectTrigger className="h-10 w-[180px] text-sm">
+                                <SelectValue>
+                                    {isLoadingVehicles ? 'Loading...' : selectedVehicle === 'all' ? 'All Vehicles' : selectedVehicle}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Vehicles</SelectItem>
                                 {vehicleOptions.map((vehicle) => (
-                                    <MenuItem key={vehicle} value={vehicle}>{vehicle}</MenuItem>
+                                    <SelectItem key={vehicle} value={vehicle}>{vehicle}</SelectItem>
                                 ))}
-                            </Select>
-                        </FormControl>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="date-input-group">
                         <label>Route</label>
-                        <FormControl size="small" sx={{ minWidth: 160 }}>
-                            <Select
-                                value={selectedRoute}
-                                onChange={(e) => setSelectedRoute(e.target.value)}
-                                displayEmpty
-                                renderValue={(value) => value || 'All Routes'}
-                            >
-                                <MenuItem value="">All Routes</MenuItem>
+                        <Select value={selectedRoute} onValueChange={setSelectedRoute}>
+                            <SelectTrigger className="h-10 w-[220px] text-sm">
+                                <SelectValue>
+                                    {selectedRoute === 'all' ? 'All Routes' : selectedRoute}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Routes</SelectItem>
                                 {routeOptions.map((route) => (
-                                    <MenuItem key={route} value={route}>{route}</MenuItem>
+                                    <SelectItem key={route} value={route}>{route}</SelectItem>
                                 ))}
-                            </Select>
-                        </FormControl>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="date-input-group profit-range-filter">
@@ -761,10 +746,10 @@ const TripLedgerReport = () => {
             {/* Table Content */}
             {!isLoadingLedger && !ledgerError && (
                 <div className="report-content">
-                    <div className="trip-ledger-table-container">
+                    <div className="table-wrapper">
                         <table className="trip-ledger-table">
                             <thead>
-                                <tr>
+                                <tr className="table-header-row">
                                     <th>Trip No</th>
                                     <th>Date</th>
                                     <th>Driver</th>
@@ -775,13 +760,12 @@ const TripLedgerReport = () => {
                                     <th style={{ textAlign: 'right' }}>Expense</th>
                                     <th style={{ textAlign: 'right' }}>Profit</th>
                                     <th style={{ textAlign: 'right' }}>Margin</th>
-                                    <th style={{ textAlign: 'center', width: '80px' }}>View</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paginatedData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="trip-ledger-empty-state">
+                                        <td colSpan={10} className="trip-ledger-empty-state">
                                             No trips found. Try adjusting your filters.
                                         </td>
                                     </tr>
@@ -790,9 +774,9 @@ const TripLedgerReport = () => {
                                         const isExpanded = expandedTripId === row._id;
                                         return (
                                             <React.Fragment key={row._id}>
-                                                <tr 
+                                                <tr
+                                                    className="trip-table-row"
                                                     onClick={() => handleToggleTripDetail(row._id)}
-                                                    style={{ cursor: 'pointer' }}
                                                 >
                                                     <td>
                                                         <div className="cell-primary">{row.tripNumber || '-'}</div>
@@ -826,32 +810,24 @@ const TripLedgerReport = () => {
                                                             {formatCurrency(row.performance?.netProfit)}
                                                         </div>
                                                     </td>
-                                                    <td style={{ textAlign: 'right' }}>
-                                                        <div className={`cell-primary ${row.performance?.profitMargin >= 0 ? 'positive' : 'negative'}`}>
-                                                            {typeof row.performance?.profitMargin === 'number' 
-                                                                ? `${row.performance.profitMargin.toFixed(1)}%` 
+                                                    <td className="last-col" style={{ textAlign: 'right' }}>
+                                                        <span className="date-text">
+                                                            {typeof row.performance?.profitMargin === 'number'
+                                                                ? `${row.performance.profitMargin.toFixed(1)}%`
                                                                 : '-'}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ textAlign: 'center' }}>
-                                                        <button 
-                                                            className={`trip-ledger-view-btn ${isExpanded ? 'expanded' : ''}`}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleToggleTripDetail(row._id);
-                                                            }}
-                                                            title={isExpanded ? "Hide Details" : "View Details"}
-                                                        >
-                                                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                        </span>
+                                                        <button className="view-details-btn">
+                                                            View details
+                                                            <ChevronRight size={14} />
                                                         </button>
                                                     </td>
                                                 </tr>
                                                 {isExpanded && (
                                                     <tr className="trip-detail-row">
-                                                        <td colSpan={11} className="trip-detail-cell">
+                                                        <td colSpan={10} className="trip-detail-cell">
                                                             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                                                                <TripDetailRow 
-                                                                    tripData={expandedTripData} 
+                                                                <TripDetailRow
+                                                                    tripData={expandedTripData}
                                                                     isLoading={isLoadingDetail}
                                                                 />
                                                             </Collapse>
@@ -867,40 +843,40 @@ const TripLedgerReport = () => {
                     </div>
 
                     {/* Pagination */}
-                    {filteredData.length > 0 && (
-                        <div className="trip-ledger-pagination">
-                            <span className="pagination-info">
-                                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
-                            </span>
-                            <div className="pagination-controls">
-                                <button 
-                                    className="pagination-btn" 
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                >
-                                    ←
-                                </button>
-                                {generatePageNumbers().map((page, index) => (
-                                    page === '...' ? (
-                                        <span key={`ellipsis-${index}`} className="pagination-ellipsis">...</span>
-                                    ) : (
-                                        <button
-                                            key={page}
-                                            className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
-                                            onClick={() => setCurrentPage(page)}
-                                        >
-                                            {page}
-                                        </button>
-                                    )
-                                ))}
-                                <button 
-                                    className="pagination-btn" 
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                >
-                                    →
-                                </button>
-                            </div>
+                    {filteredData.length > 0 && totalPages > 1 && (
+                        <div className="pagination-wrapper">
+                            <Pagination className="justify-end">
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            onClick={() => currentPage > 1 && setCurrentPage(p => p - 1)}
+                                            className={currentPage <= 1 ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                    {renderPageItems().map((item, idx) =>
+                                        item === '...' ? (
+                                            <PaginationItem key={`e-${idx}`}>
+                                                <PaginationEllipsis />
+                                            </PaginationItem>
+                                        ) : (
+                                            <PaginationItem key={item}>
+                                                <PaginationLink
+                                                    isActive={currentPage === item}
+                                                    onClick={() => setCurrentPage(item)}
+                                                >
+                                                    {item}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        )
+                                    )}
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            onClick={() => currentPage < totalPages && setCurrentPage(p => p + 1)}
+                                            className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
                         </div>
                     )}
                 </div>

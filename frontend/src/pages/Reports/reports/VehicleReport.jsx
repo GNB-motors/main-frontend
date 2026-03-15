@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Box, Typography, CircularProgress, Alert
+    Box, Alert
 } from '@mui/material';
-import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronRight } from 'lucide-react';
+import {
+    Pagination, PaginationContent, PaginationEllipsis,
+    PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+} from '@/components/ui/pagination';
+import TableShimmer from '@/components/ui/TableShimmer';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- VehicleReport COMPONENT (Uses fetched data) ---
-const VehicleReport = ({ handleViewOutliers }) => {
+const VehicleReport = () => {
     const [vehicleReportData, setVehicleReportData] = useState([]);
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [vehicleError, setVehicleError] = useState(null);
-    const [searchText, setSearchText] = useState("");
-    const [dateRange, setDateRange] = useState({ from: new Date(), to: new Date() });
-    const [selectedEmployee, setSelectedEmployee] = useState('all');
+    const [searchText] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         const fetchVehicleReports = async () => {
@@ -27,7 +27,6 @@ const VehicleReport = ({ handleViewOutliers }) => {
             try {
                 const data = await ReportsService.getVehicleReports();
                 setVehicleReportData(data);
-                console.log("Vehicle Reports Fetched:", data);
             } catch (err) {
                 console.error("Failed to fetch vehicle reports:", err);
                 setVehicleError(err.detail || "Could not load vehicle reports.");
@@ -40,69 +39,6 @@ const VehicleReport = ({ handleViewOutliers }) => {
         fetchVehicleReports();
     }, []);
 
-    const vehicleReportColumns = useMemo(() => [
-        { field: 'id', headerName: 'Vehicle Number', flex: 1.2 },
-        { 
-            field: 'vehicleType', 
-            headerName: 'Vehicle Type', 
-            flex: 1, 
-            align: 'center', 
-            headerAlign: 'center' 
-        },
-        { 
-            field: 'totalTrips', 
-            headerName: 'Total Trips', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right' 
-        },
-        { 
-            field: 'totalDistanceKm', 
-            headerName: 'Total Distance (KM)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '-' 
-        },
-        { 
-            field: 'totalDieselLiters', 
-            headerName: 'Diesel (L)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : '-'
-        },
-        { 
-            field: 'totalDieselCost', 
-            headerName: 'Diesel Cost (₹)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN')}` : '-'
-        },
-        { 
-            field: 'averageEfficiencyKmpl', 
-            headerName: 'Avg. Efficiency (km/l)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A'
-        },
-        { 
-            field: 'costPerKm', 
-            headerName: 'Cost per KM (₹)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toFixed(2)}` : '-'
-        },
-    ], [handleViewOutliers]);
 
     const filteredRows = useMemo(() => {
         let rows = vehicleReportData;
@@ -115,6 +51,27 @@ const VehicleReport = ({ handleViewOutliers }) => {
 
         return rows;
     }, [vehicleReportData, searchText]);
+
+    // Pagination
+    const totalPages = Math.ceil(filteredRows.length / itemsPerPage) || 1;
+    const paginatedRows = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredRows.slice(start, start + itemsPerPage);
+    }, [filteredRows, currentPage, itemsPerPage]);
+
+    useEffect(() => { setCurrentPage(1); }, [searchText]);
+
+    const renderPageItems = () => {
+        const items = [];
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+                items.push(i);
+            } else if (items[items.length - 1] !== '...') {
+                items.push('...');
+            }
+        }
+        return items;
+    };
 
     // Export to CSV function
     const handleExportCSV = () => {
@@ -234,211 +191,141 @@ const VehicleReport = ({ handleViewOutliers }) => {
                     </div>
                 </div>
 
-                {/* Filter Controls */}
-                <div className="report-filters">
-                    <div className="date-input-group">
-                        <label>Date Range</label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className="h-10 w-[280px] justify-start gap-2 pl-2 pr-3 text-sm font-normal"
-                                >
-                                    <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <span>
-                                                {format(dateRange.from, 'dd MMM yyyy')} — {format(dateRange.to, 'dd MMM yyyy')}
-                                            </span>
-                                        ) : (
-                                            <span>{format(dateRange.from, 'dd MMM yyyy')}</span>
-                                        )
-                                    ) : (
-                                        <span className="text-muted-foreground">Pick a date range</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    numberOfMonths={2}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    <div className="date-input-group">
-                        <label>Employee Name</label>
-                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                            <SelectTrigger className="h-10 w-[180px] text-sm">
-                                <SelectValue>
-                                    {selectedEmployee === 'all' ? 'All Employees' : selectedEmployee}
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent align="start">
-                                <SelectItem value="all">All Employees</SelectItem>
-                                {[...new Set(vehicleReportData.map(vehicle => vehicle.primary_driver_name))].filter(Boolean).map((driver) => (
-                                    <SelectItem key={driver} value={driver}>
-                                        {driver}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
             </div>
 
             {isLoadingVehicles && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 350 }}>
-                    <CircularProgress />
-                    <Typography sx={{ ml: 2 }}>Loading vehicle data...</Typography>
-                </Box>
+                <div className="report-content">
+                    <TableShimmer columns={17} rows={10} />
+                </div>
             )}
 
             {vehicleError && !isLoadingVehicles && <Alert severity="error" sx={{ my: 2 }}>{vehicleError}</Alert>}
 
             {!isLoadingVehicles && !vehicleError && (
                 <div className="report-content">
-                    <div className="vehicle-table-container">
+                    <div className="table-wrapper">
                         <table className="vehicle-table">
                             <thead>
-                                <tr>
-                                    <th>Registration Number</th>
-                                    <th>Vehicle Type</th>
+                                <tr className="table-header-row">
+                                    <th>Reg Number</th>
+                                    <th>Type</th>
                                     <th>Model</th>
-                                    <th>Total Journeys</th>
-                                    <th>Weight Slip Trips</th>
-                                    <th>Total Distance (KM)</th>
+                                    <th>Journeys</th>
+                                    <th>WS Trips</th>
+                                    <th>Distance</th>
                                     <th>Diesel (L)</th>
-                                    <th>Diesel Cost (₹)</th>
+                                    <th>Diesel Cost</th>
                                     <th>AdBlue (L)</th>
-                                    <th>AdBlue Cost (₹)</th>
-                                    <th>Total Revenue (₹)</th>
-                                    <th>Total Expenses (₹)</th>
-                                    <th>Total Profit (₹)</th>
-                                    <th>Avg. Efficiency (km/l)</th>
-                                    <th>Cost per KM (₹)</th>
-                                    <th>Revenue per KM (₹)</th>
-                                    <th>Profit Margin (%)</th>
+                                    <th>AdBlue Cost</th>
+                                    <th>Revenue</th>
+                                    <th>Expenses</th>
+                                    <th>Profit</th>
+                                    <th>Efficiency</th>
+                                    <th>Cost/KM</th>
+                                    <th>Rev/KM</th>
+                                    <th>Margin</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredRows.length === 0 ? (
+                                {paginatedRows.length === 0 ? (
                                     <tr>
                                         <td colSpan={17} className="vehicle-empty-state">
                                             No vehicle summary data found. Try adjusting your filters.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredRows.map((row, index) => (
-                                        <tr key={row.id || index}>
+                                    paginatedRows.map((row, index) => (
+                                        <tr key={row.id || index} className="trip-table-row">
                                             <td>
                                                 <div className="cell-primary">{row.registrationNumber || '-'}</div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'center' }}>
-                                                    {row.vehicleType || '-'}
-                                                </div>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div className="cell-primary">{row.vehicleType || '-'}</div>
                                             </td>
                                             <td>
                                                 <div className="cell-primary">{row.model || '-'}</div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {row.totalJourneys || '-'}
-                                                </div>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{row.totalJourneys || '-'}</div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {row.totalWeightSlipTrips || '-'}
-                                                </div>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{row.totalWeightSlipTrips || '-'}</div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalDistanceKm === 'number' 
-                                                        ? row.totalDistanceKm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) 
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalDistanceKm === 'number'
+                                                        ? row.totalDistanceKm.toLocaleString('en-IN', { maximumFractionDigits: 0 })
                                                         : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalDieselLiters === 'number' 
-                                                        ? row.totalDieselLiters.toFixed(1) 
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalDieselCost === 'number'
+                                                        ? `₹${row.totalDieselCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
                                                         : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalDieselCost === 'number' 
-                                                        ? `₹${row.totalDieselCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalAdBlueCost === 'number'
+                                                        ? `₹${row.totalAdBlueCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
                                                         : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalAdBlueLiters === 'number' 
-                                                        ? row.totalAdBlueLiters.toFixed(1) 
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalRevenue === 'number'
+                                                        ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
                                                         : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalAdBlueCost === 'number' 
-                                                        ? `₹${row.totalAdBlueCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalExpenses === 'number'
+                                                        ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
                                                         : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalRevenue === 'number' 
-                                                        ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalProfit === 'number'
+                                                        ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
                                                         : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalExpenses === 'number' 
-                                                        ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
-                                                        : '-'}
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.totalProfit === 'number' 
-                                                        ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
-                                                        : '-'}
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.costPerKm === 'number' ? `₹${row.costPerKm.toFixed(2)}` : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.averageEfficiencyKmpl === 'number' 
-                                                        ? row.averageEfficiencyKmpl.toFixed(2) 
-                                                        : 'N/A'}
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.revenuePerKm === 'number' ? `₹${row.revenuePerKm.toFixed(2)}` : '-'}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.costPerKm === 'number' 
-                                                        ? `₹${row.costPerKm.toFixed(2)}` 
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.revenuePerKm === 'number' 
-                                                        ? `₹${row.revenuePerKm.toFixed(2)}` 
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                    {typeof row.profitMargin === 'number' 
-                                                        ? `${row.profitMargin.toFixed(2)}%` 
-                                                        : 'N/A'}
-                                                </div>
+                                            <td className="last-col" style={{ textAlign: 'right' }}>
+                                                <span className="date-text">
+                                                    {typeof row.profitMargin === 'number' ? `${row.profitMargin.toFixed(1)}%` : 'N/A'}
+                                                </span>
+                                                <button className="view-details-btn">
+                                                    View details
+                                                    <ChevronRight size={14} />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -446,6 +333,43 @@ const VehicleReport = ({ handleViewOutliers }) => {
                             </tbody>
                         </table>
                     </div>
+
+                    {filteredRows.length > 0 && totalPages > 1 && (
+                        <div className="pagination-wrapper">
+                            <Pagination className="justify-end">
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            onClick={() => currentPage > 1 && setCurrentPage(p => p - 1)}
+                                            className={currentPage <= 1 ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                    {renderPageItems().map((item, idx) =>
+                                        item === '...' ? (
+                                            <PaginationItem key={`e-${idx}`}>
+                                                <PaginationEllipsis />
+                                            </PaginationItem>
+                                        ) : (
+                                            <PaginationItem key={item}>
+                                                <PaginationLink
+                                                    isActive={currentPage === item}
+                                                    onClick={() => setCurrentPage(item)}
+                                                >
+                                                    {item}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        )
+                                    )}
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            onClick={() => currentPage < totalPages && setCurrentPage(p => p + 1)}
+                                            className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        </div>
+                    )}
                 </div>
             )}
         </Box>

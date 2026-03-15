@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Box, Typography, TextField, InputAdornment,
-    Select, MenuItem, FormControl, InputLabel, CircularProgress, Alert,
+    Box, Alert,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
-import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
-import { months } from '../../../utils/mockdata.jsx'; // Adjusted path
-import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import TableShimmer from '@/components/ui/TableShimmer';
+import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- TripReport COMPONENT (Uses fetched data) ---
@@ -18,24 +19,41 @@ const TripReport = ({}) => {
     const [isLoadingTrips, setIsLoadingTrips] = useState(true);
     const [tripError, setTripError] = useState(null);
     const [searchText, setSearchText] = useState("");
-    const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
-    const [selectedEmployee, setSelectedEmployee] = useState('');
-    const [selectedRoute, setSelectedRoute] = useState('');
+    const [dateRange, setDateRange] = useState({ from: new Date(), to: new Date() });
+    const [tempDateRange, setTempDateRange] = useState({ from: new Date(), to: new Date() });
+    const [calendarOpen, setCalendarOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState('all');
+    const [selectedRoute, setSelectedRoute] = useState('all');
     const [routeOptions, setRouteOptions] = useState([]);
-    
+    const [employeeOptions, setEmployeeOptions] = useState([]);
+
+    // Fetch employee list from employees API
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            try {
+                const data = await ReportsService.getEmployees();
+                const names = [...new Set(data.map(d => `${d.firstName} ${d.lastName}`.trim()).filter(Boolean))];
+                setEmployeeOptions(names);
+            } catch (err) {
+                console.error("Failed to fetch employee list:", err);
+            }
+        };
+        fetchEmployees();
+    }, []);
+
     useEffect(() => {
         const fetchTrips = async () => {
             setIsLoadingTrips(true);
             setTripError(null);
             try {
-                const data = await ReportsService.getTripReports();
+                const params = {};
+                if (dateRange?.from) params.start_date = format(dateRange.from, 'yyyy-MM-dd');
+                if (dateRange?.to) params.end_date = format(dateRange.to, 'yyyy-MM-dd');
+                const data = await ReportsService.getTripReports(params);
                 setTripData(data);
-                
-                // Extract unique routes from trip data
+
                 const uniqueRoutes = [...new Set(data.map(trip => trip.route).filter(Boolean))];
                 setRouteOptions(uniqueRoutes);
-                
-                console.log("Trip Reports Fetched:", data);
             } catch (err) {
                 console.error("Failed to fetch trip reports:", err);
                 setTripError(err.detail || "Could not load trip reports.");
@@ -46,7 +64,7 @@ const TripReport = ({}) => {
         };
 
         fetchTrips();
-    }, []);
+    }, [dateRange]);
     const tripColumns = useMemo(() => [
         { 
             field: 'tripDate', 
@@ -147,45 +165,30 @@ const TripReport = ({}) => {
         }
 
         // Filter by date range - updated to use tripDate
-        const startDate = dateRange[0];
-        const endDate = dateRange[1];
+        const startDate = dateRange?.from;
+        const endDate = dateRange?.to;
         if (startDate || endDate) {
             rows = rows.filter(row => {
                 if (!row.tripDate) return false;
-                const rowStartDate = dayjs(row.tripDate);
-                const afterStart = startDate ? rowStartDate.isAfter(startDate.subtract(1, 'day')) : true;
-                const beforeEnd = endDate ? rowStartDate.isBefore(endDate.add(1, 'day')) : true;
+                const rowDate = new Date(row.tripDate);
+                const afterStart = startDate ? rowDate >= startDate : true;
+                const beforeEnd = endDate ? rowDate <= endDate : true;
                 return afterStart && beforeEnd;
             });
         }
 
         // Filter by employee name - updated to use driverName
-        if (selectedEmployee !== '') {
+        if (selectedEmployee && selectedEmployee !== 'all') {
             rows = rows.filter(row => row.driverName === selectedEmployee);
         }
 
         // Filter by route
-        if (selectedRoute !== '') {
+        if (selectedRoute && selectedRoute !== 'all') {
             rows = rows.filter(row => row.route === selectedRoute);
         }
 
         return rows;
     }, [tripData, searchText, dateRange, selectedEmployee, selectedRoute]);
-
-    const handleRouteSelect = (route) => {
-        setSelectedRoute(route);
-    };
-
-    const handleAddNewRoute = (newRoute) => {
-        // Add the new route to the options
-        setRouteOptions(prev => [...prev, newRoute]);
-        setSelectedRoute(newRoute);
-        console.log("New route added:", newRoute);
-    };
-
-    const handleClearRoute = () => {
-        setSelectedRoute('');
-    };
 
     // Export to CSV function
     const handleExportCSV = () => {
@@ -293,105 +296,105 @@ const TripReport = ({}) => {
 
                 {/* Filter Controls */}
                 <div className="report-filters">
-                    <div className="date-range-container">
-                        <div className="date-input-group">
-                            <label>From</label>
-                            <DatePicker
-                                value={dateRange[0]}
-                                onChange={(newValue) => {
-                                    setDateRange([newValue, dateRange[1]]);
-                                }}
-                                slotProps={{ textField: { size: 'small' } }}
-                            />
-                        </div>
-
-                        <div className="date-input-group">
-                            <label>To</label>
-                            <DatePicker
-                                value={dateRange[1]}
-                                onChange={(newValue) => {
-                                    setDateRange([dateRange[0], newValue]);
-                                }}
-                                slotProps={{ textField: { size: 'small' } }}
-                            />
-                        </div>
+                    <div className="date-input-group">
+                        <label>Date Range</label>
+                        <Popover open={calendarOpen} onOpenChange={(open) => {
+                            setCalendarOpen(open);
+                            if (open) setTempDateRange(dateRange);
+                        }}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="h-10 w-[280px] justify-start gap-2 pl-2 pr-3 text-sm font-normal bg-[#F8F8FB] border-[#ECECEE] hover:bg-[#F8F8FB]"
+                                >
+                                    <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <span>
+                                                {format(dateRange.from, 'dd MMM yyyy')} — {format(dateRange.to, 'dd MMM yyyy')}
+                                            </span>
+                                        ) : (
+                                            <span>{format(dateRange.from, 'dd MMM yyyy')}</span>
+                                        )
+                                    ) : (
+                                        <span className="text-muted-foreground">Pick a date range</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="range"
+                                    defaultMonth={tempDateRange?.from}
+                                    selected={tempDateRange}
+                                    onSelect={setTempDateRange}
+                                    numberOfMonths={2}
+                                />
+                                <div className="flex items-center justify-end gap-2 p-3 border-t">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCalendarOpen(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            setDateRange(tempDateRange);
+                                            setCalendarOpen(false);
+                                        }}
+                                    >
+                                        Apply
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <div className="date-input-group">
                         <label>Employee Name</label>
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <Select
-                                value={selectedEmployee}
-                                onChange={(e) => setSelectedEmployee(e.target.value)}
-                                displayEmpty
-                                renderValue={(value) => {
-                                    if (value === '') {
-                                        return 'All';
-                                    }
-                                    return value;
-                                }}
-                            >
-                                <MenuItem value="">All</MenuItem>
-                                {[...new Set(tripData.map(trip => trip.driver_name))].map((driver) => (
-                                    <MenuItem key={driver} value={driver}>
-                                        {driver || 'N/A'}
-                                    </MenuItem>
+                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                            <SelectTrigger className="h-10 w-[180px] text-sm">
+                                <SelectValue>
+                                    {selectedEmployee === 'all' ? 'All Employees' : selectedEmployee}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Employees</SelectItem>
+                                {employeeOptions.map((name) => (
+                                    <SelectItem key={name} value={name}>
+                                        {name}
+                                    </SelectItem>
                                 ))}
-                            </Select>
-                        </FormControl>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="date-input-group">
                         <label>Route</label>
-                        <div style={{ minWidth: 200, position: 'relative' }}>
-                            <SearchableDropdown
-                                options={routeOptions}
-                                selectedOption={selectedRoute}
-                                onSelect={handleRouteSelect}
-                                onAddNew={handleAddNewRoute}
-                                placeholder="All Routes"
-                                addNewLabel="Create new route"
-                            />
-                            {selectedRoute && (
-                                <button
-                                    onClick={handleClearRoute}
-                                    style={{
-                                        position: 'absolute',
-                                        right: '32px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 5
-                                    }}
-                                    title="Clear selection"
-                                >
-                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                        <path
-                                            d="M2 2L12 12M12 2L2 12"
-                                            stroke="#666"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </svg>
-                                </button>
-                            )}
-                        </div>
+                        <Select value={selectedRoute} onValueChange={setSelectedRoute}>
+                            <SelectTrigger className="h-10 w-[200px] text-sm">
+                                <SelectValue>
+                                    {selectedRoute === 'all' ? 'All Routes' : selectedRoute}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Routes</SelectItem>
+                                {routeOptions.map((route) => (
+                                    <SelectItem key={route} value={route}>
+                                        {route}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </div>
 
             {isLoadingTrips && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-                    <CircularProgress />
-                    <Typography sx={{ ml: 2 }}>Loading trip data...</Typography>
-                </Box>
+                <div className="report-content">
+                    <TableShimmer columns={10} rows={10} />
+                </div>
             )}
 
             {tripError && !isLoadingTrips && <Alert severity="error" sx={{ my: 2 }}>{tripError}</Alert>}

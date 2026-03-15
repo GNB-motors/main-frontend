@@ -166,6 +166,29 @@ export const ReportsService = {
         }
     },
 
+    /**
+     * Fetches employees list for dropdowns.
+     * @param {object} params - Optional query parameters { limit }.
+     * @returns {Promise<Array>} - Array of employee data.
+     */
+    getEmployees: async (params = { limit: 100 }) => {
+        try {
+            const response = await apiClient.get(`api/employees`, { params });
+
+            if (response.data && Array.isArray(response.data.data)) {
+                return response.data.data;
+            }
+            if (Array.isArray(response.data)) {
+                return response.data;
+            }
+
+            return response.data?.data || [];
+        } catch (error) {
+            console.error("API Error fetching employees:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable while fetching employees." };
+        }
+    },
+
     // ─── Extension API ───────────────────────────────────────────────────────
 
     /**
