@@ -858,3 +858,484 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --- Modern Document Slot & Form CSS --- */
+.modern-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
+.modern-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modern-page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.modern-progress-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modern-progress-text {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.modern-progress-track {
+  width: 100%;
+  height: 6px;
+  background-color: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.modern-progress-fill {
+  height: 100%;
+  background-color: #2563eb;
+  border-radius: 999px;
+}
+
+.modern-form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.modern-form-section {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 32px;
+}
+
+.modern-form-section.no-bg {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.modern-section-heading {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 20px 0;
+}
+
+.modern-form-row {
+  display: flex;
+  gap: 24px;
+}
+
+.modern-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.modern-form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modern-form-group input,
+.modern-form-group select {
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #0f172a;
+  background: white;
+  transition: all 0.2s;
+}
+
+.modern-form-group input:focus,
+.modern-form-group select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.modern-form-group input:disabled,
+.modern-form-group select:disabled {
+  background-color: #f8fafc;
+  color: #94a3b8;
+}
+
+.modern-instruction-text {
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+}
+
+/* Modern Document Slot */
+.modern-document-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.modern-document-slot .slot-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.slot-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  background-color: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.slot-upload-area:hover:not(.disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.slot-upload-area.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.slot-upload-area span {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.slot-filled-container {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+
+.slot-image-wrapper {
+  position: relative;
+  height: 160px;
+  background-color: #0f172a;
+  overflow: hidden;
+}
+
+.slot-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+}
+
+.slot-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.slot-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.slot-badge.success {
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-icon-svg {
+  color: #16a34a;
+}
+
+.slot-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.slot-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: white;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s;
+}
+
+.slot-action-btn:hover {
+  background-color: #f8fafc;
+}
+
+.slot-action-btn.delete {
+  padding: 6px;
+  color: #ef4444;
+}
+
+.slot-action-btn.delete:hover {
+  background-color: #fef2f2;
+}
+
+.slot-data-ribbon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: white;
+  border-top: 1px solid #e2e8f0;
+}
+
+.slot-data-fields {
+  display: flex;
+  gap: 32px;
+  flex: 1;
+}
+
+.slot-data-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.data-label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.data-value {
+  font-size: 18px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.slot-confidence {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 24px;
+  border-left: 1px solid #e2e8f0;
+}
+
+.confidence-circle {
+  width: 40px;
+  height: 40px;
+}
+
+.circular-chart {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 250px;
+}
+
+.circle-bg {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 3.8;
+}
+
+.circle {
+  fill: none;
+  stroke-width: 3.8;
+  stroke-linecap: round;
+  stroke: #10b981;
+}
+
+.confidence-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.confidence-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.confidence-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.modern-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.modern-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.modern-documents-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+/* Modern Section Header (heading + actions row) */
+.modern-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Modern Form Footer */
+.modern-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px 32px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.modern-footer-btn {
+  height: 48px;
+  padding: 0 32px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
+}
+
+.modern-footer-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.start-trip-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.start-trip-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.end-trip-btn {
+  background: #111827;
+  color: white;
+}
+
+.end-trip-btn:hover:not(:disabled) {
+  background: #1f2937;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Document section with toggle (wraps toggle + upload/manual) */
+.document-section-with-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toggle-container {
+  padding: 8px 0;
+}
+
+/* Add receipt buttons */
+.add-receipt-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.add-receipt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1.5px solid;
+}
+
+.add-receipt-btn.diesel {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+.add-receipt-btn.diesel:hover:not(.disabled) {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.add-receipt-btn.adblue {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.add-receipt-btn.adblue:hover:not(.disabled) {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.add-receipt-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

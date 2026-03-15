@@ -1,19 +1,29 @@
 /**
  * VerificationPhase Component - Phase 3 of Trip Creation
- * 
- * Final verification screen with:
- * - Document recap (odometer, fuel receipts)
- * - Master table of all weight slips
- * - Completion stats
- * - Submit action to backend
+ * Redesigned: progress bar, modern card-based layout, success animation
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Eye, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, AlertCircle, CheckCircle, Truck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './VerificationPhase.css';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 
+/* ── Success overlay shown after submit ── */
+const SuccessOverlay = () => (
+  <div className="vp-success-overlay">
+    <div className="vp-success-card">
+      <div className="vp-success-icon-ring">
+        <CheckCircle size={48} className="vp-success-icon" />
+      </div>
+      <h2 className="vp-success-title">Trip Created!</h2>
+      <p className="vp-success-sub">Your journey has been submitted successfully.<br />Redirecting you now…</p>
+      <div className="vp-success-dots">
+        <span /><span /><span />
+      </div>
+    </div>
+  </div>
+);
 
 const VerificationPhase = ({
   onBack,
@@ -24,128 +34,67 @@ const VerificationPhase = ({
   weightSlips: propsWeightSlips = [],
   journeyData
 }) => {
-  // Use props directly from parent (TripCreationFlow)
   const [weightSlips] = useState(propsWeightSlips);
-  const [fixedDocs] = useState(propsFixedDocs);
-  const [previewModal, setPreviewModal] = useState({
-    isOpen: false,
-    imageSrc: null,
-    title: ''
-  });
+  const [fixedDocs]   = useState(propsFixedDocs);
+  const [submitted, setSubmitted]   = useState(false);
+  const [previewModal, setPreviewModal] = useState({ isOpen: false, imageSrc: null, title: '' });
 
-  // Memoized data validation
-  const isDataComplete = useMemo(
-    () => {
-      if (!weightSlips || weightSlips.length === 0) return false;
+  const isDataComplete = useMemo(() => {
+    if (!weightSlips || weightSlips.length === 0) return false;
+    return weightSlips.every((slip) => {
+      if (slip.isDone === true) return true;
+      const hasWeights = (slip.grossWeight || slip.weights?.grossWeight) &&
+        (slip.tareWeight || slip.weights?.tareWeight) &&
+        (slip.netWeight  || slip.weights?.netWeight);
+      const hasMaterialType = slip.materialType && slip.materialType !== '';
+      const hasRoute = slip.routeData && (
+        slip.routeData.sourceLocation || slip.routeData.destLocation ||
+        Object.keys(slip.routeData).length > 0
+      );
+      return hasWeights && hasMaterialType && hasRoute;
+    });
+  }, [weightSlips]);
 
-      // Check if all weight slips have required data
-      return weightSlips.every((slip) => {
-        // Check if slip is marked as done
-        if (slip.isDone === true) return true;
+  const completedCount = useMemo(() => weightSlips.filter(s => s.isDone).length, [weightSlips]);
 
-        // Check if slip has required fields - TripForm uses flat property names
-        const hasWeights = (slip.grossWeight || slip.weights?.grossWeight) &&
-          (slip.tareWeight || slip.weights?.tareWeight) &&
-          (slip.netWeight || slip.weights?.netWeight);
-        const hasMaterialType = slip.materialType && slip.materialType !== '';
-        const hasRoute = slip.routeData && (
-          slip.routeData.sourceLocation ||
-          slip.routeData.destLocation ||
-          Object.keys(slip.routeData).length > 0
-        );
-
-        return hasWeights && hasMaterialType && hasRoute;
-      });
-    },
-    [weightSlips]
-  );
-
-  const completedCount = useMemo(
-    () => weightSlips.filter(s => s.isDone).length,
-    [weightSlips]
-  );
-
-  const totalWeight = useMemo(
-    () =>
-      weightSlips
-        .reduce((sum, slip) => sum + (parseFloat(slip.netWeight || slip.weights?.netWeight || slip.weight) || 0), 0)
-        .toFixed(2),
-    [weightSlips]
-  );
+  const totalWeight = useMemo(() =>
+    weightSlips.reduce((sum, slip) =>
+      sum + (parseFloat(slip.netWeight || slip.weights?.netWeight || slip.weight) || 0), 0
+    ).toFixed(2), [weightSlips]);
 
   const revenueSummary = useMemo(() => {
-    // Calculate from weight slips - TripForm uses flat property names
-    const totalRevenue = weightSlips.reduce((sum, slip) => {
-      // TripForm uses totalAmountReceived
-      return sum + (parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || 0);
-    }, 0);
-
+    const totalRevenue = weightSlips.reduce((sum, slip) =>
+      sum + (parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || 0), 0);
     const totalCalculated = weightSlips.reduce((sum, slip) => {
-      // TripForm uses netWeight and amountPerKg
       const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || 0;
       const ratePerKg = parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || 0;
-      return sum + (netWeight * ratePerKg / 1000); // Convert to calculated amount
+      return sum + (netWeight * ratePerKg / 1000);
     }, 0);
-
-    const totalVariance = totalRevenue - totalCalculated;
-
-    return {
-      totalRevenue,
-      totalCalculated,
-      totalVariance
-    };
+    return { totalRevenue, totalCalculated, totalVariance: totalRevenue - totalCalculated };
   }, [weightSlips]);
 
-  const totalExpense = useMemo(() => {
-    // Calculate from weight slips expenses - TripForm uses flat property names
-    return weightSlips.reduce((sum, slip) => {
-      const slipTotal = (parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0) +
-        (parseFloat(slip.toll) || slip.expenses?.toll || 0) +
-        (parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0) +
-        (parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0) +
-        (parseFloat(slip.royalty) || slip.expenses?.royalty || 0) +
-        (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0);
-      return sum + slipTotal;
-    }, 0);
-  }, [weightSlips]);
+  const totalExpense = useMemo(() => weightSlips.reduce((sum, slip) =>
+    sum + (parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0) +
+          (parseFloat(slip.toll) || slip.expenses?.toll || 0) +
+          (parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0) +
+          (parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0) +
+          (parseFloat(slip.royalty) || slip.expenses?.royalty || 0) +
+          (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0), 0), [weightSlips]);
 
-  const profit = useMemo(() => {
-    return (revenueSummary.totalRevenue || 0) - (totalExpense || 0);
-  }, [revenueSummary, totalExpense]);
+  const profit = useMemo(() => (revenueSummary.totalRevenue || 0) - (totalExpense || 0), [revenueSummary, totalExpense]);
 
-  const handleShowPreview = useCallback((imageSrc, title) => {
-    setPreviewModal({
-      isOpen: true,
-      imageSrc,
-      title
-    });
-  }, []);
-
-  // Helper: safely resolve an image source from different file structures
+  /* ── Image preview ── */
   const createdObjectUrls = React.useRef(new Set());
-
-  React.useEffect(() => {
-    return () => {
-      // Revoke any created object URLs on unmount
-      createdObjectUrls.current.forEach((u) => {
-        try { URL.revokeObjectURL(u); } catch (e) { /* ignore */ }
-      });
-      createdObjectUrls.current.clear();
-    };
+  React.useEffect(() => () => {
+    createdObjectUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+    createdObjectUrls.current.clear();
   }, []);
 
   const resolveImageSrc = (fileOrObj) => {
     if (!fileOrObj) return null;
-    // If it's already a string (url or data URL), return as-is
     if (typeof fileOrObj === 'string') return fileOrObj;
-
-    // If it's an object with a preview (data URL), use that
     if (fileOrObj.preview && typeof fileOrObj.preview === 'string') return fileOrObj.preview;
-
-    // If it's an S3/url property
-    if (fileOrObj.s3Url && typeof fileOrObj.s3Url === 'string') return fileOrObj.s3Url;
-
-    // If it has nested file/originalFile which are File instances, create object URL
+    if (fileOrObj.s3Url  && typeof fileOrObj.s3Url  === 'string') return fileOrObj.s3Url;
     const candidate = fileOrObj.file || fileOrObj.originalFile || fileOrObj;
     try {
       if (candidate instanceof File || candidate instanceof Blob) {
@@ -153,330 +102,168 @@ const VerificationPhase = ({
         createdObjectUrls.current.add(url);
         return url;
       }
-    } catch (e) {
-      console.warn('resolveImageSrc: createObjectURL failed for candidate', candidate, e);
-    }
-
+    } catch(e) {}
     return null;
   };
 
-  const handleClosePreview = useCallback(() => {
-    setPreviewModal({
-      isOpen: false,
-      imageSrc: null,
-      title: ''
-    });
-  }, []);
+  const openPreview  = useCallback((src, title) => setPreviewModal({ isOpen: true, imageSrc: src, title }), []);
+  const closePreview = useCallback(() => setPreviewModal({ isOpen: false, imageSrc: null, title: '' }), []);
 
   const handleSubmit = useCallback(async () => {
-    if (!isDataComplete) {
-      toast.error('Please complete all weight slips before submitting');
-      return;
-    }
-
-    // Call parent's submit handler (from TripCreationFlow)
+    if (!isDataComplete) { toast.error('Please complete all weight slips before submitting'); return; }
     if (onSubmit) {
+      setSubmitted(true);
       onSubmit();
     }
   }, [isDataComplete, onSubmit]);
 
+  /* ── Helper: doc thumbnail ── */
+  const DocThumb = ({ src, label, onPreview }) => (
+    <div className="vp-doc-thumb" onClick={() => src && onPreview(src, label)}>
+      {src
+        ? <img src={src} alt={label} />
+        : <div className="vp-doc-thumb-empty">No Image</div>}
+      <div className="vp-doc-thumb-label">{label}</div>
+      {src && (
+        <div className="vp-doc-thumb-overlay">
+          <Eye size={18} />
+        </div>
+      )}
+    </div>
+  );
+
+  /* ── Journey metrics ── */
+  const journeyMetrics = journeyData ? (() => {
+    const startOdometer   = journeyData?.mileageData?.startOdometer    ?? journeyData?.startOdometer    ?? null;
+    const endOdometer     = journeyData?.mileageData?.endOdometer      ?? journeyData?.endOdometer      ?? null;
+    const totalDistance   = journeyData?.mileageData?.totalDistanceKm  ?? journeyData?.totalDistance    ?? null;
+    const fullTankLitres  = journeyData?.fuelData?.litres              ?? journeyData?.fuelLitres       ?? null;
+    const fuelRate        = journeyData?.fuelData?.rate                ?? journeyData?.fuelRate         ?? null;
+    const partialSum      = (fixedDocs?.partialFuel || []).reduce((s, pf) => {
+      const o = pf?.ocrData || pf?.file?.ocrData || {};
+      return s + (parseFloat(o?.volume || o?.litres || o?.liters || o?.quantity || 0) || 0);
+    }, 0);
+    const totalFuelUsed   = (Number(fullTankLitres) || 0) + (Number(partialSum) || 0);
+    const providedEff     = journeyData?.fuelData?.efficiency ?? journeyData?.fuelEfficiency ?? null;
+    const computedEff     = (totalDistance && totalFuelUsed > 0) ? Number(totalDistance) / Number(totalFuelUsed) : null;
+    const fuelEfficiency  = providedEff ?? computedEff;
+    const fuelCost        = journeyData?.fuelCost ?? ((Number(fullTankLitres) && Number(fuelRate)) ? Number(fullTankLitres) * Number(fuelRate) : null);
+    return [
+      { label: 'Start Odometer',  value: startOdometer  !== null ? `${Number(startOdometer).toLocaleString()} km`  : '—' },
+      { label: 'End Odometer',    value: endOdometer    !== null ? `${Number(endOdometer).toLocaleString()} km`    : '—' },
+      { label: 'Total Distance',  value: totalDistance  !== null ? `${Number(totalDistance).toLocaleString()} km`  : '—' },
+      { label: 'Full Tank Fuel',  value: fullTankLitres !== null ? `${Number(fullTankLitres).toLocaleString()} L`  : '—' },
+      { label: 'Partial Fuel',    value: partialSum > 0           ? `${Number(partialSum).toLocaleString()} L`     : '—' },
+      { label: 'Total Fuel Used', value: totalFuelUsed > 0        ? `${Number(totalFuelUsed).toLocaleString()} L`  : '—' },
+      { label: 'Fuel Rate',       value: fuelRate       !== null  ? `₹${Number(fuelRate).toLocaleString()}`        : '—' },
+      { label: 'Fuel Efficiency', value: fuelEfficiency !== null  ? `${Number(fuelEfficiency).toFixed(2)} km/L`   : '—' },
+      { label: 'Fuel Cost',       value: fuelCost       !== null  ? `₹${Number(fuelCost).toLocaleString()}`        : '—' },
+    ];
+  })() : [];
+
   return (
-    <div className="verification-phase">
+    <div className="vp-page">
 
+      {/* ── Step progress bar (Step 3 of 4 = 75%) ── */}
+      <div className="vp-progress-header">
+        <div className="vp-progress-track">
+          <div className="vp-progress-fill" style={{ width: '75%' }} />
+        </div>
+      </div>
 
-      {/* Main Content - Scrollable */}
-      <div className="verification-content">
-        {/* Journey Data Section (expanded) */}
+      {/* ── Scrollable content ── */}
+      <div className="vp-content">
+
+        {/* Journey Summary */}
         {journeyData && (
-          <div className="verification-section journey-summary">
-            <div className="section-header">
-              <h3>Journey Summary</h3>
+          <section className="vp-card">
+            <div className="vp-card-header">
+              <h2 className="vp-card-title">JOURNEY SUMMARY</h2>
             </div>
-            {(() => {
-              // Support multiple shapes: journeyData may contain top-level fields or nested mileageData/fuelData
-              const startOdometer = journeyData?.mileageData?.startOdometer ?? journeyData?.startOdometer ?? journeyData?.mileage?.startOdometer ?? null;
-              const endOdometer = journeyData?.mileageData?.endOdometer ?? journeyData?.endOdometer ?? journeyData?.mileage?.endOdometer ?? null;
-              const totalDistance = journeyData?.mileageData?.totalDistanceKm ?? journeyData?.totalDistance ?? journeyData?.mileage?.totalDistanceKm ?? journeyData?.mileage?.distanceKm ?? null;
-
-              // Full tank fuel (from modal fuelData or top-level fuelLitres)
-              const fullTankLitres = journeyData?.fuelData?.litres ?? journeyData?.fuelLitres ?? journeyData?.mileage?.partialFuelLitres ?? journeyData?.mileage?.totalFuelUsedL ?? null;
-              const fuelRate = journeyData?.fuelData?.rate ?? journeyData?.fuelRate ?? null;
-              const fuelLocation = journeyData?.fuelData?.location ?? journeyData?.fuelLocation ?? null;
-
-              // Sum partial fuels from fixedDocs (if available)
-              const partialSum = (fixedDocs?.partialFuel || []).reduce((s, pf) => {
-                const o = pf?.ocrData || pf?.file?.ocrData || {};
-                const v = parseFloat(o?.volume || o?.litres || o?.liters || o?.quantity || 0) || 0;
-                return s + v;
-              }, 0);
-
-              // totalFuelUsed displayed in UI only (does not modify submission/mileage)
-              const totalFuelUsed = (Number(fullTankLitres) || 0) + (Number(partialSum) || 0);
-
-              // Efficiency: prefer provided value, else compute from totalDistance / totalFuelUsed
-              const providedEfficiency = journeyData?.fuelData?.efficiency ?? journeyData?.fuelEfficiency ?? journeyData?.estimatedEfficiency ?? null;
-              const computedEfficiency = (totalDistance && totalFuelUsed > 0) ? (Number(totalDistance) / Number(totalFuelUsed)) : null;
-              const fuelEfficiency = providedEfficiency ?? computedEfficiency;
-
-              // Fuel cost: prefer provided, else compute using fullTankLitres * rate (display-only)
-              const providedCost = journeyData?.fuelCost ?? null;
-              const computedCost = (Number(fullTankLitres) && Number(fuelRate)) ? (Number(fullTankLitres) * Number(fuelRate)) : null;
-              const fuelCost = providedCost ?? computedCost;
-
-              return (
-                <div className="journey-data-grid">
-                  <div className="journey-metric">
-                    <span className="metric-label">Start Odometer</span>
-                    <span className="metric-value">{startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : 'NA'}</span>
-                  </div>
-                  <div className="journey-metric">
-                    <span className="metric-label">End Odometer</span>
-                    <span className="metric-value">{endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : 'NA'}</span>
-                  </div>
-                  <div className="journey-metric">
-                    <span className="metric-label">Total Distance</span>
-                    <span className="metric-value">{totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : 'NA'}</span>
-                  </div>
-
-                  <div className="journey-metric">
-                    <span className="metric-label">Full Tank Fuel</span>
-                    <span className="metric-value">{fullTankLitres !== null ? Number(fullTankLitres).toLocaleString() + ' L' : 'NA'}</span>
-                  </div>
-                  <div className="journey-metric">
-                    <span className="metric-label">Partial Fuel Used</span>
-                    <span className="metric-value">{partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : 'NA'}</span>
-                  </div>
-                  <div className="journey-metric">
-                    <span className="metric-label">Total Fuel Used</span>
-                    <span className="metric-value">{totalFuelUsed > 0 ? Number(totalFuelUsed).toLocaleString() + ' L' : 'NA'}</span>
-                  </div>
-
-                  <div className="journey-metric">
-                    <span className="metric-label">Fuel Rate</span>
-                    <span className="metric-value">{fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : 'NA'}</span>
-                  </div>
-                  <div className="journey-metric">
-                    <span className="metric-label">Fuel Efficiency</span>
-                    <span className="metric-value">{fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : 'NA'}</span>
-                  </div>
-                  <div className="journey-metric">
-                    <span className="metric-label">Fuel Cost</span>
-                    <span className="metric-value">{fuelCost !== null ? '₹' + Number(fuelCost).toLocaleString() : 'NA'}</span>
-                  </div>
+            <div className="vp-metric-grid">
+              {journeyMetrics.map(({ label, value }) => (
+                <div key={label} className="vp-metric">
+                  <span className="vp-metric-label">{label}</span>
+                  <span className="vp-metric-value">{value}</span>
                 </div>
-              );
-            })()}
-          </div>
+              ))}
+            </div>
+          </section>
         )}
 
-        {/* Document Recap Section */}
-        <div className="verification-recap">
-          <div className="recap-header">
-            <h3>Attached Documents</h3>
+        {/* Attached Documents */}
+        <section className="vp-card">
+          <div className="vp-card-header">
+            <h2 className="vp-card-title">ATTACHED DOCUMENTS</h2>
           </div>
-          <div className="recap-images">
+          <div className="vp-docs-row">
             {fixedDocs.odometer && (
-              <div className="recap-item">
-                <div className="recap-label">Odometer</div>
-                <div className="recap-image-wrapper">
-                  {(fixedDocs.odometer.preview || fixedDocs.odometer.file) ? (
-                    (() => {
-                      const src = resolveImageSrc(fixedDocs.odometer.preview || fixedDocs.odometer.file || fixedDocs.odometer);
-                      return src ? (
-                        <img
-                          src={src}
-                          alt="Odometer"
-                          className="recap-image"
-                          onClick={() => handleShowPreview(src, 'Odometer Image')}
-                        />
-                      ) : (
-                        <div className="no-image">No Image</div>
-                      );
-                    })()
-                  ) : (
-                    <div className="no-image">No Image</div>
-                  )}
-                  <button
-                    className="btn-preview"
-                    onClick={() => {
-                      const src = resolveImageSrc(fixedDocs.odometer.preview || fixedDocs.odometer.file || fixedDocs.odometer);
-                      if (src) handleShowPreview(src, 'Odometer Image');
-                    }}
-                    title="Preview image"
-                  >
-                    <Eye size={14} />
-                  </button>
-                </div>
-              </div>
+              <DocThumb
+                src={resolveImageSrc(fixedDocs.odometer.preview || fixedDocs.odometer.file || fixedDocs.odometer)}
+                label="Odometer"
+                onPreview={openPreview}
+              />
             )}
-
             {fixedDocs.fuel && (
-              <div className="recap-item">
-                <div className="recap-label">Full Tank Fuel</div>
-                <div className="recap-image-wrapper">
-                  {(fixedDocs.fuel.preview || fixedDocs.fuel.file) ? (
-                    (() => {
-                      const src = resolveImageSrc(fixedDocs.fuel.preview || fixedDocs.fuel.file || fixedDocs.fuel);
-                      return src ? (
-                        <img
-                          src={src}
-                          alt="Fuel Receipt"
-                          className="recap-image"
-                          onClick={() => handleShowPreview(src, 'Fuel Receipt Image')}
-                        />
-                      ) : (
-                        <div className="no-image">No Image</div>
-                      );
-                    })()
-                  ) : (
-                    <div className="no-image">No Image</div>
-                  )}
-                  <button
-                    className="btn-preview"
-                    onClick={() => {
-                      const src = resolveImageSrc(fixedDocs.fuel.preview || fixedDocs.fuel.file || fixedDocs.fuel);
-                      if (src) handleShowPreview(src, 'Fuel Receipt Image');
-                    }}
-                    title="Preview image"
-                  >
-                    <Eye size={14} />
-                  </button>
-                </div>
-              </div>
+              <DocThumb
+                src={resolveImageSrc(fixedDocs.fuel.preview || fixedDocs.fuel.file || fixedDocs.fuel)}
+                label="Full Tank Fuel"
+                onPreview={openPreview}
+              />
             )}
-
-            {fixedDocs.partialFuel && fixedDocs.partialFuel.length > 0 && (
-              <div className="recap-partial">
-                <div className="recap-label">
-                  Partial Fuels ({fixedDocs.partialFuel.length})
-                </div>
-                <div className="recap-partial-grid">
-                  {fixedDocs.partialFuel.map((fuel, index) => (
-                    <div key={index} className="recap-partial-item">
-                      {(fuel?.preview || fuel?.file) ? (
-                        (() => {
-                          const src = resolveImageSrc(fuel.preview || fuel.file || fuel);
-                          return src ? (
-                            <img
-                              src={src}
-                              alt={`Partial Fuel ${index + 1}`}
-                              className="recap-image-small"
-                              onClick={() => handleShowPreview(src, `Partial Fuel #${index + 1}`)}
-                            />
-                          ) : (
-                            <div className="no-image-small">No Image</div>
-                          );
-                        })()
-                      ) : (
-                        <div className="no-image-small">No Image</div>
-                      )}
-                      <button
-                        className="btn-preview-small"
-                        onClick={() => {
-                          const src = resolveImageSrc(fuel.preview || fuel.file || fuel);
-                          if (src) handleShowPreview(src, `Partial Fuel #${index + 1}`);
-                        }}
-                        title="Preview image"
-                      >
-                        <Eye size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {(fixedDocs.partialFuel || []).map((fuel, i) => (
+              <DocThumb
+                key={i}
+                src={resolveImageSrc(fuel.preview || fuel.file || fuel)}
+                label={`Partial Fuel #${i + 1}`}
+                onPreview={openPreview}
+              />
+            ))}
           </div>
-        </div>
+        </section>
 
-        {/* Weight Slips Table Section */}
-        <div className="verification-table-section">
-          <div className="table-header">
-            <h3>Weight Slips ({weightSlips.length})</h3>
-            <div className="table-status">
-              {!isDataComplete && (
-                <div className="status-badge incomplete">
-                  <AlertCircle size={14} />
-                  <span>Incomplete</span>
-                </div>
-              )}
-              {isDataComplete && (
-                <div className="status-badge complete">
-                  <CheckCircle size={14} />
-                  <span>Complete</span>
-                </div>
-              )}
+        {/* Weight Slips Table */}
+        <section className="vp-card">
+          <div className="vp-card-header">
+            <h2 className="vp-card-title">WEIGHT SLIPS ({weightSlips.length})</h2>
+            <div className={`vp-completeness-badge ${isDataComplete ? 'complete' : 'incomplete'}`}>
+              {isDataComplete ? <><CheckCircle size={13} /> Complete</> : <><AlertCircle size={13} /> Incomplete</>}
             </div>
           </div>
 
-          <div className="table-scroll">
-            <table className="verification-table">
+          <div className="vp-table-wrap">
+            <table className="vp-table">
               <thead>
                 <tr>
-                  <th width="60">Slip</th>
-                  <th width="100">Image</th>
-                  <th width="160">Origin</th>
-                  <th width="160">Destination</th>
-                  <th width="100">Weight</th>
-                  <th width="80">Status</th>
+                  <th>Slip</th>
+                  <th>Image</th>
+                  <th>Origin</th>
+                  <th>Destination</th>
+                  <th>Weight</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {weightSlips.map((slip, index) => {
-                  // Handle file preview - might be .file or .file.preview from different sources
-                  const filePreview = resolveImageSrc(slip.file || slip);
-
-                  // Get weight from either weights object or weight property
-                  const weight = slip.weights?.netWeight || slip.weight || 0;
-
+                {weightSlips.map((slip, i) => {
+                  const src = resolveImageSrc(slip.file || slip);
+                  const weight = slip.weights?.netWeight || slip.netWeight || slip.weight || 0;
+                  const originText  = slip.origin || (slip.routeData?.sourceLocation ? `${slip.routeData.sourceLocation.city}, ${slip.routeData.sourceLocation.state}` : '—');
+                  const destText    = slip.destination || (slip.routeData?.destLocation ? `${slip.routeData.destLocation.city}, ${slip.routeData.destLocation.state}` : '—');
                   return (
-                    <tr
-                      key={index}
-                      className={slip.isDone ? 'row-complete' : 'row-incomplete'}
-                    >
-                      <td className="slip-number">#{index + 1}</td>
+                    <tr key={i} className={slip.isDone ? 'vp-row-done' : 'vp-row-pending'}>
+                      <td className="vp-slip-num">#{i + 1}</td>
                       <td>
-                        <div className="slip-preview-container">
-                          {filePreview ? (
-                            <img
-                              src={filePreview}
-                              alt={`Slip ${index + 1}`}
-                              className="slip-preview"
-                              onClick={() =>
-                                handleShowPreview(
-                                  filePreview,
-                                  `Weight Slip #${index + 1}`
-                                )
-                              }
-                            />
-                          ) : (
-                            <div className="no-image-small">No Image</div>
-                          )}
-                          <button
-                            className="btn-preview-small"
-                            onClick={() =>
-                              handleShowPreview(
-                                filePreview,
-                                `Weight Slip #${index + 1}`
-                              )
-                            }
-                            title="Preview image"
-                          >
-                            <Eye size={12} />
-                          </button>
-                        </div>
+                        {src
+                          ? <img src={src} alt={`Slip ${i+1}`} className="vp-slip-thumb" onClick={() => openPreview(src, `Weight Slip #${i+1}`)} />
+                          : <span className="vp-no-img">—</span>}
                       </td>
-                      <td>{slip.origin || (slip.routeData?.sourceLocation ? `${slip.routeData.sourceLocation.city}, ${slip.routeData.sourceLocation.state}` : 'NA')}</td>
-                      <td>{slip.destination || (slip.routeData?.destLocation ? `${slip.routeData.destLocation.city}, ${slip.routeData.destLocation.state}` : 'NA')}</td>
-                      <td className="text-center">{weight} kg</td>
+                      <td className="vp-loc">{originText}</td>
+                      <td className="vp-loc">{destText}</td>
+                      <td className="vp-weight">{weight > 0 ? `${Number(weight).toLocaleString()} kg` : '—'}</td>
                       <td>
-                        {slip.isDone ? (
-                          <div className="status-badge-small done">
-                            <CheckCircle size={14} />
-                            Done
-                          </div>
-                        ) : (
-                          <div className="status-badge-small pending">Pending</div>
-                        )}
+                        {slip.isDone
+                          ? <span className="vp-status-done"><CheckCircle size={13} /> Done</span>
+                          : <span className="vp-status-pending">Pending</span>}
                       </td>
                     </tr>
                   );
@@ -485,55 +272,71 @@ const VerificationPhase = ({
             </table>
           </div>
 
-          {/* Summary Stats */}
-          <div className="verification-stats">
-            <div className="stat-item">
-              <span className="stat-label">Total Slips</span>
-              <span className="stat-value">{weightSlips.length}</span>
+          {/* Summary stat bar */}
+          <div className="vp-stats-bar">
+            <div className="vp-stat">
+              <span className="vp-stat-val">{weightSlips.length}</span>
+              <span className="vp-stat-lbl">Total Slips</span>
             </div>
-            <div className="stat-item">
-              <span className="stat-label">Completed</span>
-              <span className="stat-value">
-                {completedCount} / {weightSlips.length}
-              </span>
+            <div className="vp-stat-div" />
+            <div className="vp-stat">
+              <span className="vp-stat-val">{completedCount} / {weightSlips.length}</span>
+              <span className="vp-stat-lbl">Completed</span>
             </div>
-            <div className="stat-item">
-              <span className="stat-label">Total Weight</span>
-              <span className="stat-value">{totalWeight} kg</span>
+            <div className="vp-stat-div" />
+            <div className="vp-stat">
+              <span className="vp-stat-val">{Number(totalWeight).toLocaleString()} kg</span>
+              <span className="vp-stat-lbl">Total Weight</span>
             </div>
+            {revenueSummary.totalRevenue > 0 && (
+              <>
+                <div className="vp-stat-div" />
+                <div className="vp-stat">
+                  <span className="vp-stat-val">₹{Number(revenueSummary.totalRevenue).toLocaleString()}</span>
+                  <span className="vp-stat-lbl">Total Revenue</span>
+                </div>
+              </>
+            )}
+            {profit !== 0 && (
+              <>
+                <div className="vp-stat-div" />
+                <div className={`vp-stat ${profit >= 0 ? 'profit' : 'loss'}`}>
+                  <span className="vp-stat-val">₹{Math.abs(profit).toLocaleString()}</span>
+                  <span className="vp-stat-lbl">{profit >= 0 ? 'Profit' : 'Loss'}</span>
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Action Footer */}
-      <div className="verification-footer">
-        <button
-          className="btn btn-secondary"
-          onClick={onBack}
-          disabled={isSubmitting}
-        >
+      {/* ── Sticky footer ── */}
+      <div className="vp-footer">
+        <button className="vp-btn-back" onClick={onBack} disabled={isSubmitting}>
           ← Back
         </button>
         <button
-          className="btn btn-primary"
+          className={`vp-btn-submit ${(!isDataComplete || isSubmitting) ? 'disabled' : ''}`}
           onClick={handleSubmit}
           disabled={!isDataComplete || isSubmitting}
-          title={
-            !isDataComplete
-              ? 'Complete all slips before submitting'
-              : 'Submit trip data'
-          }
         >
-          {isSubmitting ? 'Submitting...' : '✓ Submit'}
+          {isSubmitting ? (
+            <><span className="vp-spinner" /> Submitting…</>
+          ) : (
+            <><Truck size={16} /> Submit Journey</>
+          )}
         </button>
       </div>
+
+      {/* ── Success overlay ── */}
+      {submitted && isSubmitting === false && <SuccessOverlay />}
 
       {/* Image Preview Modal */}
       {previewModal.isOpen && (
         <ImagePreviewModal
           imageSrc={previewModal.imageSrc}
           title={previewModal.title}
-          onClose={handleClosePreview}
+          onClose={closePreview}
         />
       )}
     </div>

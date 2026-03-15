@@ -20,7 +20,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, X, Loader, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, X, Loader, Plus, Trash2, Edit2, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './TripFormPage.css';
 import { DriverService } from '../Drivers/DriverService.jsx';
@@ -143,6 +143,11 @@ const TripFormPage = () => {
         date: trip.startTime ? new Date(trip.startTime).toISOString().split('T')[0] : '',
         vehicleNo: getVehicleRegistration(trip.journeyId?.vehicleId || trip.vehicleId) || '',
         driver: getDriverName(trip.journeyId?.driverId || trip.driverId) || ''
+      });
+
+      // Load start odometer reading if available
+      if (trip.startOdometer) {
+        setManualOdometerStart(trip.startOdometer.toString());
         setShowManualOdometer(true);
         setStartDocs(prev => ({
           ...prev,
@@ -909,48 +914,67 @@ const TripFormPage = () => {
   return (
       <div className="trip-form-page">
       <div className="trip-form-container">
-        {/* Header */}
-        <div className="trip-form-header">
-          <div className="header-left">
-            <button className="back-btn-circle" onClick={() => navigate('/trip-management')}>
-              <ArrowLeft size={20} />
+        {/* Modern Header */}
+        <div className="modern-page-header">
+          <div className="modern-header-top">
+            <h1 className="modern-page-title">{isEditMode ? 'Step 1: Edit Document Intake' : 'Step 1: Document Intake & OCR Preview'}</h1>
+            <button className="btn-primary" onClick={() => navigate('/trip-management')} style={{ background: '#2563eb' }}>
+                Next Step
             </button>
-            <h1>{isEditMode ? 'Edit Trip' : 'Create New Trip'}</h1>
           </div>
+          {!isEditMode && (
+            <div className="modern-progress-bar-container">
+              <span className="modern-progress-text">Step 1 of 4</span>
+              <div className="modern-progress-track">
+                <div className="modern-progress-fill" style={{ width: '25%' }}></div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Form */}
-        <div className="trip-form-content">
-          {/* Start Documents */}
-          <section className="form-section">
-            <h2 className="section-heading">Start Documents</h2>
-            <div className="documents-grid">
-              <DocumentUpload
-                title="Odometer Start"
-                required
-                document={startDocs.odometerStart}
-                onUpload={(file) => handleFileUpload('start', 'odometerStart', file)}
-                onProcess={() => processOCR('start', 'odometerStart')}
-                isProcessing={isProcessing}
-              />
+        <div className="trip-form-content modern-form-content">
+          
+          {/* Trip Details & Selections */}
+          <section className="modern-form-section">
+            <h2 className="modern-section-heading">Trip Details & Selections</h2>
+            <div className="modern-form-row">
+              <div className="modern-form-group">
+                <label>SELECT VEHICLE <span className="required">*</span></label>
+                <select
+                  value={formData.vehicleNo}
+                  onChange={(e) => handleInputChange('vehicleNo', e.target.value)}
+                  disabled={isEditMode && existingTrip?.vehicleId}
+                >
+                  <option value="">Choose vehicle...</option>
+                  {vehicles.map(vehicle => (
+                    <option key={vehicle.id} value={vehicle.number}>
+                      {vehicle.number} - {vehicle.model}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <DocumentUpload
-                title="Weigh-in Slip"
-                required
-                document={startDocs.weighInSlip}
-                onUpload={(file) => handleFileUpload('start', 'weighInSlip', file)}
-                onProcess={() => processOCR('start', 'weighInSlip')}
-                isProcessing={isProcessing}
-              />
+              <div className="modern-form-group">
+                <label>SELECT DRIVER <span className="required">*</span></label>
+                <select
+                  value={formData.driver}
+                  onChange={(e) => handleInputChange('driver', e.target.value)}
+                  disabled={isEditMode && existingTrip?.driverId}
+                >
+                  <option value="">Choose driver...</option>
+                  {drivers.map(driver => (
+                    <option key={driver.id} value={driver.name}>
+                      {driver.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </section>
 
-          {/* Basic Information */}
-          <section className="form-section">
-            <h2 className="section-heading">Trip Information</h2>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Source <span className="required">*</span></label>
+            <div className="modern-form-row" style={{ marginTop: '20px' }}>
+              <div className="modern-form-group">
+                <label>SOURCE <span className="required">*</span></label>
                 <input
                   type="text"
                   value={formData.source}
@@ -960,8 +984,8 @@ const TripFormPage = () => {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Destination <span className="required">*</span></label>
+              <div className="modern-form-group">
+                <label>DESTINATION <span className="required">*</span></label>
                 <input
                   type="text"
                   value={formData.destination}
@@ -971,8 +995,8 @@ const TripFormPage = () => {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Date <span className="required">*</span></label>
+              <div className="modern-form-group">
+                <label>DATE <span className="required">*</span></label>
                 <input
                   type="date"
                   value={formData.date}
@@ -980,47 +1004,16 @@ const TripFormPage = () => {
                   disabled={isEditMode && existingTrip?.startTime}
                 />
               </div>
-
-              <div className="form-group">
-                <label>Vehicle Number <span className="required">*</span></label>
-                <select
-                  value={formData.vehicleNo}
-                  onChange={(e) => handleInputChange('vehicleNo', e.target.value)}
-                  disabled={isEditMode && existingTrip?.vehicleId}
-                >
-                  <option value="">Select vehicle</option>
-                  {vehicles.map(vehicle => (
-                    <option key={vehicle.id} value={vehicle.number}>
-                      {vehicle.number} - {vehicle.model}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Driver <span className="required">*</span></label>
-                <select
-                  value={formData.driver}
-                  onChange={(e) => handleInputChange('driver', e.target.value)}
-                  disabled={isEditMode && existingTrip?.driverId}
-                >
-                  <option value="">Select driver</option>
-                  {drivers.map(driver => (
-                    <option key={driver.id} value={driver.name}>
-                      {driver.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
           </section>
 
-          {/* Start Details Section - with Trip Information and Start Documents */}
-          <section className="form-section">
-            <h2 className="section-heading">Start Details</h2>
+          <p className="modern-instruction-text">Please sort your documents into the correct categories. Start with the fixed documents.</p>
+
+          {/* Start Details Section - Start Documents */}
+          <section className="modern-form-section no-bg">
             
             {/* Odometer Start and Weigh-in Slip side by side */}
-            <div className="documents-grid">
+            <div className="documents-grid modern-documents-grid">
               {/* Odometer Start with Manual Toggle */}
               <div className="document-section-with-toggle">
                 <div className="toggle-container">
@@ -1050,7 +1043,7 @@ const TripFormPage = () => {
                   </div>
                 ) : (
                   <DocumentUpload
-                    title="Odometer Start"
+                    title="SLOT A: START ODOMETER IMAGE"
                     required
                     document={startDocs.odometerStart}
                     onUpload={(file) => handleFileUpload('start', 'odometerStart', file)}
@@ -1090,7 +1083,7 @@ const TripFormPage = () => {
                   </div>
                 ) : (
                   <DocumentUpload
-                    title="Weigh-in Slip"
+                    title="SLOT B: WEIGH-IN SLIP"
                     required
                     document={startDocs.weighInSlip}
                     onUpload={(file) => handleFileUpload('start', 'weighInSlip', file)}
@@ -1104,9 +1097,9 @@ const TripFormPage = () => {
           </section>
 
           {/* Fuel Receipts */}
-          <section className="form-section">
-            <div className="section-header">
-              <h2 className="section-heading">Fuel Receipts (Optional)</h2>
+          <section className="modern-form-section">
+            <div className="modern-section-header">
+              <h2 className="modern-section-heading" style={{ margin: 0 }}>Fuel Receipts</h2>
               <div className="add-receipt-buttons">
                 <label className={`add-receipt-btn diesel ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
                   <Plus size={16} />
@@ -1134,7 +1127,10 @@ const TripFormPage = () => {
                 </label>
               </div>
             </div>
-            <div className="fuel-receipts-grid">
+            {fuelReceipts.length === 0 && (
+              <p className="modern-instruction-text" style={{ marginTop: '12px' }}>No fuel receipts added yet. Click "Add Diesel" or "Add AdBlue" above.</p>
+            )}
+            <div className="modern-documents-grid" style={{ marginTop: fuelReceipts.length > 0 ? '20px' : '0' }}>
               {fuelReceipts.map(receipt => (
                 <FuelReceiptUpload
                   key={receipt.id}
@@ -1150,11 +1146,11 @@ const TripFormPage = () => {
           </section>
 
           {/* End Details Section - with End Documents side by side */}
-          <section className="form-section">
-            <h2 className="section-heading">End Details</h2>
+          <section className="modern-form-section">
+            <h2 className="modern-section-heading">End Documents</h2>
             
             {/* Odometer End and Proof of Delivery side by side */}
-            <div className="documents-grid">
+            <div className="documents-grid modern-documents-grid">
               {/* End Odometer with Manual Toggle */}
               <div className="document-section-with-toggle">
                 <div className="toggle-container">
@@ -1184,7 +1180,7 @@ const TripFormPage = () => {
                   </div>
                 ) : (
                   <DocumentUpload
-                    title="Odometer End"
+                    title="SLOT C: END ODOMETER IMAGE"
                     required
                     document={endDocs.odometerEnd}
                     onUpload={(file) => handleFileUpload('end', 'odometerEnd', file)}
@@ -1198,7 +1194,7 @@ const TripFormPage = () => {
               {/* Proof of Delivery - Optional */}
               <div className="document-section-with-toggle">
                 <DocumentUpload
-                  title="Proof of Delivery (Optional)"
+                  title="SLOT D: PROOF OF DELIVERY (OPTIONAL)"
                   document={endDocs.proofOfDelivery}
                   onUpload={(file) => handleFileUpload('end', 'proofOfDelivery', file)}
                   onProcess={() => processOCR('end', 'proofOfDelivery')}
@@ -1212,26 +1208,22 @@ const TripFormPage = () => {
 
         {/* Footer */}
         {!isCompletedTrip && (
-          <div className="trip-form-footer">
-            <div className="footer-actions">
-              <button 
-                className="btn-primary save-btn" 
-                onClick={handleSaveTrip}
-                disabled={!canStartTrip || isProcessing || isEditMode}
-                style={{ opacity: (!canStartTrip || isEditMode) ? 0.5 : 1 }}
-              >
-                {isProcessing ? 'Starting Trip...' : 'Start Trip'}
-              </button>
-              
-              <button 
-                className="btn-primary end-btn" 
-                onClick={handleEndTripClick}
-                disabled={!canEndTrip || isProcessing}
-                style={{ opacity: !canEndTrip ? 0.5 : 1 }}
-              >
-                {isProcessing ? 'Ending Trip...' : 'End Trip'}
-              </button>
-            </div>
+          <div className="modern-form-footer">
+            <button 
+              className="modern-footer-btn start-trip-btn" 
+              onClick={handleSaveTrip}
+              disabled={!canStartTrip || isProcessing || isEditMode}
+            >
+              {isProcessing ? 'Starting Trip...' : 'Start Trip'}
+            </button>
+            
+            <button 
+              className="modern-footer-btn end-trip-btn" 
+              onClick={handleEndTripClick}
+              disabled={!canEndTrip || isProcessing}
+            >
+              {isProcessing ? 'Ending Trip...' : 'End Trip'}
+            </button>
           </div>
         )}
       </div>
@@ -1251,54 +1243,54 @@ const TripFormPage = () => {
             </div>
 
             <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Material Cost</label>
+              <div className="modern-form-grid-3">
+                <div className="modern-form-group">
+                  <label>MATERIAL COST</label>
                   <input
                     type="number"
                     value={expenses.materialCost}
                     onChange={(e) => setExpenses({ ...expenses, materialCost: e.target.value })}
-                    placeholder="Enter material cost"
+                    placeholder="₹ 0.00"
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Toll</label>
+                <div className="modern-form-group">
+                  <label>TOLL</label>
                   <input
                     type="number"
                     value={expenses.toll}
                     onChange={(e) => setExpenses({ ...expenses, toll: e.target.value })}
-                    placeholder="Enter toll amount"
+                    placeholder="₹ 0.00"
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Driver Cost</label>
+                <div className="modern-form-group">
+                  <label>DRIVER COST</label>
                   <input
                     type="number"
                     value={expenses.driverCost}
                     onChange={(e) => setExpenses({ ...expenses, driverCost: e.target.value })}
-                    placeholder="Enter driver cost"
+                    placeholder="₹ 0.00"
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Driver Trip Expense</label>
+                <div className="modern-form-group">
+                  <label>DRIVER TRIP EXPENSE</label>
                   <input
                     type="number"
                     value={expenses.driverTripExpense}
                     onChange={(e) => setExpenses({ ...expenses, driverTripExpense: e.target.value })}
-                    placeholder="Enter driver trip expense"
+                    placeholder="₹ 0.00"
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Royalty</label>
+                <div className="modern-form-group">
+                  <label>ROYALTY</label>
                   <input
                     type="number"
                     value={expenses.royalty}
                     onChange={(e) => setExpenses({ ...expenses, royalty: e.target.value })}
-                    placeholder="Enter royalty amount"
+                    placeholder="₹ 0.00"
                   />
                 </div>
               </div>
@@ -1356,7 +1348,7 @@ const TripFormPage = () => {
  * @param {Function} onProcess - Callback to trigger OCR processing
  * @param {boolean} isProcessing - Whether OCR is currently processing
  */
-const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProcessing, canUpload }) => {
+const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProcessing, canUpload, onRemove }) => {
   const inputId = `upload-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
   const handleLabelClick = (e) => {
@@ -1366,10 +1358,13 @@ const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProc
     }
   };
 
+  const hasData = document && (document.preview || document.documentMeta?.publicUrl);
+  const ocrData = document?.ocrData || document?.documentMeta?.ocrData;
+
   return (
-    <div className="document-upload-card">
-      <div className="document-header">
-        <h3>{title} {required && <span className="required">*</span>}</h3>
+    <div className="modern-document-slot">
+      <div className="slot-header">
+        <h3>{title.toUpperCase()} {required && <span className="required">*</span>}</h3>
       </div>
 
       <input
@@ -1381,50 +1376,59 @@ const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProc
         disabled={!canUpload}
       />
 
-      {/* Prefer public URL from server when available, otherwise show local preview */}
-      {!(document && (document.preview || document.documentMeta?.publicUrl)) ? (
+      {!hasData ? (
         <label 
           htmlFor={inputId} 
-          className={`upload-area ${!canUpload ? 'disabled' : ''}`} 
+          className={`slot-upload-area ${!canUpload ? 'disabled' : ''}`} 
           onClick={handleLabelClick}
           style={{ cursor: canUpload ? 'pointer' : 'not-allowed' }}
         >
-          <Upload size={32} />
-          <span>Click to upload image</span>
-          <small>PNG, JPG up to 10MB</small>
+          <Upload size={28} color="#94a3b8" />
+          <span>Drop files here or click to upload</span>
         </label>
       ) : (
-        <div className="document-preview">
-          <img src={document.documentMeta?.publicUrl || document.preview} alt={title} />
-          <div className="preview-overlay">
-            <label 
-              htmlFor={inputId} 
-              className={`change-btn ${!canUpload ? 'disabled' : ''}`} 
-              onClick={handleLabelClick}
-              style={{ cursor: canUpload ? 'pointer' : 'not-allowed' }}
-            >
-              <Upload size={16} />
-              Change
-            </label>
-          </div>
-        </div>
-      )}
-
-      {/* Show OCR extracted data from either immediate ocrData or server-returned document metadata */}
-      {((document.ocrData && Object.keys(document.ocrData).length) || document.documentMeta?.ocrData) && (
-        <div className="ocr-data">
-          <h4>Extracted Data</h4>
-          <div className="ocr-fields">
-            {Object.entries(document.ocrData || document.documentMeta?.ocrData || {}).map(([key, value]) => (
-              <div key={key} className="ocr-field">
-                <label>{key.replace(/([A-Z])/g, ' $1').trim()}</label>
-                <span>{value}</span>
+        <div className="slot-filled-container">
+          <div className="slot-image-wrapper">
+            <img src={document.documentMeta?.publicUrl || document.preview} alt={title} />
+            <div className="slot-image-overlay">
+              <div className="slot-badge success">
+                <CheckCircle size={14} className="badge-icon-svg" /> OCR Done
               </div>
-            ))}
+              <div className="slot-actions">
+                <label htmlFor={inputId} className="slot-action-btn edit" onClick={handleLabelClick}>
+                  <Edit2 size={14} /> Edit
+                </label>
+                {onRemove && (
+                  <button className="slot-action-btn delete" onClick={(e) => { e.preventDefault(); onRemove(); }}>
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-          {document.documentMeta?.publicUrl && (
-            <div className="ocr-source">
-              <a href={document.documentMeta.publicUrl} target="_blank" rel="noreferrer">View uploaded image</a>
+          
+          {(ocrData && Object.keys(ocrData).length > 0) && (
+            <div className="slot-data-ribbon">
+              <div className="slot-data-fields">
+                {Object.entries(ocrData).map(([key, value]) => (
+                  <div key={key} className="slot-data-item">
+                    <span className="data-label">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <span className="data-value">{String(value)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="slot-confidence">
+                <div className="confidence-circle">
+                  <svg viewBox="0 0 36 36" className="circular-chart">
+                    <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="circle" strokeDasharray="85, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  </svg>
+                </div>
+                <div className="confidence-text">
+                  <span className="confidence-value">85%</span>
+                  <span className="confidence-label">Confidence</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1453,13 +1457,14 @@ const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessin
     }
   };
 
+  const hasData = receipt && (receipt.preview || receipt.documentMeta?.publicUrl);
+  const ocrData = receipt?.ocrData || receipt?.documentMeta?.ocrData;
+  const title = receipt.type === 'diesel' ? 'SLOT: DIESEL RECEIPT' : 'SLOT: ADBLUE RECEIPT';
+
   return (
-    <div className="fuel-receipt-card">
-      <div className="receipt-header">
-        <h3>{receipt.type === 'diesel' ? 'Diesel' : 'AdBlue'} Receipt</h3>
-        <button className="remove-btn" onClick={onRemove}>
-          <Trash2 size={16} />
-        </button>
+    <div className="modern-document-slot">
+      <div className="slot-header">
+        <h3>{title}</h3>
       </div>
 
       <input
@@ -1471,41 +1476,57 @@ const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessin
         disabled={!canUpload}
       />
 
-      {/* Prefer publicUrl from server when available */}
-      {!(receipt && (receipt.preview || receipt.documentMeta?.publicUrl)) ? (
+      {!hasData ? (
         <label 
           htmlFor={inputId} 
-          className={`upload-area small ${!canUpload ? 'disabled' : ''}`} 
+          className={`slot-upload-area ${!canUpload ? 'disabled' : ''}`} 
           onClick={handleLabelClick}
           style={{ cursor: canUpload ? 'pointer' : 'not-allowed' }}
         >
-          <Upload size={24} />
-          <span>Upload receipt</span>
+          <Upload size={28} color="#94a3b8" />
+          <span>Drop receipt here or click to upload</span>
         </label>
       ) : (
-        <div className="receipt-preview">
-          <img src={receipt.documentMeta?.publicUrl || receipt.preview} alt={`${receipt.type} receipt`} />
-          <label 
-            htmlFor={inputId} 
-            className={`change-overlay ${!canUpload ? 'disabled' : ''}`} 
-            onClick={handleLabelClick}
-            style={{ cursor: canUpload ? 'pointer' : 'not-allowed' }}
-          >
-            <Upload size={14} />
-          </label>
-        </div>
-      )}
-
-      {(receipt.ocrData || receipt.documentMeta?.ocrData) && (
-        <div className="ocr-data small">
-          {Object.entries(receipt.ocrData || receipt.documentMeta?.ocrData || {}).map(([key, value]) => (
-            <div key={key} className="ocr-field-inline">
-              <strong>{key}:</strong> {value}
+        <div className="slot-filled-container">
+          <div className="slot-image-wrapper">
+            <img src={receipt.documentMeta?.publicUrl || receipt.preview} alt={title} />
+            <div className="slot-image-overlay">
+              <div className="slot-badge success">
+                <CheckCircle size={14} className="badge-icon-svg" /> OCR Done
+              </div>
+              <div className="slot-actions">
+                <label htmlFor={inputId} className="slot-action-btn edit" onClick={handleLabelClick}>
+                  <Edit2 size={14} /> Edit
+                </label>
+                <button className="slot-action-btn delete" onClick={(e) => { e.preventDefault(); onRemove(); }}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
-          ))}
-          {receipt.documentMeta?.publicUrl && (
-            <div className="ocr-source small">
-              <a href={receipt.documentMeta.publicUrl} target="_blank" rel="noreferrer">View uploaded image</a>
+          </div>
+          
+          {(ocrData && Object.keys(ocrData).length > 0) && (
+            <div className="slot-data-ribbon">
+              <div className="slot-data-fields">
+                {Object.entries(ocrData).map(([key, value]) => (
+                  <div key={key} className="slot-data-item">
+                    <span className="data-label">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <span className="data-value">{String(value)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="slot-confidence">
+                <div className="confidence-circle">
+                  <svg viewBox="0 0 36 36" className="circular-chart">
+                    <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="circle" strokeDasharray="85, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  </svg>
+                </div>
+                <div className="confidence-text">
+                  <span className="confidence-value">85%</span>
+                  <span className="confidence-label">Confidence</span>
+                </div>
+              </div>
             </div>
           )}
         </div>

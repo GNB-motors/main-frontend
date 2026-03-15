@@ -14,6 +14,7 @@ import SlipsList from '../components/SlipsList';
 import TripForm from '../components/TripForm';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import RouteCreator from '../../../components/RouteCreator/RouteCreator';
+import { Truck, Fuel, Gauge, MapPin } from 'lucide-react';
 
 
 
@@ -217,6 +218,13 @@ const ProcessingPhase = ({
 
   return (
     <div className="processing-phase">
+      {/* ── Step progress bar (matches IntakePhase header) ── */}
+      <div className="processing-progress-header">
+        <div className="processing-progress-track">
+          <div className="processing-progress-fill" style={{ width: '50%' }} />
+        </div>
+      </div>
+
       <div className="processing-container">
         {/* Left Panel: Slips List */}
         <aside className="processing-sidebar">
@@ -231,14 +239,32 @@ const ProcessingPhase = ({
         {/* Right Panel: Trip Form - Full Width */}
         <aside className="processing-form-panel">
           <div className="form-header">
-            <h3>Trip Details for Slip #{currentIndex + 1}</h3>
-            <div className="form-status">
+            <div className="form-header-left">
+              <h3>Trip Details for Slip #{currentIndex + 1}</h3>
+              <span className="slip-progress-pill">
+                {currentIndex + 1} / {weightSlips.length} slips
+              </span>
+            </div>
+            <div className="form-header-right">
+              {completedSlips > 0 && (
+                <span className="slip-done-badge">
+                  ✓ {completedSlips}/{weightSlips.length} done
+                </span>
+              )}
               {currentSlip?.isDone ? (
                 <span className="status-badge status-done">✓ Completed</span>
               ) : (
                 <span className="status-badge status-pending">⏱ In Progress</span>
               )}
             </div>
+          </div>
+
+          {/* Slim slip-level progress bar */}
+          <div className="slip-progress-bar-wrap">
+            <div
+              className="slip-progress-bar-fill"
+              style={{ width: `${progress}%` }}
+            />
           </div>
 
           <div className="form-content-wrapper">
@@ -262,18 +288,26 @@ const ProcessingPhase = ({
 
                 const fuelEfficiency = (totalDistance && totalFuelUsed > 0) ? (Number(totalDistance) / Number(totalFuelUsed)) : (journeyData?.fuelData?.efficiency ?? journeyData?.estimatedEfficiency ?? null);
 
+                const metrics = [
+                  { label: 'Start Odo', value: startOdometer !== null ? `${Number(startOdometer).toLocaleString()} km` : '—', icon: <Gauge size={14} /> },
+                  { label: 'End Odo', value: endOdometer !== null ? `${Number(endOdometer).toLocaleString()} km` : '—', icon: <Gauge size={14} /> },
+                  { label: 'Distance', value: totalDistance !== null ? `${Number(totalDistance).toLocaleString()} km` : '—', icon: <MapPin size={14} /> },
+                  { label: 'Fuel used', value: totalFuelUsed > 0 ? `${Number(totalFuelUsed).toLocaleString()} L` : '—', icon: <Fuel size={14} /> },
+                  { label: 'Efficiency', value: fuelEfficiency !== null ? `${Number(fuelEfficiency).toFixed(2)} km/L` : '—', icon: <Truck size={14} /> },
+                ];
+
                 return (
-                  <div className="journey-summary form-section" aria-hidden>
-                    <div className="section-header"><h3>Journey Information</h3></div>
-                    <div className="journey-details">
-                      <div className="journey-item"><strong>Start Odometer:</strong> {startOdometer !== null ? Number(startOdometer).toLocaleString() + ' km' : '—'}</div>
-                      <div className="journey-item"><strong>End Odometer:</strong> {endOdometer !== null ? Number(endOdometer).toLocaleString() + ' km' : '—'}</div>
-                      <div className="journey-item"><strong>Total Distance:</strong> {totalDistance !== null ? Number(totalDistance).toLocaleString() + ' km' : '—'}</div>
-                      <div className="journey-item"><strong>Fuel Litres:</strong> {fuelLitres !== null ? Number(fuelLitres).toLocaleString() + ' L' : '—'}</div>
-                      <div className="journey-item"><strong>Partial Fuel (sum):</strong> {partialSum > 0 ? Number(partialSum).toLocaleString() + ' L' : '—'}</div>
-                      <div className="journey-item"><strong>Total Fuel Used:</strong> {totalFuelUsed > 0 ? Number(totalFuelUsed).toLocaleString() + ' L' : '—'}</div>
-                      <div className="journey-item"><strong>Fuel Rate:</strong> {fuelRate !== null ? '₹' + Number(fuelRate).toLocaleString() : '—'}</div>
-                      <div className="journey-item"><strong>Fuel Efficiency:</strong> {fuelEfficiency !== null ? Number(fuelEfficiency).toFixed(2) + ' km/L' : '—'}</div>
+                  <div className="journey-summary-card" aria-hidden>
+                    <div className="pp-metric-grid">
+                      {metrics.map((m, i) => (
+                        <div key={i} className="pp-metric">
+                          <div className="pp-metric-header">
+                            {m.icon}
+                            <span className="pp-metric-label">{m.label}</span>
+                          </div>
+                          <span className="pp-metric-value">{m.value}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -313,7 +347,7 @@ const ProcessingPhase = ({
               disabled={!isFormValid}
               title={!isFormValid ? "Please fill all required fields" : "Save this slip and move to next (bulk)"}
             >
-              Save & Next →
+              Save &amp; Next →
             </button>
           </div>
         </aside>
