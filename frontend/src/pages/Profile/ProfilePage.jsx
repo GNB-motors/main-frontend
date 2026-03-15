@@ -1,189 +1,183 @@
 import React, { useState, useEffect } from 'react';
-import './ProfilePage.css';
-
-// Import assets
 import DefaultAvatar from '../../assets/default-avatar.png';
-import UserIcon from '../../assets/user-icon.svg';
-
-// Import ProfileService for API calls
 import { ProfileService } from './ProfileService';
 import { getThemeCSS } from '../../utils/colorTheme';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+const Field = ({ label, value }) => (
+    <div className="flex flex-col gap-1">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {label}
+        </span>
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+            {value || '—'}
+        </div>
+    </div>
+);
+
+// ── UserInfo ──────────────────────────────────────────────────────────────────
+
+const UserInfo = ({ user, organization }) => {
+    const initials = [user?.firstName, user?.lastName]
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase() || 'U';
+
+    const statusVariant =
+        user?.status?.toLowerCase() === 'active' ? 'default' : 'secondary';
+
+    return (
+        <Card className="w-full shadow-sm">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-bold">Your account information</CardTitle>
+            </CardHeader>
+
+            <Separator />
+
+            <CardContent className="pt-6 space-y-8">
+                {/* Avatar row */}
+                <div className="flex items-center gap-5">
+                    <Avatar className="h-20 w-20 ring-2 ring-border">
+                        <AvatarImage src={DefaultAvatar} alt="User Avatar" />
+                        <AvatarFallback className="text-xl font-bold">
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
+
+                    <div className="space-y-1">
+                        <p className="text-lg font-bold leading-tight">
+                            {organization?.companyName || 'Company Name'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            {organization?.ownerEmail || user?.email || '—'}
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                            <Badge variant="outline" className="capitalize text-xs">
+                                {user?.role || 'Unknown role'}
+                            </Badge>
+                            <Badge variant={statusVariant} className="capitalize text-xs">
+                                {user?.status || 'Unknown status'}
+                            </Badge>
+                        </div>
+                    </div>
+                </div>
+
+                <Separator />
+
+                {/* Fields grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <Field label="First Name"     value={user?.firstName} />
+                    <Field label="Last Name"      value={user?.lastName} />
+                    <Field label="Email"          value={user?.email} />
+                    <Field label="Mobile Number"  value={user?.mobileNumber} />
+                    <Field label="Location"       value={user?.location} />
+                    <Field label="GSTIN"          value={organization?.gstin} />
+                    <Field label="Company Name"   value={organization?.companyName} />
+                    <Field label="Organisation ID" value={organization?._id} />
+                </div>
+
+                <Separator />
+
+                {/* Notice */}
+                <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-center">
+                    <p className="text-sm italic text-muted-foreground">
+                        To edit your information, please contact the administrator.
+                    </p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+// ── ProfilePage ───────────────────────────────────────────────────────────────
 
 const ProfilePage = () => {
     const [userData, setUserData] = useState(null);
     const [organizationData, setOrganizationData] = useState(null);
-    const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-    const [profileError, setProfileError] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
 
-    // Update theme colors when component mounts
     useEffect(() => {
         setThemeColors(getThemeCSS());
     }, []);
 
     useEffect(() => {
         const fetchProfile = async () => {
-            setIsLoadingProfile(true);
-            setProfileError(null);
-
+            setIsLoading(true);
+            setError(null);
             try {
-                // Call /auth/me endpoint
-                const response = await ProfileService.getProfile();
-                
-                // Extract user and organization data from response
-                const { user, organization } = response;
-                
+                const { user, organization } = await ProfileService.getProfile();
                 setUserData(user);
                 setOrganizationData(organization);
 
-                // Store individual profile fields in localStorage (for compatibility)
                 if (user) {
                     localStorage.setItem('profile_id', user.id);
                     localStorage.setItem('profile_owner_email', user.email);
                     localStorage.setItem('primaryThemeColor', user.primaryThemeColor || '#007bff');
                 }
-                
                 if (organization) {
                     localStorage.setItem('profile_company_name', organization.companyName);
                     localStorage.setItem('profile_gstin', organization.gstin);
                     localStorage.setItem('profile_owner_email', organization.ownerEmail);
                 }
-
-                console.log("User data loaded:", user);
-                console.log("Organization data loaded:", organization);
-            } catch (error) {
-                console.error('Failed to load profile:', error);
-                setProfileError('Failed to load profile information.');
+            } catch (err) {
+                console.error('Failed to load profile:', err);
+                setError('Failed to load profile information.');
             } finally {
-                setIsLoadingProfile(false);
+                setIsLoading(false);
             }
         };
         fetchProfile();
     }, []);
 
     const renderContent = () => {
-        if (isLoadingProfile) {
-            return <div className="profile-card">Loading profile...</div>;
+        if (isLoading) {
+            return (
+                <Card className="w-full shadow-sm">
+                    <CardContent className="flex items-center justify-center py-16">
+                        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+                            <p className="text-sm">Loading profile…</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            );
         }
-        if (profileError) {
-            return <div className="profile-card error-message">{profileError}</div>;
+
+        if (error) {
+            return (
+                <Card className="w-full border-destructive/40 shadow-sm">
+                    <CardContent className="py-10 text-center text-sm text-destructive">
+                        {error}
+                    </CardContent>
+                </Card>
+            );
         }
+
         if (!userData || !organizationData) {
-            return <div className="profile-card">Could not load profile data.</div>;
+            return (
+                <Card className="w-full shadow-sm">
+                    <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                        Could not load profile data.
+                    </CardContent>
+                </Card>
+            );
         }
+
         return <UserInfo user={userData} organization={organizationData} />;
     };
 
     return (
-        <div className="profile-container" style={themeColors}>
-            <div className="profile-content">{renderContent()}</div>
-        </div>
-    );
-};
-
-// UserInfo component - Display only, no editing
-const UserInfo = ({ user, organization }) => {
-    return (
-        <div className="profile-card">
-            <h4>Your account information</h4>
-            <div className="avatar-section">
-                 <div className="avatar-container">
-                     <img src={DefaultAvatar} alt="User Avatar" className="avatar-img" />
-                 </div>
-                 <div className="avatar-details">
-                     <h5>{organization?.companyName || 'Company Name'}</h5>
-                     <p>Email: {organization?.ownerEmail || 'N/A'}</p>
-                     <p>Role: {user?.role || 'N/A'}</p>
-                     <p>Status: {user?.status || 'N/A'}</p>
-                 </div>
-            </div>
-            <div className="info-form">
-                <div className="form-row">
-                     <div className="form-group">
-                         <label>First Name</label>
-                         <input 
-                             type="text" 
-                             value={user?.firstName || ''} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                     <div className="form-group">
-                         <label>Last Name</label>
-                         <input 
-                             type="text" 
-                             value={user?.lastName || ''} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                </div>
-                 <div className="form-row">
-                     <div className="form-group">
-                         <label>Location</label>
-                         <input 
-                             type="text" 
-                             value={user?.location || 'N/A'} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                     <div className="form-group">
-                         <label>Mobile Number</label>
-                         <input 
-                             type="tel" 
-                             value={user?.mobileNumber || 'N/A'} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                </div>
-                 <div className="form-row">
-                     <div className="form-group">
-                         <label>GSTIN</label>
-                         <input 
-                             type="text" 
-                             value={organization?.gstin || 'N/A'} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                     <div className="form-group">
-                         <label>Email</label>
-                         <input 
-                             type="email" 
-                             value={user?.email || ''} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                </div>
-                <div className="form-row">
-                     <div className="form-group">
-                         <label>Company Name</label>
-                         <input 
-                             type="text" 
-                             value={organization?.companyName || 'N/A'} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                     <div className="form-group">
-                         <label>Organization ID</label>
-                         <input 
-                             type="text" 
-                             value={organization?._id || 'N/A'} 
-                             disabled 
-                             className="profile-input-disabled"
-                         />
-                     </div>
-                </div>
-                <div className="form-actions">
-                    <div className="profile-edit-notice">
-                        <p>If you need to edit your information, please contact the administrator.</p>
-                    </div>
-                </div>
-            </div>
+        <div className="w-full max-w-3xl mx-auto py-6 px-4" style={themeColors}>
+            {renderContent()}
         </div>
     );
 };

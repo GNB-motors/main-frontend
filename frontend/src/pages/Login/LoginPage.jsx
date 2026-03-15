@@ -78,6 +78,7 @@ const LoginPage = () => {
             // Handle new API response structure
             const token = loginData.token || loginData.access_token;
             const user = loginData.user;
+            const organization = loginData.organization;
 
             // Store the token immediately
             localStorage.setItem('authToken', token);
@@ -124,16 +125,14 @@ const LoginPage = () => {
                 }
 
                 // For OWNER and other roles, check if onboarding is completed
-                const onboardingCompleted = localStorage.getItem('onboardingCompleted');
-                
-                if (onboardingCompleted === 'true') {
-                    // User has completed onboarding, go to overview
+                const isOnboarded = organization?.isOnboarded === true;
+
+                if (isOnboarded) {
                     toast.success("Welcome back! Redirecting to dashboard...");
                     setTimeout(() => {
                         navigate('/overview');
                     }, 1500);
                 } else {
-                    // User hasn't completed onboarding yet
                     toast.success("Login successful! Redirecting to onboarding...");
                     setTimeout(() => {
                         navigate('/onboarding');
