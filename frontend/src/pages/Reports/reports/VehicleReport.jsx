@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box, Alert
 } from '@mui/material';
-import { ChevronRight } from 'lucide-react';
 import {
     Pagination, PaginationContent, PaginationEllipsis,
     PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
@@ -318,14 +317,10 @@ const VehicleReport = () => {
                                                     {typeof row.revenuePerKm === 'number' ? `₹${row.revenuePerKm.toFixed(2)}` : '-'}
                                                 </div>
                                             </td>
-                                            <td className="last-col" style={{ textAlign: 'right' }}>
-                                                <span className="date-text">
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
                                                     {typeof row.profitMargin === 'number' ? `${row.profitMargin.toFixed(1)}%` : 'N/A'}
-                                                </span>
-                                                <button className="view-details-btn">
-                                                    View details
-                                                    <ChevronRight size={14} />
-                                                </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
