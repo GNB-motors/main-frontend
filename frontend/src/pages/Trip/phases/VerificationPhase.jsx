@@ -19,7 +19,6 @@ const VerificationPhase = ({
   onBack,
   onSubmit,
   isSubmitting,
-  onCancel,
   fixedDocs: propsFixedDocs = {},
   weightSlips: propsWeightSlips = [],
   journeyData
@@ -73,45 +72,8 @@ const VerificationPhase = ({
     [weightSlips]
   );
 
-  const revenueSummary = useMemo(() => {
-    // Calculate from weight slips - TripForm uses flat property names
-    const totalRevenue = weightSlips.reduce((sum, slip) => {
-      // TripForm uses totalAmountReceived
-      return sum + (parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || 0);
-    }, 0);
 
-    const totalCalculated = weightSlips.reduce((sum, slip) => {
-      // TripForm uses netWeight and amountPerKg
-      const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || 0;
-      const ratePerKg = parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || 0;
-      return sum + (netWeight * ratePerKg / 1000); // Convert to calculated amount
-    }, 0);
 
-    const totalVariance = totalRevenue - totalCalculated;
-
-    return {
-      totalRevenue,
-      totalCalculated,
-      totalVariance
-    };
-  }, [weightSlips]);
-
-  const totalExpense = useMemo(() => {
-    // Calculate from weight slips expenses - TripForm uses flat property names
-    return weightSlips.reduce((sum, slip) => {
-      const slipTotal = (parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0) +
-        (parseFloat(slip.toll) || slip.expenses?.toll || 0) +
-        (parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0) +
-        (parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0) +
-        (parseFloat(slip.royalty) || slip.expenses?.royalty || 0) +
-        (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0);
-      return sum + slipTotal;
-    }, 0);
-  }, [weightSlips]);
-
-  const profit = useMemo(() => {
-    return (revenueSummary.totalRevenue || 0) - (totalExpense || 0);
-  }, [revenueSummary, totalExpense]);
 
   const handleShowPreview = useCallback((imageSrc, title) => {
     setPreviewModal({
@@ -125,12 +87,13 @@ const VerificationPhase = ({
   const createdObjectUrls = React.useRef(new Set());
 
   React.useEffect(() => {
+    const urls = createdObjectUrls.current;
     return () => {
       // Revoke any created object URLs on unmount
-      createdObjectUrls.current.forEach((u) => {
-        try { URL.revokeObjectURL(u); } catch (e) { /* ignore */ }
+      urls.forEach((u) => {
+        try { URL.revokeObjectURL(u); } catch (err) { console.debug('revokeObjectURL ignored', err); }
       });
-      createdObjectUrls.current.clear();
+      urls.clear();
     };
   }, []);
 
@@ -201,7 +164,6 @@ const VerificationPhase = ({
               // Full tank fuel (from modal fuelData or top-level fuelLitres)
               const fullTankLitres = journeyData?.fuelData?.litres ?? journeyData?.fuelLitres ?? journeyData?.mileage?.partialFuelLitres ?? journeyData?.mileage?.totalFuelUsedL ?? null;
               const fuelRate = journeyData?.fuelData?.rate ?? journeyData?.fuelRate ?? null;
-              const fuelLocation = journeyData?.fuelData?.location ?? journeyData?.fuelLocation ?? null;
 
               // Sum partial fuels from fixedDocs (if available)
               const partialSum = (fixedDocs?.partialFuel || []).reduce((s, pf) => {

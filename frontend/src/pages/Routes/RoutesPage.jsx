@@ -4,10 +4,10 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Search, Activity, MapPin, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import RouteService from './RouteService';
-import { useNavigate } from 'react-router-dom';
 import './RoutesPage.css';
 
 const RoutesPage = () => {
@@ -20,13 +20,7 @@ const RoutesPage = () => {
   const navigate = useNavigate();
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
 
-  // Form state - matches backend API structure
-  const [formData, setFormData] = useState({
-    name: '',
-    sourceLocation: { address: '', city: '', state: '', lat: null, lng: null },
-    destLocation: { address: '', city: '', state: '', lat: null, lng: null },
-    distanceKm: ''
-  });
+
 
   // Fetch routes
   const fetchRoutes = useCallback(async (page = 1, search = '') => {
@@ -59,36 +53,6 @@ const RoutesPage = () => {
     setSearchTerm(value);
     fetchRoutes(1, value);
   }, [fetchRoutes]);
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setFormData({
-      name: '',
-      sourceLocation: { address: '', city: '', state: '', lat: null, lng: null },
-      destLocation: { address: '', city: '', state: '', lat: null, lng: null },
-      distanceKm: ''
-    });
-  }, []);
-
-  // Handle form input change
-  const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  }, []);
-
-  // Handle location input change
-  const handleLocationChange = useCallback((locationType, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [locationType]: {
-        ...prev[locationType],
-        [field]: value
-      }
-    }));
-  }, []);
 
 
   // Navigate to edit page

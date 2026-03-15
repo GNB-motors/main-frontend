@@ -7,7 +7,7 @@
  */
 
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import './ProcessingPhase.css';
 import SlipsList from '../components/SlipsList';
@@ -22,7 +22,6 @@ const ProcessingPhase = ({
   onPreviousSlip,
   onSelectSlip,
   onBackToIntake,
-  onCancel,
   weightSlips: propsWeightSlips,
   fixedDocs: propsFixedDocs,
   currentIndex: propsCurrentIndex,
@@ -60,13 +59,9 @@ const ProcessingPhase = ({
   }, []);
 
   // Helper to coerce values to safe numbers (avoid NaN)
-  const toNumber = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  };
 
   // Update slip in state (use parent's update function if provided)
-  const updateWeightSlip = (idx, data) => {
+  const updateWeightSlip = useCallback((idx, data) => {
     if (propsUpdateWeightSlip) {
       propsUpdateWeightSlip(idx, data);
     } else {
@@ -76,13 +71,13 @@ const ProcessingPhase = ({
         return updated;
       });
     }
-  };
+  }, [propsUpdateWeightSlip]);
 
   // Navigation
-  const handleNextSlip = () => {
+  const handleNextSlip = useCallback(() => {
     if (currentIndex < weightSlips.length - 1) setCurrentIndex(currentIndex + 1);
     if (onNextSlip) onNextSlip();
-  };
+  }, [currentIndex, weightSlips.length, onNextSlip]);
   const handlePreviousSlip = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
@@ -91,10 +86,6 @@ const ProcessingPhase = ({
       // If on first slip, go back to Intake phase
       onBackToIntake();
     }
-  };
-  const handleSelectSlip = (idx) => {
-    setCurrentIndex(idx);
-    if (onSelectSlip) onSelectSlip(idx);
   };
 
 
@@ -139,17 +130,6 @@ const ProcessingPhase = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, weightSlips.length, onNextSlip, onPreviousSlip]);
 
-  // Handle save (mark current slip as done - local state only, no API calls)
-  const handleSave = useCallback(async () => {
-    if (!currentSlip.origin || !currentSlip.destination || !currentSlip.weight) {
-      alert('Please fill in all required fields:\n- Origin\n- Destination\n- Weight');
-      return;
-    }
-    // Mark current slip as done in local state
-    updateWeightSlip(currentIndex, { isDone: true });
-    alert('Slip saved locally! All data will be submitted at the end.');
-  }, [currentSlip, currentIndex, updateWeightSlip]);
-
   // Bulk Save & Next: Save locally and move to next slip
   const handleBulkSaveAndNext = useCallback(async () => {
     if (!isFormValid) {
@@ -186,26 +166,7 @@ const ProcessingPhase = ({
       // All slips completed, proceed to next phase
       onNextSlip();
     }
-  }, [currentSlip, currentIndex, updateWeightSlip, weightSlips.length, handleNextSlip, onNextSlip, isFormValid, formErrors]);
-
-  // Handle completion and move to next phase
-  const handleCompleteProcessing = useCallback(() => {
-    // Check if all slips are completed
-    const allCompleted = weightSlips.every(slip => slip.isDone);
-
-    if (!allCompleted) {
-      const pending = weightSlips.filter(slip => !slip.isDone).length;
-      alert(`Please complete all slips first.\n\nPending: ${pending} slip(s)`);
-      return;
-    }
-
-    // All slips are done, proceed to next phase
-    onNextSlip();
-  }, [weightSlips, onNextSlip]);
-
-  // Calculate progress based on completed slips
-  const completedSlips = weightSlips.filter(slip => slip.isDone).length;
-  const progress = weightSlips.length > 0 ? (completedSlips / weightSlips.length) * 100 : 0;
+  }, [currentIndex, updateWeightSlip, weightSlips.length, handleNextSlip, onNextSlip, isFormValid, formErrors]);
 
   // Guard rendering when slips are missing
   if (!currentSlip) {

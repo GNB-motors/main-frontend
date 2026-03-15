@@ -1,6 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 
-const getProfile = async (token) => {
+const getProfile = async () => {
   try {
     const response = await apiClient.get('/api/auth/me');
     // Handle new API response structure: {status: "success", data: {...}}

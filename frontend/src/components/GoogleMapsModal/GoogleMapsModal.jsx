@@ -58,62 +58,6 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
     };
   }, [isOpen]);
 
-  // Manage Marker
-  useEffect(() => {
-    if (mapRef.current && selectedLocation && window.google?.maps?.Marker) {
-      if (markerRef.current) {
-        // Update position
-        markerRef.current.setPosition({
-          lat: selectedLocation.lat,
-          lng: selectedLocation.lng
-        });
-      } else {
-        // Create SVG string for the icon
-        const svgString = `
-          <svg width="50" height="49" viewBox="0 0 50 49" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M25.0561 48.4531C38.1543 48.4531 48.7724 37.835 48.7724 24.7368C48.7724 11.6387 38.1543 1.02051 25.0561 1.02051C11.958 1.02051 1.33984 11.6387 1.33984 24.7368C1.33984 37.835 11.958 48.4531 25.0561 48.4531Z" fill="white" fill-opacity="0.8" stroke="#FF8A00"/>
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M19.9121 22.8976C19.9121 19.6725 22.536 17.0486 25.7612 17.0486C28.9864 17.0486 31.6102 19.6725 31.6103 22.8976C31.6103 26.9002 26.3759 32.7762 26.1531 33.0244C25.9441 33.2571 25.5787 33.2575 25.3693 33.0244C25.1465 32.7762 19.9121 26.9002 19.9121 22.8976ZM22.8183 22.8976C22.8183 24.5203 24.1384 25.8404 25.7611 25.8404C27.3837 25.8404 28.7039 24.5203 28.7039 22.8976C28.7039 21.275 27.3837 19.9548 25.7611 19.9548C24.1384 19.9548 22.8183 21.2749 22.8183 22.8976Z" fill="#FF6600"/>
-          </svg>
-        `;
-
-        // Create marker with custom icon
-        markerRef.current = new window.google.maps.Marker({
-          map: mapRef.current,
-          position: {
-            lat: selectedLocation.lat,
-            lng: selectedLocation.lng
-          },
-          draggable: true,
-          icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgString),
-            anchor: new window.google.maps.Point(25, 49), // Anchor at bottom center (half width, full height)
-          },
-        });
-
-        // Add dragend listener
-        markerRef.current.addListener('dragend', (event) => {
-          const lat = event.latLng.lat();
-          const lng = event.latLng.lng();
-          handleMapClick({ latLng: { lat: () => lat, lng: () => lng } });
-        });
-      }
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (markerRef.current) {
-        markerRef.current.setMap(null);
-        markerRef.current = null;
-      }
-    };
-  }, [selectedLocation]);
-
-  const mapContainerStyle = {
-    width: '100%',
-    height: '100%'
-  };
-
-
   // Helper to extract location details including pincode
   const extractLocationDetails = (result) => {
     const lat = result.geometry.location.lat();
@@ -196,6 +140,62 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   // actually extractLocationDetails doesn't depend on state, so it can be defined outside or inside without deps.
   // BUT handleMapClick uses it, so it needs to be available. 
   // I will duplicate the helper or put it outside component in the same file to avoid dependency issues in useCallback.
+
+  // Manage Marker
+  useEffect(() => {
+    if (mapRef.current && selectedLocation && window.google?.maps?.Marker) {
+      if (markerRef.current) {
+        // Update position
+        markerRef.current.setPosition({
+          lat: selectedLocation.lat,
+          lng: selectedLocation.lng
+        });
+      } else {
+        // Create SVG string for the icon
+        const svgString = `
+          <svg width="50" height="49" viewBox="0 0 50 49" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M25.0561 48.4531C38.1543 48.4531 48.7724 37.835 48.7724 24.7368C48.7724 11.6387 38.1543 1.02051 25.0561 1.02051C11.958 1.02051 1.33984 11.6387 1.33984 24.7368C1.33984 37.835 11.958 48.4531 25.0561 48.4531Z" fill="white" fill-opacity="0.8" stroke="#FF8A00"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M19.9121 22.8976C19.9121 19.6725 22.536 17.0486 25.7612 17.0486C28.9864 17.0486 31.6102 19.6725 31.6103 22.8976C31.6103 26.9002 26.3759 32.7762 26.1531 33.0244C25.9441 33.2571 25.5787 33.2575 25.3693 33.0244C25.1465 32.7762 19.9121 26.9002 19.9121 22.8976ZM22.8183 22.8976C22.8183 24.5203 24.1384 25.8404 25.7611 25.8404C27.3837 25.8404 28.7039 24.5203 28.7039 22.8976C28.7039 21.275 27.3837 19.9548 25.7611 19.9548C24.1384 19.9548 22.8183 21.2749 22.8183 22.8976Z" fill="#FF6600"/>
+          </svg>
+        `;
+
+        // Create marker with custom icon
+        markerRef.current = new window.google.maps.Marker({
+          map: mapRef.current,
+          position: {
+            lat: selectedLocation.lat,
+            lng: selectedLocation.lng
+          },
+          draggable: true,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgString),
+            anchor: new window.google.maps.Point(25, 49), // Anchor at bottom center (half width, full height)
+          },
+        });
+
+        // Add dragend listener
+        markerRef.current.addListener('dragend', (event) => {
+          const lat = event.latLng.lat();
+          const lng = event.latLng.lng();
+          handleMapClick({ latLng: { lat: () => lat, lng: () => lng } });
+        });
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+    };
+  }, [selectedLocation, handleMapClick]);
+
+  const mapContainerStyle = {
+    width: '100%',
+    height: '100%'
+  };
+
 
   const handleApply = async () => {
     if (!selectedLocation) return;

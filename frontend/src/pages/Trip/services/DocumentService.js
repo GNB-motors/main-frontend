@@ -50,7 +50,7 @@ class DocumentService {
    * @param {Object} params.ocrData - Pre-scanned OCR data
    * @returns {Promise<Object>} Uploaded document data
    */
-  static async uploadWithOcrData({ file, entityType, entityId, docType, ocrData }) {
+  static async uploadWithOcrData({ file, entityType, entityId, docType }) {
     if (!file) throw new Error('No file provided');
 
     const form = new FormData();

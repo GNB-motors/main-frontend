@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { Plus, Trash2 } from 'lucide-react';
 import { OnboardingService } from '../OnboardingService';
 
-const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
+const StepVehicles = ({ onNext, onBack, onDataChange }) => {
     const [vehicles, setVehicles] = useState([
         { registration_no: '', vehicle_type: 'Truck', chassis_number: '' }
     ]);

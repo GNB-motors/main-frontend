@@ -273,11 +273,7 @@ const RouteCreator = ({
     }
   };
 
-  // Called after map modal and API
-  const handleAddNewLocation = (locationType, locationObj) => {
-    setLocationOptions(prev => [...prev, locationObj]);
-    updateRouteData(locationType, locationObj);
-  };
+
 
   // Open map modal for add new (used by both dropdown and map button)
   const handleRequestAddNew = (locationType, clearSearch) => {
@@ -308,6 +304,7 @@ const RouteCreator = ({
       setLocationOptions(prev => [...prev, created]);
       updateRouteData(currentLocationType, created);
     } catch (err) {
+      console.error(err);
       alert('Failed to add location. Please try again.');
     }
   };
@@ -340,14 +337,12 @@ const RouteCreator = ({
         });
       }
     } catch (err) {
+      console.error(err);
       alert('Failed to delete location.');
     }
   };
 
-  const openMapsModal = (locationType) => {
-    setCurrentLocationType(locationType);
-    setIsMapsModalOpen(true);
-  };
+
 
   const handleDistanceChange = (baseDistance) => {
     const multiplier = tripType === 'ROUND_TRIP' ? 2 : 1;

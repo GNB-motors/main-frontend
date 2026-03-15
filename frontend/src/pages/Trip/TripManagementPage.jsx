@@ -18,7 +18,7 @@ import { Search } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService, WeightSlipTripService } from './services';
-import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
+import { getVehicleRegistration, getDriverName } from '../../utils/dataFormatters';
 
 const TripManagementPage = () => {
   const navigate = useNavigate();
@@ -113,6 +113,7 @@ const TripManagementPage = () => {
     } else {
       fetchRefuelTrips();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, weightSlipPagination.page, refuelPagination.page]);
 
   /**

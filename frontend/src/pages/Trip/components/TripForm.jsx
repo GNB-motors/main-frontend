@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { TripService } from '../services';
 import './TripForm.css';
 
-const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onValidationChange, showValidation }) => {
+const TripForm = ({ slip, onUpdate, onValidationChange, showValidation }) => {
   // Track which fields have been manually edited by the user
   // Use a ref to persist across re-renders without causing re-renders itself
   const manuallyEditedFieldsRef = useRef(new Set());
@@ -11,7 +11,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
   const [validationErrors, setValidationErrors] = useState(new Set());
   
   // Define required fields
-  const requiredFields = [
+  const requiredFields = React.useMemo(() => [
     'allocatedFuel',
     'materialType',
     'grossWeight',
@@ -25,7 +25,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
     'driverTripExpense',
     'royalty',
     'weight'
-  ];
+  ], []);
 
   // Validate form and update validation state
   const validateForm = useCallback(() => {
@@ -64,7 +64,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
   );
 
   // Track the current slip ID to detect when we switch to a different slip
-  const prevSlipIdRef = useRef(slip?.tempId || slip?.id);
+
 
   // Autofill weight fields from OCR data if available and not already set
   // Only run once when slip changes
@@ -91,7 +91,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
         onUpdate(updates);
       }
     }
-  }, [slip?.tempId, slip?.id]); // Only depend on slip change
+  }, [slip?.tempId, slip?.id, slip.ocrData, slip.grossWeight, slip.tareWeight, slip.netWeight, onUpdate]); // Only depend on slip change
 
   // Prevent scroll wheel from changing number input values
   useEffect(() => {

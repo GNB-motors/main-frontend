@@ -21,8 +21,6 @@ const JourneySetupModal = ({
   selectedDriver
 }) => {
 
-  // Don't render if not open
-  if (!isOpen) return null;
 
   const [journeyData, setJourneyData] = useState({
     startOdometer: 0,
@@ -56,12 +54,49 @@ const JourneySetupModal = ({
     'fuel.extractedData': fuelSlipData?.extractedData
   });
 
+  const fetchStartOdometer = React.useCallback(async () => {
+    if (!selectedVehicle?.id) {
+      console.error('❌ No selectedVehicle.id available:', selectedVehicle);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('🚗 Fetching start odometer for vehicle:', selectedVehicle.id);
+      const response = await TripService.getVehicleLastFuelLog(selectedVehicle.id);
+      console.log('📊 Start odometer API response:', response);
+      const startOdometer = response.data.startOdometer || response.data.odometerReading || 0;
+      console.log('🎯 Using start odometer value:', startOdometer);
+
+      setJourneyData(prev => {
+        const newData = {
+          ...prev,
+          startOdometer,
+          totalDistance: Math.max(0, prev.endOdometer - startOdometer),
+          estimatedEfficiency: prev.fuelLitres > 0 ? Math.max(0, prev.endOdometer - startOdometer) / prev.fuelLitres : 0
+        };
+        console.log('✅ Updated journey data with start odometer:', {
+          startOdometer,
+          endOdometer: newData.endOdometer,
+          calculatedDistance: Math.max(0, newData.endOdometer - startOdometer)
+        });
+        return newData;
+      });
+    } catch (error) {
+      console.error('Failed to fetch start odometer:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedVehicle]);
+
+
+
   // Fetch start odometer from last fuel log
   useEffect(() => {
     if (isOpen && selectedVehicle?.id) {
       fetchStartOdometer();
     }
-  }, [isOpen, selectedVehicle?.id]);
+  }, [isOpen, selectedVehicle?.id, fetchStartOdometer]);
 
   // Auto-populate from OCR data
   useEffect(() => {
@@ -155,7 +190,7 @@ const JourneySetupModal = ({
         });
       }
     }
-  }, [isOpen, odometerOcrData, fuelSlipData]);
+  }, [isOpen, odometerOcrData, fuelSlipData, userEditedFields]);
 
   // Compute partial fills sum and total fuel used (full tank + partials)
   const partialFillsSum = (partialFuelData || []).reduce((sum, pf) => {
@@ -165,38 +200,7 @@ const JourneySetupModal = ({
 
   const totalFuelUsed = Number(journeyData.fuelLitres || 0) + Number(partialFillsSum || 0);
 
-  const fetchStartOdometer = async () => {
-    if (!selectedVehicle?.id) {
-      console.error('❌ No selectedVehicle.id available:', selectedVehicle);
-      return;
-    }
 
-    try {
-      setLoading(true);
-      console.log('🚗 Fetching start odometer for vehicle:', selectedVehicle.id);
-      const response = await TripService.getVehicleLastFuelLog(selectedVehicle.id);
-      console.log('📊 Start odometer API response:', response);
-      const startOdometer = response.data.startOdometer || response.data.odometerReading || 0;
-      console.log('🎯 Using start odometer value:', startOdometer);
-
-      setJourneyData(prev => ({
-        ...prev,
-        startOdometer,
-        totalDistance: Math.max(0, prev.endOdometer - startOdometer),
-        estimatedEfficiency: prev.fuelLitres > 0 ? Math.max(0, prev.endOdometer - startOdometer) / prev.fuelLitres : 0
-      }));
-
-      console.log('✅ Updated journey data with start odometer:', {
-        startOdometer,
-        endOdometer: journeyData.endOdometer,
-        calculatedDistance: Math.max(0, journeyData.endOdometer - startOdometer)
-      });
-    } catch (error) {
-      console.error('Failed to fetch start odometer:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleInputChange = (field, value) => {
     console.log('✏️ User edited field:', field, 'new value:', value);
@@ -562,4 +566,4 @@ const JourneySetupModal = ({
   );
 };
 
-export default JourneySetupModal;
+export default JourneySetupModal

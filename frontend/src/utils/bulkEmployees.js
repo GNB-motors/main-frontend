@@ -36,11 +36,11 @@ export const normalizePhone = (phone) => {
   if (!phoneStr) return null;
   
   // Remove all spaces, dashes, parentheses, dots
-  let cleaned = phoneStr.replace(/[\s\-\(\)\.]/g, '');
+  let cleaned = phoneStr.replace(/[\s\-().]/g, '');
   
   // If already starts with +, keep it
   if (cleaned.startsWith('+')) {
-    cleaned = cleaned;
+    // do nothing
   } else if (/^[1-9]\d{9}$/.test(cleaned)) {
     // 10 digits starting with 1-9 -> assume India
     cleaned = `+91${cleaned}`;
@@ -69,7 +69,7 @@ export const normalizeEmail = (email) => {
   if (!trimmed) return null;
   
   // Basic email validation
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailPattern = /^[^\s@]+@[^\s@]+.[^\s@]+$/;
   if (emailPattern.test(trimmed)) {
     return trimmed.toLowerCase();
   }
@@ -146,7 +146,7 @@ export const validateEmployeeRow = (row) => {
   
   if (row.email && row.email !== null) {
     // Email is optional, but if provided must be valid
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailPattern = /^[^\s@]+@[^\s@]+.[^\s@]+$/;
     if (!emailPattern.test(row.email)) {
       errors.email = 'Email must be valid format';
     }

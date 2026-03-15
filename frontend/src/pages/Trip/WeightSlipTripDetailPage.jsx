@@ -5,14 +5,14 @@
  * Includes: vehicle info, driver, material details, weights, revenue, expenses, etc.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Download, MapPin, Users, FileText, DollarSign, Package, TrendingUp } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { WeightSlipTripService, TripService } from './services';
-import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
+
 
 const WeightSlipTripDetailPage = () => {
   const navigate = useNavigate();
@@ -22,18 +22,7 @@ const WeightSlipTripDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchTripDetails();
-  }, [id]);
-
-  // Enable Start New Trip button to work from this page
-  useEffect(() => {
-    const handleStartNewTrip = () => navigate('/trip/new');
-    window.addEventListener('startNewTrip', handleStartNewTrip);
-    return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
-  }, [navigate]);
-
-  const fetchTripDetails = async () => {
+  const fetchTripDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -47,7 +36,19 @@ const WeightSlipTripDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchTripDetails();
+  }, [fetchTripDetails]);
+
+  // Enable Start New Trip button to work from this page
+  useEffect(() => {
+    const handleStartNewTrip = () => navigate('/trip/new');
+    window.addEventListener('startNewTrip', handleStartNewTrip);
+    return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
+  }, [navigate]);
+
 
   const getStatusColor = (status) => {
     const colors = {

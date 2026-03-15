@@ -77,7 +77,7 @@ const TripCreationFlow = () => {
 
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isIntakeLoading, setIsIntakeLoading] = useState(false);
+  const [isIntakeLoading] = useState(false);
 
   /**
    * Move to processing phase after intake and OCR preview
@@ -112,6 +112,7 @@ const TripCreationFlow = () => {
     setShowJourneyModal(true);
     setCurrentIndex(0);
     toast.success('Starting data entry phase...');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixedDocs, weightSlips, selectedVehicle, selectedDriver]);
 
   /**

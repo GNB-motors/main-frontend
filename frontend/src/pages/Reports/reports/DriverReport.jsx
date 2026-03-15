@@ -1,23 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Box, Typography, TextField, InputAdornment, IconButton, CircularProgress, Alert, FormControl, Select, MenuItem
+    Box, Typography, CircularProgress, Alert, FormControl, Select, MenuItem
 } from '@mui/material';
-import { Search as SearchIcon, InfoOutlined, Star } from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- **** DriverReport COMPONENT **** ---
-const DriverReport = ({ handleViewOutliers }) => {
+const DriverReport = () => {
     // State for fetched data, loading, and errors specific to this report
     const [driverReportData, setDriverReportData] = useState([]);
     const [isLoadingDrivers, setIsLoadingDrivers] = useState(true);
     const [driverError, setDriverError] = useState(null);
 
     // State for filters
-    const [searchText, setSearchText] = useState("");
+    const [searchText] = useState("");
     const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
     const [selectedEmployee, setSelectedEmployee] = useState('');
 
@@ -44,109 +42,6 @@ const DriverReport = ({ handleViewOutliers }) => {
     }, []);
 
     // Define columns based on API response
-    const driverColumns = useMemo(() => [
-        { field: 'driverName', headerName: 'Driver Name', flex: 1.5 },
-        { field: 'mobileNumber', headerName: 'Mobile Number', flex: 1.2 },
-        { 
-            field: 'journeysCompleted', 
-            headerName: 'Journeys Completed', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right' 
-        },
-        {
-            field: 'totalWeightSlipTrips', 
-            headerName: 'Weight Slip Trips', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right'
-        },
-        {
-            field: 'totalDistanceDrivenKm', 
-            headerName: 'Total Distance (KM)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '-'
-        },
-        {
-            field: 'averageTripDistance', 
-            headerName: 'Avg. Trip Distance (KM)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '-'
-        },
-        {
-            field: 'totalRevenue', 
-            headerName: 'Total Revenue', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'totalExpenses', 
-            headerName: 'Total Expenses', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'totalProfit', 
-            headerName: 'Total Profit', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'avgRevenuePerTrip', 
-            headerName: 'Avg Revenue/Trip', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'profitMargin', 
-            headerName: 'Profit Margin (%)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `${value.toFixed(2)}%` : 'N/A'
-        },
-        {
-            field: 'onTimeArrivalRate', 
-            headerName: 'On-Time Arrival', 
-            flex: 1.2, 
-            align: 'center', 
-            headerAlign: 'center',
-            valueFormatter: (value) => value || 'N/A'
-        },
-        {
-            field: 'documentsExpired', 
-            headerName: 'Docs Status', 
-            flex: 1, 
-            align: 'center', 
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography sx={{ color: params.value ? 'red' : 'green', fontWeight: 500 }}>
-                    {params.value ? 'Expired' : 'Valid'}
-                </Typography>
-            )
-        },
-    ], []);
 
     // Client-side filtering based on search text and filters
     const filteredRows = useMemo(() => {

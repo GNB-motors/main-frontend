@@ -12,7 +12,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Users, MapPin, Package, DollarSign, 
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService } from './services';
-import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
+
 
 const TripDetailPage = () => {
   const navigate = useNavigate();
@@ -26,18 +26,7 @@ const TripDetailPage = () => {
     fuelLogs: false
   });
 
-  useEffect(() => {
-    fetchTripDetails();
-  }, [id]);
-
-  // Enable Start New Trip button to work from this page
-  useEffect(() => {
-    const handleStartNewTrip = () => navigate('/trip/new');
-    window.addEventListener('startNewTrip', handleStartNewTrip);
-    return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
-  }, [navigate]);
-
-  const fetchTripDetails = async () => {
+  const fetchTripDetails = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -51,7 +40,18 @@ const TripDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchTripDetails();
+  }, [id, fetchTripDetails]);
+
+  // Enable Start New Trip button to work from this page
+  useEffect(() => {
+    const handleStartNewTrip = () => navigate('/trip/new');
+    window.addEventListener('startNewTrip', handleStartNewTrip);
+    return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
+  }, [navigate]);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -137,8 +137,6 @@ const TripDetailPage = () => {
   };
 
   // Prefer journey-level vehicle/driver when available, otherwise fall back to top-level trip fields
-  const vehicle = trip.journeyId?.vehicleId || trip.vehicleId;
-  const driver = trip.journeyId?.driverId || trip.driverId;
 
   // Use journeyFinancials from API response if available, otherwise calculate from weightSlipTrips
   const totalRevenue = trip.journeyFinancials?.totalRevenue ||

@@ -47,6 +47,7 @@ const formatDateRange = (from, to) => {
 
 // ─── Status KPI Card ──────────────────────────────────────────────────────────
 
+// eslint-disable-next-line no-unused-vars
 const StatusKpiCard = ({ icon: Icon, label, value, iconColor, bgColor, accent }) => (
     <div className="trip-ledger-kpi-card fuel-kpi-card" style={accent ? { outline: `2px solid ${accent}` } : {}}>
         <div className="trip-ledger-kpi-icon" style={{ background: bgColor || 'rgba(47,88,238,0.10)' }}>

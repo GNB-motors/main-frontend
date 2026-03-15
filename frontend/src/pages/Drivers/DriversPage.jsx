@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
@@ -67,7 +67,6 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) 
             setLocation('');
             setPassword('');
             setRole('DRIVER');
-            setVehicleRegistrationNo('');
             setError(null);
         }
     }, [isOpen]);
@@ -217,7 +216,6 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
             setMobileNumber('');
             setLocation('');
             setRole('');
-            setVehicleRegistrationNo('');
             setError(null);
         }
     }, [driver, isOpen]);
@@ -585,7 +583,6 @@ const DriversPage = () => {
     }, []);
 
     // Modal States
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingDriver, setEditingDriver] = useState(null); // Driver object to edit
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -620,7 +617,7 @@ const DriversPage = () => {
     const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
 
     // --- Data Fetching ---
-    const fetchDrivers = async () => {
+    const fetchDrivers = useCallback(async () => {
         // Try to fetch drivers even if businessRefId is not present locally. Some backends may scope by token.
         setIsLoading(true); // Start loading drivers
         setError(null); // Clear general error on fetch
@@ -667,9 +664,9 @@ const DriversPage = () => {
         } finally {
             setIsLoading(false); // Finish loading drivers
         }
-    };
+    }, [businessRefId, currentPage, searchTerm, filters.role]);
 
-    const fetchVehicles = async () => {
+    const fetchVehicles = useCallback(async () => {
         // Attempt to fetch vehicles even if businessRefId is not present locally.
         const token = localStorage.getItem('authToken');
         if (!token) {
@@ -692,44 +689,16 @@ const DriversPage = () => {
             console.error("Failed to fetch vehicles:", apiError);
             // Don't set error state for vehicles, just log it
         }
-    };
+    }, [businessRefId]);
 
     useEffect(() => {
         // Always attempt to fetch drivers and vehicles; backend may scope by token even when org id
         // is not available locally. If token is missing, fetchDrivers will surface an auth error.
         fetchDrivers();
         fetchVehicles();
-    }, [businessRefId, currentPage, searchTerm, filters.role]);
+    }, [fetchDrivers, fetchVehicles]);
 
     // --- Action Handlers ---
-    const handleAddDriver = async (driverData) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !businessRefId) {
-            throw new Error("Missing auth token or business ID.");
-        }
-        setIsSubmitting(true);
-        setActionError(null); // Clear previous action error
-        try {
-            const newDriver = await DriverService.addDriver(businessRefId, driverData);
-            const nd = {
-                ...newDriver,
-                id: newDriver.id || newDriver._id || newDriver._id,
-                firstName: newDriver.firstName || newDriver.first_name || '',
-                lastName: newDriver.lastName || newDriver.last_name || '',
-                name: newDriver.name || `${(newDriver.firstName || newDriver.first_name || '').trim()} ${(newDriver.lastName || newDriver.last_name || '').trim()}`.trim(),
-            };
-            setDrivers(prevDrivers => [...prevDrivers, nd]); // Add new driver to state
-            setIsAddModalOpen(false); // Close modal on success
-            toast.success(`Employee "${driverData.name}" added successfully!`);
-        } catch (apiError) {
-             console.error("Failed to add driver:", apiError);
-             // Re-throw the error so the modal can display it
-             throw apiError;
-        } finally {
-             setIsSubmitting(false);
-        }
-    };
-
     const handleOpenEditModal = (driver) => {
         // Navigate to the Add Driver page but pass the driver to edit via location state
         // so the same page can be used for editing with fields pre-filled.

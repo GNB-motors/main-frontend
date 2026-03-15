@@ -3,11 +3,11 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Grid, FileText, Settings, LogOut, Users, User, Truck, MapPin, Fuel } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
-import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
+import { getThemeCSS } from '../utils/colorTheme';
 import './Sidebar.css';
 
 
-const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
+const Sidebar = ({ setSidebarOpen }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [themeColors, setThemeColors] = useState(getThemeCSS());

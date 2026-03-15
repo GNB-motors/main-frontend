@@ -5,8 +5,6 @@ import './BasicInformationForm.css';
 const BasicInformationForm = forwardRef(({ 
   initialData = {}, 
   onSubmit, 
-  onCancel,
-  isSubmitting = false,
   isEdit = false 
 }, ref) => {
   const [formData, setFormData] = useState({

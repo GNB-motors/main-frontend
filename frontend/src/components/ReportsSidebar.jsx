@@ -3,28 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import {
-    BarChart3,
     User,
-    TrendingUp,
     FileText, // <-- Icon for Trip Report
-    Calendar,
     Truck,
-    Gift,
-    Clock,
-    Percent,
-    Receipt,
     ChevronUp,
     ChevronDown,
-    AlertTriangle,
     BookOpen, // <-- Icon for Trip Ledger
-    Fuel,     // <-- Icon for Fuel Comparison
 } from 'lucide-react';
 import './ReportsSidebar.css';
 import { getThemeCSS } from '../utils/colorTheme';
 
 const ReportsSidebar = ({
     isOpen,
-    isMainSidebarCollapsed,
     selectedReport,
     setSelectedReport
 }) => {

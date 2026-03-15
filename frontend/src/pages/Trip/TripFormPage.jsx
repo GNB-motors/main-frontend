@@ -85,9 +85,9 @@ const TripFormPage = () => {
   // Dropdown options
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
-  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
-  const [dropdownError, setDropdownError] = useState(null);
-  const [uploadingDocs, setUploadingDocs] = useState({});
+  const [, setLoadingDropdowns] = useState(false);
+  const [, setDropdownError] = useState(null);
+  const [, setUploadingDocs] = useState({});
   // Whether uploading is allowed: either editing an existing trip or a vehicle is selected
   const canUpload = isEditMode || Boolean(formData.vehicleNo);
 
@@ -126,9 +126,9 @@ const TripFormPage = () => {
     if (isEditMode && tripId) {
       loadTripData();
     }
-  }, [isEditMode, tripId]);
+  }, [isEditMode, tripId, loadTripData]);
 
-  const loadTripData = async () => {
+  const loadTripData = React.useCallback(async () => {
     setLoadingTrip(true);
     try {
       const response = await TripService.getTripById(tripId);
@@ -143,6 +143,11 @@ const TripFormPage = () => {
         date: trip.startTime ? new Date(trip.startTime).toISOString().split('T')[0] : '',
         vehicleNo: getVehicleRegistration(trip.journeyId?.vehicleId || trip.vehicleId) || '',
         driver: getDriverName(trip.journeyId?.driverId || trip.driverId) || ''
+      });
+
+      // Load start odometer reading if available
+      if (trip.startOdometer) {
+        setManualOdometerStart(trip.startOdometer.toString());
         setShowManualOdometer(true);
         setStartDocs(prev => ({
           ...prev,
@@ -179,7 +184,7 @@ const TripFormPage = () => {
     } finally {
       setLoadingTrip(false);
     }
-  };
+  }, [tripId]);
 
   /**
    * Load drivers first, then vehicles. When entering Add Trip (not edit mode)
@@ -324,7 +329,7 @@ const TripFormPage = () => {
    * Process the cropped blob and upload to backend
    */
   const handleCropComplete = async (croppedBlob) => {
-    const { section, field, originalFile, receiptId, receiptType } = cropperState;
+    const { section, field, originalFile, receiptId } = cropperState;
     
     if (!croppedBlob || !section) return;
 
@@ -876,7 +881,7 @@ const TripFormPage = () => {
         royalty: expenses.royalty ? parseFloat(expenses.royalty) : null
       });
       console.log('Ending trip with data:', endData);
-      const response = await TripService.endTrip(currentTripId, endData);
+      await TripService.endTrip(currentTripId, endData);
       toast.success('Trip ended successfully');
       navigate('/trip-management');
     } catch (error) {
@@ -1356,7 +1361,7 @@ const TripFormPage = () => {
  * @param {Function} onProcess - Callback to trigger OCR processing
  * @param {boolean} isProcessing - Whether OCR is currently processing
  */
-const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProcessing, canUpload }) => {
+const DocumentUpload = ({ title, required, document, onUpload, canUpload }) => {
   const inputId = `upload-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
   const handleLabelClick = (e) => {
@@ -1443,7 +1448,7 @@ const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProc
  * @param {Function} onRemove - Callback to remove this receipt
  * @param {boolean} isProcessing - Whether OCR is currently processing
  */
-const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessing, canUpload }) => {
+const FuelReceiptUpload = ({ receipt, onUpload, onRemove, canUpload }) => {
   const inputId = `fuel-receipt-${receipt.id}`;
 
   const handleLabelClick = (e) => {

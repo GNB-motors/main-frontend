@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 // Profile context removed - vehicles page should render independently
-import { getPrimaryColor, getThemeCSS } from '../../utils/colorTheme.js';
+import { getThemeCSS } from '../../utils/colorTheme.js';
 import './ProfilePage.css';
 import './VehiclesPage.css';
 
@@ -303,7 +303,7 @@ const VehiclesPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalVehicles, setTotalVehicles] = useState(0);
+    const [, setTotalVehicles] = useState(0);
 
     // Update theme colors when component mounts
     useEffect(() => {

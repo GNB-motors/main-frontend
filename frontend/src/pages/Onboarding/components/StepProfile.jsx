@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { clearAuthData } from '../../../utils/authUtils';
 
-const StepProfile = ({ onNext, onDataChange, formData }) => {
+const StepProfile = ({ onNext, onDataChange }) => {
     const navigate = useNavigate();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { ArrowLeft } from "lucide-react";
 import apiClient from "../../utils/axiosConfig";
 import "./RequestFormPage.css";
@@ -23,8 +23,8 @@ const RequestFormPage = () => {
   // Report type selection - Auto-determined based on backend data
   const [reportType, setReportType] = useState(null); // 'custom_trip' | 'since_last_refuel'
   const [latestRefuel, setLatestRefuel] = useState(null);
-  const [refuelError, setRefuelError] = useState(null);
-  const [isLoadingRefuel, setIsLoadingRefuel] = useState(false);
+  const [refuelError] = useState(null);
+  const [isLoadingRefuel] = useState(false);
 
   const [formData, setFormData] = useState({
     selectedVehicle: "",
@@ -57,7 +57,7 @@ const RequestFormPage = () => {
   const [finalReportData, setFinalReportData] = useState(null);
 
   // --- WS: OTP handling state ---
-  const [sessionId, setSessionId] = useState(() => {
+  const [sessionId] = useState(() => {
     const existing = sessionStorage.getItem("wsSessionId");
     if (existing) return existing;
     const gen =
@@ -82,7 +82,7 @@ const RequestFormPage = () => {
   const [wsReady, setWsReady] = useState(false);
   const [wsConnecting, setWsConnecting] = useState(false);
   const [wsRetryCount, setWsRetryCount] = useState(0);
-  const [wsKey, setWsKey] = useState(0); // bump to recreate WS
+  // const [wsKey, setWsKey] = useState(0); // bump to recreate WS
   const backoffTimerRef = React.useRef(null);
   const currentReconnectRunIdRef = React.useRef(0);
   const [wsError, setWsError] = useState(null);
@@ -90,10 +90,10 @@ const RequestFormPage = () => {
   const ws = useMemo(() => {
     try {
       return new WebSocket(`${WS_URL}/ws/automation?sessionId=${sessionId}`);
-    } catch (e) {
+    } catch {
       return null;
     }
-  }, [WS_URL, sessionId, wsKey]);
+  }, [WS_URL, sessionId]);
 
   useEffect(() => {
     if (!ws) return;
@@ -133,7 +133,7 @@ const RequestFormPage = () => {
           }
           try {
             ws.close();
-          } catch {}
+          } catch { /* ignore */ }
         } else if (msg.type === "otp_required" || msg.type === "otp_now") {
           setBackendWaitingOtp(true);
           setOtpStatus(null);
@@ -189,7 +189,7 @@ const RequestFormPage = () => {
     return () => {
       try {
         ws.close();
-      } catch {}
+      } catch { /* ignore */ }
       setWsReady(false);
       setBackendWaitingOtp(false);
     };
@@ -206,7 +206,7 @@ const RequestFormPage = () => {
     return Math.floor(min + Math.random() * (max - min));
   };
 
-  const reconnectWithBackoff = (maxAttempts = 6) => {
+  const reconnectWithBackoff = useCallback((maxAttempts = 6) => {
     if (wsReady) return;
     setWsConnecting(true);
     // Cancel any in-flight reconnect loop by bumping the run id
@@ -219,7 +219,7 @@ const RequestFormPage = () => {
         return;
       }
       setWsRetryCount(n);
-      setWsKey((prev) => prev + 1); // recreate WS
+      // setWsKey((prev) => prev + 1); // recreate WS
       if (n >= maxAttempts) {
         if (runId !== currentReconnectRunIdRef.current) return;
         setWsConnecting(false);
@@ -231,7 +231,7 @@ const RequestFormPage = () => {
       backoffTimerRef.current = setTimeout(() => attempt(n + 1), delay);
     };
     attempt(0);
-  };
+  }, [wsReady]);
 
   // Auto-connect WS if not connected
   useEffect(() => {
@@ -248,7 +248,7 @@ const RequestFormPage = () => {
         clearTimeout(backoffTimerRef.current);
       }
     };
-  }, [wsReady, wsConnecting, wsError, autoConnectExhausted]);
+  }, [wsReady, wsConnecting, wsError, autoConnectExhausted, reconnectWithBackoff]);
 
   const submitOtpWs = () => {
     if (!ws) return;
@@ -311,7 +311,7 @@ const RequestFormPage = () => {
           if (otpRefs.current[focusIndex]) otpRefs.current[focusIndex].focus();
         }, 0);
       }
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   // Fetch vehicles on component load (removed profile dependency)
@@ -334,7 +334,7 @@ const RequestFormPage = () => {
           setIsLoadingVehicles(false);
         }
       } finally {
-        setIsProfileLoading(false); // Profile loading is done (always false now)
+        // cleanup if needed
       }
     };
 
@@ -348,7 +348,7 @@ const RequestFormPage = () => {
   };
 
   // Fetch latest refuel for selected vehicle - disabled since profile logic removed
-  const fetchLatestRefuel = async (vehicleRegNo) => {
+  const fetchLatestRefuel = async () => {
     // Profile logic removed - always use custom_trip flow
     setReportType("custom_trip");
     console.log("✅ Using custom_trip flow (profile logic removed)");
@@ -356,7 +356,7 @@ const RequestFormPage = () => {
 
   // Auto-detect flow when vehicle is selected
   useEffect(() => {
-    if (formData.selectedVehicle && tmsProfile) {
+    if (formData.selectedVehicle) {
       fetchLatestRefuel(formData.selectedVehicle);
       // Reset extracted data when vehicle changes
       setExtractedData({ before: null, after: null });
@@ -366,7 +366,7 @@ const RequestFormPage = () => {
       setReportType(null);
       setLatestRefuel(null);
     }
-  }, [formData.selectedVehicle, tmsProfile]);
+  }, [formData.selectedVehicle]);
 
   const handleImageUpload = async (file, type) => {
     if (!file) return;
@@ -476,15 +476,6 @@ const RequestFormPage = () => {
     setIsLoading((prev) => ({ ...prev, submit: true }));
     setError((prev) => ({ ...prev, submit: null }));
 
-    if (!tmsProfile) {
-      setError((prev) => ({
-        ...prev,
-        submit: "User profile not loaded. Cannot submit.",
-      }));
-      setIsLoading((prev) => ({ ...prev, submit: false }));
-      return;
-    }
-
     // Ensure WS is connected if using OTP method
     if (formData.loginMethod === "otp") {
       let waitMs = 0;
@@ -570,7 +561,7 @@ const RequestFormPage = () => {
               mobile: formData.mobileNumber,
             }),
           );
-        } catch {}
+        } catch { /* ignore */ }
         // small delay to ensure server stores context before start
         await new Promise((res) => setTimeout(res, 100));
       }
@@ -578,7 +569,7 @@ const RequestFormPage = () => {
         JSON.stringify({ type: "start_automation", payload: cleanPayload }),
       );
       // Result is delivered via WS 'automation_complete' or 'automation_error'
-    } catch (err) {
+    } catch {
       setError((prev) => ({
         ...prev,
         submit: "Failed to start automation over WebSocket.",
@@ -588,9 +579,6 @@ const RequestFormPage = () => {
   };
 
   // Handle Profile Loading State
-  if (isProfileLoading) {
-    return <div className="form-container">Loading user profile...</div>;
-  }
 
   if (error.profile) {
     return <div className="form-container error-message">{error.profile}</div>;
@@ -1248,7 +1236,7 @@ const Step3FinalReport = ({ reportData }) => {
       if (actualMileage > 0) {
         return `${(distance / actualMileage).toFixed(2)} L`;
       }
-    } catch (e) {
+    } catch {
       return "N/A";
     }
     return "N/A";

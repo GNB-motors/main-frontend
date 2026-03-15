@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import apiClient from '../../../utils/axiosConfig';
 
-const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
+const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
     const [companyName, setCompanyName] = useState('');
     const [selectedColor, setSelectedColor] = useState('#2940d3');
     const [customHex, setCustomHex] = useState('');

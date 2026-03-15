@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Check } from "lucide-react";
 import ChevronIcon from "../../Trip/assets/ChevronIcon.jsx";
 import "./BulkEmployeeMappingSidePanel.css";
@@ -82,7 +82,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
   const getDisabledOptions = (currentFieldKey) => {
     return Object.entries(selectedOptions)
       .filter(([fieldKey, selected]) => fieldKey !== currentFieldKey && selected)
-      .map(([_, selected]) => selected);
+      .map(([, selected]) => selected);
   };
 
   const scrollToDropdown = (dropdownElement) => {

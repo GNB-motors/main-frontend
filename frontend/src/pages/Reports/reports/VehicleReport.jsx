@@ -10,11 +10,11 @@ import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- VehicleReport COMPONENT (Uses fetched data) ---
-const VehicleReport = ({ handleViewOutliers }) => {
+const VehicleReport = () => {
     const [vehicleReportData, setVehicleReportData] = useState([]);
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [vehicleError, setVehicleError] = useState(null);
-    const [searchText, setSearchText] = useState("");
+    const [searchText] = useState("");
     const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
     const [selectedEmployee, setSelectedEmployee] = useState('');
 
@@ -38,69 +38,6 @@ const VehicleReport = ({ handleViewOutliers }) => {
         fetchVehicleReports();
     }, []);
 
-    const vehicleReportColumns = useMemo(() => [
-        { field: 'id', headerName: 'Vehicle Number', flex: 1.2 },
-        { 
-            field: 'vehicleType', 
-            headerName: 'Vehicle Type', 
-            flex: 1, 
-            align: 'center', 
-            headerAlign: 'center' 
-        },
-        { 
-            field: 'totalTrips', 
-            headerName: 'Total Trips', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right' 
-        },
-        { 
-            field: 'totalDistanceKm', 
-            headerName: 'Total Distance (KM)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '-' 
-        },
-        { 
-            field: 'totalDieselLiters', 
-            headerName: 'Diesel (L)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : '-'
-        },
-        { 
-            field: 'totalDieselCost', 
-            headerName: 'Diesel Cost (₹)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN')}` : '-'
-        },
-        { 
-            field: 'averageEfficiencyKmpl', 
-            headerName: 'Avg. Efficiency (km/l)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A'
-        },
-        { 
-            field: 'costPerKm', 
-            headerName: 'Cost per KM (₹)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toFixed(2)}` : '-'
-        },
-    ], [handleViewOutliers]);
 
     const filteredRows = useMemo(() => {
         let rows = vehicleReportData;

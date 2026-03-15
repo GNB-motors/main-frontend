@@ -141,9 +141,9 @@ const LoginPage = () => {
                 }
             }
 
-        } catch (loginApiError) {
-            console.error('Login failed:', loginApiError);
-            const errorMessage = loginApiError?.detail || loginApiError?.message || 'Login failed. Please check your credentials.';
+        } catch {
+            console.error('Login failed:', error);
+            const errorMessage = error?.detail || error?.message || 'Login failed. Please check your credentials.';
             toast.error(errorMessage);
         } finally {
             setIsLoading(false);

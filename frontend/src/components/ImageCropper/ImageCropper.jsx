@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Cropper from "react-cropper";
 import "react-cropper/node_modules/cropperjs/dist/cropper.css";
 import "./ImageCropper.css";
@@ -16,7 +16,7 @@ const ImageCropper = ({
     isUploading = false,
 }) => {
     const [zoom, setZoom] = useState(100);
-    const [rotation, setRotation] = useState(0);
+    const [, setRotation] = useState(0);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [currentSrc, setCurrentSrc] = useState(src);
     const [pendingFile, setPendingFile] = useState(null);
@@ -140,7 +140,8 @@ const ImageCropper = ({
                 "image/jpeg",
                 0.8
             );
-        } catch (error) {
+        } catch (err) {
+            console.error(err);
             toast.error("An error occurred while processing the image. Please try again.");
         }
     };
@@ -178,14 +179,14 @@ const ImageCropper = ({
         if (pendingImageUrl) {
             try {
                 URL.revokeObjectURL(pendingImageUrl);
-            } catch {}
+            } catch { /* ignore */ }
         }
         setPendingFile(null);
         setPendingImageUrl(null);
         onCancel();
     };
 
-    const setupCircularCropWithFourPoints = () => {
+    const setupCircularCropWithFourPoints = useCallback(() => {
         if (!circularCrop || !cropperRef.current || !cropperRef.current.cropper) {
             return;
         }
@@ -229,7 +230,7 @@ const ImageCropper = ({
                 point.style.display = "block";
             }
         });
-    };
+    }, [circularCrop]);
 
     useEffect(() => {
         setCurrentSrc(src);
@@ -245,7 +246,7 @@ const ImageCropper = ({
                     const imageData = cropperRef.current.cropper.getImageData();
                     const initialZoom = imageData?.zoom || 1;
                     setZoom(Math.round(initialZoom * 100));
-                } catch (e) {
+                } catch {
                     setZoom(100);
                 }
                 setImageLoaded(true);
@@ -255,7 +256,7 @@ const ImageCropper = ({
                 }
             }, 200);
         }
-    }, [currentSrc, circularCrop]);
+    }, [currentSrc, circularCrop, setupCircularCropWithFourPoints]);
 
     if (!isOpen) return null;
 
@@ -339,7 +340,7 @@ const ImageCropper = ({
                                             if (imageData && imageData.zoom && !isNaN(imageData.zoom)) {
                                                 setZoom(Math.round(imageData.zoom * 100));
                                             }
-                                        } catch (error) {}
+                                        } catch { /* ignore */ }
                                     }
                                     if (circularCrop) setupCircularCropWithFourPoints();
                                 }}

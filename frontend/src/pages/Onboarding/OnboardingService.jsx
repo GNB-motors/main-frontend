@@ -42,6 +42,7 @@ const updateUserProfile = async (profileData, token) => {
 };
 
 const completeOnboarding = async (onboardingData, token, orgId) => {
+// eslint-disable-next-line no-useless-catch
   try {
     // Step 1: Update organization with company details (companyName, gstin)
     const organizationPayload = {

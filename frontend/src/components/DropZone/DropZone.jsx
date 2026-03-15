@@ -32,24 +32,6 @@ const DropZone = ({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFiles(files);
-    }
-  }, []);
-
-  const handleFileInputChange = useCallback((e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      handleFiles(files);
-    }
-  }, []);
-
   const handleFiles = useCallback(
     (files) => {
       // Filter files by accepted formats
@@ -76,6 +58,24 @@ const DropZone = ({
     },
     [acceptedFormats, maxFiles, multiple, onDrop]
   );
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+  }, [handleFiles]);
+
+  const handleFileInputChange = useCallback((e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+  }, [handleFiles]);
 
   const handleClick = useCallback(() => {
     fileInputRef.current?.click();

@@ -120,7 +120,7 @@ const OnboardingPage = () => {
                 } catch (err) {
                     console.error('Onboarding submission failed', err);
                     // Show a toast if available
-                    try { toast.error('Failed to complete onboarding. Please try again.'); } catch (e) {}
+                    try { toast.error('Failed to complete onboarding. Please try again.'); } catch (err) { console.debug(err); }
                 }
             };
 
@@ -155,7 +155,7 @@ const OnboardingPage = () => {
 
                 {/* Stepper */}
                 <div className="stepper-container">
-                    {steps.map((step, index) => (
+                    {steps.map((step) => (
                         <React.Fragment key={step.number}>
                             <div 
                                 className={`stepper-item ${currentStep === step.number ? 'active' : ''} ${currentStep > step.number ? 'completed' : ''}`}

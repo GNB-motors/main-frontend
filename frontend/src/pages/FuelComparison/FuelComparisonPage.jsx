@@ -29,11 +29,7 @@ const toIST = (utcStr) => {
     return dayjs.utc(utcStr).tz(IST_ZONE);
 };
 
-const formatIST = (utcStr) => {
-    const d = toIST(utcStr);
-    if (!d) return '—';
-    return d.format('DD MMM YYYY, hh:mm A [IST]');
-};
+
 
 const formatRelativeIST = (utcStr) => {
     const d = toIST(utcStr);
@@ -49,6 +45,7 @@ const formatDateRange = (from, to) => {
 
 // ─── Header KPI Card ──────────────────────────────────────────────────────────
 
+// eslint-disable-next-line no-unused-vars
 const StatusKpiCard = ({ icon: Icon, label, value, colorClass }) => (
     <div className={`fc-kpi-card fc-kpi-${colorClass}`}>
         <div className="fc-kpi-icon-wrap">
@@ -101,7 +98,7 @@ const FuelComparisonPage = () => {
     const LIMIT = 20;
 
     // Theming
-    const [themeColors, setThemeColors] = useState(getThemeCSS());
+    const [themeColors] = useState(getThemeCSS());
 
     // Tab: 'all' | 'flagged'
     const [activeTab, setActiveTab] = useState('all');
@@ -109,7 +106,7 @@ const FuelComparisonPage = () => {
     // Status widget
     const [status, setStatus] = useState(null);
     const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-    const [statusError, setStatusError] = useState(null);
+    const [, setStatusError] = useState(null);
 
     // Filter
     const [flaggedOnly, setFlaggedOnly] = useState(false);

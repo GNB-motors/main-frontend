@@ -24,7 +24,7 @@ const FixedDocumentsSection = ({
   setOcrScanning,
   onOcrPreview
 }) => {
-  const [ocrResults, setOcrResults] = useState({
+  const [, setOcrResults] = useState({
     odometer: null,
     fuel: null,
   });

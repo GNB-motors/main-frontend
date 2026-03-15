@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Grid, UserPlus, LogOut } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import './SuperAdminSidebar.css';
 
-const SuperAdminSidebar = ({ isSidebarOpen, setSidebarOpen }) => {
+const SuperAdminSidebar = ({ setSidebarOpen }) => {
     const navigate = useNavigate();
-    const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+    
 
     const handleLogout = () => {
         // Clear all auth data
@@ -23,8 +23,6 @@ const SuperAdminSidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     return (
         <aside 
             className="sidebar"
-            onMouseEnter={() => setIsSidebarHovered(true)}
-            onMouseLeave={() => setIsSidebarHovered(false)}
         >
             <div className="sidebar-content">
                 <div className="sidebar-header">

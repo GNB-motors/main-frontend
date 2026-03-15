@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -177,7 +177,7 @@ const StatCard = ({ title, value, subtext, icon, trend }) => (
 );
 
 // 2. Fuel Analytics Chart
-const FuelAnalyticsChart = ({ data, dateRange }) => {
+const FuelAnalyticsChart = ({ data }) => {
   const hasData = data && data.length > 0;
 
   return (
@@ -228,7 +228,7 @@ const FuelAnalyticsChart = ({ data, dateRange }) => {
 };
 
 // 3. Outlier Detection Chart
-const OutlierChart = ({ data, dateRange }) => {
+const OutlierChart = ({ data }) => {
   const hasData = data && data.length > 0;
 
   return (

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Plus, Menu } from 'lucide-react';
-import { getPrimaryColor, getThemeCSS } from '../utils/colorTheme';
+import { getThemeCSS } from '../utils/colorTheme';
 import { useTripCreationContext } from '../contexts/TripCreationContext';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
     const location = useLocation();
-    const navigate = useNavigate();
+
     const { stepName } = useTripCreationContext();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [activeTripsCount, setActiveTripsCount] = useState(0);
@@ -61,7 +61,7 @@ const Navbar = ({ toggleSidebar }) => {
     };
 
     const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
-    const isRefuelLogsPage = location.pathname.includes('/refuel-logs');
+
 
     console.log('Navbar rendering with themeColors:', themeColors);
     console.log('Current path:', location.pathname, 'Is trips page:', isTripsPage);

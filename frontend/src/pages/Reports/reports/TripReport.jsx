@@ -8,16 +8,15 @@ import { DataGrid } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
-import { months } from '../../../utils/mockdata.jsx'; // Adjusted path
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- TripReport COMPONENT (Uses fetched data) ---
-const TripReport = ({}) => {
+const TripReport = () => {
     const [tripData, setTripData] = useState([]);
     const [isLoadingTrips, setIsLoadingTrips] = useState(true);
     const [tripError, setTripError] = useState(null);
-    const [searchText, setSearchText] = useState("");
+    const [searchText] = useState("");
     const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
     const [selectedEmployee, setSelectedEmployee] = useState('');
     const [selectedRoute, setSelectedRoute] = useState('');
@@ -47,82 +46,6 @@ const TripReport = ({}) => {
 
         fetchTrips();
     }, []);
-    const tripColumns = useMemo(() => [
-        { 
-            field: 'tripDate', 
-            headerName: 'Trip Date', 
-            flex: 1, 
-            type: 'date', 
-            valueGetter: (value) => value ? dayjs(value).toDate() : null 
-        },
-        { 
-            field: 'vehicleRegNo', 
-            headerName: 'Vehicle', 
-            flex: 1 
-        },
-        { 
-            field: 'driverName', 
-            headerName: 'Driver', 
-            flex: 1.5, 
-            valueGetter: (value) => value || 'N/A' 
-        },
-        { 
-            field: 'route', 
-            headerName: 'Route', 
-            flex: 1.5 
-        },
-        { 
-            field: 'status', 
-            headerName: 'Status', 
-            flex: 1, 
-            align: 'center', 
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <span style={{ 
-                    color: params.value === 'COMPLETED' ? 'green' : 'orange',
-                    fontWeight: 500
-                }}>
-                    {params.value}
-                </span>
-            )
-        },
-        { 
-            field: 'distanceKm', 
-            headerName: 'Distance (KM)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '-' 
-        },
-        { 
-            field: 'fuelLoggedLiters', 
-            headerName: 'Fuel (L)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : '-' 
-        },
-        { 
-            field: 'fuelCost', 
-            headerName: 'Fuel Cost (₹)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN')}` : '-' 
-        },
-        { 
-            field: 'impliedKmpl', 
-            headerName: 'Mileage (km/l)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right', 
-            valueFormatter: (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A' 
-        },
-    ], []);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '-';

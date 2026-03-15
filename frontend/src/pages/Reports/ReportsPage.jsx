@@ -25,14 +25,13 @@ import TripLedgerReport from './reports/TripLedgerReport.jsx';
 
 // --- MAIN REPORTS PAGE COMPONENT ---
 const ReportsPage = () => {
-    const [isReportsSidebarOpen, setIsReportsSidebarOpen] = useState(true);
+    const [isReportsSidebarOpen] = useState(true);
     const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [selectedReport, setSelectedReport] = useState('tripLedger'); // Default to trip ledger
-    const [highlightedOutlierId, setHighlightedOutlierId] = useState(null); // Used for linking
+    const [, setHighlightedOutlierId] = useState(null); // Used for linking
 
     // Removed profile context - profile logic completely removed
-    const businessRefId = null;
 
     // Effect for theme
     useEffect(() => { setThemeColors(getThemeCSS()); }, []);

@@ -2,7 +2,7 @@ import apiClient from '../../utils/axiosConfig';
 
 export const DriverService = {
     // --- Get Available Vehicles ---
-    getAvailableVehicles: async (businessRefId, token) => {
+    getAvailableVehicles: async (businessRefId) => {
         try {
             // New vehicles endpoint: GET /api/vehicles?orgId=<businessRefId>
             // Only include orgId param when provided to avoid serializing null/undefined

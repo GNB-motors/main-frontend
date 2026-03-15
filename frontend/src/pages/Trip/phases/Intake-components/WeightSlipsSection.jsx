@@ -22,7 +22,6 @@ const WeightSlipsSection = ({
   setWeightSlips,
   weightSlipScanning,
   setWeightSlipScanning,
-  weightSlipOcrResults,
   setWeightSlipOcrResults,
   fixedDocs,
   onOcrPreview

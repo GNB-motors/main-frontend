@@ -114,6 +114,7 @@ export const ProfileProvider = ({ children }) => {
 };
 
 // 3. Create a custom hook for easy consumption
+// eslint-disable-next-line react-refresh/only-export-components
 export const useProfile = () => {
     const context = useContext(ProfileContext);
     if (context === undefined) {
