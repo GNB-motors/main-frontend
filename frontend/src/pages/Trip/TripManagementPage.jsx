@@ -142,10 +142,10 @@ const TripManagementPage = () => {
         <div className="header-content">
           <div className="tabs-container">
             <button className={`tab-btn ${activeTab === 'trips' ? 'active' : ''}`} onClick={() => { setActiveTab('trips'); setSearchQuery(''); }}>
-              <span className="tab-icon">📦</span>Trips
+              Trips
             </button>
             <button className={`tab-btn ${activeTab === 'refuel' ? 'active' : ''}`} onClick={() => { setActiveTab('refuel'); setSearchQuery(''); }}>
-              <span className="tab-icon">⛽</span>Refuel Journeys
+              Refuel Journeys
             </button>
           </div>
           <div className="search-bar">

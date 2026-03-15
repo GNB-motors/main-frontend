@@ -12,9 +12,8 @@
   top: 0;
   background: white;
   border-bottom: 1px solid #e5e7eb;
-  padding: 20px 32px;
+  padding: 16px 32px;
   z-index: 50;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
@@ -27,62 +26,58 @@
 
 .tabs-container {
   display: flex;
-  gap: 12px;
-  align-items: center;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
+  background: #f1f5f9;
+  padding: 5px;
+  border-radius: 12px;
+  gap: 4px;
 }
 
 .tab-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: white;
-  border: 1.5px solid #e5e7eb;
-  padding: 10px 20px;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 9px 24px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
   min-width: 120px;
 }
 
-.tab-btn:hover {
-  border-color: #d1d5db;
-  background-color: #f9fafb;
+.tab-btn:hover:not(.active) {
+  background: rgba(0, 0, 0, 0.05);
+  color: #334155;
 }
 
 .tab-btn.active {
-  background-color: #1a73e8;
+  background-color: #2563eb;
   color: white;
-  border-color: #1a73e8;
-}
-
-.tab-icon {
-  font-size: 16px;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
 }
 
 .search-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f9fafb;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   padding: 10px 16px;
-  min-width: 280px;
-  max-width: 520px;
+  min-width: 300px;
+  max-width: 480px;
   flex: 0 0 auto;
   transition: all 0.2s;
 }
 
 .search-bar:focus-within {
-  border-color: #1a73e8;
+  border-color: #2563eb;
   background: white;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
 .search-bar input {
@@ -91,11 +86,11 @@
   outline: none;
   flex: 1;
   font-size: 14px;
-  color: #111827;
+  color: #1e293b;
 }
 
 .search-bar input::placeholder {
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 /* Content */
