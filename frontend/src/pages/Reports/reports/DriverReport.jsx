@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box, Alert
 } from '@mui/material';
-import { ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Pagination, PaginationContent, PaginationEllipsis,
@@ -450,14 +449,10 @@ const DriverReport = ({ handleViewOutliers }) => {
                                                     {row.onTimeArrivalRate || 'N/A'}
                                                 </div>
                                             </td>
-                                            <td className="last-col" style={{ textAlign: 'center' }}>
-                                                <span className="date-text" style={{ color: row.documentsExpired ? 'red' : 'green', fontWeight: 500 }}>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{ color: row.documentsExpired ? 'red' : 'green', fontWeight: 500 }}>
                                                     {row.documentsExpired ? 'Expired' : 'Valid'}
                                                 </span>
-                                                <button className="view-details-btn">
-                                                    View details
-                                                    <ChevronRight size={14} />
-                                                </button>
                                             </td>
                                         </tr>
                                     ))
