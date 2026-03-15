@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box, Typography, CircularProgress, Alert,
-    IconButton, Slider, Collapse
+    IconButton, Slider
 } from '@mui/material';
 import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, Wallet, Percent, MapPin, DollarSign } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -29,291 +30,9 @@ const SummaryCard = ({ icon: Icon, label, value, iconColor = '#2F58EE' }) => {
     );
 };
 
-// --- Expandable Trip Detail Row Component ---
-const TripDetailRow = ({ tripData, isLoading }) => {
-    const formatCurrency = (value) => {
-        if (typeof value !== 'number') return '-';
-        return `₹${value.toLocaleString('en-IN')}`;
-    };
-
-    const formatWeight = (value) => {
-        if (typeof value !== 'number') return '-';
-        return `${value.toLocaleString('en-IN')} kg`;
-    };
-
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '-';
-        return dayjs(dateStr).format('DD MMM YYYY');
-    };
-
-    if (isLoading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
-                <CircularProgress size={32} />
-            </Box>
-        );
-    }
-
-    if (!tripData) {
-        return (
-            <Box sx={{ padding: 3, textAlign: 'center', color: '#8b8b8c' }}>
-                No trip details available.
-            </Box>
-        );
-    }
-
-    return (
-        <div className="trip-detail-content">
-            <div className="trip-detail-grid">
-                {/* Trip Info Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Trip Information</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Trip Number</span>
-                            <span className="detail-info-value">{tripData.tripNumber || '-'}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Trip Date</span>
-                            <span className="detail-info-value">{formatDate(tripData.tripDate)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Status</span>
-                            <span className={`detail-info-value status-badge ${tripData.status?.toLowerCase()}`}>
-                                {tripData.status || '-'}
-                            </span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Material Type</span>
-                            <span className="detail-info-value">{tripData.materialType || '-'}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Driver & Vehicle Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Driver & Vehicle</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Driver</span>
-                            <span className="detail-info-value">{tripData.driver?.fullName || '-'}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Mobile</span>
-                            <span className="detail-info-value">{tripData.driver?.mobileNumber || '-'}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Vehicle</span>
-                            <span className="detail-info-value">{tripData.vehicle?.registrationNumber || '-'}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Vehicle Type</span>
-                            <span className="detail-info-value">{tripData.vehicle?.vehicleType || '-'}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Route Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Route Details</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Route Name</span>
-                            <span className="detail-info-value">{tripData.route?.name || '-'}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">From</span>
-                            <span className="detail-info-value">{tripData.route?.sourceLocation?.city || '-'}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">To</span>
-                            <span className="detail-info-value">{tripData.route?.destLocation?.city || '-'}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Distance</span>
-                            <span className="detail-info-value">{tripData.route?.distanceKm ? `${tripData.route.distanceKm} km` : '-'}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Weight Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Weight Details</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Gross Weight</span>
-                            <span className="detail-info-value">{formatWeight(tripData.weights?.grossWeight)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Tare Weight</span>
-                            <span className="detail-info-value">{formatWeight(tripData.weights?.tareWeight)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Net Weight</span>
-                            <span className="detail-info-value highlight">{formatWeight(tripData.weights?.netWeight)}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Revenue Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Revenue</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Rate per Kg</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.revenue?.ratePerKg)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Calculated Amount</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.revenue?.calculatedAmount)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Amount Received</span>
-                            <span className="detail-info-value highlight">{formatCurrency(tripData.revenue?.actualAmountReceived)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Variance</span>
-                            <span className={`detail-info-value ${tripData.revenue?.variance >= 0 ? 'positive' : 'negative'}`}>
-                                {formatCurrency(tripData.revenue?.variance)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Expenses Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Expenses Breakdown</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Material Cost</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.expenses?.materialCost)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Toll</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.expenses?.toll)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Driver Cost</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.expenses?.driverCost)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Driver Trip Expense</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.expenses?.driverTripExpense)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Royalty</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.expenses?.royalty)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Fuel Cost</span>
-                            <span className="detail-info-value">{formatCurrency(tripData.expenses?.allocatedFuelCost)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Total Expense</span>
-                            <span className="detail-info-value highlight">{formatCurrency(tripData.expenses?.totalExpense)}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Performance Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Performance</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Total Revenue</span>
-                            <span className="detail-info-value positive">{formatCurrency(tripData.performance?.totalRevenue)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Total Expense</span>
-                            <span className="detail-info-value negative">{formatCurrency(tripData.performance?.totalExpense)}</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Net Profit</span>
-                            <span className={`detail-info-value highlight ${tripData.performance?.netProfit >= 0 ? 'positive' : 'negative'}`}>
-                                {formatCurrency(tripData.performance?.netProfit)}
-                            </span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Profit Margin</span>
-                            <span className={`detail-info-value ${tripData.performance?.profitMargin >= 0 ? 'positive' : 'negative'}`}>
-                                {typeof tripData.performance?.profitMargin === 'number' ? `${tripData.performance.profitMargin.toFixed(2)}%` : '-'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Fuel Section */}
-                {tripData.fuelConsumed && tripData.fuelConsumed.length > 0 && (
-                    <div className="detail-section">
-                        <h4 className="detail-section-title">Fuel Consumption</h4>
-                        <div className="detail-info-grid">
-                            {tripData.fuelConsumed.map((fuel, index) => (
-                                <React.Fragment key={index}>
-                                    <div className="detail-info-item">
-                                        <span className="detail-info-label">Litres</span>
-                                        <span className="detail-info-value">{fuel.litres} L</span>
-                                    </div>
-                                    <div className="detail-info-item">
-                                        <span className="detail-info-label">Cost</span>
-                                        <span className="detail-info-value">{formatCurrency(fuel.cost)}</span>
-                                    </div>
-                                    <div className="detail-info-item">
-                                        <span className="detail-info-label">Fuel Type</span>
-                                        <span className="detail-info-value">{fuel.fuelType || '-'}</span>
-                                    </div>
-                                    <div className="detail-info-item">
-                                        <span className="detail-info-label">Source</span>
-                                        <span className="detail-info-value">{fuel.source || '-'}</span>
-                                    </div>
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Odometer Section */}
-                <div className="detail-section">
-                    <h4 className="detail-section-title">Odometer & Mileage</h4>
-                    <div className="detail-info-grid">
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Start Odometer</span>
-                            <span className="detail-info-value">{tripData.journeyOdometer?.startOdometer?.toLocaleString('en-IN') || '-'} km</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">End Odometer</span>
-                            <span className="detail-info-value">{tripData.journeyOdometer?.endOdometer?.toLocaleString('en-IN') || '-'} km</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Total Distance</span>
-                            <span className="detail-info-value">{tripData.journeyOdometer?.totalDistanceKm || '-'} km</span>
-                        </div>
-                        <div className="detail-info-item">
-                            <span className="detail-info-label">Mileage</span>
-                            <span className="detail-info-value">{tripData.mileage?.kmPerLitre?.toFixed(2) || '-'} km/L</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Weight Certificate Image */}
-                {tripData.weightCertificateDoc?.publicUrl && (
-                    <div className="detail-section" style={{ gridColumn: '1 / -1' }}>
-                        <h4 className="detail-section-title">Weight Certificate</h4>
-                        <img 
-                            src={tripData.weightCertificateDoc.publicUrl} 
-                            alt="Weight Certificate" 
-                            className="detail-certificate-image"
-                            onClick={() => window.open(tripData.weightCertificateDoc.publicUrl, '_blank')}
-                        />
-                        <span className="detail-image-hint">Click to view full size</span>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
 // --- Main Trip Ledger Report Component ---
 const TripLedgerReport = () => {
+    const navigate = useNavigate();
     // Data states
     const [ledgerData, setLedgerData] = useState([]);
     const [summaryData, setSummaryData] = useState(null);
@@ -339,9 +58,6 @@ const TripLedgerReport = () => {
     const [itemsPerPage] = useState(10);
 
     // Expandable row states
-    const [expandedTripId, setExpandedTripId] = useState(null);
-    const [expandedTripData, setExpandedTripData] = useState(null);
-    const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
     // Fetch ledger data
     useEffect(() => {
@@ -488,27 +204,9 @@ const TripLedgerReport = () => {
         setCurrentPage(1);
     }, [selectedDriver, selectedVehicle, selectedRoute, profitRange]);
 
-    // Handle view trip details
-    const handleToggleTripDetail = async (tripId) => {
-        // If clicking the same row, collapse it
-        if (expandedTripId === tripId) {
-            setExpandedTripId(null);
-            setExpandedTripData(null);
-            return;
-        }
-
-        // Expand new row
-        setExpandedTripId(tripId);
-        setIsLoadingDetail(true);
-        try {
-            const tripDetail = await ReportsService.getTripLedgerById(tripId);
-            setExpandedTripData(tripDetail);
-        } catch (err) {
-            console.error("Failed to fetch trip details:", err);
-            setExpandedTripData(null);
-        } finally {
-            setIsLoadingDetail(false);
-        }
+    // Navigate to trip detail page
+    const handleViewTripDetail = (row) => {
+        navigate(`/reports/trip/${row._id}`, { state: { trip: row } });
     };
 
     // Format helpers
@@ -770,73 +468,57 @@ const TripLedgerReport = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    paginatedData.map((row) => {
-                                        const isExpanded = expandedTripId === row._id;
-                                        return (
-                                            <React.Fragment key={row._id}>
-                                                <tr
-                                                    className="trip-table-row"
-                                                    onClick={() => handleToggleTripDetail(row._id)}
-                                                >
-                                                    <td>
-                                                        <div className="cell-primary">{row.tripNumber || '-'}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="cell-primary">{formatDate(row.tripDate)}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="cell-primary">{row.driver?.fullName || '-'}</div>
-                                                        <div className="cell-secondary">{row.driver?.mobileNumber || ''}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="cell-primary">{row.vehicle?.registrationNumber || '-'}</div>
-                                                        <div className="cell-secondary">{row.vehicle?.vehicleType || ''}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="cell-primary">{row.route?.name || '-'}</div>
-                                                        <div className="cell-secondary">{row.route?.distanceKm ? `${row.route.distanceKm} km` : ''}</div>
-                                                    </td>
-                                                    <td style={{ textAlign: 'right' }}>
-                                                        <div className="cell-primary">{formatWeight(row.weights?.netWeight)}</div>
-                                                    </td>
-                                                    <td style={{ textAlign: 'right' }}>
-                                                        <div className="cell-primary positive">{formatCurrency(row.performance?.totalRevenue)}</div>
-                                                    </td>
-                                                    <td style={{ textAlign: 'right' }}>
-                                                        <div className="cell-primary negative">{formatCurrency(row.performance?.totalExpense)}</div>
-                                                    </td>
-                                                    <td style={{ textAlign: 'right' }}>
-                                                        <div className={`cell-primary ${row.performance?.netProfit >= 0 ? 'positive' : 'negative'}`}>
-                                                            {formatCurrency(row.performance?.netProfit)}
-                                                        </div>
-                                                    </td>
-                                                    <td className="last-col" style={{ textAlign: 'right' }}>
-                                                        <span className="date-text">
-                                                            {typeof row.performance?.profitMargin === 'number'
-                                                                ? `${row.performance.profitMargin.toFixed(1)}%`
-                                                                : '-'}
-                                                        </span>
-                                                        <button className="view-details-btn">
-                                                            View details
-                                                            <ChevronRight size={14} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {isExpanded && (
-                                                    <tr className="trip-detail-row">
-                                                        <td colSpan={10} className="trip-detail-cell">
-                                                            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                                                                <TripDetailRow
-                                                                    tripData={expandedTripData}
-                                                                    isLoading={isLoadingDetail}
-                                                                />
-                                                            </Collapse>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })
+                                    paginatedData.map((row) => (
+                                        <tr
+                                            key={row._id}
+                                            className="trip-table-row"
+                                            onClick={() => handleViewTripDetail(row)}
+                                        >
+                                            <td>
+                                                <div className="cell-primary">{row.tripNumber || '-'}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{formatDate(row.tripDate)}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{row.driver?.fullName || '-'}</div>
+                                                <div className="cell-secondary">{row.driver?.mobileNumber || ''}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{row.vehicle?.registrationNumber || '-'}</div>
+                                                <div className="cell-secondary">{row.vehicle?.vehicleType || ''}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{row.route?.name || '-'}</div>
+                                                <div className="cell-secondary">{row.route?.distanceKm ? `${row.route.distanceKm} km` : ''}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatWeight(row.weights?.netWeight)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary positive">{formatCurrency(row.performance?.totalRevenue)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary negative">{formatCurrency(row.performance?.totalExpense)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className={`cell-primary ${row.performance?.netProfit >= 0 ? 'positive' : 'negative'}`}>
+                                                    {formatCurrency(row.performance?.netProfit)}
+                                                </div>
+                                            </td>
+                                            <td className="last-col" style={{ textAlign: 'right' }}>
+                                                <span className="date-text">
+                                                    {typeof row.performance?.profitMargin === 'number'
+                                                        ? `${row.performance.profitMargin.toFixed(1)}%`
+                                                        : '-'}
+                                                </span>
+                                                <button className="view-details-btn">
+                                                    View details
+                                                    <ChevronRight size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
                                 )}
                             </tbody>
                         </table>
