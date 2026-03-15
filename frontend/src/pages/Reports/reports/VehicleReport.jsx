@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Box, Typography, TextField, InputAdornment, IconButton, CircularProgress, Alert, FormControl, Select, MenuItem
+    Box, Typography, CircularProgress, Alert
 } from '@mui/material';
-import { Search as SearchIcon, InfoOutlined } from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import dayjs from 'dayjs';
-import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- VehicleReport COMPONENT (Uses fetched data) ---
@@ -15,8 +17,8 @@ const VehicleReport = ({ handleViewOutliers }) => {
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [vehicleError, setVehicleError] = useState(null);
     const [searchText, setSearchText] = useState("");
-    const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
-    const [selectedEmployee, setSelectedEmployee] = useState('');
+    const [dateRange, setDateRange] = useState({ from: new Date(), to: new Date() });
+    const [selectedEmployee, setSelectedEmployee] = useState('all');
 
     useEffect(() => {
         const fetchVehicleReports = async () => {
@@ -234,52 +236,57 @@ const VehicleReport = ({ handleViewOutliers }) => {
 
                 {/* Filter Controls */}
                 <div className="report-filters">
-                    <div className="date-range-container">
-                        <div className="date-input-group">
-                            <label>From</label>
-                            <DatePicker
-                                value={dateRange[0]}
-                                onChange={(newValue) => {
-                                    setDateRange([newValue, dateRange[1]]);
-                                }}
-                                slotProps={{ textField: { size: 'small' } }}
-                            />
-                        </div>
-
-                        <div className="date-input-group">
-                            <label>To</label>
-                            <DatePicker
-                                value={dateRange[1]}
-                                onChange={(newValue) => {
-                                    setDateRange([dateRange[0], newValue]);
-                                }}
-                                slotProps={{ textField: { size: 'small' } }}
-                            />
-                        </div>
+                    <div className="date-input-group">
+                        <label>Date Range</label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="h-10 w-[280px] justify-start gap-2 pl-2 pr-3 text-sm font-normal"
+                                >
+                                    <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <span>
+                                                {format(dateRange.from, 'dd MMM yyyy')} — {format(dateRange.to, 'dd MMM yyyy')}
+                                            </span>
+                                        ) : (
+                                            <span>{format(dateRange.from, 'dd MMM yyyy')}</span>
+                                        )
+                                    ) : (
+                                        <span className="text-muted-foreground">Pick a date range</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <div className="date-input-group">
                         <label>Employee Name</label>
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <Select
-                                value={selectedEmployee}
-                                onChange={(e) => setSelectedEmployee(e.target.value)}
-                                displayEmpty
-                                renderValue={(value) => {
-                                    if (value === '') {
-                                        return 'All';
-                                    }
-                                    return value;
-                                }}
-                            >
-                                <MenuItem value="">All</MenuItem>
-                                {[...new Set(vehicleReportData.map(vehicle => vehicle.primary_driver_name))].map((driver) => (
-                                    <MenuItem key={driver} value={driver}>
-                                        {driver || 'N/A'}
-                                    </MenuItem>
+                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                            <SelectTrigger className="h-10 w-[180px] text-sm">
+                                <SelectValue>
+                                    {selectedEmployee === 'all' ? 'All Employees' : selectedEmployee}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Employees</SelectItem>
+                                {[...new Set(vehicleReportData.map(vehicle => vehicle.primary_driver_name))].filter(Boolean).map((driver) => (
+                                    <SelectItem key={driver} value={driver}>
+                                        {driver}
+                                    </SelectItem>
                                 ))}
-                            </Select>
-                        </FormControl>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </div>

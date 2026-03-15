@@ -137,14 +137,14 @@
 
 /* Trip Report Header Section */
 .report-header-section {
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 20px;
 }
 
 .report-header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 16px;
   gap: var(--spacing-md);
 }
 
@@ -158,28 +158,26 @@
 
 .report-filters {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.date-range-container {
-  display: flex;
   align-items: flex-end;
-  gap: var(--spacing-md);
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-left: -1px; /* compensate for button border so label aligns with heading */
 }
 
 .date-input-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .date-input-group label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--color-grey-600);
+  color: var(--color-grey-500, #6b7280);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  line-height: 1;
 }
 
 .report-content {
