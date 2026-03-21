@@ -27,6 +27,7 @@
     "cropperjs": "^2.1.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
+    "framer-motion": "^12.38.0",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.545.0",
     "react": "^19.1.1",
