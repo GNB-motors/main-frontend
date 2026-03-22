@@ -1,0 +1,1297 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+/* Scope to landing page only */
+.lp-body {
+    font-family: 'Inter', sans-serif;
+    color: #0F172A;
+    background-color: #FDFDFD;
+    line-height: 1.5;
+    text-align: left;
+    /* Prevent #root text-align center bleeding */
+}
+
+/* Reset any generic rules from existing CSS */
+.lp-body * {
+    box-sizing: border-box;
+    text-align: left;
+    /* ensures items don't inherit #root center */
+}
+
+.lp-body h1,
+.lp-body h2,
+.lp-body h3,
+.lp-body h4,
+.lp-body h5,
+.lp-body p,
+.lp-body span {
+    margin: 0;
+}
+
+.lp-body a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.lp-body button {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 0;
+}
+
+.lp-body input,
+.lp-body textarea {
+    font-family: inherit;
+    margin: 0;
+}
+
+.lp-container {
+    max-width: 80rem;
+    /* 1280px */
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: block !important;
+}
+
+@media (min-width: 640px) {
+    .lp-container {
+        padding: 0 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .lp-container {
+        padding: 0 2rem;
+    }
+}
+
+/* -------------------- Top bar -------------------- */
+.lp-top-bar {
+    background-color: #0F172A;
+    color: white;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lp-top-bar-content {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lp-logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.lp-logo-img {
+    height: 3.5rem;
+    /* 30px */
+    width: auto;
+    object-fit: contain;
+}
+
+.lp-logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    /* 24px */
+    letter-spacing: -0.025em;
+    color: white;
+}
+
+.lp-top-bar-right {
+    display: none;
+    align-items: center;
+    gap: 3rem;
+}
+
+@media (min-width: 768px) {
+    .lp-top-bar-right {
+        display: flex;
+    }
+}
+
+.lp-advisory-text {
+    text-align: right;
+}
+
+.lp-advisory-text p {
+    text-align: right;
+}
+
+.lp-advisory-subtitle {
+    font-size: 0.625rem;
+    /* 10px */
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #006039;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.lp-advisory-title {
+    font-size: 1.125rem;
+    font-weight: 300;
+    letter-spacing: 0.025em;
+    font-style: italic;
+    color: white;
+}
+
+.lp-contact-partner-btn {
+    border: 1px solid rgba(0, 96, 57, 0.4);
+    padding: 0.625rem 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+    color: white;
+}
+
+.lp-contact-partner-btn:hover {
+    background-color: #006039;
+    color: white;
+}
+
+/* -------------------- Header -------------------- */
+.lp-main-header {
+    background-color: white;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.lp-header-content {
+    display: flex !important;
+    height: 4rem;
+    /* 64px */
+    align-items: center;
+    justify-content: space-between;
+}
+
+.lp-main-nav {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.lp-main-nav a {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(15, 23, 42, 0.7);
+    transition: color 0.2s;
+}
+
+.lp-main-nav a:hover {
+    color: #0F172A;
+}
+
+.lp-header-actions {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.lp-portal-login-btn {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(15, 23, 42, 0.8);
+    transition: color 0.2s;
+}
+
+.lp-portal-login-btn:hover {
+    color: #006039;
+}
+
+.lp-request-briefing-btn {
+    background-color: #006039;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: filter 0.2s;
+}
+
+.lp-request-briefing-btn:hover {
+    filter: brightness(1.05);
+}
+
+/* -------------------- Hero Section -------------------- */
+.lp-hero-section {
+    position: relative;
+    min-height: 90vh;
+    display: flex !important;
+    align-items: center;
+    overflow: hidden;
+}
+
+.lp-hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.lp-hero-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lp-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.2) 100%);
+}
+
+.lp-hero-content-wrapper {
+    position: relative;
+    z-index: 10;
+    padding: 6rem 0;
+}
+
+.lp-hero-content {
+    max-width: 56rem;
+}
+
+.lp-hero-subtitle {
+    color: #006039;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.lp-hero-title {
+    font-size: 3.75rem;
+    font-family: 'Playfair Display', serif;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+    background-size: cover;
+    background-position: center;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.lp-hero-title span {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+@media (min-width: 1024px) {
+    .lp-hero-title {
+    font-size: 3.75rem;
+    font-family: 'Playfair Display', serif;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+    background-size: cover;
+    background-position: center;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+}
+
+.lp-hero-desc {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 300;
+    margin-bottom: 3rem;
+    line-height: 1.625;
+    max-width: 42rem;
+}
+
+.lp-hero-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .lp-hero-buttons {
+        flex-direction: row;
+    }
+}
+
+.lp-experience-btn {
+    background-color: #006039;
+    color: white;
+    padding: 1.25rem 2.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: filter 0.2s;
+}
+
+.lp-experience-btn:hover {
+    filter: brightness(1.1);
+}
+
+.lp-whitepaper-btn {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 1.25rem 2.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: background-color 0.2s;
+}
+
+.lp-whitepaper-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* -------------------- Ecosystem Section -------------------- */
+.lp-ecosystem-section {
+    background-color: #0F172A;
+    padding: 8rem 0;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.lp-diagram-connector {
+    position: absolute;
+    inset: 0;
+    opacity: 0.1;
+    background-image: radial-gradient(#006039 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.lp-ecosystem-content {
+    position: relative;
+    z-index: 10;
+}
+
+.lp-ecosystem-header {
+    text-align: center;
+    margin-bottom: 6rem;
+}
+
+.lp-ecosystem-header .lp-section-subtitle,
+.lp-ecosystem-header .lp-section-title,
+.lp-ecosystem-header .lp-section-desc {
+    text-align: center;
+}
+
+.lp-section-subtitle {
+    color: #006039;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.lp-section-title {
+    font-size: 2.25rem;
+    font-family: 'Playfair Display', serif;
+    margin-bottom: 1.5rem;
+    color: white;
+}
+
+@media (min-width: 1024px) {
+    .lp-section-title {
+        font-size: 3.75rem;
+    }
+}
+
+.lp-section-desc {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 300;
+    max-width: 42rem;
+    margin: 0 auto;
+    font-style: italic;
+}
+
+.lp-section-divider {
+    width: 6rem;
+    height: 1px;
+    background-color: rgba(0, 96, 57, 0.4);
+    margin: 2rem auto 0;
+}
+
+.lp-ecosystem-grid {
+    display: grid;
+    gap: 4rem;
+    align-items: center;
+}
+
+@media (min-width: 1024px) {
+    .lp-ecosystem-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Ecosystem Diagram element */
+.lp-ecosystem-diagram {
+    position: relative;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lp-blur-gradient {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(0, 96, 57, 0.1) 0%, transparent 70%);
+}
+
+.lp-diagram-center {
+    z-index: 20;
+    background-color: #1E293B;
+    border: 1px solid #006039;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    position: relative;
+}
+
+.lp-diagram-decorator {
+    position: absolute;
+    top: -1rem;
+    left: -1rem;
+    width: 2rem;
+    height: 2rem;
+    border-top: 1px solid #006039;
+    border-left: 1px solid #006039;
+}
+
+.lp-diagram-icon {
+    color: #006039;
+    font-size: 2.25rem;
+    margin-bottom: 1rem;
+}
+
+.lp-diagram-center h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: white;
+}
+
+.lp-diagram-center p {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+}
+
+.lp-diagram-node {
+    z-index: 20;
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem;
+    width: 12rem;
+    transition: border-color 0.3s;
+    position: absolute;
+}
+
+.lp-diagram-node:hover {
+    border-color: #006039;
+}
+
+.lp-node-tr {
+    top: 0;
+    right: 0;
+}
+
+@media (min-width: 1024px) {
+    .lp-node-tr {
+        right: 2.5rem;
+    }
+}
+
+.lp-node-bl {
+    bottom: 0;
+    left: 0;
+}
+
+@media (min-width: 1024px) {
+    .lp-node-bl {
+        left: 2.5rem;
+    }
+}
+
+.lp-node-cr {
+    top: 50%;
+    transform: translateY(-50%);
+    right: -1rem;
+}
+
+@media (min-width: 1024px) {
+    .lp-node-cr {
+        right: 0;
+    }
+}
+
+.lp-diagram-node .material-symbols-outlined {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.lp-diagram-node h5 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.25rem;
+    color: white;
+}
+
+.lp-diagram-node p {
+    font-size: 0.625rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+}
+
+.lp-diagram-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+/* Ecosystem features text group */
+.lp-ecosystem-features {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.lp-feature-item {
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: 2rem;
+    transition: border-color 0.3s;
+}
+
+.lp-feature-item:hover {
+    border-color: #006039;
+}
+
+.lp-feature-item h3 {
+    font-size: 1.5rem;
+    font-family: 'Playfair Display', serif;
+    color: #006039;
+    margin-bottom: 1rem;
+}
+
+.lp-feature-item p {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 300;
+    line-height: 1.625;
+}
+
+/* -------------------- Strategic Value (Solutions) Section -------------------- */
+.lp-solutions-section {
+    padding: 8rem 0;
+    background-color: white;
+}
+
+.lp-solutions-grid {
+    display: grid;
+    gap: 6rem;
+    align-items: center;
+}
+
+@media (min-width: 1024px) {
+    .lp-solutions-grid {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+}
+
+.lp-solutions-text {
+    grid-column: span 6 / span 6;
+}
+
+.lp-editorial-line {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.lp-editorial-line::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60px;
+    height: 1px;
+    background-color: #006039;
+}
+
+.lp-editorial-line h2 {
+    font-size: 3rem;
+    font-family: 'Playfair Display', serif;
+    color: #0F172A;
+    line-height: 1.25;
+}
+
+@media (min-width: 1024px) {
+    .lp-editorial-line h2 {
+        font-size: 4.5rem;
+    }
+}
+
+.lp-solutions-text .lp-quote {
+    font-size: 1.25rem;
+    color: rgba(30, 41, 59, 0.8);
+    margin-bottom: 2.5rem;
+    line-height: 1.625;
+    font-weight: 300;
+    font-style: italic;
+}
+
+.lp-solutions-desc {
+    color: rgba(15, 23, 42, 0.7);
+    margin-bottom: 3rem;
+    line-height: 1.625;
+    font-size: 1.125rem;
+}
+
+.lp-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem;
+}
+
+.lp-stat-item {
+    border-top: 1px solid rgba(0, 96, 57, 0.3);
+    padding-top: 1.5rem;
+}
+
+.lp-stat-value-l {
+    font-size: 1.875rem;
+    font-family: 'Playfair Display', serif;
+    color: #0F172A;
+}
+
+.lp-stat-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(15, 23, 42, 0.5);
+    margin-top: 0.5rem;
+    font-weight: 700;
+}
+
+.lp-solutions-image {
+    grid-column: span 6 / span 6;
+    position: relative;
+}
+
+.lp-image-wrapper {
+    position: relative;
+    z-index: 10;
+}
+
+.lp-image-wrapper img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.lp-image-backdrop {
+    position: absolute;
+    bottom: -2.5rem;
+    right: -2.5rem;
+    width: 66%;
+    height: 66%;
+    background-color: #0F172A;
+    z-index: 0;
+}
+
+/* -------------------- Innovation (Architecture) Section -------------------- */
+.lp-innovation-section {
+    padding: 8rem 0;
+    background-color: #F8F9F8;
+    border-top: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.lp-innovation-card {
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 1024px) {
+    .lp-innovation-card {
+        flex-direction: row;
+    }
+}
+
+.lp-innovation-image {
+    position: relative;
+    min-height: 500px;
+    flex: 1;
+}
+
+.lp-innovation-image img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lp-innovation-image .lp-image-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.4);
+    backdrop-filter: grayscale(1);
+    -webkit-backdrop-filter: grayscale(1);
+}
+
+.lp-innovation-content {
+    flex: 1;
+    background-color: #0F172A;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+@media (min-width: 1024px) {
+    .lp-innovation-content {
+        padding: 6rem;
+    }
+}
+
+.lp-innovation-subtitle {
+    color: #006039;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    display: block;
+    margin-bottom: 2rem;
+}
+
+.lp-innovation-content h2 {
+    font-size: 2.25rem;
+    font-family: 'Playfair Display', serif;
+    color: white;
+    margin-bottom: 2.5rem;
+    line-height: 1.25;
+}
+
+@media (min-width: 1024px) {
+    .lp-innovation-content h2 {
+        font-size: 3rem;
+    }
+}
+
+.lp-innovation-features {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.lp-inv-feature:hover .lp-inv-line {
+    width: 5rem;
+}
+
+.lp-inv-feature-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.lp-inv-line {
+    height: 1px;
+    width: 3rem;
+    background-color: #006039;
+    transition: width 0.3s;
+}
+
+.lp-inv-feature-header span {
+    color: #006039;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+}
+
+.lp-inv-feature p {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.625;
+}
+
+
+/* -------------------- Contact Form Section -------------------- */
+.lp-contact-section {
+    padding: 8rem 1rem;
+    background-color: #F8F9F8;
+    position: relative;
+    overflow: hidden;
+    display: block !important;
+}
+
+.lp-contact-bg-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background-color: #0F172A;
+    /* no z-index to allow parent mix-blend-mode to work */
+}
+
+.lp-contact-container {
+    max-width: 64rem;
+    margin: 0 auto;
+    position: relative;
+    /* no z-index to prevent isolating stacking context from bg-accent */
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+}
+
+@media (min-width: 1024px) {
+    .lp-contact-container {
+        flex-direction: row;
+        align-items: center;
+        gap: 6rem;
+    }
+}
+
+.lp-contact-header {
+    flex: 1;
+    text-align: left;
+}
+
+.lp-contact-subtitle {
+    color: white;
+    mix-blend-mode: difference;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    display: block;
+    margin-bottom: 2rem;
+}
+
+.lp-contact-header h2 {
+    font-size: 3rem;
+    font-family: 'Playfair Display', serif;
+    color: white;
+    mix-blend-mode: difference;
+    margin-bottom: 2rem;
+    line-height: 1.15;
+}
+
+@media (min-width: 1024px) {
+    .lp-contact-header h2 {
+        font-size: 4rem;
+    }
+}
+
+.lp-contact-desc {
+    font-size: 1.125rem;
+    color: white;
+    opacity: 0.8;
+    mix-blend-mode: difference;
+    font-weight: 300;
+    line-height: 1.625;
+}
+
+
+.lp-contact-card {
+    flex: 1.25;
+    background-color: white;
+    padding: 3rem 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+@media (min-width: 640px) {
+    .lp-contact-card {
+        padding: 4rem;
+    }
+}
+
+.lp-contact-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    text-align: left;
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .lp-contact-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3rem 2rem;
+    }
+}
+
+.lp-form-group {
+    position: relative;
+    text-align: left;
+    display: block;
+    width: 100%;
+}
+
+.lp-form-group.lp-full-width {
+    grid-column: span 1;
+}
+
+@media (min-width: 640px) {
+    .lp-form-group.lp-full-width {
+        grid-column: span 2;
+    }
+}
+
+.lp-form-group label {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #8fa5f0;
+    margin-bottom: 0.75rem;
+    text-align: left;
+    transition: color 0.3s;
+}
+
+.lp-form-group:focus-within label {
+    color: #006039;
+}
+
+.lp-form-group input,
+.lp-form-group textarea {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.2);
+    outline: none;
+    font-size: 1.125rem;
+    color: #0F172A;
+    font-family: 'Playfair Display', serif;
+    padding: 0 0 0.5rem 0;
+    box-shadow: none;
+    text-align: left;
+    transition: border-color 0.3s;
+}
+
+.lp-form-group input:focus,
+.lp-form-group textarea:focus {
+    border-color: transparent;
+}
+
+.lp-form-group input::placeholder,
+.lp-form-group textarea::placeholder {
+    color: #e2e8f0;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-style: italic;
+    opacity: 1;
+}
+
+.lp-form-group textarea {
+    height: 6rem;
+    resize: none;
+}
+
+.lp-input-highlight {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: #006039;
+    transition: width 0.4s cubic-based(0.4, 0, 0.2, 1);
+}
+
+.lp-form-group:focus-within .lp-input-highlight {
+    width: 100%;
+}
+
+.lp-form-submit {
+    padding-top: 1.5rem;
+    text-align: left;
+}
+
+.lp-submit-btn {
+    width: 80%;
+    max-width: 24rem;
+    background-color: white;
+    color: #006039;
+    /* Text transparent based on the image seemingly having empty button, but we retain it for screen readers */
+    padding: 1.75rem 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    font-size: 0.75rem;
+    box-shadow: 0 4px 14px 0 rgba(0, 96, 57, 0.15);
+    border: 1px solid rgba(0, 96, 57, 0.1);
+    transition: all 0.3s;
+    display: block;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.lp-submit-btn:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 96, 57, 0.25), 0 4px 6px -2px rgba(0, 96, 57, 0.1);
+    transform: translateY(-2px);
+}
+
+.lp-sec-compliant {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+.lp-lock-icon {
+    font-size: 1.25rem;
+    color: #8fa5f0;
+}
+
+.lp-sec-compliant p {
+    font-size: 0.625rem;
+    color: #8fa5f0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    text-align: left;
+    line-height: 1.4;
+}
+
+/* -------------------- Footer Section -------------------- */
+.lp-main-footer {
+    background-color: #0F172A;
+    color: white;
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: block !important;
+}
+
+.lp-footer-top {
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+@media (min-width: 768px) {
+    .lp-footer-top {
+        flex-direction: row;
+    }
+}
+
+.lp-footer-info {
+    max-width: 28rem;
+    text-align: left;
+}
+
+.lp-footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.lp-footer-logo .lp-logo-img {
+    height: 2.25rem;
+    width: auto;
+    object-fit: contain;
+}
+
+.lp-footer-logo .lp-logo-text {
+    font-size: 1.875rem;
+    font-family: 'Playfair Display', serif;
+    letter-spacing: -0.025em;
+    color: white;
+}
+
+.lp-footer-desc {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.625;
+    font-weight: 300;
+    margin-bottom: 3rem;
+    font-style: italic;
+    text-align: left;
+}
+
+.lp-footer-contacts {
+    display: flex;
+    gap: 2.5rem;
+}
+
+.lp-contact-item {
+    text-align: left;
+}
+
+.lp-contact-item .lp-contact-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #006039;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.lp-contact-item .lp-contact-val {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 300;
+    text-align: left;
+}
+
+.lp-footer-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 3rem;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    position: relative;
+    overflow: hidden;
+    min-width: 18rem;
+    text-align: left;
+}
+
+.lp-card-bg-icon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 1rem;
+    opacity: 0.1;
+}
+
+.lp-card-bg-icon .material-symbols-outlined {
+    font-size: 6rem;
+}
+
+.lp-card-title {
+    color: #006039;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.lp-card-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.lp-card-link-btn {
+    display: block;
+    font-size: 1.25rem;
+    font-family: 'Playfair Display', serif;
+    transition: color 0.3s;
+    color: white;
+    text-align: left;
+}
+
+.lp-card-link-btn:hover {
+    color: #006039;
+}
+
+.lp-card-icons {
+    display: flex;
+    gap: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 1.5rem;
+}
+
+.lp-card-icons .material-symbols-outlined {
+    color: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.lp-card-icons .material-symbols-outlined:hover {
+    color: #006039;
+}
+
+.lp-footer-bottom {
+    margin-top: 8rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    .lp-footer-bottom {
+        flex-direction: row;
+    }
+}
+
+.lp-footer-bottom p {
+    font-size: 0.625rem;
+    color: rgba(255, 255, 255, 0.2);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    text-align: left;
+}
+
+.lp-footer-legal {
+    display: flex;
+    gap: 3rem;
+    font-size: 0.625rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+}
+
+.lp-footer-legal a {
+    text-decoration: underline;
+    text-decoration-color: rgba(0, 96, 57, 0.2);
+    transition: color 0.3s;
+}
+
+.lp-footer-legal a:hover {
+    color: white;
+}
