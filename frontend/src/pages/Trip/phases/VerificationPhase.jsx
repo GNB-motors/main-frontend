@@ -62,24 +62,55 @@ const VerificationPhase = ({
       sum + (parseFloat(slip.netWeight || slip.weights?.netWeight || slip.weight) || 0), 0
     ).toFixed(2), [weightSlips]);
 
+  // Estimate fuel cost allocation per slip (same formula as backend: weighted average by distance)
+  const estimatedFuelCosts = useMemo(() => {
+    if (!journeyData) return { perSlip: [], totalFuelCost: 0 };
+    const fullTankLitres = Number(journeyData?.fuelData?.litres) || 0;
+    const fuelRate = Number(journeyData?.fuelData?.rate) || 0;
+    const partialSum = (propsFixedDocs?.partialFuel || []).reduce((s, pf) => {
+      const o = pf?.ocrData || pf?.file?.ocrData || {};
+      return s + (parseFloat(o?.volume || o?.litres || o?.liters || o?.quantity || 0) || 0);
+    }, 0);
+    const totalFuelCost = (fullTankLitres + partialSum) * fuelRate;
+
+    // Calculate total route distance across all slips (fallback)
+    const totalRouteDistance = weightSlips.reduce((sum, slip) => {
+      return sum + (Number(slip.routeData?.actualDistanceKm) || Number(slip.routeData?.baseDistanceKm) || 0);
+    }, 0);
+
+    // Use sum of route distances to ensure 100% of fuel cost is allocated
+    // This allows the productive trips to absorb any deadhead fuel cost
+    const denominatorDistance = totalRouteDistance;
+
+    const perSlip = weightSlips.map(slip => {
+      if (denominatorDistance <= 0 || totalFuelCost <= 0) return 0;
+      const tripDistance = Number(slip.routeData?.actualDistanceKm) || Number(slip.routeData?.baseDistanceKm) || 0;
+      return Math.round(((tripDistance / denominatorDistance) * totalFuelCost) * 100) / 100;
+    });
+
+    return { perSlip, totalFuelCost };
+  }, [weightSlips, journeyData, propsFixedDocs]);
+
   const revenueSummary = useMemo(() => {
     const totalRevenue = weightSlips.reduce((sum, slip) =>
       sum + (parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || 0), 0);
     const totalCalculated = weightSlips.reduce((sum, slip) => {
       const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || 0;
-      const ratePerKg = parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || 0;
-      return sum + (netWeight * ratePerKg / 1000);
+      const ratePerTon = parseFloat(slip.ratePerTon) || slip.revenue?.ratePerTon || 0;
+      return sum + (netWeight * ratePerTon / 1000);
     }, 0);
-    return { totalRevenue, totalCalculated, totalVariance: totalRevenue - totalCalculated };
+    // Variance = calculated - actual (positive means we are owed more, matches backend)
+    return { totalRevenue, totalCalculated, totalVariance: totalCalculated - totalRevenue };
   }, [weightSlips]);
 
-  const totalExpense = useMemo(() => weightSlips.reduce((sum, slip) =>
+  const totalExpense = useMemo(() => weightSlips.reduce((sum, slip, i) =>
     sum + (parseFloat(slip.materialCost) || slip.expenses?.materialCost || 0) +
           (parseFloat(slip.toll) || slip.expenses?.toll || 0) +
           (parseFloat(slip.driverCost) || slip.expenses?.driverCost || 0) +
           (parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || 0) +
           (parseFloat(slip.royalty) || slip.expenses?.royalty || 0) +
-          (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0), 0), [weightSlips]);
+          (parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || 0) +
+          (estimatedFuelCosts.perSlip[i] || 0), 0), [weightSlips, estimatedFuelCosts]);
 
   const profit = useMemo(() => (revenueSummary.totalRevenue || 0) - (totalExpense || 0), [revenueSummary, totalExpense]);
 
@@ -240,6 +271,7 @@ const VerificationPhase = ({
                   <th>Origin</th>
                   <th>Destination</th>
                   <th>Weight</th>
+                  <th>Est. Fuel Cost</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -260,6 +292,7 @@ const VerificationPhase = ({
                       <td className="vp-loc">{originText}</td>
                       <td className="vp-loc">{destText}</td>
                       <td className="vp-weight">{weight > 0 ? `${Number(weight).toLocaleString()} kg` : '—'}</td>
+                      <td className="vp-weight">{estimatedFuelCosts.perSlip[i] > 0 ? `₹${Number(estimatedFuelCosts.perSlip[i]).toLocaleString()}` : '—'}</td>
                       <td>
                         {slip.isDone
                           ? <span className="vp-status-done"><CheckCircle size={13} /> Done</span>
@@ -303,6 +336,24 @@ const VerificationPhase = ({
                 <div className={`vp-stat ${profit >= 0 ? 'profit' : 'loss'}`}>
                   <span className="vp-stat-val">₹{Math.abs(profit).toLocaleString()}</span>
                   <span className="vp-stat-lbl">{profit >= 0 ? 'Profit' : 'Loss'}</span>
+                </div>
+              </>
+            )}
+            {estimatedFuelCosts.totalFuelCost > 0 && (
+              <>
+                <div className="vp-stat-div" />
+                <div className="vp-stat">
+                  <span className="vp-stat-val">₹{Number(estimatedFuelCosts.totalFuelCost).toLocaleString()}</span>
+                  <span className="vp-stat-lbl">Total Fuel Cost</span>
+                </div>
+              </>
+            )}
+            {revenueSummary.totalVariance !== 0 && (
+              <>
+                <div className="vp-stat-div" />
+                <div className={`vp-stat ${revenueSummary.totalVariance >= 0 ? 'profit' : 'loss'}`}>
+                  <span className="vp-stat-val">₹{Math.abs(revenueSummary.totalVariance).toLocaleString()}</span>
+                  <span className="vp-stat-lbl">{revenueSummary.totalVariance >= 0 ? 'Revenue Variance (+)' : 'Revenue Variance (-)'}</span>
                 </div>
               </>
             )}

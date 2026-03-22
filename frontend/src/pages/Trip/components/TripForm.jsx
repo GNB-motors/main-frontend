@@ -44,7 +44,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
     'grossWeight',
     'tareWeight',
     'netWeight',
-    'amountPerKg',
+    'ratePerTon',
     'totalAmountReceived',
     'materialCost',
     'toll',
@@ -210,10 +210,10 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
         <div className="tf-grid">
           <InputGroup 
             {...shared}
-            id="amountPerKg" 
-            label="Amount per Ton" 
-            value={slip.amountPerKg} 
-            field="amountPerKg" 
+            id="ratePerTon" 
+            label="Rate per Ton (₹)" 
+            value={slip.ratePerTon} 
+            field="ratePerTon" 
             required 
             step="0.01"
           />

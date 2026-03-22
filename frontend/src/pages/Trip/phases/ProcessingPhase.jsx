@@ -14,7 +14,7 @@ import SlipsList from '../components/SlipsList';
 import TripForm from '../components/TripForm';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import RouteCreator from '../../../components/RouteCreator/RouteCreator';
-import { Truck, Fuel, Gauge, MapPin } from 'lucide-react';
+import { Truck, Fuel, Gauge, MapPin, DollarSign } from 'lucide-react';
 
 
 
@@ -288,12 +288,24 @@ const ProcessingPhase = ({
 
                 const fuelEfficiency = (totalDistance && totalFuelUsed > 0) ? (Number(totalDistance) / Number(totalFuelUsed)) : (journeyData?.fuelData?.efficiency ?? journeyData?.estimatedEfficiency ?? null);
 
+                // Calculate estimated fuel cost for current slip (weighted by distance)
+                const totalFuelCost = totalFuelUsed * (Number(fuelRate) || 0);
+                const totalRouteDistance = weightSlips.reduce((sum, s) => {
+                  return sum + (Number(s.routeData?.actualDistanceKm) || Number(s.routeData?.baseDistanceKm) || 0);
+                }, 0);
+                const denominatorDistance = totalRouteDistance;
+                const currentSlipDistance = Number(currentSlip.routeData?.actualDistanceKm) || Number(currentSlip.routeData?.baseDistanceKm) || 0;
+                const estFuelCostForSlip = (denominatorDistance > 0 && totalFuelCost > 0)
+                  ? Math.round(((currentSlipDistance / denominatorDistance) * totalFuelCost) * 100) / 100
+                  : null;
+
                 const metrics = [
                   { label: 'Start Odo', value: startOdometer !== null ? `${Number(startOdometer).toLocaleString()} km` : '—', icon: <Gauge size={14} /> },
                   { label: 'End Odo', value: endOdometer !== null ? `${Number(endOdometer).toLocaleString()} km` : '—', icon: <Gauge size={14} /> },
                   { label: 'Distance', value: totalDistance !== null ? `${Number(totalDistance).toLocaleString()} km` : '—', icon: <MapPin size={14} /> },
                   { label: 'Fuel used', value: totalFuelUsed > 0 ? `${Number(totalFuelUsed).toLocaleString()} L` : '—', icon: <Fuel size={14} /> },
                   { label: 'Efficiency', value: fuelEfficiency !== null ? `${Number(fuelEfficiency).toFixed(2)} km/L` : '—', icon: <Truck size={14} /> },
+                  { label: 'Est. Fuel Cost', value: estFuelCostForSlip !== null ? `₹${Number(estFuelCostForSlip).toLocaleString()}` : '—', icon: <DollarSign size={14} /> },
                 ];
 
                 return (
