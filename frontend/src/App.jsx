@@ -32,13 +32,15 @@ import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
+import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 
+import LandingPage from './pages/Landing/LandingPage.jsx';
 
 function App() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<LoginPage />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/admin/new-user" element={<SignUpPage />} />
@@ -60,6 +62,7 @@ function App() {
       >
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />

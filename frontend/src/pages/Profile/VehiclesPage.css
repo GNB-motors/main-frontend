@@ -816,6 +816,7 @@
     overflow-y: auto;
     overflow-x: visible;
     max-height: calc(100vh - 350px);
+    padding-bottom: 80px;
 }
 
 .vehicles-table tbody tr {

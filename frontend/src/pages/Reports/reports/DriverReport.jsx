@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Box, Typography, TextField, InputAdornment, IconButton, CircularProgress, Alert, FormControl, Select, MenuItem
+    Box, Alert
 } from '@mui/material';
-import { Search as SearchIcon, InfoOutlined, Star } from '@mui/icons-material';
-import { DataGrid } from '@mui/x-data-grid';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import dayjs from 'dayjs';
-import { ReportsService } from '../ReportsService.jsx'; // Adjusted path
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Pagination, PaginationContent, PaginationEllipsis,
+    PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+} from '@/components/ui/pagination';
+import TableShimmer from '@/components/ui/TableShimmer';
+import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
 // --- **** DriverReport COMPONENT **** ---
@@ -18,8 +20,24 @@ const DriverReport = ({ handleViewOutliers }) => {
 
     // State for filters
     const [searchText, setSearchText] = useState("");
-    const [dateRange, setDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
-    const [selectedEmployee, setSelectedEmployee] = useState('');
+    const [selectedEmployee, setSelectedEmployee] = useState('all');
+    const [employeeOptions, setEmployeeOptions] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    // Fetch employee list from employees API
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            try {
+                const data = await ReportsService.getEmployees();
+                const names = [...new Set(data.map(d => `${d.firstName} ${d.lastName}`.trim()).filter(Boolean))];
+                setEmployeeOptions(names);
+            } catch (err) {
+                console.error("Failed to fetch employee list:", err);
+            }
+        };
+        fetchEmployees();
+    }, []);
 
     // Fetch Driver Data Effect
     useEffect(() => {
@@ -29,18 +47,16 @@ const DriverReport = ({ handleViewOutliers }) => {
             try {
                 const data = await ReportsService.getDriverReports();
                 setDriverReportData(data);
-                console.log("Driver Reports Fetched:", data);
             } catch (err) {
                 console.error("Failed to fetch driver reports:", err);
                 setDriverError(err.detail || "Could not load driver reports.");
-                setDriverReportData([]); // Clear data on error
+                setDriverReportData([]);
             } finally {
                 setIsLoadingDrivers(false);
             }
         };
 
         fetchDriverReports();
-        // Rerun fetch only when component mounts
     }, []);
 
     // Define columns based on API response
@@ -160,26 +176,35 @@ const DriverReport = ({ handleViewOutliers }) => {
             );
         }
 
-        // Filter by date range (using first_trip_date if available)
-        const startDate = dateRange[0];
-        const endDate = dateRange[1];
-        if (startDate || endDate) {
-            rows = rows.filter(row => {
-                if (!row.first_trip_date) return true; // Include if no date available
-                const rowDate = dayjs(row.first_trip_date);
-                const afterStart = startDate ? rowDate.isAfter(startDate.subtract(1, 'day')) : true;
-                const beforeEnd = endDate ? rowDate.isBefore(endDate.add(1, 'day')) : true;
-                return afterStart && beforeEnd;
-            });
-        }
-
         // Filter by selected employee (driver name)
-        if (selectedEmployee !== '') {
+        if (selectedEmployee && selectedEmployee !== 'all') {
             rows = rows.filter(row => row.driverName === selectedEmployee);
         }
 
         return rows;
-    }, [driverReportData, searchText, dateRange, selectedEmployee]);
+    }, [driverReportData, searchText, selectedEmployee]);
+
+    // Pagination
+    const totalPages = Math.ceil(filteredRows.length / itemsPerPage) || 1;
+    const paginatedRows = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredRows.slice(start, start + itemsPerPage);
+    }, [filteredRows, currentPage, itemsPerPage]);
+
+    // Reset page when filters change
+    useEffect(() => { setCurrentPage(1); }, [searchText, selectedEmployee]);
+
+    const renderPageItems = () => {
+        const items = [];
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+                items.push(i);
+            } else if (items[items.length - 1] !== '...') {
+                items.push('...');
+            }
+        }
+        return items;
+    };
 
     // Export to CSV function
     const handleExportCSV = () => {
@@ -295,62 +320,32 @@ const DriverReport = ({ handleViewOutliers }) => {
 
                 {/* Filter Controls */}
                 <div className="report-filters">
-                    <div className="date-range-container">
-                        <div className="date-input-group">
-                            <label>From</label>
-                            <DatePicker
-                                value={dateRange[0]}
-                                onChange={(newValue) => {
-                                    setDateRange([newValue, dateRange[1]]);
-                                }}
-                                slotProps={{ textField: { size: 'small' } }}
-                            />
-                        </div>
-
-                        <div className="date-input-group">
-                            <label>To</label>
-                            <DatePicker
-                                value={dateRange[1]}
-                                onChange={(newValue) => {
-                                    setDateRange([dateRange[0], newValue]);
-                                }}
-                                slotProps={{ textField: { size: 'small' } }}
-                            />
-                        </div>
-                    </div>
-
                     <div className="date-input-group">
                         <label>Employee Name</label>
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <Select
-                                value={selectedEmployee}
-                                onChange={(e) => setSelectedEmployee(e.target.value)}
-                                displayEmpty
-                                renderValue={(value) => {
-                                    if (value === '') {
-                                        return 'All';
-                                    }
-                                    return value;
-                                }}
-                            >
-                                <MenuItem value="">All</MenuItem>
-                                {[...new Set(driverReportData.map(driver => driver.driverName))].map((driver) => (
-                                    <MenuItem key={driver} value={driver}>
-                                        {driver || 'N/A'}
-                                    </MenuItem>
+                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                            <SelectTrigger className="h-10 w-[180px] text-sm">
+                                <SelectValue>
+                                    {selectedEmployee === 'all' ? 'All Employees' : selectedEmployee}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Employees</SelectItem>
+                                {employeeOptions.map((name) => (
+                                    <SelectItem key={name} value={name}>
+                                        {name}
+                                    </SelectItem>
                                 ))}
-                            </Select>
-                        </FormControl>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </div>
 
             {/* Loading and Error States */}
             {isLoadingDrivers && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-                    <CircularProgress />
-                    <Typography sx={{ ml: 2 }}>Loading driver data...</Typography>
-                </Box>
+                <div className="report-content">
+                    <TableShimmer columns={13} rows={10} />
+                </div>
             )}
             {driverError && !isLoadingDrivers && (
                 <Alert severity="error" sx={{ my: 2 }}>{driverError}</Alert>
@@ -359,121 +354,149 @@ const DriverReport = ({ handleViewOutliers }) => {
             {/* Data Table */}
             {!isLoadingDrivers && !driverError && (
                 <div className="report-content">
-                    <div className="driver-table-container">
+                    <div className="table-wrapper">
                         <table className="driver-table">
                             <thead>
-                                <tr>
+                                <tr className="table-header-row">
                                     <th>Driver Name</th>
                                     <th>Mobile Number</th>
-                                    <th>Journeys Completed</th>
-                                    <th>Weight Slip Trips</th>
-                                    <th>Total Distance (KM)</th>
-                                    <th>Avg. Trip Distance (KM)</th>
-                                    <th>Total Revenue</th>
-                                    <th>Total Expenses</th>
-                                    <th>Total Profit</th>
-                                    <th>Avg Revenue/Trip</th>
-                                    <th>Profit Margin (%)</th>
-                                    <th>On-Time Arrival</th>
-                                    <th>Docs Status</th>
+                                    <th>Journeys</th>
+                                    <th>WS Trips</th>
+                                    <th>Total Distance</th>
+                                    <th>Avg Distance</th>
+                                    <th>Revenue</th>
+                                    <th>Expenses</th>
+                                    <th>Profit</th>
+                                    <th>Avg Rev/Trip</th>
+                                    <th>Margin</th>
+                                    <th>On-Time</th>
+                                    <th>Docs</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredRows.length === 0 ? (
+                                {paginatedRows.length === 0 ? (
                                     <tr>
                                         <td colSpan={13} className="driver-empty-state">
                                             No driver summary data found.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredRows.map((row, index) => {
-                                        return (
-                                            <tr key={row.id || index}>
-                                                <td>
-                                                    <div className="cell-primary">{row.driverName || '-'}</div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary">{row.mobileNumber || '-'}</div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>{row.journeysCompleted || '-'}</div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>{row.totalWeightSlipTrips || '-'}</div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                        {typeof row.totalDistanceDrivenKm === 'number' 
-                                                            ? row.totalDistanceDrivenKm.toLocaleString('en-IN', { maximumFractionDigits: 0 }) 
-                                                            : '-'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                        {typeof row.averageTripDistance === 'number' 
-                                                            ? row.averageTripDistance.toLocaleString('en-IN', { maximumFractionDigits: 1 }) 
-                                                            : '-'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                        {typeof row.totalRevenue === 'number' 
-                                                            ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
-                                                            : '-'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                        {typeof row.totalExpenses === 'number' 
-                                                            ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
-                                                            : '-'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                        {typeof row.totalProfit === 'number' 
-                                                            ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
-                                                            : '-'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                        {typeof row.avgRevenuePerTrip === 'number' 
-                                                            ? `₹${row.avgRevenuePerTrip.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` 
-                                                            : '-'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'right' }}>
-                                                        {typeof row.profitMargin === 'number' 
-                                                            ? `${row.profitMargin.toFixed(2)}%` 
-                                                            : 'N/A'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="cell-primary" style={{ textAlign: 'center' }}>
-                                                        {row.onTimeArrivalRate || 'N/A'}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div 
-                                                        className="cell-primary" 
-                                                        style={{ 
-                                                            textAlign: 'center',
-                                                            color: row.documentsExpired ? 'red' : 'green',
-                                                            fontWeight: 500
-                                                        }}
-                                                    >
-                                                        {row.documentsExpired ? 'Expired' : 'Valid'}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
+                                    paginatedRows.map((row, index) => (
+                                        <tr key={row.id || index} className="trip-table-row">
+                                            <td>
+                                                <div className="cell-primary">{row.driverName || '-'}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{row.mobileNumber || '-'}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{row.journeysCompleted || '-'}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{row.totalWeightSlipTrips || '-'}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalDistanceDrivenKm === 'number'
+                                                        ? row.totalDistanceDrivenKm.toLocaleString('en-IN', { maximumFractionDigits: 0 })
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.averageTripDistance === 'number'
+                                                        ? row.averageTripDistance.toLocaleString('en-IN', { maximumFractionDigits: 1 })
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalRevenue === 'number'
+                                                        ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalExpenses === 'number'
+                                                        ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.totalProfit === 'number'
+                                                        ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.avgRevenuePerTrip === 'number'
+                                                        ? `₹${row.avgRevenuePerTrip.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+                                                        : '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">
+                                                    {typeof row.profitMargin === 'number'
+                                                        ? `${row.profitMargin.toFixed(1)}%`
+                                                        : 'N/A'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div className="cell-primary">
+                                                    {row.onTimeArrivalRate || 'N/A'}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{ color: row.documentsExpired ? 'red' : 'green', fontWeight: 500 }}>
+                                                    {row.documentsExpired ? 'Expired' : 'Valid'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
                                 )}
                             </tbody>
                         </table>
                     </div>
+
+                    {filteredRows.length > 0 && totalPages > 1 && (
+                        <div className="pagination-wrapper">
+                            <Pagination className="justify-end">
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            onClick={() => currentPage > 1 && setCurrentPage(p => p - 1)}
+                                            className={currentPage <= 1 ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                    {renderPageItems().map((item, idx) =>
+                                        item === '...' ? (
+                                            <PaginationItem key={`e-${idx}`}>
+                                                <PaginationEllipsis />
+                                            </PaginationItem>
+                                        ) : (
+                                            <PaginationItem key={item}>
+                                                <PaginationLink
+                                                    isActive={currentPage === item}
+                                                    onClick={() => setCurrentPage(item)}
+                                                >
+                                                    {item}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        )
+                                    )}
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            onClick={() => currentPage < totalPages && setCurrentPage(p => p + 1)}
+                                            className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        </div>
+                    )}
                 </div>
             )}
         </Box>

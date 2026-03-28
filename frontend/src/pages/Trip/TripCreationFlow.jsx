@@ -255,8 +255,8 @@ const TripCreationFlow = () => {
           routeData: slip.routeData || {}, // Use embedded route data
           tripType: slip.tripType || 'PICKUP_DROP', // Include trip type
           revenue: {
-            // TripForm uses amountPerKg, backend expects ratePerKg
-            ratePerKg: parseFloat(slip.amountPerKg) || slip.revenue?.ratePerKg || slip.ocrData?.extractedData?.ratePerKg || 0,
+            // TripForm uses ratePerTon, backend expects ratePerTon
+            ratePerTon: parseFloat(slip.ratePerTon) || slip.revenue?.ratePerTon || slip.ocrData?.extractedData?.ratePerTon || 0,
             // TripForm uses totalAmountReceived
             actualAmountReceived: parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || slip.ocrData?.extractedData?.totalAmount || 0,
           },
@@ -280,7 +280,7 @@ const TripCreationFlow = () => {
               grossWeight: grossWeight,
               tareWeight: tareWeight,
               netWeight: netWeight,
-              ratePerKg: parseFloat(slip.amountPerKg) || slip.ocrData.extractedData?.ratePerKg,
+              ratePerTon: parseFloat(slip.ratePerTon) || slip.ocrData.extractedData?.ratePerTon,
               totalAmount: parseFloat(slip.totalAmountReceived) || slip.ocrData.extractedData?.totalAmount,
               materialCost: parseFloat(slip.materialCost) || slip.ocrData.extractedData?.materialCost,
               toll: parseFloat(slip.toll) || slip.ocrData.extractedData?.toll,
@@ -294,7 +294,7 @@ const TripCreationFlow = () => {
                 grossWeight: grossWeight !== slip.ocrData.extractedData?.grossWeight,
                 tareWeight: tareWeight !== slip.ocrData.extractedData?.tareWeight,
                 netWeight: netWeight !== slip.ocrData.extractedData?.netWeight,
-                ratePerKg: parseFloat(slip.amountPerKg) !== slip.ocrData.extractedData?.ratePerKg,
+                ratePerTon: parseFloat(slip.ratePerTon) !== slip.ocrData.extractedData?.ratePerTon,
                 totalAmount: parseFloat(slip.totalAmountReceived) !== slip.ocrData.extractedData?.totalAmount,
                 materialCost: parseFloat(slip.materialCost) !== slip.ocrData.extractedData?.materialCost,
                 toll: parseFloat(slip.toll) !== slip.ocrData.extractedData?.toll,

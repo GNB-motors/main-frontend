@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import UkoLogo from '../../assets/uko-logo.png';
+import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
@@ -77,6 +77,7 @@ const LoginPage = () => {
             // Handle new API response structure
             const token = loginData.token || loginData.access_token;
             const user = loginData.user;
+            const organization = loginData.organization;
 
             // Store the token immediately
             localStorage.setItem('authToken', token);
@@ -107,16 +108,14 @@ const LoginPage = () => {
                 }
 
                 // For OWNER and other roles, check if onboarding is completed
-                const onboardingCompleted = localStorage.getItem('onboardingCompleted');
-                
-                if (onboardingCompleted === 'true') {
-                    // User has completed onboarding, go to overview
+                const isOnboarded = organization?.isOnboarded === true;
+
+                if (isOnboarded) {
                     toast.success("Welcome back! Redirecting to dashboard...");
                     setTimeout(() => {
                         navigate('/overview');
                     }, 1500);
                 } else {
-                    // User hasn't completed onboarding yet
                     toast.success("Login successful! Redirecting to onboarding...");
                     setTimeout(() => {
                         navigate('/onboarding');
@@ -149,7 +148,7 @@ const LoginPage = () => {
             <div className="login-form-wrapper">
                 <div className="login-form-card">
                     <div className="login-header">
-                        <img src={UkoLogo} alt="Uko Logo" className="logo"/>
+                        <img src={GNBLogo} alt="GNB Logo" className="logo"/>
                         <h1>Sign In</h1>
                     </div>
 

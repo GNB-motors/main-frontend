@@ -13,6 +13,7 @@ const loginUser = async (credentials) => {
       return {
         user: response.data.data.user,
         token: response.data.data.token,
+        organization: response.data.data.organization,
       };
     }
     
