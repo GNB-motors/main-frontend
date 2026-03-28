@@ -7,7 +7,7 @@ const ScrollReveal = ({
     delay = 0,
     duration = 0.7,
     distance = 60,
-    once = true,
+    once = false,
 }) => {
     const directionMap = {
         up: { y: distance, x: 0 },
