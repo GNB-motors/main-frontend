@@ -34,10 +34,10 @@ const InputGroup = ({ id, label, type = "number", placeholder, value, field, req
 const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onValidationChange, showValidation }) => {
   // Track which fields have been manually edited by the user
   const manuallyEditedFieldsRef = useRef(new Set());
-  
+
   // State for validation errors
   const [validationErrors, setValidationErrors] = useState(new Set());
-  
+
   // Define required fields (allocatedFuel is now optional)
   const requiredFields = [
     'materialType',
@@ -46,7 +46,6 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
     'netWeight',
     'ratePerTon',
     'totalAmountReceived',
-    'materialCost',
     'toll',
     'driverCost',
     'driverTripExpense',
@@ -57,26 +56,26 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
   // Validate form and update validation state
   const validateForm = useCallback(() => {
     const errors = new Set();
-    
+
     requiredFields.forEach(field => {
       const value = slip[field];
       if (value === undefined || value === null || value === '' || value === '0' || parseFloat(value) < 0) {
         if (field === 'materialType') {
           if (!value || value === '') errors.add(field);
         } else {
-           if (value === '' || parseFloat(value) <= 0) errors.add(field);
+          if (value === '' || parseFloat(value) <= 0) errors.add(field);
         }
       }
     });
-    
+
     setValidationErrors(errors);
-    
+
     // Notify parent component about validation status
     const isValid = errors.size === 0;
     if (onValidationChange) {
       onValidationChange(isValid, errors);
     }
-    
+
     return isValid;
   }, [slip, onValidationChange]);
 
@@ -84,7 +83,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
   useEffect(() => {
     validateForm();
   }, [validateForm]);
-  
+
   const handleChange = useCallback(
     (field, value) => {
       manuallyEditedFieldsRef.current.add(field);
@@ -97,7 +96,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
   useEffect(() => {
     if (slip.ocrData) {
       const updates = {};
-      
+
       if (slip.ocrData.grossWeight && !slip.grossWeight && !manuallyEditedFieldsRef.current.has('grossWeight')) {
         updates.grossWeight = slip.ocrData.grossWeight;
       }
@@ -108,7 +107,7 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
       if (ocrNetWeight && !slip.netWeight && !manuallyEditedFieldsRef.current.has('netWeight')) {
         updates.netWeight = ocrNetWeight;
       }
-      
+
       if (Object.keys(updates).length > 0) {
         onUpdate(updates);
       }
@@ -141,13 +140,13 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
       <fieldset className="tf-section">
         <legend>Fuel Allocation</legend>
         <div className="tf-grid">
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="allocatedFuel" 
-            label="Allocated Fuel (L)" 
-            placeholder="Optional" 
-            value={slip.allocatedFuel} 
-            field="allocatedFuel" 
+            id="allocatedFuel"
+            label="Allocated Fuel (L)"
+            placeholder="Optional"
+            value={slip.allocatedFuel}
+            field="allocatedFuel"
             step="0.01"
             fullWidth
           />
@@ -158,48 +157,48 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
       <fieldset className="tf-section">
         <legend>Weight Certificate Details</legend>
         <div className="tf-grid">
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="materialType" 
-            label="Material Type" 
-            type="text" 
-            placeholder="e.g. Coal" 
-            value={slip.materialType} 
-            field="materialType" 
-            required 
+            id="materialType"
+            label="Material Type"
+            type="text"
+            placeholder="e.g. Coal"
+            value={slip.materialType}
+            field="materialType"
+            required
             fullWidth
           />
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="grossWeight" 
-            label="Gross Weight (kg)" 
-            value={slip.grossWeight} 
-            field="grossWeight" 
-            required 
+            id="grossWeight"
+            label="Gross Weight (kg)"
+            value={slip.grossWeight}
+            field="grossWeight"
+            required
           />
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="tareWeight" 
-            label="Tare Weight (kg)" 
-            value={slip.tareWeight} 
-            field="tareWeight" 
-            required 
+            id="tareWeight"
+            label="Tare Weight (kg)"
+            value={slip.tareWeight}
+            field="tareWeight"
+            required
           />
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="netWeight" 
-            label="Net Weight (kg)" 
-            value={slip.netWeight} 
-            field="netWeight" 
-            required 
+            id="netWeight"
+            label="Net Weight (kg)"
+            value={slip.netWeight}
+            field="netWeight"
+            required
           />
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="weight" 
-            label="Final Weight (kg)" 
-            value={slip.weight} 
-            field="weight" 
-            required 
+            id="weight"
+            label="Final Weight (kg)"
+            value={slip.weight}
+            field="weight"
+            required
           />
         </div>
       </fieldset>
@@ -208,22 +207,22 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
       <fieldset className="tf-section">
         <legend>Revenue (per weight certificate)</legend>
         <div className="tf-grid">
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="ratePerTon" 
-            label="Rate per Ton (₹)" 
-            value={slip.ratePerTon} 
-            field="ratePerTon" 
-            required 
+            id="ratePerTon"
+            label="Rate per Ton (₹)"
+            value={slip.ratePerTon}
+            field="ratePerTon"
+            required
             step="0.01"
           />
-          <InputGroup 
+          <InputGroup
             {...shared}
-            id="totalAmountReceived" 
-            label="Total Amount Received" 
-            value={slip.totalAmountReceived} 
-            field="totalAmountReceived" 
-            required 
+            id="totalAmountReceived"
+            label="Total Amount Received"
+            value={slip.totalAmountReceived}
+            field="totalAmountReceived"
+            required
             step="0.01"
           />
         </div>
@@ -233,11 +232,11 @@ const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onV
       <fieldset className="tf-section">
         <legend>Expenses (per weight certificate)</legend>
         <div className="tf-grid">
-          <InputGroup {...shared} id="materialCost" label="Material Cost" value={slip.materialCost} field="materialCost" required step="0.01" />
+          <InputGroup {...shared} id="materialCost" label="Material Cost" value={slip.materialCost} field="materialCost" step="0.01" />
           <InputGroup {...shared} id="toll" label="Toll" value={slip.toll} field="toll" required step="0.01" />
           <InputGroup {...shared} id="driverCost" label="Driver Cost" value={slip.driverCost} field="driverCost" required step="0.01" />
           <InputGroup {...shared} id="driverTripExpense" label="Trip Expense" value={slip.driverTripExpense} field="driverTripExpense" required step="0.01" />
-          <InputGroup {...shared} id="royalty" label="Royalty" value={slip.royalty} field="royalty" required step="0.01" className="full-width" />
+          <InputGroup {...shared} id="royalty" label="Royalty" value={slip.royalty} field="royalty" required step="0.01" fullWidth />
         </div>
       </fieldset>
     </div>
