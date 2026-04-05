@@ -1,7 +1,22 @@
-/**
- * ProcessingPhase.css
- * Styles for Phase 2: Side-by-side Processing Workspace
- */
+/* Override standard fieldset/legend for consistency with TripForm */
+.processing-phase fieldset.form-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.processing-phase fieldset.form-section legend {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  padding: 0 12px;
+  background: white;
+  margin-left: -4px;
+}
+
 
 .processing-phase {
   display: flex;
@@ -9,6 +24,85 @@
   height: 100%;
   background: #f5f7fa;
   overflow: hidden;
+}
+
+/* ── Step progress bar (matches IntakePhase) ── */
+.processing-progress-header {
+  flex-shrink: 0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.processing-progress-track {
+  width: 100%;
+  height: 3px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.processing-progress-fill {
+  height: 100%;
+  background: #2563eb;
+  transition: width 0.4s ease;
+}
+
+/* ── form-header layout update ── */
+.form-header {
+  padding: 10px 20px;
+  border-bottom: 1px solid #ecf0f1;
+  background: #f9fafb;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.form-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slip-progress-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.slip-done-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #16a34a;
+  background: #f0fdf4;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid #bbf7d0;
+}
+
+/* ── Slim slip-completion bar under form header ── */
+.slip-progress-bar-wrap {
+  height: 2px;
+  background: #f1f5f9;
+  flex-shrink: 0;
+  flex-grow: 0;  /* prevent nth-child(2) from stretching this */
+}
+
+.slip-progress-bar-fill {
+  height: 100%;
+  background: #10b981;
+  transition: width 0.4s ease;
 }
 
 /* Header */
@@ -58,61 +152,25 @@
 /* Main Container */
 .processing-container {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 280px 1fr; /* Increased sidebar for better thumbnail visibility */
   gap: 0;
   flex: 1;
   overflow: hidden;
+  background: #f8fafc;
 }
 
 /* Left Sidebar */
 .processing-sidebar {
   background: white;
-  border-right: 1px solid #ecf0f1;
+  border-right: 1px solid #e2e8f0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* Center Panel */
-.processing-center {
-  display: none;
-}
-
-.image-viewer-container {
-  flex: 1;
-  overflow: auto;
-  background: #2c3e50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  position: relative;
-}
-
-/* Image Controls */
-.image-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: white;
-  border-top: 1px solid #ecf0f1;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.zoom-level {
-  font-size: 13px;
-  font-weight: 600;
-  color: #2c3e50;
-  min-width: 50px;
-  text-align: center;
-}
-
 /* Right Form Panel */
 .processing-form-panel {
-  background: white;
-  border-left: 1px solid #ecf0f1;
+  background: transparent; /* Changed to transparent as it sits on container bg */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -120,68 +178,21 @@
 }
 
 .form-header {
-  padding: 12px 20px;
-  border-bottom: 1px solid #ecf0f1;
-  background: #f9fafb;
+  padding: 16px 32px; /* Increased padding */
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .form-header h3 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px; /* Slightly larger */
+  font-weight: 700;
   margin: 0;
-  color: #2c3e50;
-}
-
-.form-status {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.status-badge {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.status-done {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.processing-form-panel > div:nth-child(2) {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0;
-  scroll-behavior: smooth;
-}
-
-.processing-form-panel > div:nth-child(2)::-webkit-scrollbar {
-  width: 8px;
-}
-
-.processing-form-panel > div:nth-child(2)::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.processing-form-panel > div:nth-child(2)::-webkit-scrollbar-thumb {
-  background: #d0d7e0;
-  border-radius: 4px;
-}
-
-.processing-form-panel > div:nth-child(2)::-webkit-scrollbar-thumb:hover {
-  background: #a8b0bf;
+  color: #0f172a;
 }
 
 /* Form Content Wrapper - scrollable container */
@@ -190,7 +201,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
-  padding: 0 20px;
+  padding: 24px 32px; /* Uniform generous padding */
 }
 
 .form-content-wrapper::-webkit-scrollbar {
@@ -210,66 +221,106 @@
   background: #a8b0bf;
 }
 
-/* Journey summary shown at top of processing form */
-.journey-summary {
-  margin: 0 0 22px 0;
-  padding: 12px 16px;
-  background: #f8fafc;
+/* Journey summary grid - matches Phase 3 style but for Phase 2 */
+.journey-summary-card {
+  margin: 0 0 24px 0;
+  background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
-.journey-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px 18px;
-  margin-top: 8px;
+.pp-metric-grid {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid #f1f5f9;
 }
 
-.journey-item {
-  font-size: 14px;
-  color: #475569;
+.pp-metric {
+  flex: 1;
+  min-width: 140px;
+  padding: 14px 20px;
+  border-right: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background 0.2s;
 }
 
-.journey-item strong {
-  color: #1e293b;
-  font-weight: 600;
+.pp-metric:hover {
+  background: #f8fafc;
 }
 
-.processing-form-panel > div:nth-child(3) {
-  padding: 20px;
-  border-top: 1px solid #ecf0f1;
+.pp-metric:last-child {
+  border-right: none;
 }
 
-/* Form Actions */
+.pp-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+}
+
+.pp-metric-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pp-metric-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Form Actions Polishing */
 .form-actions {
   display: flex;
   gap: 12px;
-  margin-top: 16px;
-  flex-shrink: 0;
-}
-
-.form-actions-complete {
-  background: linear-gradient(135deg, rgba(39, 174, 96, 0.05) 0%, rgba(34, 153, 84, 0.05) 100%);
-  padding: 16px;
-  margin: 16px 0 0 0;
-  border-top: 2px solid #27ae60;
-  border-radius: 8px;
-  margin-top: auto;
+  padding: 16px 20px;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  margin: 0 -20px; /* pull into side of container */
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .form-actions .btn {
   flex: 1;
-  padding: 11px 16px;
+  padding: 12px;
   font-size: 14px;
+  font-weight: 700;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
-.form-actions .btn.disabled {
-  background: #f2dede !important;
-  color: #a94442 !important;
-  border: 1px solid #ebcccc !important;
-  cursor: not-allowed !important;
-  opacity: 0.7;
+.form-actions .btn-primary {
+  background: #2563eb;
+  color: white;
+  border: none;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+.form-actions .btn-primary:hover:not(.disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+
+.form-actions .btn-secondary {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.form-actions .btn-secondary:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 /* Footer */

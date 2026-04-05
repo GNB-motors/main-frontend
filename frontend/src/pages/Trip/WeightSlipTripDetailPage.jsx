@@ -543,6 +543,15 @@ const WeightSlipTripDetailPage = () => {
                 </p>
               </div>
               <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Calculated Amount</label>
+                <p style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#111827' }}>
+                  {formatCurrency(trip.revenue?.calculatedAmount)}
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#9ca3af' }}>
+                  ({trip.weights?.netWeight?.toLocaleString() || 0} kg ÷ 1000) × ₹{trip.revenue?.ratePerTon || 0}
+                </p>
+              </div>
+              <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                 <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Amount Received</label>
                 <p style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>
                   {formatCurrency(trip.revenue?.actualAmountReceived)}
@@ -554,9 +563,12 @@ const WeightSlipTripDetailPage = () => {
                   margin: 0,
                   fontSize: '20px',
                   fontWeight: '700',
-                  color: trip.revenue?.variance < 0 ? '#dc2626' : '#16a34a'
+                  color: (trip.revenue?.variance || 0) > 0 ? '#d97706' : (trip.revenue?.variance || 0) < 0 ? '#dc2626' : '#16a34a'
                 }}>
-                  {formatCurrency(trip.revenue?.variance)}
+                  {formatCurrency(Math.abs(trip.revenue?.variance || 0))}
+                  {trip.revenue?.variance > 0 && <span style={{ fontSize: '12px', marginLeft: '8px', fontWeight: '500' }}>(underpaid)</span>}
+                  {trip.revenue?.variance < 0 && <span style={{ fontSize: '12px', marginLeft: '8px', fontWeight: '500' }}>(overpaid)</span>}
+                  {(trip.revenue?.variance || 0) === 0 && <span style={{ fontSize: '12px', marginLeft: '8px', fontWeight: '500' }}>(exact)</span>}
                 </p>
               </div>
             </div>
@@ -576,7 +588,8 @@ const WeightSlipTripDetailPage = () => {
                 { label: 'Toll', value: trip.expenses?.toll },
                 { label: 'Driver Cost', value: trip.expenses?.driverCost },
                 { label: 'Driver Trip Expense', value: trip.expenses?.driverTripExpense },
-                { label: 'Royalty', value: trip.expenses?.royalty }
+                { label: 'Royalty', value: trip.expenses?.royalty },
+                { label: 'Fuel Cost (Allocated)', value: trip.expenses?.allocatedFuelCost }
               ].map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>{item.label}</label>

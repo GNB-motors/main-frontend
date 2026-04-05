@@ -148,7 +148,7 @@ const TripDetailPage = () => {
     trip.weightSlipTrips?.reduce((sum, wst) => {
       const exp = wst.expenses || {};
       return sum + ((exp.materialCost || 0) + (exp.toll || 0) + (exp.driverCost || 0) +
-        (exp.driverTripExpense || 0) + (exp.royalty || 0));
+        (exp.driverTripExpense || 0) + (exp.royalty || 0) + (exp.allocatedFuelCost || 0));
     }, 0) || 0;
 
   const netProfit = trip.journeyFinancials?.netProfit ?? (totalRevenue - totalExpense);
@@ -642,34 +642,41 @@ const TripDetailPage = () => {
                       <span style={{ fontWeight: '500', color: '#111827' }}>Expense:</span>
                       <br />
                       <span style={{ fontSize: '14px', color: '#dc2626', fontWeight: '600' }}>
-                        {formatCurrency(
-                          (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) +
-                          (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) +
-                          (wst.expenses?.royalty || 0)
-                        )}
+                        {formatCurrency(wst.expenses?.totalExpense || 0)}
                       </span>
+                      {(wst.expenses?.allocatedFuelCost > 0) && (
+                        <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: '4px' }}>
+                          (incl. ₹{wst.expenses.allocatedFuelCost.toLocaleString()} fuel)
+                        </span>
+                      )}
                     </div>
                     <div>
                       <span style={{ fontWeight: '500', color: '#111827' }}>Profit:</span>
                       <br />
                       <span style={{
                         fontSize: '14px',
-                        color: ((wst.revenue?.actualAmountReceived || 0) - (
-                          (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) +
-                          (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) +
-                          (wst.expenses?.royalty || 0)
-                        )) >= 0 ? '#16a34a' : '#dc2626',
+                        color: (wst.performance?.netProfit ?? ((wst.revenue?.actualAmountReceived || 0) - (wst.expenses?.totalExpense || 0))) >= 0 ? '#16a34a' : '#dc2626',
                         fontWeight: '600'
                       }}>
-                        {formatCurrency(
-                          (wst.revenue?.actualAmountReceived || 0) - (
-                            (wst.expenses?.materialCost || 0) + (wst.expenses?.toll || 0) +
-                            (wst.expenses?.driverCost || 0) + (wst.expenses?.driverTripExpense || 0) +
-                            (wst.expenses?.royalty || 0)
-                          )
-                        )}
+                        {formatCurrency(wst.performance?.netProfit ?? ((wst.revenue?.actualAmountReceived || 0) - (wst.expenses?.totalExpense || 0)))}
                       </span>
                     </div>
+                    {(wst.revenue?.variance !== undefined && wst.revenue?.variance !== 0) && (
+                      <div>
+                        <span style={{ fontWeight: '500', color: '#111827' }}>Variance:</span>
+                        <br />
+                        <span style={{
+                          fontSize: '14px',
+                          color: wst.revenue.variance > 0 ? '#d97706' : '#dc2626',
+                          fontWeight: '600'
+                        }}>
+                          {formatCurrency(Math.abs(wst.revenue.variance))}
+                          <span style={{ fontSize: '11px', marginLeft: '4px', fontWeight: '400' }}>
+                            {wst.revenue.variance > 0 ? '(underpaid)' : '(overpaid)'}
+                          </span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

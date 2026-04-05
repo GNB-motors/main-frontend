@@ -1,63 +1,88 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, CheckCircle } from 'lucide-react';
 
-/**
- * Format OCR key to human-readable label
- */
-function formatOcrKey(key) {
-  const keyMap = {
-    reading: 'Reading',
-    confidence: 'Confidence',
-    sharpness: 'Sharpness',
-    qualityIssues: 'Quality Issues',
-    location: 'Location',
-    datetime: 'Date/Time',
-    vehicleNo: 'Vehicle No',
-    volume: 'Volume (L)',
-    rate: 'Rate (₹/L)',
-    documentType: 'Document Type',
-    date: 'Date',
-    grossWeight: 'Gross Weight (kg)',
-    tareWeight: 'Tare Weight (kg)',
-    netWeight: 'Net Weight (kg)',
-    finalWeight: 'Final Weight (kg)',
-    missingFields: 'Missing Fields',
-    status: 'Status',
-  };
-  return keyMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+const KEY_LABELS = {
+  reading: 'Odometer Reading',
+  confidence: 'Confidence',
+  sharpness: 'Sharpness',
+  qualityIssues: 'Quality Issues',
+  location: 'Location',
+  datetime: 'Date / Time',
+  date: 'Date',
+  vehicleNo: 'Vehicle No',
+  volume: 'Volume',
+  rate: 'Rate',
+  documentType: 'Document Type',
+  grossWeight: 'Gross Weight',
+  tareWeight: 'Tare Weight',
+  netWeight: 'Net Weight',
+  finalWeight: 'Final Weight',
+  missingFields: 'Missing Fields',
+  status: 'Status',
+  materialType: 'Material Type',
+  origin: 'Origin',
+  destination: 'Destination',
+};
+
+function formatKey(key) {
+  return KEY_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
 }
 
-const OcrPreviewModal = ({
-  showOcrModal,
-  setShowOcrModal,
-  selectedOcrData,
-  selectedOcrType
-}) => {
+function formatValue(key, value) {
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
+  if (value === null || value === undefined || value === '') return '—';
+  if (key === 'confidence') return `${value}%`;
+  if (key === 'volume') return `${value} L`;
+  if (key === 'rate') return `₹${value} / L`;
+  if (key === 'grossWeight' || key === 'tareWeight' || key === 'netWeight' || key === 'finalWeight') return `${value} kg`;
+  return String(value);
+}
+
+const PRIORITY_KEYS = ['documentType', 'date', 'datetime', 'vehicleNo', 'reading', 'volume', 'rate', 'grossWeight', 'tareWeight', 'netWeight', 'finalWeight', 'materialType', 'origin', 'destination', 'location', 'confidence'];
+
+const OcrPreviewModal = ({ showOcrModal, setShowOcrModal, selectedOcrData, selectedOcrType }) => {
   if (!showOcrModal || !selectedOcrData) return null;
+
+  // Sort entries: priority keys first, then others
+  const entries = Object.entries(selectedOcrData).filter(([, v]) => v !== null && v !== undefined);
+  const sorted = [
+    ...PRIORITY_KEYS.filter(k => selectedOcrData[k] !== null && selectedOcrData[k] !== undefined).map(k => [k, selectedOcrData[k]]),
+    ...entries.filter(([k]) => !PRIORITY_KEYS.includes(k))
+  ];
 
   return (
     <div className="ocr-modal-overlay" onClick={() => setShowOcrModal(false)}>
       <div className="ocr-modal" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
         <div className="ocr-modal-header">
-          <h3>{selectedOcrType} - OCR Data</h3>
+          <div className="ocr-modal-title-group">
+            <div className="ocr-modal-badge"><CheckCircle size={14} /></div>
+            <div>
+              <h3 className="ocr-modal-title">{selectedOcrType}</h3>
+              <span className="ocr-modal-subtitle">Extracted OCR Data</span>
+            </div>
+          </div>
           <button className="ocr-modal-close" onClick={() => setShowOcrModal(false)}>
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
+
+        {/* Body */}
         <div className="ocr-modal-body">
-          {Object.entries(selectedOcrData).map(([key, value]) => (
-            value !== null && value !== undefined && (
-              <div key={key} className="ocr-modal-row">
-                <span className="ocr-modal-key">{formatOcrKey(key)}</span>
-                <span className="ocr-modal-value">
-                  {Array.isArray(value) ? value.join(', ') : String(value)}
-                </span>
+          <div className="ocr-fields-grid">
+            {sorted.map(([key, value]) => (
+              <div key={key} className="ocr-field-row">
+                <span className="ocr-field-label">{formatKey(key)}</span>
+                <span className="ocr-field-value">{formatValue(key, value)}</span>
               </div>
-            )
-          ))}
+            ))}
+          </div>
         </div>
+
+        {/* Footer */}
         <div className="ocr-modal-footer">
-          <button className="btn btn-secondary" onClick={() => setShowOcrModal(false)}>
+          <button className="ocr-modal-close-btn" onClick={() => setShowOcrModal(false)}>
             Close
           </button>
         </div>

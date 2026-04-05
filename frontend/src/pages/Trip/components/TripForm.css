@@ -1,162 +1,125 @@
-/**
- * TripForm.css
- * Styles for the trip form in Processing Phase
- */
+/* ═══════════════════════════════════════════════
+   TRIP FORM — Modern 2-Column Grid with Fieldsets
+   ═══════════════════════════════════════════════ */
 
-.trip-form {
+.tf-container {
+  padding: 0 0 20px 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 0 20px 20px 20px;
+  gap: 24px;
 }
 
-/* Journey information display */
-.journey-info {
-  margin-bottom: 4px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
+.tf-section {
   border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 0;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  transition: border-color 0.2s;
 }
 
-.journey-info h4 {
-  margin: 0 0 12px 0;
-  color: #1e293b;
-  font-size: 16px;
-  font-weight: 600;
+.tf-section:hover {
+  border-color: #cbd5e1;
 }
 
-.journey-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.journey-item {
+.tf-section legend {
   font-size: 14px;
-  color: #475569;
+  font-weight: 700;
+  color: #0f172a;
+  padding: 0 12px;
+  background: white;
+  margin-left: -4px;
 }
 
-.journey-item strong {
-  color: #1e293b;
-  font-weight: 600;
+.tf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 24px;
+  align-items: start;
 }
 
-.form-group {
+.tf-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #2c3e50;
+.tf-group.full-width {
+  grid-column: span 2;
+}
+
+.tf-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.form-input {
-  padding: 12px 14px;
-  border: 2px solid #ecf0f1;
-  border-radius: 6px;
+.tf-required {
+  color: #ef4444;
   font-size: 14px;
-  color: #2c3e50;
-  transition: all 0.2s ease;
-  font-family: inherit;
 }
 
-.form-input:focus {
+.tf-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.tf-input:focus {
   outline: none;
-  border-color: #00c896;
-  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  background: #ffffff;
 }
 
-.form-input::placeholder {
-  color: #bcc0c8;
+.tf-input::placeholder {
+  color: #cbd5e1;
+  font-weight: 400;
 }
 
-.form-input[type='number']::-webkit-outer-spin-button,
-.form-input[type='number']::-webkit-inner-spin-button {
+.tf-input-error {
+  border-color: #fecaca !important;
+  background: #fffafb !important;
+}
+
+.tf-input-error::placeholder {
+  color: #ef4444 !important;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .tf-grid {
+    grid-template-columns: 1fr;
+  }
+  .tf-group.full-width {
+    grid-column: span 1;
+  }
+  .tf-section {
+    padding: 16px;
+  }
+}
+
+/* Hide spin buttons */
+.tf-input[type='number']::-webkit-outer-spin-button,
+.tf-input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.form-input[type='number'] {
+.tf-input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
-}
-
-/* Validation styles */
-.form-input-error {
-  border-color: #e74c3c !important;
-  background-color: #fdf2f2;
-  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
-}
-
-.form-input-error::placeholder {
-  color: #e74c3c !important;
-  font-weight: 500;
-}
-
-.required {
-  color: #e74c3c;
-  font-weight: bold;
-}
-
-.form-input:focus.form-input-error {
-  outline: none;
-  border-color: #e74c3c;
-  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .trip-form {
-    gap: 16px;
-    padding: 16px;
-  }
-
-  .form-group label {
-    font-size: 12px;
-  }
-
-  .form-input {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 768px) {
-  .trip-form {
-    gap: 14px;
-    padding: 14px;
-  }
-
-  .form-group label {
-    font-size: 11px;
-    letter-spacing: 0.3px;
-  }
-
-  .form-input {
-    padding: 9px 11px;
-    font-size: 12px;
-    border-radius: 5px;
-  }
-}
-
-@media (max-width: 480px) {
-  .trip-form {
-    gap: 12px;
-    padding: 12px;
-  }
-
-  .form-group label {
-    font-size: 10px;
-  }
-
-  .form-input {
-    padding: 8px 10px;
-    font-size: 11px;
-  }
 }
