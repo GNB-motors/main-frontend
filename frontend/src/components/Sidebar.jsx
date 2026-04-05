@@ -32,7 +32,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     // Check if any Vehicle Activity child route is active
     useEffect(() => {
-        const vehicleActivityRoutes = ['/trip-management', '/refuel-logs'];
+        const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
         if (vehicleActivityRoutes.includes(location.pathname)) {
             setIsVehicleActivityOpen(true);
         }
@@ -43,7 +43,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         if (!isSidebarHovered && window.innerWidth > 992) {
             // Close after a small delay when mouse leaves
             const timer = setTimeout(() => {
-                const vehicleActivityRoutes = ['/trip-management', '/refuel-logs'];
+                const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
                 // Keep it open only if we're on a child route
                 if (!vehicleActivityRoutes.includes(location.pathname)) {
                     setIsVehicleActivityOpen(false);
@@ -117,6 +117,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                                 onClick={closeSidebarOnMobile}
                             >
                                 <span>Refuel Logs</span>
+                            </NavLink>
+                            <NavLink
+                                to="/mileage-tracking"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Mileage Tracking</span>
                             </NavLink>
                         </div>
                     </div>
