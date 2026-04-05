@@ -3,10 +3,11 @@ import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from './DocumentCard';
 import './DocumentUpload.css';
 
-const DocumentUpload = ({ 
-  initialData = {}, 
+const DocumentUpload = ({
+  initialData = {},
   onDocumentsChange = () => {},
-  isSubmitting = false 
+  onDeleteDocument = null,
+  isSubmitting = false
 }) => {
   const [documents, setDocuments] = useState({
     driverLicense: {
@@ -14,18 +15,21 @@ const DocumentUpload = ({
       imageUrl: initialData.driverLicense?.imageUrl || null,
       preview: initialData.driverLicense?.preview || null,
       name: initialData.driverLicense?.name || '',
+      documentId: initialData.driverLicense?.documentId || null,
     },
     panCard: {
       file: initialData.panCard?.file || null,
       imageUrl: initialData.panCard?.imageUrl || null,
       preview: initialData.panCard?.preview || null,
       name: initialData.panCard?.name || '',
+      documentId: initialData.panCard?.documentId || null,
     },
     aadharCard: {
       file: initialData.aadharCard?.file || null,
       imageUrl: initialData.aadharCard?.imageUrl || null,
       preview: initialData.aadharCard?.preview || null,
       name: initialData.aadharCard?.name || '',
+      documentId: initialData.aadharCard?.documentId || null,
     },
   });
 
@@ -33,9 +37,9 @@ const DocumentUpload = ({
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       setDocuments(prev => ({
-        driverLicense: { ...prev.driverLicense, ...initialData.driverLicense },
-        panCard: { ...prev.panCard, ...initialData.panCard },
-        aadharCard: { ...prev.aadharCard, ...initialData.aadharCard }
+        driverLicense: { ...prev.driverLicense, ...initialData.driverLicense, documentId: initialData.driverLicense?.documentId || prev.driverLicense?.documentId || null },
+        panCard: { ...prev.panCard, ...initialData.panCard, documentId: initialData.panCard?.documentId || prev.panCard?.documentId || null },
+        aadharCard: { ...prev.aadharCard, ...initialData.aadharCard, documentId: initialData.aadharCard?.documentId || prev.aadharCard?.documentId || null }
       }));
     }
   }, [initialData]);
@@ -80,30 +84,30 @@ const DocumentUpload = ({
   // Handle crop completion
   const handleCropComplete = (croppedBlob) => {
     const { currentDocument } = cropperState;
-    
+
     if (!currentDocument) return;
 
     const preview = URL.createObjectURL(croppedBlob);
-    
+    const oldDocId = documents[currentDocument]?.documentId;
+
+    const updated = {
+      file: croppedBlob,
+      preview: preview,
+      imageUrl: preview,
+      name: `${currentDocument}-${Date.now()}`,
+      documentId: null, // New file replaces old; will get new ID after upload
+      _previousDocumentId: oldDocId || null, // Track old doc for deletion on save
+    };
+
     setDocuments(prev => ({
       ...prev,
-      [currentDocument]: {
-        file: croppedBlob,
-        preview: preview,
-        imageUrl: preview,
-        name: `${currentDocument}-${Date.now()}`,
-      },
+      [currentDocument]: updated,
     }));
 
     // Call parent callback with updated documents
     onDocumentsChange({
       ...documents,
-      [currentDocument]: {
-        file: croppedBlob,
-        preview: preview,
-        imageUrl: preview,
-        name: `${currentDocument}-${Date.now()}`,
-      },
+      [currentDocument]: updated,
     });
 
     // Close cropper
@@ -114,25 +118,35 @@ const DocumentUpload = ({
     });
   };
 
-  const handleRemoveDocument = (documentType) => {
+  const handleRemoveDocument = async (documentType) => {
+    const docId = documents[documentType]?.documentId;
+
+    // Call server-side delete if document exists on backend
+    if (docId && onDeleteDocument) {
+      try {
+        await onDeleteDocument(docId);
+      } catch (err) {
+        console.error(`Failed to delete ${documentType} from server:`, err);
+        return; // Don't clear local state if server delete failed
+      }
+    }
+
+    const cleared = {
+      file: null,
+      imageUrl: null,
+      preview: null,
+      name: '',
+      documentId: null,
+    };
+
     setDocuments(prev => ({
       ...prev,
-      [documentType]: {
-        file: null,
-        imageUrl: null,
-        preview: null,
-        name: '',
-      },
+      [documentType]: cleared,
     }));
 
     onDocumentsChange({
       ...documents,
-      [documentType]: {
-        file: null,
-        imageUrl: null,
-        preview: null,
-        name: '',
-      },
+      [documentType]: cleared,
     });
   };
 

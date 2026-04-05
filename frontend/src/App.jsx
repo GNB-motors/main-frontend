@@ -26,6 +26,7 @@ import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
 import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
+import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import LocationPage from './pages/Locations/LocationPage.jsx';
@@ -74,6 +75,7 @@ function App() {
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
+        <Route path="/vehicles/add" element={<AddVehiclePage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />

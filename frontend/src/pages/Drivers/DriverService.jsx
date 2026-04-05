@@ -167,11 +167,32 @@ export const DriverService = {
     getEmployeeDocuments: async (employeeId) => {
         try {
             const response = await apiClient.get(`/api/documents?entityType=USER&entityId=${employeeId}`);
-            // Check response shape here. Usually { data: [...] } or just [...]
             return response.data?.data || response.data || [];
         } catch (error) {
             console.error("API Error fetching documents:", error.response?.data || error.message);
-            return []; // Fail gracefully for document fetching 
+            return [];
+        }
+    },
+
+    // --- Delete Document (hard delete from DB + S3) ---
+    deleteDocument: async (documentId) => {
+        try {
+            const response = await apiClient.delete(`/api/documents/${documentId}`);
+            return response.data;
+        } catch (error) {
+            console.error("API Error deleting document:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Failed to delete document." };
+        }
+    },
+
+    // --- Update Document metadata ---
+    updateDocument: async (documentId, updateData) => {
+        try {
+            const response = await apiClient.patch(`/api/documents/${documentId}`, updateData);
+            return response.data?.data || response.data;
+        } catch (error) {
+            console.error("API Error updating document:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Failed to update document." };
         }
     },
 };

@@ -221,6 +221,92 @@ const classifyExistingVehicles = async (token) => {
 };
 
 
+/**
+ * Upload a document for a vehicle
+ */
+const uploadVehicleDocument = async (vehicleId, docType, file, token, expiryDate) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('entityType', 'VEHICLE');
+    formData.append('entityId', vehicleId);
+    formData.append('docType', docType);
+    if (expiryDate) {
+      formData.append('expiryDate', expiryDate);
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/api/documents`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API Error uploading vehicle document:', error.response?.data || error.message);
+    throw error.response?.data || { detail: 'Failed to upload document.' };
+  }
+};
+
+/**
+ * Get all documents for a vehicle
+ */
+const getVehicleDocuments = async (vehicleId, token) => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/api/documents?entityType=VEHICLE&entityId=${vehicleId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data?.data || response.data || [];
+  } catch (error) {
+    console.error('API Error fetching vehicle documents:', error.response?.data || error.message);
+    return [];
+  }
+};
+
+/**
+ * Delete a document (hard delete from DB + S3)
+ */
+const deleteDocument = async (documentId, token) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/documents/${documentId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API Error deleting document:', error.response?.data || error.message);
+    throw error.response?.data || { detail: 'Failed to delete document.' };
+  }
+};
+
+/**
+ * Update document metadata (docType, expiryDate, isVerified)
+ */
+const updateDocument = async (documentId, updateData, token) => {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}/api/documents/${documentId}`,
+      updateData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data?.data || response.data;
+  } catch (error) {
+    console.error('API Error updating document:', error.response?.data || error.message);
+    throw error.response?.data || { detail: 'Failed to update document.' };
+  }
+};
+
 export const VehicleService = {
   getAllVehicles,
   addVehicle,
@@ -229,4 +315,8 @@ export const VehicleService = {
   updateVehicle,
   getVehicleCorrectionLogs,
   classifyExistingVehicles,
+  uploadVehicleDocument,
+  getVehicleDocuments,
+  deleteDocument,
+  updateDocument,
 };

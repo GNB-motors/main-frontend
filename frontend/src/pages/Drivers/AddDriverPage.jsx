@@ -19,24 +19,9 @@ const AddDriverPage = () => {
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
   const [documents, setDocuments] = useState({
-    driverLicense: {
-      file: null,
-      preview: null,
-      imageUrl: null,
-      name: '',
-    },
-    panCard: {
-      file: null,
-      preview: null,
-      imageUrl: null,
-      name: '',
-    },
-    aadharCard: {
-      file: null,
-      preview: null,
-      imageUrl: null,
-      name: '',
-    },
+    driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+    panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+    aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
   });
 
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
@@ -73,11 +58,11 @@ const AddDriverPage = () => {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
           console.log('Fetched documents:', fetchedDocs);
           const updatedDocs = {
-            driverLicense: { file: null, preview: null, imageUrl: null, name: '' },
-            panCard: { file: null, preview: null, imageUrl: null, name: '' },
-            aadharCard: { file: null, preview: null, imageUrl: null, name: '' }
+            driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+            panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+            aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null }
           };
-          
+
           if (Array.isArray(fetchedDocs)) {
             fetchedDocs.forEach(doc => {
               // Map API doc types to our state keys
@@ -89,14 +74,14 @@ const AddDriverPage = () => {
                 'AADHAAR': 'aadharCard',
                 'AADHAR': 'aadharCard'
               }[doc.docType];
-              
+
               if (mappedType) {
-                // Ensure we get a valid document URL
                 const url = doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
                 if (url) {
                   updatedDocs[mappedType].preview = url;
                   updatedDocs[mappedType].imageUrl = url;
                   updatedDocs[mappedType].name = doc.originalName || doc.docType;
+                  updatedDocs[mappedType].documentId = doc._id || doc.id || null;
                 }
               }
             });
@@ -110,11 +95,10 @@ const AddDriverPage = () => {
         setIsEdit(false);
         setDriverId(null);
         setInitialFormData({});
-        // Reset documents too
         setDocuments({
-          driverLicense: { file: null, preview: null, imageUrl: null, name: '' },
-          panCard: { file: null, preview: null, imageUrl: null, name: '' },
-          aadharCard: { file: null, preview: null, imageUrl: null, name: '' }
+          driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+          panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+          aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null }
         });
       }
     };
@@ -125,36 +109,43 @@ const AddDriverPage = () => {
   const handleSubmit = async (formData) => {
     setIsSubmitting(true);
     try {
+      const docTypes = {
+        driverLicense: 'DRIVER_LICENSE',
+        panCard: 'PAN',
+        aadharCard: 'AADHAAR'
+      };
+
+      const uploadDocuments = async (entityId) => {
+        for (const [key, docType] of Object.entries(docTypes)) {
+          const docData = documents[key];
+          if (docData && docData.file) {
+            try {
+              // Delete old document if replacing
+              const oldDocId = docData._previousDocumentId;
+              if (oldDocId) {
+                try { await DriverService.deleteDocument(oldDocId); } catch (_) { /* best effort */ }
+              }
+              await DriverService.uploadDocument(entityId, docType, docData.file);
+            } catch (docErr) {
+              console.error(`Failed to upload ${docType}`, docErr);
+              toast.warning(`Failed to upload ${key} document`);
+            }
+          }
+        }
+      };
+
       if (isEdit) {
-        // Build update payload with only provided fields
         const updatePayload = {};
         if (formData.firstName !== undefined) updatePayload.firstName = formData.firstName;
         if (formData.lastName !== undefined) updatePayload.lastName = formData.lastName;
         if (formData.email !== undefined) updatePayload.email = formData.email;
         if (formData.mobileNumber !== undefined) updatePayload.mobileNumber = formData.mobileNumber;
         if (formData.location !== undefined) updatePayload.location = formData.location;
-        if (formData.password) updatePayload.password = formData.password; // only include if non-empty
+        if (formData.password) updatePayload.password = formData.password;
         if (formData.role !== undefined) updatePayload.role = formData.role;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
-        
-        // Upload any new documents provided
-        const docTypes = {
-            driverLicense: 'DRIVER_LICENSE',
-            panCard: 'PAN',
-            aadharCard: 'AADHAAR'
-        };
-        for (const [key, docType] of Object.entries(docTypes)) {
-            const docData = documents[key];
-            if (docData && docData.file) {
-                try {
-                    await DriverService.uploadDocument(driverId, docType, docData.file);
-                } catch (docErr) {
-                    console.error(`Failed to upload ${docType}`, docErr);
-                    toast.warning(`Failed to upload ${key} document`);
-                }
-            }
-        }
+        await uploadDocuments(driverId);
 
         toast.success('Employee updated successfully');
         navigate('/drivers');
@@ -171,24 +162,7 @@ const AddDriverPage = () => {
 
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
         const empId = savedEmployee._id || savedEmployee.id;
-
-        // Upload any documents provided
-        const docTypes = {
-            driverLicense: 'DRIVER_LICENSE',
-            panCard: 'PAN',
-            aadharCard: 'AADHAAR'
-        };
-        for (const [key, docType] of Object.entries(docTypes)) {
-            const docData = documents[key];
-            if (docData && docData.file) {
-                try {
-                    await DriverService.uploadDocument(empId, docType, docData.file);
-                } catch (docErr) {
-                    console.error(`Failed to upload ${docType}`, docErr);
-                    toast.warning(`Failed to upload ${key} document`);
-                }
-            }
-        }
+        await uploadDocuments(empId);
 
         toast.success('Employee created successfully');
         navigate('/drivers');
@@ -200,6 +174,10 @@ const AddDriverPage = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteDocument = async (documentId) => {
+    await DriverService.deleteDocument(documentId);
   };
 
   const handleFooterSubmit = (e) => {
@@ -237,6 +215,7 @@ const AddDriverPage = () => {
         <DocumentUpload
           initialData={documents}
           onDocumentsChange={setDocuments}
+          onDeleteDocument={handleDeleteDocument}
           isSubmitting={isSubmitting}
         />
       </div>
