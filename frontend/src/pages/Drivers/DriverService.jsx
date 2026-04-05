@@ -141,4 +141,37 @@ export const DriverService = {
             throw error.response?.data || { detail: "Network error or server unavailable." };
         }
     },
+
+    // --- Upload Employee Document ---
+    uploadDocument: async (entityId, docType, file) => {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('entityType', 'USER');
+            formData.append('entityId', entityId);
+            formData.append('docType', docType);
+
+            const response = await apiClient.post(`/api/documents`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error("API Error uploading document:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Failed to upload document." };
+        }
+    },
+
+    // --- Get Employee Documents ---
+    getEmployeeDocuments: async (employeeId) => {
+        try {
+            const response = await apiClient.get(`/api/documents?entityType=USER&entityId=${employeeId}`);
+            // Check response shape here. Usually { data: [...] } or just [...]
+            return response.data?.data || response.data || [];
+        } catch (error) {
+            console.error("API Error fetching documents:", error.response?.data || error.message);
+            return []; // Fail gracefully for document fetching 
+        }
+    },
 };

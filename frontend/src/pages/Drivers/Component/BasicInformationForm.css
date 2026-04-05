@@ -10,6 +10,7 @@
 .basic-info-outer-container {
   width: 100%;
   max-width: 920px; /* Match PageHeader width */
+  margin: 0 auto;
   padding: 8px;
   background: var(--core-morning-fog-solids-morning-fog-900, #F8F8FB);
   box-shadow: 2px 2px 0px white inset;
