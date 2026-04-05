@@ -141,4 +141,58 @@ export const DriverService = {
             throw error.response?.data || { detail: "Network error or server unavailable." };
         }
     },
+
+    // --- Upload Employee Document ---
+    uploadDocument: async (entityId, docType, file) => {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('entityType', 'USER');
+            formData.append('entityId', entityId);
+            formData.append('docType', docType);
+
+            const response = await apiClient.post(`/api/documents`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error("API Error uploading document:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Failed to upload document." };
+        }
+    },
+
+    // --- Get Employee Documents ---
+    getEmployeeDocuments: async (employeeId) => {
+        try {
+            const response = await apiClient.get(`/api/documents?entityType=USER&entityId=${employeeId}`);
+            return response.data?.data || response.data || [];
+        } catch (error) {
+            console.error("API Error fetching documents:", error.response?.data || error.message);
+            return [];
+        }
+    },
+
+    // --- Delete Document (hard delete from DB + S3) ---
+    deleteDocument: async (documentId) => {
+        try {
+            const response = await apiClient.delete(`/api/documents/${documentId}`);
+            return response.data;
+        } catch (error) {
+            console.error("API Error deleting document:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Failed to delete document." };
+        }
+    },
+
+    // --- Update Document metadata ---
+    updateDocument: async (documentId, updateData) => {
+        try {
+            const response = await apiClient.patch(`/api/documents/${documentId}`, updateData);
+            return response.data?.data || response.data;
+        } catch (error) {
+            console.error("API Error updating document:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Failed to update document." };
+        }
+    },
 };

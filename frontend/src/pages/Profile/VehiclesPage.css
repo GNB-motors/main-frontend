@@ -290,18 +290,30 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    transition: background-color 0.2s ease;
-    color: #5d5d5e;
+    color: var(--alias-icon-icon-secondary, #454547);
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
 }
 
 .vehicle-actions-menu-btn:hover {
-    background-color: #f0f0f3;
-    color: #121214;
+    background: none;
+    outline: 1px solid #D3D3D5;
+}
+
+.vehicles-table-row:hover .vehicle-actions-menu-btn {
+    opacity: 1;
+}
+
+.vehicles-table-row.menu-open .vehicle-actions-menu-btn {
+    opacity: 1;
+    outline: 1px solid #D3D3D5;
 }
 
 .vehicle-actions-menu-btn:disabled {
@@ -816,6 +828,7 @@
     overflow-y: auto;
     overflow-x: visible;
     max-height: calc(100vh - 350px);
+    padding-bottom: 80px;
 }
 
 .vehicles-table tbody tr {
@@ -830,6 +843,21 @@
     outline-offset: -1px;
     margin-bottom: 12px;
     overflow: visible;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.vehicles-table tbody tr:hover {
+    background-color: #FAFAFA;
+    z-index: 10;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.vehicles-table tbody tr.menu-open {
+    z-index: 999;
 }
 
 .vehicles-table td {

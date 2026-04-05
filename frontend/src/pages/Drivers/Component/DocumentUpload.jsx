@@ -1,0 +1,232 @@
+import React, { useState, useRef, useEffect } from 'react';
+import ImageCropper from '../../../components/ImageCropper/ImageCropper';
+import DocumentCard from './DocumentCard';
+import './DocumentUpload.css';
+
+const DocumentUpload = ({
+  initialData = {},
+  onDocumentsChange = () => {},
+  onDeleteDocument = null,
+  isSubmitting = false
+}) => {
+  const [documents, setDocuments] = useState({
+    driverLicense: {
+      file: initialData.driverLicense?.file || null,
+      imageUrl: initialData.driverLicense?.imageUrl || null,
+      preview: initialData.driverLicense?.preview || null,
+      name: initialData.driverLicense?.name || '',
+      documentId: initialData.driverLicense?.documentId || null,
+    },
+    panCard: {
+      file: initialData.panCard?.file || null,
+      imageUrl: initialData.panCard?.imageUrl || null,
+      preview: initialData.panCard?.preview || null,
+      name: initialData.panCard?.name || '',
+      documentId: initialData.panCard?.documentId || null,
+    },
+    aadharCard: {
+      file: initialData.aadharCard?.file || null,
+      imageUrl: initialData.aadharCard?.imageUrl || null,
+      preview: initialData.aadharCard?.preview || null,
+      name: initialData.aadharCard?.name || '',
+      documentId: initialData.aadharCard?.documentId || null,
+    },
+  });
+
+  // Sync internal state if initialData changes (e.g. loaded asynchronously)
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      setDocuments(prev => ({
+        driverLicense: { ...prev.driverLicense, ...initialData.driverLicense, documentId: initialData.driverLicense?.documentId || prev.driverLicense?.documentId || null },
+        panCard: { ...prev.panCard, ...initialData.panCard, documentId: initialData.panCard?.documentId || prev.panCard?.documentId || null },
+        aadharCard: { ...prev.aadharCard, ...initialData.aadharCard, documentId: initialData.aadharCard?.documentId || prev.aadharCard?.documentId || null }
+      }));
+    }
+  }, [initialData]);
+
+  const [cropperState, setCropperState] = useState({
+    isOpen: false,
+    currentDocument: null,
+    imageSrc: null,
+  });
+
+  const fileInputRef = useRef(null);
+
+  // Handle file selection
+  const handleDocumentSelect = (documentType) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File size should be less than 5MB');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setCropperState({
+            isOpen: true,
+            currentDocument: documentType,
+            imageSrc: event.target.result,
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  // Handle crop completion
+  const handleCropComplete = (croppedBlob) => {
+    const { currentDocument } = cropperState;
+
+    if (!currentDocument) return;
+
+    const preview = URL.createObjectURL(croppedBlob);
+    const oldDocId = documents[currentDocument]?.documentId;
+
+    const updated = {
+      file: croppedBlob,
+      preview: preview,
+      imageUrl: preview,
+      name: `${currentDocument}-${Date.now()}`,
+      documentId: null, // New file replaces old; will get new ID after upload
+      _previousDocumentId: oldDocId || null, // Track old doc for deletion on save
+    };
+
+    setDocuments(prev => ({
+      ...prev,
+      [currentDocument]: updated,
+    }));
+
+    // Call parent callback with updated documents
+    onDocumentsChange({
+      ...documents,
+      [currentDocument]: updated,
+    });
+
+    // Close cropper
+    setCropperState({
+      isOpen: false,
+      currentDocument: null,
+      imageSrc: null,
+    });
+  };
+
+  const handleRemoveDocument = async (documentType) => {
+    const docId = documents[documentType]?.documentId;
+
+    // Call server-side delete if document exists on backend
+    if (docId && onDeleteDocument) {
+      try {
+        await onDeleteDocument(docId);
+      } catch (err) {
+        console.error(`Failed to delete ${documentType} from server:`, err);
+        return; // Don't clear local state if server delete failed
+      }
+    }
+
+    const cleared = {
+      file: null,
+      imageUrl: null,
+      preview: null,
+      name: '',
+      documentId: null,
+    };
+
+    setDocuments(prev => ({
+      ...prev,
+      [documentType]: cleared,
+    }));
+
+    onDocumentsChange({
+      ...documents,
+      [documentType]: cleared,
+    });
+  };
+
+  return (
+    <div className="document-upload-wrapper">
+      <div className="document-upload-outer-container">
+        {/* Header Section */}
+        <div className="document-upload-header">
+          <div className="document-upload-header-content">
+            <div className="document-upload-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M14 2H6C5.44772 2 5 2.44772 5 3V17C5 17.5523 5.44772 18 6 18H14C14.5523 18 15 17.5523 15 17V3C15 2.44772 14.5523 2 14 2Z" 
+                      stroke="#454547" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <path d="M8 6H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M8 10H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M8 14H11" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div className="document-upload-title">Documents</div>
+          </div>
+        </div>
+
+        {/* Documents Container */}
+        <div className="document-upload-container">
+          <div className="document-cards-grid">
+            <DocumentCard
+              documentType="driverLicense"
+              label="Driver License"
+              description="Upload a clear image of your driver license"
+              preview={documents.driverLicense.preview}
+              onSelect={() => handleDocumentSelect('driverLicense')}
+              onRemove={() => handleRemoveDocument('driverLicense')}
+              isDisabled={isSubmitting}
+            />
+            
+            <DocumentCard
+              documentType="panCard"
+              label="PAN Card"
+              description="Upload a clear image of your PAN card"
+              preview={documents.panCard.preview}
+              onSelect={() => handleDocumentSelect('panCard')}
+              onRemove={() => handleRemoveDocument('panCard')}
+              isDisabled={isSubmitting}
+            />
+            
+            <DocumentCard
+              documentType="aadharCard"
+              label="Aadhar Card"
+              description="Upload a clear image of your Aadhar card"
+              preview={documents.aadharCard.preview}
+              onSelect={() => handleDocumentSelect('aadharCard')}
+              onRemove={() => handleRemoveDocument('aadharCard')}
+              isDisabled={isSubmitting}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Image Cropper Modal */}
+      <ImageCropper
+        src={cropperState.imageSrc}
+        isOpen={cropperState.isOpen}
+        onCropComplete={handleCropComplete}
+        onCancel={() => setCropperState({
+          isOpen: false,
+          currentDocument: null,
+          imageSrc: null,
+        })}
+        title={
+          cropperState.currentDocument === 'driverLicense'
+            ? 'Crop Driver License'
+            : cropperState.currentDocument === 'panCard'
+            ? 'Crop PAN Card'
+            : 'Crop Aadhar Card'
+        }
+        aspectRatio={NaN}
+        circularCrop={false}
+      />
+    </div>
+  );
+};
+
+export default DocumentUpload;

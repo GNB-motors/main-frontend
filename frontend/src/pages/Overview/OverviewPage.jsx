@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -10,9 +10,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import {
   Truck,
@@ -23,189 +20,113 @@ import {
   Star,
   TrendingDown,
   Users,
-  User,
-  ChevronDown,
-  DollarSign,
-  Calendar,
-  Filter,
-  TrendingUpIcon,
   Activity,
+  Fuel,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
+  CalendarDays,
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { OverviewService } from "./OverviewService.jsx";
-import "./OverviewPage.css";
 
-// --- Helper Functions ---
+// --- Helpers ---
 const getInitials = (name) => {
   if (!name) return "?";
   const parts = name.split(" ");
   if (parts.length === 1) return name.substring(0, 2).toUpperCase();
-  return (
-    parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")
-  ).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const getRatingColor = (rating) => {
-  if (rating >= 4.5) return "#10B981"; // Green
-  if (rating >= 3.5) return "#F59E0B"; // Yellow
-  if (rating >= 2.5) return "#EF4444"; // Red
-  return "#EF4444"; // Red
-};
-
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat("en-IN", {
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
-};
 
-const formatNumber = (value) => {
-  return new Intl.NumberFormat("en-IN").format(value || 0);
-};
+const formatNumber = (value) =>
+  new Intl.NumberFormat("en-IN").format(value || 0);
 
 const getDateLabel = (date) => {
   if (!date) return "";
-  const d = new Date(date);
-  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+  return new Date(date).toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 };
 
-// --- Sub-Components ---
-
-// 0. Date Range Selector
-const DateRangeSelector = ({ onDaysChange, onDateRangeChange, selectedDays }) => {
-  const [showCustom, setShowCustom] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const customBtnRef = React.useRef(null);
-
-  const quickOptions = [
-    { label: "Last 7 Days", days: 7 },
-    { label: "Last 14 Days", days: 14 },
-    { label: "Last 30 Days", days: 30 },
-    { label: "Last 90 Days", days: 90 },
-  ];
-
-  const handleQuickSelect = (days) => {
-    setShowCustom(false);
-    onDaysChange(days);
-    onDateRangeChange(null, null);
-  };
-
-  const handleCustomApply = () => {
-    if (startDate && endDate) {
-      onDateRangeChange(startDate, endDate);
-      setShowCustom(false);
-    }
-  };
-
-  return (
-    <div className="date-range-selector">
-      <div className="date-selector-header">
-        <Calendar size={18} />
-        <span className="date-selector-label">Date Range</span>
+// --- KPI Stat Card ---
+const StatCard = ({ title, value, subtext, icon, trend, iconBg, iconColor }) => (
+  <Card className="relative overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
+    <CardContent className="flex items-center gap-4 p-5">
+      <div
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+        style={{ backgroundColor: iconBg || "#EFF6FF", color: iconColor || "#3B82F6" }}
+      >
+        {icon}
       </div>
-
-      <div className="date-quick-options">
-        {quickOptions.map((opt) => (
-          <button
-            key={opt.days}
-            className={`quick-option-btn ${selectedDays === opt.days ? "active" : ""}`}
-            onClick={() => handleQuickSelect(opt.days)}
-          >
-            {opt.label}
-          </button>
-        ))}
-        <div className="custom-wrapper" ref={customBtnRef}>
-          <button
-            className={`quick-option-btn ${showCustom ? "active" : ""}`}
-            onClick={() => setShowCustom(!showCustom)}
-          >
-            Custom
-          </button>
-          {showCustom && (
-            <div className="custom-date-modal">
-              <div className="date-input-group">
-                <label>From</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="date-input"
-                />
-              </div>
-              <div className="date-input-group">
-                <label>To</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="date-input"
-                />
-              </div>
-              <button className="apply-date-btn" onClick={handleCustomApply}>
-                Apply
-              </button>
-            </div>
-          )}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+        <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{value}</p>
+        {subtext && <p className="mt-0.5 text-xs text-muted-foreground">{subtext}</p>}
+      </div>
+      {trend && (
+        <div className={`flex flex-col items-center gap-0.5 text-xs font-semibold ${trend.direction === "up" ? "text-emerald-600" : "text-red-500"}`}>
+          {trend.direction === "up" ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+          <span>{trend.value}%</span>
         </div>
-      </div>
+      )}
+    </CardContent>
+  </Card>
+);
+
+// --- Chart Tooltip ---
+const CustomTooltip = ({ active, payload, label, formatter, labelFormatter }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border bg-background p-3 shadow-lg">
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+        {labelFormatter ? labelFormatter(label) : label}
+      </p>
+      {payload.map((entry, i) => (
+        <div key={i} className="flex items-center gap-2 text-sm">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className="text-muted-foreground">{entry.name}:</span>
+          <span className="font-semibold">{formatter ? formatter(entry.value) : entry.value}</span>
+        </div>
+      ))}
     </div>
   );
 };
 
-// 1. KPI Stat Card
-const StatCard = ({ title, value, subtext, icon, trend }) => (
-  <div className="stat-card">
-    <div className="stat-icon-wrapper">{icon}</div>
-    <div className="stat-content">
-      <h4 className="stat-title">{title}</h4>
-      <p className="stat-value">{value}</p>
-      {subtext && <p className="stat-subtext">{subtext}</p>}
-    </div>
-    {trend && (
-      <div className={`stat-trend ${trend.direction}`}>
-        {trend.direction === "up" ? (
-          <TrendingUp size={16} />
-        ) : (
-          <TrendingDown size={16} />
-        )}
-        <span>{trend.value}%</span>
-      </div>
-    )}
-  </div>
-);
-
-// 2. Fuel Analytics Chart
-const FuelAnalyticsChart = ({ data, dateRange }) => {
-  const hasData = data && data.length > 0;
-
+// --- Fuel Variance Chart ---
+const FuelVarianceChart = ({ data }) => {
+  if (!data?.length) return null;
   return (
-    <div className="chart-card large-chart">
-      <div className="chart-header">
-        <div>
-          <h4>Fuel Consumption Variance</h4>
-          <p className="chart-subtext">Daily fuel efficiency variance (km/l)</p>
-        </div>
-      </div>
-      {hasData ? (
-        <div className="chart-wrapper">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-              <XAxis
-                dataKey="date"
-                fontSize={12}
-                tickFormatter={(value) => getDateLabel(value)}
-              />
-              <YAxis
-                fontSize={12}
-                label={{ value: "km/l", angle: -90, position: "insideLeft" }}
-              />
+    <Card>
+      <CardHeader>
+        <CardTitle>Fuel Consumption Variance</CardTitle>
+        <CardDescription>Daily fuel efficiency variance (km/l)</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickFormatter={getDateLabel} />
+              <YAxis fontSize={12} tickLine={false} axisLine={false} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#fff", border: "1px solid #E5E7EB" }}
-                formatter={(value) => value.toFixed(2)}
-                labelFormatter={(label) => getDateLabel(label)}
+                content={<CustomTooltip formatter={(v) => v.toFixed(2) + " km/l"} labelFormatter={getDateLabel} />}
               />
               <Legend />
               <Line
@@ -214,268 +135,208 @@ const FuelAnalyticsChart = ({ data, dateRange }) => {
                 name="Avg. Variance"
                 stroke="#3B82F6"
                 strokeWidth={2}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
+                dot={{ r: 3, fill: "#3B82F6" }}
+                activeDot={{ r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      ) : (
-        <div className="no-data-placeholder">No variance data available</div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
-// 3. Outlier Detection Chart
-const OutlierChart = ({ data, dateRange }) => {
-  const hasData = data && data.length > 0;
-
+// --- Outlier Chart ---
+const OutlierChart = ({ data }) => {
+  if (!data?.length) return null;
   return (
-    <div className="chart-card small-chart">
-      <div className="chart-header">
-        <div>
-          <h4>Daily Outliers</h4>
-          <p className="chart-subtext">Abnormal fuel consumption days</p>
-        </div>
-      </div>
-      {hasData ? (
-        <div className="chart-wrapper">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-              <XAxis
-                dataKey="date"
-                fontSize={12}
-                tickFormatter={(value) => getDateLabel(value)}
-              />
-              <YAxis fontSize={12} />
+    <Card>
+      <CardHeader>
+        <CardTitle>Daily Outliers</CardTitle>
+        <CardDescription>Abnormal fuel consumption days</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickFormatter={getDateLabel} />
+              <YAxis fontSize={12} tickLine={false} axisLine={false} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#fff", border: "1px solid #E5E7EB" }}
-                labelFormatter={(label) => getDateLabel(label)}
+                content={<CustomTooltip labelFormatter={getDateLabel} />}
               />
-              <Bar
-                dataKey="outlierCount"
-                name="Outlier Count"
-                fill="#EF4444"
-                radius={[8, 8, 0, 0]}
-              />
+              <Bar dataKey="outlierCount" name="Outlier Count" fill="#EF4444" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      ) : (
-        <div className="no-data-placeholder">No outlier data available</div>
-      )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// --- Financial Chart ---
+const FinancialChart = ({ data }) => {
+  if (!data?.dailyTrend?.length) return null;
+  return (
+    <div className="h-[280px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data.dailyTrend} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+          <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickFormatter={getDateLabel} />
+          <YAxis fontSize={12} tickLine={false} axisLine={false} />
+          <Tooltip
+            content={<CustomTooltip formatter={(v) => formatCurrency(v)} labelFormatter={getDateLabel} />}
+          />
+          <Legend />
+          <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#10B981" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#EF4444" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="profit" name="Profit" stroke="#F59E0B" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 };
 
-// 4. Driver Performance Card
-const DriverPerformanceCard = ({ data, icon, title }) => {
-  if (!data) {
-    return (
-      <div className="driver-card">
-        <div className="driver-card-header">
-          {icon}
-          <h4>{title}</h4>
-        </div>
-        <p className="no-drivers-message">No data available</p>
-      </div>
-    );
-  }
-
+// --- Driver Card ---
+const DriverCard = ({ driver, label, variant = "top" }) => {
+  if (!driver) return null;
+  const isTop = variant === "top";
   return (
-    <div className="driver-card">
-      <div className="driver-card-header">
-        {icon}
-        <h4>{title}</h4>
-      </div>
-      <div className="driver-card-content">
-        <div className="driver-avatar" style={{ backgroundColor: "#E0F2FE", color: "#0284C7" }}>
-          {getInitials(data.driverName)}
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          {isTop ? (
+            <Trophy size={18} className="text-amber-500" />
+          ) : (
+            <TrendingDown size={18} className="text-red-500" />
+          )}
+          <CardTitle>{label}</CardTitle>
         </div>
-        <div className="driver-details">
-          <h5>{data.driverName}</h5>
-          {data.mobileNumber && <p className="driver-mobile">{data.mobileNumber}</p>}
-          <div className="driver-stats">
-            <span className="stat-badge">
-              <span className="badge-label">Trips:</span> {data.tripCount || 0}
-            </span>
-            <span className="stat-badge">
-              <span className="badge-label">Fuel:</span>{" "}
-              {formatNumber(data.totalFuelLitres || 0)} L
-            </span>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-4">
+          <Avatar size="lg">
+            <AvatarFallback className={isTop ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}>
+              {getInitials(driver.driverName)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-foreground truncate">{driver.driverName}</p>
+            {driver.mobileNumber && (
+              <p className="text-xs text-muted-foreground">{driver.mobileNumber}</p>
+            )}
+            <div className="mt-2 flex gap-2 flex-wrap">
+              <Badge variant="secondary" className="text-xs">
+                {driver.tripCount || 0} trips
+              </Badge>
+              <Badge variant="secondary" className="text-xs">
+                {formatNumber(driver.totalFuelLitres || 0)} L
+              </Badge>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-lg font-bold" style={{ color: driver.rating >= 4 ? "#10B981" : driver.rating >= 3 ? "#F59E0B" : "#EF4444" }}>
+            <Star size={18} fill="currentColor" />
+            {(driver.rating || 0).toFixed(1)}
           </div>
         </div>
-        <div className="driver-rating" style={{ color: getRatingColor(data.rating) }}>
-          <Star size={18} fill="currentColor" />
-          <span>{(data.rating || 0).toFixed(1)}</span>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
-// 5. Underperforming Drivers List
-const UnderperformingDriversList = ({ drivers, icon, title }) => {
+// --- Underperforming Drivers ---
+const UnderperformingList = ({ drivers }) => {
+  if (!drivers?.length || !drivers[0]?.driverName) return null;
   return (
-    <div className="driver-list-card">
-      <div className="driver-list-header">
-        {icon}
-        <h4>{title}</h4>
-      </div>
-      {drivers && drivers.length > 0 ? (
-        <ul className="driver-list">
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={18} className="text-red-500" />
+          <CardTitle>Underperforming Drivers</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
           {drivers.map((driver) => (
-            <li key={driver.driverId || driver.id} className="driver-item">
-              <div className="driver-avatar" style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}>
-                {getInitials(driver.driverName)}
+            <div key={driver.driverId || driver.id} className="flex items-center gap-3 rounded-lg border p-3">
+              <Avatar>
+                <AvatarFallback className="bg-red-100 text-red-700 text-xs">
+                  {getInitials(driver.driverName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{driver.driverName}</p>
+                {driver.mobileNumber && (
+                  <p className="text-xs text-muted-foreground">{driver.mobileNumber}</p>
+                )}
               </div>
-              <div className="driver-info">
-                <strong>{driver.driverName}</strong>
-                {driver.mobileNumber && <span>{driver.mobileNumber}</span>}
+              <div className="flex items-center gap-1 text-sm font-bold" style={{ color: driver.rating >= 3 ? "#F59E0B" : "#EF4444" }}>
+                <Star size={14} fill="currentColor" />
+                {(driver.rating || 0).toFixed(1)}
               </div>
-              <div className="driver-rating" style={{ color: getRatingColor(driver.rating) }}>
-                <Star size={16} fill="currentColor" />
-                <span>{(driver.rating || 0).toFixed(1)}</span>
-              </div>
-            </li>
+            </div>
           ))}
-        </ul>
-      ) : (
-        <p className="no-drivers-message">No underperforming drivers</p>
-      )}
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-// 6. Financial Summary Card
-const FinancialSummaryCard = ({ data }) => {
-  if (!data || !data.summary) {
-    return (
-      <div className="financial-summary-card">
-        <h4>Financial Summary</h4>
-        <p className="no-drivers-message">No financial data available</p>
+// --- Skeleton Loader ---
+const DashboardSkeleton = () => (
+  <div className="space-y-6 p-1">
+    <div className="flex items-center justify-between">
+      <div>
+        <Skeleton className="h-8 w-52" />
+        <Skeleton className="mt-2 h-4 w-72" />
       </div>
-    );
-  }
-
-  const { summary } = data;
-  const profitColor = (summary.netProfit || 0) >= 0 ? "#10B981" : "#EF4444";
-
-  return (
-    <div className="financial-summary-card">
-      <h4>Financial Summary</h4>
-      <div className="financial-metrics">
-        <div className="financial-metric">
-          <span className="metric-label">Total Revenue</span>
-          <span className="metric-value" style={{ color: "#10B981" }}>
-            {formatCurrency(summary.totalRevenue || 0)}
-          </span>
-        </div>
-        <div className="financial-metric">
-          <span className="metric-label">Total Expenses</span>
-          <span className="metric-value" style={{ color: "#EF4444" }}>
-            {formatCurrency(summary.totalExpenses || 0)}
-          </span>
-        </div>
-        <div className="financial-metric">
-          <span className="metric-label">Net Profit</span>
-          <span className="metric-value" style={{ color: profitColor, fontWeight: 700 }}>
-            {formatCurrency(summary.netProfit || 0)}
-          </span>
-        </div>
-        <div className="financial-metric">
-          <span className="metric-label">Profit Margin</span>
-          <span className="metric-value" style={{ color: "#F59E0B" }}>
-            {(summary.profitMargin || 0).toFixed(2)}%
-          </span>
-        </div>
-      </div>
-
-      {data.dailyTrend && data.dailyTrend.length > 0 && (
-        <div className="financial-chart-wrapper">
-          <h5>Daily Trend</h5>
-          <div className="mini-chart">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={data.dailyTrend}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis
-                  dataKey="date"
-                  fontSize={12}
-                  tickFormatter={(value) => getDateLabel(value)}
-                />
-                <YAxis fontSize={12} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#fff", border: "1px solid #E5E7EB" }}
-                  formatter={(value) => formatCurrency(value)}
-                  labelFormatter={(label) => getDateLabel(label)}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  name="Revenue"
-                  stroke="#10B981"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="expenses"
-                  name="Expenses"
-                  stroke="#EF4444"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="profit"
-                  name="Profit"
-                  stroke="#F59E0B"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+      <Skeleton className="h-9 w-36 rounded-lg" />
     </div>
-  );
-};
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {[...Array(4)].map((_, i) => (
+        <Card key={i}>
+          <CardContent className="flex items-center gap-4 p-5">
+            <Skeleton className="h-12 w-12 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <Card><CardContent className="p-5"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+      <Card><CardContent className="p-5"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+    </div>
+  </div>
+);
 
-// --- Main OverviewPage Component ---
+// --- Main Component ---
 const OverviewPage = () => {
-  // State for dashboard data
   const [summaryData, setSummaryData] = useState(null);
   const [fuelAnalytics, setFuelAnalytics] = useState(null);
   const [driverPerformance, setDriverPerformance] = useState(null);
   const [financials, setFinancials] = useState(null);
-
-  // Loading and error states
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Date range parameters
   const [selectedDays, setSelectedDays] = useState(7);
   const [customDateRange, setCustomDateRange] = useState(null);
-  const [dateRange, setDateRange] = useState(null);
 
-  // Fetch all dashboard data
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       setError(null);
       try {
         let params = {};
-
-        // Use custom date range if selected, otherwise use days
-        if (customDateRange && customDateRange.start && customDateRange.end) {
+        if (customDateRange?.start && customDateRange?.end) {
           params.startDate = new Date(customDateRange.start).toISOString();
           params.endDate = new Date(customDateRange.end).toISOString();
         } else {
           params.days = selectedDays;
         }
 
-        // Fetch all data in parallel
         const [summary, fuel, drivers, fin] = await Promise.all([
           OverviewService.getDashboardSummary(params),
           OverviewService.getFuelAnalytics(params),
@@ -487,11 +348,6 @@ const OverviewPage = () => {
         setFuelAnalytics(fuel);
         setDriverPerformance(drivers);
         setFinancials(fin);
-        
-        // Set the date range from the response
-        if (summary?.dateRange) {
-          setDateRange(summary.dateRange);
-        }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
         setError(err.detail || "Could not load dashboard data. Please try again.");
@@ -499,197 +355,267 @@ const OverviewPage = () => {
         setIsLoading(false);
       }
     };
-
-    fetchDashboardData();
+    fetchData();
   }, [selectedDays, customDateRange]);
 
-  const handleDaysChange = (days) => {
-    setSelectedDays(days);
-    setCustomDateRange(null);
-  };
-
-  const handleDateRangeChange = (start, end) => {
-    if (start && end) {
-      setCustomDateRange({ start, end });
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="overview-page">
-        <div className="loading-state">
-          <div className="loader-spinner"></div>
-          <p>Loading dashboard analytics...</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="p-2"><DashboardSkeleton /></div>;
 
   if (error) {
     return (
-      <div className="overview-page">
-        <div className="error-state">
-          <AlertTriangle size={40} />
-          <p>{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="retry-btn"
-          >
-            Retry
-          </button>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+          <AlertTriangle size={32} className="text-red-500" />
         </div>
+        <p className="text-lg font-medium text-foreground">Something went wrong</p>
+        <p className="max-w-md text-sm text-muted-foreground">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
+  const vehicles = summaryData?.vehicles;
+  const drivers = summaryData?.drivers;
+  const trips = summaryData?.trips;
+  const kilometers = summaryData?.kilometers;
+  const fuel = summaryData?.fuel;
+  const fuelSummary = fuelAnalytics?.summary;
+  const finSummary = financials?.summary;
+
   return (
-    <div className="overview-page">
-      {/* Header with Date Filter */}
-      <div className="overview-header">
-        <div className="header-content">
-          <div>
-            <h2>Dashboard Overview</h2>
-            <p>Complete fleet analytics and performance metrics</p>
-          </div>
-          <DateRangeSelector
-            onDaysChange={handleDaysChange}
-            onDateRangeChange={handleDateRangeChange}
-            selectedDays={selectedDays}
-          />
+    <div className="space-y-6 p-1">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard Overview</h1>
+          <p className="text-sm text-muted-foreground">Complete fleet analytics and performance metrics</p>
         </div>
+        <Select value={String(selectedDays)} onValueChange={(v) => { setSelectedDays(Number(v)); setCustomDateRange(null); }}>
+          <SelectTrigger className="w-40">
+            <CalendarDays size={14} className="mr-1.5 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 Days</SelectItem>
+            <SelectItem value="14">Last 14 Days</SelectItem>
+            <SelectItem value="30">Last 30 Days</SelectItem>
+            <SelectItem value="90">Last 90 Days</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* 1. Summary KPI Cards Row */}
-      <div className="section-title">Fleet Overview</div>
-      <div className="overview-grid kpi-grid">
-        {summaryData?.vehicles && (
-          <>
+      {/* Fleet KPI Cards */}
+      {vehicles && (
+        <>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Fleet Overview</h2>
+            <Separator className="flex-1" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Vehicles"
-              value={formatNumber(summaryData.vehicles.total || 0)}
-              subtext={`${formatNumber(summaryData.vehicles.active || 0)} active • ${formatNumber(summaryData.vehicles.onTrip || 0)} on trip`}
+              value={formatNumber(vehicles.total || 0)}
+              subtext={`${formatNumber(vehicles.active || 0)} active · ${formatNumber(vehicles.onTrip || 0)} on trip`}
               icon={<Truck size={22} />}
+              iconBg="#DBEAFE" iconColor="#2563EB"
             />
             <StatCard
               title="Total Drivers"
-              value={formatNumber(summaryData.drivers?.total || 0)}
-              subtext={`${formatNumber(summaryData.drivers?.active || 0)} active`}
+              value={formatNumber(drivers?.total || 0)}
+              subtext={`${formatNumber(drivers?.active || 0)} active`}
               icon={<Users size={22} />}
+              iconBg="#D1FAE5" iconColor="#059669"
             />
             <StatCard
               title="Total Trips"
-              value={formatNumber(summaryData.trips?.total || 0)}
-              subtext={`${formatNumber(summaryData.trips?.completed || 0)} completed • ${formatNumber(summaryData.trips?.ongoing || 0)} ongoing`}
+              value={formatNumber(trips?.total || 0)}
+              subtext={`${formatNumber(trips?.completed || 0)} completed · ${formatNumber(trips?.ongoing || 0)} ongoing`}
               icon={<Activity size={22} />}
+              iconBg="#FEF3C7" iconColor="#D97706"
             />
             <StatCard
               title="Distance Covered"
-              value={`${formatNumber(summaryData.kilometers?.total || 0)} km`}
+              value={`${formatNumber(kilometers?.total || 0)} km`}
               icon={<Map size={22} />}
+              iconBg="#FCE7F3" iconColor="#DB2777"
             />
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
-      {/* 2. Fuel Metrics Row */}
-      {summaryData?.fuel && (summaryData.fuel.totalLitres > 0 || summaryData.fuel.totalCost > 0) && (
+      {/* Fuel Analytics */}
+      {fuel && (fuel.totalLitres > 0 || fuel.totalCost > 0) && (
         <>
-          <div className="section-title">Fuel Analytics</div>
-          <div className="overview-grid fuel-grid">
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Fuel Analytics</h2>
+            <Separator className="flex-1" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Fuel Consumed"
-              value={`${formatNumber(summaryData.fuel.totalLitres || 0)} L`}
-              subtext={`Total Cost: ${formatCurrency(summaryData.fuel.totalCost || 0)}`}
-              icon={<TrendingUp size={22} />}
+              value={`${formatNumber(fuel.totalLitres || 0)} L`}
+              subtext={`Cost: ${formatCurrency(fuel.totalCost || 0)}`}
+              icon={<Fuel size={22} />}
+              iconBg="#DBEAFE" iconColor="#2563EB"
             />
             <StatCard
               title="Fleet Avg Efficiency"
-              value={`${(summaryData.fuel.avgKmpl || 0).toFixed(2)} km/l`}
+              value={`${(fuel.avgKmpl || 0).toFixed(2)} km/l`}
               subtext="Overall fuel efficiency"
               icon={<TrendingUp size={22} />}
+              iconBg="#D1FAE5" iconColor="#059669"
             />
-            {fuelAnalytics?.summary && (
+            {fuelSummary && (
               <>
                 <StatCard
                   title="Avg Variance"
-                  value={`${(fuelAnalytics.summary.averageVariance || 0).toFixed(2)} km/l`}
-                  subtext={`Fleet-wide average: ${(fuelAnalytics.fleetWideAverageVariance || 0).toFixed(2)}`}
+                  value={`${(fuelSummary.averageVariance || 0).toFixed(2)} km/l`}
+                  subtext={`Fleet avg: ${(fuelAnalytics.fleetWideAverageVariance || 0).toFixed(2)}`}
                   icon={<TrendingUp size={22} />}
+                  iconBg="#FEF3C7" iconColor="#D97706"
                 />
                 <StatCard
                   title="Outliers Detected"
-                  value={formatNumber(fuelAnalytics.summary.outlierCount || 0)}
-                  subtext={`Out of ${formatNumber(fuelAnalytics.summary.totalTrips || 0)} trips`}
+                  value={formatNumber(fuelSummary.outlierCount || 0)}
+                  subtext={`Out of ${formatNumber(fuelSummary.totalTrips || 0)} trips`}
                   icon={<AlertTriangle size={22} />}
+                  iconBg="#FEE2E2" iconColor="#DC2626"
                 />
               </>
             )}
           </div>
 
-          {/* Fuel Analytics Charts */}
-          {fuelAnalytics?.dailyVariance?.length > 0 && (
-            <div className="overview-grid chart-grid">
-              <FuelAnalyticsChart data={fuelAnalytics.dailyVariance} dateRange={dateRange} />
+          {/* Fuel Charts */}
+          {(fuelAnalytics?.dailyVariance?.length > 0 || fuelAnalytics?.dailyOutliers?.length > 0) && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <FuelVarianceChart data={fuelAnalytics.dailyVariance} />
+              <OutlierChart data={fuelAnalytics.dailyOutliers} />
             </div>
           )}
         </>
       )}
 
-      {/* 3. Financial Overview */}
-      {financials && financials.summary && (financials.summary.totalRevenue > 0 || financials.summary.totalExpenses > 0) && (
+      {/* Financial Overview */}
+      {finSummary && (finSummary.totalRevenue > 0 || finSummary.totalExpenses > 0) && (
         <>
-          <div className="section-title">Financial Overview</div>
-          <div className="overview-grid financial-grid">
-            <FinancialSummaryCard data={financials} />
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Financial Overview</h2>
+            <Separator className="flex-1" />
           </div>
+          <Card>
+            <CardContent className="p-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 p-4 dark:bg-emerald-950/20">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Revenue</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-600">{formatCurrency(finSummary.totalRevenue || 0)}</p>
+                </div>
+                <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 dark:bg-red-950/20">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Expenses</p>
+                  <p className="mt-1 text-2xl font-bold text-red-600">{formatCurrency(finSummary.totalExpenses || 0)}</p>
+                </div>
+                <div className={`rounded-lg border-l-4 p-4 ${(finSummary.netProfit || 0) >= 0 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20" : "border-red-500 bg-red-50 dark:bg-red-950/20"}`}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Net Profit</p>
+                  <p className={`mt-1 text-2xl font-bold ${(finSummary.netProfit || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {formatCurrency(finSummary.netProfit || 0)}
+                  </p>
+                </div>
+                <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 dark:bg-amber-950/20">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Profit Margin</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-600">{(finSummary.profitMargin || 0).toFixed(2)}%</p>
+                </div>
+              </div>
+              {financials?.dailyTrend?.length > 0 && (
+                <>
+                  <Separator className="my-5" />
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">Daily Revenue Trend</h3>
+                  <FinancialChart data={financials} />
+                </>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
 
-      {/* 4. Driver Performance Section */}
-      {driverPerformance && (driverPerformance.topPerformingDriver || driverPerformance.averageDriverRating) && (
+      {/* Driver Performance */}
+      {driverPerformance && (driverPerformance.topPerformingDriver || driverPerformance.averageDriverRating !== undefined) && (
         <>
-          <div className="section-title">Driver Performance</div>
-          <div className="overview-grid driver-performance-grid">
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Driver Performance</h2>
+            <Separator className="flex-1" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {driverPerformance.topPerformingDriver && (
-              <DriverPerformanceCard
-                data={driverPerformance.topPerformingDriver}
-                icon={<Trophy size={20} style={{ color: "#F59E0B" }} />}
-                title="Top Performing Driver"
+              <DriverCard
+                driver={driverPerformance.topPerformingDriver}
+                label="Top Performing Driver"
+                variant="top"
               />
             )}
             {driverPerformance.averageDriverRating !== undefined && (
-              <div className="driver-card">
-                <div className="driver-card-header">
-                  <Star size={20} style={{ color: "#3B82F6" }} />
-                  <h4>Average Driver Rating</h4>
-                </div>
-                <div className="driver-card-content center">
-                  <div className="rating-display" style={{ color: getRatingColor(driverPerformance.averageDriverRating) }}>
-                    <div className="rating-number">{(driverPerformance.averageDriverRating || 0).toFixed(1)}</div>
-                    <div className="rating-stars">
-                      <Star size={20} fill="currentColor" />
-                    </div>
-                    <div className="rating-text">
-                      out of 5 ({formatNumber(driverPerformance.totalDrivers || 0)} drivers)
-                    </div>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Star size={18} className="text-blue-500" />
+                    <CardTitle>Average Rating</CardTitle>
                   </div>
-                </div>
-              </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <span
+                      className="text-5xl font-bold"
+                      style={{
+                        color: driverPerformance.averageDriverRating >= 4 ? "#10B981"
+                          : driverPerformance.averageDriverRating >= 3 ? "#F59E0B" : "#EF4444"
+                      }}
+                    >
+                      {(driverPerformance.averageDriverRating || 0).toFixed(1)}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={16}
+                          fill={s <= Math.round(driverPerformance.averageDriverRating) ? "currentColor" : "none"}
+                          className={s <= Math.round(driverPerformance.averageDriverRating) ? "text-amber-400" : "text-muted-foreground/30"}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      out of 5 ({formatNumber(driverPerformance.totalDrivers || 0)} drivers)
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {driverPerformance.underperformingDrivers?.length > 0 && driverPerformance.underperformingDrivers[0]?.driverName ? (
+              <UnderperformingList drivers={driverPerformance.underperformingDrivers} />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Users size={18} className="text-emerald-500" />
+                    <CardTitle>Total Drivers</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <span className="text-5xl font-bold text-emerald-600">
+                      {formatNumber(driverPerformance.totalDrivers || 0)}
+                    </span>
+                    <p className="text-xs text-muted-foreground">active drivers in fleet</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
-
-          {/* Underperforming Drivers */}
-          {driverPerformance.underperformingDrivers && 
-           driverPerformance.underperformingDrivers.length > 0 && 
-           driverPerformance.underperformingDrivers[0].driverName && (
-            <div className="overview-grid">
-              <UnderperformingDriversList
-                drivers={driverPerformance.underperformingDrivers}
-                icon={<TrendingDown size={20} style={{ color: "#EF4444" }} />}
-                title="Underperforming Drivers"
-              />
-            </div>
-          )}
         </>
       )}
     </div>

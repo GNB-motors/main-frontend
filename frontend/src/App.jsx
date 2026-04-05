@@ -26,12 +26,14 @@ import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
 import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
+import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
+import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 
 
 function App() {
@@ -60,6 +62,7 @@ function App() {
       >
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
@@ -72,6 +75,7 @@ function App() {
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
+        <Route path="/vehicles/add" element={<AddVehiclePage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />

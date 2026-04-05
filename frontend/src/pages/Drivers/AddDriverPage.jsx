@@ -5,6 +5,7 @@ import { DriverService } from './DriverService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
+import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
 import './DriversPage.css';
 
@@ -17,6 +18,11 @@ const AddDriverPage = () => {
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
+  const [documents, setDocuments] = useState({
+    driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+    panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+    aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+  });
 
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
 
@@ -29,45 +35,118 @@ const AddDriverPage = () => {
 
   // If navigated here for editing, prefill form from location.state.editingDriver
   useEffect(() => {
-    const editing = location?.state?.editingDriver;
-    if (editing) {
-      setIsEdit(true);
-      setDriverId(editing.id || editing._id);
-      const formData = {
-        firstName: editing.firstName || editing.first_name || '',
-        lastName: editing.lastName || editing.last_name || '',
-        email: editing.email || '',
-        mobileNumber: editing.mobileNumber || editing.mobile_number || '',
-        location: editing.location || '',
-        role: editing.role || 'DRIVER',
-        password: '', // Don't prefill password
-      };
-      console.log('Editing driver:', editing);
-      console.log('Setting form data:', formData);
-      setInitialFormData(formData);
-    } else {
-      // Reset to add mode when no editing driver
-      setIsEdit(false);
-      setDriverId(null);
-      setInitialFormData({});
-    }
+    const loadDriverData = async () => {
+      const editing = location?.state?.editingDriver;
+      if (editing) {
+        setIsEdit(true);
+        const empId = editing.id || editing._id;
+        setDriverId(empId);
+        const formData = {
+          firstName: editing.firstName || editing.first_name || '',
+          lastName: editing.lastName || editing.last_name || '',
+          email: editing.email || '',
+          mobileNumber: editing.mobileNumber || editing.mobile_number || '',
+          location: editing.location || '',
+          role: editing.role || 'DRIVER',
+          password: '', // Don't prefill password
+        };
+        console.log('Editing driver:', editing);
+        console.log('Setting form data:', formData);
+        setInitialFormData(formData);
+
+        try {
+          const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
+          console.log('Fetched documents:', fetchedDocs);
+          const updatedDocs = {
+            driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+            panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+            aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null }
+          };
+
+          if (Array.isArray(fetchedDocs)) {
+            fetchedDocs.forEach(doc => {
+              // Map API doc types to our state keys
+              const mappedType = {
+                'DRIVER_LICENSE': 'driverLicense',
+                'DL': 'driverLicense',
+                'LICENSE': 'driverLicense',
+                'PAN': 'panCard',
+                'AADHAAR': 'aadharCard',
+                'AADHAR': 'aadharCard'
+              }[doc.docType];
+
+              if (mappedType) {
+                const url = doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
+                if (url) {
+                  updatedDocs[mappedType].preview = url;
+                  updatedDocs[mappedType].imageUrl = url;
+                  updatedDocs[mappedType].name = doc.originalName || doc.docType;
+                  updatedDocs[mappedType].documentId = doc._id || doc.id || null;
+                }
+              }
+            });
+          }
+          setDocuments(updatedDocs);
+        } catch (err) {
+          console.error("Failed to load documents", err);
+        }
+      } else {
+        // Reset to add mode when no editing driver
+        setIsEdit(false);
+        setDriverId(null);
+        setInitialFormData({});
+        setDocuments({
+          driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+          panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+          aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null }
+        });
+      }
+    };
+
+    loadDriverData();
   }, [location?.state?.editingDriver]);
 
   const handleSubmit = async (formData) => {
     setIsSubmitting(true);
     try {
+      const docTypes = {
+        driverLicense: 'DRIVER_LICENSE',
+        panCard: 'PAN',
+        aadharCard: 'AADHAAR'
+      };
+
+      const uploadDocuments = async (entityId) => {
+        for (const [key, docType] of Object.entries(docTypes)) {
+          const docData = documents[key];
+          if (docData && docData.file) {
+            try {
+              // Delete old document if replacing
+              const oldDocId = docData._previousDocumentId;
+              if (oldDocId) {
+                try { await DriverService.deleteDocument(oldDocId); } catch (_) { /* best effort */ }
+              }
+              await DriverService.uploadDocument(entityId, docType, docData.file);
+            } catch (docErr) {
+              console.error(`Failed to upload ${docType}`, docErr);
+              toast.warning(`Failed to upload ${key} document`);
+            }
+          }
+        }
+      };
+
       if (isEdit) {
-        // Build update payload with only provided fields
         const updatePayload = {};
         if (formData.firstName !== undefined) updatePayload.firstName = formData.firstName;
         if (formData.lastName !== undefined) updatePayload.lastName = formData.lastName;
         if (formData.email !== undefined) updatePayload.email = formData.email;
         if (formData.mobileNumber !== undefined) updatePayload.mobileNumber = formData.mobileNumber;
         if (formData.location !== undefined) updatePayload.location = formData.location;
-        if (formData.password) updatePayload.password = formData.password; // only include if non-empty
+        if (formData.password) updatePayload.password = formData.password;
         if (formData.role !== undefined) updatePayload.role = formData.role;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
+        await uploadDocuments(driverId);
+
         toast.success('Employee updated successfully');
         navigate('/drivers');
       } else {
@@ -81,17 +160,24 @@ const AddDriverPage = () => {
           role: formData.role || 'DRIVER',
         };
 
-        await DriverService.addDriver(businessRefId, payload);
+        const savedEmployee = await DriverService.addDriver(businessRefId, payload);
+        const empId = savedEmployee._id || savedEmployee.id;
+        await uploadDocuments(empId);
+
         toast.success('Employee created successfully');
         navigate('/drivers');
       }
     } catch (err) {
       console.error('Add employee error', err);
-      const msg = err?.message || err?.detail || 'Failed to create employee';
+      const msg = err?.message || err?.detail || 'Failed to create/update employee';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteDocument = async (documentId) => {
+    await DriverService.deleteDocument(documentId);
   };
 
   const handleFooterSubmit = (e) => {
@@ -124,6 +210,13 @@ const AddDriverPage = () => {
           onCancel={() => navigate(-1)}
           isSubmitting={isSubmitting}
           isEdit={isEdit}
+        />
+
+        <DocumentUpload
+          initialData={documents}
+          onDocumentsChange={setDocuments}
+          onDeleteDocument={handleDeleteDocument}
+          isSubmitting={isSubmitting}
         />
       </div>
 

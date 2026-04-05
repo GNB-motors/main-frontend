@@ -7,7 +7,7 @@ import './ProfilePage.css';
 import './VehiclesPage.css';
 
 // Import assets and icons
-import { Plus, Edit, Trash2, MoreVertical, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, MoreHorizontal, Upload } from 'lucide-react';
 
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
@@ -63,224 +63,7 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
     );
 };
 
-// --- Add Vehicle Modal Component ---
-const AddVehicleModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) => {
-    const [registrationNo, setRegistrationNo] = useState('');
-    const [model, setModel] = useState('');
-    const [chassisNumber, setChassisNumber] = useState('');
-    const [error, setError] = useState(null);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(null); // Clear previous errors
-
-        if (!registrationNo || !chassisNumber) {
-            setError("All fields are required: Registration Number and Chassis Number.");
-            return;
-        }
-
-        const vehicleData = {
-            registration_no: registrationNo,
-            chassis_number: chassisNumber,
-            model: model || null,
-        };
-
-        try {
-            await onSubmit(vehicleData);
-            // Clear form and close modal on successful submission (handled by parent)
-        } catch (submitError) {
-            const errorMessage = submitError?.detail || "Failed to add vehicle. Please try again.";
-            setError(errorMessage);
-            toast.error(errorMessage);
-        }
-    };
-
-    // Reset form when modal opens or closes
-    useEffect(() => {
-        if (!isOpen) {
-            setRegistrationNo('');
-            setModel('');
-            setChassisNumber('');
-            setError(null);
-        }
-    }, [isOpen]);
-
-    if (!isOpen) return null;
-
-    console.log('AddVehicleModal rendering, isOpen:', isOpen);
-
-    return (
-        <div className="vehicle-modal-overlay" onClick={onClose}>
-            <div className="vehicle-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="vehicle-modal-header">
-                    <h4>Add New Vehicle</h4>
-                    <button onClick={onClose} className="vehicle-modal-close-btn">&times;</button>
-                </div>
-                <form onSubmit={handleSubmit} className="vehicle-modal-form">
-                    <div className="vehicle-form-row">
-                        <div className="vehicle-form-group">
-                            <label htmlFor="vehicleRegistrationNo">Registration Number *</label>
-                            <input
-                                id="vehicleRegistrationNo"
-                                type="text"
-                                value={registrationNo}
-                                onChange={(e) => setRegistrationNo(e.target.value)}
-                                placeholder="e.g., WB11F7262"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <div className="vehicle-form-group">
-                            <label htmlFor="chassisNumber">Chassis Number *</label>
-                            <input
-                                id="chassisNumber"
-                                type="text"
-                                value={chassisNumber}
-                                onChange={(e) => setChassisNumber(e.target.value)}
-                                placeholder="e.g., MAT828113S2C05629"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-                    <div className="vehicle-form-row">
-                        <div className="vehicle-form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label htmlFor="model">Model *</label>
-                            <input
-                                id="model"
-                                type="text"
-                                value={model}
-                                onChange={(e) => setModel(e.target.value)}
-                                placeholder="e.g., 4830TC, LPT 4830"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-
-                    {error && <div className="vehicle-error-message">{error}</div>}
-
-                    <div className="vehicle-modal-actions">
-                        <button type="button" className="vehicle-btn vehicle-btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="vehicle-btn vehicle-btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Adding...' : 'Add Vehicle'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// --- Edit Vehicle Modal Component ---
-const EditVehicleModal = ({ isOpen, onClose, onSubmit, vehicle, isLoading: isSubmitting }) => {
-    const [registrationNo, setRegistrationNo] = useState('');
-    const [model, setModel] = useState('');
-    const [chassisNumber, setChassisNumber] = useState('');
-    const [error, setError] = useState(null);
-
-    // Initialize form with vehicle data when modal opens
-    useEffect(() => {
-        if (isOpen && vehicle) {
-            setRegistrationNo(vehicle.registration_no || '');
-            setModel(vehicle.model || '');
-            setChassisNumber(vehicle.chassis_number || '');
-            setError(null);
-        }
-    }, [isOpen, vehicle]);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(null);
-        
-        if (!registrationNo.trim() || !chassisNumber.trim() || !model.trim()) {
-            setError("All fields are required: Registration Number, Chassis Number, and Model.");
-            return;
-        }
-        
-        try {
-            await onSubmit({
-                registration_no: registrationNo.trim(),
-                model: model.trim(),
-                chassis_number: chassisNumber.trim(),
-            });
-            // If successful, parent will handle closing and success toast
-        } catch (err) {
-            console.error('Error in handleSubmit:', err);
-            const errorMessage = err?.detail || 'Failed to update vehicle. Please try again.';
-            setError(errorMessage);
-            toast.error(errorMessage);
-        }
-    };
-
-    if (!isOpen || !vehicle) return null;
-
-    return (
-        <div className="vehicle-modal-overlay" onClick={onClose}>
-            <div className="vehicle-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="vehicle-modal-header">
-                    <h4>Edit Vehicle</h4>
-                    <button onClick={onClose} className="vehicle-modal-close-btn">&times;</button>
-                </div>
-                <form onSubmit={handleSubmit} className="vehicle-modal-form">
-                    <div className="vehicle-form-row">
-                        <div className="vehicle-form-group">
-                            <label htmlFor="editVehicleRegistrationNo">Registration Number *</label>
-                            <input
-                                id="editVehicleRegistrationNo"
-                                type="text"
-                                value={registrationNo}
-                                onChange={(e) => setRegistrationNo(e.target.value)}
-                                placeholder="e.g., WB11F7262"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <div className="vehicle-form-group">
-                            <label htmlFor="editChassisNumber">Chassis Number *</label>
-                            <input
-                                id="editChassisNumber"
-                                type="text"
-                                value={chassisNumber}
-                                onChange={(e) => setChassisNumber(e.target.value)}
-                                placeholder="e.g., MAT828113S2C05629"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-                    <div className="vehicle-form-row">
-                        <div className="vehicle-form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label htmlFor="editModel">Model *</label>
-                            <input
-                                id="editModel"
-                                type="text"
-                                value={model}
-                                onChange={(e) => setModel(e.target.value)}
-                                placeholder="e.g., 4830TC, LPT 4830"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-
-                    {error && <div className="vehicle-error-message">{error}</div>}
-
-                    <div className="vehicle-modal-actions">
-                        <button type="button" className="vehicle-btn vehicle-btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="vehicle-btn vehicle-btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Updating...' : 'Update Vehicle'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
 
 // --- Vehicles Page Component ---
 const VehiclesPage = () => {
@@ -622,8 +405,7 @@ const VehiclesPage = () => {
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        console.log('Add Vehicle button clicked, opening modal...');
-                                        setIsAddModalOpen(true);
+                                        navigate('/vehicles/add');
                                     }}
                                     disabled={isSubmitting}
                                 >
@@ -667,7 +449,11 @@ const VehiclesPage = () => {
                                             </thead>
                                             <tbody>
                                                 {displayVehicles.map(vehicle => (
-                                                    <tr key={vehicle.id}>
+                                                    <tr 
+                                                        key={vehicle.id}
+                                                        className={`vehicles-table-row ${openMenuId === vehicle.id ? 'menu-open' : ''}`}
+                                                        onClick={() => navigate('/vehicles/add', { state: { editingVehicle: vehicle } })}
+                                                    >
                                                         <td style={{ fontWeight: 600 }}>{vehicle.registration_no}</td>
                                                         <td>{vehicle.model || 'N/A'}</td>
                                                         <td>
@@ -700,7 +486,7 @@ const VehiclesPage = () => {
                                                                     disabled={isSubmitting}
                                                                     title="Actions"
                                                                 >
-                                                                    <MoreVertical size={18} />
+                                                                    <MoreHorizontal size={18} />
                                                                 </button>
                                                                 {openMenuId === vehicle.id && (
                                                                     <div className="vehicle-actions-menu">
@@ -709,8 +495,8 @@ const VehiclesPage = () => {
                                                                             onClick={(e) => {
                                                                                 e.preventDefault();
                                                                                 e.stopPropagation();
-                                                                                console.log('Edit clicked for vehicle:', vehicle);
-                                                                                handleEditVehicle(vehicle);
+                                                                                setOpenMenuId(null);
+                                                                                navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
                                                                             }} 
                                                                             disabled={isSubmitting}
                                                                         >
@@ -786,25 +572,6 @@ const VehiclesPage = () => {
                 </div>
             </div>
 
-            {/* Add Vehicle Modal */}
-            <AddVehicleModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onSubmit={handleAddVehicle}
-                isLoading={isSubmitting}
-            />
-
-            {/* Edit Vehicle Modal */}
-            <EditVehicleModal
-                isOpen={isEditModalOpen}
-                onClose={() => {
-                    setIsEditModalOpen(false);
-                    setEditingVehicle(null);
-                }}
-                onSubmit={handleUpdateVehicle}
-                vehicle={editingVehicle}
-                isLoading={isSubmitting}
-            />
 
             {/* Delete Vehicle Modal */}
             <DeleteVehicleModal
