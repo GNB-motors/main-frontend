@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CircularProgress } from '@mui/material';
-import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle, ArrowLeft, Droplets } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
@@ -222,11 +222,19 @@ const MileageFuelLogPage = () => {
     return (
         <div className="page-container mileage-form-page">
             <div className="mileage-form-header">
-                <button className="back-btn" onClick={() => navigate('/mileage-tracking')}>
-                    <ArrowLeft size={18} /> <span>Back to Mileage Tracking</span>
-                </button>
-                <h2>Log Fuel Entry</h2>
-                <p>Fill in the fuel details and upload supporting documents.</p>
+                <div className="mileage-header-left">
+                    <button className="mileage-back-circle" onClick={() => navigate('/mileage-tracking')}>
+                        <ArrowLeft size={18} />
+                    </button>
+                    <div className="mileage-header-titles">
+                        <h2>Log Fuel Entry</h2>
+                        <p>Fill in the fuel details and upload supporting documents.</p>
+                    </div>
+                </div>
+                <div className="mileage-header-icon-badge">
+                    <Droplets size={22} strokeWidth={1.8} />
+                    <span>Fuel Log</span>
+                </div>
             </div>
 
             <div className="mileage-form-content">
