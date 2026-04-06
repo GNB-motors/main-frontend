@@ -62,6 +62,7 @@ const Navbar = ({ toggleSidebar }) => {
 
     const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
     const isRefuelLogsPage = location.pathname.includes('/refuel-logs');
+    const isMileagePage = location.pathname.startsWith('/mileage-tracking');
 
     console.log('Navbar rendering with themeColors:', themeColors);
     console.log('Current path:', location.pathname, 'Is trips page:', isTripsPage);
@@ -94,6 +95,15 @@ const Navbar = ({ toggleSidebar }) => {
                             <span>Start New Trip</span>
                         </button>
                     </>
+                )}
+                {isMileagePage && (
+                    <button 
+                        className="btn btn-primary trip-action-btn"
+                        onClick={() => navigate('/mileage-tracking/new')}
+                    >
+                        <Plus size={16} />
+                        <span>Log Fuel</span>
+                    </button>
                 )}
 
             </div>

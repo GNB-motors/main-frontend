@@ -30,6 +30,7 @@ import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import MileageTrackingPage from './pages/MileageTracking/MileageTrackingPage.jsx';
+import MileageFuelLogPage from './pages/MileageTracking/MileageFuelLogPage.jsx';
 import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
@@ -76,6 +77,7 @@ function App() {
         <Route path="/trip/:tripId" element={<TripManagementPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
         <Route path="/mileage-tracking" element={<MileageTrackingPage />} />
+        <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/add" element={<AddVehiclePage />} />
