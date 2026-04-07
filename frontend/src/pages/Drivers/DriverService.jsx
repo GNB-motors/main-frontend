@@ -1,5 +1,16 @@
 import apiClient from '../../utils/axiosConfig';
 
+/** Normalise a mobile number to E.164 (+91XXXXXXXXXX for Indian numbers). */
+function normaliseMobile(mobile) {
+    if (!mobile) return mobile;
+    const stripped = mobile.replace(/\s/g, '');
+    if (stripped.startsWith('+')) return stripped;
+    const digits = stripped.replace(/\D/g, '');
+    if (digits.length === 10) return `+91${digits}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+    return stripped;
+}
+
 export const DriverService = {
     // --- Get Available Vehicles ---
     getAvailableVehicles: async (businessRefId, token) => {
@@ -55,7 +66,7 @@ export const DriverService = {
                 firstName: driverData.firstName || firstName || null,
                 lastName: driverData.lastName || lastName || null,
                 email: driverData.email || null,
-                mobileNumber: driverData.mobileNumber || null,
+                mobileNumber: normaliseMobile(driverData.mobileNumber) || null,
                 location: driverData.location || null,
                 password: driverData.password || null,
                 role: driverData.role || driverData.role || 'DRIVER',
@@ -113,7 +124,7 @@ export const DriverService = {
             if (driverData.firstName !== undefined) body.firstName = driverData.firstName;
             if (driverData.lastName !== undefined) body.lastName = driverData.lastName;
             if (driverData.email !== undefined) body.email = driverData.email;
-            if (driverData.mobileNumber !== undefined) body.mobileNumber = driverData.mobileNumber;
+            if (driverData.mobileNumber !== undefined) body.mobileNumber = normaliseMobile(driverData.mobileNumber);
             if (driverData.location !== undefined) body.location = driverData.location;
             if (driverData.password !== undefined) body.password = driverData.password;
             if (driverData.role !== undefined) body.role = driverData.role;
