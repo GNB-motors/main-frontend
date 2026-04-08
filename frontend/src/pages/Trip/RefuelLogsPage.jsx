@@ -14,7 +14,10 @@ const fetchRefuelLogs = async () => {
         time: log.refuelTime ? new Date(log.refuelTime).toTimeString().split(' ')[0] : null,
         vehicleNo: log.vehicleId?.registrationNumber || '-',
         vehicleModel: log.vehicleId?.vehicleType || '-',
-        driverName: log.tripId?.driverId ? `${log.tripId.driverId.firstName} ${log.tripId.driverId.lastName}`.trim() : '-',
+        driverName: (() => {
+          const d = log.driverId || log.tripId?.driverId;
+          return d ? `${d.firstName || ''} ${d.lastName || ''}`.trim() || '-' : '-';
+        })(),
         driverPhone: '-', // Not available in API
         location: log.location || '-',
         vendor: '-', // Not available in API
