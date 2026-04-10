@@ -56,7 +56,7 @@ const InnovationSection = () => {
                             The Destination
                         </span>
                         
-                        <motion.h2 style={{ color: headingColor }} className="text-5xl lg:text-7xl font-sans font-extrabold tracking-tight leading-[1.05] mb-8 relative z-20 transition-colors duration-100">
+                        <motion.h2 style={{ color: headingColor }} className="text-3xl sm:text-5xl lg:text-7xl font-sans font-extrabold tracking-tight leading-[1.05] mb-8 relative z-20 transition-colors duration-100">
                             Architected for <br className="hidden lg:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
                                 Absolute Integrity.

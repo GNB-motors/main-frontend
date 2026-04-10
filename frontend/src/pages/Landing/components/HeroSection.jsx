@@ -69,7 +69,7 @@ const HeroSection = () => {
                             initial={{ y: "100%" }}
                             animate={{ y: 0 }}
                             transition={{ ...springTransition, delay: 0.1 }}
-                            className="text-5xl sm:text-6xl lg:text-7xl font-sans font-extrabold tracking-tight leading-[1.05] text-white"
+                            className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-sans font-extrabold tracking-tight leading-[1.05] text-white"
                         >
                             Revolutionizing
                             <br className="hidden sm:block" />

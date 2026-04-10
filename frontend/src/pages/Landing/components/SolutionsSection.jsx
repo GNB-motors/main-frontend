@@ -46,7 +46,7 @@ const SolutionsSection = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: false, margin: "-20%" }}
                         transition={{ duration: 0.8 }}
-                        className="order-2 lg:order-1 w-full lg:w-1/2 pl-20 lg:pl-0 lg:pr-32 text-left lg:text-right flex flex-col"
+                        className="order-2 lg:order-1 w-full lg:w-1/2 pl-12 sm:pl-20 lg:pl-0 lg:pr-32 text-left lg:text-right flex flex-col"
                     >
                         <div className="mb-6 flex justify-start lg:justify-end mt-8 lg:mt-0">
                             <span className="material-symbols-outlined text-[60px] text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">hub</span>
@@ -54,7 +54,7 @@ const SolutionsSection = () => {
                         <span className="text-blue-500 text-xs uppercase tracking-[0.3em] font-bold block mb-4">
                             The GNB Edge Ecosystem
                         </span>
-                        <h2 className="text-4xl lg:text-5xl text-white font-sans font-extrabold tracking-tight leading-[1.1] mb-6 drop-shadow-lg">
+                        <h2 className="text-2xl sm:text-4xl lg:text-5xl text-white font-sans font-extrabold tracking-tight leading-[1.1] mb-6 drop-shadow-lg">
                             Intelligence at Scale.
                         </h2>
                         <p className="text-white/60 leading-relaxed text-lg font-medium">
@@ -79,7 +79,7 @@ const SolutionsSection = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: false, margin: "-20%" }}
                         transition={{ duration: 0.8 }}
-                        className="order-2 lg:order-2 w-full lg:w-1/2 pl-20 lg:pl-32 text-left flex flex-col"
+                        className="order-2 lg:order-2 w-full lg:w-1/2 pl-12 sm:pl-20 lg:pl-32 text-left flex flex-col"
                     >
                         <div className="mb-6 mt-8 lg:mt-0">
                             <span className="material-symbols-outlined text-[60px] text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">query_stats</span>
@@ -87,7 +87,7 @@ const SolutionsSection = () => {
                         <span className="text-blue-500 text-xs uppercase tracking-[0.3em] font-bold block mb-4">
                             Financial Intelligence
                         </span>
-                        <h2 className="text-4xl lg:text-5xl text-white font-sans font-extrabold tracking-tight leading-[1.1] mb-6 drop-shadow-lg">
+                        <h2 className="text-2xl sm:text-4xl lg:text-5xl text-white font-sans font-extrabold tracking-tight leading-[1.1] mb-6 drop-shadow-lg">
                             Logistics meets your bottom line.
                         </h2>
                         <p className="text-white/60 leading-relaxed text-lg font-medium">
@@ -106,7 +106,7 @@ const SolutionsSection = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: false, margin: "-20%" }}
                         transition={{ duration: 0.8 }}
-                        className="order-2 lg:order-1 w-full lg:w-1/2 pl-20 lg:pl-0 lg:pr-32 text-left lg:text-right flex flex-col"
+                        className="order-2 lg:order-1 w-full lg:w-1/2 pl-12 sm:pl-20 lg:pl-0 lg:pr-32 text-left lg:text-right flex flex-col"
                     >
                         <div className="mb-6 flex justify-start lg:justify-end mt-8 lg:mt-0">
                             <span className="material-symbols-outlined text-[60px] text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">auto_awesome</span>
@@ -114,7 +114,7 @@ const SolutionsSection = () => {
                         <span className="text-blue-500 text-xs uppercase tracking-[0.3em] font-bold block mb-4">
                             Special Reports
                         </span>
-                        <h2 className="text-4xl lg:text-5xl text-white font-sans font-extrabold tracking-tight leading-[1.1] mb-6 drop-shadow-lg">
+                        <h2 className="text-2xl sm:text-4xl lg:text-5xl text-white font-sans font-extrabold tracking-tight leading-[1.1] mb-6 drop-shadow-lg">
                             Custom Intelligence for Complex Operations.
                         </h2>
                         <p className="text-white/60 leading-relaxed text-lg font-medium">

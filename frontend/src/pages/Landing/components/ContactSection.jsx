@@ -14,7 +14,7 @@ const ContactSection = () => {
                     <span className="text-blue-600 text-xs font-bold uppercase tracking-[0.4em] block mb-6">
                         Strategic Engagement
                     </span>
-                    <h2 className="text-5xl lg:text-7xl text-[#0A192F] font-sans font-extrabold tracking-tight leading-[1.05] mb-8 drop-shadow-sm">
+                    <h2 className="text-3xl sm:text-5xl lg:text-7xl text-[#0A192F] font-sans font-extrabold tracking-tight leading-[1.05] mb-8 drop-shadow-sm">
                         Partner with <br className="hidden lg:block"/>GNB Edge.
                     </h2>
                     <p className="text-slate-600 text-lg lg:text-xl font-medium leading-relaxed max-w-lg">
