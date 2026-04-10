@@ -1,50 +1,59 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import ScrollReveal from './ScrollReveal';
 
 const InnovationSection = () => {
     const sectionRef = useRef(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     const { scrollYProgress } = useScroll({
         target: sectionRef,
-        offset: ["start center", "end end"]
+        offset: isMobile ? ["start end", "end start"] : ["start center", "end end"]
     });
 
-    // --- Dynamic Text Color Transition (White to High-Contrast Navy) ---
-    const headingColor = useTransform(scrollYProgress, [0.4, 0.95], ["#FFFFFF", "#0A192F"]);
-    const pColor = useTransform(scrollYProgress, [0.4, 0.95], ["rgba(255,255,255,0.6)", "rgba(10,25,47,0.7)"]);
-    const iconColor = useTransform(scrollYProgress, [0.4, 0.95], ["#60A5FA", "#2563EB"]);
-    const labelColor = useTransform(scrollYProgress, [0.4, 0.95], ["#FFFFFF", "#0A192F"]);
+    // --- Dynamic Text Color Transition (only on desktop) ---
+    const headingColor = useTransform(scrollYProgress, [0.4, 0.95], isMobile ? ["#FFFFFF", "#FFFFFF"] : ["#FFFFFF", "#0A192F"]);
+    const pColor = useTransform(scrollYProgress, [0.4, 0.95], isMobile ? ["rgba(255,255,255,0.6)", "rgba(255,255,255,0.6)"] : ["rgba(255,255,255,0.6)", "rgba(10,25,47,0.7)"]);
+    const iconColor = useTransform(scrollYProgress, [0.4, 0.95], isMobile ? ["#60A5FA", "#60A5FA"] : ["#60A5FA", "#2563EB"]);
+    const labelColor = useTransform(scrollYProgress, [0.4, 0.95], isMobile ? ["#FFFFFF", "#FFFFFF"] : ["#FFFFFF", "#0A192F"]);
 
-    // --- Dynamic Orb Animation ---
-    const orbScale = useTransform(scrollYProgress, [0.3, 1], [0.3, 1.8]);
-    const orbOpacity = useTransform(scrollYProgress, [0.4, 0.9], [0, 1]);
+    // --- Dynamic Orb Animation (disabled on mobile) ---
+    const orbScale = useTransform(scrollYProgress, [0.3, 1], isMobile ? [0, 0] : [0.3, 1.8]);
+    const orbOpacity = useTransform(scrollYProgress, [0.4, 0.9], isMobile ? [0, 0] : [0, 1]);
 
     return (
-        <section ref={sectionRef} id="innovation" className="relative bg-[#0A192F] pt-0 pb-40 overflow-hidden">
+        <section ref={sectionRef} id="innovation" className="relative bg-[#0A192F] pt-0 pb-20 sm:pb-40 overflow-hidden">
             
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center">
                 
                 {/* --- Central Glowing Pipeline (Continues from Solutions) --- */}
-                <div className="relative w-full h-32 flex justify-center lg:justify-center mb-16 lg:mb-24 scale-x-[-1] lg:scale-x-100">
-                    <div className="absolute left-[31px] lg:left-1/2 top-0 bottom-0 w-px -translate-x-1/2 overflow-visible z-0">
+                <div className="relative w-full h-20 sm:h-32 flex justify-center mb-10 sm:mb-16 lg:mb-24">
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 overflow-visible z-0">
                         <div className="absolute inset-0 bg-blue-500/10 w-px h-full" />
-                        
-                        <motion.div 
+
+                        <motion.div
                             initial={{ height: "0%" }}
                             whileInView={{ height: "100%" }}
                             viewport={{ once: false, margin: "-10%" }}
-                            transition={{ duration: 1.0, ease: "linear" }}
-                            className="w-px bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,1)]"
+                            transition={{ duration: 0.8, ease: "linear" }}
+                            className="w-px bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)] sm:shadow-[0_0_20px_rgba(59,130,246,1)]"
                         />
-                        
-                        <motion.div 
+
+                        <motion.div
                             initial={{ scale: 0 }}
                             whileInView={{ scale: 1 }}
                             viewport={{ once: false, margin: "-10%" }}
-                            transition={{ duration: 0.6, delay: 0.8, type: "spring", bounce: 0.6 }}
-                            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white border-[4px] border-blue-500 shadow-[0_0_40px_rgba(255,255,255,0.8),0_0_20px_rgba(59,130,246,1)] z-10 flex items-center justify-center"
+                            transition={{ duration: 0.5, delay: 0.6, type: "spring", bounce: 0.4 }}
+                            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white border-[3px] sm:border-[4px] border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] sm:shadow-[0_0_40px_rgba(255,255,255,0.8),0_0_20px_rgba(59,130,246,1)] z-10 flex items-center justify-center"
                         >
-                            <div className="w-2 h-2 bg-[#0A192F] rounded-full animate-ping" />
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#0A192F] rounded-full animate-ping" />
                         </motion.div>
                     </div>
                 </div>
@@ -56,20 +65,20 @@ const InnovationSection = () => {
                             The Destination
                         </span>
                         
-                        <motion.h2 style={{ color: headingColor }} className="text-3xl sm:text-5xl lg:text-7xl font-sans font-extrabold tracking-tight leading-[1.05] mb-8 relative z-20 transition-colors duration-100">
+                        <motion.h2 style={{ color: headingColor, willChange: 'color' }} className="text-3xl sm:text-5xl lg:text-7xl font-sans font-extrabold tracking-tight leading-[1.05] mb-6 sm:mb-8 relative z-20">
                             Architected for <br className="hidden lg:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
                                 Absolute Integrity.
                             </span>
                         </motion.h2>
 
-                        <div className="flex justify-center items-center w-full px-4 mb-20 relative z-20">
-                            <motion.p style={{ color: pColor }} className="leading-relaxed text-xl max-w-2xl transition-colors duration-100">
+                        <div className="flex justify-center items-center w-full px-4 mb-12 sm:mb-20 relative z-20">
+                            <motion.p style={{ color: pColor, willChange: 'color' }} className="leading-relaxed text-base sm:text-xl max-w-2xl">
                                 Every feature of GNB Edge flows directly into our core operating dashboard. A single, immutable source of truth for your entire logistical fleet.
                             </motion.p>
                         </div>
                         
-                        <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 text-left w-full justify-center relative z-20">
+                        <div className="flex flex-col lg:flex-row gap-10 sm:gap-16 lg:gap-24 text-left w-full justify-center relative z-20">
                             {[
                                 {
                                     label: 'The Atomic Pattern',
@@ -107,13 +116,12 @@ const InnovationSection = () => {
             </div>
             
             {/* The Animated Blazing White Orb Transition */}
-            {/* Restored the giant glowing epicenter, but animated securely so it builds on scroll */}
-            <motion.div 
-                style={{ opacity: orbOpacity, scale: orbScale, transformOrigin: 'bottom center' }}
-                className="absolute bottom-[-100px] left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-white blur-[120px] pointer-events-none z-0" 
+            <motion.div
+                style={{ opacity: orbOpacity, scale: orbScale, transformOrigin: 'bottom center', willChange: 'transform, opacity' }}
+                className="absolute bottom-[-60px] sm:bottom-[-100px] left-1/2 -translate-x-1/2 w-[500px] h-[350px] sm:w-[800px] sm:h-[400px] lg:w-[1200px] lg:h-[600px] bg-white blur-[80px] sm:blur-[90px] lg:blur-[120px] pointer-events-none z-[1]"
             />
             {/* Hard bottom edge base to smoothly connect to ContactSection's exact #F1F5F9 hex */}
-            <div className="absolute bottom-0 left-0 w-full h-[300px] bg-gradient-to-b from-transparent to-[#F1F5F9] pointer-events-none z-0" />
+            <div className="hidden md:block absolute bottom-0 left-0 w-full h-[300px] bg-gradient-to-b from-transparent to-[#F1F5F9] pointer-events-none z-[2]" />
             
         </section>
     );
