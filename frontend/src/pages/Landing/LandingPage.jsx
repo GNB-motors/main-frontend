@@ -15,7 +15,7 @@ const LandingPage = () => {
         <div className="font-[Inter,sans-serif] text-[#0F172A] bg-[#FDFDFD] text-left">
             <Navbar onLoginClick={handleLoginClick} />
             <main>
-                <HeroSection />
+                <HeroSection onLoginClick={handleLoginClick} />
                 <EcosystemSection />
                 <SolutionsSection />
                 <InnovationSection />
