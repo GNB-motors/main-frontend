@@ -206,11 +206,21 @@ const MileageFuelLogPage = () => {
                 const odoRes = await apiClient.post('/api/documents', odoData, { headers: { 'Content-Type': 'multipart/form-data' } });
                 odoDocId = odoRes.data.data?._id || odoRes.data._id || '';
             }
+            let refuelTimeStr;
+            const ocrDatetime = fixedDocs.fuel?.ocrData?.datetime || fixedDocs.fuel?.ocrData?.extractedData?.datetime;
+            if (ocrDatetime) {
+                const parsed = new Date(String(ocrDatetime).trim().replace(' ', 'T') + '+05:30');
+                if (!isNaN(parsed.getTime())) {
+                    refuelTimeStr = parsed.toISOString();
+                }
+            }
+
             const payload = {
                 ...formData, vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
                 documentId: fuelRes.data.data?._id || fuelRes.data._id || '', odometerDocId: odoDocId,
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
-                odometerReading: formData.odometerReading ? parseInt(formData.odometerReading, 10) : undefined
+                odometerReading: formData.odometerReading ? parseInt(formData.odometerReading, 10) : undefined,
+                ...(refuelTimeStr && { refuelTime: refuelTimeStr })
             };
             await apiClient.post('/api/mileage/fuel-log', payload);
             toast.success('Mileage log submitted successfully!');
