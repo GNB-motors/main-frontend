@@ -13,6 +13,7 @@ import {
   Truck,
   User,
   Route,
+  Fuel,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
@@ -324,7 +325,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
 const KhataLedgerPage = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalResults: 0, totalManual: 0, totalTrip: 0 });
+  const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalResults: 0, totalManual: 0, totalTrip: 0, totalFuel: 0 });
   const [summary, setSummary] = useState({ totalAmount: 0, count: 0 });
 
   // Filters
@@ -395,6 +396,7 @@ const KhataLedgerPage = () => {
           totalResults: data.totalResults,
           totalManual: data.totalManual,
           totalTrip: data.totalTrip,
+          totalFuel: data.totalFuel || 0,
         });
         setSummary(summaryData);
       } catch (err) {
@@ -470,7 +472,7 @@ const KhataLedgerPage = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
@@ -508,6 +510,21 @@ const KhataLedgerPage = () => {
               </p>
               <p className="mt-0.5 text-xl font-bold">
                 {includeTripExpenses ? meta.totalTrip : 'Hidden'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+              <Fuel size={22} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Fuel Logs
+              </p>
+              <p className="mt-0.5 text-xl font-bold">
+                {includeTripExpenses ? meta.totalFuel : 'Hidden'}
               </p>
             </div>
           </CardContent>
