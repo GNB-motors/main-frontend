@@ -35,6 +35,7 @@ import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
+import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
@@ -84,6 +85,7 @@ function App() {
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />
+        <Route path="/khata-ledger" element={<KhataLedgerPage />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
