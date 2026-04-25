@@ -328,12 +328,19 @@ const KhataLedgerPage = () => {
   const [summary, setSummary] = useState({ totalAmount: 0, count: 0 });
 
   // Filters
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [includeTripExpenses, setIncludeTripExpenses] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -354,8 +361,8 @@ const KhataLedgerPage = () => {
           TripService.getVehicles({ limit: 200 }),
           TripService.getDrivers({ limit: 200 }),
         ]);
-        setVehicles(vRes?.results || vRes || []);
-        setDrivers(dRes?.results || dRes || []);
+        setVehicles(vRes?.data || vRes?.results || vRes || []);
+        setDrivers(dRes?.data || dRes?.results || dRes || []);
       } catch {
         // Non-critical
       }
@@ -391,7 +398,7 @@ const KhataLedgerPage = () => {
         });
         setSummary(summaryData);
       } catch (err) {
-        toast.error(err?.detail || 'Failed to load expenses');
+        toast.error(err?.response?.data?.message || err?.message || 'Failed to load expenses');
       } finally {
         setLoading(false);
       }
@@ -517,8 +524,8 @@ const KhataLedgerPage = () => {
               <input
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none"
                 placeholder="Search by title..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
 
@@ -584,6 +591,7 @@ const KhataLedgerPage = () => {
                   setCategory('');
                   setStartDate('');
                   setEndDate('');
+                  setSearchInput('');
                   setSearch('');
                 }}
                 className="rounded-lg border px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
