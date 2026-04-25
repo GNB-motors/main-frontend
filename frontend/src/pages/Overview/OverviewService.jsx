@@ -107,4 +107,18 @@ export const OverviewService = {
             throw error.response?.data || { detail: "Could not fetch activity feed." };
         }
     },
+
+    /**
+     * Fetches all driver live locations for the organisation
+     * @returns {Promise<Array>} - Array of driver location records
+     */
+    getDriverLocations: async () => {
+        try {
+            const response = await apiClient.get(`/api/drivers/locations`);
+            return response.data?.data || response.data || [];
+        } catch (error) {
+            console.error("API Error fetching driver locations:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch driver locations." };
+        }
+    },
 };

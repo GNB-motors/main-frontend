@@ -26,7 +26,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
+  Navigation,
+  WifiOff,
 } from "lucide-react";
+import { GoogleMap, useLoadScript, MarkerF, InfoWindowF } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -282,6 +285,140 @@ const UnderperformingList = ({ drivers }) => {
   );
 };
 
+// --- Driver Live Location Map ---
+const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
+const MAP_CONTAINER_STYLE = { width: "100%", height: "450px", borderRadius: "0.75rem" };
+const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+
+const isStale = (updatedAt) => Date.now() - new Date(updatedAt).getTime() > STALE_THRESHOLD_MS;
+
+const getDriverName = (loc) => {
+  const d = loc.driverId;
+  if (!d) return "Unknown Driver";
+  if (typeof d === "string") return d;
+  return [d.firstName, d.lastName].filter(Boolean).join(" ") || "Unknown Driver";
+};
+
+const DriverLiveMap = ({ locations }) => {
+  const [selectedDriver, setSelectedDriver] = useState(null);
+  const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+
+  const activeLocations = (locations || []).filter(
+    (loc) => loc.locationPermission && loc.latitude != null && loc.longitude != null
+  );
+
+  const offlineCount = (locations || []).filter(
+    (l) => !l.locationPermission || l.latitude == null
+  ).length;
+
+  const onlineCount = activeLocations.filter((l) => !isStale(l.updatedAt)).length;
+  const staleCount = activeLocations.filter((l) => isStale(l.updatedAt)).length;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Navigation size={18} className="text-blue-500" />
+            <CardTitle>Driver Live Locations</CardTitle>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" /> Online ({onlineCount})
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-400" /> Stale ({staleCount})
+            </span>
+            <span className="flex items-center gap-1">
+              <WifiOff size={12} /> Offline ({offlineCount})
+            </span>
+          </div>
+        </div>
+        <CardDescription>Real-time driver positions on the map</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!isLoaded ? (
+          <Skeleton className="h-[450px] w-full rounded-xl" />
+        ) : activeLocations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
+            <Navigation size={40} className="opacity-30" />
+            <p className="text-sm">No drivers are sharing their location right now</p>
+          </div>
+        ) : (
+            <GoogleMap
+              mapContainerStyle={MAP_CONTAINER_STYLE}
+              center={
+                activeLocations.length === 1
+                  ? { lat: activeLocations[0].latitude, lng: activeLocations[0].longitude }
+                  : INDIA_CENTER
+              }
+              zoom={activeLocations.length === 1 ? 12 : 5}
+              options={{
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: true,
+              }}
+            >
+              {activeLocations.map((loc) => {
+                const stale = isStale(loc.updatedAt);
+                const name = getDriverName(loc);
+                const driverId = loc.driverId?._id || loc.driverId || loc._id;
+
+                return (
+                  <MarkerF
+                    key={driverId}
+                    position={{ lat: loc.latitude, lng: loc.longitude }}
+                    title={name}
+                    icon={{
+                      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+                        `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+                          <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 24 16 24s16-12 16-24C32 7.16 24.84 0 16 0z" fill="${stale ? '#F59E0B' : '#10B981'}"/>
+                          <circle cx="16" cy="14" r="6" fill="white"/>
+                        </svg>`
+                      )}`,
+                      scaledSize: typeof window !== "undefined" && window.google
+                        ? new window.google.maps.Size(32, 40)
+                        : undefined,
+                    }}
+                    onClick={() => setSelectedDriver(loc)}
+                  />
+                );
+              })}
+
+              {selectedDriver && (
+                <InfoWindowF
+                  position={{ lat: selectedDriver.latitude, lng: selectedDriver.longitude }}
+                  onCloseClick={() => setSelectedDriver(null)}
+                >
+                  <div style={{ padding: "4px 2px", minWidth: 160, fontFamily: "system-ui, sans-serif" }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 4, margin: 0 }}>
+                      {getDriverName(selectedDriver)}
+                    </p>
+                    {selectedDriver.driverId?.mobileNumber && (
+                      <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 4, margin: "4px 0" }}>
+                        {selectedDriver.driverId.mobileNumber}
+                      </p>
+                    )}
+                    <p style={{ fontSize: 11, color: "#9ca3af", margin: "4px 0" }}>
+                      {"🕐 "}
+                      {new Date(selectedDriver.updatedAt).toLocaleString("en-IN")}
+                    </p>
+                    {isStale(selectedDriver.updatedAt) && (
+                      <p style={{ fontSize: 11, color: "#D97706", margin: "4px 0 0 0" }}>
+                        ⚠ Location may be stale
+                      </p>
+                    )}
+                  </div>
+                </InfoWindowF>
+              )}
+            </GoogleMap>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // --- Skeleton Loader ---
 const DashboardSkeleton = () => (
   <div className="space-y-6 p-1">
@@ -319,6 +456,7 @@ const OverviewPage = () => {
   const [fuelAnalytics, setFuelAnalytics] = useState(null);
   const [driverPerformance, setDriverPerformance] = useState(null);
   const [financials, setFinancials] = useState(null);
+  const [driverLocations, setDriverLocations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDays, setSelectedDays] = useState(7);
@@ -337,17 +475,19 @@ const OverviewPage = () => {
           params.days = selectedDays;
         }
 
-        const [summary, fuel, drivers, fin] = await Promise.all([
+        const [summary, fuel, drivers, fin, liveLocations] = await Promise.all([
           OverviewService.getDashboardSummary(params),
           OverviewService.getFuelAnalytics(params),
           OverviewService.getDriverPerformance(params),
           OverviewService.getFinancials(params),
+          OverviewService.getDriverLocations().catch(() => []),
         ]);
 
         setSummaryData(summary?.summaryCards);
         setFuelAnalytics(fuel);
         setDriverPerformance(drivers);
         setFinancials(fin);
+        setDriverLocations(liveLocations);
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
         setError(err.detail || "Could not load dashboard data. Please try again.");
@@ -447,6 +587,14 @@ const OverviewPage = () => {
           </div>
         </>
       )}
+
+      {/* Driver Live Location Map */}
+      <div className="flex items-center gap-3">
+        <Separator className="flex-1" />
+        <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Driver Live Tracking</h2>
+        <Separator className="flex-1" />
+      </div>
+      <DriverLiveMap locations={driverLocations} />
 
       {/* Fuel Analytics */}
       {fuel && (fuel.totalLitres > 0 || fuel.totalCost > 0) && (
