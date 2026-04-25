@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, ChevronDown, ChevronUp, Users, MapPin, Package, DollarSign, TrendingUp, Zap } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Users, MapPin, Package, DollarSign, TrendingUp, Zap, Activity, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService } from './services';
@@ -139,6 +139,13 @@ const TripDetailPage = () => {
   // Prefer journey-level vehicle/driver when available, otherwise fall back to top-level trip fields
   const vehicle = trip.journeyId?.vehicleId || trip.vehicleId;
   const driver = trip.journeyId?.driverId || trip.driverId;
+
+  const fleetEdgeRaw = trip.journeyId?.mileage?.fleetEdge || trip.mileage?.fleetEdge;
+  // Normalize: Trip model stores field as fuelConsumedL, Interval model as fuelConsumedLiters
+  const fleetEdge = fleetEdgeRaw ? {
+    ...fleetEdgeRaw,
+    fuelConsumedLiters: fleetEdgeRaw.fuelConsumedLiters ?? fleetEdgeRaw.fuelConsumedL,
+  } : null;
 
   // Use journeyFinancials from API response if available, otherwise calculate from weightSlipTrips
   const totalRevenue = trip.journeyFinancials?.totalRevenue ||
@@ -431,6 +438,107 @@ const TripDetailPage = () => {
                 <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>km / liter</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* FleetEdge Telemetry Verification Section */}
+        {fleetEdge && (
+          <div style={{
+            background: fleetEdge.isFlagged ? '#fef2f2' : (fleetEdge.status === 'COMPUTED' ? '#f0fdf4' : 'white'),
+            border: '1.5px solid',
+            borderColor: fleetEdge.isFlagged ? '#fecaca' : (fleetEdge.status === 'COMPUTED' ? '#bbf7d0' : '#e5e7eb'),
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+              {fleetEdge.status === 'PENDING' && <Clock width={20} height={20} color="#6b7280" />}
+              {fleetEdge.status === 'COMPUTED' && !fleetEdge.isFlagged && <CheckCircle width={20} height={20} color="#16a34a" />}
+              {fleetEdge.isFlagged && <AlertTriangle width={20} height={20} color="#dc2626" />}
+              <h3 style={{
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: '600',
+                color: fleetEdge.isFlagged ? '#991b1b' : (fleetEdge.status === 'COMPUTED' ? '#166534' : '#111827')
+              }}>
+                FleetEdge Telemetry Verification
+              </h3>
+              {fleetEdge.status === 'COMPUTED' && (
+                <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#6b7280' }}>
+                  Based on {fleetEdge.snapshotCount} GPS snapshots
+                </span>
+              )}
+            </div>
+
+            {fleetEdge.status === 'PENDING' && (
+              <p style={{ color: '#6b7280', margin: 0 }}>Gathering GPS and fuel telemetry data from Tata Motors FleetEdge. This usually takes a few minutes after journey completion...</p>
+            )}
+
+            {fleetEdge.status === 'NO_DATA' && (
+              <p style={{ color: '#6b7280', margin: 0 }}>No telemetry data was available from Tata Motors FleetEdge for this time period.</p>
+            )}
+
+            {fleetEdge.status === 'FAILED' && (
+              <p style={{ color: '#dc2626', margin: 0 }}>Failed to compute telemetry data. Please try again later.</p>
+            )}
+
+            {fleetEdge.status === 'COMPUTED' && (
+              <>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '16px',
+                  marginBottom: fleetEdge.isFlagged ? '16px' : '0'
+                }}>
+                  <div style={{ padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase' }}>Verified Distance</label>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
+                      {fleetEdge.distanceKm ? fleetEdge.distanceKm.toFixed(1) : '-'} <span style={{ fontSize: '14px', fontWeight: '500', color: '#9ca3af' }}>km</span>
+                    </p>
+                    {fleetEdge.distanceVariancePct !== undefined && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: fleetEdge.isFlaggedDistance ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
+                        {fleetEdge.distanceVariancePct > 0 ? '+' : ''}{fleetEdge.distanceVariancePct.toFixed(1)}% vs logged
+                      </p>
+                    )}
+                  </div>
+
+                  <div style={{ padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase' }}>Verified Fuel Used</label>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
+                      {fleetEdge.fuelConsumedLiters ? fleetEdge.fuelConsumedLiters.toFixed(2) : '-'} <span style={{ fontSize: '14px', fontWeight: '500', color: '#9ca3af' }}>L</span>
+                    </p>
+                    {fleetEdge.fuelVariancePct !== undefined && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: fleetEdge.isFlaggedFuel ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
+                        {fleetEdge.fuelVariancePct > 0 ? '+' : ''}{fleetEdge.fuelVariancePct.toFixed(1)}% vs logged
+                      </p>
+                    )}
+                  </div>
+
+                  <div style={{ padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase' }}>Verified Mileage</label>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
+                      {fleetEdge.mileageKmPerL ? fleetEdge.mileageKmPerL.toFixed(2) : '-'} <span style={{ fontSize: '14px', fontWeight: '500', color: '#9ca3af' }}>km/L</span>
+                    </p>
+                    {fleetEdge.mileageVariancePct !== undefined && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: fleetEdge.isFlaggedMileage ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
+                        {fleetEdge.mileageVariancePct > 0 ? '+' : ''}{fleetEdge.mileageVariancePct.toFixed(1)}% vs logged
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {fleetEdge.isFlagged && fleetEdge.flagReasons && fleetEdge.flagReasons.length > 0 && (
+                  <div style={{ padding: '12px 16px', background: '#fef2f2', borderLeft: '4px solid #dc2626', borderRadius: '4px' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#991b1b' }}>Discrepancies Detected:</p>
+                    <ul style={{ margin: 0, paddingLeft: '20px', color: '#991b1b', fontSize: '13px' }}>
+                      {fleetEdge.flagReasons.map((reason, idx) => (
+                        <li key={idx} style={{ marginBottom: '4px' }}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
