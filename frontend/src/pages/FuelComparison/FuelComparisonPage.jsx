@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    Box, CircularProgress, Alert, FormControl, Select, MenuItem, Chip
+    Box, CircularProgress, Alert, FormControl, Select, MenuItem, Chip,
+    Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button
 } from '@mui/material';
 import {
     Fuel, AlertTriangle, CheckCircle2, Clock, RefreshCw,
-    Activity, XCircle, Flag, Search, ShieldAlert
+    Activity, XCircle, Flag, Search, ShieldAlert, Gauge, Eye
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -97,13 +98,107 @@ const LiveErrorsWidget = ({ status, isLoading }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+// ─── Review Modal ─────────────────────────────────────────────────────────────
+
+const ReviewModal = ({ task, onClose, onApproved }) => {
+    const [fromDate, setFromDate] = useState(
+        task?.fromDate ? dayjs.utc(task.fromDate).tz(IST_ZONE).format('YYYY-MM-DDTHH:mm') : ''
+    );
+    const [toDate, setToDate] = useState(
+        task?.toDate ? dayjs.utc(task.toDate).tz(IST_ZONE).format('YYYY-MM-DDTHH:mm') : ''
+    );
+    const [odometerReading, setOdometerReading] = useState(task?.ocrOdometerReading ?? '');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleApprove = async () => {
+        setSaving(true);
+        setError('');
+        try {
+            const updates = {};
+            if (fromDate) updates.fromDate = dayjs.tz(fromDate, IST_ZONE).utc().toISOString();
+            if (toDate)   updates.toDate   = dayjs.tz(toDate, IST_ZONE).utc().toISOString();
+            if (odometerReading !== '') updates.odometerReading = parseFloat(odometerReading);
+            await ReportsService.approveReviewTask(task._id, updates);
+            onApproved();
+        } catch (err) {
+            setError(err.detail || 'Failed to approve task');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Gauge size={18} /> Review Odometer Task — {task?.vehicleId?.registrationNumber || task?.vehicleNumber}
+            </DialogTitle>
+            <DialogContent dividers>
+                {/* Document photo */}
+                {task?.odometerDoc?.publicUrl && (
+                    <Box mb={2}>
+                        <p style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Odometer document photo</p>
+                        <img
+                            src={task.odometerDoc.publicUrl}
+                            alt="Odometer"
+                            style={{ width: '100%', maxHeight: 260, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0' }}
+                        />
+                        {task.odometerDoc.ocrData?.confidence != null && (
+                            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                                OCR confidence: {task.odometerDoc.ocrData.confidence}% · Status: {task.odometerDoc.ocrData.processingStatus}
+                            </p>
+                        )}
+                    </Box>
+                )}
+
+                <p style={{ fontSize: 13, color: '#ef4444', marginBottom: 12 }}>{task?.reviewReason}</p>
+
+                <Box display="flex" flexDirection="column" gap={2}>
+                    <TextField
+                        label="From Date (IST)"
+                        type="datetime-local"
+                        value={fromDate}
+                        onChange={e => setFromDate(e.target.value)}
+                        fullWidth size="small"
+                        InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                        label="To Date (IST)"
+                        type="datetime-local"
+                        value={toDate}
+                        onChange={e => setToDate(e.target.value)}
+                        fullWidth size="small"
+                        InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                        label="Corrected Odometer Reading (km)"
+                        type="number"
+                        value={odometerReading}
+                        onChange={e => setOdometerReading(e.target.value)}
+                        fullWidth size="small"
+                        helperText={`FleetEdge reports: ${task?.maxOdometer ?? '—'} km`}
+                    />
+                </Box>
+                {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose} disabled={saving}>Cancel</Button>
+                <Button onClick={handleApprove} disabled={saving} variant="contained" color="primary">
+                    {saving ? 'Approving…' : 'Approve & Release'}
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 const FuelComparisonPage = () => {
     const LIMIT = 20;
 
-    // Theming
-    const [themeColors, setThemeColors] = useState(getThemeCSS());
+    const [themeColors] = useState(getThemeCSS());
 
-    // Tab: 'all' | 'flagged'
+    // Tab: 'all' | 'flagged' | 'review'
     const [activeTab, setActiveTab] = useState('all');
 
     // Status widget
@@ -116,20 +211,22 @@ const FuelComparisonPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [inputFromDate, setInputFromDate] = useState('');
     const [inputToDate, setInputToDate] = useState('');
-    
-    // Applied filters
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
 
-    // Comparisons Data
+    // Data
     const [comparisons, setComparisons] = useState([]);
     const [compTotal, setCompTotal] = useState(0);
     const [compTotalPages, setCompTotalPages] = useState(0);
     const [compPage, setCompPage] = useState(1);
     const [isLoadingComp, setIsLoadingComp] = useState(false);
-    
     const [flagged, setFlagged] = useState([]);
     const [flaggedTotal, setFlaggedTotal] = useState(0);
+    const [reviewTasks, setReviewTasks] = useState([]);
+    const [reviewTotal, setReviewTotal] = useState(0);
+
+    // Review modal
+    const [reviewingTask, setReviewingTask] = useState(null);
 
     // ── Fetch sync status ────────────────────────────────────────────────────
     const fetchStatus = useCallback(async () => {
@@ -167,10 +264,15 @@ const FuelComparisonPage = () => {
                 setComparisons(data.records || []);
                 setCompTotal(data.total || 0);
                 setCompTotalPages(data.totalPages || 0);
-            } else {
+            } else if (activeTab === 'flagged') {
                 const data = await ReportsService.getExtensionFlagged({ page: compPage, limit: LIMIT });
                 setFlagged(data.records || []);
                 setFlaggedTotal(data.total || 0);
+                setCompTotalPages(data.totalPages || 0);
+            } else {
+                const data = await ReportsService.getPendingReviewTasks({ page: compPage, limit: LIMIT });
+                setReviewTasks(data.records || []);
+                setReviewTotal(data.total || 0);
                 setCompTotalPages(data.totalPages || 0);
             }
         } catch (err) {
@@ -181,15 +283,20 @@ const FuelComparisonPage = () => {
     }, [activeTab, compPage, flaggedOnly, searchQuery, fromDate, toDate]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
-
-    // Reset page when filter changes
     useEffect(() => { setCompPage(1); }, [activeTab, flaggedOnly, searchQuery, fromDate, toDate]);
 
-    const activeRecords = activeTab === 'all' ? comparisons : flagged;
-    const activeTotal = activeTab === 'all' ? compTotal : flaggedTotal;
+    const activeRecords = activeTab === 'all' ? comparisons : activeTab === 'flagged' ? flagged : reviewTasks;
+    const activeTotal   = activeTab === 'all' ? compTotal   : activeTab === 'flagged' ? flaggedTotal : reviewTotal;
 
     return (
         <div className="fc-page" style={themeColors}>
+        {reviewingTask && (
+            <ReviewModal
+                task={reviewingTask}
+                onClose={() => setReviewingTask(null)}
+                onApproved={() => { setReviewingTask(null); fetchData(); fetchStatus(); }}
+            />
+        )}
             {/* Header & Title */}
             <div className="fc-header-bar">
                 <div className="fc-title-area">
@@ -230,12 +337,16 @@ const FuelComparisonPage = () => {
                 <div className="fc-table-toolbar">
                     <div className="fc-tabs">
                         <button className={`fc-tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
-                            All Comparisons 
+                            All Comparisons
                             <span className="fc-tab-badge">{compTotal}</span>
                         </button>
                         <button className={`fc-tab ${activeTab === 'flagged' ? 'active alert' : ''}`} onClick={() => setActiveTab('flagged')}>
                             <AlertTriangle size={14} /> Flagged
                             <span className="fc-tab-badge fc-badge-alert">{flaggedTotal}</span>
+                        </button>
+                        <button className={`fc-tab ${activeTab === 'review' ? 'active review' : ''}`} onClick={() => setActiveTab('review')}>
+                            <Gauge size={14} /> Pending Review
+                            {reviewTotal > 0 && <span className="fc-tab-badge fc-badge-review">{reviewTotal}</span>}
                         </button>
                     </div>
 
@@ -296,10 +407,12 @@ const FuelComparisonPage = () => {
                                     <th>Vehicle</th>
                                     <th>Driver</th>
                                     <th>Date Range</th>
-                                    <th className="num-col">Billed (L)</th>
-                                    <th className="num-col">FleetEdge (L)</th>
-                                    <th className="num-col">Variance</th>
-                                    <th>Status</th>
+                                    {activeTab !== 'review' && <th className="num-col">Billed (L)</th>}
+                                    {activeTab !== 'review' && <th className="num-col">FleetEdge (L)</th>}
+                                    {activeTab !== 'review' && <th className="num-col">Variance</th>}
+                                    <th>Fuel Flag</th>
+                                    <th>Odometer</th>
+                                    {activeTab === 'review' && <th>Action</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -309,7 +422,7 @@ const FuelComparisonPage = () => {
                                     return (
                                     <tr key={rec._id}>
                                         <td>
-                                            <div className="fc-primary-text">{rec.vehicleId?.registrationNumber || '—'}</div>
+                                            <div className="fc-primary-text">{rec.vehicleId?.registrationNumber || rec.vehicleNumber || '—'}</div>
                                         </td>
                                         <td>
                                             <div className="fc-secondary-text">
@@ -319,30 +432,67 @@ const FuelComparisonPage = () => {
                                         <td>
                                             <div className="fc-date-range">{formatDateRange(rec.fromDate, rec.toDate)}</div>
                                         </td>
-                                        <td className="num-col">
-                                            <div className="fc-primary-text">{rec.billFuelConsumed?.toFixed(2) ?? '—'}</div>
-                                        </td>
-                                        <td className="num-col">
-                                            <div className="fc-primary-text">{rec.fleetEdgeFuelConsumed?.toFixed(2) ?? '—'}</div>
-                                        </td>
-                                        <td className="num-col">
-                                            <div className={`fc-variance-badge ${invertedVar > 0 ? 'ok' : 'over'}`}>
-                                                <span>{invertedVar > 0 ? '+' : ''}{invertedVar.toFixed(2)}L</span>
-                                                <span className="fc-pct">({invertedVar > 0 ? '+' : ''}{invertedPct.toFixed(1)}%)</span>
-                                            </div>
-                                        </td>
+                                        {activeTab !== 'review' && (
+                                            <td className="num-col">
+                                                <div className="fc-primary-text">{rec.billFuelConsumed?.toFixed(2) ?? '—'}</div>
+                                            </td>
+                                        )}
+                                        {activeTab !== 'review' && (
+                                            <td className="num-col">
+                                                <div className="fc-primary-text">{rec.fleetEdgeFuelConsumed?.toFixed(2) ?? '—'}</div>
+                                            </td>
+                                        )}
+                                        {activeTab !== 'review' && (
+                                            <td className="num-col">
+                                                <div className={`fc-variance-badge ${invertedVar > 0 ? 'ok' : 'over'}`}>
+                                                    <span>{invertedVar > 0 ? '+' : ''}{invertedVar.toFixed(2)}L</span>
+                                                    <span className="fc-pct">({invertedVar > 0 ? '+' : ''}{invertedPct.toFixed(1)}%)</span>
+                                                </div>
+                                            </td>
+                                        )}
                                         <td>
                                             {rec.isFlagged ? (
                                                 <Chip size="small" icon={<AlertTriangle size={12}/>} label="Flagged" color="warning" variant="outlined" />
+                                            ) : rec.status === 'PENDING_REVIEW' ? (
+                                                <Chip size="small" label="Pending" color="default" variant="outlined" />
                                             ) : (
                                                 <Chip size="small" icon={<CheckCircle2 size={12}/>} label="OK" color="success" variant="outlined" />
                                             )}
                                         </td>
+                                        <td>
+                                            {rec.isOdometerFlagged ? (
+                                                <Chip
+                                                    size="small"
+                                                    icon={<Gauge size={12}/>}
+                                                    label="Odo Mismatch"
+                                                    color="error"
+                                                    variant="outlined"
+                                                    title={rec.odometerFlagReason}
+                                                />
+                                            ) : rec.status === 'PENDING_REVIEW' ? (
+                                                <Chip size="small" icon={<Gauge size={12}/>} label="Needs Review" color="warning" variant="outlined" title={rec.reviewReason} />
+                                            ) : rec.ocrOdometerReading != null ? (
+                                                <Chip size="small" icon={<CheckCircle2 size={12}/>} label="OK" color="success" variant="outlined" />
+                                            ) : (
+                                                <span className="fc-secondary-text">—</span>
+                                            )}
+                                        </td>
+                                        {activeTab === 'review' && (
+                                            <td>
+                                                <button
+                                                    className="fc-btn fc-btn-primary"
+                                                    style={{ padding: '4px 10px', fontSize: 12 }}
+                                                    onClick={() => setReviewingTask(rec)}
+                                                >
+                                                    <Eye size={13} /> Review
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 )})}
                                 {activeRecords.length === 0 && (
                                     <tr>
-                                        <td colSpan="7" className="fc-empty-state">No matching records found.</td>
+                                        <td colSpan="9" className="fc-empty-state">No matching records found.</td>
                                     </tr>
                                 )}
                             </tbody>
