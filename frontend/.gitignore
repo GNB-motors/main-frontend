@@ -42,3 +42,6 @@ __pycache__/
 # Misc
 *.tgz
 .eslintcache
+
+# Lockfiles
+package-lock.json
