@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { VehicleService } from './VehicleService.jsx';
+import { listAccounts, reassignVehicleAccount } from './FleetEdgeAccountService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageHeader from '../Drivers/Component/PageHeader.jsx';
 import VehicleBasicInformationForm from './Component/VehicleBasicInformationForm.jsx';
@@ -26,12 +27,27 @@ const AddVehiclePage = () => {
   });
 
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
+  const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
 
   useEffect(() => {
     const updateTheme = () => setThemeColors(getThemeCSS());
     updateTheme();
     window.addEventListener('storage', updateTheme);
     return () => window.removeEventListener('storage', updateTheme);
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    listAccounts(token)
+      .then(accounts => {
+        const active = (accounts || []).filter(a => a.status === 'ACTIVE');
+        setFleetEdgeAccounts(active);
+        // If exactly one active account, default-select it
+        if (active.length === 1) setSelectedAccountId(String(active[0]._id));
+      })
+      .catch(() => {});
   }, []);
 
   // If navigated here for editing, prefill form from location.state.editingVehicle
@@ -145,6 +161,11 @@ const AddVehiclePage = () => {
         const newVehicleId = savedVehicle._id || savedVehicle.id;
         if (newVehicleId) {
           await uploadDocuments(newVehicleId);
+          if (selectedAccountId) {
+            try {
+              await reassignVehicleAccount(token, newVehicleId, selectedAccountId);
+            } catch (_) { /* non-fatal — resolver will tag on next ingestion */ }
+          }
         }
         toast.success(`Vehicle "${formData.registration_no}" created successfully`);
         navigate('/vehicles');
@@ -185,6 +206,26 @@ const AddVehiclePage = () => {
           }
           onBack={() => navigate(-1)}
         />
+
+        {/* FleetEdge account selection — shown when org has ACTIVE accounts */}
+        {!isEdit && fleetEdgeAccounts.length > 1 && (
+          <div style={{ padding: '0 24px 16px', maxWidth: 480 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+              FleetEdge Account (optional)
+            </label>
+            <select
+              value={selectedAccountId}
+              onChange={e => setSelectedAccountId(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, color: '#1e293b', background: '#fff', cursor: 'pointer' }}
+            >
+              <option value="">— Not assigned —</option>
+              {fleetEdgeAccounts.map(a => (
+                <option key={a._id} value={String(a._id)}>{a.friendlyName || a.externalAccountId}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Assign this vehicle to a FleetEdge account. If left blank it will be tagged automatically on first data arrival.</p>
+          </div>
+        )}
 
         <VehicleBasicInformationForm
           ref={formRef}

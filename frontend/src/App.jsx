@@ -13,6 +13,7 @@ import ReportsPage from './pages/Reports/ReportsPage.jsx';
 import ProfilePage from './pages/Profile/ProfilePage.jsx';
 // import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
+import FleetEdgeAccountsPage from './pages/Settings/FleetEdgeAccountsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage from './pages/Drivers/DriversPage.jsx';
 import AddDriverPage from './pages/Drivers/AddDriverPage.jsx';
@@ -90,6 +91,7 @@ function App() {
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/fleetedge-accounts" element={<FleetEdgeAccountsPage />} />
       </Route>
     </Routes>
   );

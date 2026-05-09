@@ -2,6 +2,52 @@
 
 ---
 
+## [2026-05-09] — branch: Devayan
+
+### Multi-FleetEdge-Account UI
+
+#### New page: `src/pages/Settings/FleetEdgeAccountsPage.jsx` — route `/settings/fleetedge-accounts`
+
+- Table of all FleetEdge accounts for the org: source badge, external account ID, friendly name, status badge (`ACTIVE` / `DISABLED` / `AUTH_FAILED`), vehicle count, last-seen timestamp.
+- **Inline rename modal** — MANAGER+ can edit the friendly name without leaving the page.
+- **Add PULL Account modal** — OWNER+ can add a new PULL account with clientId / clientSecret / baseUrl; credentials are validated live against FleetEdge before the row is saved.
+- **Enable / Disable toggle** — OWNER+ soft-disables accounts that have linked vehicles.
+- **Discover panel** — OWNER+ triggers a FleetEdge vehicle-list call and sees candidate registrations not yet tagged in this org.
+- **Drift tab** — shows all `FLEETEDGE_ACCOUNT_MISMATCH` audit entries with vehicle, from-account, arriving-account, and timestamp.
+
+#### New service: `src/pages/Profile/FleetEdgeAccountService.jsx`
+
+API client covering all account endpoints:
+
+| Function | Endpoint |
+|---|---|
+| `listAccounts` | `GET /api/fleetedge/accounts` |
+| `createAccount` | `POST /api/fleetedge/accounts` |
+| `updateAccount` | `PATCH /api/fleetedge/accounts/:id` |
+| `deleteAccount` | `DELETE /api/fleetedge/accounts/:id` |
+| `discoverVehicles` | `POST /api/fleetedge/accounts/:id/discover` |
+| `assignVehicles` | `POST /api/fleetedge/accounts/:id/assign` |
+| `getDrift` | `GET /api/fleetedge/accounts/drift` |
+| `reassignVehicleAccount` | `PATCH /api/vehicles/:id/fleet-edge-account` |
+
+#### Modified: `src/pages/Profile/VehiclesPage.jsx`
+
+- New **FleetEdge Account** column: shows `friendlyName` as a blue badge; italic grey "untagged" when `fleetEdgeAccountId` is null; amber dot on badge when source account is `DISABLED`.
+- New **account filter dropdown** — appears when the org has at least one account. Options: All / Untagged / per-account name. Resets to page 1 on change.
+- Fetches account list alongside vehicles (fire-and-forget, non-blocking) to build the badge label map.
+
+#### Modified: `src/pages/Profile/AddVehiclePage.jsx`
+
+- New **FleetEdge Account** dropdown on the Add Vehicle form (hidden when org has zero active accounts; hidden on edit).
+- Auto-selects the only active account when the org has exactly one.
+- On save, calls `PATCH /api/vehicles/:id/fleet-edge-account` to tag the new vehicle immediately.
+
+#### Routing: `src/App.jsx`
+
+- Added `<Route path="/settings/fleetedge-accounts" element={<FleetEdgeAccountsPage />} />` inside the `DashboardLayout` group.
+
+---
+
 ## [2026-05-03] — branch: Devayan
 
 ### Fuel Comparison — Odometer Cross-Check UI
