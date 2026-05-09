@@ -329,6 +329,7 @@ const FuelComparisonPage = () => {
                 <StatusKpiCard icon={Activity} label="Pending Sync" value={status?.pending} colorClass="pending" />
                 <StatusKpiCard icon={CheckCircle2} label="Successful" value={status?.completed} colorClass="success" />
                 <StatusKpiCard icon={AlertTriangle} label="Flagged" value={status?.flagged} colorClass="warning" />
+                <StatusKpiCard icon={XCircle} label="Needs Action" value={status?.needsAction ?? 0} colorClass="warning" />
                 <LiveErrorsWidget status={status} isLoading={isLoadingStatus} />
             </div>
 
@@ -454,7 +455,7 @@ const FuelComparisonPage = () => {
                                             {rec.isFlagged ? (
                                                 <Chip size="small" icon={<AlertTriangle size={12}/>} label="Flagged" color="warning" variant="outlined" />
                                             ) : rec.status === 'PENDING_REVIEW' ? (
-                                                <Chip size="small" label="Pending" color="default" variant="outlined" />
+                                                <Chip size="small" icon={<AlertTriangle size={12}/>} label="Needs Action" color="warning" variant="filled" />
                                             ) : (
                                                 <Chip size="small" icon={<CheckCircle2 size={12}/>} label="OK" color="success" variant="outlined" />
                                             )}
