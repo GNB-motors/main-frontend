@@ -1,7 +1,14 @@
+/* ─────────────────────────────────────────────────────────
+   DashboardLayout.css
+   Branch: feat/dashboard-ui-polish-v2
+   Pure CSS changes only — zero logic/API impact
+   ───────────────────────────────────────────────────────── */
+
 .dashboard-layout {
     display: flex;
     min-height: 100vh;
     position: relative;
+    background: #f1f5f9;
 }
 
 .main-content {
@@ -13,7 +20,7 @@
     transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     height: 100vh;
-    padding-top: var(--navbar-height, 72px); /* Add padding to account for fixed navbar */
+    padding-top: var(--navbar-height, 72px); /* Pad for fixed navbar */
 }
 
 .page-content {
@@ -52,7 +59,7 @@
 @media (max-width: 992px) {
     .main-content {
         width: 100%;
-        margin-left: 0; /* No margin on mobile */
-        padding-top: var(--navbar-height, 72px); /* Still need padding for fixed navbar */
+        margin-left: 0;
+        padding-top: var(--navbar-height, 72px);
     }
 }
