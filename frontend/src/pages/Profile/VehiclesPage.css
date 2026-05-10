@@ -598,12 +598,15 @@
     max-height: calc(100vh - 80px);
     overflow-y: auto;
     background-color: transparent;
+    /* Prevent content from being hidden behind the fixed 64px FormFooter */
+    padding-bottom: 64px !important;
 }
 
 .vehicles-content-wrapper {
     flex: 1;
     padding: 24px 24px 0 24px;
-    overflow: hidden;
+    overflow-y: auto;   /* was: overflow: hidden — clipped content and broke scrolling */
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
 }
