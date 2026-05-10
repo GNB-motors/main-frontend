@@ -11,6 +11,7 @@ import { Plus, Edit, Trash2, MoreHorizontal, Upload } from 'lucide-react';
 
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
+import { listAccounts } from './FleetEdgeAccountService.jsx';
 
 // --- Delete Vehicle Modal Component ---
 const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: isDeleting }) => {
@@ -87,6 +88,8 @@ const VehiclesPage = () => {
     const [itemsPerPage] = useState(10);
     const [totalPages, setTotalPages] = useState(1);
     const [totalVehicles, setTotalVehicles] = useState(0);
+    const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
+    const [accountFilter, setAccountFilter] = useState('all'); // 'all' | 'untagged' | <accountId>
 
     // Update theme colors when component mounts
     useEffect(() => {
@@ -148,7 +151,14 @@ const VehiclesPage = () => {
                     manufacturer: v.manufacturer || null,
                     vehicleCategory: v.vehicleCategory || null,
                     classification: v.classification || null,
+                    fleetEdgeAccountId: v.fleetEdgeAccountId || null,
                 }));
+
+                // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
+                try {
+                    const accounts = await listAccounts(token);
+                    setFleetEdgeAccounts(accounts || []);
+                } catch (_) { /* non-fatal */ }
                 setVehicles(normalized);
                 setTotalPages(result.meta.totalPages);
                 setTotalVehicles(result.meta.total);
@@ -304,18 +314,19 @@ const VehiclesPage = () => {
         }
     };
 
-    // --- Filter vehicles by registration number ---
-    // Note: For now, search is client-side. With backend pagination,
-    // ideally search should be done on the backend with an API parameter.
+    // Build a map from accountId → account for fast lookup
+    const accountMap = {};
+    for (const a of fleetEdgeAccounts) accountMap[String(a._id)] = a;
+
+    // --- Filter vehicles by registration number + account ---
     const filteredVehicles = vehicles.filter(vehicle => {
-        if (!searchVehicleNo.trim()) return true;
-        return vehicle.registration_no.toLowerCase().includes(searchVehicleNo.toLowerCase());
+        if (searchVehicleNo.trim() && !vehicle.registration_no.toLowerCase().includes(searchVehicleNo.toLowerCase())) return false;
+        if (accountFilter === 'untagged') return !vehicle.fleetEdgeAccountId;
+        if (accountFilter !== 'all') return String(vehicle.fleetEdgeAccountId) === accountFilter;
+        return true;
     });
 
-    // --- Display vehicles (already paginated from backend) ---
-    // When search is empty, show the vehicles from API (already paginated)
-    // When search has value, filter locally (but this may not show all results across pages)
-    const displayVehicles = searchVehicleNo.trim() ? filteredVehicles : vehicles;
+    const displayVehicles = filteredVehicles;
 
     // Generate page numbers for pagination (similar to DriversPage)
     const generatePageNumbers = () => {
@@ -388,6 +399,22 @@ const VehiclesPage = () => {
                                         className="vehicles-search-input"
                                     />
                                 </div>
+                                {/* FleetEdge account filter */}
+                                {fleetEdgeAccounts.length > 0 && (
+                                    <select
+                                        value={accountFilter}
+                                        onChange={e => { setAccountFilter(e.target.value); setCurrentPage(1); }}
+                                        className="vehicles-search-input"
+                                        style={{ maxWidth: 200, cursor: 'pointer' }}
+                                        title="Filter by FleetEdge account"
+                                    >
+                                        <option value="all">All FleetEdge accounts</option>
+                                        <option value="untagged">Untagged</option>
+                                        {fleetEdgeAccounts.map(a => (
+                                            <option key={a._id} value={String(a._id)}>{a.friendlyName || a.externalAccountId}</option>
+                                        ))}
+                                    </select>
+                                )}
 
                                 {/* Action Buttons */}
                                 <button
@@ -444,6 +471,7 @@ const VehiclesPage = () => {
                                                     <th style={{ width: '140px' }}>Manufacturer</th>
                                                     <th style={{ width: '100px' }}>Category</th>
                                                     <th style={{ width: '180px' }}>Chassis No</th>
+                                                    <th style={{ width: '160px' }}>FleetEdge Account</th>
                                                     <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
                                                 </tr>
                                             </thead>
@@ -475,6 +503,35 @@ const VehiclesPage = () => {
                                                             )}
                                                         </td>
                                                         <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{vehicle.chassis_number || 'N/A'}</td>
+                                                        <td>
+                                                            {vehicle.fleetEdgeAccountId ? (
+                                                                (() => {
+                                                                    const acct = accountMap[String(vehicle.fleetEdgeAccountId)];
+                                                                    const label = acct ? (acct.friendlyName || acct.externalAccountId) : String(vehicle.fleetEdgeAccountId).slice(-6);
+                                                                    const tip = acct ? `${acct.source} · ${acct.externalAccountId}${acct.lastSeenAt ? ' · seen ' + new Date(acct.lastSeenAt).toLocaleDateString() : ''}` : '';
+                                                                    const isDisabled = acct?.status === 'DISABLED';
+                                                                    return (
+                                                                        <span
+                                                                            title={tip}
+                                                                            className="vehicle-badge"
+                                                                            style={{
+                                                                                background: isDisabled ? '#fef3c7' : '#eff6ff',
+                                                                                color: isDisabled ? '#92400e' : '#1d4ed8',
+                                                                                border: `1px solid ${isDisabled ? '#fde68a' : '#bfdbfe'}`,
+                                                                                display: 'inline-flex',
+                                                                                alignItems: 'center',
+                                                                                gap: 4,
+                                                                            }}
+                                                                        >
+                                                                            {isDisabled && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} title="Source account disabled" />}
+                                                                            {label}
+                                                                        </span>
+                                                                    );
+                                                                })()
+                                                            ) : (
+                                                                <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>untagged</span>
+                                                            )}
+                                                        </td>
                                                         <td style={{ textAlign: 'center' }}>
                                                             <div className="vehicle-action-menu-container" style={{ position: 'relative' }}>
                                                                 <button

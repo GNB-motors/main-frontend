@@ -129,7 +129,10 @@ const LoginPage = () => {
                 || loginApiError?.detail
                 || loginApiError?.message
                 || 'Login failed. Please check your credentials.';
-            toast.error(errorMessage);
+            const isRateLimit = errorMessage?.toLowerCase().includes('too many');
+            if (!isRateLimit || !import.meta.env.DEV) {
+                toast.error(errorMessage);
+            }
         } finally {
             setIsLoading(false);
         }

@@ -652,7 +652,6 @@
 
 .mileage-btn-secondary:hover { background: #f8fafc; }
 
-/* Responsive */
 @media (max-width: 768px) {
   .mileage-form-row { flex-direction: column; gap: 16px; }
   .mileage-listing-header .header-content { flex-direction: column; gap: 16px; }
@@ -664,3 +663,343 @@
   .mileage-form-header { padding: 16px; }
   .mileage-form-content { padding: 16px 16px 48px; }
 }
+
+
+/* ═══════════════════════════════════════════
+   MILEAGE INTERVAL DETAIL PAGE (mid-)
+   ═══════════════════════════════════════════ */
+
+.mid-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: #f8fafc;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Header */
+.mid-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.mid-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mid-title {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.mid-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.mid-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Scrollable content area */
+.mid-content {
+  flex: 1;
+  padding: 24px 32px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Detail Card ──────────────────────────── */
+.mid-detail-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.mid-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+
+.mid-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mid-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ── Top Row (System + GPS side by side) ─── */
+.mid-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Metric List ──────────────────────────── */
+.mid-metric-list {
+  padding: 8px 0;
+}
+
+.mid-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 20px;
+  border-bottom: 1px solid #f8fafc;
+  gap: 12px;
+}
+
+.mid-metric-row:last-child { border-bottom: none; }
+
+.mid-metric-label {
+  font-size: 13px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.mid-metric-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+
+/* ── GPS Pending / Failed State ───────────── */
+.mid-gps-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 10px;
+}
+
+.mid-gps-pending-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.mid-gps-pending-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  max-width: 340px;
+  line-height: 1.5;
+}
+
+/* ── Flag Banner ──────────────────────────── */
+.mid-flag-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: #991b1b;
+}
+
+.mid-flag-banner strong {
+  font-size: 14px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.mid-flag-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── Variance Rows ────────────────────────── */
+.mid-variance-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mid-variance-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.mid-variance-row:last-child { border-bottom: none; }
+
+.mid-variance-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+.mid-variance-cells {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.mid-variance-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+}
+
+.mid-variance-cell.system .mid-vc-val { color: #1d4ed8; }
+.mid-variance-cell.gps    .mid-vc-val { color: '#0891b2'; }
+
+.mid-vc-sub {
+  font-size: 10px;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.mid-vc-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mid-variance-vs {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.mid-variance-badge-wrap { margin-left: auto; }
+
+.mid-variance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mid-variance-legend {
+  display: flex;
+  gap: 20px;
+  padding: 12px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.mid-variance-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+/* ── Fuel Log Entries ─────────────────────── */
+.mid-fuellog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mid-fuellog-entry {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f8fafc;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+}
+
+.mid-fuellog-entry:last-child { border-bottom: none; }
+
+.mid-fuellog-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mid-fuellog-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.mid-fuellog-details span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mid-fuellog-ongoing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ── Responsive ───────────────────────────── */
+@media (max-width: 900px) {
+  .mid-top-row { grid-template-columns: 1fr; }
+  .mid-content { padding: 16px; gap: 16px; }
+  .mid-header  { padding: 14px 16px; }
+  .mid-variance-cells { flex-wrap: wrap; }
+}
+

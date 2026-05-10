@@ -234,4 +234,24 @@ export const ReportsService = {
             throw error.response?.data || { detail: "Network error fetching comparisons." };
         }
     },
+
+    getPendingReviewTasks: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`api/extension/fuel-comparison/pending-review`, { params });
+            return response.data?.data || response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+        } catch (error) {
+            console.error("API Error fetching pending review tasks:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error fetching pending review tasks." };
+        }
+    },
+
+    approveReviewTask: async (taskId, updates = {}) => {
+        try {
+            const response = await apiClient.put(`api/extension/fuel-comparison/${taskId}/review`, updates);
+            return response.data?.data || response.data || {};
+        } catch (error) {
+            console.error("API Error approving review task:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error approving task." };
+        }
+    },
 };

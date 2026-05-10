@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Search, ChevronRight, FileText } from 'lucide-react';
+import { Search, ChevronRight, FileText, Satellite } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
@@ -14,6 +14,13 @@ import {
 } from '@/components/ui/pagination';
 
 const PAGE_SIZE = 10;
+
+const FE_STATUS_BADGE = {
+  COMPUTED: { label: 'GPS ✓', bg: 'rgba(37,186,76,0.1)', color: '#187A32' },
+  PENDING:  { label: 'GPS Pending', bg: 'rgba(251,191,35,0.1)', color: '#C56200' },
+  FAILED:   { label: 'GPS Failed', bg: 'rgba(239,68,68,0.1)', color: '#b91c1c' },
+  NO_DATA:  { label: 'No GPS', bg: 'rgba(156,163,175,0.1)', color: '#6b7280' },
+};
 
 const MileageTrackingPage = () => {
   const navigate = useNavigate();
@@ -61,6 +68,13 @@ const MileageTrackingPage = () => {
     if (status === 'COMPLETED') return { backgroundColor: 'rgba(37, 186, 76, 0.10)', color: '#187A32' };
     return { backgroundColor: 'rgba(251, 191, 35, 0.10)', color: '#C56200' };
   };
+
+  const getFeStatusStyle = (feStatus) => {
+    const s = FE_STATUS_BADGE[feStatus] || FE_STATUS_BADGE.PENDING;
+    return { backgroundColor: s.bg, color: s.color };
+  };
+
+  const getFeStatusLabel = (feStatus) => (FE_STATUS_BADGE[feStatus] || FE_STATUS_BADGE.PENDING).label;
 
   const formatDate = (d) => {
     if (!d) return '-';
@@ -120,12 +134,17 @@ const MileageTrackingPage = () => {
                   <TableHead>Distance (km)</TableHead>
                   <TableHead>Fuel (L)</TableHead>
                   <TableHead>Mileage (km/L)</TableHead>
+                  <TableHead><Satellite size={13} style={{ display: 'inline', marginRight: 4 }} />GPS</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredIntervals.map((interval) => (
-                  <TableRow key={interval._id} className="trip-table-row">
+                  <TableRow
+                    key={interval._id}
+                    className="trip-table-row"
+                    onClick={() => navigate(`/mileage-tracking/${interval._id}`)}
+                  >
                     <TableCell className="font-semibold text-gray-900">
                       {interval.vehicleId?.registrationNumber || 'Unknown'}
                     </TableCell>
@@ -142,9 +161,17 @@ const MileageTrackingPage = () => {
                         <span style={{ color: '#2563eb', fontWeight: 600 }}>{interval.mileageKmPerL.toFixed(2)}</span>
                       ) : '-'}
                     </TableCell>
+                    <TableCell>
+                      <span className="status-badge" style={getFeStatusStyle(interval.fleetEdge?.status)}>
+                        {getFeStatusLabel(interval.fleetEdge?.status)}
+                      </span>
+                    </TableCell>
                     <TableCell className="last-col">
                       <span className="date-text">{formatDate(interval.startDate)}</span>
-                      <button className="view-details-btn">
+                      <button
+                        className="view-details-btn"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/mileage-tracking/${interval._id}`); }}
+                      >
                         View details <ChevronRight size={14} />
                       </button>
                     </TableCell>

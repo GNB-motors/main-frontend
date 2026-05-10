@@ -443,3 +443,15 @@
   font-size: 13px;
   color: #0f172a;
 }
+
+/* ── Pending Review tab ─────────────────────── */
+.fc-tab.review { color: #d97706; }
+.fc-tab.active.review { border-bottom-color: #d97706; color: #d97706; }
+.fc-badge-review {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+/* ── Odometer mismatch row highlight ─────────── */
+tr:has(.MuiChip-colorError) { background: #fff7f7; }

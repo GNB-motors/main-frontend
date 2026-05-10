@@ -13,6 +13,7 @@ import ReportsPage from './pages/Reports/ReportsPage.jsx';
 import ProfilePage from './pages/Profile/ProfilePage.jsx';
 // import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
 import SettingsPage from './pages/Profile/SettingsPage.jsx';
+import FleetEdgeAccountsPage from './pages/Settings/FleetEdgeAccountsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage from './pages/Drivers/DriversPage.jsx';
 import AddDriverPage from './pages/Drivers/AddDriverPage.jsx';
@@ -31,6 +32,7 @@ import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import MileageTrackingPage from './pages/MileageTracking/MileageTrackingPage.jsx';
 import MileageFuelLogPage from './pages/MileageTracking/MileageFuelLogPage.jsx';
+import MileageIntervalDetailPage from './pages/MileageTracking/MileageIntervalDetailPage.jsx';
 import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
@@ -79,6 +81,7 @@ function App() {
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
         <Route path="/mileage-tracking" element={<MileageTrackingPage />} />
         <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
+        <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/add" element={<AddVehiclePage />} />
@@ -90,6 +93,7 @@ function App() {
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/fleetedge-accounts" element={<FleetEdgeAccountsPage />} />
       </Route>
     </Routes>
   );
