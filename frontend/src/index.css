@@ -1,5 +1,17 @@
-/* Google Fonts Import */
+/* ─────────────────────────────────────────────────────────
+   index.css
+   Branch: feat/dashboard-ui-polish-v2
+
+   No !important anywhere in this file.
+   Card overrides use .page-content scoping for higher
+   specificity. Heading/font overrides use direct descendant
+   selectors. Recharts overrides use component class
+   specificity which naturally beats defaults.
+   ───────────────────────────────────────────────────────── */
+
+/* ── Google Fonts ────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
 @import "tailwindcss";
@@ -9,6 +21,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeSlideUp {
     from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -18,31 +31,34 @@
     animation: fadeSlideUp 0.5s ease both;
 }
 
-/* Design Tokens & Global Styles */
+/* ─────────────────────────────────────────────────────────
+   Design Tokens
+   ───────────────────────────────────────────────────────── */
 :root {
-    /* Color Palette */
-    --color-white: #ffffff;
-    --color-grey-50: #f9fafb;
-    --color-grey-100: #f7f7f9;
-    --color-grey-200: #e3e6ebff;
-    --color-grey-300: #babfc5ff;
-    --color-grey-400: #82868cff;
-    --color-grey-500: #6b7280;
-    --color-grey-700: #1d212eff;
-    --color-grey-800: #121625ff;
-    --color-primary-100: #d4dbfcff;
-    --color-primary-500: #2940d3ff;
-    --color-primary-600: #1d30b5ff;
-    --color-green-500: #2cc5bd;
-    --primary-color: #2940d3ff;
-    --primary-light: #eff6ff;
+    /* Colour palette */
+    --color-white:       #ffffff;
+    --color-grey-50:     #f8fafc;
+    --color-grey-100:    #f1f5f9;
+    --color-grey-200:    #e2e8f0;
+    --color-grey-300:    #cbd5e1;
+    --color-grey-400:    #94a3b8;
+    --color-grey-500:    #64748b;
+    --color-grey-700:    #1e293b;
+    --color-grey-800:    #0f172a;
+    --color-primary-100: #e0e7ff;
+    --color-primary-500: #4f46e5;
+    --color-primary-600: #4338ca;
+    --color-green-500:   #10b981;
+    --primary-color:     #4f46e5;
+    --primary-dark:      #4338ca;
+    --primary-light:     #eef2ff;
 
-    /* Layout Dimensions */
-    --navbar-height: 72px; /* Fixed navbar height for consistent positioning */
+    /* Layout */
+    --navbar-height: 72px;
 
-    /* Box Shadows */
-    --shadow-card: 0px 7px 20px 0px #28293d14;
-    --shadow-form: 0px 5px 18px 0px #28293d12;
+    /* Shadows */
+    --shadow-card: 0 1px 3px rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.05);
+    --shadow-form: 0 1px 3px rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.05);
 
     /* Spacing */
     --spacing-xs: 8px;
@@ -51,46 +67,55 @@
     --spacing-lg: 24px;
     --spacing-xl: 32px;
 
-    /* Borders */
-    --border-radius-md: 8px;
-    --border-radius-lg: 12px;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.433 0.231 264.1);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.95 0.02 264);
-    --secondary-foreground: oklch(0.433 0.231 264.1);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
+    /* Border radii */
+    --border-radius-sm: 6px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 16px;
+
+    /* ── Shadcn design tokens ────────────────────────────
+       Overriding --radius and --border here is the correct,
+       framework-native way to restyle Shadcn components.
+       No selector fights needed.
+       ──────────────────────────────────────────────────── */
+    --radius: 1rem;             /* Shadcn uses this for card border-radius   */
+    --border: oklch(0.931 0 0); /* Slightly softer than Shadcn's default     */
+
+    --background:              oklch(1 0 0);
+    --foreground:              oklch(0.145 0 0);
+    --card:                    oklch(1 0 0);
+    --card-foreground:         oklch(0.145 0 0);
+    --popover:                 oklch(1 0 0);
+    --popover-foreground:      oklch(0.145 0 0);
+    --primary:                 oklch(0.433 0.231 264.1);
+    --primary-foreground:      oklch(0.985 0 0);
+    --secondary:               oklch(0.95 0.02 264);
+    --secondary-foreground:    oklch(0.433 0.231 264.1);
+    --muted:                   oklch(0.97 0 0);
+    --muted-foreground:        oklch(0.556 0 0);
+    --accent:                  oklch(0.97 0 0);
+    --accent-foreground:       oklch(0.205 0 0);
+    --destructive:             oklch(0.577 0.245 27.325);
+    --input:                   oklch(0.922 0 0);
+    --ring:                    oklch(0.708 0 0);
+    --chart-1:                 oklch(0.809 0.105 251.813);
+    --chart-2:                 oklch(0.623 0.214 259.815);
+    --chart-3:                 oklch(0.546 0.245 262.881);
+    --chart-4:                 oklch(0.488 0.243 264.376);
+    --chart-5:                 oklch(0.424 0.199 265.638);
+    --sidebar:                 oklch(0.985 0 0);
+    --sidebar-foreground:      oklch(0.145 0 0);
+    --sidebar-primary:         oklch(0.205 0 0);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent:          oklch(0.97 0 0);
     --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-border:          oklch(0.922 0 0);
+    --sidebar-ring:            oklch(0.708 0 0);
 }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-}
+/* ─────────────────────────────────────────────────────────
+   Base resets
+   ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body {
     margin: 0;
@@ -101,13 +126,13 @@ html, body {
 
 body {
     font-family: 'Montserrat', sans-serif;
-    background-color: var(--color-grey-100);
+    background-color: #f1f5f9;
     color: var(--color-grey-700);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Global button defaults: prevent unintended stretch */
+/* ── Global button defaults ──────────────────────────────── */
 .btn {
     width: auto;
     flex: 0 0 auto;
@@ -118,97 +143,200 @@ body {
     justify-content: center;
 }
 
+/* ─────────────────────────────────────────────────────────
+   Shadcn Card overrides — scoped under .page-content
+   ─────────────────────────────────────────────────────────
+   WHY THIS WORKS WITHOUT !important:
+   ".page-content [data-slot='card']" has specificity (0,1,1)
+   which beats Shadcn's base "[data-slot='card']" at (0,0,1).
+   The cascade resolves cleanly — no brute force needed.
+   ───────────────────────────────────────────────────────── */
+.page-content [data-slot="card"] {
+    border-radius: 16px;
+    border: 1px solid #eef1f8;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.05);
+    background: #ffffff;
+    transition:
+        box-shadow 0.25s cubic-bezier(0.4,0,0.2,1),
+        border-color 0.25s cubic-bezier(0.4,0,0.2,1),
+        transform 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+/*
+   Hover: thin indigo border + shadow lift.
+   border-color transition is declared above so it animates smoothly.
+*/
+.page-content [data-slot="card"]:hover {
+    box-shadow: 0 4px 8px rgba(15,23,42,0.04), 0 16px 36px rgba(15,23,42,0.09);
+    border-color: rgba(99, 102, 241, 0.35);
+    transform: translateY(-2px);
+}
+
+.page-content [data-slot="card-title"] {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: #0f172a;
+}
+
+.page-content [data-slot="card-description"] {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Overview page — light bluish background
+   ─────────────────────────────────────────────────────────
+   OverviewPage.jsx renders: <div className="space-y-6 p-1">
+   This is a direct child of .page-content, so the > combinator
+   is precise and won't bleed into other pages.
+   ───────────────────────────────────────────────────────── */
+.page-content > .space-y-6 {
+    background: linear-gradient(135deg, #f3f7fe 0%, #eef2ff 60%, #f5f7ff 100%);
+    border-radius: 20px;
+    padding: 24px;
+    min-height: 100%;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Dashboard heading — DM Sans font
+   ─────────────────────────────────────────────────────────
+   Selector targets the first flex child of .space-y-6,
+   which is the header div containing h1 + p.
+   DM Sans is a modern geometric sans — smoother for display
+   headings than Montserrat's more rigid letterforms.
+   Specificity: (0,1,2) — beats any bare h1/p rule.
+   ───────────────────────────────────────────────────────── */
+.page-content > .space-y-6 > div:first-child h1 {
+    font-family: 'DM Sans', 'Montserrat', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #0f172a;
+}
+
+.page-content > .space-y-6 > div:first-child p {
+    font-family: 'DM Sans', 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #64748b;
+    letter-spacing: 0.1px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Recharts overrides
+   ─────────────────────────────────────────────────────────
+   Using the full component class chain gives us specificity
+   (0,2,1) which beats Recharts' own single-class rules.
+   No !important required.
+   ───────────────────────────────────────────────────────── */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    padding: 10px 14px;
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+    stroke: #f1f5f9;
+}
+
+/* ── Custom scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Sidebar hover transition hint ──────────────────────── */
 @media (min-width: 993px) {
-    /* Apply blur/opacity to page-content when sidebar is hovered */
     .sidebar:hover + .main-content .page-content {
         transition: filter 0.3s ease;
     }
 }
 
+/* ── Dark mode tokens ────────────────────────────────────── */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --background:              oklch(0.145 0 0);
+    --foreground:              oklch(0.985 0 0);
+    --card:                    oklch(0.205 0 0);
+    --card-foreground:         oklch(0.985 0 0);
+    --popover:                 oklch(0.205 0 0);
+    --popover-foreground:      oklch(0.985 0 0);
+    --primary:                 oklch(0.922 0 0);
+    --primary-foreground:      oklch(0.205 0 0);
+    --secondary:               oklch(0.269 0 0);
+    --secondary-foreground:    oklch(0.985 0 0);
+    --muted:                   oklch(0.269 0 0);
+    --muted-foreground:        oklch(0.708 0 0);
+    --accent:                  oklch(0.269 0 0);
+    --accent-foreground:       oklch(0.985 0 0);
+    --destructive:             oklch(0.704 0.191 22.216);
+    --border:                  oklch(1 0 0 / 10%);
+    --input:                   oklch(1 0 0 / 15%);
+    --ring:                    oklch(0.556 0 0);
+    --chart-1:                 oklch(0.809 0.105 251.813);
+    --chart-2:                 oklch(0.623 0.214 259.815);
+    --chart-3:                 oklch(0.546 0.245 262.881);
+    --chart-4:                 oklch(0.488 0.243 264.376);
+    --chart-5:                 oklch(0.424 0.199 265.638);
+    --sidebar:                 oklch(0.205 0 0);
+    --sidebar-foreground:      oklch(0.985 0 0);
+    --sidebar-primary:         oklch(0.488 0.243 264.376);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent:          oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-border:          oklch(1 0 0 / 10%);
+    --sidebar-ring:            oklch(0.556 0 0);
 }
 
 @theme inline {
-    --font-sans: 'Geist Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --font-sans:                         'Geist Variable', sans-serif;
+    --color-sidebar-ring:                var(--sidebar-ring);
+    --color-sidebar-border:              var(--sidebar-border);
+    --color-sidebar-accent-foreground:   var(--sidebar-accent-foreground);
+    --color-sidebar-accent:              var(--sidebar-accent);
+    --color-sidebar-primary-foreground:  var(--sidebar-primary-foreground);
+    --color-sidebar-primary:             var(--sidebar-primary);
+    --color-sidebar-foreground:          var(--sidebar-foreground);
+    --color-sidebar:                     var(--sidebar);
+    --color-chart-5:                     var(--chart-5);
+    --color-chart-4:                     var(--chart-4);
+    --color-chart-3:                     var(--chart-3);
+    --color-chart-2:                     var(--chart-2);
+    --color-chart-1:                     var(--chart-1);
+    --color-ring:                        var(--ring);
+    --color-input:                       var(--input);
+    --color-border:                      var(--border);
+    --color-destructive:                 var(--destructive);
+    --color-accent-foreground:           var(--accent-foreground);
+    --color-accent:                      var(--accent);
+    --color-muted-foreground:            var(--muted-foreground);
+    --color-muted:                       var(--muted);
+    --color-secondary-foreground:        var(--secondary-foreground);
+    --color-secondary:                   var(--secondary);
+    --color-primary-foreground:          var(--primary-foreground);
+    --color-primary:                     var(--primary);
+    --color-popover-foreground:          var(--popover-foreground);
+    --color-popover:                     var(--popover);
+    --color-card-foreground:             var(--card-foreground);
+    --color-card:                        var(--card);
+    --color-foreground:                  var(--foreground);
+    --color-background:                  var(--background);
+    --radius-sm:   calc(var(--radius) * 0.6);
+    --radius-md:   calc(var(--radius) * 0.8);
+    --radius-lg:   var(--radius);
+    --radius-xl:   calc(var(--radius) * 1.4);
+    --radius-2xl:  calc(var(--radius) * 1.8);
+    --radius-3xl:  calc(var(--radius) * 2.2);
+    --radius-4xl:  calc(var(--radius) * 2.6);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
-  html {
-    @apply font-sans;
-    }
+    * { @apply border-border outline-ring/50; }
+    body { @apply bg-background text-foreground; }
+    html { @apply font-sans; }
 }

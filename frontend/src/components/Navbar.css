@@ -1,75 +1,144 @@
-.navbar { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: var(--spacing-md) var(--spacing-lg); 
-    background-color: var(--color-white); 
-    border-bottom: 1px solid var(--color-grey-200);
-    height: var(--navbar-height, 72px); /* Use CSS variable for consistent positioning */
+/* ─────────────────────────────────────────────────────────
+   Navbar.css
+   Branch: feat/dashboard-ui-polish-v2
+   Pure CSS changes only — zero logic/API impact
+   ───────────────────────────────────────────────────────── */
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 var(--spacing-lg);
+    /* Frosted glass effect */
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid rgba(226,232,240,0.7);
+    height: var(--navbar-height, 72px);
     min-height: var(--navbar-height, 72px);
     box-sizing: border-box;
-    position: fixed; /* Fixed at top for consistent positioning */
+    position: fixed;
     top: 0;
-    left: 100px; /* Start after the main sidebar */
+    left: 100px;
     right: 0;
-    z-index: 1001; /* Ensure navbar is above ReportsSidebar */
+    z-index: 1001;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 20px rgba(15,23,42,0.04);
+    transition: left 0.4s cubic-bezier(0.4,0,0.2,1);
 }
-.navbar-left { display: flex; align-items: center; gap: var(--spacing-md); }
-.navbar-left h2 { font-size: 24px; font-weight: 600; margin: 0; }
-.menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--color-grey-700); padding: 0;}
-.navbar-right { display: flex; align-items: center; gap: 12px; }
-.navbar-right .btn { text-decoration: none;}
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-xs); padding: 12px var(--spacing-md); border: none; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 600; }
-.btn-primary { 
-    background-color: var(--primary-color, #3B82F6); 
-    color: var(--color-white); 
-    transition: background-color 0.2s; 
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
 }
-.btn-primary:hover { 
-    background-color: var(--primary-dark, #1d30b5ff); 
+
+.navbar-left h2 {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0;
+    color: #0f172a;
+    letter-spacing: -0.4px;
+}
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.menu-toggle:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-right .btn {
+    text-decoration: none;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: 9px var(--spacing-md);
+    border: none;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.1px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.30);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+    box-shadow: 0 4px 16px rgba(79,70,229,0.40);
+    transform: translateY(-1px);
 }
 
 .trip-action-btn {
-    background-color: #1a73e8 !important;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
     color: white !important;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13.5px;
+    font-weight: 700;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.30) !important;
+    border-radius: 9px;
 }
 
 .trip-action-btn:hover {
-    background-color: #1557b0 !important;
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+    box-shadow: 0 4px 16px rgba(79,70,229,0.40) !important;
+    transform: translateY(-1px);
 }
 
 .active-trips-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background-color: #e8f0fe;
+    gap: 7px;
+    padding: 7px 14px;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
     border-radius: 20px;
+    border: 1px solid rgba(99,102,241,0.2);
 }
 
 .active-trips-badge svg {
-    color: #1a73e8;
+    color: #4f46e5;
     flex-shrink: 0;
 }
 
 .active-trips-badge span {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a73e8;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #4f46e5;
     white-space: nowrap;
 }
 
 /* Mobile styles */
 @media (max-width: 992px) {
     .navbar {
-        left: 0; /* Full width on mobile, sidebar is overlay */
-        z-index: 1003; /* Above sidebar on mobile */
+        left: 0;
+        z-index: 1003;
     }
-    
-    .menu-toggle { 
-        display: block; 
+
+    .menu-toggle {
+        display: block;
     }
 }
