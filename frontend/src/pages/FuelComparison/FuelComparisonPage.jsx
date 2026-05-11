@@ -5,7 +5,8 @@ import {
 } from '@mui/material';
 import {
     Fuel, AlertTriangle, CheckCircle2, Clock, RefreshCw,
-    Activity, XCircle, Flag, Search, ShieldAlert, Gauge, Eye
+    Activity, XCircle, Flag, Search, ShieldAlert, Gauge, Eye,
+    Database, Wifi, WifiOff, Play, Loader2
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -64,12 +65,12 @@ const StatusKpiCard = ({ icon: Icon, label, value, colorClass }) => (
 
 // ─── Live Errors Widget ───────────────────────────────────────────────────────
 
-const LiveErrorsWidget = ({ status, isLoading }) => {
+const LiveErrorsWidget = ({ status, isLoading, userErrors }) => {
     if (isLoading) return null;
-    
-    // Fallback errors if we don't have detailed logs attached to status yet
+
+    const reauthErrors = (userErrors || []).filter(e => e.errorCode === 'FLEETEDGE_REAUTH_REQUIRED');
     const displayErrors = status?.recentErrors || [];
-    
+
     return (
         <div className="fc-live-errors-widget">
             <div className="fc-live-errors-header">
@@ -79,7 +80,15 @@ const LiveErrorsWidget = ({ status, isLoading }) => {
                 {status?.failed > 0 && <span className="fc-error-badge">{status.failed}</span>}
             </div>
             <div className="fc-live-errors-list">
-                {displayErrors.length === 0 ? (
+                {reauthErrors.map((err, i) => (
+                    <div key={`reauth-${i}`} className="fc-error-item fc-error-reauth">
+                        <WifiOff size={12} />
+                        <span className="fc-error-msg">
+                            Re-auth needed: <strong>{err.externalFleetId || 'FleetEdge account'}</strong> — reconnect via the extension
+                        </span>
+                    </div>
+                ))}
+                {displayErrors.length === 0 && reauthErrors.length === 0 ? (
                     <div className="fc-no-errors">
                         <CheckCircle2 size={16} /> No recent sync errors detected.
                     </div>
@@ -90,6 +99,49 @@ const LiveErrorsWidget = ({ status, isLoading }) => {
                             <span className="fc-error-msg">{err.message}</span>
                         </div>
                     ))
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─── FleetEdge Connectivity Bar ───────────────────────────────────────────────
+
+const FleetEdgeConnectivityBar = ({ connectivity, status }) => {
+    if (!connectivity) return null;
+
+    const accounts = connectivity.accounts || [];
+    const pull = connectivity.pull || {};
+    const connected = accounts.filter(a => a.status === 'ACTIVE').length;
+    const needsReauth = accounts.filter(a => a.status === 'NEEDS_REAUTH').length;
+    const pullingNow = status?.pullingNow > 0 || pull.running;
+
+    const fmtTime = (iso) => {
+        if (!iso) return null;
+        return dayjs.utc(iso).tz(IST_ZONE).format('HH:mm');
+    };
+
+    return (
+        <div className={`fc-connectivity-bar ${needsReauth > 0 ? 'fc-conn-degraded' : ''}`}>
+            <div className="fc-conn-left">
+                {needsReauth > 0 ? <WifiOff size={14} /> : <Wifi size={14} />}
+                <span className="fc-conn-label">FleetEdge</span>
+                <span className="fc-conn-chip fc-conn-ok">{connected} connected</span>
+                {needsReauth > 0 && (
+                    <span className="fc-conn-chip fc-conn-warn">{needsReauth} need re-auth</span>
+                )}
+            </div>
+            <div className="fc-conn-right">
+                {pullingNow && (
+                    <span className="fc-conn-chip fc-conn-pulling">
+                        <Loader2 size={11} className="fc-spin" /> pulling now
+                    </span>
+                )}
+                {pull.lastRunAt && (
+                    <span className="fc-conn-meta">last pull {fmtTime(pull.lastRunAt)}</span>
+                )}
+                {pull.nextRunAt && (
+                    <span className="fc-conn-meta">next ~{fmtTime(pull.nextRunAt)}</span>
                 )}
             </div>
         </div>
@@ -201,10 +253,18 @@ const FuelComparisonPage = () => {
     // Tab: 'all' | 'flagged' | 'review'
     const [activeTab, setActiveTab] = useState('all');
 
+    const userRole = localStorage.getItem('userRole') || '';
+    const canPullNow = ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(userRole);
+
     // Status widget
     const [status, setStatus] = useState(null);
     const [isLoadingStatus, setIsLoadingStatus] = useState(true);
     const [statusError, setStatusError] = useState(null);
+
+    // FleetEdge connectivity + user errors
+    const [connectivity, setConnectivity] = useState(null);
+    const [userErrors, setUserErrors] = useState([]);
+    const [isPulling, setIsPulling] = useState(false);
 
     // Filter
     const [flaggedOnly, setFlaggedOnly] = useState(false);
@@ -242,7 +302,29 @@ const FuelComparisonPage = () => {
         }
     }, []);
 
-    useEffect(() => { fetchStatus(); }, [fetchStatus]);
+    const fetchConnectivity = useCallback(async () => {
+        const data = await ReportsService.getFleetEdgeConnectivity();
+        setConnectivity(data);
+    }, []);
+
+    const fetchUserErrors = useCallback(async () => {
+        const errors = await ReportsService.getUserErrors();
+        setUserErrors(Array.isArray(errors) ? errors : []);
+    }, []);
+
+    const handlePullNow = async () => {
+        setIsPulling(true);
+        try {
+            await ReportsService.triggerPullNow();
+            setTimeout(() => { fetchStatus(); fetchConnectivity(); }, 2500);
+        } catch (err) {
+            console.error('Pull now failed:', err);
+        } finally {
+            setIsPulling(false);
+        }
+    };
+
+    useEffect(() => { fetchStatus(); fetchConnectivity(); fetchUserErrors(); }, [fetchStatus, fetchConnectivity, fetchUserErrors]);
 
     const applyFilter = () => {
         setFromDate(inputFromDate);
@@ -285,6 +367,8 @@ const FuelComparisonPage = () => {
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => { setCompPage(1); }, [activeTab, flaggedOnly, searchQuery, fromDate, toDate]);
 
+    const reauthCount = (connectivity?.accounts || []).filter(a => a.status === 'NEEDS_REAUTH').length;
+
     const activeRecords = activeTab === 'all' ? comparisons : activeTab === 'flagged' ? flagged : reviewTasks;
     const activeTotal   = activeTab === 'all' ? compTotal   : activeTab === 'flagged' ? flaggedTotal : reviewTotal;
 
@@ -311,11 +395,24 @@ const FuelComparisonPage = () => {
                 <div className="fc-header-actions">
                     {status && (
                         <div className="fc-last-sync">
-                            <Clock size={14} /> 
+                            <Clock size={14} />
                             <span>Last Sync: {status.lastSyncAt ? formatRelativeIST(status.lastSyncAt) : 'Never'}</span>
                         </div>
                     )}
-                    <button className="fc-btn fc-btn-icon" onClick={fetchStatus} title="Refresh Status">
+                    {canPullNow && (
+                        <button
+                            className="fc-btn fc-btn-secondary"
+                            onClick={handlePullNow}
+                            disabled={isPulling}
+                            title="Trigger an immediate FleetEdge pull + backfill"
+                        >
+                            {isPulling
+                                ? <><Loader2 size={15} className="fc-spin" /> Pulling…</>
+                                : <><Play size={15} /> Pull Now</>
+                            }
+                        </button>
+                    )}
+                    <button className="fc-btn fc-btn-icon" onClick={() => { fetchStatus(); fetchConnectivity(); fetchUserErrors(); }} title="Refresh">
                         <RefreshCw size={18} />
                     </button>
                     <button className="fc-btn fc-btn-primary">
@@ -324,13 +421,28 @@ const FuelComparisonPage = () => {
                 </div>
             </div>
 
+            {/* FleetEdge connectivity summary */}
+            <FleetEdgeConnectivityBar connectivity={connectivity} status={status} />
+
+            {/* Reauth banner — shown when one or more accounts need re-authentication */}
+            {reauthCount > 0 && (
+                <div className="fc-reauth-banner">
+                    <WifiOff size={14} />
+                    <span>
+                        {reauthCount} FleetEdge account{reauthCount > 1 ? 's' : ''} need re-authentication.
+                        Open the gnbedge extension and click <strong>Reconnect</strong> on the affected account.
+                    </span>
+                </div>
+            )}
+
             {/* Top Metrics Row */}
             <div className="fc-metrics-row">
                 <StatusKpiCard icon={Activity} label="Pending Sync" value={status?.pending} colorClass="pending" />
                 <StatusKpiCard icon={CheckCircle2} label="Successful" value={status?.completed} colorClass="success" />
                 <StatusKpiCard icon={AlertTriangle} label="Flagged" value={status?.flagged} colorClass="warning" />
+                <StatusKpiCard icon={Database} label="No Data" value={status?.noData ?? 0} colorClass="nodata" />
                 <StatusKpiCard icon={XCircle} label="Needs Action" value={status?.needsAction ?? 0} colorClass="warning" />
-                <LiveErrorsWidget status={status} isLoading={isLoadingStatus} />
+                <LiveErrorsWidget status={status} isLoading={isLoadingStatus} userErrors={userErrors} />
             </div>
 
             {/* Table Area */}

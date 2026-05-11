@@ -254,4 +254,37 @@ export const ReportsService = {
             throw error.response?.data || { detail: "Network error approving task." };
         }
     },
+
+    /** GET /api/extension/fleetedge/status — multi-account connectivity info */
+    getFleetEdgeConnectivity: async () => {
+        try {
+            const response = await apiClient.get('api/extension/fleetedge/status');
+            return response.data?.data || response.data || { accounts: [], pull: {} };
+        } catch (error) {
+            console.error('API Error fetching FleetEdge connectivity:', error.response?.data || error.message);
+            return { accounts: [], pull: {} };
+        }
+    },
+
+    /** GET /api/extension/user-errors — unacknowledged errors (includes FLEETEDGE_REAUTH_REQUIRED) */
+    getUserErrors: async () => {
+        try {
+            const response = await apiClient.get('api/extension/user-errors');
+            return response.data?.data || response.data || [];
+        } catch (error) {
+            console.error('API Error fetching user errors:', error.response?.data || error.message);
+            return [];
+        }
+    },
+
+    /** POST /api/extension/fleetedge/process-tasks — on-demand pull + backfill */
+    triggerPullNow: async () => {
+        try {
+            const response = await apiClient.post('api/extension/fleetedge/process-tasks');
+            return response.data?.data || response.data || {};
+        } catch (error) {
+            console.error('API Error triggering pull:', error.response?.data || error.message);
+            throw error.response?.data || { detail: 'Network error triggering pull.' };
+        }
+    },
 };
