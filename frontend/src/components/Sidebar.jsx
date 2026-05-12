@@ -3,32 +3,29 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Grid, FileText, Settings, LogOut, Users, User, Truck, MapPin, Fuel, BookOpen } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
-import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
+import { applyThemeToRoot } from '../utils/colorTheme';
 import './Sidebar.css';
 
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [isVehicleActivityOpen, setIsVehicleActivityOpen] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
-    // Update theme colors when component mounts or profile color changes
+    // Defensive: ensure :root has the current theme CSS variables on mount and
+    // whenever the theme color changes. The Sidebar previously kept a LOCAL
+    // copy of theme colors and applied them inline on <aside>, which created a
+    // competing CSS variable scope: when the local state was stale (e.g. before
+    // the profile API resolved), descendants resolved var(--primary-light) to
+    // the stale inline value instead of the freshly-updated :root value. By
+    // dropping the inline style and routing all updates through :root, every
+    // descendant sees a single source of truth.
     useEffect(() => {
-        const updateTheme = () => {
-            setThemeColors(getThemeCSS());
-        };
-
-        updateTheme();
-
-        // Fix: window 'storage' event only fires in OTHER tabs, never the same tab.
-        // Using a CustomEvent 'themeColorChange' which fires in the same tab correctly.
-        window.addEventListener('themeColorChange', updateTheme);
-
-        return () => {
-            window.removeEventListener('themeColorChange', updateTheme);
-        };
+        applyThemeToRoot();
+        const handleThemeChange = () => applyThemeToRoot();
+        window.addEventListener('themeColorChange', handleThemeChange);
+        return () => window.removeEventListener('themeColorChange', handleThemeChange);
     }, []);
 
     // Check if any Vehicle Activity child route is active
@@ -76,7 +73,6 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     return (
         <aside
             className="sidebar"
-            style={themeColors}
             onMouseEnter={() => setIsSidebarHovered(true)}
             onMouseLeave={() => setIsSidebarHovered(false)}
         >

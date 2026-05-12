@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Search, ChevronRight, FileText, Satellite } from 'lucide-react';
+import { ChevronRight, FileText, Satellite, Plus } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
-  Pagination, PaginationContent, PaginationEllipsis, PaginationItem,
-  PaginationLink, PaginationNext, PaginationPrevious,
-} from '@/components/ui/pagination';
+import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 
 const PAGE_SIZE = 10;
 
@@ -33,6 +27,27 @@ const MileageTrackingPage = () => {
     const el = document.querySelector('.page-content');
     if (el) el.classList.add('no-padding');
     return () => { if (el) el.classList.remove('no-padding'); };
+  }, []);
+
+  // Push total count up to the Navbar
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('mileageCountUpdate', { detail: { count: pagination.total } }));
+  }, [pagination.total]);
+
+  // Receive search input from the Navbar
+  useEffect(() => {
+    const handleSearch = (e) => {
+      setSearchQuery(e.detail?.value ?? '');
+      setPagination(p => ({ ...p, page: 1 }));
+    };
+    window.addEventListener('mileageSearchChange', handleSearch);
+    return () => window.removeEventListener('mileageSearchChange', handleSearch);
+  }, []);
+
+  // Reset Navbar state on unmount
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent('mileageCountUpdate', { detail: { count: 0 } }));
+    window.dispatchEvent(new CustomEvent('mileageSearchReset', { detail: { value: '' } }));
   }, []);
 
   const fetchIntervals = async () => {
@@ -81,140 +96,151 @@ const MileageTrackingPage = () => {
     return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
-  const renderPageItems = () => {
-    const items = [];
-    for (let i = 1; i <= totalPages; i++) {
-      if (i === 1 || i === totalPages || Math.abs(i - pagination.page) <= 1) items.push(i);
-      else if (items[items.length - 1] !== '...') items.push('...');
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setPagination(p => ({ ...p, page }));
     }
-    return items;
+  };
+
+  const generatePageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (pagination.page > 3) pages.push('...');
+      for (let i = Math.max(2, pagination.page - 1); i <= Math.min(totalPages - 1, pagination.page + 1); i++) {
+        if (i !== 1 && i !== totalPages) pages.push(i);
+      }
+      if (pagination.page < totalPages - 2) pages.push('...');
+      if (totalPages > 1) pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
     <div className="page-container mileage-listing-container">
-      {/* Header */}
-      <div className="mileage-listing-header">
-        <div className="header-content">
-          <div className="header-left">
-            <h2>Mileage Tracking</h2>
-            <span className="header-count">{pagination.total}</span>
-          </div>
-          <div className="header-right">
-            <div className="search-bar">
-              <Search width={18} height={18} color="#9ca3af" />
-              <input
-                type="text"
-                placeholder="Search by vehicle or status..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
-              />
-            </div>
+      {/* Content */}
+      <div className="mileage-content-area">
+        <div className="mileage-table-container">
+          <div className={`mileage-table-wrapper${isLoading || filteredIntervals.length === 0 ? ' is-empty' : ''}`}>
+            <table className="mileage-table">
+              <thead>
+                <tr>
+                  <th>Vehicle</th>
+                  <th>Status</th>
+                  <th>Odometer Range</th>
+                  <th>Distance (km)</th>
+                  <th>Fuel (L)</th>
+                  <th>Mileage (km/L)</th>
+                  <th><Satellite size={13} style={{ display: 'inline', marginRight: 4 }} />GPS</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              {!isLoading && filteredIntervals.length > 0 && (
+                <tbody>
+                  {filteredIntervals.map((interval) => (
+                    <tr
+                      key={interval._id}
+                      className="mileage-table-row"
+                      onClick={() => navigate(`/mileage-tracking/${interval._id}`)}
+                    >
+                      <td className="mileage-vehicle-cell">
+                        {interval.vehicleId?.registrationNumber || 'Unknown'}
+                      </td>
+                      <td>
+                        <span className="status-badge" style={getStatusStyle(interval.status)}>
+                          {interval.status}
+                        </span>
+                      </td>
+                      <td>{interval.startOdometer} ➝ {interval.endOdometer || '...'}</td>
+                      <td>{interval.distanceKm ? interval.distanceKm.toFixed(1) : '-'}</td>
+                      <td>{interval.fuelConsumedLiters ? interval.fuelConsumedLiters.toFixed(2) : '-'}</td>
+                      <td>
+                        {interval.mileageKmPerL ? (
+                          <span style={{ color: '#2563eb', fontWeight: 600 }}>{interval.mileageKmPerL.toFixed(2)}</span>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <span className="status-badge" style={getFeStatusStyle(interval.fleetEdge?.status)}>
+                          {getFeStatusLabel(interval.fleetEdge?.status)}
+                        </span>
+                      </td>
+                      <td className="mileage-last-col">
+                        <span className="date-text">{formatDate(interval.startDate)}</span>
+                        <button
+                          className="view-details-btn"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/mileage-tracking/${interval._id}`); }}
+                        >
+                          View details <ChevronRight size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              )}
+            </table>
+
+            {isLoading && (
+              <div className="loading-state"><p>Loading mileage records...</p></div>
+            )}
+            {!isLoading && filteredIntervals.length === 0 && (
+              <div className="empty-state">
+                <FileText size={48} color="#9ca3af" />
+                <p>No mileage records found</p>
+                {searchQuery ? (
+                  <p className="empty-subtext">Try adjusting your search</p>
+                ) : (
+                  <button className="empty-action-btn" onClick={() => navigate('/mileage-tracking/new')}>
+                    <Plus size={16} /> Log Fuel
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="mileage-content-area">
-        {isLoading ? (
-          <div className="loading-state"><p>Loading mileage records...</p></div>
-        ) : filteredIntervals.length === 0 ? (
-          <div className="empty-state">
-            <FileText size={48} color="#9ca3af" />
-            <p>No mileage records found</p>
-            {searchQuery && <p className="empty-subtext">Try adjusting your search</p>}
-          </div>
-        ) : (
-          <div className="table-wrapper">
-            <Table>
-              <TableHeader>
-                <TableRow className="table-header-row">
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Odometer Range</TableHead>
-                  <TableHead>Distance (km)</TableHead>
-                  <TableHead>Fuel (L)</TableHead>
-                  <TableHead>Mileage (km/L)</TableHead>
-                  <TableHead><Satellite size={13} style={{ display: 'inline', marginRight: 4 }} />GPS</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredIntervals.map((interval) => (
-                  <TableRow
-                    key={interval._id}
-                    className="trip-table-row"
-                    onClick={() => navigate(`/mileage-tracking/${interval._id}`)}
-                  >
-                    <TableCell className="font-semibold text-gray-900">
-                      {interval.vehicleId?.registrationNumber || 'Unknown'}
-                    </TableCell>
-                    <TableCell>
-                      <span className="status-badge" style={getStatusStyle(interval.status)}>
-                        {interval.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{interval.startOdometer} ➝ {interval.endOdometer || '...'}</TableCell>
-                    <TableCell>{interval.distanceKm ? interval.distanceKm.toFixed(1) : '-'}</TableCell>
-                    <TableCell>{interval.fuelConsumedLiters ? interval.fuelConsumedLiters.toFixed(2) : '-'}</TableCell>
-                    <TableCell>
-                      {interval.mileageKmPerL ? (
-                        <span style={{ color: '#2563eb', fontWeight: 600 }}>{interval.mileageKmPerL.toFixed(2)}</span>
-                      ) : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <span className="status-badge" style={getFeStatusStyle(interval.fleetEdge?.status)}>
-                        {getFeStatusLabel(interval.fleetEdge?.status)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="last-col">
-                      <span className="date-text">{formatDate(interval.startDate)}</span>
-                      <button
-                        className="view-details-btn"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/mileage-tracking/${interval._id}`); }}
-                      >
-                        View details <ChevronRight size={14} />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+      {/* Pagination Footer — matches DriversPage */}
+      {pagination.total > 0 && (
+      <div className="mileage-pagination-controls">
+        <button
+          className="mileage-pagination-btn"
+          onClick={() => handlePageChange(pagination.page - 1)}
+          disabled={pagination.page === 1 || totalPages <= 1}
+        >
+          <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
+        </button>
 
-        {/* Pagination */}
-        {!isLoading && filteredIntervals.length > 0 && totalPages > 1 && (
-          <div className="pagination-wrapper">
-            <Pagination className="justify-end">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => pagination.page > 1 && setPagination(p => ({ ...p, page: p.page - 1 }))}
-                    className={pagination.page <= 1 ? 'pointer-events-none opacity-40' : ''}
-                  />
-                </PaginationItem>
-                {renderPageItems().map((item, idx) =>
-                  item === '...' ? (
-                    <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
-                  ) : (
-                    <PaginationItem key={item}>
-                      <PaginationLink isActive={pagination.page === item} onClick={() => setPagination(p => ({ ...p, page: item }))}>
-                        {item}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )
-                )}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => pagination.page < totalPages && setPagination(p => ({ ...p, page: p.page + 1 }))}
-                    className={pagination.page >= totalPages ? 'pointer-events-none opacity-40' : ''}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
+        {generatePageNumbers().map((page, index) => {
+          if (page === '...') {
+            return (
+              <div key={`overflow-${index}`} className="mileage-page-overflow">
+                <span>...</span>
+              </div>
+            );
+          }
+          return (
+            <button
+              key={page}
+              className={`mileage-page-number ${pagination.page === page ? 'mileage-page-number-current' : ''}`}
+              onClick={() => handlePageChange(page)}
+              disabled={totalPages <= 1}
+            >
+              <span>{page}</span>
+            </button>
+          );
+        })}
+
+        <button
+          className="mileage-pagination-btn"
+          onClick={() => handlePageChange(pagination.page + 1)}
+          disabled={pagination.page === totalPages || totalPages <= 1}
+        >
+          <ChevronIcon size={12} style={{ transform: 'rotate(-90deg)' }} />
+        </button>
       </div>
+      )}
     </div>
   );
 };
