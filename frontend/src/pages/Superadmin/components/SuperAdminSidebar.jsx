@@ -21,32 +21,32 @@ const SuperAdminSidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     };
 
     return (
-        <aside 
-            className="sidebar"
+        <aside
+            className="superadmin-sidebar"
             onMouseEnter={() => setIsSidebarHovered(true)}
             onMouseLeave={() => setIsSidebarHovered(false)}
         >
-            <div className="sidebar-content">
-                <div className="sidebar-header">
-                    <img src={UkoLogo} alt="Uko Logo" className="logo-img" />
-                    <h1 className="logo-text">FleetPro Admin</h1>
+            <div className="superadmin-sidebar-content">
+                <div className="superadmin-sidebar-header">
+                    <img src={UkoLogo} alt="Uko Logo" className="superadmin-logo-img" />
+                    <h1 className="superadmin-logo-text">FleetPro Admin</h1>
                 </div>
-                
-                <nav className="sidebar-nav">
-                    <NavLink to="/superadmin" end className="nav-link" onClick={closeSidebarOnMobile}>
+
+                <nav className="superadmin-sidebar-nav">
+                    <NavLink to="/superadmin" end className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
                         <Grid size={20} />
                         <span>Dashboard</span>
                     </NavLink>
-                    
-                    <NavLink to="/superadmin/add-user" className="nav-link" onClick={closeSidebarOnMobile}>
+
+                    <NavLink to="/superadmin/add-user" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
                         <UserPlus size={20} />
                         <span>Add New User</span>
                     </NavLink>
                 </nav>
             </div>
 
-            <div className="sidebar-footer">
-                <button className="nav-link logout-btn" onClick={handleLogout}>
+            <div className="superadmin-sidebar-footer">
+                <button className="superadmin-nav-link superadmin-logout-btn" onClick={handleLogout}>
                     <LogOut size={20} />
                     <span>Logout</span>
                 </button>

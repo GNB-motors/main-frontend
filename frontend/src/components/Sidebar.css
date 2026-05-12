@@ -103,9 +103,10 @@
 }
 
 .nav-link.active {
-    /* Use a light primary background and primary-color text to match other sidebars */
-    background-color:  #dbeafe !important;
-    color: var(--primary-color, #4f46e5);
+    /* Use the themed light primary background + primary text colour so the
+       active highlight follows the user's chosen primary color. */
+    background-color: var(--primary-light);
+    color: var(--primary-color);
 }
 
 .sidebar-footer {
@@ -266,10 +267,9 @@
 }
 
 .nav-parent.active-parent {
-    /* Use the same fixed active styling as .nav-link.active so Vehicle Activity
-       does not inherit profile primary color. */
-    background-color: #dbeafe !important;
-    color: var(--primary-color, #4f46e5);
+    /* Active parent uses themed light primary background + primary text. */
+    background-color: var(--primary-light);
+    color: var(--primary-color);
 }
 
 .chevron-icon {
@@ -327,8 +327,7 @@
         height: 24px;
         margin: 0px 0 0 24px;
     }
-    }
-    
+
     .sidebar .chevron-icon {
         opacity: 0;
         width: 0;
@@ -382,6 +381,7 @@
     .sidebar .nav-child {
         justify-content: flex-start;
     }
+}
 
 
 /* Mobile styles */

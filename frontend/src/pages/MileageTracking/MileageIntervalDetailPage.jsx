@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   ArrowLeft, Gauge, Satellite, AlertTriangle, CheckCircle2,
-  Fuel, Ruler, Activity, Clock, Droplets, TrendingUp, TrendingDown,
+  Fuel, Activity, Clock, Droplets, MapPin,
   Minus, XCircle, Info,
 } from 'lucide-react';
 import '../PageStyles.css';
@@ -30,7 +30,6 @@ const fmtDateShort = (d) => {
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-// Returns { color, bg, label, Icon } for a variance percentage
 const getVarianceMeta = (pct) => {
   if (pct == null) return { color: '#6b7280', bg: '#f3f4f6', label: '—', Icon: Minus };
   const abs = Math.abs(pct);
@@ -41,71 +40,89 @@ const getVarianceMeta = (pct) => {
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
 
-const DetailCard = ({ title, icon: Icon, iconColor = '#2A4FD6', children }) => (
-  <div className="mid-detail-card">
-    <div className="mid-card-header">
-      <div className="mid-card-icon" style={{ background: `${iconColor}18`, color: iconColor }}>
+const SectionCard = ({ title, icon: Icon, iconColor = '#2A4FD6', children }) => (
+  <div className="mid2-card">
+    <div className="mid2-card-header">
+      <div className="mid2-card-icon" style={{ background: `${iconColor}14`, color: iconColor }}>
         <Icon size={18} />
       </div>
-      <h3 className="mid-card-title">{title}</h3>
+      <h3 className="mid2-card-title">{title}</h3>
     </div>
     {children}
   </div>
 );
 
-const MetricRow = ({ label, value, unit, highlight }) => (
-  <div className="mid-metric-row">
-    <span className="mid-metric-label">{label}</span>
-    <span className="mid-metric-value" style={highlight ? { color: '#2A4FD6', fontWeight: 700 } : {}}>
-      {value ?? '—'}{unit ? ` ${unit}` : ''}
+const MetricRow = ({ label, value, highlight }) => (
+  <div className="mid2-metric-row">
+    <span className="mid2-metric-label">{label}</span>
+    <span className={`mid2-metric-value ${highlight ? 'mid2-metric-highlight' : ''}`}>
+      {value ?? '—'}
     </span>
   </div>
 );
 
-const VarianceRow = ({ label, system, gps, varianceKm, variancePct, unit = '' }) => {
+const VarianceBlock = ({ label, system, gps, varianceKm, variancePct, unit = '' }) => {
   const meta = getVarianceMeta(variancePct);
   const { Icon: VIcon } = meta;
+
+  // Calculate bar ratio (how much of the bar each value fills)
+  const sysVal = system ?? 0;
+  const gpsVal = gps ?? 0;
+  const maxVal = Math.max(sysVal, gpsVal);
+  const sysPct = maxVal > 0 ? (sysVal / maxVal) * 100 : 0;
+  const gpsPct = maxVal > 0 ? (gpsVal / maxVal) * 100 : 0;
+
   return (
-    <div className="mid-variance-row">
-      <span className="mid-variance-label">{label}</span>
-      <div className="mid-variance-cells">
-        <div className="mid-variance-cell system">
-          <span className="mid-vc-sub">System</span>
-          <span className="mid-vc-val">{system != null ? `${Number(system).toFixed(2)}${unit}` : '—'}</span>
+    <div className="mid2-variance-block">
+      <div className="mid2-vb-title">{label}</div>
+      <div className="mid2-vb-values">
+        <div className="mid2-vb-col">
+          <span className="mid2-vb-sub">SYSTEM</span>
+          <span className="mid2-vb-val">{system != null ? `${Number(system).toFixed(2)}${unit}` : '—'}</span>
         </div>
-        <div className="mid-variance-vs">vs</div>
-        <div className="mid-variance-cell gps">
-          <span className="mid-vc-sub">GPS</span>
-          <span className="mid-vc-val">{gps != null ? `${Number(gps).toFixed(2)}${unit}` : '—'}</span>
+        <span className="mid2-vb-vs">vs</span>
+        <div className="mid2-vb-col">
+          <span className="mid2-vb-sub">GPS</span>
+          <span className="mid2-vb-val">{gps != null ? `${Number(gps).toFixed(2)}${unit}` : '—'}</span>
         </div>
-        <div className="mid-variance-badge-wrap">
-          <span className="mid-variance-badge" style={{ background: meta.bg, color: meta.color }}>
-            <VIcon size={12} />
-            {varianceKm != null ? `Δ ${Math.abs(varianceKm).toFixed(1)}${unit}` : ''}
-            {' '}{meta.label}
-          </span>
+      </div>
+      <div className="mid2-vb-bars">
+        <div className="mid2-vb-bar-track">
+          <div className="mid2-vb-bar-fill mid2-vb-bar-sys" style={{ width: `${sysPct}%` }} />
         </div>
+        <div className="mid2-vb-bar-track">
+          <div className="mid2-vb-bar-fill mid2-vb-bar-gps" style={{ width: `${gpsPct}%` }} />
+        </div>
+      </div>
+      <div className="mid2-vb-delta" style={{ background: meta.bg, color: meta.color, borderColor: `${meta.color}33` }}>
+        <VIcon size={13} />
+        <span>
+          {varianceKm != null ? `Δ ${Math.abs(varianceKm).toFixed(1)}${unit}` : ''}
+          {' '}{meta.label}
+        </span>
       </div>
     </div>
   );
 };
 
-const FuelLogEntry = ({ log, label, type }) => {
-  const typeColors = {
-    start: { bg: '#eff6ff', border: '#bfdbfe', label: '#1d4ed8' },
-    partial: { bg: '#fefce8', border: '#fde68a', label: '#b45309' },
-    end: { bg: '#f0fdf4', border: '#bbf7d0', label: '#15803d' },
-  };
-  const c = typeColors[type] || typeColors.partial;
+const TimelineEntry = ({ log, label, type, isLast }) => {
+  const dotColor = type === 'partial' ? '#f59e0b' : '#22c55e';
+  const labelColor = type === 'partial' ? '#b45309' : '#15803d';
   if (!log) return null;
   return (
-    <div className="mid-fuellog-entry" style={{ background: c.bg, borderColor: c.border }}>
-      <div className="mid-fuellog-badge" style={{ background: c.border, color: c.label }}>{label}</div>
-      <div className="mid-fuellog-details">
-        <span><Fuel size={13} /> {fmt(log.litres, 2, 'L')}</span>
-        <span><Gauge size={13} /> {log.odometerReading ? `${log.odometerReading.toLocaleString()} km` : '—'}</span>
-        <span><Clock size={13} /> {fmtDate(log.refuelTime)}</span>
-        {log.location && <span>📍 {log.location}</span>}
+    <div className="mid2-tl-entry">
+      <div className="mid2-tl-track">
+        <div className="mid2-tl-dot" style={{ backgroundColor: dotColor }} />
+        {!isLast && <div className="mid2-tl-line" />}
+      </div>
+      <div className="mid2-tl-content">
+        <div className="mid2-tl-label" style={{ color: labelColor }}>{label.toUpperCase()}</div>
+        <div className="mid2-tl-details">
+          <span className="mid2-tl-item"><Fuel size={13} /> {fmt(log.litres, 2, 'L')}</span>
+          <span className="mid2-tl-item"><Gauge size={13} /> {log.odometerReading ? `${log.odometerReading.toLocaleString()} km` : '—'}</span>
+          <span className="mid2-tl-item"><Clock size={13} /> {fmtDate(log.refuelTime)}</span>
+          {log.location && <span className="mid2-tl-item"><MapPin size={13} /> {log.location}</span>}
+        </div>
       </div>
     </div>
   );
@@ -130,7 +147,13 @@ const MileageIntervalDetailPage = () => {
       setIsLoading(true);
       try {
         const res = await apiClient.get(`/api/mileage/intervals/${id}`);
-        setInterval(res.data?.data);
+        const data = res.data?.data;
+        if (data) {
+          setInterval(data);
+        } else {
+          toast.error('Mileage interval not found');
+          navigate('/mileage-tracking');
+        }
       } catch {
         toast.error('Failed to load mileage interval');
         navigate('/mileage-tracking');
@@ -143,7 +166,7 @@ const MileageIntervalDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="mid-page">
+      <div className="mid2-page">
         <div className="loading-state"><p>Loading interval data...</p></div>
       </div>
     );
@@ -155,121 +178,132 @@ const MileageIntervalDetailPage = () => {
   const feComputed = fe.status === 'COMPUTED';
   const vehName = interval.vehicleId?.registrationNumber || 'Unknown Vehicle';
 
-  // Flag indicators
   const flags = fe.flagReasons || [];
   const hasFuelFlag = fe.isFlaggedFuel;
   const hasDistFlag = fe.isFlaggedDistance;
   const hasMileFlag = fe.isFlaggedMileage;
-  const hasAnyFlag  = hasFuelFlag || hasDistFlag || hasMileFlag;
+  const hasAnyFlag = hasFuelFlag || hasDistFlag || hasMileFlag;
+
+  // Collect all fuel log entries for the timeline
+  const fuelEntries = [];
+  if (interval.startFuelLogId) fuelEntries.push({ log: interval.startFuelLogId, label: 'Full Tank (Start)', type: 'start' });
+  (interval.partialFuelLogIds || []).forEach((log, i) => {
+    fuelEntries.push({ log, label: `Partial Fill ${i + 1}`, type: 'partial' });
+  });
+  if (interval.endFuelLogId) fuelEntries.push({ log: interval.endFuelLogId, label: 'Full Tank (End)', type: 'end' });
 
   return (
-    <div className="mid-page">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="mid-header">
-        <div className="mid-header-left">
-          <button className="mileage-back-circle" onClick={() => navigate('/mileage-tracking')}>
-            <ArrowLeft size={16} />
-          </button>
-          <div>
-            <h2 className="mid-title">{vehName}</h2>
-            <p className="mid-subtitle">
-              {fmtDateShort(interval.startDate)} → {fmtDateShort(interval.endDate || interval.startDate)}
-            </p>
+    <div className="mid2-page">
+
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="mid2-header">
+        <div className="mid2-header-bottom">
+          <div className="mid2-header-left">
+            <button className="mid2-back-btn" onClick={() => navigate('/mileage-tracking')} aria-label="Back">
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h2 className="mid2-title">{vehName}</h2>
+              <p className="mid2-subtitle">
+                {fmtDateShort(interval.startDate)} → {fmtDateShort(interval.endDate || interval.startDate)}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="mid-header-badges">
-          <span
-            className="status-badge"
-            style={interval.status === 'COMPLETED'
-              ? { background: 'rgba(37,186,76,0.1)', color: '#187A32' }
-              : { background: 'rgba(251,191,35,0.1)', color: '#C56200' }}
-          >
-            {interval.status}
-          </span>
-          {feComputed && hasAnyFlag && (
-            <span className="status-badge" style={{ background: 'rgba(239,68,68,0.1)', color: '#b91c1c' }}>
-              <AlertTriangle size={12} style={{ marginRight: 4 }} />Anomaly Detected
+          <div className="mid2-header-right">
+            <span
+              className="mid2-badge"
+              style={interval.status === 'COMPLETED'
+                ? { background: 'rgba(37,186,76,0.08)', color: '#15803d', border: '1px solid rgba(37,186,76,0.2)' }
+                : { background: 'rgba(251,191,35,0.08)', color: '#b45309', border: '1px solid rgba(251,191,35,0.2)' }}
+            >
+              {interval.status}
             </span>
-          )}
-          {feComputed && !hasAnyFlag && (
-            <span className="status-badge" style={{ background: 'rgba(37,186,76,0.1)', color: '#187A32' }}>
-              <CheckCircle2 size={12} style={{ marginRight: 4 }} />GPS Validated ✓
-            </span>
-          )}
+            {feComputed && hasAnyFlag && (
+              <span className="mid2-badge" style={{ background: 'rgba(239,68,68,0.08)', color: '#b91c1c', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <AlertTriangle size={12} /> Anomaly Detected
+              </span>
+            )}
+            {feComputed && !hasAnyFlag && (
+              <span className="mid2-badge" style={{ background: 'rgba(37,186,76,0.08)', color: '#15803d', border: '1px solid rgba(37,186,76,0.2)' }}>
+                <CheckCircle2 size={12} /> GPS Validated ✓
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mid-content">
+      {/* ── Content ────────────────────────────────────────────────── */}
+      <div className="mid2-content">
 
-        {/* ── Flag Alert Banner ─────────────────────────────────────────────── */}
+        {/* Flag Alert */}
         {feComputed && hasAnyFlag && flags.length > 0 && (
-          <div className="mid-flag-banner">
+          <div className="mid2-flag-banner">
             <AlertTriangle size={18} />
             <div>
               <strong>Anomalies detected in FleetEdge comparison</strong>
-              <ul className="mid-flag-list">
+              <ul className="mid2-flag-list">
                 {flags.map((f, i) => <li key={i}>{f}</li>)}
               </ul>
             </div>
           </div>
         )}
 
-        {/* ── Top Row: System + FleetEdge cards ────────────────────────────── */}
-        <div className="mid-top-row">
+        {/* ── Top Row: System + GPS ────────────────────────────────── */}
+        <div className="mid2-grid-2">
 
-          {/* System Mileage Card */}
-          <DetailCard title="System Mileage (Bill-Based)" icon={Gauge} iconColor="#2A4FD6">
-            <div className="mid-metric-list">
+          {/* System Mileage */}
+          <SectionCard title="System Mileage (Bill-Based)" icon={Gauge} iconColor="#2A4FD6">
+            <div className="mid2-metric-list">
               <MetricRow label="Start Odometer" value={interval.startOdometer != null ? `${interval.startOdometer.toLocaleString()} km` : '—'} />
-              <MetricRow label="End Odometer"   value={interval.endOdometer != null ? `${interval.endOdometer.toLocaleString()} km` : '—'} />
-              <MetricRow label="Distance"       value={fmt(interval.distanceKm, 1, 'km')} />
-              <MetricRow label="Fuel Consumed"  value={fmt(interval.fuelConsumedLiters, 2, 'L')} />
-              <MetricRow label="Mileage"        value={fmt(interval.mileageKmPerL, 2, 'km/L')} highlight />
-              <MetricRow label="Period Start"   value={fmtDate(interval.startDate)} />
-              <MetricRow label="Period End"     value={fmtDate(interval.endDate)} />
+              <MetricRow label="End Odometer" value={interval.endOdometer != null ? `${interval.endOdometer.toLocaleString()} km` : '—'} />
+              <MetricRow label="Distance" value={fmt(interval.distanceKm, 1, 'km')} />
+              <MetricRow label="Fuel Consumed" value={fmt(interval.fuelConsumedLiters, 2, 'L')} />
+              <MetricRow label="Mileage" value={fmt(interval.mileageKmPerL, 2, 'km/L')} highlight />
+              <MetricRow label="Period Start" value={fmtDate(interval.startDate)} />
+              <MetricRow label="Period End" value={fmtDate(interval.endDate)} />
             </div>
-          </DetailCard>
+          </SectionCard>
 
-          {/* FleetEdge GPS Card */}
+          {/* FleetEdge GPS */}
           {feComputed ? (
-            <DetailCard title="FleetEdge GPS Validation" icon={Satellite} iconColor="#0891b2">
-              <div className="mid-metric-list">
-                <MetricRow label="GPS Distance"      value={fmt(fe.distanceKm, 1, 'km')} />
+            <SectionCard title="FleetEdge GPS Validation" icon={Satellite} iconColor="#0891b2">
+              <div className="mid2-metric-list">
+                <MetricRow label="GPS Distance" value={fmt(fe.distanceKm, 1, 'km')} />
                 <MetricRow label="GPS Fuel Consumed" value={fmt(fe.fuelConsumedL, 2, 'L')} />
-                <MetricRow label="GPS Mileage"       value={fmt(fe.mileageKmPerL, 2, 'km/L')} highlight />
-                <MetricRow label="Snapshots"         value={fe.snapshotCount ?? '—'} />
-                <MetricRow label="First Snapshot"    value={fmtDate(fe.firstSnapshotAt)} />
-                <MetricRow label="Last Snapshot"     value={fmtDate(fe.lastSnapshotAt)} />
-                <MetricRow label="Computed At"       value={fmtDate(fe.computedAt)} />
+                <MetricRow label="GPS Mileage" value={fmt(fe.mileageKmPerL, 2, 'km/L')} highlight />
+                <MetricRow label="Snapshots" value={fe.snapshotCount ?? '—'} />
+                <MetricRow label="First Snapshot" value={fmtDate(fe.firstSnapshotAt)} />
+                <MetricRow label="Last Snapshot" value={fmtDate(fe.lastSnapshotAt)} />
+                <MetricRow label="Computed At" value={fmtDate(fe.computedAt)} />
               </div>
-            </DetailCard>
+            </SectionCard>
           ) : (
-            <DetailCard title="FleetEdge GPS Validation" icon={Satellite} iconColor="#6b7280">
-              <div className="mid-gps-pending">
+            <SectionCard title="FleetEdge GPS Validation" icon={Satellite} iconColor="#6b7280">
+              <div className="mid2-gps-empty">
                 {fe.status === 'FAILED' ? (
                   <>
                     <XCircle size={40} color="#b91c1c" />
-                    <p className="mid-gps-pending-title">GPS Validation Failed</p>
-                    <p className="mid-gps-pending-sub">{fe.failureReason || 'FleetEdge returned no data for this vehicle.'}</p>
-                    <p className="mid-gps-pending-sub">Attempts: {fe.attempts ?? 0}</p>
+                    <p className="mid2-gps-empty-title">GPS Validation Failed</p>
+                    <p className="mid2-gps-empty-sub">{fe.failureReason || 'FleetEdge returned no data for this vehicle.'}</p>
+                    <p className="mid2-gps-empty-sub">Attempts: {fe.attempts ?? 0}</p>
                   </>
                 ) : (
                   <>
                     <Satellite size={40} color="#94a3b8" />
-                    <p className="mid-gps-pending-title">GPS Data Pending</p>
-                    <p className="mid-gps-pending-sub">FleetEdge comparison has not been completed yet for this interval. The sync will run automatically.</p>
+                    <p className="mid2-gps-empty-title">GPS Data Pending</p>
+                    <p className="mid2-gps-empty-sub">FleetEdge comparison has not been completed yet for this interval. The sync will run automatically.</p>
                   </>
                 )}
               </div>
-            </DetailCard>
+            </SectionCard>
           )}
         </div>
 
-        {/* ── Variance Comparison ──────────────────────────────────────────── */}
+        {/* ── Variance Comparison ──────────────────────────────────── */}
         {feComputed && (
-          <DetailCard title="Variance Comparison — System vs GPS" icon={Activity} iconColor="#7c3aed">
-            <div className="mid-variance-list">
-              <VarianceRow
+          <SectionCard title="Variance Comparison — System vs GPS" icon={Activity} iconColor="#7c3aed">
+            <div className="mid2-variance-grid">
+              <VarianceBlock
                 label="Distance"
                 system={interval.distanceKm}
                 gps={fe.distanceKm}
@@ -277,7 +311,7 @@ const MileageIntervalDetailPage = () => {
                 variancePct={fe.distanceVariancePct}
                 unit=" km"
               />
-              <VarianceRow
+              <VarianceBlock
                 label="Fuel Consumed"
                 system={interval.fuelConsumedLiters}
                 gps={fe.fuelConsumedL}
@@ -285,7 +319,7 @@ const MileageIntervalDetailPage = () => {
                 variancePct={fe.fuelVariancePct}
                 unit=" L"
               />
-              <VarianceRow
+              <VarianceBlock
                 label="Mileage"
                 system={interval.mileageKmPerL}
                 gps={fe.mileageKmPerL}
@@ -294,31 +328,33 @@ const MileageIntervalDetailPage = () => {
                 unit=" km/L"
               />
             </div>
-            <div className="mid-variance-legend">
+            <div className="mid2-variance-legend">
               <span style={{ color: '#15803d' }}><CheckCircle2 size={12} /> ≤10% — Normal</span>
               <span style={{ color: '#c56200' }}><AlertTriangle size={12} /> 10–50% — Review</span>
               <span style={{ color: '#b91c1c' }}><XCircle size={12} /> &gt;50% — Flagged</span>
             </div>
-          </DetailCard>
+          </SectionCard>
         )}
 
-        {/* ── Fuel Logs ─────────────────────────────────────────────────────── */}
-        <DetailCard title="Fuel Logs in this Interval" icon={Droplets} iconColor="#0891b2">
-          <div className="mid-fuellog-list">
-            <FuelLogEntry log={interval.startFuelLogId} label="Full Tank (Start)" type="start" />
-            {(interval.partialFuelLogIds || []).map((log, i) => (
-              <FuelLogEntry key={log._id || i} log={log} label={`Partial Fill ${i + 1}`} type="partial" />
+        {/* ── Fuel Logs Timeline ──────────────────────────────────── */}
+        <SectionCard title="Fuel Logs in this Interval" icon={Droplets} iconColor="#0891b2">
+          <div className="mid2-timeline">
+            {fuelEntries.map((entry, i) => (
+              <TimelineEntry
+                key={entry.log._id || i}
+                log={entry.log}
+                label={entry.label}
+                type={entry.type}
+                isLast={i === fuelEntries.length - 1}
+              />
             ))}
-            {interval.endFuelLogId && (
-              <FuelLogEntry log={interval.endFuelLogId} label="Full Tank (End)" type="end" />
-            )}
             {!interval.endFuelLogId && (
-              <div className="mid-fuellog-ongoing">
+              <div className="mid2-tl-ongoing">
                 <Info size={14} /> Interval is still <strong>ONGOING</strong> — awaiting next full tank fill.
               </div>
             )}
           </div>
-        </DetailCard>
+        </SectionCard>
 
       </div>
     </div>

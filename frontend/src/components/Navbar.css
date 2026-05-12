@@ -121,6 +121,57 @@
     white-space: nowrap;
 }
 
+/* Navbar count badge (used by mileage tracking) */
+.navbar-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 9px;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Navbar search input (used by mileage tracking) */
+.navbar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 14px;
+    width: 320px;
+    max-width: 40vw;
+    transition: all 0.2s ease;
+}
+
+.navbar-search:focus-within {
+    border-color: var(--primary-color, #3B82F6);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.navbar-search input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13.5px;
+    color: #1e293b;
+    font-family: 'Inter', sans-serif;
+    min-width: 0;
+}
+
+.navbar-search input::placeholder {
+    color: #94a3b8;
+}
+
 /* Mobile styles */
 @media (max-width: 992px) {
     .navbar {
@@ -130,5 +181,16 @@
 
     .menu-toggle {
         display: block;
+    }
+
+    .navbar-search {
+        width: 200px;
+        padding: 7px 12px;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar-search {
+        display: none;
     }
 }
