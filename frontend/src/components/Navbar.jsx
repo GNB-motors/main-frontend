@@ -11,7 +11,7 @@ const Navbar = ({ toggleSidebar }) => {
     const { stepName } = useTripCreationContext();
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [activeTripsCount, setActiveTripsCount] = useState(0);
-    
+
     // Update theme colors when component mounts or profile color changes
     useEffect(() => {
         const updateTheme = () => {
@@ -19,14 +19,15 @@ const Navbar = ({ toggleSidebar }) => {
             console.log('Navbar theme colors:', newTheme);
             setThemeColors(newTheme);
         };
-        
+
         updateTheme();
-        
-        // Listen for storage changes (when profile color is updated)
-        window.addEventListener('storage', updateTheme);
-        
+
+        // Fix: window 'storage' event only fires in OTHER tabs, never the same tab.
+        // Using a CustomEvent 'themeColorChange' which fires in the same tab correctly.
+        window.addEventListener('themeColorChange', updateTheme);
+
         return () => {
-            window.removeEventListener('storage', updateTheme);
+            window.removeEventListener('themeColorChange', updateTheme);
         };
     }, []);
 
@@ -35,18 +36,18 @@ const Navbar = ({ toggleSidebar }) => {
         const handleTripsUpdate = (event) => {
             setActiveTripsCount(event.detail.count);
         };
-        
+
         window.addEventListener('activeTripsUpdate', handleTripsUpdate);
-        
+
         return () => {
             window.removeEventListener('activeTripsUpdate', handleTripsUpdate);
         };
     }, []);
-    
+
     const getPageTitle = () => {
         // If stepName is provided (trip creation flow), display it
         if (stepName) return stepName;
-        
+
         // Handle trip detail pages
         if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
             return '';
@@ -54,7 +55,7 @@ const Navbar = ({ toggleSidebar }) => {
         if (location.pathname.match(/^\/trip-management\/weight-slip\/[a-f0-9]+$/)) {
             return 'Trip Details';
         }
-        
+
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path
         return path.charAt(0).toUpperCase() + path.slice(1);
@@ -66,7 +67,7 @@ const Navbar = ({ toggleSidebar }) => {
 
     console.log('Navbar rendering with themeColors:', themeColors);
     console.log('Current path:', location.pathname, 'Is trips page:', isTripsPage);
-    
+
     return (
         <header className="navbar" style={themeColors}>
             <div className="navbar-left">
@@ -79,15 +80,15 @@ const Navbar = ({ toggleSidebar }) => {
                         {activeTripsCount > 0 && (
                             <div className="active-trips-badge">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="1" y="3" width="15" height="13"/>
-                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-                                    <circle cx="5.5" cy="18.5" r="2.5"/>
-                                    <circle cx="18.5" cy="18.5" r="2.5"/>
+                                    <rect x="1" y="3" width="15" height="13" />
+                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                                    <circle cx="5.5" cy="18.5" r="2.5" />
+                                    <circle cx="18.5" cy="18.5" r="2.5" />
                                 </svg>
                                 <span>{activeTripsCount} Active Trip{activeTripsCount !== 1 ? 's' : ''}</span>
                             </div>
                         )}
-                        <button 
+                        <button
                             className="btn btn-primary trip-action-btn"
                             onClick={() => window.dispatchEvent(new CustomEvent('startNewTrip'))}
                         >
@@ -97,7 +98,7 @@ const Navbar = ({ toggleSidebar }) => {
                     </>
                 )}
                 {isMileagePage && (
-                    <button 
+                    <button
                         className="btn btn-primary trip-action-btn"
                         onClick={() => navigate('/mileage-tracking/new')}
                     >

@@ -1,7 +1,6 @@
 /* ─────────────────────────────────────────────────────────
    Navbar.css
-   Branch: feat/dashboard-ui-polish-v2
-   Pure CSS changes only — zero logic/API impact
+   Perfect Version: Keeps Premium UI (Frosted Glass) + Dynamic Themes
    ───────────────────────────────────────────────────────── */
 
 .navbar {
@@ -9,7 +8,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0 var(--spacing-lg);
-    /* Frosted glass effect */
+    /* Frosted glass effect - KEPT INTACT */
     background: rgba(255,255,255,0.88);
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -81,31 +80,20 @@
     transition: all 0.2s ease;
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(79,70,229,0.30);
-}
+/* --- DYNAMIC THEME FIXES --- */
 
-.btn-primary:hover {
-    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-    box-shadow: 0 4px 16px rgba(79,70,229,0.40);
-    transform: translateY(-1px);
-}
-
-.trip-action-btn {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
-    color: white !important;
-    font-size: 13.5px;
-    font-weight: 700;
+.btn-primary, .trip-action-btn {
+    /* Uses the dynamic root variable set by DashboardLayout */
+    background: var(--primary-color, #3B82F6) !important;
+    color: #ffffff !important;
+    /* Neutralized shadow so it looks good on any color */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(79,70,229,0.30) !important;
-    border-radius: 9px;
 }
 
-.trip-action-btn:hover {
-    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
-    box-shadow: 0 4px 16px rgba(79,70,229,0.40) !important;
+.btn-primary:hover, .trip-action-btn:hover {
+    background: var(--primary-dark, #1d30b5) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.20) !important;
     transform: translateY(-1px);
 }
 
@@ -114,20 +102,22 @@
     align-items: center;
     gap: 7px;
     padding: 7px 14px;
-    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    /* Uses the light variant injected by DashboardLayout */
+    background: var(--primary-light, #eff6ff); 
     border-radius: 20px;
-    border: 1px solid rgba(99,102,241,0.2);
+    border: 1px solid var(--primary-color, #3B82F6);
+    opacity: 0.85; /* Softens the border slightly */
 }
 
 .active-trips-badge svg {
-    color: #4f46e5;
+    color: var(--primary-color, #3B82F6);
     flex-shrink: 0;
 }
 
 .active-trips-badge span {
     font-size: 13.5px;
     font-weight: 700;
-    color: #4f46e5;
+    color: var(--primary-color, #3B82F6);
     white-space: nowrap;
 }
 

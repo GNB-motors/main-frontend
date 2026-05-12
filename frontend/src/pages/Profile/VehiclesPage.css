@@ -99,8 +99,8 @@
 
 .vehicle-form-group input:focus {
     outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px rgba(41, 64, 211, 0.1);
+    border-color: var(--primary-color, #3B82F6);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05); /* Neutral shadow */
 }
 
 .vehicle-form-group input:disabled {
@@ -156,12 +156,12 @@
 }
 
 .vehicle-btn-primary {
-    background-color: var(--color-primary-500);
+    background-color: var(--primary-color, #3B82F6);
     color: white;
 }
 
 .vehicle-btn-primary:hover:not(:disabled) {
-    background-color: var(--color-primary-600);
+    background-color: var(--primary-dark, #1d30b5);
 }
 
 /* Vehicle Badge Styles */
@@ -705,10 +705,10 @@
     padding-right: 24px;
     padding-top: 10px;
     padding-bottom: 10px;
-    background: var(--action-primary-background-color-action-background-primary-default, #2A4FD6);
-    box-shadow: 0px 2px 0px #213EA7;
+    background: var(--primary-color, #3B82F6);
+    box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
     border-radius: 8px;
-    outline: 1px var(--action-primary-border-color-action-border-primary-default, #213EA7) solid;
+    outline: 1px var(--primary-dark, #1d30b5) solid;
     outline-offset: -1px;
     justify-content: center;
     align-items: center;
@@ -736,13 +736,13 @@
 }
 
 .vehicles-add-btn:hover {
-    background-color: #213EA7;
+    background-color: var(--primary-dark, #1d30b5);
     filter: none;
 }
 
 .vehicles-add-btn:active {
     transform: translateY(1px);
-    box-shadow: 0px 1px 0px #213EA7;
+    box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5);
 }
 
 .vehicles-add-btn:disabled {
@@ -1008,7 +1008,7 @@
 }
 
 .vehicles-page-number-current {
-    background: var(--action-primary-background-color-action-background-primary-default, #2A4FD6);
+    background: var(--primary-color, #3B82F6);
     cursor: default;
 }
 

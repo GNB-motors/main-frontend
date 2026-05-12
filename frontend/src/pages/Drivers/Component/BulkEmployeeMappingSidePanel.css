@@ -1,5 +1,3 @@
-
-
 .bem-sidepanel-overlay {
     position: fixed;
     top: 0;
@@ -223,7 +221,7 @@
 }
 
 .bem-btn-primary {
-    background-color: #4f46e5;
+    background-color: var(--primary-color, #4f46e5);
     color: white;
 }
 
@@ -288,7 +286,7 @@
 }
 
 .bem-btn-primary {
-  background-color: #4f46e5;
+  background-color: var(--primary-color, #4f46e5);
   color: white;
   padding: 10px 16px;
   border-radius: 8px;

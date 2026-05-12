@@ -22,11 +22,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
         updateTheme();
 
-        // Listen for storage changes (when profile color is updated)
-        window.addEventListener('storage', updateTheme);
+        // Fix: window 'storage' event only fires in OTHER tabs, never the same tab.
+        // Using a CustomEvent 'themeColorChange' which fires in the same tab correctly.
+        window.addEventListener('themeColorChange', updateTheme);
 
         return () => {
-            window.removeEventListener('storage', updateTheme);
+            window.removeEventListener('themeColorChange', updateTheme);
         };
     }, []);
 

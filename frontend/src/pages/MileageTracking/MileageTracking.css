@@ -72,7 +72,7 @@
 }
 
 .mileage-listing-container .search-bar:focus-within {
-  border-color: #2563eb;
+  border-color: var(--primary-color, #3B82F6);
   background: white;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
@@ -95,10 +95,10 @@
   height: 44px;
   min-width: 112px;
   padding: 10px 24px;
-  background: #2A4FD6;
-  box-shadow: 0px 2px 0px #213EA7;
+  background: var(--primary-color, #3B82F6);
+  box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
   border-radius: 8px;
-  outline: 1px #213EA7 solid;
+  outline: 1px var(--primary-dark, #1d30b5) solid;
   outline-offset: -1px;
   justify-content: center;
   align-items: center;
@@ -114,12 +114,12 @@
 }
 
 .log-fuel-btn:hover {
-  background-color: #213EA7;
+  background-color: var(--primary-dark, #1d30b5);
 }
 
 .log-fuel-btn:active {
   transform: translateY(1px);
-  box-shadow: 0px 1px 0px #213EA7;
+  box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5);
 }
 
 .log-fuel-btn svg {
@@ -200,10 +200,10 @@
   align-items: center;
   gap: 4px;
   padding: 5px 16px;
-  border: 1.5px solid #1a73e8;
+  border: 1.5px solid var(--primary-color, #3B82F6);
   border-radius: 20px;
   background: white;
-  color: #1a73e8;
+  color: var(--primary-color, #3B82F6);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -351,7 +351,7 @@
   background: #eff6ff;
   border: 1.5px solid #bfdbfe;
   border-radius: 999px;
-  color: #2563eb;
+  color: var(--primary-color, #3B82F6);
   font-size: 13px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -424,7 +424,7 @@
 .mileage-form-group input:focus,
 .mileage-form-group select:focus {
   outline: none;
-  border-color: #2A4FD6;
+  border-color: var(--primary-color, #3B82F6);
   box-shadow: 0 0 0 3px rgba(42, 79, 214, 0.1);
 }
 
@@ -458,7 +458,7 @@
 }
 
 .dropdown-button:hover { border-color: #9ca3af; }
-.dropdown-button:focus { outline: none; border-color: #2A4FD6; box-shadow: 0 0 0 3px rgba(42, 79, 214, 0.1); }
+.dropdown-button:focus { outline: none; border-color: var(--primary-color, #3B82F6); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
 .dropdown-button.disabled { opacity: 0.5; cursor: not-allowed; }
 .dropdown-button span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-button svg { transition: transform 0.2s ease; color: #9ca3af; flex-shrink: 0; width: 16px; height: 16px; }
@@ -502,7 +502,7 @@
 }
 
 .dropdown-item:hover { background: #f8fafc; }
-.dropdown-item.selected { background: #eff6ff; border-left: 3px solid #2A4FD6; padding-left: 11px; }
+.dropdown-item.selected { background: #eff6ff; border-left: 3px solid var(--primary-color, #3B82F6); padding-left: 11px; }
 
 .item-main { font-size: 14px; font-weight: 600; color: #121214; margin-bottom: 2px; }
 .item-sub { font-size: 12px; color: #64748b; }
@@ -556,10 +556,10 @@
 
 .slot-dropzone:hover,
 .slot-dropzone.dragging {
-  background-image: repeating-linear-gradient(90deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(90deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px);
+  background-image: repeating-linear-gradient(90deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
+                    repeating-linear-gradient(180deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
+                    repeating-linear-gradient(90deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
+                    repeating-linear-gradient(180deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px);
   animation: border-march 0.5s linear infinite;
 }
 
@@ -585,12 +585,12 @@
 .slot-icon-wrapper { margin-bottom: 12px; transition: transform 0.25s ease; }
 .slot-dropzone:hover .slot-icon-wrapper { transform: translateY(-4px); }
 .slot-dropzone-title { font-size: 14px; font-weight: 500; color: #121214; margin: 0 0 4px 0; }
-.slot-highlight { color: #2A4FD6; font-weight: 600; }
+.slot-highlight { color: var(--primary-color, #3B82F6); font-weight: 600; }
 .slot-dropzone-sub { font-size: 13px; color: #5D5D5E; margin: 0; }
-.slot-browse-link { color: #2A4FD6; font-weight: 500; text-decoration: underline; text-decoration-style: dotted; cursor: pointer; }
+.slot-browse-link { color: var(--primary-color, #3B82F6); font-weight: 500; text-decoration: underline; text-decoration-style: dotted; cursor: pointer; }
 .slot-dropzone-drag-icon { font-size: 32px; margin-bottom: 10px; animation: mt-float 0.7s ease infinite alternate; }
 @keyframes mt-float { from { transform: translateY(0); } to { transform: translateY(-6px); } }
-.slot-dropzone-drag-text { font-size: 16px; font-weight: 700; color: #2A4FD6; margin: 0; }
+.slot-dropzone-drag-text { font-size: 16px; font-weight: 700; color: var(--primary-color, #3B82F6); margin: 0; }
 
 .slot-filled-container { display: flex; flex-direction: column; }
 .slot-image-wrapper { position: relative; height: 192px; background-color: #0f172a; overflow: hidden; }
@@ -633,15 +633,15 @@
 }
 
 .mileage-btn-primary {
-  background: #2A4FD6;
+  background: var(--primary-color, #3B82F6);
   color: #F8F8FB;
-  box-shadow: 0px 2px 0px #213EA7;
-  outline: 1px #213EA7 solid;
+  box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
+  outline: 1px var(--primary-dark, #1d30b5) solid;
   outline-offset: -1px;
 }
 
-.mileage-btn-primary:hover:not(:disabled) { background: #213EA7; }
-.mileage-btn-primary:active:not(:disabled) { transform: translateY(1px); box-shadow: 0px 1px 0px #213EA7; }
+.mileage-btn-primary:hover:not(:disabled) { background: var(--primary-dark, #1d30b5); }
+.mileage-btn-primary:active:not(:disabled) { transform: translateY(1px); box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5); }
 .mileage-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; background: #9ca3af; box-shadow: none; outline-color: #9ca3af; }
 
 .mileage-btn-secondary {
@@ -663,7 +663,6 @@
   .mileage-form-header { padding: 16px; }
   .mileage-form-content { padding: 16px 16px 48px; }
 }
-
 
 /* ═══════════════════════════════════════════
    MILEAGE INTERVAL DETAIL PAGE (mid-)
