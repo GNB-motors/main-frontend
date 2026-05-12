@@ -128,6 +128,7 @@
 .fc-kpi-pending .fc-kpi-icon-wrap { background: #eff6ff; color: #3b82f6; }
 .fc-kpi-success .fc-kpi-icon-wrap { background: #f0fdf4; color: #22c55e; }
 .fc-kpi-warning .fc-kpi-icon-wrap { background: #fffbeb; color: #f59e0b; }
+.fc-kpi-nodata  .fc-kpi-icon-wrap { background: #f8fafc; color: #94a3b8; }
 
 .fc-kpi-label {
   display: block;
@@ -455,3 +456,91 @@
 
 /* ── Odometer mismatch row highlight ─────────── */
 tr:has(.MuiChip-colorError) { background: #fff7f7; }
+
+/* ── FleetEdge connectivity bar ────────────────── */
+.fc-connectivity-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  font-size: 12px;
+  color: #166534;
+  margin-bottom: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fc-connectivity-bar.fc-conn-degraded {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.fc-conn-left, .fc-conn-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fc-conn-label { font-weight: 600; }
+.fc-conn-chip {
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.fc-conn-ok      { background: #dcfce7; color: #166534; }
+.fc-conn-warn    { background: #fef3c7; color: #92400e; }
+.fc-conn-pulling { background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; gap: 4px; }
+.fc-conn-meta    { color: inherit; opacity: 0.75; }
+
+/* ── Reauth banner ───────────────────────────────── */
+.fc-reauth-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  color: #78350f;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+/* ── Secondary button (Pull Now) ─────────────────── */
+.fc-btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fc-btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+.fc-btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Reauth error item in live errors widget ──────── */
+.fc-error-reauth {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  padding: 5px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #78350f;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+/* ── Spinner animation ───────────────────────────── */
+@keyframes fc-spin { to { transform: rotate(360deg); } }
+.fc-spin { animation: fc-spin 1s linear infinite; display: inline-block; will-change: transform; }
