@@ -105,7 +105,7 @@
 .nav-link.active {
     /* Use a light primary background and primary-color text to match other sidebars */
     background-color:  #dbeafe !important;
-    color:  #2563eb !important;
+    color: var(--primary-color, #4f46e5);
 }
 
 .sidebar-footer {
@@ -269,7 +269,7 @@
     /* Use the same fixed active styling as .nav-link.active so Vehicle Activity
        does not inherit profile primary color. */
     background-color: #dbeafe !important;
-    color: #2563eb !important;
+    color: var(--primary-color, #4f46e5);
 }
 
 .chevron-icon {

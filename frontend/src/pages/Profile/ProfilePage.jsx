@@ -206,6 +206,8 @@ const ProfilePage = () => {
                     localStorage.setItem('profile_id', user.id);
                     localStorage.setItem('profile_owner_email', user.email);
                     localStorage.setItem('primaryThemeColor', user.primaryThemeColor || '#2940d3');
+                    // Dispatch so Sidebar/Navbar re-render with the loaded colour in the same tab
+                    window.dispatchEvent(new CustomEvent('themeColorChange'));
                 }
                 if (organization) {
                     localStorage.setItem('profile_company_name', organization.companyName);

@@ -171,7 +171,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
   };
 
   const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
+    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color,#4f46e5)] focus:border-[var(--primary-color,#4f46e5)]';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -310,7 +310,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50" style={{backgroundColor: "var(--primary-color, #4f46e5)"}}
             >
               {saving ? 'Saving...' : editingExpense ? 'Update' : 'Add Expense'}
             </button>
@@ -452,7 +452,7 @@ const KhataLedgerPage = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-            <BookOpen size={24} className="text-blue-600" />
+            <BookOpen size={24} style={{color: "var(--primary-color, #4f46e5)"}} />
             Khata Ledger
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -464,7 +464,7 @@ const KhataLedgerPage = () => {
             setEditingExpense(null);
             setModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm" style={{backgroundColor: "var(--primary-color, #4f46e5)"}}
         >
           <Plus size={18} />
           Add Expense
@@ -475,7 +475,7 @@ const KhataLedgerPage = () => {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{backgroundColor: "var(--primary-light, #eef2ff)", color: "var(--primary-color, #4f46e5)"}}>
               <IndianRupee size={22} />
             </div>
             <div>
@@ -539,7 +539,7 @@ const KhataLedgerPage = () => {
             <div className="relative flex-1" style={{ minWidth: 200 }}>
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
-                className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none" style={{outline: "none"}}
                 placeholder="Search by title..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -552,7 +552,7 @@ const KhataLedgerPage = () => {
                 type="checkbox"
                 checked={includeTripExpenses}
                 onChange={(e) => setIncludeTripExpenses(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                className="h-4 w-4 rounded border-gray-300" style={{accentColor: "var(--primary-color, #4f46e5)"}}
               />
               Include Trip Expenses
             </label>
@@ -560,7 +560,7 @@ const KhataLedgerPage = () => {
             {/* Filter toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm ${showFilters ? 'border-blue-500 bg-blue-50 text-blue-700' : 'text-gray-600'}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm ${showFilters ? 'border-primary-active' : 'text-gray-600'}`}
             >
               <Filter size={16} />
               Filters
@@ -638,7 +638,7 @@ const KhataLedgerPage = () => {
                   setEditingExpense(null);
                   setModalOpen(true);
                 }}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-white" style={{backgroundColor: "var(--primary-color, #4f46e5)"}}
               >
                 Add your first expense
               </button>
@@ -714,7 +714,7 @@ const KhataLedgerPage = () => {
                         <div className="flex justify-end gap-1">
                           <button
                             onClick={() => openEdit(exp)}
-                            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600"
+                            className="rounded p-1.5 text-gray-500 hover:bg-gray-100" style={{transition: "color 0.2s"}}
                             title="Edit"
                           >
                             <Edit2 size={15} />

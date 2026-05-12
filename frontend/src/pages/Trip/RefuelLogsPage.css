@@ -39,9 +39,9 @@
 
 
 .refuel-tab.active {
-  background-color: #1a73e8;
+  background-color: var(--primary-color, var(--primary-color, #4f46e5));
   color: #ffffff;
-  border-color: #1a73e8;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
 }
 
@@ -77,7 +77,7 @@
 }
 
 .refuel-search:focus-within {
-  border-color: #1a73e8;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
 }
 
@@ -96,8 +96,8 @@
 }
 
 .refuel-icon-btn:hover {
-  border-color: #1a73e8;
-  color: #1a73e8;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
+  color: var(--primary-color, var(--primary-color, #4f46e5));
 }
 
 .add-refuel-btn {
@@ -108,7 +108,7 @@
   height: 42px;
   border-radius: 10px;
   border: none;
-  background: #1a73e8;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
@@ -193,7 +193,7 @@
 
 .fuel-type-pill.diesel {
   background: rgba(26, 115, 232, 0.12);
-  color: #1a73e8;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
 }
 
 .fuel-type-pill.adblue {

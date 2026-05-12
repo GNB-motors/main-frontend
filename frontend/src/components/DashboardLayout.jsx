@@ -3,18 +3,27 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
+import { applyThemeToRoot } from '../utils/colorTheme.js';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
-    // Set sidebar to be open by default on desktop screens.
     const [isSidebarOpen, setSidebarOpen] = React.useState(true);
 
-    // Debug logging
+    React.useEffect(() => {
+        // Set all CSS tokens on :root immediately — covers page refresh & login redirect.
+        // This updates --primary-color, --primary-light, --primary-dark,
+        // --color-primary-500/600/100, and Shadcn's --primary (oklch).
+        applyThemeToRoot();
+
+        // Re-apply on any colour change (login, profile page, onboarding finish).
+        // CustomEvent fires in the same tab — window 'storage' event does NOT.
+        window.addEventListener('themeColorChange', applyThemeToRoot);
+        return () => window.removeEventListener('themeColorChange', applyThemeToRoot);
+    }, []);
 
     return (
         <div className="dashboard-layout">
             <Sidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
-            
             <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
                 <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
                 <div className="page-content">

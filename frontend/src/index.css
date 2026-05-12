@@ -340,3 +340,9 @@ body {
     body { @apply bg-background text-foreground; }
     html { @apply font-sans; }
 }
+/* ── Utility: theme-aware active filter border (KhataLedger filter btn) ── */
+.border-primary-active {
+  border-color: var(--primary-color, #4f46e5);
+  background-color: color-mix(in srgb, var(--primary-color, #4f46e5) 10%, transparent);
+  color: var(--primary-color, #4f46e5);
+}

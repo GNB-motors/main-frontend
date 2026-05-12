@@ -13,8 +13,12 @@ export const storeProfileData = (profileData) => {
         if (profileData.ownerEmail) localStorage.setItem('profile_owner_email', profileData.ownerEmail);
         if (profileData.companyName) localStorage.setItem('profile_company_name', profileData.companyName);
         if (profileData.gstin) localStorage.setItem('profile_gstin', profileData.gstin);
-        if (profileData.primaryThemeColor) localStorage.setItem('primaryThemeColor', profileData.primaryThemeColor);
-        console.log('Profile data stored in localStorage:', profileData);
+        if (profileData.primaryThemeColor) {
+            localStorage.setItem('primaryThemeColor', profileData.primaryThemeColor);
+            // Dispatch custom event so Sidebar/Navbar re-render in the same tab.
+            // window 'storage' event does NOT fire in the same tab — CustomEvent does.
+            window.dispatchEvent(new CustomEvent('themeColorChange'));
+        }
     } catch (error) {
         console.error('Failed to store profile data in localStorage:', error);
     }

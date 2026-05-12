@@ -113,7 +113,11 @@ const OnboardingPage = () => {
                     // Mark onboarding completed locally
                     localStorage.setItem('onboardingCompleted', 'true');
                     if (onboardingData.primaryThemeColor) {
-                        localStorage.setItem('user_primaryThemeColor', onboardingData.primaryThemeColor);
+                        // Fix: was 'user_primaryThemeColor' — wrong key, colorTheme.js reads 'primaryThemeColor'
+                        localStorage.setItem('primaryThemeColor', onboardingData.primaryThemeColor);
+                        // Fix: dispatch custom event so same-tab listeners (Sidebar, Navbar) re-render
+                        // window.storage event does NOT fire in the same tab — CustomEvent does
+                        window.dispatchEvent(new CustomEvent('themeColorChange'));
                     }
 
                     setShowLaunch(true);
