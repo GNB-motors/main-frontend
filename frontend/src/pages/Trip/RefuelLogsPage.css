@@ -202,10 +202,58 @@
 }
 
 .refuel-empty-state {
-  padding: 40px 20px;
+  padding: 60px 20px;
   text-align: center;
   font-size: 15px;
   color: #5d5d5e;
+}
+
+.refuel-empty-state-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.refuel-empty-state-inner p {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.refuel-empty-subtext {
+  font-size: 14px !important;
+  color: #9ca3af !important;
+  margin-top: 0 !important;
+}
+
+.refuel-empty-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 10px 22px;
+  background: var(--primary-color, #3B82F6);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);
+}
+
+.refuel-empty-action-btn:hover {
+  background: var(--primary-dark, #1d30b5);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+  transform: translateY(-1px);
+}
+
+.refuel-empty-action-btn:active {
+  transform: translateY(0);
 }
 
 @media (max-width: 992px) {

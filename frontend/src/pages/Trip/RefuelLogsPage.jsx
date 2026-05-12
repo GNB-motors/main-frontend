@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, FileText, PlusCircle } from 'lucide-react';
 import '../PageStyles.css';
 import './RefuelLogsPage.css';
 import apiClient from '../../utils/axiosConfig';
@@ -74,6 +75,7 @@ const formatCurrency = (value) => {
 };
 
 const RefuelLogsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [logs, setLogs] = useState([]);
@@ -205,7 +207,20 @@ const RefuelLogsPage = () => {
             ) : filteredLogs.length === 0 ? (
               <tr>
                 <td colSpan={10} className="refuel-empty-state">
-                  No refuel logs found. Try adjusting your filters or add a new refuel entry.
+                  <div className="refuel-empty-state-inner">
+                    <FileText size={48} color="#9ca3af" />
+                    <p>No refuel logs found</p>
+                    {(searchTerm || activeTab !== 'all') ? (
+                      <p className="refuel-empty-subtext">Try adjusting your search</p>
+                    ) : (
+                      <button
+                        className="refuel-empty-action-btn"
+                        onClick={() => navigate('/mileage-tracking/new')}
+                      >
+                        <PlusCircle size={18} /> Add Refuel Log
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (
