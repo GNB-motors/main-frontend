@@ -411,19 +411,117 @@ const TripLedgerReport = () => {
                         </Select>
                     </div>
 
-                    <div className="date-input-group profit-range-filter">
-                        <label>Profit Range</label>
-                        <Box sx={{ width: 180, px: 1 }}>
-                            <Slider
-                                value={profitRange}
-                                onChange={(e, newValue) => setProfitRange(newValue)}
-                                valueLabelDisplay="auto"
-                                valueLabelFormat={(value) => `₹${(value / 1000).toFixed(0)}K`}
-                                min={minProfit}
-                                max={maxProfit}
-                                size="small"
-                            />
-                        </Box>
+                    <div className="date-input-group profit-range-filter" style={{ flex: '1 1 180px', minWidth: '180px', maxWidth: '280px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <label style={{ margin: 0, fontWeight: 600, color: 'var(--color-grey-700)', fontSize: '12px' }}>
+                                Profit Range
+                            </label>
+                            {/* Micro-Pills with reduced gaps for smaller screens */}
+                            <div style={{ display: 'flex', gap: '2px' }}>
+                                <button
+                                    onClick={() => setProfitRange([-1000000, -1])}
+                                    style={{ padding: '2px 5px', fontSize: '10px', fontWeight: 600, borderRadius: '4px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}
+                                    title="Loss Making"
+                                >
+                                    L
+                                </button>
+                                <button
+                                    onClick={() => setProfitRange([1, 10000000])}
+                                    style={{ padding: '2px 5px', fontSize: '10px', fontWeight: 600, borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', color: '#16a34a', cursor: 'pointer' }}
+                                    title="Profitable"
+                                >
+                                    P
+                                </button>
+                                <button
+                                    onClick={() => setProfitRange([minProfit, maxProfit])}
+                                    style={{ padding: '2px 5px', fontSize: '10px', fontWeight: 600, borderRadius: '4px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'pointer' }}
+                                    title="Reset"
+                                >
+                                    ↺
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {/* Super Compact Inputs */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                {/* Added minWidth: 0 to allow the input wrapper to shrink properly */}
+                                <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                                    <span style={{ position: 'absolute', left: '4px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '11px', fontWeight: 500 }}>₹</span>
+                                    <input
+                                        type="number"
+                                        value={profitRange[0]}
+                                        onChange={(e) => setProfitRange([Number(e.target.value), profitRange[1]])}
+                                        style={{ 
+                                            width: '100%', padding: '4px 2px 4px 14px', borderRadius: '4px', 
+                                            border: '1px solid #e2e8f0', fontSize: '11px', outline: 'none',
+                                            backgroundColor: 'var(--color-white)', color: 'var(--color-grey-800)',
+                                            height: '26px'
+                                        }}
+                                        onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                                    />
+                                </div>
+                                <span style={{ color: '#94a3b8', fontSize: '10px' }}>-</span>
+                                <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+                                    <span style={{ position: 'absolute', left: '4px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '11px', fontWeight: 500 }}>₹</span>
+                                    <input
+                                        type="number"
+                                        value={profitRange[1]}
+                                        onChange={(e) => setProfitRange([profitRange[0], Number(e.target.value)])}
+                                        style={{ 
+                                            width: '100%', padding: '4px 2px 4px 14px', borderRadius: '4px', 
+                                            border: '1px solid #e2e8f0', fontSize: '11px', outline: 'none',
+                                            backgroundColor: 'var(--color-white)', color: 'var(--color-grey-800)',
+                                            height: '26px'
+                                        }}
+                                        onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Ultra-thin Slider */}
+                            <Box sx={{ width: '100%', px: 0.5 }}>
+                                <Slider
+                                    value={profitRange}
+                                    onChange={(e, newValue) => setProfitRange(newValue)}
+                                    valueLabelDisplay="auto"
+                                    valueLabelFormat={(value) => `₹${(value / 1000).toFixed(0)}K`}
+                                    min={minProfit}
+                                    max={maxProfit}
+                                    disableSwap
+                                    sx={{
+                                        color: 'var(--primary-color)',
+                                        height: 4, // Thinner track
+                                        padding: '10px 0', // Reduce vertical padding
+                                        '& .MuiSlider-track': { border: 'none', borderRadius: '4px' },
+                                        '& .MuiSlider-rail': { opacity: 0.5, backgroundColor: '#cbd5e1' },
+                                        '& .MuiSlider-thumb': {
+                                            height: 14, // Smaller thumbs
+                                            width: 14,
+                                            backgroundColor: '#fff',
+                                            border: '2px solid currentColor',
+                                            '&:focus, &:hover, &.Mui-active, &.Mui-focusVisible': {
+                                                boxShadow: '0px 0px 0px 6px rgba(37, 99, 235, 0.16)',
+                                            },
+                                            '&::before': { display: 'none' },
+                                        },
+                                        '& .MuiSlider-valueLabel': {
+                                            lineHeight: 1.2, fontSize: 11, background: 'unset', padding: 0,
+                                            width: 28, height: 28, borderRadius: '50% 50% 50% 0',
+                                            backgroundColor: 'var(--primary-color)', transformOrigin: 'bottom left',
+                                            transform: 'translate(50%, -100%) rotate(-45deg) scale(0)',
+                                            '&::before': { display: 'none' },
+                                            '&.MuiSlider-valueLabelOpen': {
+                                                transform: 'translate(50%, -100%) rotate(-45deg) scale(1)',
+                                            },
+                                            '& > *': { transform: 'rotate(45deg)' },
+                                        },
+                                    }}
+                                />
+                            </Box>
+                        </div>
                     </div>
                 </div>
             </div>
