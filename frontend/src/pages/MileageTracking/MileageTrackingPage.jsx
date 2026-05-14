@@ -1,3 +1,4 @@
+import { formatDateIST } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -91,10 +92,7 @@ const MileageTrackingPage = () => {
 
   const getFeStatusLabel = (feStatus) => (FE_STATUS_BADGE[feStatus] || FE_STATUS_BADGE.PENDING).label;
 
-  const formatDate = (d) => {
-    if (!d) return '-';
-    return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  };
+  const formatDate = (d) => formatDateIST(d);
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
