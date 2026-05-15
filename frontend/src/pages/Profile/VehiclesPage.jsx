@@ -1,3 +1,4 @@
+import ReactDOM from 'react-dom';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -67,6 +68,127 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
 
 
 // --- Vehicles Page Component ---
+
+/**
+ * VehicleActionMenu
+ * Stateless wrapper that owns the triggerRef for the PortalDropdown.
+ * Keeps the portal trigger and its ref co-located.
+ */
+function VehicleActionMenu({ vehicle, isOpen, onToggle, onClose, isSubmitting, onEdit, onDelete }) {
+    const btnRef = React.useRef(null);
+
+    return (
+        <div className="vehicle-action-menu-container">
+            <button
+                ref={btnRef}
+                className="vehicle-actions-menu-btn"
+                onClick={onToggle}
+                disabled={isSubmitting}
+                title="Actions"
+            >
+                <MoreHorizontal size={18} />
+            </button>
+            <PortalDropdown triggerRef={btnRef} isOpen={isOpen} onClose={onClose}>
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onClose();
+                        onEdit();
+                    }}
+                    disabled={isSubmitting}
+                >
+                    <Edit size={16} /> Edit
+                </button>
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onClose();
+                        onDelete();
+                    }}
+                    disabled={isSubmitting}
+                >
+                    <Trash2 size={16} /> Remove
+                </button>
+            </PortalDropdown>
+        </div>
+    );
+}
+
+
+/**
+ * PortalDropdown
+ * Renders the actions menu via ReactDOM.createPortal into document.body.
+ *
+ * WHY: The vehicles table uses `overflow-y: auto` on tbody and `overflow: hidden`
+ * on td. Any position:absolute child is clipped to those scroll containers
+ * regardless of z-index. Portaling to body bypasses all overflow constraints.
+ *
+ * The menu is positioned by reading the trigger button's getBoundingClientRect()
+ * and converting to fixed-position coordinates.
+ */
+function PortalDropdown({ triggerRef, isOpen, onClose, children }) {
+    const [coords, setCoords] = React.useState({ top: 0, left: 0 });
+
+    React.useEffect(() => {
+        if (!isOpen || !triggerRef.current) return;
+
+        const updatePosition = () => {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setCoords({
+                top: rect.bottom + window.scrollY + 4,   // 4px gap below button
+                left: rect.right + window.scrollX,       // right-align to button edge
+            });
+        };
+
+        updatePosition();
+
+        // Reposition on scroll or resize so it doesn't detach
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
+    }, [isOpen, triggerRef]);
+
+    // Close when clicking outside
+    React.useEffect(() => {
+        if (!isOpen) return;
+        const handleOutside = (e) => {
+            if (triggerRef.current && !triggerRef.current.contains(e.target)) {
+                onClose();
+            }
+        };
+        document.addEventListener('mousedown', handleOutside);
+        return () => document.removeEventListener('mousedown', handleOutside);
+    }, [isOpen, onClose, triggerRef]);
+
+    if (!isOpen) return null;
+
+    return ReactDOM.createPortal(
+        <div
+            className="vehicle-actions-menu"
+            style={{
+                position: 'absolute',
+                top: coords.top,
+                left: coords.left,
+                transform: 'translateX(-100%)', // right-align: shift left by own width
+                zIndex: 99999,
+                margin: 0,
+            }}
+            // Stop clicks inside the menu from bubbling to document (closing it)
+            onMouseDown={(e) => e.stopPropagation()}
+        >
+            {children}
+        </div>,
+        document.body
+    );
+}
+
 const VehiclesPage = () => {
     const navigate = useNavigate();
     // Try to read business ref id from localStorage as a fallback when profile context is absent
@@ -533,47 +655,23 @@ const VehiclesPage = () => {
                                                             )}
                                                         </td>
                                                         <td style={{ textAlign: 'center' }}>
-                                                            <div className="vehicle-action-menu-container" style={{ position: 'relative' }}>
-                                                                <button
-                                                                    className="vehicle-actions-menu-btn"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
-                                                                    }}
-                                                                    disabled={isSubmitting}
-                                                                    title="Actions"
-                                                                >
-                                                                    <MoreHorizontal size={18} />
-                                                                </button>
-                                                                {openMenuId === vehicle.id && (
-                                                                    <div className="vehicle-actions-menu">
-                                                                        <button 
-                                                                            type="button"
-                                                                            onClick={(e) => {
-                                                                                e.preventDefault();
-                                                                                e.stopPropagation();
-                                                                                setOpenMenuId(null);
-                                                                                navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
-                                                                            }} 
-                                                                            disabled={isSubmitting}
-                                                                        >
-                                                                            <Edit size={16} /> Edit
-                                                                        </button>
-                                                                        <button 
-                                                                            type="button"
-                                                                            onClick={(e) => {
-                                                                                e.preventDefault();
-                                                                                e.stopPropagation();
-                                                                                console.log('Delete clicked for vehicle:', vehicle);
-                                                                                handleOpenDeleteModal(vehicle);
-                                                                            }} 
-                                                                            disabled={isSubmitting}
-                                                                        >
-                                                                            <Trash2 size={16} /> Remove
-                                                                        </button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            <VehicleActionMenu
+                                                                vehicle={vehicle}
+                                                                isOpen={openMenuId === vehicle.id}
+                                                                onToggle={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
+                                                                }}
+                                                                onClose={() => setOpenMenuId(null)}
+                                                                isSubmitting={isSubmitting}
+                                                                onEdit={() => {
+                                                                    setOpenMenuId(null);
+                                                                    navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
+                                                                }}
+                                                                onDelete={() => {
+                                                                    handleOpenDeleteModal(vehicle);
+                                                                }}
+                                                            />
                                                         </td>
                                                     </tr>
                                                 ))}
