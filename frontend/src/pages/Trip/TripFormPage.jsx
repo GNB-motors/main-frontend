@@ -711,9 +711,9 @@ const TripFormPage = () => {
       // Use manual odometer input if no document is uploaded, otherwise use OCR data
       let odometerReading = undefined;
       if (showManualOdometer && manualOdometerStart) {
-        odometerReading = parseInt(manualOdometerStart);
+        odometerReading = parseFloat(manualOdometerStart);
       } else if (startDocs.odometerStart?.ocrData?.reading) {
-        odometerReading = parseInt(startDocs.odometerStart.ocrData.reading);
+        odometerReading = parseFloat(startDocs.odometerStart.ocrData.reading);
       }
 
       // Use manual payload if no slip ID toggle is on, otherwise use form payload or OCR data
@@ -758,9 +758,9 @@ const TripFormPage = () => {
     // Get end odometer from manual input or document
     let endOdometerReading = undefined;
     if (showManualOdometerEnd && manualOdometerEnd) {
-      endOdometerReading = parseInt(manualOdometerEnd);
+      endOdometerReading = parseFloat(manualOdometerEnd);
     } else if (endDocs.odometerEnd?.ocrData?.reading) {
-      endOdometerReading = parseInt(endDocs.odometerEnd.ocrData.reading);
+      endOdometerReading = parseFloat(endDocs.odometerEnd.ocrData.reading);
     }
 
     if (!endOdometerReading) {
@@ -780,9 +780,9 @@ const TripFormPage = () => {
     // Get end odometer from manual input or document
     let endOdometerReading = undefined;
     if (showManualOdometerEnd && manualOdometerEnd) {
-      endOdometerReading = parseInt(manualOdometerEnd);
+      endOdometerReading = parseFloat(manualOdometerEnd);
     } else if (endDocs.odometerEnd?.ocrData?.reading) {
-      endOdometerReading = parseInt(endDocs.odometerEnd.ocrData.reading);
+      endOdometerReading = parseFloat(endDocs.odometerEnd.ocrData.reading);
     }
 
     if (!endOdometerReading) {
@@ -816,9 +816,9 @@ const TripFormPage = () => {
         // Get start odometer
         let startOdometerReading = undefined;
         if (showManualOdometer && manualOdometerStart) {
-          startOdometerReading = parseInt(manualOdometerStart);
+          startOdometerReading = parseFloat(manualOdometerStart);
         } else if (startDocs.odometerStart?.ocrData?.reading) {
-          startOdometerReading = parseInt(startDocs.odometerStart.ocrData.reading);
+          startOdometerReading = parseFloat(startDocs.odometerStart.ocrData.reading);
         }
 
         // Get weigh-in weight
@@ -854,9 +854,9 @@ const TripFormPage = () => {
       // Get start odometer for validation
       let startOdometerReading = undefined;
       if (manualOdometerStart) {
-        startOdometerReading = parseInt(manualOdometerStart);
+        startOdometerReading = parseFloat(manualOdometerStart);
       } else if (startDocs.odometerStart?.ocrData?.reading) {
-        startOdometerReading = parseInt(startDocs.odometerStart.ocrData.reading);
+        startOdometerReading = parseFloat(startDocs.odometerStart.ocrData.reading);
       }
 
       const endData = {
