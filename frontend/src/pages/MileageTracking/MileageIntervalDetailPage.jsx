@@ -1,3 +1,4 @@
+import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -17,18 +18,9 @@ const fmt = (v, decimals = 2, unit = '') => {
   return `${Number(v).toFixed(decimals)}${unit ? ' ' + unit : ''}`;
 };
 
-const fmtDate = (d) => {
-  if (!d) return '—';
-  return new Date(d).toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
-};
+const fmtDate = (d) => d ? formatDateTimeIST(d) : '—';
 
-const fmtDateShort = (d) => {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+const fmtDateShort = (d) => d ? formatDateIST(d) : '—';
 
 const getVarianceMeta = (pct) => {
   if (pct == null) return { color: '#6b7280', bg: '#f3f4f6', label: '—', Icon: Minus };

@@ -1,3 +1,4 @@
+import { toISTDateString, toISTTimeString, formatDateIST } from '../../utils/dateUtils';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, PlusCircle } from 'lucide-react';
@@ -11,8 +12,8 @@ const fetchRefuelLogs = async () => {
     if (response.data.status === 'success') {
       return response.data.data.map(log => ({
         id: log._id,
-        date: log.refuelTime ? new Date(log.refuelTime).toISOString().split('T')[0] : null,
-        time: log.refuelTime ? new Date(log.refuelTime).toTimeString().split(' ')[0] : null,
+        date: log.refuelTime ? toISTDateString(log.refuelTime) : null,
+        time: log.refuelTime ? toISTTimeString(log.refuelTime) : null,
         vehicleNo: log.vehicleId?.registrationNumber || '-',
         vehicleModel: log.vehicleId?.vehicleType || '-',
         driverName: (() => {
@@ -49,20 +50,7 @@ const filterTabs = [
   { id: 'adblue', label: 'AdBlue' }
 ];
 
-const formatDate = (dateStr) => {
-  if (!dateStr) {
-    return '-';
-  }
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return dateStr;
-  }
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-};
+const formatDate = (dateStr) => formatDateIST(dateStr);
 
 const formatCurrency = (value) => {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
