@@ -282,7 +282,9 @@
 
 /* Vehicle Actions Menu (Three Dots Dropdown) */
 .vehicle-action-menu-container {
-    position: relative;
+    /* position: relative removed — menu is now portaled to document.body
+       via ReactDOM.createPortal so overflow:hidden/auto parents cannot clip it */
+    display: inline-flex;
     display: inline-block;
 }
 
@@ -322,19 +324,16 @@
 }
 
 .vehicle-actions-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
+    /* position, top, right, z-index, margin-top are set via inline style
+       in the PortalDropdown component — the menu renders at document.body level */
     background-color: white;
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
     padding: 4px;
-    z-index: 9999;
     display: flex;
     flex-direction: column;
-    min-width: 140px;
+    min-width: 160px;
     border: 1px solid #ececee;
-    margin-top: 4px;
 }
 
 .vehicle-actions-menu button {
