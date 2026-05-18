@@ -1,43 +1,43 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Slider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
+    Box,
+    Typography,
+    CircularProgress,
+    Alert,
+    Slider,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField,
 } from '@mui/material';
 import {
-  ChevronRight,
-  TrendingUp,
-  Wallet,
-  Percent,
-  MapPin,
-  DollarSign,
-  Filter,
+    ChevronRight,
+    TrendingUp,
+    Wallet,
+    Percent,
+    MapPin,
+    DollarSign,
+    Filter,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from '@/components/ui/pagination';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
@@ -45,630 +45,630 @@ import { DriverService } from '../../Drivers/DriverService';
 
 // --- Summary Card Component (KPI Card from Figma) ---
 const SummaryCard = ({ icon: Icon, label, value, iconColor = '#2F58EE' }) => {
-  return (
-    <div className="trip-ledger-kpi-card">
-      <div className="trip-ledger-kpi-icon" style={{ background: `rgba(47, 88, 238, 0.10)` }}>
-        <Icon size={16} color={iconColor} />
-      </div>
-      <div className="trip-ledger-kpi-content">
-        <span className="trip-ledger-kpi-label">{label}</span>
-        <span className="trip-ledger-kpi-value">{value}</span>
-      </div>
-    </div>
-  );
+    return (
+        <div className="trip-ledger-kpi-card">
+            <div className="trip-ledger-kpi-icon" style={{ background: `rgba(47, 88, 238, 0.10)` }}>
+                <Icon size={16} color={iconColor} />
+            </div>
+            <div className="trip-ledger-kpi-content">
+                <span className="trip-ledger-kpi-label">{label}</span>
+                <span className="trip-ledger-kpi-value">{value}</span>
+            </div>
+        </div>
+    );
 };
 
 // --- Main Trip Ledger Report Component ---
 const TripLedgerReport = () => {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  // Data states
-  const [ledgerData, setLedgerData] = useState([]);
-  const [summaryData, setSummaryData] = useState(null);
-  const [employees, setEmployees] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
-  const [isLoadingLedger, setIsLoadingLedger] = useState(true);
-  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
-  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
-  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
-  const [ledgerError, setLedgerError] = useState(null);
-  const [summaryError, setSummaryError] = useState(null);
+    // Data states
+    const [ledgerData, setLedgerData] = useState([]);
+    const [summaryData, setSummaryData] = useState(null);
+    const [employees, setEmployees] = useState([]);
+    const [vehicles, setVehicles] = useState([]);
+    const [isLoadingLedger, setIsLoadingLedger] = useState(true);
+    const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+    const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
+    const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+    const [ledgerError, setLedgerError] = useState(null);
+    const [summaryError, setSummaryError] = useState(null);
 
-  // Filter states
-  const [selectedDriver, setSelectedDriver] = useState('all');
-  const [selectedVehicle, setSelectedVehicle] = useState('all');
-  const [selectedRoute, setSelectedRoute] = useState('all');
-  
-  // Profit Range & Modal States
-  const [profitRange, setProfitRange] = useState([-1000000, 10000000]);
-  const [minProfit, setMinProfit] = useState(-1000000);
-  const [maxProfit, setMaxProfit] = useState(10000000);
-  const [isProfitModalOpen, setIsProfitModalOpen] = useState(false);
-  const [localProfit, setLocalProfit] = useState(['', '']);
+    // Filter states
+    const [selectedDriver, setSelectedDriver] = useState('all');
+    const [selectedVehicle, setSelectedVehicle] = useState('all');
+    const [selectedRoute, setSelectedRoute] = useState('all');
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+    // Profit Range & Modal States
+    const [profitRange, setProfitRange] = useState([-1000000, 10000000]);
+    const [minProfit, setMinProfit] = useState(-1000000);
+    const [maxProfit, setMaxProfit] = useState(10000000);
+    const [isProfitModalOpen, setIsProfitModalOpen] = useState(false);
+    const [localProfit, setLocalProfit] = useState(['', '']);
 
-  // Fetch ledger data
-  useEffect(() => {
-    const fetchLedgerData = async () => {
-      setIsLoadingLedger(true);
-      setLedgerError(null);
-      try {
-        const data = await ReportsService.getTripLedger();
-        setLedgerData(data);
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
 
-        // Calculate profit range from data
-        if (data.length > 0) {
-          const profits = data.map((d) => d.performance?.netProfit || 0);
-          const min = Math.min(...profits);
-          const max = Math.max(...profits);
-          setMinProfit(min);
-          setMaxProfit(max);
-          setProfitRange([min, max]);
+    // Fetch ledger data
+    useEffect(() => {
+        const fetchLedgerData = async () => {
+            setIsLoadingLedger(true);
+            setLedgerError(null);
+            try {
+                const data = await ReportsService.getTripLedger();
+                setLedgerData(data);
+
+                // Calculate profit range from data
+                if (data.length > 0) {
+                    const profits = data.map((d) => d.performance?.netProfit || 0);
+                    const min = Math.min(...profits);
+                    const max = Math.max(...profits);
+                    setMinProfit(min);
+                    setMaxProfit(max);
+                    setProfitRange([min, max]);
+                }
+            } catch (err) {
+                console.error('Failed to fetch trip ledger:', err);
+                setLedgerError(err.detail || 'Could not load trip ledger data.');
+            } finally {
+                setIsLoadingLedger(false);
+            }
+        };
+
+        fetchLedgerData();
+    }, []);
+
+    // Fetch summary data
+    useEffect(() => {
+        const fetchSummaryData = async () => {
+            setIsLoadingSummary(true);
+            setSummaryError(null);
+            try {
+                const data = await ReportsService.getTripLedgerSummary();
+                setSummaryData(data);
+            } catch (err) {
+                console.error('Failed to fetch trip ledger summary:', err);
+                setSummaryError(err.detail || 'Could not load summary data.');
+            } finally {
+                setIsLoadingSummary(false);
+            }
+        };
+
+        fetchSummaryData();
+    }, []);
+
+    // Fetch employees (drivers)
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            setIsLoadingEmployees(true);
+            try {
+                const data = await DriverService.getAllDrivers(null, { limit: 100 });
+                const driverList = Array.isArray(data?.data || data) ? data?.data || data : [];
+                setEmployees(driverList);
+            } catch (err) {
+                console.error('Failed to fetch employees:', err);
+                setEmployees([]);
+            } finally {
+                setIsLoadingEmployees(false);
+            }
+        };
+
+        fetchEmployees();
+    }, []);
+
+    // Fetch vehicles
+    useEffect(() => {
+        const fetchVehicles = async () => {
+            setIsLoadingVehicles(true);
+            try {
+                const data = await DriverService.getAvailableVehicles(null);
+                setVehicles(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error('Failed to fetch vehicles:', err);
+                setVehicles([]);
+            } finally {
+                setIsLoadingVehicles(false);
+            }
+        };
+
+        fetchVehicles();
+    }, []);
+
+    // Extract unique options for filters from API data
+    const driverOptions = useMemo(() => {
+        return employees
+            .map((emp) => `${emp.firstName || ''} ${emp.lastName || ''}`.trim())
+            .filter(Boolean)
+            .sort();
+    }, [employees]);
+
+    const vehicleOptions = useMemo(() => {
+        return vehicles
+            .map((vehicle) => vehicle.registrationNumber || '')
+            .filter(Boolean)
+            .sort();
+    }, [vehicles]);
+
+    const routeOptions = useMemo(() => {
+        const routes = [...new Set(ledgerData.map((d) => d.route?.name).filter(Boolean))];
+        return routes.sort();
+    }, [ledgerData]);
+
+    // Filter data
+    const filteredData = useMemo(() => {
+        let rows = ledgerData;
+
+        if (selectedDriver && selectedDriver !== 'all') {
+            rows = rows.filter((row) => row.driver?.fullName === selectedDriver);
         }
-      } catch (err) {
-        console.error('Failed to fetch trip ledger:', err);
-        setLedgerError(err.detail || 'Could not load trip ledger data.');
-      } finally {
-        setIsLoadingLedger(false);
-      }
+        if (selectedVehicle && selectedVehicle !== 'all') {
+            rows = rows.filter((row) => row.vehicle?.registrationNumber === selectedVehicle);
+        }
+        if (selectedRoute && selectedRoute !== 'all') {
+            rows = rows.filter((row) => row.route?.name === selectedRoute);
+        }
+
+        // Filter by profit range
+        rows = rows.filter((row) => {
+            const profit = row.performance?.netProfit || 0;
+            return profit >= profitRange[0] && profit <= profitRange[1];
+        });
+
+        return rows;
+    }, [ledgerData, selectedDriver, selectedVehicle, selectedRoute, profitRange]);
+
+    // Pagination
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredData.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredData, currentPage, itemsPerPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedDriver, selectedVehicle, selectedRoute, profitRange]);
+
+    // Navigation and Formatting Helpers
+    const handleViewTripDetail = (row) => {
+        navigate(`/reports/trip/${row._id}`, { state: { trip: row } });
     };
 
-    fetchLedgerData();
-  }, []);
-
-  // Fetch summary data
-  useEffect(() => {
-    const fetchSummaryData = async () => {
-      setIsLoadingSummary(true);
-      setSummaryError(null);
-      try {
-        const data = await ReportsService.getTripLedgerSummary();
-        setSummaryData(data);
-      } catch (err) {
-        console.error('Failed to fetch trip ledger summary:', err);
-        setSummaryError(err.detail || 'Could not load summary data.');
-      } finally {
-        setIsLoadingSummary(false);
-      }
+    const formatCurrency = (value) => {
+        if (typeof value !== 'number') return '-';
+        return `₹${value.toLocaleString('en-IN')}`;
     };
 
-    fetchSummaryData();
-  }, []);
-
-  // Fetch employees (drivers)
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      setIsLoadingEmployees(true);
-      try {
-        const data = await DriverService.getAllDrivers(null, { limit: 100 });
-        const driverList = Array.isArray(data?.data || data) ? data?.data || data : [];
-        setEmployees(driverList);
-      } catch (err) {
-        console.error('Failed to fetch employees:', err);
-        setEmployees([]);
-      } finally {
-        setIsLoadingEmployees(false);
-      }
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '-';
+        return dayjs(dateStr).format('DD MMM YYYY');
     };
 
-    fetchEmployees();
-  }, []);
-
-  // Fetch vehicles
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      setIsLoadingVehicles(true);
-      try {
-        const data = await DriverService.getAvailableVehicles(null);
-        setVehicles(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Failed to fetch vehicles:', err);
-        setVehicles([]);
-      } finally {
-        setIsLoadingVehicles(false);
-      }
+    const formatWeight = (value) => {
+        if (typeof value !== 'number') return '-';
+        return `${value.toLocaleString('en-IN')} kg`;
     };
 
-    fetchVehicles();
-  }, []);
+    // Safe formatting for the profit button label (ChatGPT Fix 3)
+    const formatProfitLabel = (value) => {
+        if (value === undefined || value === null) return '';
+        if (Math.abs(value) < 1000) return `₹${value}`;
+        return `₹${(value / 1000).toFixed(1)}K`;
+    };
 
-  // Extract unique options for filters from API data
-  const driverOptions = useMemo(() => {
-    return employees
-      .map((emp) => `${emp.firstName || ''} ${emp.lastName || ''}`.trim())
-      .filter(Boolean)
-      .sort();
-  }, [employees]);
+    const renderPageItems = () => {
+        const items = [];
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+                items.push(i);
+            } else if (items[items.length - 1] !== '...') {
+                items.push('...');
+            }
+        }
+        return items;
+    };
 
-  const vehicleOptions = useMemo(() => {
-    return vehicles
-      .map((vehicle) => vehicle.registrationNumber || '')
-      .filter(Boolean)
-      .sort();
-  }, [vehicles]);
+    // Profit Modal Handlers
+    const handleOpenProfitModal = () => {
+        setLocalProfit([
+            profitRange[0] === minProfit ? '' : profitRange[0].toString(),
+            profitRange[1] === maxProfit ? '' : profitRange[1].toString(),
+        ]);
+        setIsProfitModalOpen(true);
+    };
 
-  const routeOptions = useMemo(() => {
-    const routes = [...new Set(ledgerData.map((d) => d.route?.name).filter(Boolean))];
-    return routes.sort();
-  }, [ledgerData]);
+    const handleApplyProfit = () => {
+        // ChatGPT Fix 1 & 2: Safe parsing & Clamping protection
+        let parsedMin = localProfit[0] === '' || isNaN(Number(localProfit[0])) ? minProfit : Number(localProfit[0]);
+        let parsedMax = localProfit[1] === '' || isNaN(Number(localProfit[1])) ? maxProfit : Number(localProfit[1]);
 
-  // Filter data
-  const filteredData = useMemo(() => {
-    let rows = ledgerData;
+        parsedMin = Math.max(minProfit, parsedMin);
+        parsedMax = Math.min(maxProfit, parsedMax);
 
-    if (selectedDriver && selectedDriver !== 'all') {
-      rows = rows.filter((row) => row.driver?.fullName === selectedDriver);
-    }
-    if (selectedVehicle && selectedVehicle !== 'all') {
-      rows = rows.filter((row) => row.vehicle?.registrationNumber === selectedVehicle);
-    }
-    if (selectedRoute && selectedRoute !== 'all') {
-      rows = rows.filter((row) => row.route?.name === selectedRoute);
-    }
+        if (parsedMin > parsedMax) {
+            setProfitRange([parsedMax, parsedMin]);
+        } else {
+            setProfitRange([parsedMin, parsedMax]);
+        }
+        setIsProfitModalOpen(false);
+    };
 
-    // Filter by profit range
-    rows = rows.filter((row) => {
-      const profit = row.performance?.netProfit || 0;
-      return profit >= profitRange[0] && profit <= profitRange[1];
-    });
+    const handleResetProfit = () => {
+        setProfitRange([minProfit, maxProfit]);
+        // ChatGPT Fix 4: Reset local state correctly
+        setLocalProfit(['', '']);
+        setIsProfitModalOpen(false);
+    };
 
-    return rows;
-  }, [ledgerData, selectedDriver, selectedVehicle, selectedRoute, profitRange]);
+    const handleLocalSliderChange = (event, newValue) => {
+        setLocalProfit([newValue[0].toString(), newValue[1].toString()]);
+    };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredData.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredData, currentPage, itemsPerPage]);
+    // Safe slider values for real-time rendering
+    const safeSliderMin = localProfit[0] === '' || isNaN(Number(localProfit[0])) ? minProfit : Number(localProfit[0]);
+    const safeSliderMax = localProfit[1] === '' || isNaN(Number(localProfit[1])) ? maxProfit : Number(localProfit[1]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedDriver, selectedVehicle, selectedRoute, profitRange]);
+    // Export functions
+    const handleExportCSV = () => {
+        const headers = ['Trip No', 'Date', 'Driver', 'Vehicle', 'Route', 'Net Weight (kg)', 'Revenue (₹)', 'Expense (₹)', 'Profit (₹)', 'Margin (%)'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredData.map((row) => [
+                row.tripNumber || '-',
+                row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
+                row.driver?.fullName || '-',
+                row.vehicle?.registrationNumber || '-',
+                row.route?.name || '-',
+                row.weights?.netWeight || 0,
+                row.performance?.totalRevenue || 0,
+                row.performance?.totalExpense || 0,
+                row.performance?.netProfit || 0,
+                row.performance?.profitMargin?.toFixed(2) || 0,
+            ].join(',')
+            ),
+        ].join('\n');
 
-  // Navigation and Formatting Helpers
-  const handleViewTripDetail = (row) => {
-    navigate(`/reports/trip/${row._id}`, { state: { trip: row } });
-  };
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `trip_ledger_${dayjs().format('YYYY-MM-DD')}.csv`;
+        link.click();
+    };
 
-  const formatCurrency = (value) => {
-    if (typeof value !== 'number') return '-';
-    return `₹${value.toLocaleString('en-IN')}`;
-  };
+    const handleExportExcel = () => {
+        const headers = ['Trip No', 'Date', 'Driver', 'Vehicle', 'Route', 'Net Weight (kg)', 'Revenue (₹)', 'Expense (₹)', 'Profit (₹)', 'Margin (%)'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredData.map((row) => [
+                row.tripNumber || '-',
+                row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
+                row.driver?.fullName || '-',
+                row.vehicle?.registrationNumber || '-',
+                row.route?.name || '-',
+                row.weights?.netWeight || 0,
+                row.performance?.totalRevenue || 0,
+                row.performance?.totalExpense || 0,
+                row.performance?.netProfit || 0,
+                row.performance?.profitMargin?.toFixed(2) || 0,
+            ].join(',')
+            ),
+        ].join('\n');
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    return dayjs(dateStr).format('DD MMM YYYY');
-  };
+        const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `trip_ledger_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+        link.click();
+    };
 
-  const formatWeight = (value) => {
-    if (typeof value !== 'number') return '-';
-    return `${value.toLocaleString('en-IN')} kg`;
-  };
-
-  // Safe formatting for the profit button label (ChatGPT Fix 3)
-  const formatProfitLabel = (value) => {
-    if (value === undefined || value === null) return '';
-    if (Math.abs(value) < 1000) return `₹${value}`;
-    return `₹${(value / 1000).toFixed(1)}K`;
-  };
-
-  const renderPageItems = () => {
-    const items = [];
-    for (let i = 1; i <= totalPages; i++) {
-      if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
-        items.push(i);
-      } else if (items[items.length - 1] !== '...') {
-        items.push('...');
-      }
-    }
-    return items;
-  };
-
-  // Profit Modal Handlers
-  const handleOpenProfitModal = () => {
-    setLocalProfit([
-      profitRange[0] === minProfit ? '' : profitRange[0].toString(),
-      profitRange[1] === maxProfit ? '' : profitRange[1].toString(),
-    ]);
-    setIsProfitModalOpen(true);
-  };
-
-  const handleApplyProfit = () => {
-    // ChatGPT Fix 1 & 2: Safe parsing & Clamping protection
-    let parsedMin = localProfit[0] === '' || isNaN(Number(localProfit[0])) ? minProfit : Number(localProfit[0]);
-    let parsedMax = localProfit[1] === '' || isNaN(Number(localProfit[1])) ? maxProfit : Number(localProfit[1]);
-
-    parsedMin = Math.max(minProfit, parsedMin);
-    parsedMax = Math.min(maxProfit, parsedMax);
-    
-    if (parsedMin > parsedMax) {
-      setProfitRange([parsedMax, parsedMin]);
-    } else {
-      setProfitRange([parsedMin, parsedMax]);
-    }
-    setIsProfitModalOpen(false);
-  };
-
-  const handleResetProfit = () => {
-    setProfitRange([minProfit, maxProfit]);
-    // ChatGPT Fix 4: Reset local state correctly
-    setLocalProfit(['', '']);
-    setIsProfitModalOpen(false);
-  };
-
-  const handleLocalSliderChange = (event, newValue) => {
-    setLocalProfit([newValue[0].toString(), newValue[1].toString()]);
-  };
-
-  // Safe slider values for real-time rendering
-  const safeSliderMin = localProfit[0] === '' || isNaN(Number(localProfit[0])) ? minProfit : Number(localProfit[0]);
-  const safeSliderMax = localProfit[1] === '' || isNaN(Number(localProfit[1])) ? maxProfit : Number(localProfit[1]);
-
-  // Export functions
-  const handleExportCSV = () => {
-    const headers = ['Trip No', 'Date', 'Driver', 'Vehicle', 'Route', 'Net Weight (kg)', 'Revenue (₹)', 'Expense (₹)', 'Profit (₹)', 'Margin (%)'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredData.map((row) => [
-          row.tripNumber || '-',
-          row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
-          row.driver?.fullName || '-',
-          row.vehicle?.registrationNumber || '-',
-          row.route?.name || '-',
-          row.weights?.netWeight || 0,
-          row.performance?.totalRevenue || 0,
-          row.performance?.totalExpense || 0,
-          row.performance?.netProfit || 0,
-          row.performance?.profitMargin?.toFixed(2) || 0,
-        ].join(',')
-      ),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `trip_ledger_${dayjs().format('YYYY-MM-DD')}.csv`;
-    link.click();
-  };
-
-  const handleExportExcel = () => {
-    const headers = ['Trip No', 'Date', 'Driver', 'Vehicle', 'Route', 'Net Weight (kg)', 'Revenue (₹)', 'Expense (₹)', 'Profit (₹)', 'Margin (%)'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredData.map((row) => [
-          row.tripNumber || '-',
-          row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
-          row.driver?.fullName || '-',
-          row.vehicle?.registrationNumber || '-',
-          row.route?.name || '-',
-          row.weights?.netWeight || 0,
-          row.performance?.totalRevenue || 0,
-          row.performance?.totalExpense || 0,
-          row.performance?.netProfit || 0,
-          row.performance?.profitMargin?.toFixed(2) || 0,
-        ].join(',')
-      ),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `trip_ledger_${dayjs().format('YYYY-MM-DD')}.xlsx`;
-    link.click();
-  };
-
-  return (
-    <Box sx={{ padding: '24px' }}>
-      {/* Header Section */}
-      <div className="report-header-section">
-        <div className="report-header-top">
-          <h3 className="report-title">Trip Report</h3>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleExportCSV} className="export-btn" title="Export to CSV">
-              <CsvIcon width={24} height={24} />
-            </button>
-            <button onClick={handleExportExcel} className="export-btn" title="Export to Excel">
-              <ExcelIcon width={22} height={22} />
-            </button>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="trip-ledger-summary-cards">
-          {isLoadingSummary ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          ) : summaryError ? (
-            <Alert severity="error" sx={{ width: '100%' }}>{summaryError}</Alert>
-          ) : (
-            summaryData && (
-              <>
-                <SummaryCard icon={DollarSign} label="Total Revenue" value={formatCurrency(summaryData.totalRevenue)} iconColor="#2F58EE" />
-                <SummaryCard icon={Wallet} label="Total Expense" value={formatCurrency(summaryData.totalExpense)} iconColor="#EE2F2F" />
-                <SummaryCard icon={TrendingUp} label="Total Profit" value={formatCurrency(summaryData.totalProfit)} iconColor="#2ECC71" />
-                <SummaryCard icon={Percent} label="Avg Margin" value={`${summaryData.avgProfitMargin?.toFixed(2) || 0}%`} iconColor="#F39C12" />
-                <SummaryCard icon={MapPin} label="Total Distance" value={`${summaryData.totalDistanceKm?.toLocaleString('en-IN') || 0} km`} iconColor="#9B59B6" />
-              </>
-            )
-          )}
-        </div>
-
-        {/* Filter Controls */}
-        <div className="report-filters trip-ledger-filters">
-          <div className="date-input-group">
-            <label>Driver</label>
-            <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={isLoadingEmployees}>
-              <SelectTrigger className="h-10 w-[180px] text-sm">
-                <SelectValue>
-                  {isLoadingEmployees ? 'Loading...' : selectedDriver === 'all' ? 'All Drivers' : selectedDriver}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="start">
-                <SelectItem value="all">All Drivers</SelectItem>
-                {driverOptions.map((driver) => (
-                  <SelectItem key={driver} value={driver}>{driver}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="date-input-group">
-            <label>Vehicle</label>
-            <Select value={selectedVehicle} onValueChange={setSelectedVehicle} disabled={isLoadingVehicles}>
-              <SelectTrigger className="h-10 w-[180px] text-sm">
-                <SelectValue>
-                  {isLoadingVehicles ? 'Loading...' : selectedVehicle === 'all' ? 'All Vehicles' : selectedVehicle}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="start">
-                <SelectItem value="all">All Vehicles</SelectItem>
-                {vehicleOptions.map((vehicle) => (
-                  <SelectItem key={vehicle} value={vehicle}>{vehicle}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="date-input-group">
-            <label>Route</label>
-            <Select value={selectedRoute} onValueChange={setSelectedRoute}>
-              <SelectTrigger className="h-10 w-[220px] text-sm">
-                <SelectValue>
-                  {selectedRoute === 'all' ? 'All Routes' : selectedRoute}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="start">
-                <SelectItem value="all">All Routes</SelectItem>
-                {routeOptions.map((route) => (
-                  <SelectItem key={route} value={route}>{route}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* New Clean Profit Range Filter Button */}
-          <div className="date-input-group">
-            <label>Profit Filter</label>
-            <Button
-              variant="outlined"
-              onClick={handleOpenProfitModal}
-              startIcon={<Filter size={16} />}
-              sx={{
-                height: 40,
-                textTransform: 'none',
-                borderColor: '#e2e8f0',
-                color: '#475569',
-                backgroundColor: 'white',
-                minWidth: '200px',
-                justifyContent: 'flex-start',
-                '&:hover': { borderColor: '#cbd5e1', backgroundColor: '#f8fafc' },
-              }}
-            >
-              {profitRange[0] === minProfit && profitRange[1] === maxProfit
-                ? 'All Profits'
-                : `${formatProfitLabel(profitRange[0])} - ${formatProfitLabel(profitRange[1])}`}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Loading State */}
-      {isLoadingLedger && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-          <CircularProgress />
-          <Typography sx={{ ml: 2 }}>Loading trips...</Typography>
-        </Box>
-      )}
-
-      {/* Error State */}
-      {ledgerError && !isLoadingLedger && (
-        <Alert severity="error" sx={{ my: 2 }}>{ledgerError}</Alert>
-      )}
-
-      {/* Table Content */}
-      {!isLoadingLedger && !ledgerError && (
-        <div className="report-content">
-          <div className="table-wrapper">
-            <table className="trip-ledger-table">
-              <thead>
-                <tr className="table-header-row">
-                  <th>Trip No</th>
-                  <th>Date</th>
-                  <th>Driver</th>
-                  <th>Vehicle</th>
-                  <th>Route</th>
-                  <th style={{ textAlign: 'right' }}>Net Wt</th>
-                  <th style={{ textAlign: 'right' }}>Revenue</th>
-                  <th style={{ textAlign: 'right' }}>Expense</th>
-                  <th style={{ textAlign: 'right' }}>Profit</th>
-                  <th style={{ textAlign: 'right' }}>Margin</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="trip-ledger-empty-state">
-                      No trips found. Try adjusting your filters.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedData.map((row) => (
-                    <tr key={row._id} className="trip-table-row" onClick={() => handleViewTripDetail(row)}>
-                      <td>
-                        <div className="cell-primary">{row.tripNumber || '-'}</div>
-                      </td>
-                      <td>
-                        <div className="cell-primary">{formatDate(row.tripDate)}</div>
-                      </td>
-                      <td>
-                        <div className="cell-primary">{row.driver?.fullName || '-'}</div>
-                        <div className="cell-secondary">{row.driver?.mobileNumber || ''}</div>
-                      </td>
-                      <td>
-                        <div className="cell-primary">{row.vehicle?.registrationNumber || '-'}</div>
-                        <div className="cell-secondary">{row.vehicle?.vehicleType || ''}</div>
-                      </td>
-                      <td>
-                        <div className="cell-primary">{row.route?.name || '-'}</div>
-                        <div className="cell-secondary">{row.route?.distanceKm ? `${row.route.distanceKm} km` : ''}</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="cell-primary">{formatWeight(row.weights?.netWeight)}</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="cell-primary positive">{formatCurrency(row.performance?.totalRevenue)}</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="cell-primary negative">{formatCurrency(row.performance?.totalExpense)}</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className={`cell-primary ${row.performance?.netProfit >= 0 ? 'positive' : 'negative'}`}>
-                          {formatCurrency(row.performance?.netProfit)}
-                        </div>
-                      </td>
-                      <td className="last-col" style={{ textAlign: 'right' }}>
-                        <span className="date-text">
-                          {typeof row.performance?.profitMargin === 'number'
-                            ? `${row.performance.profitMargin.toFixed(1)}%`
-                            : '-'}
-                        </span>
-                        <button className="view-details-btn">
-                          View details
-                          <ChevronRight size={14} />
+    return (
+        <Box sx={{ padding: '24px' }}>
+            {/* Header Section */}
+            <div className="report-header-section">
+                <div className="report-header-top">
+                    <h3 className="report-title">Trip Report</h3>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={handleExportCSV} className="export-btn" title="Export to CSV">
+                            <CsvIcon width={24} height={24} />
                         </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                        <button onClick={handleExportExcel} className="export-btn" title="Export to Excel">
+                            <ExcelIcon width={22} height={22} />
+                        </button>
+                    </div>
+                </div>
 
-          {/* Pagination */}
-          {filteredData.length > 0 && totalPages > 1 && (
-            <div className="pagination-wrapper">
-              <Pagination className="justify-end">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => currentPage > 1 && setCurrentPage((p) => p - 1)}
-                      className={currentPage <= 1 ? 'pointer-events-none opacity-40' : ''}
-                    />
-                  </PaginationItem>
-                  {renderPageItems().map((item, idx) =>
-                    item === '...' ? (
-                      <PaginationItem key={`e-${idx}`}>
-                        <PaginationEllipsis />
-                      </PaginationItem>
+                {/* Summary Cards */}
+                <div className="trip-ledger-summary-cards">
+                    {isLoadingSummary ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 2 }}>
+                            <CircularProgress size={24} />
+                        </Box>
+                    ) : summaryError ? (
+                        <Alert severity="error" sx={{ width: '100%' }}>{summaryError}</Alert>
                     ) : (
-                      <PaginationItem key={item}>
-                        <PaginationLink
-                          isActive={currentPage === item}
-                          onClick={() => setCurrentPage(item)}
-                        >
-                          {item}
-                        </PaginationLink>
-                      </PaginationItem>
-                    )
-                  )}
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => currentPage < totalPages && setCurrentPage((p) => p + 1)}
-                      className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : ''}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
-        </div>
-      )}
+                        summaryData && (
+                            <>
+                                <SummaryCard icon={DollarSign} label="Total Revenue" value={formatCurrency(summaryData.totalRevenue)} iconColor="#2F58EE" />
+                                <SummaryCard icon={Wallet} label="Total Expense" value={formatCurrency(summaryData.totalExpense)} iconColor="#EE2F2F" />
+                                <SummaryCard icon={TrendingUp} label="Total Profit" value={formatCurrency(summaryData.totalProfit)} iconColor="#2ECC71" />
+                                <SummaryCard icon={Percent} label="Avg Margin" value={`${summaryData.avgProfitMargin?.toFixed(2) || 0}%`} iconColor="#F39C12" />
+                                <SummaryCard icon={MapPin} label="Total Distance" value={`${summaryData.totalDistanceKm?.toLocaleString('en-IN') || 0} km`} iconColor="#9B59B6" />
+                            </>
+                        )
+                    )}
+                </div>
 
-      {/* Profit Filter Modal */}
-      <Dialog 
-        open={isProfitModalOpen} 
-        onClose={() => setIsProfitModalOpen(false)}
-        // UI Fix to prevent horizontal scrollbar clipping
-        PaperProps={{ sx: { borderRadius: 2, minWidth: 400 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 600, fontSize: '1.1rem', pb: 1 }}>Filter by Profit</DialogTitle>
-        <DialogContent sx={{ overflowX: 'hidden' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="Min Profit (₹)"
-                type="number"
-                variant="outlined"
-                size="small"
-                fullWidth
-                value={localProfit[0]}
-                onChange={(e) => setLocalProfit([e.target.value, localProfit[1]])}
-              />
-              <TextField
-                label="Max Profit (₹)"
-                type="number"
-                variant="outlined"
-                size="small"
-                fullWidth
-                value={localProfit[1]}
-                onChange={(e) => setLocalProfit([localProfit[0], e.target.value])}
-              />
-            </Box>
-            <Box sx={{ px: 2 }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Range Selector
-              </Typography>
-              <Slider
-                value={[safeSliderMin, safeSliderMax]}
-                onChange={handleLocalSliderChange}
-                valueLabelDisplay="auto"
-                valueLabelFormat={(value) => formatProfitLabel(value)}
-                min={minProfit}
-                max={maxProfit}
-                disableSwap
-              />
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleResetProfit} color="error" sx={{ mr: 'auto', textTransform: 'none' }}>
-            Reset
-          </Button>
-          <Button onClick={() => setIsProfitModalOpen(false)} color="inherit" sx={{ textTransform: 'none' }}>
-            Cancel
-          </Button>
-          <Button onClick={handleApplyProfit} variant="contained" sx={{ textTransform: 'none', boxShadow: 'none' }}>
-            Apply Filter
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+                {/* Filter Controls */}
+                <div className="report-filters trip-ledger-filters">
+                    <div className="date-input-group">
+                        <label>Driver</label>
+                        <Select value={selectedDriver} onValueChange={setSelectedDriver} disabled={isLoadingEmployees}>
+                            <SelectTrigger className="h-10 w-[180px] text-sm">
+                                <SelectValue>
+                                    {isLoadingEmployees ? 'Loading...' : selectedDriver === 'all' ? 'All Drivers' : selectedDriver}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Drivers</SelectItem>
+                                {driverOptions.map((driver) => (
+                                    <SelectItem key={driver} value={driver}>{driver}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="date-input-group">
+                        <label>Vehicle</label>
+                        <Select value={selectedVehicle} onValueChange={setSelectedVehicle} disabled={isLoadingVehicles}>
+                            <SelectTrigger className="h-10 w-[180px] text-sm">
+                                <SelectValue>
+                                    {isLoadingVehicles ? 'Loading...' : selectedVehicle === 'all' ? 'All Vehicles' : selectedVehicle}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Vehicles</SelectItem>
+                                {vehicleOptions.map((vehicle) => (
+                                    <SelectItem key={vehicle} value={vehicle}>{vehicle}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="date-input-group">
+                        <label>Route</label>
+                        <Select value={selectedRoute} onValueChange={setSelectedRoute}>
+                            <SelectTrigger className="h-10 w-[220px] text-sm">
+                                <SelectValue>
+                                    {selectedRoute === 'all' ? 'All Routes' : selectedRoute}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                                <SelectItem value="all">All Routes</SelectItem>
+                                {routeOptions.map((route) => (
+                                    <SelectItem key={route} value={route}>{route}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* New Clean Profit Range Filter Button */}
+                    <div className="date-input-group">
+                        <label>Profit Filter</label>
+                        <Button
+                            variant="outlined"
+                            onClick={handleOpenProfitModal}
+                            startIcon={<Filter size={16} />}
+                            sx={{
+                                height: 40,
+                                textTransform: 'none',
+                                borderColor: '#e2e8f0',
+                                color: '#475569',
+                                backgroundColor: 'white',
+                                minWidth: '200px',
+                                justifyContent: 'flex-start',
+                                '&:hover': { borderColor: '#cbd5e1', backgroundColor: '#f8fafc' },
+                            }}
+                        >
+                            {profitRange[0] === minProfit && profitRange[1] === maxProfit
+                                ? 'All Profits'
+                                : `${formatProfitLabel(profitRange[0])} - ${formatProfitLabel(profitRange[1])}`}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Loading State */}
+            {isLoadingLedger && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+                    <CircularProgress />
+                    <Typography sx={{ ml: 2 }}>Loading trips...</Typography>
+                </Box>
+            )}
+
+            {/* Error State */}
+            {ledgerError && !isLoadingLedger && (
+                <Alert severity="error" sx={{ my: 2 }}>{ledgerError}</Alert>
+            )}
+
+            {/* Table Content */}
+            {!isLoadingLedger && !ledgerError && (
+                <div className="report-content">
+                    <div className="table-wrapper">
+                        <table className="trip-ledger-table">
+                            <thead>
+                                <tr className="table-header-row">
+                                    <th>Trip No</th>
+                                    <th>Date</th>
+                                    <th>Driver</th>
+                                    <th>Vehicle</th>
+                                    <th>Route</th>
+                                    <th style={{ textAlign: 'right' }}>Net Wt</th>
+                                    <th style={{ textAlign: 'right' }}>Revenue</th>
+                                    <th style={{ textAlign: 'right' }}>Expense</th>
+                                    <th style={{ textAlign: 'right' }}>Profit</th>
+                                    <th style={{ textAlign: 'right' }}>Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={10} className="trip-ledger-empty-state">
+                                            No trips found. Try adjusting your filters.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    paginatedData.map((row) => (
+                                        <tr key={row._id} className="trip-table-row" onClick={() => handleViewTripDetail(row)}>
+                                            <td>
+                                                <div className="cell-primary">{row.tripNumber || '-'}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{formatDate(row.tripDate)}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{row.driver?.fullName || '-'}</div>
+                                                <div className="cell-secondary">{row.driver?.mobileNumber || ''}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{row.vehicle?.registrationNumber || '-'}</div>
+                                                <div className="cell-secondary">{row.vehicle?.vehicleType || ''}</div>
+                                            </td>
+                                            <td>
+                                                <div className="cell-primary">{row.route?.name || '-'}</div>
+                                                <div className="cell-secondary">{row.route?.distanceKm ? `${row.route.distanceKm} km` : ''}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatWeight(row.weights?.netWeight)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary positive">{formatCurrency(row.performance?.totalRevenue)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary negative">{formatCurrency(row.performance?.totalExpense)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className={`cell-primary ${row.performance?.netProfit >= 0 ? 'positive' : 'negative'}`}>
+                                                    {formatCurrency(row.performance?.netProfit)}
+                                                </div>
+                                            </td>
+                                            <td className="last-col" style={{ textAlign: 'right' }}>
+                                                <span className="date-text">
+                                                    {typeof row.performance?.profitMargin === 'number'
+                                                        ? `${row.performance.profitMargin.toFixed(1)}%`
+                                                        : '-'}
+                                                </span>
+                                                <button className="view-details-btn">
+                                                    View details
+                                                    <ChevronRight size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {filteredData.length > 0 && totalPages > 1 && (
+                        <div className="pagination-wrapper">
+                            <Pagination className="justify-end">
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            onClick={() => currentPage > 1 && setCurrentPage((p) => p - 1)}
+                                            className={currentPage <= 1 ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                    {renderPageItems().map((item, idx) =>
+                                        item === '...' ? (
+                                            <PaginationItem key={`e-${idx}`}>
+                                                <PaginationEllipsis />
+                                            </PaginationItem>
+                                        ) : (
+                                            <PaginationItem key={item}>
+                                                <PaginationLink
+                                                    isActive={currentPage === item}
+                                                    onClick={() => setCurrentPage(item)}
+                                                >
+                                                    {item}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        )
+                                    )}
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            onClick={() => currentPage < totalPages && setCurrentPage((p) => p + 1)}
+                                            className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : ''}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Profit Filter Modal */}
+            <Dialog
+                open={isProfitModalOpen}
+                onClose={() => setIsProfitModalOpen(false)}
+                // UI Fix to prevent horizontal scrollbar clipping
+                PaperProps={{ sx: { borderRadius: 2, minWidth: 400 } }}
+            >
+                <DialogTitle sx={{ fontWeight: 600, fontSize: '1.1rem', pb: 1 }}>Filter by Profit</DialogTitle>
+                <DialogContent sx={{ overflowX: 'hidden' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <TextField
+                                label="Min Profit (₹)"
+                                type="number"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={localProfit[0]}
+                                onChange={(e) => setLocalProfit([e.target.value, localProfit[1]])}
+                            />
+                            <TextField
+                                label="Max Profit (₹)"
+                                type="number"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={localProfit[1]}
+                                onChange={(e) => setLocalProfit([localProfit[0], e.target.value])}
+                            />
+                        </Box>
+                        <Box sx={{ px: 2 }}>
+                            <Typography variant="caption" color="text.secondary" gutterBottom>
+                                Range Selector
+                            </Typography>
+                            <Slider
+                                value={[safeSliderMin, safeSliderMax]}
+                                onChange={handleLocalSliderChange}
+                                valueLabelDisplay="auto"
+                                valueLabelFormat={(value) => formatProfitLabel(value)}
+                                min={minProfit}
+                                max={maxProfit}
+                                disableSwap
+                            />
+                        </Box>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={handleResetProfit} color="error" sx={{ mr: 'auto', textTransform: 'none' }}>
+                        Reset
+                    </Button>
+                    <Button onClick={() => setIsProfitModalOpen(false)} color="inherit" sx={{ textTransform: 'none' }}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleApplyProfit} variant="contained" sx={{ textTransform: 'none', boxShadow: 'none' }}>
+                        Apply Filter
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Box>
+    );
 };
 
 export default TripLedgerReport;
