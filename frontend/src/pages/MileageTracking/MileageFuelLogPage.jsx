@@ -187,9 +187,9 @@ const MileageFuelLogPage = () => {
         e.preventDefault();
         if (!selectedVehicle || !selectedDriver) return toast.error("Please select a vehicle and a driver.");
         if (!fixedDocs.fuel) return toast.error("Fuel Slip is required.");
-        if (formData.fillingType === 'FULL_TANK' && !fixedDocs.odometer) return toast.error("Odometer Image is required for FULL TANK logs.");
+        // Odometer is now optional for FULL_TANK, no validation needed here
         const currentOdo = parseFloat(formData.odometerReading);
-        if (formData.fillingType === 'FULL_TANK' && lastOdometer && lastOdometer.odometerReading) {
+        if (formData.fillingType === 'FULL_TANK' && !isNaN(currentOdo) && lastOdometer && lastOdometer.odometerReading) {
             if (currentOdo <= lastOdometer.odometerReading) return toast.error(`Odometer reading must be strictly greater than the previous reading (${lastOdometer.odometerReading} km)`);
         }
         setIsLoading(true);
@@ -197,13 +197,13 @@ const MileageFuelLogPage = () => {
             const fuelData = new FormData();
             fuelData.append('file', fixedDocs.fuel.file); fuelData.append('docType', 'FUEL_SLIP');
             fuelData.append('entityType', 'VEHICLE'); fuelData.append('entityId', selectedVehicle.id);
-            const fuelRes = await apiClient.post('/api/documents', fuelData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            const fuelRes = await apiClient.post('/api/documents', fuelData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
             let odoDocId = '';
             if (fixedDocs.odometer) {
                 const odoData = new FormData();
                 odoData.append('file', fixedDocs.odometer.file); odoData.append('docType', 'ODOMETER');
                 odoData.append('entityType', 'VEHICLE'); odoData.append('entityId', selectedVehicle.id);
-                const odoRes = await apiClient.post('/api/documents', odoData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                const odoRes = await apiClient.post('/api/documents', odoData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
                 odoDocId = odoRes.data.data?._id || odoRes.data._id || '';
             }
             let refuelTimeStr;
@@ -222,7 +222,7 @@ const MileageFuelLogPage = () => {
                 odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })
             };
-            await apiClient.post('/api/mileage/fuel-log', payload);
+            await apiClient.post('/api/mileage/fuel-log', payload, { timeout: 60000 });
             toast.success('Mileage log submitted successfully!');
             navigate('/mileage-tracking');
         } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit log.'); }
@@ -338,8 +338,8 @@ const MileageFuelLogPage = () => {
                     <div className="mileage-form-row">
                         {formData.fillingType === 'FULL_TANK' && (
                         <div className="mileage-form-group">
-                            <label>Odometer Reading (KM) *</label>
-                            <input type="number" placeholder="105450" name="odometerReading" value={formData.odometerReading} onChange={handleFormChange} required />
+                            <label>Odometer Reading (KM) (Optional)</label>
+                            <input type="number" placeholder="105450" name="odometerReading" value={formData.odometerReading} onChange={handleFormChange} />
                         </div>
                         )}
                         <div className="mileage-form-group">
@@ -354,7 +354,7 @@ const MileageFuelLogPage = () => {
                         <div className="mileage-slots-row">
                             <SlotUpload docType="fuel" title="FUEL RECEIPT" label="fuel slip" inputId="drop-fuel" required doc={fixedDocs.fuel} isScanning={ocrScanning.fuel} onDrop={handleDocDrop} onRemove={removeDoc} />
                             {formData.fillingType === 'FULL_TANK' && (
-                                <SlotUpload docType="odometer" title="END ODOMETER IMAGE" label="odometer image" inputId="drop-odometer" required doc={fixedDocs.odometer} isScanning={ocrScanning.odometer} onDrop={handleDocDrop} onRemove={removeDoc} />
+                                <SlotUpload docType="odometer" title="END ODOMETER IMAGE" label="odometer image" inputId="drop-odometer" doc={fixedDocs.odometer} isScanning={ocrScanning.odometer} onDrop={handleDocDrop} onRemove={removeDoc} />
                             )}
                         </div>
                     </div>
