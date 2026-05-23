@@ -6,31 +6,19 @@ import { listAccounts, reassignVehicleAccount } from './FleetEdgeAccountService.
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageHeader from '../Drivers/Component/PageHeader.jsx';
 import VehicleBasicInformationForm from './Component/VehicleBasicInformationForm.jsx';
-import VehicleDocumentUpload from './Component/VehicleDocumentUpload.jsx';
+import VehicleDocumentUpload, { VEHICLE_DOC_TYPES, emptyDocsState } from './Component/VehicleDocumentUpload.jsx';
 import FormFooter from '../Drivers/Component/FormFooter.jsx';
 import './VehiclesPage.css';
 
-// UI key -> backend docType. The backend whitelist lives at
-// main-backend/app/modules/vehicle/vehicle.model.js (VEHICLE_DOCUMENT_TYPES).
-const VEHICLE_DOC_TYPE_MAP = {
-  rc: 'RC',
-  insurance: 'INSURANCE',
-  fitness: 'FITNESS',
-  permit: 'PERMIT',
-  nationalPermit: 'NATIONAL_PERMIT',
-};
+const BACKEND_TO_UI = VEHICLE_DOC_TYPES.reduce((acc, d) => {
+  acc[d.backendType] = d.key;
+  return acc;
+}, {});
 
-const BACKEND_TO_UI = Object.fromEntries(
-  Object.entries(VEHICLE_DOC_TYPE_MAP).map(([ui, backend]) => [backend, ui]),
-);
-
-const emptyDocEntry = () => ({ file: null, preview: null, imageUrl: null, name: '', documentId: null });
-
-const emptyDocsState = () =>
-  Object.keys(VEHICLE_DOC_TYPE_MAP).reduce((acc, key) => {
-    acc[key] = emptyDocEntry();
-    return acc;
-  }, {});
+const META_BY_KEY = VEHICLE_DOC_TYPES.reduce((acc, d) => {
+  acc[d.key] = d;
+  return acc;
+}, {});
 
 const AddVehiclePage = () => {
   const navigate = useNavigate();
@@ -62,7 +50,6 @@ const AddVehiclePage = () => {
       .then(accounts => {
         const active = (accounts || []).filter(a => a.status === 'ACTIVE');
         setFleetEdgeAccounts(active);
-        // If exactly one active account, default-select it
         if (active.length === 1) setSelectedAccountId(String(active[0]._id));
       })
       .catch(() => {});
@@ -77,31 +64,41 @@ const AddVehiclePage = () => {
         const vId = editing.id || editing._id;
         setVehicleId(vId);
 
-        const formData = {
+        setInitialFormData({
           registration_no: editing.registration_no || editing.registrationNumber || '',
           chassis_number: editing.chassis_number || editing.chassisNumber || '',
           model: editing.model || '',
-        };
+        });
 
-        setInitialFormData(formData);
-
-        // Fetch existing vehicle documents (embedded subdocs)
+        // Fetch existing vehicle documents — server returns subdocs with files[]
         try {
           const token = localStorage.getItem('authToken');
           const fetchedDocs = await VehicleService.getVehicleDocuments(vId, token);
           const updatedDocs = emptyDocsState();
 
           if (Array.isArray(fetchedDocs)) {
-            fetchedDocs.forEach(doc => {
+            fetchedDocs.forEach((doc) => {
               const uiKey = BACKEND_TO_UI[doc.docType];
               if (!uiKey) return;
-              const url = doc.publicUrl || doc.fileUrl || doc.url;
-              if (url) {
-                updatedDocs[uiKey].preview = url;
-                updatedDocs[uiKey].imageUrl = url;
-                updatedDocs[uiKey].name = doc.docType;
-                updatedDocs[uiKey].documentId = doc._id || doc.id || null;
-              }
+              const meta = META_BY_KEY[uiKey];
+
+              updatedDocs[uiKey].documentId = doc._id || doc.id || null;
+              updatedDocs[uiKey].expiryDate = doc.expiryDate || null;
+              updatedDocs[uiKey].ocrStatus = doc.ocr?.status || null;
+              updatedDocs[uiKey].ocrFields = doc.ocr?.fields || null;
+
+              (doc.files || []).forEach((f) => {
+                const side = meta.sides.includes(f.side)
+                  ? f.side
+                  : (meta.sides[0] || 'SINGLE');
+                updatedDocs[uiKey][side] = {
+                  file: null,
+                  preview: f.publicUrl,
+                  imageUrl: f.publicUrl,
+                  name: doc.docType,
+                  isPdf: (f.mimeType || '').includes('pdf'),
+                };
+              });
             });
           }
           setDocuments(updatedDocs);
@@ -124,21 +121,40 @@ const AddVehiclePage = () => {
     const token = localStorage.getItem('authToken');
 
     if (!token) {
-        toast.warn('No auth token found. Request may fail.');
+      toast.warn('No auth token found. Request may fail.');
     }
 
-    // Backend replaces existing docs of the same docType, so we don't need
-    // to issue a separate delete for the previous upload.
+    // For each docType, collect the new files the user attached (skip slots
+    // that hold an existing preview URL with no fresh file). Backend replaces
+    // the whole subdoc when same docType is uploaded again.
     const uploadDocuments = async (entityId) => {
-      for (const [key, docType] of Object.entries(VEHICLE_DOC_TYPE_MAP)) {
-        const docData = documents[key];
-        if (docData && docData.file) {
-          try {
-            await VehicleService.uploadVehicleDocument(entityId, docType, docData.file, token);
-          } catch (docErr) {
-            console.error(`Failed to upload ${docType}`, docErr);
-            toast.warning(`Failed to upload ${key} document`);
+      for (const meta of VEHICLE_DOC_TYPES) {
+        const entry = documents[meta.key];
+        if (!entry) continue;
+
+        const filesInOrder = [];
+        const sidesInOrder = [];
+        meta.sides.forEach((side) => {
+          const slot = entry[side];
+          if (slot && slot.file) {
+            filesInOrder.push(slot.file);
+            sidesInOrder.push(side);
           }
+        });
+
+        if (filesInOrder.length === 0) continue;
+
+        try {
+          await VehicleService.uploadVehicleDocument(
+            entityId,
+            meta.backendType,
+            filesInOrder,
+            token,
+            { sides: sidesInOrder, expiryDate: entry.expiryDate || undefined },
+          );
+        } catch (docErr) {
+          console.error(`Failed to upload ${meta.backendType}`, docErr);
+          toast.warning(`Failed to upload ${meta.label}`);
         }
       }
     };
@@ -194,14 +210,13 @@ const AddVehiclePage = () => {
           currentLabel={isEdit ? (initialFormData.registration_no || 'Vehicle') : null}
           title={isEdit ? "Edit Vehicle" : "Add Vehicle"}
           description={
-            isEdit 
-              ? 'Update vehicle information including registration, chassis number, and model.' 
+            isEdit
+              ? 'Update vehicle information including registration, chassis number, and model.'
               : 'Configure essential vehicle details, including registration, chassis number, and model.'
           }
           onBack={() => navigate(-1)}
         />
 
-        {/* FleetEdge account selection — shown when org has ACTIVE accounts */}
         {!isEdit && fleetEdgeAccounts.length > 1 && (
           <div style={{ padding: '0 24px 16px', maxWidth: 480 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>

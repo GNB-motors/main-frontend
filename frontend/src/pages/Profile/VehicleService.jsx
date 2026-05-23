@@ -223,13 +223,19 @@ const classifyExistingVehicles = async (token) => {
 // Vehicle documents are stored embedded on the Vehicle itself (not in the
 // generic Document collection). All doc endpoints are scoped under the vehicle.
 
-const uploadVehicleDocument = async (vehicleId, docType, file, token, expiryDate) => {
+// `files` is an array of File/Blob. RC and NATIONAL_PERMIT accept up to 2 (front + back).
+// `sides` is an optional array like ['FRONT','BACK'] mapped positionally.
+const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}) => {
   try {
+    const list = Array.isArray(files) ? files : [files];
+    if (!list.length) throw new Error('No files to upload');
+
     const formData = new FormData();
-    formData.append('file', file);
+    list.forEach(f => formData.append('files', f));
     formData.append('docType', docType);
-    if (expiryDate) {
-      formData.append('expiryDate', expiryDate);
+    if (opts.expiryDate) formData.append('expiryDate', opts.expiryDate);
+    if (Array.isArray(opts.sides) && opts.sides.length === list.length) {
+      formData.append('sides', opts.sides.join(','));
     }
 
     const response = await axios.post(
