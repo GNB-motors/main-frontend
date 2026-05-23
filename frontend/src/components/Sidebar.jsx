@@ -14,7 +14,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [isVehiclesOpen, setIsVehiclesOpen] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
-    const VEHICLES_CHILD_ROUTES = ['/vehicles', '/vehicles/dashboard', '/vehicles/add', '/vehicles/bulk-upload'];
+    const VEHICLES_CHILD_ROUTES = ['/vehicles', '/vehicles/dashboard', '/vehicles/add', '/vehicles/bulk-upload', '/vehicles/service-intelligence', '/vehicles/service-intelligence/add-service', '/vehicles/service-intelligence/add-repair'];
 
     // Defensive: ensure :root has the current theme CSS variables on mount and
     // whenever the theme color changes. The Sidebar previously kept a LOCAL
@@ -170,6 +170,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                                 onClick={closeSidebarOnMobile}
                             >
                                 <span>Vehicle Dashboard</span>
+                            </NavLink>
+                            <NavLink
+                                to="/vehicles/service-intelligence"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Service Intelligence</span>
                             </NavLink>
                             <NavLink
                                 to="/vehicles/add"
