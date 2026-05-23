@@ -11,7 +11,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isVehicleActivityOpen, setIsVehicleActivityOpen] = useState(false);
+    const [isVehiclesOpen, setIsVehiclesOpen] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+
+    const VEHICLES_CHILD_ROUTES = ['/vehicles', '/vehicles/dashboard', '/vehicles/add', '/vehicles/bulk-upload'];
 
     // Defensive: ensure :root has the current theme CSS variables on mount and
     // whenever the theme color changes. The Sidebar previously kept a LOCAL
@@ -34,17 +37,21 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         if (vehicleActivityRoutes.includes(location.pathname)) {
             setIsVehicleActivityOpen(true);
         }
+        if (VEHICLES_CHILD_ROUTES.some((r) => location.pathname === r || location.pathname.startsWith(`${r}/`))) {
+            setIsVehiclesOpen(true);
+        }
     }, [location.pathname]);
 
-    // Auto-close Vehicle Activity when sidebar is not hovered on desktop
+    // Auto-close dropdowns when sidebar is not hovered on desktop
     useEffect(() => {
         if (!isSidebarHovered && window.innerWidth > 992) {
-            // Close after a small delay when mouse leaves
             const timer = setTimeout(() => {
                 const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
-                // Keep it open only if we're on a child route
                 if (!vehicleActivityRoutes.includes(location.pathname)) {
                     setIsVehicleActivityOpen(false);
+                }
+                if (!VEHICLES_CHILD_ROUTES.some((r) => location.pathname === r || location.pathname.startsWith(`${r}/`))) {
+                    setIsVehiclesOpen(false);
                 }
             }, 200);
             return () => clearTimeout(timer);
@@ -133,10 +140,46 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <Users size={20} />
                         <span>Employees</span>
                     </NavLink>
-                    <NavLink to="/vehicles" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Truck size={20} />
-                        <span>Vehicles</span>
-                    </NavLink>
+                    {/* Vehicles Section (dropdown) */}
+                    <div className="nav-section">
+                        <button
+                            className={`nav-link nav-parent ${isVehiclesOpen ? 'active-parent' : ''}`}
+                            onClick={() => setIsVehiclesOpen(!isVehiclesOpen)}
+                        >
+                            <div className="nav-parent-left">
+                                <Truck size={20} />
+                                <span>Vehicles</span>
+                            </div>
+                            <ChevronIcon
+                                size={16}
+                                className={`chevron-icon ${isVehiclesOpen ? 'rotated' : ''}`}
+                            />
+                        </button>
+                        <div className={`nav-children ${isVehiclesOpen ? 'open' : ''}`}>
+                            <NavLink
+                                to="/vehicles"
+                                end
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>All Vehicles</span>
+                            </NavLink>
+                            <NavLink
+                                to="/vehicles/dashboard"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Vehicle Dashboard</span>
+                            </NavLink>
+                            <NavLink
+                                to="/vehicles/add"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Add Vehicle</span>
+                            </NavLink>
+                        </div>
+                    </div>
                     <NavLink to="/locations" className="nav-link" onClick={closeSidebarOnMobile}>
                         <MapPin size={20} />
                         <span>Locations</span>

@@ -272,6 +272,24 @@ const getVehicleDocuments = async (vehicleId, token) => {
   }
 };
 
+// Fleet-wide dashboard: every vehicle + a per-docType expiry digest. Backend
+// derives the owner name from RC OCR. Returns plain array, badges are computed
+// client-side from expiryDate.
+const getFleetDashboard = async (token, search) => {
+  try {
+    const url = search
+      ? `${API_BASE_URL}/api/vehicles/dashboard?search=${encodeURIComponent(search)}`
+      : `${API_BASE_URL}/api/vehicles/dashboard`;
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data?.data || response.data || [];
+  } catch (error) {
+    console.error('API Error fetching fleet dashboard:', error.response?.data || error.message);
+    throw error.response?.data || { detail: 'Could not fetch fleet dashboard.' };
+  }
+};
+
 const deleteVehicleDocument = async (vehicleId, docId, token) => {
   try {
     const response = await axios.delete(
@@ -300,4 +318,5 @@ export const VehicleService = {
   uploadVehicleDocument,
   getVehicleDocuments,
   deleteVehicleDocument,
+  getFleetDashboard,
 };

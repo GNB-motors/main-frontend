@@ -28,6 +28,7 @@ import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
+import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import MileageTrackingPage from './pages/MileageTracking/MileageTrackingPage.jsx';
@@ -84,6 +85,7 @@ function App() {
         <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
+        <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
         <Route path="/vehicles/add" element={<AddVehiclePage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
         <Route path="/routes" element={<RoutesPage />} />
