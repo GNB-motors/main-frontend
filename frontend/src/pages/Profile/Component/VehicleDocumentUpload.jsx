@@ -3,11 +3,29 @@ import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from '../../Drivers/Component/DocumentCard';
 import '../../Drivers/Component/DocumentUpload.css';
 
+// Five canonical vehicle document types. Backend enum lives in
+// main-backend/app/modules/vehicle/vehicle.model.js.
 const VEHICLE_DOC_TYPES = [
   { key: 'rc', label: 'RC (Registration Certificate)', description: 'Upload a clear image of the vehicle RC' },
-  { key: 'puc', label: 'PUC (Pollution Certificate)', description: 'Upload a clear image of the PUC certificate' },
-  { key: 'fitnessCertificate', label: 'Fitness Certificate', description: 'Upload a clear image of the fitness certificate' },
+  { key: 'insurance', label: 'Insurance', description: 'Upload a clear image of the insurance certificate' },
+  { key: 'fitness', label: 'Fitness Certificate', description: 'Upload a clear image of the fitness certificate' },
+  { key: 'permit', label: 'Permit', description: 'Upload a clear image of the permit' },
+  { key: 'nationalPermit', label: 'National Permit', description: 'Upload a clear image of the national permit' },
 ];
+
+const emptyDoc = () => ({
+  file: null,
+  imageUrl: null,
+  preview: null,
+  name: '',
+  documentId: null,
+});
+
+const emptyDocsState = () =>
+  VEHICLE_DOC_TYPES.reduce((acc, { key }) => {
+    acc[key] = emptyDoc();
+    return acc;
+  }, {});
 
 const VehicleDocumentUpload = ({
   initialData = {},
@@ -15,20 +33,21 @@ const VehicleDocumentUpload = ({
   onDeleteDocument = null,
   isSubmitting = false,
 }) => {
-  const [documents, setDocuments] = useState({
-    rc: { file: null, imageUrl: null, preview: null, name: '', documentId: null },
-    puc: { file: null, imageUrl: null, preview: null, name: '', documentId: null },
-    fitnessCertificate: { file: null, imageUrl: null, preview: null, name: '', documentId: null },
-  });
+  const [documents, setDocuments] = useState(emptyDocsState);
 
-  // Sync internal state if initialData changes (e.g. loaded asynchronously)
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      setDocuments(prev => ({
-        rc: { ...prev.rc, ...initialData.rc, documentId: initialData.rc?.documentId || prev.rc?.documentId || null },
-        puc: { ...prev.puc, ...initialData.puc, documentId: initialData.puc?.documentId || prev.puc?.documentId || null },
-        fitnessCertificate: { ...prev.fitnessCertificate, ...initialData.fitnessCertificate, documentId: initialData.fitnessCertificate?.documentId || prev.fitnessCertificate?.documentId || null },
-      }));
+      setDocuments(prev => {
+        const next = { ...prev };
+        VEHICLE_DOC_TYPES.forEach(({ key }) => {
+          next[key] = {
+            ...prev[key],
+            ...(initialData[key] || {}),
+            documentId: initialData[key]?.documentId || prev[key]?.documentId || null,
+          };
+        });
+        return next;
+      });
     }
   }, [initialData]);
 
@@ -52,7 +71,6 @@ const VehicleDocumentUpload = ({
           return;
         }
 
-        // For PDF files, skip cropping
         if (file.type === 'application/pdf') {
           const oldDocId = documents[documentType]?.documentId;
           const updated = {
@@ -112,7 +130,6 @@ const VehicleDocumentUpload = ({
   const handleRemoveDocument = async (documentType) => {
     const docId = documents[documentType]?.documentId;
 
-    // Call server-side delete if document exists on backend
     if (docId && onDeleteDocument) {
       try {
         await onDeleteDocument(docId);
@@ -122,25 +139,19 @@ const VehicleDocumentUpload = ({
       }
     }
 
-    const cleared = { file: null, imageUrl: null, preview: null, name: '', documentId: null };
-    const updated = { ...documents, [documentType]: cleared };
+    const updated = { ...documents, [documentType]: emptyDoc() };
     setDocuments(updated);
     onDocumentsChange(updated);
   };
 
   const getCropperTitle = () => {
-    const titles = {
-      rc: 'Crop RC Document',
-      puc: 'Crop PUC Document',
-      fitnessCertificate: 'Crop Fitness Certificate',
-    };
-    return titles[cropperState.currentDocument] || 'Crop Document';
+    const meta = VEHICLE_DOC_TYPES.find(t => t.key === cropperState.currentDocument);
+    return meta ? `Crop ${meta.label}` : 'Crop Document';
   };
 
   return (
     <div className="document-upload-wrapper">
       <div className="document-upload-outer-container">
-        {/* Header Section */}
         <div className="document-upload-header">
           <div className="document-upload-header-content">
             <div className="document-upload-icon-wrapper">
@@ -156,7 +167,6 @@ const VehicleDocumentUpload = ({
           </div>
         </div>
 
-        {/* Documents Container */}
         <div className="document-upload-container">
           <div className="document-cards-grid">
             {VEHICLE_DOC_TYPES.map(({ key, label, description }) => (
@@ -175,7 +185,6 @@ const VehicleDocumentUpload = ({
         </div>
       </div>
 
-      {/* Image Cropper Modal */}
       <ImageCropper
         src={cropperState.imageSrc}
         isOpen={cropperState.isOpen}

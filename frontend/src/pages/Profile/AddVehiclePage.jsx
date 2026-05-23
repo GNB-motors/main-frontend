@@ -10,21 +10,39 @@ import VehicleDocumentUpload from './Component/VehicleDocumentUpload.jsx';
 import FormFooter from '../Drivers/Component/FormFooter.jsx';
 import './VehiclesPage.css';
 
+// UI key -> backend docType. The backend whitelist lives at
+// main-backend/app/modules/vehicle/vehicle.model.js (VEHICLE_DOCUMENT_TYPES).
+const VEHICLE_DOC_TYPE_MAP = {
+  rc: 'RC',
+  insurance: 'INSURANCE',
+  fitness: 'FITNESS',
+  permit: 'PERMIT',
+  nationalPermit: 'NATIONAL_PERMIT',
+};
+
+const BACKEND_TO_UI = Object.fromEntries(
+  Object.entries(VEHICLE_DOC_TYPE_MAP).map(([ui, backend]) => [backend, ui]),
+);
+
+const emptyDocEntry = () => ({ file: null, preview: null, imageUrl: null, name: '', documentId: null });
+
+const emptyDocsState = () =>
+  Object.keys(VEHICLE_DOC_TYPE_MAP).reduce((acc, key) => {
+    acc[key] = emptyDocEntry();
+    return acc;
+  }, {});
+
 const AddVehiclePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const formRef = useRef(null);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [vehicleId, setVehicleId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
-  const [documents, setDocuments] = useState({
-    rc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-    puc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-    fitnessCertificate: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-  });
+  const [documents, setDocuments] = useState(emptyDocsState);
 
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
@@ -67,34 +85,22 @@ const AddVehiclePage = () => {
 
         setInitialFormData(formData);
 
-        // Fetch existing vehicle documents
+        // Fetch existing vehicle documents (embedded subdocs)
         try {
           const token = localStorage.getItem('authToken');
           const fetchedDocs = await VehicleService.getVehicleDocuments(vId, token);
-          const updatedDocs = {
-            rc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-            puc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-            fitnessCertificate: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          };
+          const updatedDocs = emptyDocsState();
 
           if (Array.isArray(fetchedDocs)) {
             fetchedDocs.forEach(doc => {
-              const mappedType = {
-                'RC': 'rc',
-                'PUC': 'puc',
-                'POLLUTION': 'puc',
-                'FITNESS_CERTIFICATE': 'fitnessCertificate',
-                'FC': 'fitnessCertificate',
-              }[doc.docType];
-
-              if (mappedType) {
-                const url = doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
-                if (url) {
-                  updatedDocs[mappedType].preview = url;
-                  updatedDocs[mappedType].imageUrl = url;
-                  updatedDocs[mappedType].name = doc.originalName || doc.docType;
-                  updatedDocs[mappedType].documentId = doc._id || doc.id || null;
-                }
+              const uiKey = BACKEND_TO_UI[doc.docType];
+              if (!uiKey) return;
+              const url = doc.publicUrl || doc.fileUrl || doc.url;
+              if (url) {
+                updatedDocs[uiKey].preview = url;
+                updatedDocs[uiKey].imageUrl = url;
+                updatedDocs[uiKey].name = doc.docType;
+                updatedDocs[uiKey].documentId = doc._id || doc.id || null;
               }
             });
           }
@@ -106,11 +112,7 @@ const AddVehiclePage = () => {
         setIsEdit(false);
         setVehicleId(null);
         setInitialFormData({});
-        setDocuments({
-          rc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          puc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          fitnessCertificate: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-        });
+        setDocuments(emptyDocsState());
       }
     };
 
@@ -125,22 +127,13 @@ const AddVehiclePage = () => {
         toast.warn('No auth token found. Request may fail.');
     }
 
-    const docTypes = {
-      rc: 'RC',
-      puc: 'PUC',
-      fitnessCertificate: 'FC',
-    };
-
+    // Backend replaces existing docs of the same docType, so we don't need
+    // to issue a separate delete for the previous upload.
     const uploadDocuments = async (entityId) => {
-      for (const [key, docType] of Object.entries(docTypes)) {
+      for (const [key, docType] of Object.entries(VEHICLE_DOC_TYPE_MAP)) {
         const docData = documents[key];
         if (docData && docData.file) {
           try {
-            // Delete old document if replacing
-            const oldDocId = docData._previousDocumentId;
-            if (oldDocId) {
-              try { await VehicleService.deleteDocument(oldDocId, token); } catch (_) { /* best effort */ }
-            }
             await VehicleService.uploadVehicleDocument(entityId, docType, docData.file, token);
           } catch (docErr) {
             console.error(`Failed to upload ${docType}`, docErr);
@@ -180,8 +173,9 @@ const AddVehiclePage = () => {
   };
 
   const handleDeleteDocument = async (documentId) => {
+    if (!vehicleId) return;
     const token = localStorage.getItem('authToken');
-    await VehicleService.deleteDocument(documentId, token);
+    await VehicleService.deleteVehicleDocument(vehicleId, documentId, token);
   };
 
   const handleFooterSubmit = (e) => {
