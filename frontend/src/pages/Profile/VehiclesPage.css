@@ -2,6 +2,43 @@
    Vehicles Page Styles
    ========================================================================== */
 
+/* Skeleton shimmer for the Vehicle Dashboard table (and reusable elsewhere). */
+@keyframes vd-shimmer {
+    0%   { background-position: -150% 0; }
+    100% { background-position: 150% 0; }
+}
+
+.vd-skeleton {
+    display: inline-block;
+    height: 14px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #eef2f7 0%, #e2e8f0 50%, #eef2f7 100%);
+    background-size: 200% 100%;
+    animation: vd-shimmer 1.4s linear infinite;
+}
+
+/* Pill-shaped variant for doc-badge cells. */
+.vd-skeleton-pill {
+    height: 22px;
+    border-radius: 999px;
+    width: 92px;
+}
+
+/* Compact variant for the action button. */
+.vd-skeleton-btn {
+    height: 28px;
+    border-radius: 8px;
+    width: 70px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vd-skeleton,
+    .vd-skeleton-pill,
+    .vd-skeleton-btn {
+        animation: none;
+    }
+}
+
 /* Vehicle Modal Styles (Add Vehicle Modal) */
 .vehicle-modal-overlay {
     position: fixed;

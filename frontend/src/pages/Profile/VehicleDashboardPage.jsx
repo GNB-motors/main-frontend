@@ -341,9 +341,9 @@ const VehicleDashboardPage = () => {
                 </thead>
                 <tbody>
                   {loading && rows.length === 0 && (
-                    <tr>
-                      <td colSpan={5 + DOC_COLS.length} style={emptyCell}>Loading…</td>
-                    </tr>
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <SkeletonRow key={`sk-${i}`} widthSeed={i + 1} />
+                    ))
                   )}
                   {!loading && rows.length === 0 && (
                     <tr>
@@ -414,6 +414,34 @@ const VehicleDashboardPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Skeleton row for the table while data is loading. Mirrors the real row's
+// column count so layout doesn't jump when data arrives.
+const SkeletonRow = ({ widthSeed = 0 }) => {
+  // Use the seed so different rows render different bar widths (more realistic).
+  const w = (base, jitter) => `${base + ((widthSeed * 7) % jitter)}%`;
+  return (
+    <tr style={{ borderTop: '1px solid #f1f5f9' }}>
+      <td style={td}>
+        <span className="vd-skeleton" style={{ width: w(70, 20) }} />
+        <div style={{ marginTop: 6 }}>
+          <span className="vd-skeleton" style={{ width: w(40, 15), height: 10 }} />
+        </div>
+      </td>
+      <td style={td}><span className="vd-skeleton" style={{ width: w(60, 25) }} /></td>
+      <td style={td}><span className="vd-skeleton" style={{ width: w(50, 25) }} /></td>
+      <td style={td}><span className="vd-skeleton" style={{ width: w(80, 15) }} /></td>
+      {DOC_COLS.map((d) => (
+        <td key={d.key} style={td}>
+          <span className="vd-skeleton vd-skeleton-pill" />
+        </td>
+      ))}
+      <td style={{ ...td, textAlign: 'right' }}>
+        <span className="vd-skeleton vd-skeleton-btn" />
+      </td>
+    </tr>
   );
 };
 
