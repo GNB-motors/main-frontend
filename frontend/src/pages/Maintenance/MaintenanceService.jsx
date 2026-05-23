@@ -77,6 +77,19 @@ const deleteRecord = async (token, id) => {
 
 // Org's saved dropdown options. Workshop list starts empty; service/repair type
 // lists are merged with frontend defaults inside the modal.
+// System-generated alerts (no caching server-side; refetch to refresh).
+const getAlerts = async (token) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/maintenance/alerts`, {
+      headers: authHeader(token),
+    });
+    return Array.isArray(res.data?.data) ? res.data.data : [];
+  } catch (err) {
+    console.error('getAlerts error', err.response?.data || err.message);
+    throw err.response?.data || { detail: 'Failed to load alerts' };
+  }
+};
+
 const getOptions = async (token) => {
   try {
     const res = await axios.get(`${API_BASE_URL}/api/maintenance/options`, {
@@ -126,4 +139,5 @@ export const MaintenanceService = {
   deleteAttachment,
   getOptions,
   addOption,
+  getAlerts,
 };

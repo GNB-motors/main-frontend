@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, Bell, Paperclip, Plus, Search, Trash2, Wrench } from 'lucide-react';
+import { ArrowLeft, Paperclip, Plus, Search, Trash2, Wrench } from 'lucide-react';
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
+import AlertsTab from './Component/AlertsTab.jsx';
 import '../Profile/VehiclesPage.css';
 
 const TABS = [
@@ -399,47 +400,6 @@ const RecordsTab = ({ activeTab, rows, loading, kpi, search, setSearch, onAdd, o
     </>
   );
 };
-
-const AlertsTab = () => (
-  <div style={{ padding: '32px 24px' }}>
-    <div
-      style={{
-        background: '#fff',
-        border: '1px dashed #e2e8f0',
-        borderRadius: 12,
-        padding: '40px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        color: '#64748b',
-      }}
-    >
-      <div
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 14,
-          background: '#fff7ed',
-          color: '#ea580c',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 12,
-        }}
-      >
-        <Bell size={26} />
-      </div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>
-        Alerts coming soon
-      </div>
-      <p style={{ margin: 0, fontSize: 13, maxWidth: 460 }}>
-        System-generated alerts will show up here — e.g. overdue services based on KM intervals,
-        repeating repair patterns, and unusual spend trends. Backend rules will be wired in a follow-up.
-      </p>
-    </div>
-  </div>
-);
 
 const Kpi = ({ title, value, accent, icon }) => (
   <div
