@@ -174,7 +174,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color,#4f46e5)] focus:border-[var(--primary-color,#4f46e5)]';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
         className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -779,7 +779,7 @@ const KhataLedgerPage = () => {
 
       {/* Delete Confirmation */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDeleteTarget(null)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={() => setDeleteTarget(null)}>
           <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold">Delete Expense</h3>
             <p className="mt-2 text-sm text-gray-600">

@@ -92,54 +92,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <Grid size={20} /><span>Overview</span>
                     </NavLink>
 
-                    {/* Vehicle Activity Section */}
-                    <div className="nav-section">
-                        <button
-                            className={`nav-link nav-parent ${isVehicleActivityOpen ? 'active-parent' : ''}`}
-                            onClick={() => setIsVehicleActivityOpen(!isVehicleActivityOpen)}
-                        >
-                            <div className="nav-parent-left">
-                                <Truck size={20} />
-                                <span>Vehicle Activity</span>
-                            </div>
-                            <ChevronIcon
-                                size={16}
-                                className={`chevron-icon ${isVehicleActivityOpen ? 'rotated' : ''}`}
-                            />
-                        </button>
-                        <div className={`nav-children ${isVehicleActivityOpen ? 'open' : ''}`}>
-                            <NavLink
-                                to="/trip-management"
-                                className="nav-link nav-child"
-                                onClick={closeSidebarOnMobile}
-                            >
-                                <span>Trip Management</span>
-                            </NavLink>
-                            <NavLink
-                                to="/refuel-logs"
-                                className="nav-link nav-child"
-                                onClick={closeSidebarOnMobile}
-                            >
-                                <span>Refuel Logs</span>
-                            </NavLink>
-                            <NavLink
-                                to="/mileage-tracking"
-                                className="nav-link nav-child"
-                                onClick={closeSidebarOnMobile}
-                            >
-                                <span>Mileage Tracking</span>
-                            </NavLink>
-                        </div>
-                    </div>
-
                     <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
                         <FileText size={20} /><span>Reports</span>
                     </NavLink>
-                    {/* --- Added Drivers Link --- */}
-                    <NavLink to="/drivers" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Users size={20} />
-                        <span>Employees</span>
-                    </NavLink>
+
                     {/* Vehicles Section (dropdown) */}
                     <div className="nav-section">
                         <button
@@ -187,17 +143,57 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                             </NavLink>
                         </div>
                     </div>
+
+                    {/* Vehicle Activity Section */}
+                    <div className="nav-section">
+                        <button
+                            className={`nav-link nav-parent ${isVehicleActivityOpen ? 'active-parent' : ''}`}
+                            onClick={() => setIsVehicleActivityOpen(!isVehicleActivityOpen)}
+                        >
+                            <div className="nav-parent-left">
+                                <Truck size={20} />
+                                <span>Vehicle Activity</span>
+                            </div>
+                            <ChevronIcon
+                                size={16}
+                                className={`chevron-icon ${isVehicleActivityOpen ? 'rotated' : ''}`}
+                            />
+                        </button>
+                        <div className={`nav-children ${isVehicleActivityOpen ? 'open' : ''}`}>
+                            {/* Trip Management intentionally hidden — route still exists for deep links. */}
+                            <NavLink
+                                to="/refuel-logs"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Refuel Logs</span>
+                            </NavLink>
+                            <NavLink
+                                to="/mileage-tracking"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Mileage Tracking</span>
+                            </NavLink>
+                        </div>
+                    </div>
+
+                    {/* --- Added Drivers Link --- */}
+                    <NavLink to="/drivers" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <Users size={20} />
+                        <span>Employees</span>
+                    </NavLink>
                     <NavLink to="/locations" className="nav-link" onClick={closeSidebarOnMobile}>
                         <MapPin size={20} />
                         <span>Locations</span>
                     </NavLink>
-                    <NavLink to="/khata-ledger" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <BookOpen size={20} />
-                        <span>Khata Ledger</span>
-                    </NavLink>
                     <NavLink to="/fuel-comparison" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Fuel size={20} />
                         <span>Fuel Comparison</span>
+                    </NavLink>
+                    <NavLink to="/khata-ledger" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <BookOpen size={20} />
+                        <span>Khata Ledger</span>
                     </NavLink>
                     <NavLink to="/profile" className="nav-link" onClick={closeSidebarOnMobile}>
                         <User size={20} />
