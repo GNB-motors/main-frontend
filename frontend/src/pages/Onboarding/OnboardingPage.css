@@ -1,326 +1,892 @@
-/* Onboarding Page Styles - Minimalistic & Professional */
-.onboarding-container {
-  min-height: 100vh;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-image: url('../../assets/login-art-pattern.png');
-  padding: 24px;
-  background: #F8F9FA;
-  position: relative;
-  overflow: hidden;
-}
+/* =========================================================
+   OnboardingPage.css  —  Redesigned 5-step onboarding
+   Matches prototype: dark topbar, horizontal step indicator,
+   clean white card with Back / Continue footer.
+   All existing form/button CSS kept in OnboardingPageExtended.css
+   ========================================================= */
 
-.onboarding-wrapper {
-  width: 100%;
-  max-width: 800px;
-  height: 100%;
-  max-height: 90vh;
+/* ── Page shell ──────────────────────────────────────────── */
+.ob-page {
+  min-height: 100vh;
+  background: #F1F5F9;
   display: flex;
   flex-direction: column;
-  position: relative;
-  z-index: 2;
+  font-family: 'Montserrat', 'Inter', sans-serif;
 }
 
-/* Brand Header */
-.onboarding-brand {
-  text-align: center;
-  margin-bottom: 32px;
+/* ── Top bar ─────────────────────────────────────────────── */
+.ob-topbar {
+  height: 56px;
+  background: #0F172A;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
   flex-shrink: 0;
-  animation: fadeInDown 0.4s ease-out;
 }
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.ob-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.onboarding-logo {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 16px;
-  opacity: 0.9;
+.ob-topbar-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
-.onboarding-main-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--color-grey-800);
+.ob-topbar-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #F8FAFC;
+  letter-spacing: -0.2px;
+}
+
+.ob-topbar-edge {
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+.ob-topbar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #334155;
+  color: #CBD5E1;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+}
+
+/* ── Main area ───────────────────────────────────────────── */
+.ob-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px 40px;
+  gap: 32px;
+  overflow-y: auto;
+}
+
+/* ── Heading ─────────────────────────────────────────────── */
+.ob-heading {
+  text-align: center;
+}
+
+.ob-heading-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0F172A;
   margin: 0 0 8px 0;
   letter-spacing: -0.5px;
 }
 
-.onboarding-main-subtitle {
+.ob-heading-sub {
   font-size: 14px;
-  color: var(--color-grey-400);
+  color: #64748B;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ── Horizontal stepper ──────────────────────────────────── */
+.ob-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 600px;
+}
+
+.ob-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ob-step-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #CBD5E1;
+  background: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #94A3B8;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.ob-step--active .ob-step-circle {
+  background: #0F172A;
+  border-color: #0F172A;
+  color: white;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.25);
+}
+
+.ob-step--done .ob-step-circle {
+  background: #0F172A;
+  border-color: #0F172A;
+  color: white;
+}
+
+.ob-step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94A3B8;
+  white-space: nowrap;
+  letter-spacing: 0.1px;
+  transition: color 0.2s;
+}
+
+.ob-step--active .ob-step-label,
+.ob-step--done  .ob-step-label {
+  color: #0F172A;
+}
+
+/* connecting line */
+.ob-step-line {
+  flex: 1;
+  height: 2px;
+  background: #CBD5E1;
+  margin: 0 6px;
+  margin-bottom: 24px;
+  border-radius: 2px;
+  transition: background 0.3s ease;
+}
+
+.ob-step-line--done {
+  background: #0F172A;
+}
+
+/* ── Card ────────────────────────────────────────────────── */
+.ob-card {
+  width: 100%;
+  max-width: 580px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  overflow: hidden;
+  animation: ob-slide-in 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes ob-slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Step body (inside card) ─────────────────────────────── */
+.ob-step-body {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ob-step-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.3px;
+}
+
+.ob-step-header p {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* ── Footer nav row ──────────────────────────────────────── */
+.ob-step-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid #F1F5F9;
+  margin-top: auto;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.ob-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  letter-spacing: 0.1px;
+  text-decoration: none;
+}
+
+.ob-btn--dark {
+  background: #0F172A;
+  color: white;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.2);
+}
+
+.ob-btn--dark:hover:not(:disabled) {
+  background: #1E293B;
+  box-shadow: 0 4px 14px rgba(15,23,42,0.3);
+  transform: translateY(-1px);
+}
+
+.ob-btn--ghost {
+  background: transparent;
+  color: #475569;
+  border: 1.5px solid #E2E8F0;
+}
+
+.ob-btn--ghost:hover:not(:disabled) {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.ob-btn--back {
+  color: #64748B;
+  border-color: transparent;
+}
+
+.ob-btn--back:hover:not(:disabled) {
+  background: #F1F5F9;
+  border-color: transparent;
+}
+
+.ob-btn--icon { gap: 8px; }
+
+.ob-btn--launch {
+  padding: 10px 24px;
+  font-size: 14px;
+}
+
+.ob-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* spinner inside button */
+.ob-btn-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(0,0,0,0.15);
+  border-top-color: #475569;
+  border-radius: 50%;
+  animation: ob-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+.ob-btn-spinner--light {
+  border-color: rgba(255,255,255,0.25);
+  border-top-color: white;
+}
+
+@keyframes ob-spin { to { transform: rotate(360deg); } }
+
+/* ── Loading state ───────────────────────────────────────── */
+.ob-step-loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  color: #94A3B8;
+  font-size: 13px;
+}
+
+.ob-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #E2E8F0;
+  border-top-color: #0F172A;
+  border-radius: 50%;
+  animation: ob-spin 0.7s linear infinite;
+  margin-bottom: 12px;
+}
+
+/* ── Notice block ────────────────────────────────────────── */
+.ob-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.ob-notice--blue {
+  background: #EFF6FF;
+  border-left: 3px solid #3B82F6;
+  color: #1D4ED8;
+}
+
+.ob-notice--blue span { color: #1E40AF; }
+
+/* ── Status badge (extension detected / not detected) ───── */
+.ob-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ob-status--success {
+  background: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.ob-status--warn {
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+/* ── Extension step — browser mockup ────────────────────── */
+.ob-ext-mockup {
+  display: flex;
+  justify-content: center;
+}
+
+.ob-ext-browser {
+  width: 100%;
+  max-width: 360px;
+  background: #F8FAFC;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  overflow: hidden;
+}
+
+.ob-ext-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 14px;
+  background: #E2E8F0;
+}
+
+.ob-ext-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.ob-ext-dot--red    { background: #EF4444; }
+.ob-ext-dot--yellow { background: #F59E0B; }
+.ob-ext-dot--green  { background: #10B981; }
+
+.ob-ext-browser-content { padding: 12px 14px; }
+
+.ob-ext-address-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ob-ext-address-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: #6B7280;
+}
+
+.ob-ext-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ob-ext-pin-icon,
+.ob-ext-active-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.ob-ext-active-icon {
+  background: #0F172A;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.3);
+}
+
+.ob-ext-arrow-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.ob-ext-arrow-svg {
+  width: 120px;
+  height: 50px;
+}
+
+.ob-ext-arrow-label {
+  font-size: 11px;
+  color: #4F46E5;
+  font-weight: 600;
+  margin-top: -4px;
+}
+
+.ob-ext-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.ob-ext-footnote {
+  font-size: 11.5px;
+  color: #94A3B8;
+  text-align: center;
   margin: 0;
   font-weight: 400;
 }
 
-/* Stepper - Clean & Minimal */
-.stepper-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  background-color: white;
-  padding: 20px 32px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  flex-shrink: 0;
-  animation: fadeIn 0.4s ease-out 0.1s backwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.stepper-item {
+/* ── Connect Fleet — guide accordion ────────────────────── */
+.ob-guide-list {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+.ob-guide-item {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.ob-guide-item:hover,
+.ob-guide-item--open {
+  background: white;
+  border-color: #CBD5E1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.ob-guide-item-top {
+  display: flex;
   align-items: center;
-  position: relative;
+  gap: 12px;
+}
+
+.ob-guide-item-icon { flex-shrink: 0; }
+
+.ob-guide-item-title {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.ob-guide-chevron {
+  color: #94A3B8;
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
   flex-shrink: 0;
 }
 
-.stepper-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: var(--color-grey-100);
-  border: 2px solid var(--color-grey-200);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-grey-400);
-  font-weight: 600;
-  font-size: 15px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 8px;
-  z-index: 2;
-}
+.ob-guide-chevron--open { transform: rotate(180deg); }
 
-.stepper-item.active .stepper-circle {
-  background-color: var(--color-primary-500);
-  border-color: var(--color-primary-500);
-  color: white;
-  box-shadow: 0 4px 12px rgba(41, 64, 211, 0.25);
-}
-
-.stepper-item.completed .stepper-circle {
-  background-color: var(--color-green-500);
-  border-color: var(--color-green-500);
-  color: white;
-}
-
-.stepper-content {
-  text-align: center;
-}
-
-.stepper-title {
+.ob-guide-item-desc {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-grey-700);
-  margin-bottom: 2px;
-}
-
-.stepper-item.active .stepper-title {
-  color: var(--color-primary-500);
-}
-
-.stepper-item.completed .stepper-title {
-  color: var(--color-green-500);
-}
-
-.stepper-description {
-  font-size: 11px;
-  color: var(--color-grey-400);
+  color: #475569;
+  line-height: 1.65;
+  margin: 10px 0 0 34px;
   font-weight: 400;
 }
 
-/* Dynamic Progress Line */
-.stepper-line-wrapper {
-  position: relative;
-  flex: 1;
-  height: 2px;
-  margin: 0 16px;
-  margin-bottom: 38px;
-}
-
-.stepper-line-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background-color: var(--color-grey-200);
-  border-radius: 2px;
-}
-
-.stepper-line-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-primary-500), var(--color-green-500));
-  border-radius: 2px;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Main Card with Internal Scrolling */
-.onboarding-card {
-  background-color: white;
-  padding: 0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  animation: fadeInUp 0.4s ease-out 0.2s backwards;
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Step Container with Scrolling */
-.step-container {
-  animation: slideIn 0.3s ease-out;
-  padding: 32px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex: 1;
-  /* Hide scrollbar but keep functionality */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-.step-container::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.step-header {
+/* ── Finish step ─────────────────────────────────────────── */
+.ob-finish {
+  align-items: center;
   text-align: center;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--color-grey-100);
 }
 
-.step-header h2 {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--color-grey-800);
+.ob-finish-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #0F172A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 20px rgba(15,23,42,0.25);
+}
+
+.ob-finish-text h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0F172A;
   margin: 0 0 8px 0;
   letter-spacing: -0.3px;
 }
 
-.step-description {
-  font-size: 13px;
-  color: var(--color-grey-400);
+.ob-finish-text p {
+  font-size: 13.5px;
+  color: #64748B;
   margin: 0;
-  font-weight: 400;
+  line-height: 1.6;
 }
 
-/* Form Section - Clean Design */
-.form-section {
-  margin-bottom: 24px;
+.ob-finish-summary {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.ob-finish-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px 16px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--color-grey-700);
+.ob-finish-card-icon { font-size: 18px; flex-shrink: 0; }
+
+.ob-finish-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ob-finish-card-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+
+.ob-finish-card-value {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.ob-finish-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ob-finish-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+/* ── Readonly input ──────────────────────────────────────── */
+.ob-input--readonly {
+  background: #F8FAFC !important;
+  cursor: not-allowed !important;
+  color: #475569;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .ob-main { padding: 28px 16px 32px; gap: 20px; }
+  .ob-heading-title { font-size: 20px; }
+  .ob-step-label { display: none; }
+  .ob-step-body { padding: 24px 20px; }
+  .ob-card { border-radius: 12px; }
+  .ob-topbar { padding: 0 20px; }
+}
+
+/* ── Connect Fleet — visual mockups ─────────────────────── */
+
+/* Step number badge inside accordion */
+.ob-guide-step-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0F172A;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Expanded content wrapper */
+.ob-guide-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+  padding-left: 34px; /* aligns under title */
+}
+
+/* Visual container */
+.ob-cf-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  background: #F8FAFC;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+}
+
+.ob-cf-visual-caption {
+  font-size: 12px;
+  color: #64748B;
+  text-align: center;
+  margin: 0;
+}
+
+.ob-cf-highlight {
+  color: #4F46E5;
+  font-weight: 700;
+}
+
+/* ── Toolbar demo mockup ─────────────────────────────────── */
+.ob-cf-toolbar-demo {
+  width: 100%;
+  max-width: 320px;
+}
+
+.ob-cf-toolbar-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.ob-cf-url-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #F1F5F9;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  color: #6B7280;
+}
+
+.ob-cf-toolbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ob-cf-toolbar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F1F5F9;
+}
+
+.ob-cf-toolbar-icon--active {
+  position: relative;
+  background: transparent;
+}
+
+/* Pulse ring animation around the active extension icon */
+.ob-cf-ext-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
+  border: 2px solid #4F46E5;
+  animation: ob-cf-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ob-cf-pulse {
+  0%   { transform: scale(1);    opacity: 0.8; }
+  50%  { transform: scale(1.18); opacity: 0.3; }
+  100% { transform: scale(1);    opacity: 0.8; }
+}
+
+/* ── Extension popup mockup ─────────────────────────────── */
+.ob-cf-popup {
+  width: 200px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.ob-cf-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  background: #0F172A;
+}
+
+.ob-cf-popup-header--fe {
+  background: #1E3A8A;
+}
+
+.ob-cf-popup-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+}
+
+.ob-cf-popup-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ob-cf-popup-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: #94A3B8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.ob-cf-popup-input {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 10.5px;
+  color: #475569;
+}
+
+.ob-cf-popup-input--pwd {
+  letter-spacing: 2px;
+  color: #0F172A;
+}
+
+.ob-cf-popup-btn {
+  margin-top: 4px;
+  background: #0F172A;
+  color: white;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: center;
+  padding: 7px 0;
+  border-radius: 5px;
+}
+
+.ob-cf-popup-btn--blue {
+  background: #1D4ED8;
+}
+
+/* ── Authorize popup ─────────────────────────────────────── */
+.ob-cf-popup--auth {
+  width: 200px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.ob-cf-auth-icon { flex-shrink: 0; }
+
+.ob-cf-auth-title {
   font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
 }
 
-.required {
-  color: #EF4444;
+.ob-cf-auth-sub {
+  font-size: 10.5px;
+  color: #64748B;
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.ob-cf-auth-buttons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.ob-cf-auth-deny {
+  flex: 1;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+}
+
+.ob-cf-auth-allow {
+  flex: 1;
+  background: #0F172A;
+  border-radius: 6px;
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+}
+
+/* ── Status badge: checking state ───────────────────────── */
+.ob-status--checking {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
 }
-
-.optional {
-  color: var(--color-grey-400);
-  font-weight: 400;
-  font-size: 12px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 11px 14px;
-  background-color: white;
-  border: 1.5px solid var(--color-grey-200);
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: 'Montserrat', sans-serif;
-  box-sizing: border-box;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.form-input:hover {
-  border-color: var(--color-grey-300);
-}
-
-.form-input:focus {
-  outline: none;
-  background-color: white;
-  border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px rgba(41, 64, 211, 0.08);
-}
-
-.form-input::placeholder {
-  color: var(--color-grey-400);
-  font-size: 13px;
-}
-
-.form-hint {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--color-grey-400);
-  font-weight: 400;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-/* Clean up - These styles moved to Extended CSS */
