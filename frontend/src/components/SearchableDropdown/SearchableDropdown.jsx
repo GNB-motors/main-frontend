@@ -56,8 +56,15 @@ const SearchableDropdown = ({
         getOptionLabel(option).toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Show "+ Add new" when:
+    //   1. user has typed something that doesn't match any existing option, OR
+    //   2. the options list is completely empty (give them an escape hatch).
+    const hasAddHandler = Boolean(onRequestAddNew || onAddNew);
     const canCreateNew =
-        searchTerm && !options.some((opt) => getOptionLabel(opt).toLowerCase() === searchTerm.toLowerCase());
+        hasAddHandler && (
+            (searchTerm && !options.some((opt) => getOptionLabel(opt).toLowerCase() === searchTerm.toLowerCase()))
+            || options.length === 0
+        );
 
     return (
         <div className="searchable-dropdown-container" ref={dropdownRef}>
@@ -150,7 +157,7 @@ const SearchableDropdown = ({
                                 className="searchable-dropdown-item searchable-add-new-option"
                                 onClick={handleAddNewClick}
                             >
-                                + {addNewLabel} "{searchTerm}"
+                                {searchTerm ? `+ ${addNewLabel} "${searchTerm}"` : `+ ${addNewLabel}`}
                             </div>
                         )}
                         {filteredOptions.length === 0 && !canCreateNew ? (

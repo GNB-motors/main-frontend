@@ -220,45 +220,50 @@ const classifyExistingVehicles = async (token) => {
 };
 
 
-/**
- * Upload a document for a vehicle
- */
-const uploadVehicleDocument = async (vehicleId, docType, file, token, expiryDate) => {
+// Vehicle documents are stored embedded on the Vehicle itself (not in the
+// generic Document collection). All doc endpoints are scoped under the vehicle.
+
+// `files` is an array of File/Blob. RC and NATIONAL_PERMIT accept up to 2 (front + back).
+// `sides` is an optional array like ['FRONT','BACK'] mapped positionally.
+const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}) => {
   try {
+    const list = Array.isArray(files) ? files : [files];
+    if (!list.length) throw new Error('No files to upload');
+
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('entityType', 'VEHICLE');
-    formData.append('entityId', vehicleId);
+    list.forEach(f => formData.append('files', f));
     formData.append('docType', docType);
-    if (expiryDate) {
-      formData.append('expiryDate', expiryDate);
+    if (opts.expiryDate) formData.append('expiryDate', opts.expiryDate);
+    if (Array.isArray(opts.sides) && opts.sides.length === list.length) {
+      formData.append('sides', opts.sides.join(','));
     }
 
-    const response = await axios.post(`${API_BASE_URL}/api/documents`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
+    const response = await axios.post(
+      `${API_BASE_URL}/api/vehicles/${vehicleId}/documents`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
       },
-    });
-    return response.data;
+    );
+    return response.data?.data || response.data;
   } catch (error) {
     console.error('API Error uploading vehicle document:', error.response?.data || error.message);
     throw error.response?.data || { detail: 'Failed to upload document.' };
   }
 };
 
-/**
- * Get all documents for a vehicle
- */
 const getVehicleDocuments = async (vehicleId, token) => {
   try {
     const response = await axios.get(
-      `${API_BASE_URL}/api/documents?entityType=VEHICLE&entityId=${vehicleId}`,
+      `${API_BASE_URL}/api/vehicles/${vehicleId}/documents`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     return response.data?.data || response.data || [];
   } catch (error) {
@@ -267,42 +272,38 @@ const getVehicleDocuments = async (vehicleId, token) => {
   }
 };
 
-/**
- * Delete a document (hard delete from DB + S3)
- */
-const deleteDocument = async (documentId, token) => {
+// Fleet-wide dashboard: every vehicle + a per-docType expiry digest. Backend
+// derives the owner name from RC OCR. Returns plain array, badges are computed
+// client-side from expiryDate.
+const getFleetDashboard = async (token, search) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/api/documents/${documentId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const url = search
+      ? `${API_BASE_URL}/api/vehicles/dashboard?search=${encodeURIComponent(search)}`
+      : `${API_BASE_URL}/api/vehicles/dashboard`;
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data;
+    return response.data?.data || response.data || [];
   } catch (error) {
-    console.error('API Error deleting document:', error.response?.data || error.message);
-    throw error.response?.data || { detail: 'Failed to delete document.' };
+    console.error('API Error fetching fleet dashboard:', error.response?.data || error.message);
+    throw error.response?.data || { detail: 'Could not fetch fleet dashboard.' };
   }
 };
 
-/**
- * Update document metadata (docType, expiryDate, isVerified)
- */
-const updateDocument = async (documentId, updateData, token) => {
+const deleteVehicleDocument = async (vehicleId, docId, token) => {
   try {
-    const response = await axios.patch(
-      `${API_BASE_URL}/api/documents/${documentId}`,
-      updateData,
+    const response = await axios.delete(
+      `${API_BASE_URL}/api/vehicles/${vehicleId}/documents/${docId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
-      }
+      },
     );
-    return response.data?.data || response.data;
+    return response.data;
   } catch (error) {
-    console.error('API Error updating document:', error.response?.data || error.message);
-    throw error.response?.data || { detail: 'Failed to update document.' };
+    console.error('API Error deleting vehicle document:', error.response?.data || error.message);
+    throw error.response?.data || { detail: 'Failed to delete document.' };
   }
 };
 
@@ -316,6 +317,6 @@ export const VehicleService = {
   classifyExistingVehicles,
   uploadVehicleDocument,
   getVehicleDocuments,
-  deleteDocument,
-  updateDocument,
+  deleteVehicleDocument,
+  getFleetDashboard,
 };

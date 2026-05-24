@@ -6,25 +6,31 @@ import { listAccounts, reassignVehicleAccount } from './FleetEdgeAccountService.
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageHeader from '../Drivers/Component/PageHeader.jsx';
 import VehicleBasicInformationForm from './Component/VehicleBasicInformationForm.jsx';
-import VehicleDocumentUpload from './Component/VehicleDocumentUpload.jsx';
+import VehicleDocumentUpload, { VEHICLE_DOC_TYPES, emptyDocsState } from './Component/VehicleDocumentUpload.jsx';
 import FormFooter from '../Drivers/Component/FormFooter.jsx';
 import './VehiclesPage.css';
+
+const BACKEND_TO_UI = VEHICLE_DOC_TYPES.reduce((acc, d) => {
+  acc[d.backendType] = d.key;
+  return acc;
+}, {});
+
+const META_BY_KEY = VEHICLE_DOC_TYPES.reduce((acc, d) => {
+  acc[d.key] = d;
+  return acc;
+}, {});
 
 const AddVehiclePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const formRef = useRef(null);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [vehicleId, setVehicleId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
-  const [documents, setDocuments] = useState({
-    rc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-    puc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-    fitnessCertificate: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-  });
+  const [documents, setDocuments] = useState(emptyDocsState);
 
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
@@ -44,7 +50,6 @@ const AddVehiclePage = () => {
       .then(accounts => {
         const active = (accounts || []).filter(a => a.status === 'ACTIVE');
         setFleetEdgeAccounts(active);
-        // If exactly one active account, default-select it
         if (active.length === 1) setSelectedAccountId(String(active[0]._id));
       })
       .catch(() => {});
@@ -59,43 +64,41 @@ const AddVehiclePage = () => {
         const vId = editing.id || editing._id;
         setVehicleId(vId);
 
-        const formData = {
+        setInitialFormData({
           registration_no: editing.registration_no || editing.registrationNumber || '',
           chassis_number: editing.chassis_number || editing.chassisNumber || '',
           model: editing.model || '',
-        };
+        });
 
-        setInitialFormData(formData);
-
-        // Fetch existing vehicle documents
+        // Fetch existing vehicle documents — server returns subdocs with files[]
         try {
           const token = localStorage.getItem('authToken');
           const fetchedDocs = await VehicleService.getVehicleDocuments(vId, token);
-          const updatedDocs = {
-            rc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-            puc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-            fitnessCertificate: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          };
+          const updatedDocs = emptyDocsState();
 
           if (Array.isArray(fetchedDocs)) {
-            fetchedDocs.forEach(doc => {
-              const mappedType = {
-                'RC': 'rc',
-                'PUC': 'puc',
-                'POLLUTION': 'puc',
-                'FITNESS_CERTIFICATE': 'fitnessCertificate',
-                'FC': 'fitnessCertificate',
-              }[doc.docType];
+            fetchedDocs.forEach((doc) => {
+              const uiKey = BACKEND_TO_UI[doc.docType];
+              if (!uiKey) return;
+              const meta = META_BY_KEY[uiKey];
 
-              if (mappedType) {
-                const url = doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
-                if (url) {
-                  updatedDocs[mappedType].preview = url;
-                  updatedDocs[mappedType].imageUrl = url;
-                  updatedDocs[mappedType].name = doc.originalName || doc.docType;
-                  updatedDocs[mappedType].documentId = doc._id || doc.id || null;
-                }
-              }
+              updatedDocs[uiKey].documentId = doc._id || doc.id || null;
+              updatedDocs[uiKey].expiryDate = doc.expiryDate || null;
+              updatedDocs[uiKey].ocrStatus = doc.ocr?.status || null;
+              updatedDocs[uiKey].ocrFields = doc.ocr?.fields || null;
+
+              (doc.files || []).forEach((f) => {
+                const side = meta.sides.includes(f.side)
+                  ? f.side
+                  : (meta.sides[0] || 'SINGLE');
+                updatedDocs[uiKey][side] = {
+                  file: null,
+                  preview: f.publicUrl,
+                  imageUrl: f.publicUrl,
+                  name: doc.docType,
+                  isPdf: (f.mimeType || '').includes('pdf'),
+                };
+              });
             });
           }
           setDocuments(updatedDocs);
@@ -106,11 +109,7 @@ const AddVehiclePage = () => {
         setIsEdit(false);
         setVehicleId(null);
         setInitialFormData({});
-        setDocuments({
-          rc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          puc: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          fitnessCertificate: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-        });
+        setDocuments(emptyDocsState());
       }
     };
 
@@ -122,30 +121,40 @@ const AddVehiclePage = () => {
     const token = localStorage.getItem('authToken');
 
     if (!token) {
-        toast.warn('No auth token found. Request may fail.');
+      toast.warn('No auth token found. Request may fail.');
     }
 
-    const docTypes = {
-      rc: 'RC',
-      puc: 'PUC',
-      fitnessCertificate: 'FC',
-    };
-
+    // For each docType, collect the new files the user attached (skip slots
+    // that hold an existing preview URL with no fresh file). Backend replaces
+    // the whole subdoc when same docType is uploaded again.
     const uploadDocuments = async (entityId) => {
-      for (const [key, docType] of Object.entries(docTypes)) {
-        const docData = documents[key];
-        if (docData && docData.file) {
-          try {
-            // Delete old document if replacing
-            const oldDocId = docData._previousDocumentId;
-            if (oldDocId) {
-              try { await VehicleService.deleteDocument(oldDocId, token); } catch (_) { /* best effort */ }
-            }
-            await VehicleService.uploadVehicleDocument(entityId, docType, docData.file, token);
-          } catch (docErr) {
-            console.error(`Failed to upload ${docType}`, docErr);
-            toast.warning(`Failed to upload ${key} document`);
+      for (const meta of VEHICLE_DOC_TYPES) {
+        const entry = documents[meta.key];
+        if (!entry) continue;
+
+        const filesInOrder = [];
+        const sidesInOrder = [];
+        meta.sides.forEach((side) => {
+          const slot = entry[side];
+          if (slot && slot.file) {
+            filesInOrder.push(slot.file);
+            sidesInOrder.push(side);
           }
+        });
+
+        if (filesInOrder.length === 0) continue;
+
+        try {
+          await VehicleService.uploadVehicleDocument(
+            entityId,
+            meta.backendType,
+            filesInOrder,
+            token,
+            { sides: sidesInOrder, expiryDate: entry.expiryDate || undefined },
+          );
+        } catch (docErr) {
+          console.error(`Failed to upload ${meta.backendType}`, docErr);
+          toast.warning(`Failed to upload ${meta.label}`);
         }
       }
     };
@@ -180,8 +189,9 @@ const AddVehiclePage = () => {
   };
 
   const handleDeleteDocument = async (documentId) => {
+    if (!vehicleId) return;
     const token = localStorage.getItem('authToken');
-    await VehicleService.deleteDocument(documentId, token);
+    await VehicleService.deleteVehicleDocument(vehicleId, documentId, token);
   };
 
   const handleFooterSubmit = (e) => {
@@ -200,14 +210,13 @@ const AddVehiclePage = () => {
           currentLabel={isEdit ? (initialFormData.registration_no || 'Vehicle') : null}
           title={isEdit ? "Edit Vehicle" : "Add Vehicle"}
           description={
-            isEdit 
-              ? 'Update vehicle information including registration, chassis number, and model.' 
+            isEdit
+              ? 'Update vehicle information including registration, chassis number, and model.'
               : 'Configure essential vehicle details, including registration, chassis number, and model.'
           }
           onBack={() => navigate(-1)}
         />
 
-        {/* FleetEdge account selection — shown when org has ACTIVE accounts */}
         {!isEdit && fleetEdgeAccounts.length > 1 && (
           <div style={{ padding: '0 24px 16px', maxWidth: 480 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>

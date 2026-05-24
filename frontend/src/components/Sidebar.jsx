@@ -11,7 +11,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isVehicleActivityOpen, setIsVehicleActivityOpen] = useState(false);
+    const [isVehiclesOpen, setIsVehiclesOpen] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+
+    const VEHICLES_CHILD_ROUTES = ['/vehicles', '/vehicles/dashboard', '/vehicles/add', '/vehicles/bulk-upload', '/vehicles/service-intelligence', '/vehicles/service-intelligence/add-service', '/vehicles/service-intelligence/add-repair'];
 
     // Defensive: ensure :root has the current theme CSS variables on mount and
     // whenever the theme color changes. The Sidebar previously kept a LOCAL
@@ -34,17 +37,21 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         if (vehicleActivityRoutes.includes(location.pathname)) {
             setIsVehicleActivityOpen(true);
         }
+        if (VEHICLES_CHILD_ROUTES.some((r) => location.pathname === r || location.pathname.startsWith(`${r}/`))) {
+            setIsVehiclesOpen(true);
+        }
     }, [location.pathname]);
 
-    // Auto-close Vehicle Activity when sidebar is not hovered on desktop
+    // Auto-close dropdowns when sidebar is not hovered on desktop
     useEffect(() => {
         if (!isSidebarHovered && window.innerWidth > 992) {
-            // Close after a small delay when mouse leaves
             const timer = setTimeout(() => {
                 const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
-                // Keep it open only if we're on a child route
                 if (!vehicleActivityRoutes.includes(location.pathname)) {
                     setIsVehicleActivityOpen(false);
+                }
+                if (!VEHICLES_CHILD_ROUTES.some((r) => location.pathname === r || location.pathname.startsWith(`${r}/`))) {
+                    setIsVehiclesOpen(false);
                 }
             }, 200);
             return () => clearTimeout(timer);
@@ -85,6 +92,58 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <Grid size={20} /><span>Overview</span>
                     </NavLink>
 
+                    <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <FileText size={20} /><span>Reports</span>
+                    </NavLink>
+
+                    {/* Vehicles Section (dropdown) */}
+                    <div className="nav-section">
+                        <button
+                            className={`nav-link nav-parent ${isVehiclesOpen ? 'active-parent' : ''}`}
+                            onClick={() => setIsVehiclesOpen(!isVehiclesOpen)}
+                        >
+                            <div className="nav-parent-left">
+                                <Truck size={20} />
+                                <span>Vehicles</span>
+                            </div>
+                            <ChevronIcon
+                                size={16}
+                                className={`chevron-icon ${isVehiclesOpen ? 'rotated' : ''}`}
+                            />
+                        </button>
+                        <div className={`nav-children ${isVehiclesOpen ? 'open' : ''}`}>
+                            <NavLink
+                                to="/vehicles"
+                                end
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>All Vehicles</span>
+                            </NavLink>
+                            <NavLink
+                                to="/vehicles/dashboard"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Vehicle Dashboard</span>
+                            </NavLink>
+                            <NavLink
+                                to="/vehicles/service-intelligence"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Service Intelligence</span>
+                            </NavLink>
+                            <NavLink
+                                to="/vehicles/add"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Add Vehicle</span>
+                            </NavLink>
+                        </div>
+                    </div>
+
                     {/* Vehicle Activity Section */}
                     <div className="nav-section">
                         <button
@@ -101,13 +160,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                             />
                         </button>
                         <div className={`nav-children ${isVehicleActivityOpen ? 'open' : ''}`}>
-                            <NavLink
-                                to="/trip-management"
-                                className="nav-link nav-child"
-                                onClick={closeSidebarOnMobile}
-                            >
-                                <span>Trip Management</span>
-                            </NavLink>
+                            {/* Trip Management intentionally hidden — route still exists for deep links. */}
                             <NavLink
                                 to="/refuel-logs"
                                 className="nav-link nav-child"
@@ -125,29 +178,22 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         </div>
                     </div>
 
-                    <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <FileText size={20} /><span>Reports</span>
-                    </NavLink>
                     {/* --- Added Drivers Link --- */}
                     <NavLink to="/drivers" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Users size={20} />
                         <span>Employees</span>
                     </NavLink>
-                    <NavLink to="/vehicles" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Truck size={20} />
-                        <span>Vehicles</span>
-                    </NavLink>
                     <NavLink to="/locations" className="nav-link" onClick={closeSidebarOnMobile}>
                         <MapPin size={20} />
                         <span>Locations</span>
                     </NavLink>
-                    <NavLink to="/khata-ledger" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <BookOpen size={20} />
-                        <span>Khata Ledger</span>
-                    </NavLink>
                     <NavLink to="/fuel-comparison" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Fuel size={20} />
                         <span>Fuel Comparison</span>
+                    </NavLink>
+                    <NavLink to="/khata-ledger" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <BookOpen size={20} />
+                        <span>Khata Ledger</span>
                     </NavLink>
                     <NavLink to="/profile" className="nav-link" onClick={closeSidebarOnMobile}>
                         <User size={20} />
