@@ -36,6 +36,7 @@ import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import MileageTrackingPage from './pages/MileageTracking/MileageTrackingPage.jsx';
 import MileageFuelLogPage from './pages/MileageTracking/MileageFuelLogPage.jsx';
 import MileageIntervalDetailPage from './pages/MileageTracking/MileageIntervalDetailPage.jsx';
+import ModelComparisonPage from './pages/MileageTracking/ModelComparisonPage.jsx';
 import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
@@ -85,6 +86,7 @@ function App() {
         <Route path="/mileage-tracking" element={<MileageTrackingPage />} />
         <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
         <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
+        <Route path="/model-comparison" element={<ModelComparisonPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />

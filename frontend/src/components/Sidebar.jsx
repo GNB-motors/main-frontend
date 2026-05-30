@@ -33,7 +33,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     // Check if any Vehicle Activity child route is active
     useEffect(() => {
-        const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
+        const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking', '/model-comparison'];
         if (vehicleActivityRoutes.includes(location.pathname)) {
             setIsVehicleActivityOpen(true);
         }
@@ -46,7 +46,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     useEffect(() => {
         if (!isSidebarHovered && window.innerWidth > 992) {
             const timer = setTimeout(() => {
-                const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
+                const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking', '/model-comparison'];
                 if (!vehicleActivityRoutes.includes(location.pathname)) {
                     setIsVehicleActivityOpen(false);
                 }
@@ -174,6 +174,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                                 onClick={closeSidebarOnMobile}
                             >
                                 <span>Mileage Tracking</span>
+                            </NavLink>
+                            <NavLink
+                                to="/model-comparison"
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>Model Comparison</span>
                             </NavLink>
                         </div>
                     </div>
