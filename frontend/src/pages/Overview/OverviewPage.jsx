@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { OverviewService } from "./OverviewService.jsx";
+// Feature: Smooth Filter Transition and Soft Refresh Added
 
 // --- Helpers ---
 const getInitials = (name) => {
@@ -406,14 +407,26 @@ const OverviewPage = () => {
   const [driverPerformance, setDriverPerformance] = useState(null);
   const [financials, setFinancials] = useState(null);
   const [driverLocations, setDriverLocations] = useState([]);
+  // isLoading = true only on the very first load (shows skeleton).
+  // isFetching = true on every subsequent refetch (keeps existing content visible,
+  // just dims it slightly so user knows data is refreshing without hard flash).
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState(null);
   const [selectedDays, setSelectedDays] = useState(7);
   const [customDateRange, setCustomDateRange] = useState(null);
+  // Track whether we have ever loaded data — controls skeleton vs fade behaviour
+  const hasLoadedOnce = React.useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
+      // First ever load: show full skeleton
+      // Subsequent loads (filter change): keep content, just show subtle fade
+      if (!hasLoadedOnce.current) {
+        setIsLoading(true);
+      } else {
+        setIsFetching(true);
+      }
       setError(null);
       try {
         let params = {};
@@ -437,11 +450,12 @@ const OverviewPage = () => {
         setDriverPerformance(drivers);
         setFinancials(fin);
         setDriverLocations(liveLocations);
+        hasLoadedOnce.current = true;
       } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
         setError(err.detail || "Could not load dashboard data. Please try again.");
       } finally {
         setIsLoading(false);
+        setIsFetching(false);
       }
     };
     fetchData();
@@ -477,7 +491,7 @@ const OverviewPage = () => {
 
   return (
     /* The magic wrapper that makes the background unified and typography crisp */
-    <div className="min-h-screen w-full bg-slate-50 p-3 sm:p-5 space-y-6 font-sans antialiased text-slate-900">
+    <div className={`min-h-screen w-full bg-slate-50 p-3 sm:p-5 space-y-6 font-sans antialiased text-slate-900 transition-opacity duration-300 ${isFetching ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -486,34 +500,56 @@ const OverviewPage = () => {
           <p className="text-sm font-medium text-slate-500 mt-1">Complete fleet analytics and performance metrics</p>
         </div>
 
-        {/* Modern SaaS-style Segmented Timeframe Selector */}
-        <div className="flex items-center p-1 bg-slate-200/50 rounded-xl border border-slate-200/80 shadow-sm">
-          <div className="flex items-center justify-center px-3 text-slate-400 border-r border-slate-300/50">
-            <CalendarDays size={18} strokeWidth={2.5} />
-          </div>
-          <div className="flex items-center gap-1 pl-1">
-            {[
-              { value: 7, label: "7 Days" },
-              { value: 14, label: "14 Days" },
-              { value: 30, label: "30 Days" },
-              { value: 90, label: "90 Days" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => {
-                  setSelectedDays(option.value);
-                  setCustomDateRange(null);
-                }}
-                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-300 ${selectedDays === option.value
-                    ? "bg-white text-indigo-600 shadow-md border border-slate-200/50 scale-105"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-300/40"
-                  }`}
+        {/* iOS-style sliding segmented control */}
+        {(() => {
+          const OPTIONS = [
+            { value: 7,  label: "7 Days"  },
+            { value: 14, label: "14 Days" },
+            { value: 30, label: "30 Days" },
+            { value: 90, label: "90 Days" },
+          ];
+          const idx = OPTIONS.findIndex((o) => o.value === selectedDays);
+          const pillWidth = 100 / OPTIONS.length;
+          return (
+            <div className="flex items-center gap-2.5">
+              <CalendarDays size={16} strokeWidth={2.5} className="text-slate-400 shrink-0" />
+              {/* Track */}
+              <div
+                className="relative flex items-center bg-slate-200/60 border border-slate-200 rounded-xl p-[3px] shadow-inner"
+                style={{ minWidth: 280 }}
               >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
+                {/* Sliding pill — moves via CSS transform, no JS animation lib needed */}
+                <span
+                  aria-hidden="true"
+                  className="absolute top-[3px] bottom-[3px] rounded-[9px] bg-white shadow-sm border border-slate-200/60
+                               transition-transform duration-300 ease-[cubic-bezier(0.34,1.26,0.64,1)]"
+                  style={{
+                    width: `calc(${pillWidth}% - 1.5px)`,
+                    transform: `translateX(calc(${idx * 100}% + ${idx * 1.5}px))`,
+                  }}
+                />
+                {/* Buttons sit above the pill via z-index */}
+                {OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setSelectedDays(option.value);
+                      setCustomDateRange(null);
+                    }}
+                    className={`relative z-10 flex-1 py-1.5 text-xs font-bold rounded-[9px]
+                                 transition-colors duration-200 select-none
+                                 ${selectedDays === option.value
+                                   ? "text-indigo-600"
+                                   : "text-slate-500 hover:text-slate-800"
+                                 }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 1. Fleet KPI Cards */}
