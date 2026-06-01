@@ -6,6 +6,7 @@ import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
+import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 
 // --- Carousel Data ---
 const slideData = [
@@ -120,9 +121,10 @@ const LoginPage = () => {
                 const isOnboarded = organization?.isOnboarded === true;
 
                 if (isOnboarded) {
+                    const landing = resolveLandingRoute(organization?.featureFlags);
                     toast.success("Welcome back! Redirecting to dashboard...");
                     setTimeout(() => {
-                        navigate('/overview');
+                        navigate(landing);
                     }, 1500);
                 } else {
                     toast.success("Login successful! Redirecting to onboarding...");

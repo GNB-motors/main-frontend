@@ -4,6 +4,7 @@ import { Grid, FileText, Settings, LogOut, Users, User, Truck, MapPin, Fuel, Boo
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
+import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import './Sidebar.css';
 
 
@@ -13,6 +14,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [isVehicleActivityOpen, setIsVehicleActivityOpen] = useState(false);
     const [isVehiclesOpen, setIsVehiclesOpen] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+    const { isEnabled } = useFeatureFlags();
 
     const VEHICLES_CHILD_ROUTES = ['/vehicles', '/vehicles/dashboard', '/vehicles/add', '/vehicles/bulk-upload', '/vehicles/service-intelligence', '/vehicles/service-intelligence/add-service', '/vehicles/service-intelligence/add-repair'];
 
@@ -88,15 +90,20 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <img src={UkoLogo} alt="Uko Logo" className="logo-img" />
                 </div>
                 <nav className="sidebar-nav">
-                    <NavLink to="/overview" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Grid size={20} /><span>Overview</span>
-                    </NavLink>
+                    {isEnabled('overview') && (
+                        <NavLink to="/overview" className="nav-link" onClick={closeSidebarOnMobile}>
+                            <Grid size={20} /><span>Overview</span>
+                        </NavLink>
+                    )}
 
-                    <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <FileText size={20} /><span>Reports</span>
-                    </NavLink>
+                    {isEnabled('reports') && (
+                        <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
+                            <FileText size={20} /><span>Reports</span>
+                        </NavLink>
+                    )}
 
                     {/* Vehicles Section (dropdown) */}
+                    {isEnabled('vehicles') && (
                     <div className="nav-section">
                         <button
                             className={`nav-link nav-parent ${isVehiclesOpen ? 'active-parent' : ''}`}
@@ -143,8 +150,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                             </NavLink>
                         </div>
                     </div>
+                    )}
 
                     {/* Vehicle Activity Section */}
+                    {isEnabled('vehicleActivity') && (
                     <div className="nav-section">
                         <button
                             className={`nav-link nav-parent ${isVehicleActivityOpen ? 'active-parent' : ''}`}
@@ -177,24 +186,32 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                             </NavLink>
                         </div>
                     </div>
+                    )}
 
-                    {/* --- Added Drivers Link --- */}
-                    <NavLink to="/drivers" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Users size={20} />
-                        <span>Employees</span>
-                    </NavLink>
-                    <NavLink to="/locations" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <MapPin size={20} />
-                        <span>Locations</span>
-                    </NavLink>
-                    <NavLink to="/fuel-comparison" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Fuel size={20} />
-                        <span>Fuel Comparison</span>
-                    </NavLink>
-                    <NavLink to="/khata-ledger" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <BookOpen size={20} />
-                        <span>Khata Ledger</span>
-                    </NavLink>
+                    {isEnabled('drivers') && (
+                        <NavLink to="/drivers" className="nav-link" onClick={closeSidebarOnMobile}>
+                            <Users size={20} />
+                            <span>Employees</span>
+                        </NavLink>
+                    )}
+                    {isEnabled('locations') && (
+                        <NavLink to="/locations" className="nav-link" onClick={closeSidebarOnMobile}>
+                            <MapPin size={20} />
+                            <span>Locations</span>
+                        </NavLink>
+                    )}
+                    {isEnabled('fuelComparison') && (
+                        <NavLink to="/fuel-comparison" className="nav-link" onClick={closeSidebarOnMobile}>
+                            <Fuel size={20} />
+                            <span>Fuel Comparison</span>
+                        </NavLink>
+                    )}
+                    {isEnabled('khataLedger') && (
+                        <NavLink to="/khata-ledger" className="nav-link" onClick={closeSidebarOnMobile}>
+                            <BookOpen size={20} />
+                            <span>Khata Ledger</span>
+                        </NavLink>
+                    )}
                     <NavLink to="/profile" className="nav-link" onClick={closeSidebarOnMobile}>
                         <User size={20} />
                         <span>Profile</span>

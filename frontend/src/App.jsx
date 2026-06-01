@@ -26,6 +26,8 @@ import TripDetailPage from './pages/Trip/TripDetailPage.jsx';
 import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
 import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
+import OrgFeatureFlagsPage from './pages/Superadmin/components/OrgFeatureFlagsPage.jsx';
+import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -59,6 +61,8 @@ function App() {
       <Route path="/superadmin" element={<SuperAdminLayout />}>
         <Route index element={<SuperAdminPage />} />
         <Route path="add-user" element={<AddUserPage />} />
+        <Route path="feature-flags" element={<OrgFeatureFlagsPage />} />
+        <Route path="feature-flags/:orgId" element={<OrgFeatureFlagsDetailPage />} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
