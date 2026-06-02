@@ -12,6 +12,8 @@ import StepFinish from './components/StepFinish.jsx';
 import LaunchAnimation from './components/LaunchAnimation.jsx';
 import { OnboardingService } from './OnboardingService.jsx';
 import { clearAuthData } from '../../utils/authUtils';
+import apiClient from '../../utils/axiosConfig';
+import { fetchAndResolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 
 const STEPS = [
     { number: 1, title: 'Profile',           short: 'Profile'           },
@@ -38,7 +40,10 @@ const OnboardingPage = () => {
         }
         const onboardingCompleted = localStorage.getItem('onboardingCompleted');
         if (onboardingCompleted === 'true') {
-            navigate('/overview');
+            (async () => {
+                const landing = await fetchAndResolveLandingRoute(apiClient);
+                navigate(landing);
+            })();
         }
     }, [navigate]);
 
