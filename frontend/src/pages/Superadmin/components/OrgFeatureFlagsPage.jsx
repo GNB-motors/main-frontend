@@ -66,13 +66,15 @@ const OrgFeatureFlagsPage = () => {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <PageHeader
-        backLabel="Dashboard"
-        backPath="/superadmin"
-        currentLabel="Feature Flags"
-        title="Feature Flags"
-        description="Pick an organization to manage its enabled sidebar features."
-      />
+      <Box sx={{ '& .page-header-container': { maxWidth: 'none', mx: 0 } }}>
+        <PageHeader
+          backLabel="Dashboard"
+          backPath="/superadmin"
+          currentLabel="Feature Flags"
+          title="Feature Flags"
+          description="Pick an organization to manage its enabled sidebar features."
+        />
+      </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         <TextField
