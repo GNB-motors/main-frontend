@@ -915,7 +915,7 @@
     white-space: nowrap;
 }
 
-/* Column widths for vehicles table - 6 columns total */
+/* Column widths for vehicles table - 7 columns total */
 .vehicles-table th:nth-child(1),
 .vehicles-table td:nth-child(1) {
     width: 140px;
@@ -948,6 +948,12 @@
 
 .vehicles-table th:nth-child(6),
 .vehicles-table td:nth-child(6) {
+    width: 160px;
+    min-width: 160px;
+}
+
+.vehicles-table th:nth-child(7),
+.vehicles-table td:nth-child(7) {
     width: 80px;
     min-width: 80px;
     text-align: center;
