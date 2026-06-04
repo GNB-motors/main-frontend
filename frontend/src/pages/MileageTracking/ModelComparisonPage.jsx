@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  BarChart, Bar, ComposedChart, Line,
+  BarChart, Bar, ComposedChart, Line, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import { BarChart2, Car, FileText, Gauge, Fuel, Route, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Select from 'react-select';
 import apiClient from '../../utils/axiosConfig';
 import './MileageTracking.css';
 
@@ -42,12 +43,12 @@ const ModelTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="mc-tooltip">
-      <p className="mc-tooltip-model">{d.model}</p>
-      <p className="mc-tooltip-row"><span>Avg Mileage</span><strong>{d.avgMileage} km/L</strong></p>
-      <p className="mc-tooltip-row"><span>Range</span><strong>{d.minMileage} – {d.maxMileage} km/L</strong></p>
-      <p className="mc-tooltip-row"><span>Vehicles</span><strong>{d.vehicleCount}</strong></p>
-      <p className="mc-tooltip-row"><span>Records</span><strong>{d.recordCount}</strong></p>
+    <div className="mc-glass-tooltip">
+      <p className="mc-glass-tooltip-title">{d.model}</p>
+      <div className="mc-glass-tooltip-row"><span className="mc-glass-tooltip-label">Avg Mileage</span><span className="mc-glass-tooltip-value">{d.avgMileage} km/L</span></div>
+      <div className="mc-glass-tooltip-row"><span className="mc-glass-tooltip-label">Range</span><span className="mc-glass-tooltip-value">{d.minMileage} – {d.maxMileage} km/L</span></div>
+      <div className="mc-glass-tooltip-row"><span className="mc-glass-tooltip-label">Vehicles</span><span className="mc-glass-tooltip-value">{d.vehicleCount}</span></div>
+      <div className="mc-glass-tooltip-row"><span className="mc-glass-tooltip-label">Records</span><span className="mc-glass-tooltip-value">{d.recordCount}</span></div>
     </div>
   );
 };
@@ -58,19 +59,22 @@ const VehicleTooltip = ({ active, payload, modelAvg }) => {
   if (!d) return null;
   const color = getPerformanceColor(d.status);
   return (
-    <div className="mc-tooltip">
-      <p className="mc-tooltip-model">{d.vehicleNumber}</p>
-      <p className="mc-tooltip-row"><span>Vehicle Avg</span><strong>{d.avgMileage} km/L</strong></p>
-      <p className="mc-tooltip-row"><span>Model Avg</span><strong>{modelAvg} km/L</strong></p>
-      <p className="mc-tooltip-row">
-        <span>Variance</span>
-        <strong style={{ color }}>{d.variancePct > 0 ? '+' : ''}{d.variancePct}%</strong>
-      </p>
-      <p className="mc-tooltip-row">
-        <span>Status</span>
-        <strong style={{ color }}>{d.status}</strong>
-      </p>
-      <p className="mc-tooltip-row"><span>Records</span><strong>{d.recordCount}</strong></p>
+    <div className="mc-glass-tooltip">
+      <p className="mc-glass-tooltip-title">{d.vehicleNumber}</p>
+      <div className="mc-glass-tooltip-row"><span className="mc-glass-tooltip-label">Vehicle Avg</span><span className="mc-glass-tooltip-value">{d.avgMileage} km/L</span></div>
+      <div className="mc-glass-tooltip-row"><span className="mc-glass-tooltip-label">Model Avg</span><span className="mc-glass-tooltip-value">{modelAvg} km/L</span></div>
+      <div className="mc-glass-tooltip-row">
+        <span className="mc-glass-tooltip-label">Variance</span>
+        <span className="mc-glass-tooltip-value" style={{ color, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {d.variancePct > 0 ? '+' : ''}{d.variancePct}%
+          <span className="mc-indicator-dot" style={{ background: color }} />
+        </span>
+      </div>
+      <div className="mc-glass-tooltip-row">
+        <span className="mc-glass-tooltip-label">Status</span>
+        <span className="mc-glass-tooltip-value" style={{ color }}>{d.status}</span>
+      </div>
+      <div className="mc-glass-tooltip-row"><span className="mc-glass-tooltip-label">Records</span><span className="mc-glass-tooltip-value">{d.recordCount}</span></div>
     </div>
   );
 };
@@ -95,6 +99,7 @@ const ModelComparisonPage = () => {
   const [data, setData]               = useState([]);
   const [isLoading, setIsLoading]     = useState(true);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [selectedVehicles, setSelectedVehicles] = useState([]);
 
   useEffect(() => {
     const el = document.querySelector('.page-content');
@@ -123,7 +128,7 @@ const ModelComparisonPage = () => {
 
   const selectedModelData = data.find(d => d.model === selectedModel) ?? null;
 
-  const vehicleChartData = (selectedModelData?.vehicles ?? [])
+  const allVehicleChartData = (selectedModelData?.vehicles ?? [])
     .map(v => {
       const rawVp  = getVariancePercent(v.avgMileage, selectedModelData.avgMileage);
       const vp     = Math.round(rawVp * 10) / 10;
@@ -138,7 +143,33 @@ const ModelComparisonPage = () => {
     })
     .sort((a, b) => b.avgMileage - a.avgMileage);
 
-  const atRiskCount = vehicleChartData.filter(v => v.status !== 'Healthy').length;
+  const atRiskCount = allVehicleChartData.filter(v => v.status !== 'Healthy').length;
+
+  useEffect(() => {
+    if (!selectedModelData || allVehicleChartData.length === 0) {
+      setSelectedVehicles([]);
+      return;
+    }
+    
+    // allVehicleChartData is already sorted by avgMileage descending
+    const top3 = allVehicleChartData.slice(0, 3);
+    const bottom3 = allVehicleChartData.slice(-3).filter(v => !top3.some(t => t.vehicleNumber === v.vehicleNumber));
+    
+    const defaults = [...top3, ...bottom3].map(v => ({
+      value: v.vehicleNumber,
+      label: v.vehicleNumber
+    }));
+    
+    setSelectedVehicles(defaults);
+  }, [selectedModelData]); // we only want to re-calculate defaults when the model changes (data doesn't mutate dynamically here)
+
+  const selectedValues = selectedVehicles.map(opt => opt.value);
+  const vehicleChartData = allVehicleChartData.filter(v => selectedValues.includes(v.vehicleNumber));
+  
+  const vehicleOptions = allVehicleChartData.map(v => ({
+    value: v.vehicleNumber,
+    label: v.vehicleNumber
+  }));
 
   const totalRecords  = data.reduce((s, d) => s + d.recordCount, 0);
   const totalVehicles = data.reduce((s, d) => s + d.vehicleCount, 0);
@@ -249,110 +280,115 @@ const ModelComparisonPage = () => {
                       <span className="mc-card-model-tag">{selectedModel}</span>
                     )}
                   </div>
-                  {selectedModelData && (
+                  {selectedModelData && atRiskCount > 0 && (
                     <span className="mc-card-sub">
-                      Model avg: <strong>{selectedModelData.avgMileage} km/L</strong>
-                      {atRiskCount > 0 && (
-                        <span className="mc-at-risk-inline">
-                          <AlertTriangle size={11} />
-                          {atRiskCount} vehicle{atRiskCount !== 1 ? 's' : ''} need attention
-                        </span>
-                      )}
+                      <span className="mc-at-risk-inline">
+                        <AlertTriangle size={11} />
+                        {atRiskCount} vehicle{atRiskCount !== 1 ? 's' : ''} need attention
+                      </span>
                     </span>
                   )}
                 </div>
               </div>
 
-              {vehicleChartData.length === 0 ? (
+              {allVehicleChartData.length === 0 ? (
                 <div className="mc-empty mc-empty-sm">
                   <p>No vehicle-level records available for this model.</p>
                 </div>
               ) : (
                 <>
-                  <div className="mc-chart-area">
-                    <ResponsiveContainer width="100%" height={320}>
-                      <ComposedChart
-                        data={vehicleChartData}
-                        margin={{ top: 8, right: 56, left: 0, bottom: 48 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis
-                          dataKey="vehicleNumber"
-                          tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'Inter, sans-serif' }}
-                          axisLine={false} tickLine={false}
-                          interval={0} angle={-25} textAnchor="end" dy={8}
-                        />
-                        <YAxis
-                          yAxisId="left"
-                          tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'Inter, sans-serif' }}
-                          axisLine={false} tickLine={false}
-                          unit=" km/L" width={68}
-                        />
-                        <YAxis
-                          yAxisId="right"
-                          orientation="right"
-                          tick={{ fontSize: 11, fill: '#94a3b8', fontFamily: 'Inter, sans-serif' }}
-                          axisLine={false} tickLine={false}
-                          unit="%" width={48}
-                        />
-                        <Tooltip
-                          content={<VehicleTooltip modelAvg={selectedModelData?.avgMileage} />}
-                          cursor={{ fill: 'rgba(0,0,0,0.03)' }}
-                        />
-                        <Bar
-                          yAxisId="left"
-                          dataKey="modelAvgMileage"
-                          name="Model Avg"
-                          fill="#93C5FD"
-                          radius={[5, 5, 0, 0]}
-                          maxBarSize={38}
+                  <div className="mc-chart-controls" style={{ padding: '0 24px 16px', zIndex: 10 }}>
+                    <Select
+                      isMulti
+                      options={vehicleOptions}
+                      value={selectedVehicles}
+                      onChange={(newVal) => {
+                        if (newVal.length > 10) {
+                          toast.error('Maximum 10 vehicles can be selected');
+                          return;
+                        }
+                        setSelectedVehicles(newVal);
+                      }}
+                      placeholder="Search and select vehicles (max 10)..."
+                      className="mc-react-select-container"
+                      classNamePrefix="mc-react-select"
+                      styles={{
+                        control: (base) => ({ ...base, fontSize: '14px', borderRadius: '8px', borderColor: '#e2e8f0' }),
+                        menu: (base) => ({ ...base, fontSize: '14px', zIndex: 9999 })
+                      }}
+                    />
+                  </div>
+                  {(allVehicleChartData.length >= 3 && selectedVehicles.length < 3) ? (
+                    <div className="mc-empty mc-empty-sm">
+                      <p>Please select at least 3 vehicles to view the comparison graph.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mc-chart-area" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+                        <div style={{ minWidth: Math.max(600, selectedVehicles.length * 75) + 'px' }}>
+                          <ResponsiveContainer width="100%" height={320}>
+                          <BarChart
+                            data={vehicleChartData}
+                            margin={{ top: 24, right: 24, left: 0, bottom: 48 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.15} vertical={false} />
+                            <XAxis
+                              dataKey="vehicleNumber"
+                              tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'Inter, sans-serif' }}
+                              axisLine={false} tickLine={false}
+                              interval={0} angle={-25} textAnchor="end" dy={8}
+                            />
+                            <YAxis
+                              yAxisId="left"
+                              tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'Inter, sans-serif' }}
+                              axisLine={false} tickLine={false}
+                              unit=" km/L" width={68}
+                            />
+                            <Tooltip
+                              content={<VehicleTooltip modelAvg={selectedModelData?.avgMileage} />}
+                              cursor={false}
+                            />
+                            <ReferenceLine
+                              yAxisId="left"
+                          y={selectedModelData?.avgMileage}
+                          stroke="#3B82F6"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          label={{ position: 'top', value: `Model Avg: ${selectedModelData?.avgMileage} km/L`, fill: '#3B82F6', fontSize: 12, fontWeight: 600, dy: -8 }}
                         />
                         <Bar
                           yAxisId="left"
                           dataKey="avgMileage"
                           name="Vehicle Avg"
-                          radius={[5, 5, 0, 0]}
-                          maxBarSize={38}
+                          radius={[6, 6, 0, 0]}
+                          maxBarSize={48}
+                          animationDuration={1500}
+                          activeBar={{ filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.15))', stroke: '#0f172a', strokeWidth: 1, strokeOpacity: 0.2 }}
                         >
                           {vehicleChartData.map((entry) => (
-                            <Cell key={String(entry.vehicleId)} fill={entry.color} opacity={0.85} />
+                            <Cell key={String(entry.vehicleId)} fill={entry.color} opacity={0.9} />
                           ))}
                         </Bar>
-                        <Line
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey="variancePct"
-                          stroke="#F59E0B"
-                          strokeWidth={2}
-                          strokeDasharray="5 4"
-                          dot={{ fill: '#F59E0B', r: 3, strokeWidth: 0 }}
-                          activeDot={{ r: 5, stroke: '#ffffff', strokeWidth: 2 }}
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
+                          </BarChart>
+                        </ResponsiveContainer>
+                        </div>
+                      </div>
 
-                  {/* Legend */}
-                  <div className="mc-perf-legend">
-                    <span className="mc-perf-legend-item">
-                      <span className="mc-perf-legend-bar" style={{ background: '#93C5FD' }} />
-                      Model Avg
-                    </span>
-                    <span className="mc-perf-legend-item">
-                      <span className="mc-perf-legend-bar mc-perf-legend-bar--multi" />
-                      Vehicle Avg
-                    </span>
-                    {Object.entries(STATUS_COLORS).map(([status, color]) => (
-                      <span key={status} className="mc-perf-legend-item">
-                        <span className="mc-perf-legend-dot" style={{ background: color }} />
-                        {status}
-                      </span>
-                    ))}
-                    <span className="mc-perf-legend-item">
-                      <span className="mc-perf-legend-dash" />
-                      Variance %
-                    </span>
-                  </div>
+                      {/* Legend */}
+                      <div className="mc-perf-legend">
+                        {Object.entries(STATUS_COLORS).map(([status, color]) => (
+                          <span key={status} className="mc-perf-legend-item">
+                            <span className="mc-perf-legend-dot" style={{ background: color }} />
+                            {status}
+                          </span>
+                        ))}
+                        <span className="mc-perf-legend-item">
+                          <span className="mc-perf-legend-dash" style={{ background: '#3B82F6' }} />
+                          Model Avg Baseline
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
