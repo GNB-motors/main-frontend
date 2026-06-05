@@ -58,6 +58,7 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
   { type: 'link', key: 'fuelComparison', to: '/fuel-comparison', label: 'Fuel Comparison', icon: Fuel },
+  { type: 'link', key: null, to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
   // Always visible (no feature flag) — guaranteed fallback page.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
