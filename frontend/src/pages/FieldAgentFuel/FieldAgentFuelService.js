@@ -8,19 +8,33 @@ export const FieldAgentFuelService = {
    * @param {{ vehicleId?: string, from?: string, to?: string, page?: number, limit?: number }} params
    * @returns {Promise<{ status, data, meta, stats }>}
    */
-  getLogs: async ({ vehicleId, from, to, page = 1, limit = 20 } = {}) => {
-    const params = { page, limit };
-    if (vehicleId) params.vehicleId = vehicleId;
-    if (from) params.from = from;
-    if (to) params.to = to;
-    const res = await apiClient.get('/api/field-agent/fuel-logs', { params });
+  getLogs: async (params = {}) => {
+    const res = await apiClient.get('/api/field-agent/fuel-logs/all-fuel-logs', { params });
     return res.data;
   },
 
   /** Vehicles for the filter dropdown. */
   getVehicles: async () => {
-    const res = await apiClient.get('/api/vehicles');
+    const res = await apiClient.get('/api/field-agent/fuel-logs/all-vehicles');
     const data = res.data?.data ?? res.data ?? [];
     return Array.isArray(data) ? data : [];
+  },
+
+  /** Drivers for the upload modal. */
+  getDrivers: async () => {
+    const res = await apiClient.get('/api/field-agent/fuel-logs/all-drivers');
+    const data = res.data?.data ?? res.data ?? [];
+    return Array.isArray(data) ? data : [];
+  },
+
+  /** Upload fuel log photo */
+  uploadFuelPhoto: async (formData, orgId) => {
+    const res = await apiClient.post('/api/mileage/fuel-log/from-photo', formData, {
+      headers: { 
+        'Content-Type': 'multipart/form-data',
+        'X-Org-Id': orgId
+      },
+    });
+    return res.data;
   },
 };

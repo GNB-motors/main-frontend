@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Droplet, IndianRupee, Search, RefreshCw, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Droplet, IndianRupee, Search, RefreshCw, FileText, Plus } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import LottieLoader from '../../components/LottieLoader';
@@ -40,6 +41,7 @@ const DEFAULT_FILTERS = () => ({
 });
 
 const FieldAgentFuelPage = () => {
+  const navigate = useNavigate();
   const [themeColors] = useState(getThemeCSS());
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({ totalUploads: 0, totalLitres: 0, totalSpend: 0 });
@@ -106,9 +108,14 @@ const FieldAgentFuelPage = () => {
             Standalone fuel logs uploaded from the field — filter by vehicle and date.
           </p>
         </div>
-        <button className="fa-fuel-btn" onClick={fetchLogs} disabled={loading}>
-          <RefreshCw size={16} /> Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="fa-fuel-btn" onClick={fetchLogs} disabled={loading}>
+            <RefreshCw size={16} /> Refresh
+          </button>
+          <button className="fa-fuel-btn fa-fuel-btn-primary" onClick={() => navigate('/field-agent-fuel/new')}>
+            <Plus size={16} /> Log Fuel
+          </button>
+        </div>
       </div>
 
       <div className="fa-fuel-kpis">
@@ -124,11 +131,22 @@ const FieldAgentFuelPage = () => {
             value={draft.vehicleId}
             onChange={(e) => setDraft({ ...draft, vehicleId: e.target.value })}
           >
-            <option value="">All vehicles</option>
-            {vehicles.map((v) => (
-              <option key={v._id} value={v._id}>
-                {v.registrationNumber || v._id}
-              </option>
+            <option value="">All Vehicles</option>
+            {Object.entries(
+              vehicles.reduce((acc, v) => {
+                const orgName = v.orgId?.companyName || 'Unknown Org';
+                if (!acc[orgName]) acc[orgName] = [];
+                acc[orgName].push(v);
+                return acc;
+              }, {})
+            ).map(([orgName, orgVehicles]) => (
+              <optgroup key={orgName} label={orgName}>
+                {orgVehicles.map((v) => (
+                  <option key={v._id} value={v._id}>
+                    {v.registrationNumber || v._id}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
@@ -174,6 +192,7 @@ const FieldAgentFuelPage = () => {
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Organization</th>
                 <th>Vehicle</th>
                 <th>Uploaded by</th>
                 <th>Fuel</th>
@@ -191,7 +210,8 @@ const FieldAgentFuelPage = () => {
               {logs.map((log) => (
                 <tr key={log._id}>
                   <td>{formatDateTimeIST(log.refuelTime)}</td>
-                  <td>{log.vehicleId?.registrationNumber || '-'}</td>
+                  <td style={{ fontWeight: 500 }}>{log.orgId?.companyName || 'Unknown'}</td>
+                  <td style={{ fontWeight: 500 }}>{log.vehicleId?.registrationNumber || '-'}</td>
                   <td>
                     <span className="fa-fuel-agent">{agentName(log.loggedBy)}</span>
                     {log.loggedBy?.role && <span className="fa-fuel-role">{log.loggedBy.role}</span>}

@@ -17,6 +17,10 @@ apiClient.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        const orgId = localStorage.getItem('user_orgId');
+        if (orgId) {
+            config.headers['X-Org-Id'] = orgId;
+        }
         return config;
     },
     (error) => {

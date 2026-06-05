@@ -7,6 +7,7 @@ import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
 import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
+import apiClient from '../../utils/axiosConfig.js';
 
 // --- Carousel Data ---
 const slideData = [
@@ -120,7 +121,22 @@ const LoginPage = () => {
                 // For OWNER and other roles, check if onboarding is completed
                 const isOnboarded = organization?.isOnboarded === true;
 
-                if (isOnboarded) {
+                if (user.role === 'FIELD_AGENT') {
+                    try {
+                        const orgsRes = await apiClient.get('/api/me/orgs');
+                        const orgs = orgsRes.data?.data || [];
+                        if (orgs.length > 0) {
+                            localStorage.setItem('user_orgId', orgs[0].orgId);
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch orgs for field agent', err);
+                    }
+                    toast.success("Welcome Field Agent! Redirecting to dashboard...");
+                    setTimeout(() => {
+                        navigate('/field-agent-fuel');
+                    }, 1500);
+                    return;
+                } else if (isOnboarded) {
                     const landing = resolveLandingRoute(organization?.featureFlags);
                     toast.success("Welcome back! Redirecting to dashboard...");
                     setTimeout(() => {
