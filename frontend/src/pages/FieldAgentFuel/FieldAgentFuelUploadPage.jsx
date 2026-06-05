@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
 import { OCRService } from '../Trip/services';
-import { FieldAgentFuelService } from './fieldAgentFuelService';
+import { FieldAgentFuelService } from './FieldAgentFuelService';
 import '../MileageTracking/MileageTracking.css'; // Reuse existing styles
 
 /* ── UI Icons ── */
