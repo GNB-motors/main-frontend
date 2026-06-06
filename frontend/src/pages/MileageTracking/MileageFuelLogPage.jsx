@@ -277,13 +277,13 @@ const MileageFuelLogPage = () => {
                                     </div>
                                 )}
                             </div>
-                            {selectedVehicle && (
-                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {loadingLastOdometer ? <><Loader2 size={12} className="spinning"/> Fetching prior logs...</>
-                                        : lastOdometer ? <span><b>Previous Odometer:</b> {lastOdometer.odometerReading} km <span style={{ color: '#94a3b8' }}>({new Date(lastOdometer.refuelTime).toLocaleDateString()})</span></span>
-                                        : <span>No prior FULL_TANK logs found. Starting fresh.</span>}
-                                </div>
-                            )}
+                                {selectedVehicle && (
+                                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        {loadingLastOdometer ? <><Loader2 size={13} className="spinning"/> Fetching prior logs...</>
+                                            : lastOdometer ? <span><b>Previous Log:</b> {lastOdometer.fillingType?.replace('_', ' ')} fill {lastOdometer.odometerReading ? `at ${lastOdometer.odometerReading} km` : '(No odometer recorded)'} <span style={{ color: '#94a3b8' }}>({new Date(lastOdometer.refuelTime).toLocaleDateString()})</span></span>
+                                            : <span>No prior fuel logs found. Starting fresh.</span>}
+                                    </div>
+                                )}
                         </div>
                         <div className="mileage-form-group">
                             <label>Select Driver *</label>
