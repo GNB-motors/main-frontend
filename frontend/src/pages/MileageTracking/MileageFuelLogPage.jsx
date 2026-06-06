@@ -221,7 +221,8 @@ const MileageFuelLogPage = () => {
 
             const payload = {
                 ...formData, vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
-                documentId: fuelRes.data.data?._id || fuelRes.data._id || '', odometerDocId: odoDocId,
+                documentId: fuelRes.data.data?._id || fuelRes.data._id || '', 
+                ...(odoDocId && { odometerDocId: odoDocId }),
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
                 odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })

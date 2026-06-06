@@ -90,6 +90,7 @@ const FieldAgentFuelUploadPage = () => {
     const [selectedDriver, setSelectedDriver] = useState(null);
     const [vehicleSearch, setVehicleSearch] = useState('');
     const [driverSearch, setDriverSearch] = useState('');
+    const [selectedOrgFilter, setSelectedOrgFilter] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
     const [showDriverDropdown, setShowDriverDropdown] = useState(false);
     const [vehicles, setVehicles] = useState([]);
@@ -148,9 +149,10 @@ const FieldAgentFuelUploadPage = () => {
         fetchDeps();
     }, []);
 
-    const filteredVehicles = useMemo(() => vehicles.filter(v =>
-        v.name.toLowerCase().includes(vehicleSearch.toLowerCase()) || v.registration.toLowerCase().includes(vehicleSearch.toLowerCase())
-    ), [vehicleSearch, vehicles]);
+    const filteredVehicles = useMemo(() => vehicles.filter(v => {
+        if (selectedOrgFilter && (v.orgId?.companyName !== selectedOrgFilter)) return false;
+        return v.name.toLowerCase().includes(vehicleSearch.toLowerCase()) || v.registration.toLowerCase().includes(vehicleSearch.toLowerCase());
+    }), [vehicleSearch, vehicles, selectedOrgFilter]);
 
     const groupedVehicles = useMemo(() => {
         return filteredVehicles.reduce((acc, v) => {
@@ -161,9 +163,10 @@ const FieldAgentFuelUploadPage = () => {
         }, {});
     }, [filteredVehicles]);
 
-    const filteredDrivers = useMemo(() => drivers.filter(d =>
-        d.name.toLowerCase().includes(driverSearch.toLowerCase()) || d.mobileNo.toLowerCase().includes(driverSearch.toLowerCase())
-    ), [driverSearch, drivers]);
+    const filteredDrivers = useMemo(() => drivers.filter(d => {
+        if (selectedOrgFilter && (d.orgId?.companyName !== selectedOrgFilter)) return false;
+        return d.name.toLowerCase().includes(driverSearch.toLowerCase()) || d.mobileNo.toLowerCase().includes(driverSearch.toLowerCase());
+    }), [driverSearch, drivers, selectedOrgFilter]);
 
     const groupedDrivers = useMemo(() => {
         let driversToGroup = filteredDrivers;
@@ -183,6 +186,14 @@ const FieldAgentFuelUploadPage = () => {
             return acc;
         }, {});
     }, [filteredDrivers, selectedVehicle]);
+
+    const organizations = useMemo(() => {
+        const orgs = new Set();
+        vehicles.forEach(v => {
+            if (v.orgId?.companyName) orgs.add(v.orgId.companyName);
+        });
+        return Array.from(orgs).sort();
+    }, [vehicles]);
 
 
     const handleFormChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -278,7 +289,8 @@ const FieldAgentFuelUploadPage = () => {
 
             const payload = {
                 ...formData, vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
-                documentId: fuelRes.data.data?._id || fuelRes.data._id || '', odometerDocId: odoDocId,
+                documentId: fuelRes.data.data?._id || fuelRes.data._id || '', 
+                ...(odoDocId && { odometerDocId: odoDocId }),
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
                 odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })
@@ -314,21 +326,75 @@ const FieldAgentFuelUploadPage = () => {
             </div>
 
             <div className="mileage-form-content">
+                {organizations.length > 0 && (
+                    <div style={{ marginBottom: '24px' }}>
+                        <label style={{ display: 'block', marginBottom: 8, color: '#5D5D5E', fontSize: 13, fontWeight: 600 }}>Filter by Organization</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            <button 
+                                type="button"
+                                onClick={() => setSelectedOrgFilter('')}
+                                style={{ 
+                                    padding: '6px 14px', borderRadius: '99px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                    backgroundColor: selectedOrgFilter === '' ? '#3b82f6' : '#f1f5f9',
+                                    color: selectedOrgFilter === '' ? '#fff' : '#64748b',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                All Organizations
+                            </button>
+                            {organizations.map(org => (
+                                <button 
+                                    key={org}
+                                    type="button"
+                                    onClick={() => setSelectedOrgFilter(org)}
+                                    style={{ 
+                                        padding: '6px 14px', borderRadius: '99px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                        backgroundColor: selectedOrgFilter === org ? '#3b82f6' : '#f1f5f9',
+                                        color: selectedOrgFilter === org ? '#fff' : '#64748b',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {org}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
                 <form onSubmit={handleSubmit}>
                     {/* Vehicle & Driver */}
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Select Vehicle *</label>
                             <div className="dropdown-wrapper">
-                                <button type="button" className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
-                                    onClick={(e) => { e.stopPropagation(); setShowVehicleDropdown(!showVehicleDropdown); setShowDriverDropdown(false); }}>
-                                    <span>{selectedVehicle ? selectedVehicle.name : (loadingVehicles ? 'Loading...' : 'Choose vehicle...')}</span>
-                                    <ChevronDown size={16} className={showVehicleDropdown ? 'rotated' : ''} />
-                                </button>
+                                <div className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`} style={{ padding: 0, display: 'flex', alignItems: 'center' }}>
+                                    <input 
+                                        type="text"
+                                        placeholder={selectedVehicle ? `${selectedVehicle.name} (${selectedVehicle.registration})` : (loadingVehicles ? 'Loading...' : 'Search vehicle...')}
+                                        value={vehicleSearch}
+                                        onChange={(e) => {
+                                            setVehicleSearch(e.target.value);
+                                            setShowVehicleDropdown(true);
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowVehicleDropdown(true);
+                                            setShowDriverDropdown(false);
+                                        }}
+                                        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', padding: '10px 14px', width: '100%', fontSize: '14px', color: '#1e293b' }}
+                                    />
+                                    {selectedVehicle && (
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedVehicle(null); setVehicleSearch(''); setSelectedDriver(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: '#94a3b8', display: 'flex' }}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowVehicleDropdown(!showVehicleDropdown); setShowDriverDropdown(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 14px 0 8px', color: '#94a3b8', display: 'flex' }}>
+                                        <ChevronDown size={18} className={showVehicleDropdown ? 'rotated' : ''} />
+                                    </button>
+                                </div>
                                 {showVehicleDropdown && (
                                     <div className="dropdown-menu">
-                                        <input type="text" placeholder="Search vehicle..." className="dropdown-search" value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                        <div className="dropdown-list">
+                                        <div className="dropdown-list" style={{ maxHeight: '250px' }}>
                                             {Object.entries(groupedVehicles).map(([orgName, orgVehicles]) => (
                                                 <div key={orgName}>
                                                     <div className="dropdown-group-label" style={{ padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', background: '#f8fafc' }}>
@@ -340,6 +406,7 @@ const FieldAgentFuelUploadPage = () => {
                                                                 setSelectedDriver(null);
                                                             }
                                                             setSelectedVehicle(v); 
+                                                            setVehicleSearch('');
                                                             setShowVehicleDropdown(false); 
                                                         }}>
                                                             <div className="item-main">{v.name}</div><div className="item-sub">{v.registration}</div>
@@ -347,6 +414,9 @@ const FieldAgentFuelUploadPage = () => {
                                                     ))}
                                                 </div>
                                             ))}
+                                            {Object.keys(groupedVehicles).length === 0 && (
+                                                <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No vehicles found</div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -362,8 +432,36 @@ const FieldAgentFuelUploadPage = () => {
                         <div className="mileage-form-group">
                             <label>Select Driver *</label>
                             <div className="dropdown-wrapper">
-                                <button type="button" className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
-                                    onClick={(e) => { 
+                                <div className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`} style={{ padding: 0, display: 'flex', alignItems: 'center' }}>
+                                    <input 
+                                        type="text"
+                                        placeholder={selectedDriver ? `${selectedDriver.name} (${selectedDriver.mobileNo})` : (loadingDrivers ? 'Loading...' : 'Search driver...')}
+                                        value={driverSearch}
+                                        onChange={(e) => {
+                                            setDriverSearch(e.target.value);
+                                            if (!selectedVehicle) {
+                                                toast.warning("Please select a vehicle first.");
+                                                return;
+                                            }
+                                            setShowDriverDropdown(true);
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!selectedVehicle) {
+                                                toast.warning("Please select a vehicle first.");
+                                                return;
+                                            }
+                                            setShowDriverDropdown(true);
+                                            setShowVehicleDropdown(false);
+                                        }}
+                                        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', padding: '10px 14px', width: '100%', fontSize: '14px', color: '#1e293b' }}
+                                    />
+                                    {selectedDriver && (
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedDriver(null); setDriverSearch(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: '#94a3b8', display: 'flex' }}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={(e) => { 
                                         e.stopPropagation(); 
                                         if (!selectedVehicle) {
                                             toast.warning("Please select a vehicle first.");
@@ -371,26 +469,28 @@ const FieldAgentFuelUploadPage = () => {
                                         }
                                         setShowDriverDropdown(!showDriverDropdown); 
                                         setShowVehicleDropdown(false); 
-                                    }}>
-                                    <span>{selectedDriver ? selectedDriver.name : (loadingDrivers ? 'Loading...' : 'Choose driver...')}</span>
-                                    <ChevronDown size={16} className={showDriverDropdown ? 'rotated' : ''} />
-                                </button>
+                                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 14px 0 8px', color: '#94a3b8', display: 'flex' }}>
+                                        <ChevronDown size={18} className={showDriverDropdown ? 'rotated' : ''} />
+                                    </button>
+                                </div>
                                 {showDriverDropdown && (
                                     <div className="dropdown-menu">
-                                        <input type="text" placeholder="Search driver..." className="dropdown-search" value={driverSearch} onChange={(e) => setDriverSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                        <div className="dropdown-list">
+                                        <div className="dropdown-list" style={{ maxHeight: '250px' }}>
                                             {Object.entries(groupedDrivers).map(([orgName, orgDrivers]) => (
                                                 <div key={orgName}>
                                                     <div className="dropdown-group-label" style={{ padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', background: '#f8fafc' }}>
                                                         {orgName}
                                                     </div>
                                                     {orgDrivers.map(d => (
-                                                        <button key={d.id} type="button" className={`dropdown-item ${selectedDriver?.id === d.id ? 'selected' : ''}`} onClick={() => { setSelectedDriver(d); setShowDriverDropdown(false); }}>
+                                                        <button key={d.id} type="button" className={`dropdown-item ${selectedDriver?.id === d.id ? 'selected' : ''}`} onClick={() => { setSelectedDriver(d); setDriverSearch(''); setShowDriverDropdown(false); }}>
                                                             <div className="item-main">{d.name}</div><div className="item-sub">{d.mobileNo}</div>
                                                         </button>
                                                     ))}
                                                 </div>
                                             ))}
+                                            {Object.keys(groupedDrivers).length === 0 && (
+                                                <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No drivers found</div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
