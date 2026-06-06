@@ -15,12 +15,25 @@
     left: 0;
     z-index: 1004 !important;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    /* Prevent the sidebar from ever growing taller than the viewport */
+    overflow: hidden;
 }
 
 .sidebar-content {
     display: flex;
     flex-direction: column;
-    flex-grow: 1; /* Pushes footer down */
+    flex-grow: 1;    /* Takes all remaining height, pushing footer to bottom */
+    min-height: 0;   /* Allows flex child to shrink and scroll instead of overflow */
+    overflow-y: auto;  /* Nav items scroll; logout button stays pinned below */
+    overflow-x: hidden;
+    /* Hide scrollbar visually but keep it functional */
+    scrollbar-width: none;       /* Firefox */
+    -ms-overflow-style: none;    /* IE/Edge */
+}
+
+/* Chrome / Safari — hide scrollbar track inside sidebar nav */
+.sidebar-content::-webkit-scrollbar {
+    display: none;
 }
 
 .sidebar-header {
@@ -112,6 +125,8 @@
 .sidebar-footer {
     padding-top: 12px;
     border-top: 1px solid var(--color-grey-200);
+    flex-shrink: 0;  /* Never shrink — logout button always visible at bottom */
+    background-color: var(--color-white); /* Match sidebar bg so it looks solid */
 }
 
 .logout-btn {
