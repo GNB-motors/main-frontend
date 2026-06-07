@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-import { Mail, Phone, Lock, User } from 'lucide-react';
+import { Mail, Phone, Lock, User, Eye, EyeOff } from 'lucide-react';
 import LottieLoader from '../../../components/LottieLoader.jsx';
 import './AddUserPage.css';
 
 const AddUserPage = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     mobileNumber: '',
@@ -148,15 +149,25 @@ const AddUserPage = () => {
                 <Lock size={18} />
                 Password
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter password"
-                required
-              />
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               <small className="input-hint">
                 Password must contain at least 8 characters, including uppercase, lowercase, number, and special character
               </small>

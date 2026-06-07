@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Grid, UserPlus, LogOut } from 'lucide-react';
+import { Grid, UserPlus, LogOut, ToggleRight } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import './SuperAdminSidebar.css';
 
@@ -41,6 +41,11 @@ const SuperAdminSidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/superadmin/add-user" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
                         <UserPlus size={20} />
                         <span>Add New User</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/feature-flags" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <ToggleRight size={20} />
+                        <span>Feature Flags</span>
                     </NavLink>
                 </nav>
             </div>

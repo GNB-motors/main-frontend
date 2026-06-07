@@ -4,8 +4,9 @@ import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle, ArrowLeft, Drop
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
-import { TripService, OCRService } from '../Trip/services';
-import './MileageTracking.css';
+import { OCRService } from '../Trip/services';
+import { FieldAgentFuelService } from './FieldAgentFuelService';
+import '../MileageTracking/MileageTracking.css'; // Reuse existing styles
 
 /* ── UI Icons ── */
 const StackedDocIcon = () => (
@@ -82,13 +83,14 @@ const SlotUpload = ({ docType, title, label, inputId, required, doc, isScanning,
 };
 
 /* ── Main Form Page ── */
-const MileageFuelLogPage = () => {
+const FieldAgentFuelUploadPage = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [selectedDriver, setSelectedDriver] = useState(null);
     const [vehicleSearch, setVehicleSearch] = useState('');
     const [driverSearch, setDriverSearch] = useState('');
+    const [selectedOrgFilter, setSelectedOrgFilter] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
     const [showDriverDropdown, setShowDriverDropdown] = useState(false);
     const [vehicles, setVehicles] = useState([]);
@@ -111,7 +113,13 @@ const MileageFuelLogPage = () => {
         if (!selectedVehicle) { setLastOdometer(null); return; }
         const fetchOdo = async () => {
             setLoadingLastOdometer(true);
-            try { const res = await apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`); setLastOdometer(res.data?.data || null); }
+            try { 
+                const targetOrgId = selectedVehicle.orgId?._id || selectedVehicle.orgId;
+                const res = await apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`, {
+                    headers: { 'X-Org-Id': targetOrgId }
+                }); 
+                setLastOdometer(res.data?.data || null); 
+            }
             catch (err) { console.error("Failed to fetch last odometer", err); }
             finally { setLoadingLastOdometer(false); }
         };
@@ -127,25 +135,66 @@ const MileageFuelLogPage = () => {
     useEffect(() => {
         const fetchDeps = async () => {
             try {
-                const vehRes = await TripService.getVehicles({ limit: 100 });
-                const drvRes = await TripService.getDrivers({ limit: 100 });
-                const vList = vehRes?.data || [];
-                setVehicles(vList.map(v => ({ id: v._id, name: v.registrationNumber, registration: `${v.vehicleType} - ${v.model || 'N/A'}` })));
-                const dList = drvRes?.data || [];
-                setDrivers(dList.map(d => ({ id: d._id, name: `${d.firstName} ${d.lastName || ''}`.trim(), licenseNo: d.licenseNo || 'N/A' })));
+                const [vehRes, drvRes] = await Promise.all([
+                    FieldAgentFuelService.getVehicles(),
+                    FieldAgentFuelService.getDrivers()
+                ]);
+                const vList = vehRes || [];
+                setVehicles(vList.map(v => ({ id: v._id, name: v.registrationNumber, registration: `${v.vehicleType || 'N/A'}`, orgId: v.orgId })));
+                const dList = drvRes || [];
+                setDrivers(dList.map(d => ({ id: d._id, name: `${d.firstName} ${d.lastName || ''}`.trim(), mobileNo: d.mobileNumber || 'N/A', orgId: d.orgId })));
             } catch { toast.error('Failed to load drivers and vehicles'); }
             finally { setLoadingVehicles(false); setLoadingDrivers(false); }
         };
         fetchDeps();
     }, []);
 
-    const filteredVehicles = useMemo(() => vehicles.filter(v =>
-        v.name.toLowerCase().includes(vehicleSearch.toLowerCase()) || v.registration.toLowerCase().includes(vehicleSearch.toLowerCase())
-    ), [vehicleSearch, vehicles]);
+    const filteredVehicles = useMemo(() => vehicles.filter(v => {
+        if (selectedOrgFilter && (v.orgId?.companyName !== selectedOrgFilter)) return false;
+        return v.name.toLowerCase().includes(vehicleSearch.toLowerCase()) || v.registration.toLowerCase().includes(vehicleSearch.toLowerCase());
+    }), [vehicleSearch, vehicles, selectedOrgFilter]);
 
-    const filteredDrivers = useMemo(() => drivers.filter(d =>
-        d.name.toLowerCase().includes(driverSearch.toLowerCase()) || d.licenseNo.toLowerCase().includes(driverSearch.toLowerCase())
-    ), [driverSearch, drivers]);
+    const groupedVehicles = useMemo(() => {
+        return filteredVehicles.reduce((acc, v) => {
+            const orgName = v.orgId?.companyName || 'Unknown Org';
+            if (!acc[orgName]) acc[orgName] = [];
+            acc[orgName].push(v);
+            return acc;
+        }, {});
+    }, [filteredVehicles]);
+
+    const filteredDrivers = useMemo(() => drivers.filter(d => {
+        if (selectedOrgFilter && (d.orgId?.companyName !== selectedOrgFilter)) return false;
+        return d.name.toLowerCase().includes(driverSearch.toLowerCase()) || d.mobileNo.toLowerCase().includes(driverSearch.toLowerCase());
+    }), [driverSearch, drivers, selectedOrgFilter]);
+
+    const groupedDrivers = useMemo(() => {
+        let driversToGroup = filteredDrivers;
+        // Optimization: Only show drivers belonging to the selected vehicle's organization
+        if (selectedVehicle) {
+            const vehicleOrgId = selectedVehicle.orgId?._id || selectedVehicle.orgId;
+            driversToGroup = driversToGroup.filter(d => {
+                const driverOrgId = d.orgId?._id || d.orgId;
+                return driverOrgId === vehicleOrgId;
+            });
+        }
+        
+        return driversToGroup.reduce((acc, d) => {
+            const orgName = d.orgId?.companyName || 'Unknown Org';
+            if (!acc[orgName]) acc[orgName] = [];
+            acc[orgName].push(d);
+            return acc;
+        }, {});
+    }, [filteredDrivers, selectedVehicle]);
+
+    const organizations = useMemo(() => {
+        const orgs = new Set();
+        vehicles.forEach(v => {
+            if (v.orgId?.companyName) orgs.add(v.orgId.companyName);
+        });
+        return Array.from(orgs).sort();
+    }, [vehicles]);
+
 
     const handleFormChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -158,7 +207,15 @@ const MileageFuelLogPage = () => {
             setFixedDocs(prev => ({ ...prev, [docType]: { file, preview: e.target.result, ocrStatus: 'scanning' } }));
             setOcrScanning(prev => ({ ...prev, [docType]: true }));
             try {
+                // Determine targetOrgId for OCR tracking (optional, but good practice if OCR requires org context)
+                const targetOrgId = selectedVehicle?.orgId?._id || selectedVehicle?.orgId;
+                
                 const ocrDocType = docType === 'odometer' ? 'ODOMETER' : 'FUEL_RECEIPT';
+                
+                // OCRService.scan typically doesn't strictly need X-Org-Id unless specifically configured,
+                // but we will pass it just in case if the API supports it via config.
+                // Assuming OCRService.scan uses apiClient under the hood without X-Org-Id,
+                // we might need to bypass it. For now, it uses the default.
                 const ocrResult = await OCRService.scan(file, ocrDocType);
                 if (ocrResult.success) {
                     const data = ocrResult.data;
@@ -179,7 +236,7 @@ const MileageFuelLogPage = () => {
             finally { setOcrScanning(prev => ({ ...prev, [docType]: false })); }
         };
         reader.readAsDataURL(file);
-    }, []);
+    }, [selectedVehicle]);
 
     const removeDoc = useCallback((docType) => { setFixedDocs(prev => ({ ...prev, [docType]: null })); }, []);
 
@@ -187,19 +244,30 @@ const MileageFuelLogPage = () => {
         e.preventDefault();
         if (!selectedVehicle || !selectedDriver) return toast.error("Please select a vehicle and a driver.");
         if (!fixedDocs.fuel) return toast.error("Fuel Slip is required.");
-        // Odometer is now optional for FULL_TANK, no validation needed here
+        
+        const targetOrgId = selectedVehicle.orgId?._id || selectedVehicle.orgId;
+        if (!targetOrgId) return toast.error("Selected vehicle has no organization assigned.");
+
         const currentOdo = parseFloat(formData.odometerReading);
         if (formData.fillingType === 'FULL_TANK' && !isNaN(currentOdo) && lastOdometer && lastOdometer.odometerReading) {
             if (currentOdo <= lastOdometer.odometerReading) return toast.error(`Odometer reading must be strictly greater than the previous reading (${lastOdometer.odometerReading} km)`);
         }
         setIsLoading(true);
         try {
+            const reqConfig = { 
+                headers: { 
+                    'Content-Type': 'multipart/form-data',
+                    'X-Org-Id': targetOrgId 
+                }, 
+                timeout: 120000 
+            };
+
             const fuelData = new FormData();
             fuelData.append('file', fixedDocs.fuel.file); fuelData.append('docType', 'FUEL_SLIP');
             fuelData.append('entityType', 'VEHICLE'); fuelData.append('entityId', selectedVehicle.id);
             if (fixedDocs.fuel.ocrData) fuelData.append('ocrData', JSON.stringify(fixedDocs.fuel.ocrData));
             
-            const fuelRes = await apiClient.post('/api/documents', fuelData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
+            const fuelRes = await apiClient.post('/api/documents', fuelData, reqConfig);
             let odoDocId = '';
             if (fixedDocs.odometer) {
                 const odoData = new FormData();
@@ -207,7 +275,7 @@ const MileageFuelLogPage = () => {
                 odoData.append('entityType', 'VEHICLE'); odoData.append('entityId', selectedVehicle.id);
                 if (fixedDocs.odometer.ocrData) odoData.append('ocrData', JSON.stringify(fixedDocs.odometer.ocrData));
                 
-                const odoRes = await apiClient.post('/api/documents', odoData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
+                const odoRes = await apiClient.post('/api/documents', odoData, reqConfig);
                 odoDocId = odoRes.data.data?._id || odoRes.data._id || '';
             }
             let refuelTimeStr;
@@ -221,16 +289,20 @@ const MileageFuelLogPage = () => {
 
             const payload = {
                 ...formData, vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
-                documentId: fuelRes.data.data?._id || fuelRes.data._id || '',
+                documentId: fuelRes.data.data?._id || fuelRes.data._id || '', 
                 ...(odoDocId && { odometerDocId: odoDocId }),
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
                 odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
-                location: formData.location ? formData.location : undefined,
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })
             };
-            await apiClient.post('/api/mileage/fuel-log', payload, { timeout: 60000 });
+            
+            await apiClient.post('/api/mileage/fuel-log', payload, { 
+                headers: { 'X-Org-Id': targetOrgId },
+                timeout: 60000 
+            });
+            
             toast.success('Mileage log submitted successfully!');
-            navigate('/mileage-tracking');
+            navigate('/field-agent-fuel');
         } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit log.'); }
         finally { setIsLoading(false); }
     };
@@ -239,7 +311,7 @@ const MileageFuelLogPage = () => {
         <div className="page-container mileage-form-page">
             <div className="mileage-form-header">
                 <div className="mileage-header-left">
-                    <button className="mileage-back-circle" onClick={() => navigate('/mileage-tracking')}>
+                    <button className="mileage-back-circle" onClick={() => navigate('/field-agent-fuel')}>
                         <ArrowLeft size={18} />
                     </button>
                     <div className="mileage-header-titles">
@@ -254,55 +326,171 @@ const MileageFuelLogPage = () => {
             </div>
 
             <div className="mileage-form-content">
+                {organizations.length > 0 && (
+                    <div style={{ marginBottom: '24px' }}>
+                        <label style={{ display: 'block', marginBottom: 8, color: '#5D5D5E', fontSize: 13, fontWeight: 600 }}>Filter by Organization</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            <button 
+                                type="button"
+                                onClick={() => setSelectedOrgFilter('')}
+                                style={{ 
+                                    padding: '6px 14px', borderRadius: '99px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                    backgroundColor: selectedOrgFilter === '' ? '#3b82f6' : '#f1f5f9',
+                                    color: selectedOrgFilter === '' ? '#fff' : '#64748b',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                All Organizations
+                            </button>
+                            {organizations.map(org => (
+                                <button 
+                                    key={org}
+                                    type="button"
+                                    onClick={() => setSelectedOrgFilter(org)}
+                                    style={{ 
+                                        padding: '6px 14px', borderRadius: '99px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                        backgroundColor: selectedOrgFilter === org ? '#3b82f6' : '#f1f5f9',
+                                        color: selectedOrgFilter === org ? '#fff' : '#64748b',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {org}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
                 <form onSubmit={handleSubmit}>
                     {/* Vehicle & Driver */}
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Select Vehicle *</label>
                             <div className="dropdown-wrapper">
-                                <button type="button" className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
-                                    onClick={(e) => { e.stopPropagation(); setShowVehicleDropdown(!showVehicleDropdown); setShowDriverDropdown(false); }}>
-                                    <span>{selectedVehicle ? selectedVehicle.name : (loadingVehicles ? 'Loading...' : 'Choose vehicle...')}</span>
-                                    <ChevronDown size={16} className={showVehicleDropdown ? 'rotated' : ''} />
-                                </button>
+                                <div className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`} style={{ padding: 0, display: 'flex', alignItems: 'center' }}>
+                                    <input 
+                                        type="text"
+                                        placeholder={selectedVehicle ? `${selectedVehicle.name} (${selectedVehicle.registration})` : (loadingVehicles ? 'Loading...' : 'Search vehicle...')}
+                                        value={vehicleSearch}
+                                        onChange={(e) => {
+                                            setVehicleSearch(e.target.value);
+                                            setShowVehicleDropdown(true);
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowVehicleDropdown(true);
+                                            setShowDriverDropdown(false);
+                                        }}
+                                        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', padding: '10px 14px', width: '100%', fontSize: '14px', color: '#1e293b' }}
+                                    />
+                                    {selectedVehicle && (
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedVehicle(null); setVehicleSearch(''); setSelectedDriver(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: '#94a3b8', display: 'flex' }}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowVehicleDropdown(!showVehicleDropdown); setShowDriverDropdown(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 14px 0 8px', color: '#94a3b8', display: 'flex' }}>
+                                        <ChevronDown size={18} className={showVehicleDropdown ? 'rotated' : ''} />
+                                    </button>
+                                </div>
                                 {showVehicleDropdown && (
                                     <div className="dropdown-menu">
-                                        <input type="text" placeholder="Search vehicle..." className="dropdown-search" value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                        <div className="dropdown-list">
-                                            {filteredVehicles.map(v => (
-                                                <button key={v.id} type="button" className={`dropdown-item ${selectedVehicle?.id === v.id ? 'selected' : ''}`} onClick={() => { setSelectedVehicle(v); setShowVehicleDropdown(false); }}>
-                                                    <div className="item-main">{v.name}</div><div className="item-sub">{v.registration}</div>
-                                                </button>
+                                        <div className="dropdown-list" style={{ maxHeight: '250px' }}>
+                                            {Object.entries(groupedVehicles).map(([orgName, orgVehicles]) => (
+                                                <div key={orgName}>
+                                                    <div className="dropdown-group-label" style={{ padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', background: '#f8fafc' }}>
+                                                        {orgName}
+                                                    </div>
+                                                    {orgVehicles.map(v => (
+                                                        <button key={v.id} type="button" className={`dropdown-item ${selectedVehicle?.id === v.id ? 'selected' : ''}`} onClick={() => { 
+                                                            if (selectedVehicle && (selectedVehicle.orgId?._id || selectedVehicle.orgId) !== (v.orgId?._id || v.orgId)) {
+                                                                setSelectedDriver(null);
+                                                            }
+                                                            setSelectedVehicle(v); 
+                                                            setVehicleSearch('');
+                                                            setShowVehicleDropdown(false); 
+                                                        }}>
+                                                            <div className="item-main">{v.name}</div><div className="item-sub">{v.registration}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             ))}
+                                            {Object.keys(groupedVehicles).length === 0 && (
+                                                <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No vehicles found</div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
                             </div>
-                                {selectedVehicle && (
-                                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        {loadingLastOdometer ? <><Loader2 size={13} className="spinning"/> Fetching prior logs...</>
-                                            : lastOdometer ? <span><b>Previous Log:</b> {lastOdometer.fillingType?.replace('_', ' ')} fill {lastOdometer.odometerReading ? `at ${lastOdometer.odometerReading} km` : '(No odometer recorded)'} <span style={{ color: '#94a3b8' }}>({new Date(lastOdometer.refuelTime).toLocaleDateString()})</span></span>
-                                            : <span>No prior fuel logs found. Starting fresh.</span>}
-                                    </div>
-                                )}
+                            {selectedVehicle && (
+                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    {loadingLastOdometer ? <><Loader2 size={12} className="spinning"/> Fetching prior logs...</>
+                                        : lastOdometer ? <span><b>Previous Log:</b> {lastOdometer.fillingType?.replace('_', ' ')} fill {lastOdometer.odometerReading ? `at ${lastOdometer.odometerReading} km` : '(No odometer recorded)'} <span style={{ color: '#94a3b8' }}>({new Date(lastOdometer.refuelTime).toLocaleDateString()})</span></span>
+                                        : <span>No prior fuel logs found. Starting fresh.</span>}
+                                </div>
+                            )}
                         </div>
                         <div className="mileage-form-group">
                             <label>Select Driver *</label>
                             <div className="dropdown-wrapper">
-                                <button type="button" className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
-                                    onClick={(e) => { e.stopPropagation(); setShowDriverDropdown(!showDriverDropdown); setShowVehicleDropdown(false); }}>
-                                    <span>{selectedDriver ? selectedDriver.name : (loadingDrivers ? 'Loading...' : 'Choose driver...')}</span>
-                                    <ChevronDown size={16} className={showDriverDropdown ? 'rotated' : ''} />
-                                </button>
+                                <div className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`} style={{ padding: 0, display: 'flex', alignItems: 'center' }}>
+                                    <input 
+                                        type="text"
+                                        placeholder={selectedDriver ? `${selectedDriver.name} (${selectedDriver.mobileNo})` : (loadingDrivers ? 'Loading...' : 'Search driver...')}
+                                        value={driverSearch}
+                                        onChange={(e) => {
+                                            setDriverSearch(e.target.value);
+                                            if (!selectedVehicle) {
+                                                toast.warning("Please select a vehicle first.");
+                                                return;
+                                            }
+                                            setShowDriverDropdown(true);
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!selectedVehicle) {
+                                                toast.warning("Please select a vehicle first.");
+                                                return;
+                                            }
+                                            setShowDriverDropdown(true);
+                                            setShowVehicleDropdown(false);
+                                        }}
+                                        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', padding: '10px 14px', width: '100%', fontSize: '14px', color: '#1e293b' }}
+                                    />
+                                    {selectedDriver && (
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedDriver(null); setDriverSearch(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: '#94a3b8', display: 'flex' }}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if (!selectedVehicle) {
+                                            toast.warning("Please select a vehicle first.");
+                                            return;
+                                        }
+                                        setShowDriverDropdown(!showDriverDropdown); 
+                                        setShowVehicleDropdown(false); 
+                                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 14px 0 8px', color: '#94a3b8', display: 'flex' }}>
+                                        <ChevronDown size={18} className={showDriverDropdown ? 'rotated' : ''} />
+                                    </button>
+                                </div>
                                 {showDriverDropdown && (
                                     <div className="dropdown-menu">
-                                        <input type="text" placeholder="Search driver..." className="dropdown-search" value={driverSearch} onChange={(e) => setDriverSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                        <div className="dropdown-list">
-                                            {filteredDrivers.map(d => (
-                                                <button key={d.id} type="button" className={`dropdown-item ${selectedDriver?.id === d.id ? 'selected' : ''}`} onClick={() => { setSelectedDriver(d); setShowDriverDropdown(false); }}>
-                                                    <div className="item-main">{d.name}</div><div className="item-sub">{d.licenseNo}</div>
-                                                </button>
+                                        <div className="dropdown-list" style={{ maxHeight: '250px' }}>
+                                            {Object.entries(groupedDrivers).map(([orgName, orgDrivers]) => (
+                                                <div key={orgName}>
+                                                    <div className="dropdown-group-label" style={{ padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', background: '#f8fafc' }}>
+                                                        {orgName}
+                                                    </div>
+                                                    {orgDrivers.map(d => (
+                                                        <button key={d.id} type="button" className={`dropdown-item ${selectedDriver?.id === d.id ? 'selected' : ''}`} onClick={() => { setSelectedDriver(d); setDriverSearch(''); setShowDriverDropdown(false); }}>
+                                                            <div className="item-main">{d.name}</div><div className="item-sub">{d.mobileNo}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             ))}
+                                            {Object.keys(groupedDrivers).length === 0 && (
+                                                <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No drivers found</div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -367,7 +555,7 @@ const MileageFuelLogPage = () => {
 
                     {/* Submit */}
                     <div className="mileage-actions">
-                        <button type="button" className="mileage-btn mileage-btn-secondary" onClick={() => navigate('/mileage-tracking')}>Cancel</button>
+                        <button type="button" className="mileage-btn mileage-btn-secondary" onClick={() => navigate('/field-agent-fuel')}>Cancel</button>
                         <button type="submit" disabled={isLoading} className="mileage-btn mileage-btn-primary">
                             {isLoading ? <><CircularProgress size={16} color="inherit" style={{ marginRight: 8 }} /> Submitting</> : 'Submit Fuel Log'}
                         </button>
@@ -378,4 +566,4 @@ const MileageFuelLogPage = () => {
     );
 };
 
-export default MileageFuelLogPage;
+export default FieldAgentFuelUploadPage;

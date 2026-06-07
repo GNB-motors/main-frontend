@@ -226,7 +226,7 @@ const ProfilePage = () => {
 
     if (isLoading) return <ProfileSkeleton />;
 
-    if (error || !userData || !organizationData) {
+    if (error || !userData) {
         return (
             <div className="flex h-full w-full items-center justify-center p-6">
                 <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">

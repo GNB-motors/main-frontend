@@ -161,10 +161,20 @@ const AddDriverPage = () => {
         };
 
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
-        const empId = savedEmployee._id || savedEmployee.id;
+        // FIELD_AGENT responses are shaped { user, membership, isExistingAgent };
+        // DRIVER/MANAGER responses are { id, status }.
+        const empId = savedEmployee._id || savedEmployee.id || savedEmployee.user?._id;
         await uploadDocuments(empId);
 
-        toast.success('Employee created successfully');
+        if (formData.role === 'FIELD_AGENT') {
+          toast.success(
+            savedEmployee.isExistingAgent
+              ? 'Existing field agent linked to your organization'
+              : 'Field agent added successfully',
+          );
+        } else {
+          toast.success('Employee created successfully');
+        }
         navigate('/drivers');
       }
     } catch (err) {

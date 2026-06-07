@@ -6,9 +6,10 @@ import LottieLoader from './LottieLoader.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { ProfileService } from '../pages/Profile/ProfileService.jsx';
 import { storeProfileData } from '../utils/profileStorage.js';
+import { FeatureFlagsProvider } from '../contexts/FeatureFlagsContext.jsx';
 import './DashboardLayout.css';
 
-const DashboardLayout = () => {
+const DashboardLayoutInner = () => {
     const [isSidebarOpen, setSidebarOpen] = React.useState(true);
 
     React.useEffect(() => {
@@ -57,5 +58,11 @@ const DashboardLayout = () => {
         </div>
     );
 };
+
+const DashboardLayout = () => (
+    <FeatureFlagsProvider>
+        <DashboardLayoutInner />
+    </FeatureFlagsProvider>
+);
 
 export default DashboardLayout;
