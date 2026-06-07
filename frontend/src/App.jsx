@@ -42,6 +42,8 @@ import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
+import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
+import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 
@@ -77,6 +79,8 @@ function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
+        <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
+        <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
