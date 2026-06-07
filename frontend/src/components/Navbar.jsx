@@ -79,6 +79,12 @@ const Navbar = ({ toggleSidebar }) => {
         if (location.pathname.match(/^\/trip-management\/weight-slip\/[a-f0-9]+$/)) {
             return 'Trip Details';
         }
+        if (location.pathname.match(/^\/mileage-tracking\/vehicle\/[a-f0-9]+$/)) {
+            return 'Mileage Tracking';
+        }
+        if (location.pathname.match(/^\/mileage-tracking\/[a-f0-9]+$/)) {
+            return 'Mileage Tracking';
+        }
 
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path

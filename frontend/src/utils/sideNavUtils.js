@@ -52,8 +52,9 @@ export const SIDE_NAV_ITEMS = [
       // Trip Management intentionally hidden — route still exists for deep links.
       { to: '/refuel-logs', label: 'Refuel Logs' },
       { to: '/mileage-tracking', label: 'Mileage Tracking' },
+      { to: '/model-comparison', label: 'Model Comparison' },
     ],
-    matchRoutes: ['/trip-management', '/refuel-logs', '/mileage-tracking'],
+    matchRoutes: ['/trip-management', '/refuel-logs', '/mileage-tracking', '/model-comparison'],
   },
   { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },

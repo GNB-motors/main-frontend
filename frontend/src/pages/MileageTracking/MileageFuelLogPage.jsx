@@ -221,10 +221,11 @@ const MileageFuelLogPage = () => {
 
             const payload = {
                 ...formData, vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
-                documentId: fuelRes.data.data?._id || fuelRes.data._id || '', 
+                documentId: fuelRes.data.data?._id || fuelRes.data._id || '',
                 ...(odoDocId && { odometerDocId: odoDocId }),
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
                 odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
+                location: formData.location ? formData.location : undefined,
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })
             };
             await apiClient.post('/api/mileage/fuel-log', payload, { timeout: 60000 });
