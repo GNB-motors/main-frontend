@@ -191,7 +191,7 @@ const MileageIntervalDetailPage = () => {
       <div className="mid2-header">
         <div className="mid2-header-bottom">
           <div className="mid2-header-left">
-            <button className="mid2-back-btn" onClick={() => navigate('/mileage-tracking')} aria-label="Back">
+            <button className="mid2-back-btn" onClick={() => navigate(-1)} aria-label="Back">
               <ArrowLeft size={18} />
             </button>
             <div>
