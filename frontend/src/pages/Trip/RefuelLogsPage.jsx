@@ -1,5 +1,5 @@
 import { toISTDateString, toISTTimeString, formatDateIST } from '../../utils/dateUtils';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, PlusCircle, Pencil, Trash2, X, AlertTriangle } from 'lucide-react';
@@ -132,6 +132,64 @@ const RefuelLogsPage = () => {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
+
+  // Click-and-drag horizontal scrolling for the table. The container already
+  // scrolls via wheel/scrollbar (overflow-x: auto); this adds grab-to-pan.
+  const tableContainerRef = useRef(null);
+  const tableDrag = useRef({ down: false, startX: 0, scrollLeft: 0, moved: false });
+
+  const handleTableMouseDown = (event) => {
+    const el = tableContainerRef.current;
+    // Only start a drag when there is actually overflow to scroll, and never
+    // hijack interactions that start on a control (edit/delete buttons, links).
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    if (event.target.closest('button, a, input, select')) return;
+    tableDrag.current = {
+      down: true,
+      startX: event.pageX - el.offsetLeft,
+      scrollLeft: el.scrollLeft,
+      moved: false,
+    };
+    el.classList.add('is-dragging');
+  };
+
+  const handleTableMouseMove = (event) => {
+    const el = tableContainerRef.current;
+    if (!el || !tableDrag.current.down) return;
+    event.preventDefault();
+    const walk = (event.pageX - el.offsetLeft) - tableDrag.current.startX;
+    if (Math.abs(walk) > 4) tableDrag.current.moved = true;
+    el.scrollLeft = tableDrag.current.scrollLeft - walk;
+  };
+
+  const endTableDrag = () => {
+    const el = tableContainerRef.current;
+    if (!el) return;
+    tableDrag.current.down = false;
+    el.classList.remove('is-dragging');
+  };
+
+  // Swallow the click that fires at the end of a real drag so dragging across
+  // a row never accidentally triggers its edit/delete button.
+  const handleTableClickCapture = (event) => {
+    if (tableDrag.current.moved) {
+      event.stopPropagation();
+      event.preventDefault();
+      tableDrag.current.moved = false;
+    }
+  };
+
+  // Show the grab cursor only when the table actually overflows horizontally.
+  useEffect(() => {
+    const el = tableContainerRef.current;
+    if (!el) return undefined;
+    const updateScrollable = () => {
+      el.classList.toggle('is-scrollable', el.scrollWidth > el.clientWidth + 1);
+    };
+    updateScrollable();
+    window.addEventListener('resize', updateScrollable);
+    return () => window.removeEventListener('resize', updateScrollable);
+  }, [logs, loading]);
 
   // Edit modal state
   const [editingLog, setEditingLog] = useState(null);
@@ -324,7 +382,15 @@ const RefuelLogsPage = () => {
         </div>
       </div>
 
-      <div className="refuel-table-container">
+      <div
+        className="refuel-table-container"
+        ref={tableContainerRef}
+        onMouseDown={handleTableMouseDown}
+        onMouseMove={handleTableMouseMove}
+        onMouseUp={endTableDrag}
+        onMouseLeave={endTableDrag}
+        onClickCapture={handleTableClickCapture}
+      >
         <table className="refuel-table">
           <thead>
             <tr>
@@ -488,16 +554,16 @@ const RefuelLogsPage = () => {
 
       {/* Edit Modal */}
       {editingLog && createPortal(
-        <div className="modal-overlay" style={{ pointerEvents: 'auto' }} onClick={handleEditClose}>
-          <div className="modal refuel-edit-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="refuel-modal-overlay" onClick={handleEditClose}>
+          <div className="refuel-modal refuel-edit-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="refuel-modal-header">
               <h2>Edit Fuel Log</h2>
-              <button type="button" className="close-btn" onClick={handleEditClose}>
+              <button type="button" className="refuel-modal-close" onClick={handleEditClose}>
                 <X size={20} />
               </button>
             </div>
             <form onSubmit={handleEditSubmit}>
-              <div className="modal-content">
+              <div className="refuel-modal-body">
                 <div className="refuel-form-row">
                   <div className="form-group">
                     <label>Fuel Type</label>
@@ -577,7 +643,7 @@ const RefuelLogsPage = () => {
                   />
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="refuel-modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={handleEditClose} disabled={submitting}>
                   Cancel
                 </button>
@@ -593,15 +659,15 @@ const RefuelLogsPage = () => {
 
       {/* Delete Confirmation Modal */}
       {deletingLog && createPortal(
-        <div className="modal-overlay" style={{ pointerEvents: 'auto' }} onClick={handleDeleteClose}>
-          <div className="modal refuel-delete-modal" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="refuel-modal-overlay" onClick={handleDeleteClose}>
+          <div className="refuel-modal refuel-delete-modal" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="refuel-modal-header">
               <h2>Delete Fuel Log</h2>
-              <button type="button" className="close-btn" onClick={handleDeleteClose}>
+              <button type="button" className="refuel-modal-close" onClick={handleDeleteClose}>
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-content">
+            <div className="refuel-modal-body">
               <div className="refuel-delete-warning">
                 <AlertTriangle size={40} color="#dc2626" />
                 <p>Are you sure you want to delete this fuel log?</p>
@@ -611,7 +677,7 @@ const RefuelLogsPage = () => {
                 </p>
               </div>
             </div>
-            <div className="modal-footer">
+            <div className="refuel-modal-footer">
               <button type="button" className="btn btn-secondary" onClick={handleDeleteClose} disabled={submitting}>
                 Cancel
               </button>

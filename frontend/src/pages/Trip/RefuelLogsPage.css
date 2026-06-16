@@ -151,6 +151,17 @@
   background: #94a3b8;
 }
 
+/* Grab-to-pan: cursor only when there is overflow to scroll (toggled by JS),
+   and the "grabbing" hand while a drag is in progress. */
+.refuel-table-container.is-scrollable {
+  cursor: grab;
+}
+
+.refuel-table-container.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
 .refuel-table {
   width: 100%;
   min-width: 960px;
@@ -697,6 +708,119 @@
   .refuel-pagination-controls {
     padding: 12px 16px;
   }
+}
+
+/* ── Refuel modals: self-contained, namespaced layout ───────────────────
+   The generic `.modal`, `.modal-overlay`, `.modal-content`, `.modal-header`
+   and `.modal-footer` names are defined in FIVE stylesheets with conflicting
+   meanings (in modal.css `.modal-content` is the inner scroll region; in
+   EditRowModal/ProfilePage/TripFormPage/RoutesPage it is the white box itself
+   with no flex/min-height). Whichever loads last in the bundle wins, which
+   stripped the edit modal's body of `flex: 1; min-height: 0` so it never
+   scrolled and the footer was clipped. These `refuel-modal*` classes are
+   unique to this page, so bundle order can no longer hijack the layout. */
+.refuel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 2147483647;
+}
+
+.refuel-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 85vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.refuel-modal * {
+  box-sizing: border-box;
+}
+
+/* The edit modal nests its scrollable body inside a <form>, so the form must
+   carry the flex column for the body to size to the modal and scroll. */
+.refuel-modal > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.refuel-modal-header {
+  position: relative;
+  flex-shrink: 0;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.refuel-modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.refuel-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.refuel-modal-close:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.refuel-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.refuel-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.refuel-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.refuel-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.refuel-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.refuel-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #fafbfc;
 }
 
 /* ── Edit modal: bring form controls up to par ──────────────────────────
