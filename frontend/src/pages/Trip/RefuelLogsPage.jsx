@@ -8,15 +8,30 @@ import '../PageStyles.css';
 import './RefuelLogsPage.css';
 import '../../components/JourneySetupModal/modal.css';
 import apiClient from '../../utils/axiosConfig';
+import ChevronIcon from './assets/ChevronIcon.jsx';
 
 const FUEL_TYPES = ['DIESEL', 'ADBLUE'];
 const FILLING_TYPES = ['PARTIAL', 'FULL_TANK'];
 
-const fetchRefuelLogs = async () => {
-  try {
-    const response = await apiClient.get('api/fuel-logs');
-    if (response.data.status === 'success') {
-      return response.data.data.map(log => ({
+const PAGE_SIZE = 10;
+
+// Maps the UI filter tab to the server-side `fuelType` query param.
+// `all` sends no filter so the API returns every fuel type.
+const TAB_TO_FUEL_TYPE = {
+  all: undefined,
+  diesel: 'DIESEL',
+  adblue: 'ADBLUE',
+};
+
+const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType } = {}) => {
+  const params = { page, limit };
+  if (fuelType) {
+    params.fuelType = fuelType;
+  }
+
+  const response = await apiClient.get('api/fuel-logs', { params });
+  if (response.data.status === 'success') {
+    const mapped = response.data.data.map(log => ({
         id: log._id,
         date: log.refuelTime ? toISTDateString(log.refuelTime) : null,
         time: log.refuelTime ? toISTTimeString(log.refuelTime) : null,
@@ -50,12 +65,10 @@ const fetchRefuelLogs = async () => {
         rawOdometer: log.odometerReading,
         rawLocation: log.location,
       }));
-    }
-    return [];
-  } catch (error) {
-    console.error('Error fetching refuel logs:', error);
-    return [];
+    const total = response.data.meta?.total ?? mapped.length;
+    return { logs: mapped, total };
   }
+  return { logs: [], total: 0 };
 };
 
 const updateFuelLog = async (id, data) => {
@@ -114,6 +127,7 @@ const RefuelLogsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
 
   // Edit modal state
   const [editingLog, setEditingLog] = useState(null);
@@ -147,8 +161,13 @@ const RefuelLogsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const fetchedLogs = await fetchRefuelLogs();
+      const { logs: fetchedLogs, total } = await fetchRefuelLogs({
+        page: pagination.page,
+        limit: pagination.limit,
+        fuelType: TAB_TO_FUEL_TYPE[activeTab],
+      });
       setLogs(fetchedLogs);
+      setPagination((p) => ({ ...p, total }));
     } catch (err) {
       setError('Failed to load refuel logs');
       console.error('Error loading refuel logs:', err);
@@ -157,26 +176,52 @@ const RefuelLogsPage = () => {
     }
   };
 
+  // Refetch whenever the page or the fuel-type tab changes (both are server-side).
   useEffect(() => {
     loadLogs();
-  }, []);
+  }, [pagination.page, activeTab]);
 
+  const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setPagination((p) => ({ ...p, page }));
+    }
+  };
+
+  // Switching tabs resets to page 1 so we don't land on an out-of-range page.
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setPagination((p) => ({ ...p, page: 1 }));
+  };
+
+  const generatePageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (pagination.page > 3) pages.push('...');
+      for (let i = Math.max(2, pagination.page - 1); i <= Math.min(totalPages - 1, pagination.page + 1); i++) {
+        if (i !== 1 && i !== totalPages) pages.push(i);
+      }
+      if (pagination.page < totalPages - 2) pages.push('...');
+      if (totalPages > 1) pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  // The fuel-type tab is applied server-side, so this only narrows the rows
+  // already loaded for the current page. The API has no free-text search, so
+  // search is scoped to the visible page.
   const filteredLogs = useMemo(() => {
     const searchValue = searchTerm.trim().toLowerCase();
 
+    if (!searchValue) {
+      return logs;
+    }
+
     return logs.filter((log) => {
-      const matchesTab =
-        activeTab === 'all' ||
-        (log.fuelType && log.fuelType.toLowerCase() === activeTab);
-
-      if (!matchesTab) {
-        return false;
-      }
-
-      if (!searchValue) {
-        return true;
-      }
-
       const haystack = [
         log.vehicleNo,
         log.vehicleModel,
@@ -192,7 +237,7 @@ const RefuelLogsPage = () => {
 
       return haystack.includes(searchValue);
     });
-  }, [activeTab, logs, searchTerm]);
+  }, [logs, searchTerm]);
 
   const handleEditClick = (log) => {
     setEditingLog(log);
@@ -273,7 +318,7 @@ const RefuelLogsPage = () => {
               key={tab.id}
               type="button"
               className={`refuel-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
             >
               {tab.label}
             </button>
@@ -413,6 +458,47 @@ const RefuelLogsPage = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Footer */}
+      {!loading && !error && pagination.total > 0 && (
+        <div className="refuel-pagination-controls">
+          <button
+            className="refuel-pagination-btn"
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page === 1 || totalPages <= 1}
+          >
+            <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
+          </button>
+
+          {generatePageNumbers().map((page, index) => {
+            if (page === '...') {
+              return (
+                <div key={`overflow-${index}`} className="refuel-page-overflow">
+                  <span>...</span>
+                </div>
+              );
+            }
+            return (
+              <button
+                key={page}
+                className={`refuel-page-number ${pagination.page === page ? 'refuel-page-number-current' : ''}`}
+                onClick={() => handlePageChange(page)}
+                disabled={totalPages <= 1}
+              >
+                <span>{page}</span>
+              </button>
+            );
+          })}
+
+          <button
+            className="refuel-pagination-btn"
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page === totalPages || totalPages <= 1}
+          >
+            <ChevronIcon size={12} style={{ transform: 'rotate(-90deg)' }} />
+          </button>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editingLog && createPortal(
