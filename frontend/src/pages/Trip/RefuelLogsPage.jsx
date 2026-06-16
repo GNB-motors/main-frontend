@@ -1,5 +1,5 @@
 import { toISTDateString, toISTTimeString, formatDateIST } from '../../utils/dateUtils';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, PlusCircle, Pencil, Trash2, X, AlertTriangle } from 'lucide-react';
@@ -23,10 +23,13 @@ const TAB_TO_FUEL_TYPE = {
   adblue: 'ADBLUE',
 };
 
-const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType } = {}) => {
+const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search } = {}) => {
   const params = { page, limit };
   if (fuelType) {
     params.fuelType = fuelType;
+  }
+  if (search) {
+    params.search = search;
   }
 
   const response = await apiClient.get('api/fuel-logs', { params });
@@ -123,6 +126,7 @@ const RefuelLogsPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -157,6 +161,15 @@ const RefuelLogsPage = () => {
     };
   }, []);
 
+  // Debounce the search box, then snap back to page 1 so results start at the top.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setPagination((p) => (p.page === 1 ? p : { ...p, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const loadLogs = async () => {
     setLoading(true);
     setError(null);
@@ -165,6 +178,7 @@ const RefuelLogsPage = () => {
         page: pagination.page,
         limit: pagination.limit,
         fuelType: TAB_TO_FUEL_TYPE[activeTab],
+        search: debouncedSearch,
       });
       setLogs(fetchedLogs);
       setPagination((p) => ({ ...p, total }));
@@ -176,10 +190,10 @@ const RefuelLogsPage = () => {
     }
   };
 
-  // Refetch whenever the page or the fuel-type tab changes (both are server-side).
+  // Refetch whenever the page, fuel-type tab, or search term changes (all server-side).
   useEffect(() => {
     loadLogs();
-  }, [pagination.page, activeTab]);
+  }, [pagination.page, activeTab, debouncedSearch]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
 
@@ -210,34 +224,6 @@ const RefuelLogsPage = () => {
     }
     return pages;
   };
-
-  // The fuel-type tab is applied server-side, so this only narrows the rows
-  // already loaded for the current page. The API has no free-text search, so
-  // search is scoped to the visible page.
-  const filteredLogs = useMemo(() => {
-    const searchValue = searchTerm.trim().toLowerCase();
-
-    if (!searchValue) {
-      return logs;
-    }
-
-    return logs.filter((log) => {
-      const haystack = [
-        log.vehicleNo,
-        log.vehicleModel,
-        log.driverName,
-        log.driverPhone,
-        log.location,
-        log.vendor,
-        log.paymentMethod
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(searchValue);
-    });
-  }, [logs, searchTerm]);
 
   const handleEditClick = (log) => {
     setEditingLog(log);
@@ -368,7 +354,7 @@ const RefuelLogsPage = () => {
                   {error}
                 </td>
               </tr>
-            ) : filteredLogs.length === 0 ? (
+            ) : logs.length === 0 ? (
               <tr>
                 <td colSpan={11} className="refuel-empty-state">
                   <div className="refuel-empty-state-inner">
@@ -388,7 +374,7 @@ const RefuelLogsPage = () => {
                 </td>
               </tr>
             ) : (
-              filteredLogs.map((log) => {
+              logs.map((log) => {
                 const timestamp = log.date ? `${log.date}${log.time ? `T${log.time}` : ''}` : null;
                 const formattedDate = timestamp ? formatDate(timestamp) : formatDate(log.date);
 
@@ -503,7 +489,7 @@ const RefuelLogsPage = () => {
       {/* Edit Modal */}
       {editingLog && createPortal(
         <div className="modal-overlay" style={{ pointerEvents: 'auto' }} onClick={handleEditClose}>
-          <div className="modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal refuel-edit-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Edit Fuel Log</h2>
               <button type="button" className="close-btn" onClick={handleEditClose}>
@@ -608,7 +594,7 @@ const RefuelLogsPage = () => {
       {/* Delete Confirmation Modal */}
       {deletingLog && createPortal(
         <div className="modal-overlay" style={{ pointerEvents: 'auto' }} onClick={handleDeleteClose}>
-          <div className="modal" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal refuel-delete-modal" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Delete Fuel Log</h2>
               <button type="button" className="close-btn" onClick={handleDeleteClose}>

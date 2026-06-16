@@ -123,8 +123,32 @@
 
 .refuel-table-container {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 24px 32px 40px;
   overflow-x: auto;
+  /* Keep the horizontal scrollbar visible (macOS auto-hides native ones),
+     so it's obvious the table can be scrolled when columns overflow. */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.refuel-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.refuel-table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.refuel-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.refuel-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .refuel-table {
@@ -601,4 +625,111 @@
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   line-height: 21px;
+}
+
+/* ── Responsive: tighten the 11-column table on smaller laptops ──────────
+   There was no breakpoint between 992px and full-size, so 1280–1440px
+   laptops got the full desktop spacing and the last columns (Type/Actions)
+   spilled off-screen. These steps reclaim width by trimming cell padding,
+   the outer gutter, and font sizes, falling back to horizontal scroll only
+   when content genuinely can't fit. */
+@media (max-width: 1440px) {
+  .refuel-logs-header {
+    padding: 18px 24px;
+  }
+
+  .refuel-table-container {
+    padding: 20px 24px 32px;
+  }
+
+  .refuel-table th,
+  .refuel-table td {
+    padding: 14px 14px;
+  }
+
+  .refuel-table th {
+    letter-spacing: 0.3px;
+  }
+
+  .refuel-pagination-controls {
+    padding: 12px 24px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .refuel-table-container {
+    padding: 16px 16px 28px;
+  }
+
+  .refuel-table {
+    min-width: 880px;
+  }
+
+  .refuel-table th,
+  .refuel-table td {
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+
+  .refuel-table th {
+    font-size: 12px;
+    letter-spacing: 0.2px;
+  }
+
+  .cell-primary {
+    margin-bottom: 4px;
+  }
+
+  .cell-secondary {
+    font-size: 11px;
+  }
+
+  .fuel-type-pill {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .refuel-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .refuel-pagination-controls {
+    padding: 12px 16px;
+  }
+}
+
+/* ── Edit modal: bring form controls up to par ──────────────────────────
+   The modal borrows `.form-group` from modal.css, which only styles
+   `input` — the Fuel Type / Filling Type <select>s were rendering as
+   unstyled native controls. Mirror the input styling (and add a custom
+   chevron) so the row reads as one consistent set of fields. */
+.refuel-edit-modal .form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #121214;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refuel-edit-modal .form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* Stop a long value (e.g. location) from blowing out the 2-up grid. */
+.refuel-form-row .form-group {
+  min-width: 0;
 }
