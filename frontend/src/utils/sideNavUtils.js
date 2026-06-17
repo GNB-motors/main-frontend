@@ -1,4 +1,4 @@
-import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen } from 'lucide-react';
+import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation } from 'lucide-react';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -21,17 +21,17 @@ import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen } from 'luci
  */
 export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'overview', to: '/overview', label: 'Overview', icon: Grid },
-  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
+  { type: 'link', key: 'reports',  to: '/reports',  label: 'Reports',  icon: FileText },
   {
     type: 'group',
     key: 'vehicles',
     label: 'Vehicles',
     icon: Truck,
     children: [
-      { to: '/vehicles', label: 'All Vehicles', end: true },
-      { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
-      { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
-      { to: '/vehicles/add', label: 'Add Vehicle' },
+      { to: '/vehicles',                      label: 'All Vehicles',          end: true },
+      { to: '/vehicles/dashboard',            label: 'Vehicle Dashboard'              },
+      { to: '/vehicles/service-intelligence', label: 'Service Intelligence'           },
+      { to: '/vehicles/add',                  label: 'Add Vehicle'                    },
     ],
     matchRoutes: [
       '/vehicles',
@@ -50,17 +50,33 @@ export const SIDE_NAV_ITEMS = [
     icon: Truck,
     children: [
       // Trip Management intentionally hidden — route still exists for deep links.
-      { to: '/refuel-logs', label: 'Refuel Logs' },
-      { to: '/mileage-tracking', label: 'Mileage Tracking' },
-      { to: '/model-comparison', label: 'Model Comparison' },
+      { to: '/refuel-logs',       label: 'Refuel Logs'      },
+      { to: '/mileage-tracking',  label: 'Mileage Tracking' },
+      { to: '/model-comparison',  label: 'Model Comparison' },
     ],
     matchRoutes: ['/trip-management', '/refuel-logs', '/mileage-tracking', '/model-comparison'],
   },
-  { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
+  { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
   { type: 'link', key: 'fuelComparison', to: '/fuel-comparison', label: 'Fuel Comparison', icon: Fuel },
   { type: 'link', key: null, to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
+
+  // ─── Geofence group ───────────────────────────────────────────────────────
+  // Both sub-pages are grouped under a single collapsible "Geofence" dropdown.
+  // This matches the nav layout shown in the client screenshots (Image 2).
+  {
+    type: 'group',
+    key: null,
+    label: 'Geofence',
+    icon: Navigation,
+    children: [
+      { to: '/geofence',       label: 'Anomalies'     },
+      { to: '/geofence/zones', label: 'Zones & Alerts' },
+    ],
+    matchRoutes: ['/geofence', '/geofence/zones'],
+  },
+
   // Always visible (no feature flag) — guaranteed fallback page.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
 ];
@@ -69,7 +85,7 @@ export const SIDE_NAV_ITEMS = [
 export const SIDE_NAV_GROUPS = SIDE_NAV_ITEMS.filter((item) => item.type === 'group');
 
 /**
- * Kya current path is group ke andar aata hai? (exact match ya sub-route).
+ * Kya current path is group ke andar aata hai? (exact match ya sub-route)
  * Group ko auto-expand / auto-close karne ke liye use hota hai.
  */
 export const isGroupActive = (group, pathname) =>
