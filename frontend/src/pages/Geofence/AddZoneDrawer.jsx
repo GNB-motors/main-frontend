@@ -13,10 +13,10 @@ const GMAPS_LIBS = ['places'];
 // ─── Location Search ────────────────────────────────────────────────────────────
 const LocationSearch = ({ isLoaded, value, onChange, onSelect, hasError }) => {
   const [suggestions, setSuggestions] = useState([]);
-  const [focused,     setFocused]     = useState(false);
-  const svcRef      = useRef(null);
+  const [focused, setFocused] = useState(false);
+  const svcRef = useRef(null);
   const debounceRef = useRef(null);
-  const wrapperRef  = useRef(null);
+  const wrapperRef = useRef(null);
 
   useEffect(() => {
     if (isLoaded && window.google?.maps?.places) {
@@ -96,8 +96,8 @@ const GeoTypeSelect = ({ value, onChange }) => {
   }, []);
 
   const OPTIONS = [
-    { value: 'circular', label: 'Circular',              icon: '⊙', badge: null  },
-    { value: 'polygon',  label: 'Polygon (Draw on Map)', icon: '⬡', badge: 'NEW' },
+    { value: 'circular', label: 'Circular', icon: '⊙', badge: null },
+    { value: 'polygon', label: 'Polygon (Draw on Map)', icon: '⬡', badge: 'NEW' },
   ];
   const selected = OPTIONS.find(o => o.value === value);
 
@@ -169,7 +169,7 @@ const ZoneMapPreview = ({
   };
 
   const center = locationLatLng || { lat: 22.5, lng: 82.0 };
-  const zoom   = locationLatLng ? 14 : 5;
+  const zoom = locationLatLng ? 14 : 5;
 
   if (!isLoaded) {
     return (
@@ -267,39 +267,43 @@ const ZoneMapPreview = ({
 };
 
 // ─── Main Drawer ────────────────────────────────────────────────────────────────
-const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng }) => {
+const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add' }) => {
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
     libraries: GMAPS_LIBS,
   });
 
+  const isEdit = mode === 'edit' && editZone;
+
   // draftPoints = in-progress clicks before user hits "Finish Drawing"
-  const [draftPoints,     setDraftPoints]     = useState([]);
-  const [locationText,    setLocationText]    = useState('');
-  const [locationLatLng,  setLocationLatLng]  = useState(prefillLatLng || null);
-  const [name,            setName]            = useState('');
-  const [geofenceType,    setGeofenceType]    = useState('');
-  const [radiusMetres,    setRadiusMetres]    = useState(500);
-  const [alertOnEntry,    setAlertOnEntry]    = useState(true);
-  const [alertOnExit,     setAlertOnExit]     = useState(false);
-  const [cooldownMinutes, setCooldownMinutes] = useState(30);
-  const [polygonPath,     setPolygonPath]     = useState([]);
+  const [draftPoints, setDraftPoints] = useState([]);
+  const [locationText, setLocationText] = useState('');
+  const [locationLatLng, setLocationLatLng] = useState(
+    isEdit ? { lat: editZone.lat, lng: editZone.lng } : (prefillLatLng || null)
+  );
+  const [name, setName] = useState(isEdit ? editZone.name : '');
+  const [geofenceType, setGeofenceType] = useState(isEdit ? editZone.geofenceType : '');
+  const [radiusMetres, setRadiusMetres] = useState(isEdit ? editZone.radiusMetres : 500);
+  const [alertOnEntry, setAlertOnEntry] = useState(isEdit ? editZone.alertConfig?.alertOnEntry : true);
+  const [alertOnExit, setAlertOnExit] = useState(isEdit ? editZone.alertConfig?.alertOnExit : false);
+  const [polygonPath, setPolygonPath] = useState(isEdit && editZone.polygonPath ? editZone.polygonPath : []);
 
   const [locationError, setLocationError] = useState(false);
-  const [nameError,     setNameError]     = useState(false);
-  const [saving,        setSaving]        = useState(false);
-  const [saveError,     setSaveError]     = useState(null);
+  const [nameError, setNameError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   // Reverse-geocode prefilled lat/lng
   useEffect(() => {
-    if (!prefillLatLng || !isLoaded || !window.google) return;
+    const targetLatLng = isEdit ? { lat: editZone.lat, lng: editZone.lng } : prefillLatLng;
+    if (!targetLatLng || !isLoaded || !window.google) return;
     new window.google.maps.Geocoder().geocode(
-      { location: prefillLatLng },
+      { location: targetLatLng },
       (results, status) => {
         if (status === 'OK' && results[0]) setLocationText(results[0].formatted_address);
       }
     );
-  }, [prefillLatLng, isLoaded]);
+  }, [prefillLatLng, isEdit, editZone, isLoaded]);
 
   const handleSuggestionSelect = useCallback((suggestion) => {
     setLocationText(suggestion.description);
@@ -321,7 +325,7 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng }) => {
   const handleTypeChange = (val) => { setGeofenceType(val); setPolygonPath([]); setDraftPoints([]); };
   const handleClearShape = () => setPolygonPath([]);
   const handleClearDraft = () => setDraftPoints([]);
-  const handleAddPoint   = (pt) => setDraftPoints(prev => [...prev, pt]);
+  const handleAddPoint = (pt) => setDraftPoints(prev => [...prev, pt]);
   const handleFinishDrawing = () => {
     if (draftPoints.length >= 3) {
       setPolygonPath(draftPoints);
@@ -354,15 +358,21 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng }) => {
 
     setSaving(true); setSaveError(null);
     try {
-      await GeofenceService.createZone({
+      const payload = {
         name: name.trim(),
         lat: centroid.lat, lng: centroid.lng,
         radiusMetres: geofenceType === 'circular' ? radiusMetres : 0,
         geofenceType,
         polygonPath: geofenceType === 'polygon' ? polygonPath : [],
         alertOnEntry, alertOnExit,
-        cooldownMinutes: parseInt(cooldownMinutes, 10) || 30,
-      });
+        cooldownMinutes: 0,
+      };
+
+      if (isEdit) {
+        await GeofenceService.updateZone(editZone._id, payload);
+      } else {
+        await GeofenceService.createZone(payload);
+      }
       onSaved();
     } catch (err) {
       setSaveError(err.message || 'Failed to save zone');
@@ -377,7 +387,7 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng }) => {
 
         {/* ── Header ── */}
         <div className="azd-header">
-          <h3 className="azd-title">Add Custom Zone</h3>
+          <h3 className="azd-title">{mode === 'edit' ? 'Edit Place' : 'Add Custom Zone'}</h3>
           <button className="azd-close-btn" onClick={onClose}><X size={18} /></button>
         </div>
 
@@ -460,13 +470,6 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng }) => {
                   <input type="checkbox" checked={alertOnExit} onChange={e => setAlertOnExit(e.target.checked)} />
                   Alert on Exit
                 </label>
-                <label className="azd-label" style={{ marginTop: 12 }}>Cooldown (minutes)</label>
-                <input
-                  className="azd-input"
-                  type="number" min="5" max="1440"
-                  value={cooldownMinutes}
-                  onChange={e => setCooldownMinutes(e.target.value)}
-                />
               </div>
             )}
           </div>
@@ -496,7 +499,7 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng }) => {
             disabled={saving || !canSave}
           >
             {saving && <RefreshCw size={13} className="azd-spin" />}
-            Save Zone
+            {mode === 'edit' ? 'Update' : 'Save Zone'}
           </button>
         </div>
 
