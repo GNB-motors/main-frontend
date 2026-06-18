@@ -21,6 +21,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
 import TripLedgerReport from './reports/TripLedgerReport.jsx';
+import RefuelLogsReport from './reports/RefuelLogsReport.jsx';
 
 
 // --- MAIN REPORTS PAGE COMPONENT ---
@@ -95,6 +96,8 @@ const ReportsPage = () => {
                 return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
             case 'vehicle':
                 return <VehicleReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
+            case 'refuelLogs':
+                return <RefuelLogsReport />;
             default:
                 return <TripLedgerReport {...reportProps} />;
         }

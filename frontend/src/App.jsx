@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 import DashboardLayout from './components/DashboardLayout';
 // Removed ProfileProvider import - profile logic completely removed
@@ -97,6 +97,9 @@ function App() {
         <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
         <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
         <Route path="/model-comparison" element={<ModelComparisonPage />} />
+        <Route path="/expected-mileage" element={<ModelComparisonPage />} />
+        <Route path="/def-tracking" element={<Navigate to="/refuel-logs?tab=adblue" replace />} />
+        <Route path="/fuel-bills" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />

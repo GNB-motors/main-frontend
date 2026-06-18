@@ -5,7 +5,7 @@ import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
-import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive } from '../utils/sideNavUtils.js';
+import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive, getNavGroupId, getVisibleNavChildren } from '../utils/sideNavUtils.js';
 import './Sidebar.css';
 
 
@@ -38,8 +38,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             const next = { ...prev };
             let changed = false;
             SIDE_NAV_GROUPS.forEach((group) => {
-                if (isGroupActive(group, location.pathname) && !next[group.key]) {
-                    next[group.key] = true;
+                const groupId = getNavGroupId(group);
+                if (isGroupActive(group, location.pathname) && !next[groupId]) {
+                    next[groupId] = true;
                     changed = true;
                 }
             });
@@ -55,8 +56,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                 setOpenGroups((prev) => {
                     const next = { ...prev };
                     SIDE_NAV_GROUPS.forEach((group) => {
+                        const groupId = getNavGroupId(group);
                         if (!isGroupActive(group, location.pathname)) {
-                            next[group.key] = false;
+                            next[groupId] = false;
                         }
                     });
                     return next;
@@ -66,8 +68,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
     }, [isSidebarHovered, location.pathname]);
 
-    const toggleGroup = (key) => {
-        setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+    const toggleGroup = (groupId) => {
+        setOpenGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
     };
 
     const handleLogout = () => {
@@ -91,12 +93,11 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     // Render one item from the SIDE_NAV_ITEMS config.
     const renderNavItem = (item) => {
-        // `key: null` => always visible. Otherwise gate on the feature flag.
-        if (item.key && !isEnabled(item.key)) return null;
-
         const Icon = item.icon;
 
         if (item.type === 'link') {
+            if (item.key && !isEnabled(item.key)) return null;
+
             return (
                 <NavLink
                     key={item.to}
@@ -111,12 +112,18 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
 
         // type === 'group' (collapsible dropdown)
-        const isOpen = !!openGroups[item.key];
+        if (item.key && !isEnabled(item.key)) return null;
+
+        const visibleChildren = getVisibleNavChildren(item, isEnabled);
+        if (!visibleChildren.length) return null;
+
+        const groupId = getNavGroupId(item);
+        const isOpen = !!openGroups[groupId];
         return (
-            <div className="nav-section" key={item.key}>
+            <div className="nav-section" key={groupId}>
                 <button
                     className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
-                    onClick={() => toggleGroup(item.key)}
+                    onClick={() => toggleGroup(groupId)}
                 >
                     <div className="nav-parent-left">
                         <Icon size={20} />
@@ -128,9 +135,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     />
                 </button>
                 <div className={`nav-children ${isOpen ? 'open' : ''}`}>
-                    {item.children.map((child) => (
+                    {visibleChildren.map((child) => (
                         <NavLink
-                            key={child.to}
+                            key={`${child.to}-${child.label}`}
                             to={child.to}
                             end={child.end}
                             className="nav-link nav-child"
