@@ -29,17 +29,12 @@ export const SIDE_NAV_ITEMS = [
     icon: Fuel,
     children: [
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
-      { to: '/expected-mileage', label: 'Model Comparison', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
-      { to: '/fuel-bills', label: 'Fuel Bills', key: 'vehicleActivity' },
       { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
     ],
     matchRoutes: [
       '/mileage-tracking',
-      '/expected-mileage',
-      '/model-comparison',
       '/fuel-comparison',
-      '/fuel-bills',
       '/field-agent-fuel',
       '/trip-management',
     ],
@@ -64,23 +59,9 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence/add-repair',
     ],
   },
-  {
-    type: 'group',
-    key: 'vehicleActivity',
-    label: 'Vehicle Activity',
-    icon: Truck,
-    children: [
-      // Trip Management intentionally hidden — route still exists for deep links.
-      { to: '/refuel-logs',       label: 'Refuel Logs'      },
-      { to: '/mileage-tracking',  label: 'Mileage Tracking' },
-      { to: '/model-comparison',  label: 'Model Comparison' },
-    ],
-    matchRoutes: ['/trip-management', '/refuel-logs', '/mileage-tracking', '/model-comparison'],
-  },
+
   { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
-  { type: 'link', key: 'fuelComparison', to: '/fuel-comparison', label: 'Fuel Comparison', icon: Fuel },
-  { type: 'link', key: null, to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
 
   // ─── Geofence group ───────────────────────────────────────────────────────
@@ -100,9 +81,6 @@ export const SIDE_NAV_ITEMS = [
 
   // Always visible (no feature flag) — guaranteed fallback page.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
-  { type: 'link', key: 'locations', to: '/locations', label: 'Location', icon: MapPin },
-  { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
 ];
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */

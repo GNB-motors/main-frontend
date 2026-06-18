@@ -20,16 +20,16 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 // --- IMPORTS FOR SEGREGATED REPORT COMPONENTS ---
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
-import TripLedgerReport from './reports/TripLedgerReport.jsx';
-import RefuelLogsReport from './reports/RefuelLogsReport.jsx';
 
+import RefuelLogsPage from '../Trip/RefuelLogsPage.jsx';
+import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
 
 // --- MAIN REPORTS PAGE COMPONENT ---
 const ReportsPage = () => {
     const [isReportsSidebarOpen, setIsReportsSidebarOpen] = useState(true);
     const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
-    const [selectedReport, setSelectedReport] = useState('tripLedger'); // Default to trip ledger
+    const [selectedReport, setSelectedReport] = useState('driver'); // Default to driver report
     const [highlightedOutlierId, setHighlightedOutlierId] = useState(null); // Used for linking
 
     // Removed profile context - profile logic completely removed
@@ -90,16 +90,16 @@ const ReportsPage = () => {
         };
 
         switch (selectedReport) {
-            case 'tripLedger':
-                return <TripLedgerReport {...reportProps} />;
             case 'driver':
                 return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
             case 'vehicle':
                 return <VehicleReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
-            case 'refuelLogs':
-                return <RefuelLogsReport />;
+            case 'modelComparison':
+                return <ModelComparisonPage />;
+            case 'fuelBills':
+                return <RefuelLogsPage />;
             default:
-                return <TripLedgerReport {...reportProps} />;
+                return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
         }
     };
 

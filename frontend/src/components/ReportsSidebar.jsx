@@ -52,10 +52,10 @@ const ReportsSidebar = ({
             name: 'FLEET REPORTS',
             icon: null,
             reports: [
-                { id: 'tripLedger', name: 'Trip Report', icon: BookOpen },
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
-                { id: 'refuelLogs', name: 'Refuel Logs', icon: Fuel },
+                { id: 'modelComparison', name: 'Model Comparison', icon: BarChart3 },
+                { id: 'fuelBills', name: 'Fuel Bills', icon: Receipt },
             ]
         }
     ];
