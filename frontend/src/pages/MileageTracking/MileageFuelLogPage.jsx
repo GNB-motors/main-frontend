@@ -87,14 +87,21 @@ const MileageFuelLogPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [selectedDriver, setSelectedDriver] = useState(null);
+    const [selectedSource, setSelectedSource] = useState(null);
+    const [selectedDest, setSelectedDest] = useState(null);
     const [vehicleSearch, setVehicleSearch] = useState('');
     const [driverSearch, setDriverSearch] = useState('');
+    const [locationSearch, setLocationSearch] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
     const [showDriverDropdown, setShowDriverDropdown] = useState(false);
+    const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+    const [showDestDropdown, setShowDestDropdown] = useState(false);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
+    const [locationResults, setLocationResults] = useState([]);
     const [loadingVehicles, setLoadingVehicles] = useState(true);
     const [loadingDrivers, setLoadingDrivers] = useState(true);
+    const [loadingLocations, setLoadingLocations] = useState(false);
     const [lastOdometer, setLastOdometer] = useState(null);
     const [loadingLastOdometer, setLoadingLastOdometer] = useState(false);
     const [formData, setFormData] = useState({ fuelType: 'DIESEL', fillingType: 'PARTIAL', litres: '', rate: '', odometerReading: '', location: '' });
@@ -119,10 +126,22 @@ const MileageFuelLogPage = () => {
     }, [selectedVehicle]);
 
     useEffect(() => {
-        const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); };
+        const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); setShowSourceDropdown(false); setShowDestDropdown(false); };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            setLoadingLocations(true);
+            try {
+                const res = await apiClient.get('/api/locations', { params: { search: locationSearch, limit: 20 } });
+                setLocationResults(res.data?.results || []);
+            } catch { setLocationResults([]); }
+            finally { setLoadingLocations(false); }
+        }, locationSearch ? 300 : 0);
+        return () => clearTimeout(timer);
+    }, [locationSearch]);
 
     useEffect(() => {
         const fetchDeps = async () => {
@@ -226,6 +245,8 @@ const MileageFuelLogPage = () => {
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
                 odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
                 location: formData.location ? formData.location : undefined,
+                ...(selectedSource && { routeSource: selectedSource.id }),
+                ...(selectedDest && { routeDestination: selectedDest.id }),
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })
             };
             await apiClient.post('/api/mileage/fuel-log', payload, { timeout: 60000 });
@@ -259,7 +280,7 @@ const MileageFuelLogPage = () => {
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Select Vehicle *</label>
-                            <div className="dropdown-wrapper">
+                            <div className="dropdown-wrapper" style={{ zIndex: showVehicleDropdown ? 200 : undefined }}>
                                 <button type="button" className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
                                     onClick={(e) => { e.stopPropagation(); setShowVehicleDropdown(!showVehicleDropdown); setShowDriverDropdown(false); }}>
                                     <span>{selectedVehicle ? selectedVehicle.name : (loadingVehicles ? 'Loading...' : 'Choose vehicle...')}</span>
@@ -288,7 +309,7 @@ const MileageFuelLogPage = () => {
                         </div>
                         <div className="mileage-form-group">
                             <label>Select Driver *</label>
-                            <div className="dropdown-wrapper">
+                            <div className="dropdown-wrapper" style={{ zIndex: showDriverDropdown ? 200 : undefined }}>
                                 <button type="button" className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
                                     onClick={(e) => { e.stopPropagation(); setShowDriverDropdown(!showDriverDropdown); setShowVehicleDropdown(false); }}>
                                     <span>{selectedDriver ? selectedDriver.name : (loadingDrivers ? 'Loading...' : 'Choose driver...')}</span>
@@ -303,6 +324,76 @@ const MileageFuelLogPage = () => {
                                                     <div className="item-main">{d.name}</div><div className="item-sub">{d.licenseNo}</div>
                                                 </button>
                                             ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Source & Destination */}
+                    <div className="mileage-form-row">
+                        <div className="mileage-form-group">
+                            <label>Source Location</label>
+                            <div className="dropdown-wrapper" style={{ zIndex: showSourceDropdown ? 200 : undefined }}>
+                                <button type="button" className="dropdown-button"
+                                    onClick={(e) => { e.stopPropagation(); setShowSourceDropdown(!showSourceDropdown); setShowDestDropdown(false); setShowVehicleDropdown(false); setShowDriverDropdown(false); }}>
+                                    <span style={{ flex: 1, textAlign: 'left' }}>{selectedSource ? selectedSource.name : 'Choose source...'}</span>
+                                    {selectedSource && <span role="button" style={{ flex: 'none', lineHeight: 1, padding: '0 4px', color: '#94a3b8', fontSize: 16 }} onClick={(e) => { e.stopPropagation(); setSelectedSource(null); }}>×</span>}
+                                    <ChevronDown size={16} className={showSourceDropdown ? 'rotated' : ''} />
+                                </button>
+                                {showSourceDropdown && (
+                                    <div className="dropdown-menu">
+                                        <input type="text" placeholder="Search location..." className="dropdown-search" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
+                                        <div className="dropdown-list">
+                                            {loadingLocations ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>Searching...</div>
+                                                : locationResults.length === 0 ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>No locations found</div>
+                                                : locationResults.map(l => {
+                                                    const takenAsDest = selectedDest?.id === l._id;
+                                                    return (
+                                                        <button key={l._id} type="button"
+                                                            className={`dropdown-item ${selectedSource?.id === l._id ? 'selected' : ''}`}
+                                                            disabled={takenAsDest}
+                                                            style={takenAsDest ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                                            onClick={() => { if (!takenAsDest) { setSelectedSource({ id: l._id, name: l.name }); setShowSourceDropdown(false); } }}>
+                                                            <div className="item-main">{l.name}</div>
+                                                            <div className="item-sub">{[l.city, l.address].filter(Boolean).join(', ')}{takenAsDest ? ' · selected as destination' : ''}</div>
+                                                        </button>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="mileage-form-group">
+                            <label>Destination Location</label>
+                            <div className="dropdown-wrapper" style={{ zIndex: showDestDropdown ? 200 : undefined }}>
+                                <button type="button" className="dropdown-button"
+                                    onClick={(e) => { e.stopPropagation(); setShowDestDropdown(!showDestDropdown); setShowSourceDropdown(false); setShowVehicleDropdown(false); setShowDriverDropdown(false); }}>
+                                    <span style={{ flex: 1, textAlign: 'left' }}>{selectedDest ? selectedDest.name : 'Choose destination...'}</span>
+                                    {selectedDest && <span role="button" style={{ flex: 'none', lineHeight: 1, padding: '0 4px', color: '#94a3b8', fontSize: 16 }} onClick={(e) => { e.stopPropagation(); setSelectedDest(null); }}>×</span>}
+                                    <ChevronDown size={16} className={showDestDropdown ? 'rotated' : ''} />
+                                </button>
+                                {showDestDropdown && (
+                                    <div className="dropdown-menu">
+                                        <input type="text" placeholder="Search location..." className="dropdown-search" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
+                                        <div className="dropdown-list">
+                                            {loadingLocations ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>Searching...</div>
+                                                : locationResults.length === 0 ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>No locations found</div>
+                                                : locationResults.map(l => {
+                                                    const takenAsSrc = selectedSource?.id === l._id;
+                                                    return (
+                                                        <button key={l._id} type="button"
+                                                            className={`dropdown-item ${selectedDest?.id === l._id ? 'selected' : ''}`}
+                                                            disabled={takenAsSrc}
+                                                            style={takenAsSrc ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                                            onClick={() => { if (!takenAsSrc) { setSelectedDest({ id: l._id, name: l.name }); setShowDestDropdown(false); } }}>
+                                                            <div className="item-main">{l.name}</div>
+                                                            <div className="item-sub">{[l.city, l.address].filter(Boolean).join(', ')}{takenAsSrc ? ' · selected as source' : ''}</div>
+                                                        </button>
+                                                    );
+                                                })}
                                         </div>
                                     </div>
                                 )}
@@ -349,7 +440,7 @@ const MileageFuelLogPage = () => {
                         </div>
                         )}
                         <div className="mileage-form-group">
-                            <label>Location</label>
+                            <label>Pump Location</label>
                             <input type="text" placeholder="E.g. Reliance Pump" name="location" value={formData.location} onChange={handleFormChange} />
                         </div>
                     </div>

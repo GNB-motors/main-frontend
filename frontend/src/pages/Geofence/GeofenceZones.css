@@ -1,0 +1,1107 @@
+/* ─── GeofenceZonesPage ──────────────────────────────────────────────────────
+   Prefix: gfz-  (mirrors gf- / fc- conventions)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.gfz-page {
+    padding: 24px;
+    background-color: var(--background-color, #f8fafc);
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #0f172a;
+}
+
+/* ─── Header ── */
+.gfz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.gfz-title-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.gfz-icon-wrap {
+    width: 46px;
+    height: 46px;
+    background: white;
+    border-radius: 12px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, .05);
+    border: 1px solid rgba(15, 23, 42, .05);
+}
+
+.gfz-title {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.gfz-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin: 3px 0 0;
+}
+
+.gfz-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ─── Live pill ── */
+.gfz-live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.gfz-live-on {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.gfz-live-off {
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+/* ─── KPI Row ── */
+.gfz-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.gfz-kpi {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .05);
+    transition: box-shadow .2s;
+}
+
+.gfz-kpi:hover {
+    box-shadow: 0 4px 12px rgba(15, 23, 42, .1);
+}
+
+.gfz-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.gfz-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.gfz-kpi-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 2px 0 0;
+    line-height: 1;
+}
+
+.gfz-kpi-danger .gfz-kpi-icon {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.gfz-kpi-warning .gfz-kpi-icon {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.gfz-kpi-info .gfz-kpi-icon {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.gfz-kpi-success .gfz-kpi-icon {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.gfz-kpi-muted .gfz-kpi-icon {
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+/* ─── Error ── */
+.gfz-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+/* ─── Alert Panel ── */
+.gfz-alerts-panel {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .07);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.gfz-alerts-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+}
+
+.gfz-ml-auto {
+    margin-left: auto;
+}
+
+.gfz-alerts-empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 16px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.gfz-alert-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.gfz-alert-row:last-child {
+    border-bottom: none;
+}
+
+.gfz-alert-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.gfz-alert-body {
+    flex: 1;
+}
+
+.gfz-alert-title {
+    font-size: 13px;
+    color: #0f172a;
+    margin: 0;
+}
+
+.gfz-alert-speed {
+    color: #64748b;
+    font-weight: 400;
+}
+
+.gfz-alert-time {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 3px 0 0;
+}
+
+/* ─── Filters ── */
+.gfz-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.gfz-count-label {
+    margin-left: auto;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.gfz-select {
+    padding: 7px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    background: white;
+    color: #334155;
+    cursor: pointer;
+    outline: none;
+}
+
+.gfz-select:focus {
+    border-color: var(--primary-color, #4f46e5);
+}
+
+.gfz-check-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #475569;
+    cursor: pointer;
+}
+
+.gfz-check-label input {
+    accent-color: var(--primary-color, #4f46e5);
+    cursor: pointer;
+}
+
+/* ─── Map ── */
+.gfz-map-wrap {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .07);
+    margin-bottom: 6px;
+    height: 440px;
+}
+
+.gfz-map {
+    width: 100%;
+    height: 440px;
+}
+
+.gfz-map-placeholder {
+    width: 100%;
+    height: 440px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.gfz-map-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    margin: 6px 0 14px;
+}
+
+.gfz-infowindow {
+    padding: 4px;
+    min-width: 170px;
+}
+
+.gfz-iw-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 6px;
+}
+
+.gfz-iw-meta {
+    font-size: 12px;
+    color: #475569;
+    margin: 4px 0 0;
+}
+
+.gfz-iw-time {
+    color: #94a3b8;
+}
+
+/* ─── Table ── */
+.gfz-table-wrap {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .05);
+}
+
+.gfz-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.gfz-th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.gfz-th-c {
+    text-align: center;
+}
+
+.gfz-row {
+    transition: background .15s;
+}
+
+.gfz-row:hover {
+    background: #f8fafc;
+}
+
+.gfz-td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.gfz-td-c {
+    text-align: center;
+}
+
+.gfz-zone-name {
+    display: block;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.gfz-meta-col {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.gfz-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.gfz-status-on {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.gfz-status-off {
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+.gfz-system-tag {
+    font-size: 11px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.gfz-empty-row {
+    text-align: center;
+    padding: 40px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.gfz-check-yes {
+    font-size: 15px;
+}
+
+.gfz-check-no {
+    color: #cbd5e1;
+}
+
+/* ─── Badges ── */
+.gfz-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+
+.gfz-badge-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.gfz-badge-warning {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.gfz-badge-info {
+    background: #ede9fe;
+    color: #6366f1;
+}
+
+/* ─── Buttons ── */
+.gfz-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+}
+
+.gfz-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.gfz-btn-primary {
+    background: var(--primary-color, #4f46e5);
+    color: white;
+}
+
+.gfz-btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.gfz-btn-ghost {
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.gfz-btn-ghost:hover:not(:disabled) {
+    background: #f1f5f9;
+}
+
+.gfz-btn-icon {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 5px 8px;
+}
+
+.gfz-btn-icon:hover:not(:disabled) {
+    background: #f1f5f9;
+}
+
+.gfz-btn-danger-ghost {
+    background: transparent;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    padding: 5px 10px;
+}
+
+.gfz-btn-danger-ghost:hover:not(:disabled) {
+    background: #fee2e2;
+}
+
+.gfz-bell-btn {
+    position: relative;
+}
+
+.gfz-bell-active {
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+.gfz-badge-count {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ─── Drawer (WheelsEye-style Add Place) ── */
+.gfz-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .35);
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    z-index: 1000;
+}
+
+.gfz-drawer {
+    background: white;
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -8px 0 32px rgba(15, 23, 42, .15);
+    overflow: hidden;
+}
+
+.gfz-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.gfz-drawer-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.gfz-drawer-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.gfz-drawer-form {
+    width: 340px;
+    flex-shrink: 0;
+    padding: 20px 24px;
+    overflow-y: auto;
+    border-right: 1px solid #e2e8f0;
+}
+
+.gfz-drawer-map {
+    flex: 1;
+    position: relative;
+    background: #f1f5f9;
+}
+
+.gfz-drawer-map-inner {
+    width: 100%;
+    height: 100%;
+}
+
+.gfz-drawer-map-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.gfz-map-tooltip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, .85);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 8px;
+    pointer-events: none;
+    white-space: nowrap;
+    margin-top: -60px;
+}
+
+.gfz-drawer-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.gfz-drawer-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fee2e2;
+    color: #b91c1c;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+/* ─── Form elements ── */
+.gfz-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin: 16px 0 6px;
+}
+
+.gfz-label:first-child {
+    margin-top: 0;
+}
+
+.gfz-radius-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary-color, #4f46e5);
+    text-transform: none;
+}
+
+.gfz-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #0f172a;
+    outline: none;
+    transition: border-color .15s;
+    box-sizing: border-box;
+}
+
+.gfz-input:focus {
+    border-color: var(--primary-color, #4f46e5);
+}
+
+.gfz-coords-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.gfz-hint {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 6px 0 0;
+}
+
+.gfz-type-badge-row {
+    margin-bottom: 4px;
+}
+
+.gfz-type-tag {
+    display: inline-block;
+    background: #ede9fe;
+    color: #6366f1;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.gfz-slider {
+    width: 100%;
+    accent-color: var(--primary-color, #4f46e5);
+    cursor: pointer;
+    margin-bottom: 4px;
+}
+
+.gfz-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+/* ─── Loading ── */
+.gfz-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 50px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* ─── Utilities ── */
+.gfz-spin {
+    animation: gfz-kf .8s linear infinite;
+}
+
+@keyframes gfz-kf {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Responsive ── */
+@media(max-width:768px) {
+    .gfz-page {
+        padding: 14px;
+    }
+
+    .gfz-kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gfz-map-wrap,
+    .gfz-map {
+        height: 280px;
+    }
+
+    .gfz-table-wrap {
+        overflow-x: auto;
+    }
+
+    .gfz-table {
+        min-width: 700px;
+    }
+
+    .gfz-drawer {
+        max-width: 100%;
+    }
+
+    .gfz-drawer-body {
+        flex-direction: column;
+    }
+
+    .gfz-drawer-form {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+        max-height: 50vh;
+    }
+
+    .gfz-drawer-map {
+        height: 280px;
+    }
+
+    .gfz-header {
+        flex-direction: column;
+    }
+}
+
+/* ─── Drawer additions for WheelsEye-style Add Place ────────────────────────── */
+
+/* "Click to start drawing" banner — sits above the header */
+.gfz-drawing-banner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, .85);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    padding: 10px;
+    z-index: 10;
+    border-radius: 0;
+}
+
+/* Location search field wrapper */
+.gfz-location-field {
+    position: relative;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    overflow: visible;
+}
+
+.gfz-location-field.gfz-field-error {
+    border-color: #fca5a5;
+}
+
+/* Override GoogleMapsSearch inner styles to match our design */
+.gfz-location-search {
+    width: 100%;
+}
+
+.gfz-location-search .search-input-wrapper {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 8px;
+}
+
+.gfz-location-search .search-input {
+    border: none !important;
+    outline: none !important;
+    font-size: 13px;
+    color: #0f172a;
+    padding: 9px 12px 9px 36px;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: transparent;
+}
+
+.gfz-location-search .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.gfz-location-search .suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+    z-index: 9999;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.gfz-location-search .suggestion-item {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #334155;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background .1s;
+}
+
+.gfz-location-search .suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.gfz-location-search .suggestion-item:hover,
+.gfz-location-search .suggestion-item:first-child {
+    background: #f0f9ff;
+}
+
+/* Field error message */
+.gfz-field-error-msg {
+    font-size: 12px;
+    color: #ef4444;
+    margin: 4px 0 0;
+    font-weight: 500;
+}
+
+/* Input error state */
+.gfz-input-error {
+    border-color: #fca5a5 !important;
+}
+
+/* Geofence Type custom dropdown */
+.gfz-type-select {
+    position: relative;
+}
+
+.gfz-type-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    font-size: 13px;
+    color: #334155;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+
+.gfz-type-trigger:hover,
+.gfz-type-trigger-open {
+    border-color: var(--primary-color, #4f46e5);
+}
+
+.gfz-type-trigger-label {
+    flex: 1;
+    text-align: left;
+}
+
+.gfz-type-trigger-label:empty::before {
+    content: 'Select';
+    color: #94a3b8;
+}
+
+.gfz-type-chevron {
+    font-size: 14px;
+    color: #64748b;
+    transition: transform .2s;
+}
+
+.gfz-type-chevron-up {
+    transform: rotate(180deg);
+}
+
+.gfz-type-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+    z-index: 200;
+    overflow: hidden;
+}
+
+.gfz-type-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #334155;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background .12s;
+}
+
+.gfz-type-option:last-child {
+    border-bottom: none;
+}
+
+.gfz-type-option:hover,
+.gfz-type-option-active {
+    background: #f0f9ff;
+}
+
+.gfz-type-option-icon {
+    font-size: 16px;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.gfz-type-option-label {
+    flex: 1;
+    font-weight: 500;
+}
+
+.gfz-type-new-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: .04em;
+}
+
+/* Polygon controls overlay — bottom right of map like WheelsEye */
+.gfz-polygon-controls {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+}
+
+.gfz-poly-btn {
+    background: white;
+    border: 1px solid #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .1);
+}
+
+.gfz-poly-btn:hover {
+    background: #f1f5f9;
+}
+
+.gfz-poly-clear {
+    color: var(--primary-color, #4f46e5);
+    border-color: var(--primary-color, #4f46e5);
+}
+
+/* Save button — disabled/active states matching WheelsEye grey-then-blue */
+.gfz-btn-save {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+    border: none;
+    padding: 10px 32px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 8px;
+    min-width: 120px;
+}
+
+.gfz-btn-save-active {
+    background: var(--primary-color, #4f46e5);
+    color: white;
+    cursor: pointer;
+}
+
+.gfz-btn-save-active:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+/* Shape tag in table */
+.gfz-shape-tag {
+    font-size: 12px;
+    color: #475569;
+}
+
+
+/* ─── Stale data states ───────────────────────────────────────────────────── */
+/* Shown when FleetEdge token is expired and vehicle data is older than 10 min */
+.gfz-live-stale {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+/* amber — data exists but stale */
+.gfz-iw-stale {
+    color: #ea580c;
+    font-style: italic;
+}
+
+/* warning text in vehicle InfoWindow */
