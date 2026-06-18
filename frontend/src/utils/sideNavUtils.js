@@ -7,15 +7,15 @@ import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation 
  * sirf is list ko map karke render karta hai — naya link add karna ho to bas
  * yahan ek entry add karo (aur `key` do). Sidebar code chedne ki zarurat nahi.
  *
- * `key`   -> feature-flag key. Sidebar isEnabled(key) === true hone par hi item
- *            dikhata hai. `key: null` ka matlab "hamesha dikhao" (no gating),
- *            jaise Profile — guaranteed fallback page.
+ * `key`      -> feature-flag key. Sidebar isEnabled(key) === true hone par hi item
+ *               dikhata hai. `key: null` ka matlab "hamesha dikhao" (no gating).
+ * `groupId`  -> collapsible group open/close state (defaults to `key` when set).
  *
  * type 'link'  -> single NavLink.
  *                 fields: { key, to, label, icon, end? }
  * type 'group' -> collapsible dropdown.
- *                 fields: { key, label, icon, children[], matchRoutes[] }
- *                 children:    [{ to, label, end? }]
+ *                 fields: { key?, groupId?, label, icon, children[], matchRoutes[] }
+ *                 children:    [{ to, label, end?, key? }]
  *                 matchRoutes: routes jinpe hone par group apne aap expand rahe
  *                              (chhupe/deep routes bhi include karo).
  */
@@ -24,14 +24,35 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'reports',  to: '/reports',  label: 'Reports',  icon: FileText },
   {
     type: 'group',
+    groupId: 'fuelManagement',
+    label: 'Fuel Management',
+    icon: Fuel,
+    children: [
+      { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
+      { to: '/expected-mileage', label: 'Model Comparison', key: 'vehicleActivity' },
+      { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
+      { to: '/fuel-bills', label: 'Fuel Bills', key: 'vehicleActivity' },
+      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
+    ],
+    matchRoutes: [
+      '/mileage-tracking',
+      '/expected-mileage',
+      '/model-comparison',
+      '/fuel-comparison',
+      '/fuel-bills',
+      '/field-agent-fuel',
+      '/trip-management',
+    ],
+  },
+  {
+    type: 'group',
     key: 'vehicles',
     label: 'Vehicles',
     icon: Truck,
     children: [
-      { to: '/vehicles',                      label: 'All Vehicles',          end: true },
-      { to: '/vehicles/dashboard',            label: 'Vehicle Dashboard'              },
-      { to: '/vehicles/service-intelligence', label: 'Service Intelligence'           },
-      { to: '/vehicles/add',                  label: 'Add Vehicle'                    },
+      { to: '/vehicles', label: 'All Vehicles', end: true },
+      { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
+      { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
     ],
     matchRoutes: [
       '/vehicles',
@@ -79,10 +100,20 @@ export const SIDE_NAV_ITEMS = [
 
   // Always visible (no feature flag) — guaranteed fallback page.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
+  { type: 'link', key: 'locations', to: '/locations', label: 'Location', icon: MapPin },
+  { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
+  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
 ];
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */
 export const SIDE_NAV_GROUPS = SIDE_NAV_ITEMS.filter((item) => item.type === 'group');
+
+/** Stable id for group expand/collapse state. */
+export const getNavGroupId = (group) => group.groupId || group.key;
+
+/** Children visible for the current org's feature flags. */
+export const getVisibleNavChildren = (group, isEnabled) =>
+  (group.children || []).filter((child) => !child.key || isEnabled(child.key));
 
 /**
  * Kya current path is group ke andar aata hai? (exact match ya sub-route)
