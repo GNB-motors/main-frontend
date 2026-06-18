@@ -422,7 +422,7 @@ const RouteCreator = ({
     };
 
     calculateDistance();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeData.sourceLocation?.lat, routeData.sourceLocation?.lng, routeData.destLocation?.lat, routeData.destLocation?.lng]);
 
   // Merge saved locations with predictions

@@ -17,7 +17,7 @@ const LocationService = {
      */
     getLocations: async (params = {}) => {
         try {
-            const allowedParams = ['search', 'page', 'limit'];
+            const allowedParams = ['search', 'type'];
             const filteredParams = Object.fromEntries(
                 Object.entries(params).filter(([key, value]) =>
                     allowedParams.includes(key) && value !== undefined && value !== ''

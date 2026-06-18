@@ -2,7 +2,7 @@ import { formatDateIST } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ChevronRight, FileText, Plus, ChevronLeft, AlertTriangle, CheckCircle2, Clock, Minus } from 'lucide-react';
+import { ChevronRight, FileText, Satellite, Plus, ChevronLeft } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
@@ -10,41 +10,11 @@ import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 
 const PAGE_SIZE = 10;
 
-const AlertCell = ({ interval }) => {
-  const fe = interval.fleetEdge || {};
-  const isFlagged = fe.isFlaggedFuel || fe.isFlaggedDistance || fe.isFlaggedMileage;
-  const reasons = fe.flagReasons || [];
-
-  if (interval.status === 'ONGOING' || fe.status === 'PENDING') {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#C56200', fontSize: 12, fontWeight: 500 }}>
-        <Clock size={13} /> Pending
-      </span>
-    );
-  }
-  if (fe.status === 'FAILED' || fe.status === 'NO_DATA') {
-    return (
-      <span style={{ color: '#9ca3af', fontSize: 12 }}>No GPS</span>
-    );
-  }
-  if (isFlagged && reasons.length > 0) {
-    return (
-      <span
-        title={reasons.join('\n')}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#b91c1c', fontSize: 12, fontWeight: 500, cursor: 'help' }}
-      >
-        <AlertTriangle size={13} /> {reasons.length > 1 ? `${reasons.length} flags` : 'Flagged'}
-      </span>
-    );
-  }
-  if (fe.status === 'COMPUTED') {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#187A32', fontSize: 12, fontWeight: 500 }}>
-        <CheckCircle2 size={13} /> OK
-      </span>
-    );
-  }
-  return <span style={{ color: '#9ca3af' }}><Minus size={13} /></span>;
+const FE_STATUS_BADGE = {
+  COMPUTED: { label: 'GPS ✓', bg: 'rgba(37,186,76,0.1)', color: '#187A32' },
+  PENDING:  { label: 'GPS Pending', bg: 'rgba(251,191,35,0.1)', color: '#C56200' },
+  FAILED:   { label: 'GPS Failed', bg: 'rgba(239,68,68,0.1)', color: '#b91c1c' },
+  NO_DATA:  { label: 'No GPS', bg: 'rgba(156,163,175,0.1)', color: '#6b7280' },
 };
 
 const MileageTrackingVehicleDetail = () => {
@@ -84,6 +54,18 @@ const MileageTrackingVehicleDetail = () => {
   useEffect(() => { fetchIntervals(); }, [pagination.page, vehicleId]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
+
+  const getStatusStyle = (status) => {
+    if (status === 'COMPLETED') return { backgroundColor: 'rgba(37, 186, 76, 0.10)', color: '#187A32' };
+    return { backgroundColor: 'rgba(251, 191, 35, 0.10)', color: '#C56200' };
+  };
+
+  const getFeStatusStyle = (feStatus) => {
+    const s = FE_STATUS_BADGE[feStatus] || FE_STATUS_BADGE.PENDING;
+    return { backgroundColor: s.bg, color: s.color };
+  };
+
+  const getFeStatusLabel = (feStatus) => (FE_STATUS_BADGE[feStatus] || FE_STATUS_BADGE.PENDING).label;
 
   const formatDate = (d) => formatDateIST(d);
 
@@ -130,19 +112,14 @@ const MileageTrackingVehicleDetail = () => {
             <table className="mileage-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Pump Location</th>
-                  <th>Source</th>
-                  <th>Destination</th>
-                  <th>Start Odo</th>
-                  <th>End Odo</th>
-                  <th>Distance</th>
+                  <th>Vehicle</th>
+                  <th>Status</th>
+                  <th>Odometer Range</th>
+                  <th>Distance (km)</th>
                   <th>Fuel (L)</th>
                   <th>Mileage (km/L)</th>
-                  <th>DEF</th>
-                  <th>Cost (₹)</th>
-                  <th>Alert</th>
-                  <th></th>
+                  <th><Satellite size={13} style={{ display: 'inline', marginRight: 4 }} />GPS</th>
+                  <th>Date</th>
                 </tr>
               </thead>
               {!isLoading && intervals.length > 0 && (
@@ -153,32 +130,34 @@ const MileageTrackingVehicleDetail = () => {
                       className="mileage-table-row"
                       onClick={() => navigate(`/mileage-tracking/${interval._id}`)}
                     >
-                      <td>{formatDate(interval.startDate)}</td>
-                      <td>{interval.pumpName || '—'}</td>
-                      <td>{interval.routeSource?.name || '—'}</td>
-                      <td>{interval.routeDestination?.name || '—'}</td>
-                      <td>{interval.startOdometer != null ? interval.startOdometer.toLocaleString() : '—'}</td>
-                      <td>{interval.endOdometer != null ? interval.endOdometer.toLocaleString() : '...'}</td>
-                      <td>{interval.distanceKm != null ? `${interval.distanceKm.toFixed(1)} km` : '—'}</td>
-                      <td>{interval.fuelConsumedLiters != null ? interval.fuelConsumedLiters.toFixed(2) : '—'}</td>
+                      <td className="mileage-vehicle-cell">
+                        {interval.vehicleId?.registrationNumber || 'Unknown'}
+                      </td>
                       <td>
-                        {interval.mileageKmPerL != null ? (
+                        <span className="status-badge" style={getStatusStyle(interval.status)}>
+                          {interval.status}
+                        </span>
+                      </td>
+                      <td>{interval.startOdometer} ➝ {interval.endOdometer || '...'}</td>
+                      <td>{interval.distanceKm ? interval.distanceKm.toFixed(1) : '-'}</td>
+                      <td>{interval.fuelConsumedLiters ? interval.fuelConsumedLiters.toFixed(2) : '-'}</td>
+                      <td>
+                        {interval.mileageKmPerL ? (
                           <span style={{ color: '#2563eb', fontWeight: 600 }}>{interval.mileageKmPerL.toFixed(2)}</span>
-                        ) : '—'}
+                        ) : '-'}
                       </td>
-                      <td>{interval.defLiters != null ? `${interval.defLiters.toFixed(1)} L` : '—'}</td>
                       <td>
-                        {interval.fuelCost != null ? (
-                          <span style={{ fontWeight: 600 }}>₹{interval.fuelCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                        ) : '—'}
+                        <span className="status-badge" style={getFeStatusStyle(interval.fleetEdge?.status)}>
+                          {getFeStatusLabel(interval.fleetEdge?.status)}
+                        </span>
                       </td>
-                      <td><AlertCell interval={interval} /></td>
                       <td className="mileage-last-col">
+                        <span className="date-text">{formatDate(interval.startDate)}</span>
                         <button
                           className="view-details-btn"
                           onClick={(e) => { e.stopPropagation(); navigate(`/mileage-tracking/${interval._id}`); }}
                         >
-                          <ChevronRight size={14} />
+                          View details <ChevronRight size={14} />
                         </button>
                       </td>
                     </tr>

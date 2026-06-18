@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 
 import DashboardLayout from './components/DashboardLayout';
 // Removed ProfileProvider import - profile logic completely removed
@@ -44,8 +44,6 @@ import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
-import GeofencePage from './pages/Geofence/GeofencePage.jsx';
-import GeofenceZonesPage from './pages/Geofence/GeofenceZonesPage.jsx';
 import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
 import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
@@ -83,8 +81,6 @@ function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
-        <Route path="/geofence" element={<GeofencePage />} />
-        <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
         <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
         <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
         <Route path="/drivers" element={<DriversPage />} />
@@ -101,9 +97,6 @@ function App() {
         <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
         <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
         <Route path="/model-comparison" element={<ModelComparisonPage />} />
-        <Route path="/expected-mileage" element={<ModelComparisonPage />} />
-        <Route path="/def-tracking" element={<Navigate to="/refuel-logs?tab=adblue" replace />} />
-        <Route path="/fuel-bills" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
