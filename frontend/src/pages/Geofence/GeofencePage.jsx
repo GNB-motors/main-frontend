@@ -22,8 +22,23 @@ const fromNow = (d) => (d ? dayjs.utc(d).tz(IST).fromNow() : '—');
 
 const MAP_CENTER  = { lat: 22.5, lng: 82.0 };
 const MAP_OPTIONS = { disableDefaultUI: false, zoomControl: true, streetViewControl: false, mapTypeControl: false };
-const VEHICLE_STATUS_COLOR = { Moving: '#22c55e', Stopped: '#94a3b8', Idling: '#f59e0b' };
-const TRUCK_SVG = 'M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5 .67 1.5 1.5-.67 1.5-1.5 1.5zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5 .67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-4H2V6h13v5h2.5l2.5 3.32V14.5z';
+const FLEET_EDGE_ICONS = {
+  Moving: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/MovingTruckV2.svg',
+  Stopped: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/StoppedTruckV2.svg',
+  Idling: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/IdlingTruckV2.svg',
+  Offline: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/OfflineTruckV2.svg',
+  Breakdown: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/StoppedTruckV2.svg',
+  Faulty: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/OfflineTruckV2.svg'
+};
+
+const VEHICLE_STATUS_COLOR = {
+  Moving: '#22c55e',       // green
+  Stopped: '#8b5cf6',      // purple
+  Idling: '#f59e0b',       // yellowish-orange
+  Offline: '#94a3b8',      // grey
+  Breakdown: '#ef4444',    // red
+  Faulty: '#84cc16'        // sieve green
+};
 
 // ─── Severity Badge ────────────────────────────────────────────────────────────
 const SeverityBadge = ({ severity }) => {
@@ -70,6 +85,30 @@ const EventRow = ({ event, idx }) => (
         <span className="gf-fuel-drop"><Fuel size={11} /> −{event.fuelDropLitres?.toFixed(1)} L</span>
       </div>
     </div>
+  </div>
+);
+
+// ─── Map Legend ────────────────────────────────────────────────────────────────
+const LegendItem = ({ color, label }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#475569', fontWeight: 500 }}>
+    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: color }}></div>
+    {label}
+  </div>
+);
+
+const MapLegend = () => (
+  <div style={{
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px',
+    padding: '10px 16px', background: 'white', border: '1px solid #e2e8f0',
+    borderRadius: '8px', marginBottom: '16px', fontSize: '12px'
+  }}>
+    <div style={{ fontWeight: 600, color: '#1e293b', marginRight: '4px' }}>Vehicle Status:</div>
+    <LegendItem color={VEHICLE_STATUS_COLOR.Moving} label="Moving" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Stopped} label="Stopped" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Idling} label="Idling" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Offline} label="Offline / Stale" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Breakdown} label="Breakdown" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Faulty} label="Faulty" />
   </div>
 );
 
@@ -279,6 +318,7 @@ const GeofencePage = () => {
       )}
 
       {/* Map */}
+      <MapLegend />
       <div className="gf-map-wrap">
         {mapLoaded ? (
           <GoogleMap
@@ -297,19 +337,21 @@ const GeofencePage = () => {
               />
             ))}
             {/* Live vehicle pins */}
-            {liveVehicles.map(v => (
+            {liveVehicles.map(v => {
+              const iconUrl = FLEET_EDGE_ICONS[v.status] || FLEET_EDGE_ICONS.Offline;
+              return (
               <MarkerF
                 key={v.vehicleId}
                 position={{ lat: v.lat, lng: v.lng }}
                 icon={{
-                  path: TRUCK_SVG,
-                  fillColor: VEHICLE_STATUS_COLOR[v.status] || '#94a3b8',
-                  fillOpacity: 1, strokeColor: '#1e293b', strokeWeight: 1.5,
-                  scale: 1.3, anchor: { x: 12, y: 12 },
+                  url: iconUrl,
+                  scaledSize: new window.google.maps.Size(32, 54),
+                  anchor: new window.google.maps.Point(16, 27)
                 }}
+                zIndex={2}
                 onClick={() => { setSelectedVehicle(v); setSelectedLoc(null); }}
               />
-            ))}
+            )})}
             {selectedLoc && (
               <InfoWindowF
                 position={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}

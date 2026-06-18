@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MapPin, AlertTriangle, Plus, Trash2, RefreshCw, Bell, BellOff,
-  CheckCircle2, ShieldAlert, ParkingCircle, X, Wifi, WifiOff, Truck,
+  CheckCircle2, ShieldAlert, ParkingCircle, X, Wifi, WifiOff, Truck, Edit2
 } from 'lucide-react';
 import {
   GoogleMap, useLoadScript, MarkerF, CircleF, InfoWindowF, PolygonF,
@@ -19,24 +19,50 @@ dayjs.extend(timezone);
 dayjs.extend(relativeTime);
 
 // Static — prevents @react-google-maps/api performance warning
-const GMAPS_LIBS = ['places'];
+const GMAPS_LIBS = ['places', 'geometry'];
 
-const IST     = 'Asia/Kolkata';
-const fromNow  = (d) => (d ? dayjs.utc(d).tz(IST).fromNow() : '—');
+const IST = 'Asia/Kolkata';
+const fromNow = (d) => (d ? dayjs.utc(d).tz(IST).fromNow() : '—');
 const formatIST = (d) => (d ? dayjs.utc(d).tz(IST).format('DD MMM, hh:mm A') : '—');
 
-const MAP_CENTER  = { lat: 22.5, lng: 82.0 };
+const MAP_CENTER = { lat: 22.5, lng: 82.0 };
 const MAP_OPTIONS = {
   disableDefaultUI: false, zoomControl: true,
   streetViewControl: false, mapTypeControl: false, fullscreenControl: true,
 };
 
 const ZONE_CFG = {
-  ACCIDENT_PRONE: { label: 'Accident Prone', color: '#ef4444', fill: '#ef444426', pin: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',    badgeCls: 'gfz-badge-danger'  },
-  PARKING:        { label: 'Parking / Rest', color: '#f59e0b', fill: '#f59e0b26', pin: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png', badgeCls: 'gfz-badge-warning' },
-  CUSTOM:         { label: 'Custom Zone',    color: '#6366f1', fill: '#6366f126', pin: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',   badgeCls: 'gfz-badge-info'    },
+  ACCIDENT_PRONE: { label: 'Accident Prone', color: '#ef4444', fill: '#ef444426', pin: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png', badgeCls: 'gfz-badge-danger' },
+  PARKING: { label: 'Parking / Rest', color: '#f59e0b', fill: '#f59e0b26', pin: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png', badgeCls: 'gfz-badge-warning' },
+  CUSTOM: { label: 'Custom Zone', color: '#6366f1', fill: '#6366f126', pin: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png', badgeCls: 'gfz-badge-info' },
 };
-const VEHICLE_STATUS_COLOR = { Moving: '#22c55e', Stopped: '#94a3b8', Idling: '#f59e0b' };
+
+const FLEET_EDGE_ICONS = {
+  Moving: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/MovingTruckV2.svg',
+  Stopped: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/StoppedTruckV2.svg',
+  Idling: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/IdlingTruckV2.svg',
+  Offline: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/OfflineTruckV2.svg',
+  Breakdown: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/StoppedTruckV2.svg',
+  Faulty: 'https://d1mk50hnhgdjj6.cloudfront.net/production/assets/vehicle/vehicle_images/OfflineTruckV2.svg'
+};
+
+const GEOFENCE_BADGE_SVG = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="12" r="10" fill="#3b82f6" stroke="#ffffff" stroke-width="2"/>
+  <path d="M7 9C10 6.5 14 6.5 17 9" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M9 12C11 10.5 13 10.5 15 12" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="12" cy="15" r="1.5" fill="#ffffff"/>
+</svg>
+`)}`;
+
+const VEHICLE_STATUS_COLOR = {
+  Moving: '#22c55e',       // green
+  Stopped: '#8b5cf6',      // purple
+  Idling: '#f59e0b',       // yellowish-orange
+  Offline: '#94a3b8',      // grey
+  Breakdown: '#ef4444',    // red
+  Faulty: '#84cc16'        // sieve green
+};
 
 const ZoneTypeBadge = ({ zoneType }) => {
   const cfg = ZONE_CFG[zoneType] || ZONE_CFG.CUSTOM;
@@ -84,24 +110,55 @@ const AlertPanel = ({ alerts, onMarkRead, onClose }) => (
   </div>
 );
 
+// ─── Map Legend ────────────────────────────────────────────────────────────────
+const LegendItem = ({ color, label, isSvg }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#475569', fontWeight: 500 }}>
+    {isSvg ? (
+      <img src={GEOFENCE_BADGE_SVG} alt="icon" style={{ width: 14, height: 14 }} />
+    ) : (
+      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: color }}></div>
+    )}
+    {label}
+  </div>
+);
+
+const MapLegend = () => (
+  <div style={{
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px',
+    padding: '10px 16px', background: 'white', border: '1px solid #e2e8f0',
+    borderRadius: '8px', marginBottom: '16px', fontSize: '12px'
+  }}>
+    <div style={{ fontWeight: 600, color: '#1e293b', marginRight: '4px' }}>Vehicle Status:</div>
+    <LegendItem color={VEHICLE_STATUS_COLOR.Moving} label="Moving" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Stopped} label="Stopped" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Idling} label="Idling" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Offline} label="Offline / Stale" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Breakdown} label="Breakdown" />
+    <LegendItem color={VEHICLE_STATUS_COLOR.Faulty} label="Faulty" />
+    <div style={{ borderLeft: '1px solid #e2e8f0', height: '16px', margin: '0 4px' }}></div>
+    <LegendItem isSvg={true} label="In Geofenced Zone" />
+  </div>
+);
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofenceZonesPage = () => {
-  const [zones,           setZones]           = useState([]);
-  const [alerts,          setAlerts]          = useState([]);
-  const [unreadCount,     setUnreadCount]     = useState(0);
-  const [liveVehicles,    setLiveVehicles]    = useState([]);
-  const [loading,         setLoading]         = useState(true);
-  const [error,           setError]           = useState(null);
-  const [typeFilter,      setTypeFilter]      = useState('');
-  const [showResolved,    setShowResolved]    = useState(false);
-  const [showDrawer,      setShowDrawer]      = useState(false);
-  const [showAlerts,      setShowAlerts]      = useState(false);
-  const [clickedLatLng,   setClickedLatLng]   = useState(null);
+  const [zones, setZones] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [liveVehicles, setLiveVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [showResolved, setShowResolved] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const [clickedLatLng, setClickedLatLng] = useState(null);
   const [selectedZone,    setSelectedZone]    = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [editingZone,     setEditingZone]     = useState(null);
   const [deletingId,      setDeletingId]      = useState(null);
-  const [liveOnline,      setLiveOnline]      = useState(false);
-  const liveIntervalRef   = useRef(null);
+  const [liveOnline, setLiveOnline] = useState(false);
+  const liveIntervalRef = useRef(null);
 
   const { isLoaded: mapLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -131,19 +188,25 @@ const GeofenceZonesPage = () => {
 
   useEffect(() => { fetchZones(); }, [fetchZones]);
 
-  // ── Live locations (60s poll) ─────────────────────────────────────────────
-  const fetchLiveLocations = useCallback(async () => {
+  // ── Live locations & Alerts (60s poll) ─────────────────────────────────────────────
+  const fetchLiveLocationsAndAlerts = useCallback(async () => {
     try {
-      const vehicles = await GeofenceService.getLiveLocations();
+      const [vehicles, alertsData, count] = await Promise.all([
+        GeofenceService.getLiveLocations(),
+        GeofenceService.getAlerts({ isRead: 'false', limit: 50 }),
+        GeofenceService.getUnreadAlertCount(),
+      ]);
       setLiveVehicles(vehicles); setLiveOnline(true);
+      setAlerts(alertsData.alerts || []);
+      setUnreadCount(count);
     } catch { setLiveOnline(false); }
   }, []);
 
   useEffect(() => {
-    fetchLiveLocations();
-    liveIntervalRef.current = setInterval(fetchLiveLocations, 60_000);
+    fetchLiveLocationsAndAlerts();
+    liveIntervalRef.current = setInterval(fetchLiveLocationsAndAlerts, 60_000);
     return () => clearInterval(liveIntervalRef.current);
-  }, [fetchLiveLocations]);
+  }, [fetchLiveLocationsAndAlerts]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleMapClick = (e) => {
@@ -166,8 +229,8 @@ const GeofenceZonesPage = () => {
   };
 
   const accidentCount = zones.filter(z => z.zoneType === 'ACCIDENT_PRONE').length;
-  const parkingCount  = zones.filter(z => z.zoneType === 'PARKING').length;
-  const customCount   = zones.filter(z => z.zoneType === 'CUSTOM').length;
+  const parkingCount = zones.filter(z => z.zoneType === 'PARKING').length;
+  const customCount = zones.filter(z => z.zoneType === 'CUSTOM').length;
 
   return (
     <div className="gfz-page">
@@ -194,7 +257,7 @@ const GeofenceZonesPage = () => {
             Alerts
             {unreadCount > 0 && <span className="gfz-badge-count">{unreadCount}</span>}
           </button>
-          <button className="gfz-btn gfz-btn-primary" onClick={() => { setClickedLatLng(null); setShowDrawer(true); }}>
+          <button className="gfz-btn gfz-btn-primary" onClick={() => { setClickedLatLng(null); setEditingZone(null); setShowDrawer(true); }}>
             <Plus size={14} /> Add Custom Zone
           </button>
           <button className="gfz-btn gfz-btn-ghost" onClick={fetchZones} disabled={loading}>
@@ -205,11 +268,11 @@ const GeofenceZonesPage = () => {
 
       {/* KPI Row */}
       <div className="gfz-kpi-row">
-        <KpiCard icon={AlertTriangle} label="Accident Blackspots"  value={accidentCount}       colorClass="danger"  />
-        <KpiCard icon={ParkingCircle} label="Parking / Rest Stops" value={parkingCount}         colorClass="warning" />
-        <KpiCard icon={MapPin}        label="Custom Zones"          value={customCount}          colorClass="info"    />
-        <KpiCard icon={Truck}         label="Live Vehicles"         value={liveVehicles.length}  colorClass={liveOnline ? 'success' : 'muted'} />
-        <KpiCard icon={Bell}          label="Unread Alerts"         value={unreadCount}          colorClass={unreadCount > 0 ? 'danger' : 'success'} />
+        <KpiCard icon={AlertTriangle} label="Accident Blackspots" value={accidentCount} colorClass="danger" />
+        <KpiCard icon={ParkingCircle} label="Parking / Rest Stops" value={parkingCount} colorClass="warning" />
+        <KpiCard icon={MapPin} label="Custom Zones" value={customCount} colorClass="info" />
+        <KpiCard icon={Truck} label="Live Vehicles" value={liveVehicles.length} colorClass={liveOnline ? 'success' : 'muted'} />
+        <KpiCard icon={Bell} label="Unread Alerts" value={unreadCount} colorClass={unreadCount > 0 ? 'danger' : 'success'} />
       </div>
 
       {error && <div className="gfz-error"><AlertTriangle size={14} /> {error}</div>}
@@ -229,6 +292,8 @@ const GeofenceZonesPage = () => {
         </label>
         <span className="gfz-count-label">{zones.length} zone{zones.length !== 1 ? 's' : ''}</span>
       </div>
+
+      <MapLegend />
 
       {/* Main Map */}
       <div className="gfz-map-wrap">
@@ -266,20 +331,52 @@ const GeofenceZonesPage = () => {
             })}
 
             {liveVehicles.map(v => {
-              const color = v.isStale
-                ? '#94a3b8'
-                : (VEHICLE_STATUS_COLOR[v.status] || '#94a3b8');
+              let inZone = false;
+              if (window.google?.maps?.geometry) {
+                const pt = new window.google.maps.LatLng(v.lat, v.lng);
+                for (const zone of zones) {
+                  if (zone.geofenceType === 'polygon' && zone.polygonPath?.length > 2) {
+                    const poly = new window.google.maps.Polygon({ paths: zone.polygonPath });
+                    if (window.google.maps.geometry.poly.containsLocation(pt, poly)) {
+                      inZone = true; break;
+                    }
+                  } else if (zone.radiusMetres > 0) {
+                    const center = new window.google.maps.LatLng(zone.lat, zone.lng);
+                    const dist = window.google.maps.geometry.spherical.computeDistanceBetween(pt, center);
+                    if (dist <= zone.radiusMetres) {
+                      inZone = true; break;
+                    }
+                  }
+                }
+              }
+
+              const iconUrl = FLEET_EDGE_ICONS[v.status] || FLEET_EDGE_ICONS.Offline;
+
               return (
-                <MarkerF
-                  key={v.vehicleId || v.registrationNumber}
-                  position={{ lat: v.lat, lng: v.lng }}
-                  icon={{
-                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.75 14 22 14 22s14-12.25 14-22C28 6.27 21.73 0 14 0z" fill="${color}" stroke="white" stroke-width="2"/><circle cx="14" cy="14" r="5" fill="white"/></svg>`)}`,
-                    scaledSize: { width: 28, height: 36 },
-                    anchor: { x: 14, y: 36 },
-                  }}
-                  onClick={() => { setSelectedVehicle(v); setSelectedZone(null); }}
-                />
+                <React.Fragment key={v.vehicleId || v.registrationNumber}>
+                  {inZone && (
+                    <MarkerF
+                      key={`halo-${v.vehicleId || v.registrationNumber}`}
+                      position={{ lat: v.lat, lng: v.lng }}
+                      icon={{
+                        url: GEOFENCE_BADGE_SVG,
+                        scaledSize: new window.google.maps.Size(24, 24),
+                        anchor: new window.google.maps.Point(-4, 34),
+                      }}
+                      zIndex={3}
+                    />
+                  )}
+                  <MarkerF
+                    position={{ lat: v.lat, lng: v.lng }}
+                    icon={{
+                      url: iconUrl,
+                      scaledSize: new window.google.maps.Size(32, 54),
+                      anchor: new window.google.maps.Point(16, 27),
+                    }}
+                    zIndex={2}
+                    onClick={() => { setSelectedVehicle(v); setSelectedZone(null); }}
+                  />
+                </React.Fragment>
               );
             })}
 
@@ -301,7 +398,7 @@ const GeofenceZonesPage = () => {
             {selectedVehicle && (
               <InfoWindowF position={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }} onCloseClick={() => setSelectedVehicle(null)}>
                 <div className="gfz-infowindow">
-                  <p className="gfz-iw-name"><Truck size={13} style={{ display:'inline', marginRight:4 }} />{selectedVehicle.registrationNumber}</p>
+                  <p className="gfz-iw-name"><Truck size={13} style={{ display: 'inline', marginRight: 4 }} />{selectedVehicle.registrationNumber}</p>
                   <p className="gfz-iw-meta">Status: <strong style={{ color: VEHICLE_STATUS_COLOR[selectedVehicle.status] || '#64748b' }}>{selectedVehicle.status || 'Unknown'}</strong></p>
                   {selectedVehicle.speed != null && <p className="gfz-iw-meta">Speed: {selectedVehicle.speed?.toFixed(1)} kmph</p>}
                   {selectedVehicle.fuelLevel != null && <p className="gfz-iw-meta">Fuel: {selectedVehicle.fuelLevel?.toFixed(1)} L</p>}
@@ -349,7 +446,7 @@ const GeofenceZonesPage = () => {
                   <td className="gfz-td gfz-td-c"><span className="gfz-shape-tag">{zone.geofenceType === 'polygon' ? '⬡ Polygon' : '⊙ Circular'}</span></td>
                   <td className="gfz-td gfz-td-c">{zone.radiusMetres > 0 ? `${zone.radiusMetres}m` : '—'}</td>
                   <td className="gfz-td gfz-td-c">{zone.alertConfig?.alertOnEntry ? '✅' : '—'}</td>
-                  <td className="gfz-td gfz-td-c">{zone.alertConfig?.alertOnExit  ? '✅' : '—'}</td>
+                  <td className="gfz-td gfz-td-c">{zone.alertConfig?.alertOnExit ? '✅' : '—'}</td>
                   <td className="gfz-td gfz-td-c gfz-meta-col">{zone.state || '—'}{zone.highway ? ` · ${zone.highway}` : ''}</td>
                   <td className="gfz-td gfz-td-c">
                     <span className={`gfz-status ${zone.isActive ? 'gfz-status-on' : 'gfz-status-off'}`}>
@@ -358,9 +455,14 @@ const GeofenceZonesPage = () => {
                   </td>
                   <td className="gfz-td gfz-td-c">
                     {zone.zoneType === 'CUSTOM' ? (
-                      <button className="gfz-btn gfz-btn-danger-ghost" onClick={() => handleDelete(zone._id)} disabled={deletingId === zone._id}>
-                        {deletingId === zone._id ? <RefreshCw size={12} className="gfz-spin" /> : <Trash2 size={13} />}
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <button className="gfz-btn gfz-btn-ghost" onClick={() => { setEditingZone(zone); setShowDrawer(true); }}>
+                          <Edit2 size={13} />
+                        </button>
+                        <button className="gfz-btn gfz-btn-danger-ghost" onClick={() => handleDelete(zone._id)} disabled={deletingId === zone._id}>
+                          {deletingId === zone._id ? <RefreshCw size={12} className="gfz-spin" /> : <Trash2 size={13} />}
+                        </button>
+                      </div>
                     ) : <span className="gfz-system-tag">System</span>}
                   </td>
                 </tr>
@@ -370,12 +472,14 @@ const GeofenceZonesPage = () => {
         </div>
       )}
 
-      {/* Add Zone Drawer */}
+      {/* Add / Edit Zone Drawer */}
       {showDrawer && (
         <AddZoneDrawer
           prefillLatLng={clickedLatLng}
-          onClose={() => { setShowDrawer(false); setClickedLatLng(null); }}
-          onSaved={() => { setShowDrawer(false); setClickedLatLng(null); fetchZones(); }}
+          editZone={editingZone}
+          mode={editingZone ? 'edit' : 'add'}
+          onClose={() => { setShowDrawer(false); setClickedLatLng(null); setEditingZone(null); }}
+          onSaved={() => { setShowDrawer(false); setClickedLatLng(null); setEditingZone(null); fetchZones(); }}
         />
       )}
 

@@ -91,7 +91,7 @@ export const GeofenceService = {
 
   getAlerts: async (params = {}) => {
     try {
-      const response = await apiClient.get('api/geofence/alerts', { params });
+      const response = await apiClient.get('api/geofence/zones/alerts', { params });
       return response.data || { alerts: [], total: 0, page: 1, totalPages: 1 };
     } catch (error) {
       console.error('GeofenceService.getAlerts:', error.response?.data || error.message);
@@ -101,7 +101,7 @@ export const GeofenceService = {
 
   getUnreadAlertCount: async () => {
     try {
-      const response = await apiClient.get('api/geofence/alerts/unread-count');
+      const response = await apiClient.get('api/geofence/zones/alerts/unread-count');
       return response.data?.count || 0;
     } catch (error) {
       console.error('GeofenceService.getUnreadAlertCount:', error.response?.data || error.message);
@@ -111,7 +111,7 @@ export const GeofenceService = {
 
   markAlertsRead: async (alertIds) => {
     try {
-      await apiClient.put('api/geofence/alerts/read', { alertIds });
+      await apiClient.put('api/geofence/zones/alerts/read', { alertIds });
     } catch (error) {
       console.error('GeofenceService.markAlertsRead:', error.response?.data || error.message);
     }
