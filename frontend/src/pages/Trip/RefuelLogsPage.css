@@ -123,8 +123,43 @@
 
 .refuel-table-container {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 24px 32px 40px;
   overflow-x: auto;
+  /* Keep the horizontal scrollbar visible (macOS auto-hides native ones),
+     so it's obvious the table can be scrolled when columns overflow. */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.refuel-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.refuel-table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.refuel-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.refuel-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Grab-to-pan: cursor only when there is overflow to scroll (toggled by JS),
+   and the "grabbing" hand while a drag is in progress. */
+.refuel-table-container.is-scrollable {
+  cursor: grab;
+}
+
+.refuel-table-container.is-dragging {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .refuel-table {
@@ -256,6 +291,231 @@
   transform: translateY(0);
 }
 
+/* Row action buttons */
+.refuel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refuel-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.refuel-action-btn.edit {
+  color: #4f46e5;
+}
+
+.refuel-action-btn.edit:hover {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: #4f46e5;
+}
+
+.refuel-action-btn.delete {
+  color: #dc2626;
+}
+
+.refuel-action-btn.delete:hover {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: #dc2626;
+}
+
+/* Modal styles */
+.refuel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.refuel-modal {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.refuel-modal-sm {
+  max-width: 420px;
+}
+
+.refuel-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #ececee;
+}
+
+.refuel-modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #121214;
+}
+
+.refuel-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.refuel-modal-close:hover {
+  background: #f3f4f6;
+  color: #121214;
+}
+
+.refuel-modal-body {
+  padding: 24px;
+}
+
+.refuel-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #ececee;
+  background: #fafafa;
+}
+
+.refuel-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.refuel-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.refuel-form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.refuel-form-group input,
+.refuel-form-group select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #121214;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.refuel-form-group input:focus,
+.refuel-form-group select:focus {
+  border-color: var(--primary-color, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.refuel-form-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.refuel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  height: 38px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.refuel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refuel-btn.primary {
+  background: var(--primary-color, #4f46e5);
+  color: #ffffff;
+}
+
+.refuel-btn.primary:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.refuel-btn.secondary {
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.refuel-btn.secondary:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.refuel-btn.danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.refuel-btn.danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.refuel-delete-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.refuel-delete-warning p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #121214;
+}
+
+.refuel-delete-subtext {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: #6b7280 !important;
+  line-height: 1.5;
+}
+
 @media (max-width: 992px) {
   .refuel-logs-header {
     flex-direction: column;
@@ -277,4 +537,323 @@
     width: 100%;
     justify-content: center;
   }
+
+  .refuel-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Pagination Footer ───────────────────────────────────────────────── */
+.refuel-pagination-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 32px;
+  border-top: 1px solid #ececee;
+  background: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  min-height: 24px;
+}
+
+.refuel-pagination-btn {
+  padding: 6px;
+  border-radius: 0;
+  outline: none;
+  border: none;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  background: transparent;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.refuel-pagination-btn:first-child { margin-right: 8px; }
+.refuel-pagination-btn:last-child  { margin-left: 8px; }
+
+.refuel-pagination-btn:hover:not(:disabled) { opacity: 0.7; }
+.refuel-pagination-btn:disabled { cursor: not-allowed; opacity: 0.3; }
+.refuel-pagination-btn svg { width: 12px; height: 12px; color: #121214; }
+
+.refuel-page-number {
+  width: 32px;
+  height: 32px;
+  padding: 10px;
+  border-radius: 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  display: inline-flex;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refuel-page-number span {
+  text-align: center;
+  color: #5D5D5E;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  line-height: 21px;
+}
+
+.refuel-page-number:hover:not(.refuel-page-number-current) {
+  background: #F7F7F8;
+}
+
+.refuel-page-number-current {
+  background: white;
+  outline: 1px var(--primary-color, #4f46e5) solid;
+  outline-offset: -1px;
+}
+
+.refuel-page-number-current span {
+  color: #121214;
+}
+
+.refuel-page-overflow {
+  width: 32px;
+  height: 32px;
+  padding: 10px;
+  border-radius: 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  display: inline-flex;
+}
+
+.refuel-page-overflow span {
+  text-align: center;
+  color: #5D5D5E;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  line-height: 21px;
+}
+
+/* ── Responsive: tighten the 11-column table on smaller laptops ──────────
+   There was no breakpoint between 992px and full-size, so 1280–1440px
+   laptops got the full desktop spacing and the last columns (Type/Actions)
+   spilled off-screen. These steps reclaim width by trimming cell padding,
+   the outer gutter, and font sizes, falling back to horizontal scroll only
+   when content genuinely can't fit. */
+@media (max-width: 1440px) {
+  .refuel-logs-header {
+    padding: 18px 24px;
+  }
+
+  .refuel-table-container {
+    padding: 20px 24px 32px;
+  }
+
+  .refuel-table th,
+  .refuel-table td {
+    padding: 14px 14px;
+  }
+
+  .refuel-table th {
+    letter-spacing: 0.3px;
+  }
+
+  .refuel-pagination-controls {
+    padding: 12px 24px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .refuel-table-container {
+    padding: 16px 16px 28px;
+  }
+
+  .refuel-table {
+    min-width: 880px;
+  }
+
+  .refuel-table th,
+  .refuel-table td {
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+
+  .refuel-table th {
+    font-size: 12px;
+    letter-spacing: 0.2px;
+  }
+
+  .cell-primary {
+    margin-bottom: 4px;
+  }
+
+  .cell-secondary {
+    font-size: 11px;
+  }
+
+  .fuel-type-pill {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .refuel-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .refuel-pagination-controls {
+    padding: 12px 16px;
+  }
+}
+
+/* ── Refuel modals: self-contained, namespaced layout ───────────────────
+   The generic `.modal`, `.modal-overlay`, `.modal-content`, `.modal-header`
+   and `.modal-footer` names are defined in FIVE stylesheets with conflicting
+   meanings (in modal.css `.modal-content` is the inner scroll region; in
+   EditRowModal/ProfilePage/TripFormPage/RoutesPage it is the white box itself
+   with no flex/min-height). Whichever loads last in the bundle wins, which
+   stripped the edit modal's body of `flex: 1; min-height: 0` so it never
+   scrolled and the footer was clipped. These `refuel-modal*` classes are
+   unique to this page, so bundle order can no longer hijack the layout. */
+.refuel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 2147483647;
+}
+
+.refuel-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 85vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.refuel-modal * {
+  box-sizing: border-box;
+}
+
+/* The edit modal nests its scrollable body inside a <form>, so the form must
+   carry the flex column for the body to size to the modal and scroll. */
+.refuel-modal > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.refuel-modal-header {
+  position: relative;
+  flex-shrink: 0;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.refuel-modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.refuel-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.refuel-modal-close:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.refuel-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.refuel-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.refuel-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.refuel-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.refuel-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.refuel-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #fafbfc;
+}
+
+/* ── Edit modal: bring form controls up to par ──────────────────────────
+   The modal borrows `.form-group` from modal.css, which only styles
+   `input` — the Fuel Type / Filling Type <select>s were rendering as
+   unstyled native controls. Mirror the input styling (and add a custom
+   chevron) so the row reads as one consistent set of fields. */
+.refuel-edit-modal .form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #121214;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refuel-edit-modal .form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* Stop a long value (e.g. location) from blowing out the 2-up grid. */
+.refuel-form-row .form-group {
+  min-width: 0;
 }
