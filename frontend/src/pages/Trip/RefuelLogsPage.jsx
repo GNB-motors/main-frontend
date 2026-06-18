@@ -1,15 +1,14 @@
 import { toISTDateString, toISTTimeString, formatDateIST } from '../../utils/dateUtils';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, FileText, PlusCircle, Pencil, Trash2, X, AlertTriangle, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, FileText, PlusCircle, Pencil, Trash2, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import './RefuelLogsPage.css';
 import '../../components/JourneySetupModal/modal.css';
 import apiClient from '../../utils/axiosConfig';
 import ChevronIcon from './assets/ChevronIcon.jsx';
-import DocumentService from './services/DocumentService';
 
 const FUEL_TYPES = ['DIESEL', 'ADBLUE'];
 const FILLING_TYPES = ['PARTIAL', 'FULL_TANK'];
@@ -125,10 +124,7 @@ const formatCurrency = (value) => {
 
 const RefuelLogsPage = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab');
-  const activeTab =
-    tabParam && filterTabs.some((item) => item.id === tabParam) ? tabParam : 'all';
+  const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [logs, setLogs] = useState([]);
@@ -136,8 +132,6 @@ const RefuelLogsPage = () => {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
-  const [viewImageUrl, setViewImageUrl] = useState(null);
-  const [viewImageLoading, setViewImageLoading] = useState(false);
 
   // Click-and-drag horizontal scrolling for the table. The container already
   // scrolls via wheel/scrollbar (overflow-x: auto); this adds grab-to-pan.
@@ -269,7 +263,7 @@ const RefuelLogsPage = () => {
 
   // Switching tabs resets to page 1 so we don't land on an out-of-range page.
   const handleTabChange = (tabId) => {
-    setSearchParams(tabId === 'all' ? {} : { tab: tabId }, { replace: true });
+    setActiveTab(tabId);
     setPagination((p) => ({ ...p, page: 1 }));
   };
 
@@ -343,25 +337,6 @@ const RefuelLogsPage = () => {
     setSubmitting(false);
   };
 
-  const handleViewDocument = async (log) => {
-    if (!log.documentId) return;
-    setViewImageLoading(true);
-    try {
-      const doc = await DocumentService.getDocument(log.documentId);
-      const url = doc?.data?.publicUrl || doc?.publicUrl || doc?.data?.fileKey || doc?.fileKey;
-      if (url) {
-        setViewImageUrl(url);
-      } else {
-        toast.error('Image URL not found for this document');
-      }
-    } catch (err) {
-      toast.error('Failed to load document');
-      console.error(err);
-    } finally {
-      setViewImageLoading(false);
-    }
-  };
-
   const handleDeleteConfirm = async () => {
     if (!deletingLog) return;
 
@@ -429,7 +404,7 @@ const RefuelLogsPage = () => {
               <th>Total Amount</th>
               <th>Odometer</th>
               <th>Type</th>
-              <th style={{ width: '110px' }}>Actions</th>
+              <th style={{ width: '90px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -510,21 +485,6 @@ const RefuelLogsPage = () => {
                     </td>
                     <td>
                       <div className="refuel-actions">
-                        {log.documentId && (
-                          <button
-                            type="button"
-                            className="refuel-action-btn"
-                            title="View Bill"
-                            style={{ color: '#2563eb' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewDocument(log);
-                            }}
-                            disabled={viewImageLoading}
-                          >
-                            <Eye size={14} />
-                          </button>
-                        )}
                         <button
                           type="button"
                           className="refuel-action-btn edit"
@@ -730,52 +690,6 @@ const RefuelLogsPage = () => {
                 {submitting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* View Image Modal */}
-      {viewImageUrl && createPortal(
-        <div className="refuel-modal-overlay" onClick={() => setViewImageUrl(null)} style={{ zIndex: 9999 }}>
-          <div 
-            onClick={(e) => e.stopPropagation()} 
-            style={{ 
-              position: 'relative', 
-              maxWidth: '80vw', 
-              maxHeight: '75vh',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <button 
-              type="button" 
-              onClick={() => setViewImageUrl(null)}
-              style={{
-                position: 'absolute', top: '-14px', right: '-14px', background: '#fff', 
-                border: '1px solid #e5e7eb', color: '#4b5563', borderRadius: '50%', width: '32px', height: '32px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zIndex: 10
-              }}
-            >
-              <X size={18} />
-            </button>
-            <img 
-              src={viewImageUrl} 
-              alt="Fuel Bill" 
-              style={{ 
-                maxWidth: '100%', 
-                maxHeight: '75vh', 
-                objectFit: 'contain', 
-                borderRadius: '16px', 
-                background: 'white',
-                padding: '16px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-                display: 'block'
-              }} 
-            />
           </div>
         </div>,
         document.body

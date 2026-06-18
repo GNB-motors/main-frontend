@@ -276,7 +276,7 @@ const getDriverName = (loc) => {
 
 const DriverLiveMap = ({ locations }) => {
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const { isLoaded } = useLoadScript({ googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY, libraries: ['places', 'drawing']});
+  const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
 
   const activeLocations = (locations || []).filter((loc) => loc.locationPermission && loc.latitude != null && loc.longitude != null);
   const offlineCount = (locations || []).filter((l) => !l.locationPermission || l.latitude == null).length;

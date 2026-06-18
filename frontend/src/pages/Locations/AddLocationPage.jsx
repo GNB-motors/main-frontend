@@ -33,12 +33,13 @@ const AddLocationPage = () => {
     // Form State
     const [formData, setFormData] = useState({
         name: '',
+        type: 'SOURCE', // Default to SOURCE
         address: '',
         city: '',
         state: '',
         pincode: '',
-        lat: null,
-        lng: null
+        lat: 22.5726, // Initialize with defaults or null, but map needs valid lat/lng to render marker
+        lng: 88.3639
     });
 
     // Load existing data if editing
@@ -49,12 +50,13 @@ const AddLocationPage = () => {
             setLocationId(editing._id || editing.id);
             setFormData({
                 name: editing.name || '',
+                type: editing.type || 'SOURCE',
                 address: editing.address || '',
                 city: editing.city || '',
                 state: editing.state || '',
                 pincode: editing.pincode || '',
-                lat: editing.lat || null,
-                lng: editing.lng || null
+                lat: editing.lat || 22.5726,
+                lng: editing.lng || 88.3639
             });
             setSearchValue(editing.address || ''); // Initialize search with address
             if (editing.lat && editing.lng) {
@@ -188,15 +190,24 @@ const AddLocationPage = () => {
         setIsSubmitting(true);
 
         try {
+            // Validation
             if (!formData.name.trim()) {
-                toast.error('Pump Location Name is required');
+                toast.error('Location name is required');
+                setIsSubmitting(false);
+                return;
+            }
+            if (!formData.address.trim()) {
+                toast.error('Address is required');
+                setIsSubmitting(false);
+                return;
+            }
+            if (!formData.pincode.trim()) {
+                toast.error('Pincode is required');
                 setIsSubmitting(false);
                 return;
             }
 
             const payload = { ...formData };
-            if (!payload.lat) delete payload.lat;
-            if (!payload.lng) delete payload.lng;
 
             if (isEdit) {
                 await LocationService.updateLocation(locationId, payload);
@@ -234,7 +245,7 @@ const AddLocationPage = () => {
     return (
         <div className="location-page">
             <div className="location-header">
-                <h1>{isEdit ? 'Edit Pump Location' : 'Add New Pump Location'}</h1>
+                <h1>{isEdit ? 'Edit Location' : 'Add New Location'}</h1>
                 <button className="btn btn-secondary" onClick={() => navigate('/locations')}>
                     <ArrowLeft size={18} />
                     Back
@@ -246,7 +257,7 @@ const AddLocationPage = () => {
                 <div className="location-form-panel">
                     <form onSubmit={handleSubmit}>
                         <div className="form-group" style={{ marginBottom: '20px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Pump Location Name</label>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Location Name</label>
                             <input
                                 type="text"
                                 name="name"
@@ -254,8 +265,22 @@ const AddLocationPage = () => {
                                 onChange={handleInputChange}
                                 className="search-input"
                                 style={{ maxWidth: '100%' }}
-                                placeholder="e.g. Pump 1, Main Pump"
+                                placeholder="e.g. Warehouse 1, Main Office"
                             />
+                        </div>
+
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Location Type</label>
+                            <select
+                                name="type"
+                                value={formData.type}
+                                onChange={handleInputChange}
+                                className="search-input"
+                                style={{ maxWidth: '100%' }}
+                            >
+                                <option value="SOURCE">Source (Pickup)</option>
+                                <option value="DESTINATION">Destination (Drop-off)</option>
+                            </select>
                         </div>
 
                         <div className="form-group" style={{ marginBottom: '20px' }}>
@@ -312,6 +337,31 @@ const AddLocationPage = () => {
                             />
                         </div>
 
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Latitude</label>
+                                <input
+                                    type="number"
+                                    name="lat"
+                                    value={formData.lat || ''}
+                                    readOnly
+                                    className="search-input"
+                                    style={{ maxWidth: '100%', backgroundColor: '#f1f5f9' }}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>Longitude</label>
+                                <input
+                                    type="number"
+                                    name="lng"
+                                    value={formData.lng || ''}
+                                    readOnly
+                                    className="search-input"
+                                    style={{ maxWidth: '100%', backgroundColor: '#f1f5f9' }}
+                                />
+                            </div>
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: 'auto' }}>
                             <button
                                 type="button"
@@ -327,7 +377,7 @@ const AddLocationPage = () => {
                                 disabled={isSubmitting}
                             >
                                 <Save size={18} />
-                                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Pump Location' : 'Save Pump Location')}
+                                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Location' : 'Save Location')}
                             </button>
                         </div>
                     </form>
