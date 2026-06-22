@@ -802,6 +802,30 @@
     flex-shrink: 0;
 }
 
+/* Owner row — strictly read-only (see ActionMenu in DriversPage.jsx) */
+.drivers-table-row-readonly {
+    background: var(--color-grey-50, #f8fafc);
+}
+
+.drivers-table tbody tr.drivers-table-row-readonly:hover {
+    background-color: var(--color-grey-50, #f8fafc) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.drivers-action-menu-item-disabled {
+    cursor: not-allowed;
+    color: var(--color-grey-400, #94a3b8);
+}
+
+.drivers-action-menu-item-disabled svg {
+    color: var(--color-grey-400, #94a3b8) !important;
+}
+
+.drivers-action-menu-item-disabled:hover {
+    opacity: 1;
+}
+
 .drivers-action-menu-divider {
     height: 0;
     outline: 1px var(--core-morning-fog-solids-morning-fog-700, #DFDFE2) solid;

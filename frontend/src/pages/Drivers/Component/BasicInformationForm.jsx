@@ -1,5 +1,6 @@
 import React, { useState, useEffect, forwardRef } from 'react';
 import UserIcon from '../assets/UserIcon.jsx';
+import { RoleService } from '../RoleService.jsx';
 import './BasicInformationForm.css';
 
 const BasicInformationForm = forwardRef(({ 
@@ -17,7 +18,32 @@ const BasicInformationForm = forwardRef(({
     location: initialData.location || '',
     password: initialData.password || '',
     role: initialData.role || 'DRIVER',
+    roleId: initialData.roleId || '',
   });
+
+  // Custom roles created by the Owner under Roles & Permissions. Pre-defined
+  // roles (Driver / Manager / Field Agent) are always shown regardless of
+  // whether this fetch succeeds — custom roles are an addition on top, not a
+  // replacement, so a failed fetch here never blocks adding a plain employee.
+  const [customRoles, setCustomRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    RoleService.getRoles()
+      .then((data) => {
+        if (cancelled) return;
+        const roles = (data.roles || []).filter((r) => r.isCustom);
+        setCustomRoles(roles);
+      })
+      .catch((err) => {
+        console.error('Failed to load custom roles', err);
+      })
+      .finally(() => {
+        if (!cancelled) setRolesLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Update form data when initialData changes (for edit mode)
   useEffect(() => {
@@ -30,6 +56,7 @@ const BasicInformationForm = forwardRef(({
         location: initialData.location || '',
         password: initialData.password || '',
         role: initialData.role || 'DRIVER',
+        roleId: initialData.roleId || '',
       });
     }
   }, [initialData]);
@@ -40,6 +67,19 @@ const BasicInformationForm = forwardRef(({
       [field]: value
     }));
   };
+
+  // The dropdown's <option value> encodes both pieces of information the
+  // backend needs: which base access level (role) and, for custom roles,
+  // which specific Role document (roleId) — e.g. "MANAGER" or
+  // "MANAGER:64f...". Splitting it here keeps the <select> a single,
+  // simple controlled input instead of two fields the Owner has to keep
+  // in sync themselves.
+  const handleRoleChange = (value) => {
+    const [role, roleId] = value.split(':');
+    setFormData(prev => ({ ...prev, role, roleId: roleId || '' }));
+  };
+
+  const selectedRoleValue = formData.roleId ? `${formData.role}:${formData.roleId}` : formData.role;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -148,12 +188,22 @@ const BasicInformationForm = forwardRef(({
                 <label className="basic-info-label">Role</label>
                 <select 
                   className="basic-info-input"
-                  value={formData.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
+                  value={selectedRoleValue}
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                  disabled={rolesLoading}
                 >
                   <option value="DRIVER">Driver</option>
                   <option value="MANAGER">Manager</option>
                   <option value="FIELD_AGENT">Field Agent</option>
+                  {customRoles.length > 0 && (
+                    <optgroup label="Custom roles">
+                      {customRoles.map((r) => (
+                        <option key={r._id} value={`${r.baseRole}:${r._id}`}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             </div>

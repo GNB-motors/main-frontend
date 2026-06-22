@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
+import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload, Lock } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
@@ -17,7 +17,7 @@ const getInitials = (name) => {
 };
 
 // Human-friendly labels for the role enum.
-const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', FIELD_AGENT: 'Field Agent', SUPER_ADMIN: 'Super Admin' };
+const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', FIELD_AGENT: 'Field Agent', OWNER: 'Owner', SUPER_ADMIN: 'Super Admin' };
 const formatRole = (role, isSuperadmin) => {
     if (isSuperadmin) return 'Super Admin';
     return ROLE_LABELS[role] || role || 'Employee';
@@ -537,21 +537,35 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
 
 // --- Action Menu Component ---
 const ActionMenu = ({ driver, onEdit, onDelete }) => {
+    // The org Owner's own row is strictly read-only here — their account is
+    // managed at the organization level, not through employee CRUD. Checked by
+    // role (source of truth) with the isOwner flag from the API as a backstop;
+    // is_superadmin is legacy/never actually populated by the backend, kept
+    // only so any old cached row shape doesn't accidentally show edit/delete.
+    const isOwnerRow = driver.role === 'OWNER' || driver.isOwner || driver.is_superadmin;
+
+    if (isOwnerRow) {
+        return (
+            <div className="drivers-action-menu">
+                <div className="drivers-action-menu-item drivers-action-menu-item-disabled">
+                    <Lock size={16} />
+                    <span>Managed at organization level</span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="drivers-action-menu">
             <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
                 <Edit size={16} />
                 <span>Edit</span>
             </button>
-            {!driver.is_superadmin && ( // Prevent deleting superadmin
-                <>
-                    <div className="drivers-action-menu-divider"></div>
-                    <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDelete(driver); }}>
-                        <Trash2 size={16} />
-                        <span>Delete</span>
-                    </button>
-                </>
-            )}
+            <div className="drivers-action-menu-divider"></div>
+            <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDelete(driver); }}>
+                <Trash2 size={16} />
+                <span>Delete</span>
+            </button>
         </div>
     );
 };
@@ -967,7 +981,16 @@ const DriversPage = () => {
                         <div>
                             <h3>
                                 <span>Total employees </span>
-                                <span>({totalDrivers})</span>
+                                <span>
+                                    (
+                                    {/* The unfiltered query (filters.role === '') always includes exactly
+                                        one Owner row alongside the actual employees — see UserService.list.
+                                        "Total employees" should count employees, not the org owner, so we
+                                        subtract that one known row here rather than asking the backend to
+                                        special-case its meaning of "total" for this one screen. */}
+                                    {filters.role === '' ? Math.max(totalDrivers - 1, 0) : totalDrivers}
+                                    )
+                                </span>
                             </h3>
                             <div className="drivers-actions">
                             <div className="search-filter-container">
@@ -1045,18 +1068,28 @@ const DriversPage = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                paginatedDrivers.map((driver) => (
+                                paginatedDrivers.map((driver) => {
+                                    const isOwnerRow = driver.role === 'OWNER' || driver.isOwner || driver.is_superadmin;
+                                    return (
                                     <tr 
                                         key={driver.id} 
-                                        className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''}`}
-                                        onClick={() => navigate('/drivers/add', { state: { editingDriver: driver } })}
-                                        style={{ cursor: 'pointer' }}
+                                        className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''} ${isOwnerRow ? 'drivers-table-row-readonly' : ''}`}
+                                        onClick={() => {
+                                            if (isOwnerRow) return; // Owner's row is read-only — managed at the org level, not here.
+                                            navigate('/drivers/add', { state: { editingDriver: driver } });
+                                        }}
+                                        style={{ cursor: isOwnerRow ? 'default' : 'pointer' }}
                                     >
                                         <td>
                                             <div className="drivers-driver-name-cell">
                                                 <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                                                 <div className="drivers-driver-info">
-                                                    <span>{driver.name}</span>
+                                                    <span>
+                                                        {driver.name}
+                                                        {isOwnerRow && (
+                                                            <Lock size={12} style={{ marginLeft: 6, verticalAlign: 'middle', color: 'var(--color-grey-400, #94a3b8)' }} />
+                                                        )}
+                                                    </span>
                                                     <span className="drivers-driver-role">{formatRole(driver.role, driver.is_superadmin)}</span>
                                                 </div>
                                             </div>
@@ -1091,7 +1124,8 @@ const DriversPage = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
