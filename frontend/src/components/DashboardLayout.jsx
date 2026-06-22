@@ -7,6 +7,7 @@ import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { ProfileService } from '../pages/Profile/ProfileService.jsx';
 import { storeProfileData } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider } from '../contexts/FeatureFlagsContext.jsx';
+import { PermissionsProvider } from '../contexts/PermissionsContext.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -61,7 +62,9 @@ const DashboardLayoutInner = () => {
 
 const DashboardLayout = () => (
     <FeatureFlagsProvider>
-        <DashboardLayoutInner />
+        <PermissionsProvider>
+            <DashboardLayoutInner />
+        </PermissionsProvider>
     </FeatureFlagsProvider>
 );
 

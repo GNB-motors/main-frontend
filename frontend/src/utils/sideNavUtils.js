@@ -7,24 +7,36 @@ import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen } from 'luci
  * sirf is list ko map karke render karta hai — naya link add karna ho to bas
  * yahan ek entry add karo (aur `key` do). Sidebar code chedne ki zarurat nahi.
  *
- * `key`   -> feature-flag key. Sidebar isEnabled(key) === true hone par hi item
- *            dikhata hai. `key: null` ka matlab "hamesha dikhao" (no gating),
- *            jaise Profile — guaranteed fallback page.
+ * `key`   -> feature-flag key (SUPER_ADMIN → org level). Sidebar isEnabled(key)
+ *            === true hone par hi item dikhता hai. `key: null` ka matlab
+ *            "hamesha dikhao" (no gating), jaise Profile — guaranteed fallback page.
+ *
+ * `permissionModule` -> Roles & Permissions module key (Owner → employee level,
+ *            see role.constants.js on the backend). Sidebar canView(module)
+ *            === true hone par hi item dikhता hai. `permissionModule: null`
+ *            ka matlab "is layer se hamesha dikhao" — OWNER/MANAGER apne aap
+ *            full access paate hain (backend resolvePermissions), is field ka
+ *            matlab sirf itna hai ki ye nav item kisi specific module se gated
+ *            nahi hai.
+ *
+ * Donon gates independent hain aur dono pass hone chahiye item dikhane ke liye
+ * (org-level feature flag AND employee-level permission).
  *
  * type 'link'  -> single NavLink.
- *                 fields: { key, to, label, icon, end? }
+ *                 fields: { key, permissionModule, to, label, icon, end? }
  * type 'group' -> collapsible dropdown.
- *                 fields: { key, label, icon, children[], matchRoutes[] }
+ *                 fields: { key, permissionModule, label, icon, children[], matchRoutes[] }
  *                 children:    [{ to, label, end? }]
  *                 matchRoutes: routes jinpe hone par group apne aap expand rahe
  *                              (chhupe/deep routes bhi include karo).
  */
 export const SIDE_NAV_ITEMS = [
-  { type: 'link', key: 'overview', to: '/overview', label: 'Overview', icon: Grid },
-  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
+  { type: 'link', key: 'overview', permissionModule: 'overview', to: '/overview', label: 'Overview', icon: Grid },
+  { type: 'link', key: 'reports', permissionModule: 'reports', to: '/reports', label: 'Reports', icon: FileText },
   {
     type: 'group',
     key: 'vehicles',
+    permissionModule: 'vehicles',
     label: 'Vehicles',
     icon: Truck,
     children: [
@@ -46,6 +58,7 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'group',
     key: 'vehicleActivity',
+    permissionModule: 'vehicleActivity',
     label: 'Vehicle Activity',
     icon: Truck,
     children: [
@@ -56,13 +69,24 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: ['/trip-management', '/refuel-logs', '/mileage-tracking', '/model-comparison'],
   },
-  { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
-  { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
-  { type: 'link', key: 'fuelComparison', to: '/fuel-comparison', label: 'Fuel Comparison', icon: Fuel },
-  { type: 'link', key: null, to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
-  // Always visible (no feature flag) — guaranteed fallback page.
-  { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
+  {
+    type: 'group',
+    key: 'drivers',
+    permissionModule: 'employees',
+    label: 'Employees',
+    icon: Users,
+    children: [
+      { to: '/drivers', label: 'Employee List', end: true },
+      { to: '/drivers/roles', label: 'Roles & Permissions' },
+    ],
+    matchRoutes: ['/drivers', '/drivers/add', '/drivers/roles'],
+  },
+  { type: 'link', key: 'locations', permissionModule: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
+  { type: 'link', key: 'fuelComparison', permissionModule: 'fuelComparison', to: '/fuel-comparison', label: 'Fuel Comparison', icon: Fuel },
+  { type: 'link', key: null, permissionModule: 'fieldAgentFuel', to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
+  { type: 'link', key: 'khataLedger', permissionModule: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
+  // Always visible (no feature flag, no permission gate) — guaranteed fallback page.
+  { type: 'link', key: null, permissionModule: 'profile', to: '/profile', label: 'Profile', icon: User },
 ];
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */

@@ -5,6 +5,7 @@ import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
+import { usePermissions } from '../contexts/PermissionsContext.jsx';
 import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive } from '../utils/sideNavUtils.js';
 import './Sidebar.css';
 
@@ -16,6 +17,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [openGroups, setOpenGroups] = useState({});
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const { isEnabled } = useFeatureFlags();
+    const { canView } = usePermissions();
 
     // Defensive: ensure :root has the current theme CSS variables on mount and
     // whenever the theme color changes. The Sidebar previously kept a LOCAL
@@ -91,8 +93,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     // Render one item from the SIDE_NAV_ITEMS config.
     const renderNavItem = (item) => {
-        // `key: null` => always visible. Otherwise gate on the feature flag.
+        // `key: null` => always visible. Otherwise gate on the org-level feature flag.
         if (item.key && !isEnabled(item.key)) return null;
+        // `permissionModule: null` => this layer doesn't gate the item. Otherwise gate
+        // on the logged-in employee's own Roles & Permissions access (OWNER/MANAGER
+        // resolve to full access on the backend, so this is a no-op for them).
+        if (item.permissionModule && !canView(item.permissionModule)) return null;
 
         const Icon = item.icon;
 
