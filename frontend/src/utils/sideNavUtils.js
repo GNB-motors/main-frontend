@@ -67,7 +67,7 @@ export const SIDE_NAV_ITEMS = [
   // ─── Geofence group ───────────────────────────────────────────────────────
   // Both sub-pages are grouped under a single collapsible "Geofence" dropdown.
   // This matches the nav layout shown in the client screenshots (Image 2).
-  {
+  ...(import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED === 'false' ? [] : [{
     type: 'group',
     key: null,
     label: 'Geofence',
@@ -77,7 +77,7 @@ export const SIDE_NAV_ITEMS = [
       { to: '/geofence/zones', label: 'Zones & Alerts' },
     ],
     matchRoutes: ['/geofence', '/geofence/zones'],
-  },
+  }]),
 
   // Always visible (no feature flag) — guaranteed fallback page.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },

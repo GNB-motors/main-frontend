@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
 import { OCRService } from '../Trip/services';
 import { FieldAgentFuelService } from './FieldAgentFuelService';
+import LocationAutocomplete from '../../components/LocationAutocomplete/LocationAutocomplete';
 import '../MileageTracking/MileageTracking.css'; // Reuse existing styles
 
 /* ── UI Icons ── */

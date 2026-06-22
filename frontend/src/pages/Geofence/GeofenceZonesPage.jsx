@@ -191,6 +191,16 @@ const GeofenceZonesPage = () => {
   // ── Live locations & Alerts (60s poll) ─────────────────────────────────────────────
   const fetchLiveLocationsAndAlerts = useCallback(async () => {
     try {
+      if (import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED === 'false') {
+        const [alertsData, count] = await Promise.all([
+          GeofenceService.getAlerts({ isRead: 'false', limit: 50 }),
+          GeofenceService.getUnreadAlertCount(),
+        ]);
+        setLiveVehicles([]); setLiveOnline(false);
+        setAlerts(alertsData.alerts || []);
+        setUnreadCount(count);
+        return;
+      }
       const [vehicles, alertsData, count] = await Promise.all([
         GeofenceService.getLiveLocations(),
         GeofenceService.getAlerts({ isRead: 'false', limit: 50 }),
@@ -245,10 +255,16 @@ const GeofenceZonesPage = () => {
           </div>
         </div>
         <div className="gfz-header-actions">
-          <span className={`gfz-live-pill ${liveOnline ? (liveVehicles.some(v => v.isStale) ? 'gfz-live-stale' : 'gfz-live-on') : 'gfz-live-off'}`}>
-            {liveOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-            {liveOnline ? (liveVehicles.some(v => v.isStale) ? 'Stale data' : 'Live') : 'Offline'}
-          </span>
+          {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
+            <span className={`gfz-live-pill ${liveOnline ? (liveVehicles.some(v => v.isStale) ? 'gfz-live-stale' : 'gfz-live-on') : 'gfz-live-off'}`}>
+              {liveOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+              {liveOnline ? (liveVehicles.some(v => v.isStale) ? 'Stale data' : 'Live') : 'Offline'}
+            </span>
+          ) : (
+            <span className="gfz-live-pill gfz-live-off" style={{ background: '#fef2f2', color: '#ef4444' }}>
+              <WifiOff size={12} /> Live tracking disabled
+            </span>
+          )}
           <button
             className={`gfz-btn gfz-btn-ghost gfz-bell-btn ${unreadCount > 0 ? 'gfz-bell-active' : ''}`}
             onClick={() => setShowAlerts(p => !p)}

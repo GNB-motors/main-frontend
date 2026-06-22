@@ -222,6 +222,7 @@ const GeofencePage = () => {
 
   // Live location polling (5s for real-time feel)
   const fetchLiveLocations = useCallback(async () => {
+    if (import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED === 'false') return;
     try {
       const vehicles = await GeofenceService.getLiveLocations();
       setLiveVehicles(vehicles); setLiveOnline(true);
@@ -295,10 +296,16 @@ const GeofencePage = () => {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 10px', borderRadius: '12px', background: liveOnline ? '#ecfdf5' : '#f1f5f9', color: liveOnline ? '#059669' : '#64748b', fontWeight: 500 }}>
-            {liveOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-            {liveOnline ? 'Live' : 'Offline'}
-          </span>
+          {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 10px', borderRadius: '12px', background: liveOnline ? '#ecfdf5' : '#f1f5f9', color: liveOnline ? '#059669' : '#64748b', fontWeight: 500 }}>
+              {liveOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+              {liveOnline ? 'Live' : 'Offline'}
+            </span>
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 10px', borderRadius: '12px', background: '#fef2f2', color: '#ef4444', fontWeight: 500 }}>
+              <WifiOff size={12} /> Live tracking disabled
+            </span>
+          )}
           <button className="gf-btn gf-btn-ghost" onClick={fetchData} disabled={loading}>
             <RefreshCw size={15} className={loading ? 'gf-spin' : ''} />
             Refresh

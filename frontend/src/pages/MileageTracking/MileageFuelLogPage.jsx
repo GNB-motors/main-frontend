@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
 import { TripService, OCRService } from '../Trip/services';
+import LocationAutocomplete from '../../components/LocationAutocomplete/LocationAutocomplete';
 import './MileageTracking.css';
 
 /* ── UI Icons ── */
@@ -335,69 +336,23 @@ const MileageFuelLogPage = () => {
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Source Location</label>
-                            <div className="dropdown-wrapper" style={{ zIndex: showSourceDropdown ? 200 : undefined }}>
-                                <button type="button" className="dropdown-button"
-                                    onClick={(e) => { e.stopPropagation(); setShowSourceDropdown(!showSourceDropdown); setShowDestDropdown(false); setShowVehicleDropdown(false); setShowDriverDropdown(false); }}>
-                                    <span style={{ flex: 1, textAlign: 'left' }}>{selectedSource ? selectedSource.name : 'Choose source...'}</span>
-                                    {selectedSource && <span role="button" style={{ flex: 'none', lineHeight: 1, padding: '0 4px', color: '#94a3b8', fontSize: 16 }} onClick={(e) => { e.stopPropagation(); setSelectedSource(null); }}>×</span>}
-                                    <ChevronDown size={16} className={showSourceDropdown ? 'rotated' : ''} />
-                                </button>
-                                {showSourceDropdown && (
-                                    <div className="dropdown-menu">
-                                        <input type="text" placeholder="Search location..." className="dropdown-search" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                        <div className="dropdown-list">
-                                            {loadingLocations ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>Searching...</div>
-                                                : locationResults.length === 0 ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>No locations found</div>
-                                                : locationResults.map(l => {
-                                                    const takenAsDest = selectedDest?.id === l._id;
-                                                    return (
-                                                        <button key={l._id} type="button"
-                                                            className={`dropdown-item ${selectedSource?.id === l._id ? 'selected' : ''}`}
-                                                            disabled={takenAsDest}
-                                                            style={takenAsDest ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-                                                            onClick={() => { if (!takenAsDest) { setSelectedSource({ id: l._id, name: l.name }); setShowSourceDropdown(false); } }}>
-                                                            <div className="item-main">{l.name}</div>
-                                                            <div className="item-sub">{[l.city, l.address].filter(Boolean).join(', ')}{takenAsDest ? ' · selected as destination' : ''}</div>
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <LocationAutocomplete
+                                value={selectedSource ? selectedSource.name : ''}
+                                onChange={() => {}}
+                                onLocationSelect={(loc) => setSelectedSource(loc ? { id: loc._id, name: loc.name } : null)}
+                                placeholder="Choose source..."
+                                allowCustomText={false}
+                            />
                         </div>
                         <div className="mileage-form-group">
                             <label>Destination Location</label>
-                            <div className="dropdown-wrapper" style={{ zIndex: showDestDropdown ? 200 : undefined }}>
-                                <button type="button" className="dropdown-button"
-                                    onClick={(e) => { e.stopPropagation(); setShowDestDropdown(!showDestDropdown); setShowSourceDropdown(false); setShowVehicleDropdown(false); setShowDriverDropdown(false); }}>
-                                    <span style={{ flex: 1, textAlign: 'left' }}>{selectedDest ? selectedDest.name : 'Choose destination...'}</span>
-                                    {selectedDest && <span role="button" style={{ flex: 'none', lineHeight: 1, padding: '0 4px', color: '#94a3b8', fontSize: 16 }} onClick={(e) => { e.stopPropagation(); setSelectedDest(null); }}>×</span>}
-                                    <ChevronDown size={16} className={showDestDropdown ? 'rotated' : ''} />
-                                </button>
-                                {showDestDropdown && (
-                                    <div className="dropdown-menu">
-                                        <input type="text" placeholder="Search location..." className="dropdown-search" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                        <div className="dropdown-list">
-                                            {loadingLocations ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>Searching...</div>
-                                                : locationResults.length === 0 ? <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>No locations found</div>
-                                                : locationResults.map(l => {
-                                                    const takenAsSrc = selectedSource?.id === l._id;
-                                                    return (
-                                                        <button key={l._id} type="button"
-                                                            className={`dropdown-item ${selectedDest?.id === l._id ? 'selected' : ''}`}
-                                                            disabled={takenAsSrc}
-                                                            style={takenAsSrc ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-                                                            onClick={() => { if (!takenAsSrc) { setSelectedDest({ id: l._id, name: l.name }); setShowDestDropdown(false); } }}>
-                                                            <div className="item-main">{l.name}</div>
-                                                            <div className="item-sub">{[l.city, l.address].filter(Boolean).join(', ')}{takenAsSrc ? ' · selected as source' : ''}</div>
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <LocationAutocomplete
+                                value={selectedDest ? selectedDest.name : ''}
+                                onChange={() => {}}
+                                onLocationSelect={(loc) => setSelectedDest(loc ? { id: loc._id, name: loc.name } : null)}
+                                placeholder="Choose destination..."
+                                allowCustomText={false}
+                            />
                         </div>
                     </div>
 
