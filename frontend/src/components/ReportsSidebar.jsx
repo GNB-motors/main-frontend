@@ -6,7 +6,7 @@ import {
     BarChart3,
     User,
     TrendingUp,
-    FileText, // <-- Icon for Trip Report
+    FileText,
     Calendar,
     Truck,
     Gift,
@@ -16,8 +16,8 @@ import {
     ChevronUp,
     ChevronDown,
     AlertTriangle,
-    BookOpen, // <-- Icon for Trip Ledger
-    Fuel,     // <-- Icon for Fuel Comparison
+    BookOpen,
+    Fuel,
 } from 'lucide-react';
 import './ReportsSidebar.css';
 import { getThemeCSS } from '../utils/colorTheme';
@@ -52,9 +52,10 @@ const ReportsSidebar = ({
             name: 'FLEET REPORTS',
             icon: null,
             reports: [
-                { id: 'tripLedger', name: 'Trip Report', icon: BookOpen },
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
+                { id: 'modelComparison', name: 'Model Comparison', icon: BarChart3 },
+                { id: 'fuelBills', name: 'Fuel Bills', icon: Receipt },
             ]
         }
     ];
