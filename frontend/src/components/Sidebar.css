@@ -306,18 +306,19 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 0;
     opacity: 0;
-    gap: 4px;
-    padding-top: 4px;
+    gap: 6px;
+    padding-top: 6px;
 }
 
 .nav-children.open {
-    max-height: 200px;
+    max-height: 360px;
     opacity: 1;
 }
 
 .nav-child {
-    padding-left: 52px !important;
-    font-size: 13px;
+    padding: 11px 10px 11px 48px !important;
+    font-size: 14px;
+    line-height: 1.35;
 }
 
 .nav-child span {
@@ -390,7 +391,7 @@
     
     .sidebar:hover .nav-children.open {
         opacity: 1;
-        max-height: 200px;
+        max-height: 360px;
     }
     
     .sidebar .nav-child {

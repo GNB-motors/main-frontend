@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
 import { TripService, OCRService } from '../Trip/services';
+import LocationAutocomplete from '../../components/LocationAutocomplete/LocationAutocomplete';
 import './MileageTracking.css';
 
 /* ── UI Icons ── */
@@ -87,14 +88,21 @@ const MileageFuelLogPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [selectedDriver, setSelectedDriver] = useState(null);
+    const [selectedSource, setSelectedSource] = useState(null);
+    const [selectedDest, setSelectedDest] = useState(null);
     const [vehicleSearch, setVehicleSearch] = useState('');
     const [driverSearch, setDriverSearch] = useState('');
+    const [locationSearch, setLocationSearch] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
     const [showDriverDropdown, setShowDriverDropdown] = useState(false);
+    const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+    const [showDestDropdown, setShowDestDropdown] = useState(false);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
+    const [locationResults, setLocationResults] = useState([]);
     const [loadingVehicles, setLoadingVehicles] = useState(true);
     const [loadingDrivers, setLoadingDrivers] = useState(true);
+    const [loadingLocations, setLoadingLocations] = useState(false);
     const [lastOdometer, setLastOdometer] = useState(null);
     const [loadingLastOdometer, setLoadingLastOdometer] = useState(false);
     const [formData, setFormData] = useState({ fuelType: 'DIESEL', fillingType: 'PARTIAL', litres: '', rate: '', odometerReading: '', location: '' });
@@ -119,10 +127,22 @@ const MileageFuelLogPage = () => {
     }, [selectedVehicle]);
 
     useEffect(() => {
-        const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); };
+        const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); setShowSourceDropdown(false); setShowDestDropdown(false); };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            setLoadingLocations(true);
+            try {
+                const res = await apiClient.get('/api/locations', { params: { search: locationSearch, limit: 20 } });
+                setLocationResults(res.data?.results || []);
+            } catch { setLocationResults([]); }
+            finally { setLoadingLocations(false); }
+        }, locationSearch ? 300 : 0);
+        return () => clearTimeout(timer);
+    }, [locationSearch]);
 
     useEffect(() => {
         const fetchDeps = async () => {
@@ -226,6 +246,8 @@ const MileageFuelLogPage = () => {
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
                 odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
                 location: formData.location ? formData.location : undefined,
+                ...(selectedSource && { routeSource: selectedSource.id }),
+                ...(selectedDest && { routeDestination: selectedDest.id }),
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })
             };
             await apiClient.post('/api/mileage/fuel-log', payload, { timeout: 60000 });
@@ -259,7 +281,7 @@ const MileageFuelLogPage = () => {
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Select Vehicle *</label>
-                            <div className="dropdown-wrapper">
+                            <div className="dropdown-wrapper" style={{ zIndex: showVehicleDropdown ? 200 : undefined }}>
                                 <button type="button" className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
                                     onClick={(e) => { e.stopPropagation(); setShowVehicleDropdown(!showVehicleDropdown); setShowDriverDropdown(false); }}>
                                     <span>{selectedVehicle ? selectedVehicle.name : (loadingVehicles ? 'Loading...' : 'Choose vehicle...')}</span>
@@ -288,7 +310,7 @@ const MileageFuelLogPage = () => {
                         </div>
                         <div className="mileage-form-group">
                             <label>Select Driver *</label>
-                            <div className="dropdown-wrapper">
+                            <div className="dropdown-wrapper" style={{ zIndex: showDriverDropdown ? 200 : undefined }}>
                                 <button type="button" className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
                                     onClick={(e) => { e.stopPropagation(); setShowDriverDropdown(!showDriverDropdown); setShowVehicleDropdown(false); }}>
                                     <span>{selectedDriver ? selectedDriver.name : (loadingDrivers ? 'Loading...' : 'Choose driver...')}</span>
@@ -307,6 +329,30 @@ const MileageFuelLogPage = () => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Source & Destination */}
+                    <div className="mileage-form-row">
+                        <div className="mileage-form-group">
+                            <label>Source Location</label>
+                            <LocationAutocomplete
+                                value={selectedSource ? selectedSource.name : ''}
+                                onChange={() => {}}
+                                onLocationSelect={(loc) => setSelectedSource(loc ? { id: loc._id, name: loc.name } : null)}
+                                placeholder="Choose source..."
+                                allowCustomText={false}
+                            />
+                        </div>
+                        <div className="mileage-form-group">
+                            <label>Destination Location</label>
+                            <LocationAutocomplete
+                                value={selectedDest ? selectedDest.name : ''}
+                                onChange={() => {}}
+                                onLocationSelect={(loc) => setSelectedDest(loc ? { id: loc._id, name: loc.name } : null)}
+                                placeholder="Choose destination..."
+                                allowCustomText={false}
+                            />
                         </div>
                     </div>
 
@@ -349,7 +395,7 @@ const MileageFuelLogPage = () => {
                         </div>
                         )}
                         <div className="mileage-form-group">
-                            <label>Location</label>
+                            <label>Pump Location</label>
                             <input type="text" placeholder="E.g. Reliance Pump" name="location" value={formData.location} onChange={handleFormChange} />
                         </div>
                     </div>

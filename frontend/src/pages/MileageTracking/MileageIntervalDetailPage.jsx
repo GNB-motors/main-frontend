@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import {
   ArrowLeft, Gauge, Satellite, AlertTriangle, CheckCircle2,
   Fuel, Activity, Clock, Droplets, MapPin,
-  Minus, XCircle, Info,
+  Minus, XCircle, Info, IndianRupee,
 } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
@@ -111,9 +111,12 @@ const TimelineEntry = ({ log, label, type, isLast }) => {
         <div className="mid2-tl-label" style={{ color: labelColor }}>{label.toUpperCase()}</div>
         <div className="mid2-tl-details">
           <span className="mid2-tl-item"><Fuel size={13} /> {fmt(log.litres, 2, 'L')}</span>
+          {log.rate != null && <span className="mid2-tl-item"><IndianRupee size={13} /> {log.rate}/L{log.totalAmount != null ? ` = ₹${log.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : ''}</span>}
           <span className="mid2-tl-item"><Gauge size={13} /> {log.odometerReading ? `${log.odometerReading.toLocaleString()} km` : '—'}</span>
           <span className="mid2-tl-item"><Clock size={13} /> {fmtDate(log.refuelTime)}</span>
           {log.location && <span className="mid2-tl-item"><MapPin size={13} /> {log.location}</span>}
+          {log.routeSource && <span className="mid2-tl-item"><MapPin size={13} /> From: {log.routeSource.name}{log.routeSource.city ? `, ${log.routeSource.city}` : ''}</span>}
+          {log.routeDestination && <span className="mid2-tl-item"><MapPin size={13} /> To: {log.routeDestination.name}{log.routeDestination.city ? `, ${log.routeDestination.city}` : ''}</span>}
         </div>
       </div>
     </div>
@@ -184,6 +187,15 @@ const MileageIntervalDetailPage = () => {
   });
   if (interval.endFuelLogId) fuelEntries.push({ log: interval.endFuelLogId, label: 'Full Tank (End)', type: 'end' });
 
+  // Compute total fuel cost: end fill + all partial fills (start fill belongs to the previous interval)
+  const endCost = interval.endFuelLogId?.totalAmount || 0;
+  const partialCost = (interval.partialFuelLogIds || []).reduce((sum, log) => sum + (log?.totalAmount || 0), 0);
+  const fuelCost = endCost + partialCost || null;
+
+  const routeFuelLog = interval.endFuelLogId || interval.startFuelLogId;
+  const routeSource = routeFuelLog?.routeSource;
+  const routeDestination = routeFuelLog?.routeDestination;
+
   return (
     <div className="mid2-page">
 
@@ -250,6 +262,9 @@ const MileageIntervalDetailPage = () => {
               <MetricRow label="End Odometer" value={interval.endOdometer != null ? `${interval.endOdometer.toLocaleString()} km` : '—'} />
               <MetricRow label="Distance" value={fmt(interval.distanceKm, 1, 'km')} />
               <MetricRow label="Fuel Consumed" value={fmt(interval.fuelConsumedLiters, 2, 'L')} />
+              <MetricRow label="Fuel Cost" value={fuelCost ? `₹${fuelCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'} />
+              {routeSource && <MetricRow label="Route From" value={`${routeSource.name}${routeSource.city ? `, ${routeSource.city}` : ''}`} />}
+              {routeDestination && <MetricRow label="Route To" value={`${routeDestination.name}${routeDestination.city ? `, ${routeDestination.city}` : ''}`} />}
               <MetricRow label="Mileage" value={fmt(interval.mileageKmPerL, 2, 'km/L')} highlight />
               <MetricRow label="Period Start" value={fmtDate(interval.startDate)} />
               <MetricRow label="Period End" value={fmtDate(interval.endDate)} />

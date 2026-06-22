@@ -97,13 +97,13 @@ const LocationPage = () => {
         <div className="location-page">
             {/* Header */}
             <div className="location-header">
-                <h1>Locations Management</h1>
+                <h1>Pump Location Management</h1>
                 <button
                     className="btn btn-primary"
                     onClick={() => navigate('/locations/add')}
                 >
                     <Plus size={18} />
-                    Add Location
+                    Add Pump Location
                 </button>
             </div>
 
@@ -112,7 +112,7 @@ const LocationPage = () => {
                 <Search size={18} className="search-icon" />
                 <input
                     type="text"
-                    placeholder="Search locations by name, city..."
+                    placeholder="Search pump locations by name, city..."
                     value={searchTerm}
                     onChange={handleSearch}
                     className="search-input"
@@ -126,9 +126,9 @@ const LocationPage = () => {
                 ) : locations.length === 0 ? (
                     <div className="empty-state">
                         <MapPin size={48} />
-                        <p>No locations found</p>
+                        <p>No pump locations found</p>
                         <button className="btn btn-primary" onClick={() => navigate('/locations/add')}>
-                            Create your first location
+                            Create your first pump location
                         </button>
                     </div>
                 ) : (
@@ -136,10 +136,9 @@ const LocationPage = () => {
                         <table className="location-table">
                             <thead>
                                 <tr>
-                                    <th style={{ width: '20%' }}>Name</th>
-                                    <th style={{ width: '10%' }}>Type</th>
+                                    <th style={{ width: '25%' }}>Name</th>
                                     <th style={{ width: '10%' }}>Pincode</th>
-                                    <th style={{ width: '50%' }}>Address</th>
+                                    <th style={{ width: '55%' }}>Address</th>
                                     <th style={{ textAlign: 'right', width: '10%' }}>Actions</th>
                                 </tr>
                             </thead>
@@ -147,11 +146,6 @@ const LocationPage = () => {
                                 {locations.map(loc => (
                                     <tr key={loc._id || loc.id}>
                                         <td className="location-name-cell">{loc.name}</td>
-                                        <td className="location-type-cell">
-                                            <span className={`type-badge ${loc.type ? loc.type.toLowerCase() : ''}`}>
-                                                {loc.type}
-                                            </span>
-                                        </td>
                                         <td className="location-pincode-cell">
                                             {loc.pincode || '-'}
                                         </td>
@@ -167,14 +161,14 @@ const LocationPage = () => {
                                             <button
                                                 className="btn-icon edit"
                                                 onClick={() => openEditPage(loc)}
-                                                title="Edit location"
+                                                title="Edit pump location"
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
                                                 className="btn-icon delete"
                                                 onClick={() => openDeleteModal(loc)}
-                                                title="Delete location"
+                                                title="Delete pump location"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -211,7 +205,7 @@ const LocationPage = () => {
                 <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
                     <div className="delete-modal-container" onClick={e => e.stopPropagation()}>
                         <div className="delete-modal-header">
-                            <h2>Delete Location</h2>
+                            <h2>Delete Pump Location</h2>
                         </div>
 
                         <div className="delete-modal-content">
@@ -233,7 +227,7 @@ const LocationPage = () => {
                                 Cancel
                             </button>
                             <button className="btn btn-danger" onClick={handleDeleteLocation}>
-                                Delete Location
+                                Delete Pump Location
                             </button>
                         </div>
                     </div>
