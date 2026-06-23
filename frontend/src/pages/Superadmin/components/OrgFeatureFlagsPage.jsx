@@ -1,24 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  CircularProgress,
-  Alert,
-  Chip,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
-import { Search as SearchIcon, Business as BusinessIcon } from '@mui/icons-material';
+import { Search, Building2, ChevronRight, Inbox } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
+import './FeatureFlags.css';
 
 const OrgFeatureFlagsPage = () => {
   const navigate = useNavigate();
@@ -65,110 +50,119 @@ const OrgFeatureFlagsPage = () => {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <Box sx={{ '& .page-header-container': { maxWidth: 'none', mx: 0 } }}>
-        <PageHeader
-          backLabel="Dashboard"
-          backPath="/superadmin"
-          currentLabel="Feature Flags"
-          title="Feature Flags"
-          description="Pick an organization to manage its enabled sidebar features."
-        />
-      </Box>
+    <div className="ff-page">
+      <PageHeader
+        backLabel="Dashboard"
+        backPath="/superadmin"
+        currentLabel="Feature Flags"
+        title="Feature Flags"
+        description="Pick an organization to manage its enabled sidebar features."
+      />
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <TextField
-          size="small"
-          placeholder="Search by name, email, GSTIN"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          sx={{
-            width: 320,
-            '& .MuiOutlinedInput-root': {
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 14,
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
+      <div className="ff-toolbar">
+        <span className="ff-meta">
+          {loading ? 'Loading…' : <><strong>{filtered.length}</strong> organization{filtered.length === 1 ? '' : 's'}</>}
+        </span>
+        <div className="ff-search">
+          <span className="ff-search__icon">
+            <Search size={16} />
+          </span>
+          <input
+            type="text"
+            placeholder="Search by name, email, GSTIN"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      </div>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <div className="ff-alert ff-alert--error" role="alert">
+          {error}
+        </div>
+      )}
 
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{
-          borderColor: '#E5E5E7',
-          borderRadius: 2,
-          fontFamily: 'Inter, sans-serif',
-        }}
-      >
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: 'grey.50' }}>
-              <TableCell sx={{ fontWeight: 600 }}>Organization</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Owner Email</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>GSTIN</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Onboarded</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="center">Enabled Features</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                  <CircularProgress size={28} />
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                  No organizations found.
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && filtered.map((org) => (
-              <TableRow
-                key={org._id}
-                hover
-                onClick={() => navigate(`/superadmin/feature-flags/${org._id}`)}
-                sx={{ cursor: 'pointer' }}
-              >
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <BusinessIcon fontSize="small" color="action" />
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {org.companyName || '(unnamed)'}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>{org.ownerEmail || '—'}</TableCell>
-                <TableCell>{org.gstin || '—'}</TableCell>
-                <TableCell>
-                  <Chip
-                    size="small"
-                    label={org.isOnboarded ? 'Yes' : 'No'}
-                    color={org.isOnboarded ? 'success' : 'default'}
-                    variant={org.isOnboarded ? 'filled' : 'outlined'}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Chip size="small" label={flagCount(org)} variant="outlined" />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+      <div className="ff-card">
+        <div className="ff-table-wrap">
+          <table className="ff-table">
+            <thead>
+              <tr>
+                <th>Organization</th>
+                <th>Owner Email</th>
+                <th>GSTIN</th>
+                <th className="ff-center">Onboarded</th>
+                <th className="ff-center">Enabled Features</th>
+                <th aria-label="Open" />
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="ff-state">
+                      <div className="ff-spinner" />
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="ff-state">
+                      <div className="ff-state__icon">
+                        <Inbox size={22} />
+                      </div>
+                      <div className="ff-state__title">No organizations found</div>
+                      <div>Try adjusting your search.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                filtered.map((org) => (
+                  <tr
+                    key={org._id}
+                    className="ff-clickable"
+                    onClick={() => navigate(`/superadmin/feature-flags/${org._id}`)}
+                  >
+                    <td>
+                      <div className="ff-org">
+                        <span className="ff-org__avatar">
+                          <Building2 size={18} />
+                        </span>
+                        <span className="ff-org__name">
+                          {org.companyName || '(unnamed)'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="ff-muted">{org.ownerEmail || '—'}</td>
+                    <td className="ff-muted">{org.gstin || '—'}</td>
+                    <td className="ff-center">
+                      {org.isOnboarded ? (
+                        <span className="ff-badge ff-badge--success">
+                          <span className="ff-badge__dot" /> Yes
+                        </span>
+                      ) : (
+                        <span className="ff-badge ff-badge--neutral">No</span>
+                      )}
+                    </td>
+                    <td className="ff-center">
+                      <span className="ff-badge ff-badge--brand">{flagCount(org)}</span>
+                    </td>
+                    <td className="ff-right">
+                      <span className="ff-chevron">
+                        <ChevronRight size={18} />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 };
 

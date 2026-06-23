@@ -1,0 +1,622 @@
+/* ─────────────────────────────────────────────────────────
+   FeatureFlags.css
+   Shared styling for the super-admin Feature Flags pages.
+
+   Brings these pages in line with the rest of the app's design
+   language: indigo brand (--primary-color #4f46e5), Inter
+   typography, soft card shadows, the custom toggle, and the
+   modal pattern used elsewhere (cf. RouteFormModal.css).
+
+   Every selector is namespaced with `ff-` so nothing leaks.
+   ───────────────────────────────────────────────────────── */
+
+.ff-page {
+  --ff-primary: var(--primary-color, #4f46e5);
+  --ff-primary-dark: var(--primary-dark, #4338ca);
+  --ff-primary-light: var(--primary-light, #eef2ff);
+  --ff-border: #e5e7eb;
+  --ff-text: #111827;
+  --ff-text-secondary: #6b7280;
+  --ff-bg-subtle: #f9fafb;
+
+  font-family: 'Inter', sans-serif;
+  padding: 32px 24px 64px;
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+  color: var(--ff-text);
+  box-sizing: border-box;
+}
+
+.ff-page * {
+  box-sizing: border-box;
+}
+
+/* Keep the shared PageHeader aligned to the page (it self-centres) */
+.ff-page .page-header-container {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────── */
+.ff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 4px 0 20px;
+}
+
+.ff-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ff-meta {
+  font-size: 13px;
+  color: var(--ff-text-secondary);
+  font-weight: 500;
+}
+
+.ff-meta strong {
+  color: var(--ff-text);
+  font-weight: 600;
+}
+
+/* ── Search ──────────────────────────────────────────────── */
+.ff-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ff-search__icon {
+  position: absolute;
+  left: 12px;
+  color: #9ca3af;
+  pointer-events: none;
+  display: flex;
+}
+
+.ff-search input {
+  width: 320px;
+  max-width: 100%;
+  height: 40px;
+  padding: 0 14px 0 38px;
+  border: 1px solid var(--ff-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ff-text);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ff-search input::placeholder {
+  color: #9ca3af;
+}
+
+.ff-search input:focus {
+  outline: none;
+  border-color: var(--ff-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff-primary) 14%, transparent);
+}
+
+/* ── Card + table ────────────────────────────────────────── */
+.ff-card {
+  background: #fff;
+  border: 1px solid var(--ff-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.ff-table-wrap {
+  overflow-x: auto;
+}
+
+.ff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.ff-table thead th {
+  text-align: left;
+  padding: 14px 20px;
+  background: var(--ff-bg-subtle);
+  border-bottom: 1px solid var(--ff-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ff-text-secondary);
+  white-space: nowrap;
+}
+
+.ff-table thead th.ff-center { text-align: center; }
+.ff-table thead th.ff-right  { text-align: right; }
+
+.ff-table tbody td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f2f4;
+  color: var(--ff-text);
+  vertical-align: middle;
+}
+
+.ff-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ff-table td.ff-center { text-align: center; }
+.ff-table td.ff-right  { text-align: right; }
+
+.ff-table tbody tr.ff-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.ff-table tbody tr.ff-clickable:hover {
+  background: var(--ff-primary-light);
+}
+
+.ff-muted {
+  color: var(--ff-text-secondary);
+}
+
+.ff-mono {
+  font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  font-size: 12.5px;
+  color: var(--ff-text-secondary);
+}
+
+/* Org name cell with avatar */
+.ff-org {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ff-org__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--ff-primary-light);
+  color: var(--ff-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ff-org__name {
+  font-weight: 600;
+  color: var(--ff-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Feature label cell */
+.ff-feature__label {
+  font-weight: 600;
+  color: var(--ff-text);
+}
+
+.ff-chevron {
+  color: #c4c7cf;
+  display: inline-flex;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.ff-clickable:hover .ff-chevron {
+  color: var(--ff-primary);
+  transform: translateX(2px);
+}
+
+/* ── Badges ──────────────────────────────────────────────── */
+.ff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ff-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ff-badge--success {
+  background: #e7f8f0;
+  color: #0f9d58;
+}
+
+.ff-badge--neutral {
+  background: #f1f2f4;
+  color: #6b7280;
+}
+
+.ff-badge--brand {
+  background: var(--ff-primary-light);
+  color: var(--ff-primary);
+}
+
+.ff-badge--outline {
+  background: #fff;
+  border: 1px solid var(--ff-border);
+  color: var(--ff-text-secondary);
+}
+
+/* ── Toggle switch ───────────────────────────────────────── */
+.ff-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: #d1d5db;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+  vertical-align: middle;
+}
+
+.ff-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ff-switch[aria-checked='true'] {
+  background: var(--ff-primary);
+}
+
+.ff-switch[aria-checked='true'] .ff-switch__thumb {
+  transform: translateX(18px);
+}
+
+.ff-switch:focus-visible {
+  outline: 2px solid var(--ff-primary);
+  outline-offset: 2px;
+}
+
+.ff-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.ff-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease, color 0.18s ease;
+  white-space: nowrap;
+}
+
+.ff-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ff-btn--primary {
+  background: var(--ff-primary);
+  color: #fff;
+}
+
+.ff-btn--primary:not(:disabled):hover {
+  background: var(--ff-primary-dark);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ff-primary) 28%, transparent);
+}
+
+.ff-btn--secondary {
+  background: #fff;
+  color: var(--ff-text);
+  border-color: var(--ff-border);
+}
+
+.ff-btn--secondary:not(:disabled):hover {
+  background: #f9fafb;
+  border-color: #cbd0d8;
+}
+
+.ff-btn--outline-brand {
+  background: #fff;
+  color: var(--ff-primary);
+  border-color: color-mix(in srgb, var(--ff-primary) 40%, #fff);
+}
+
+.ff-btn--outline-brand:not(:disabled):hover {
+  background: var(--ff-primary-light);
+  border-color: var(--ff-primary);
+}
+
+.ff-btn--ghost {
+  background: transparent;
+  color: var(--ff-text-secondary);
+}
+
+.ff-btn--ghost:not(:disabled):hover {
+  background: #f1f2f4;
+  color: var(--ff-text);
+}
+
+/* Icon-only button (row actions, modal close) */
+.ff-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ff-icon-btn:hover {
+  background: #f1f2f4;
+  color: var(--ff-text);
+}
+
+.ff-icon-btn--danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ── States: alert, empty, loading ───────────────────────── */
+.ff-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.ff-alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.ff-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--ff-text-secondary);
+  text-align: center;
+}
+
+.ff-state__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--ff-bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c4c7cf;
+}
+
+.ff-state__title {
+  font-weight: 600;
+  color: var(--ff-text);
+  font-size: 15px;
+}
+
+.ff-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid #e5e7eb;
+  border-top-color: var(--ff-primary);
+  animation: ff-spin 0.7s linear infinite;
+}
+
+@keyframes ff-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Modal (matches the app's custom modal pattern) ──────── */
+.ff-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1300;
+  padding: 16px;
+  animation: ff-fade-in 0.18s ease;
+}
+
+@keyframes ff-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ff-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', sans-serif;
+  animation: ff-slide-up 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes ff-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ff-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 16px;
+}
+
+.ff-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ff-text);
+}
+
+.ff-modal__subtitle {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ff-text-secondary);
+}
+
+.ff-modal__body {
+  padding: 4px 24px 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ff-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 24px 22px;
+}
+
+/* Form fields inside modal */
+.ff-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ff-field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ff-text);
+}
+
+.ff-input,
+.ff-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ff-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ff-text);
+  background: #fff;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ff-textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.ff-input:focus,
+.ff-textarea:focus {
+  outline: none;
+  border-color: var(--ff-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff-primary) 14%, transparent);
+}
+
+.ff-input.ff-mono {
+  font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  font-size: 13px;
+  color: var(--ff-text);
+}
+
+.ff-field__help {
+  font-size: 12px;
+  color: var(--ff-text-secondary);
+}
+
+/* Confirm-modal accent (destructive) */
+.ff-confirm__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ff-btn--danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.ff-btn--danger:not(:disabled):hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ff-page {
+    padding: 20px 14px 48px;
+  }
+
+  .ff-search input {
+    width: 100%;
+  }
+
+  .ff-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ff-table thead th,
+  .ff-table tbody td {
+    padding: 12px 14px;
+  }
+}

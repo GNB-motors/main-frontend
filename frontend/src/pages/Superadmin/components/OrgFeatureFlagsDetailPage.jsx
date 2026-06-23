@@ -1,37 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  Switch,
-  Button,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import {
-  Save as SaveIcon,
-  RestartAlt as ResetIcon,
-  Add as AddIcon,
-  DeleteOutline as DeleteIcon,
-} from '@mui/icons-material';
+  Save,
+  RotateCcw,
+  Plus,
+  Trash2,
+  X,
+  AlertTriangle,
+  ToggleRight,
+} from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
+import './FeatureFlags.css';
 
 const FEATURE_LABELS = {
   overview: 'Overview',
@@ -43,6 +24,21 @@ const FEATURE_LABELS = {
   fuelComparison: 'Fuel Comparison',
   khataLedger: 'Khata Ledger',
 };
+
+/* Accessible pill toggle that matches the app's indigo brand. */
+const Toggle = ({ checked, onChange, disabled = false, label }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    disabled={disabled}
+    className="ff-switch"
+    onClick={onChange}
+  >
+    <span className="ff-switch__thumb" />
+  </button>
+);
 
 const OrgFeatureFlagsDetailPage = () => {
   const navigate = useNavigate();
@@ -56,15 +52,18 @@ const OrgFeatureFlagsDetailPage = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState('');
 
-  // "+ New" modal state
+  // "+ New flag" modal state
   const [addOpen, setAddOpen] = useState(false);
   const [newKey, setNewKey] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [addError, setAddError] = useState('');
   const [adding, setAdding] = useState(false);
+
+  // Remove-flag confirm state
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
@@ -110,6 +109,8 @@ const OrgFeatureFlagsDetailPage = () => {
     (k) => (flags?.[k] === true) !== (original?.[k] === true),
   );
 
+  const enabledCount = knownKeys.filter((k) => flags?.[k] === true).length;
+
   const save = async () => {
     setSaving(true);
     setError('');
@@ -122,9 +123,11 @@ const OrgFeatureFlagsDetailPage = () => {
       const next = res.data?.data?.flags || features;
       setFlags(next);
       setOriginal(next);
-      setToast('Saved');
+      toast.success('Feature flags saved');
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to save');
+      const msg = e.response?.data?.message || 'Failed to save';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -160,7 +163,7 @@ const OrgFeatureFlagsDetailPage = () => {
         description: newDescription.trim(),
       });
       setAddOpen(false);
-      setToast(`Registered "${trimmedKey}"`);
+      toast.success(`Registered "${trimmedKey}"`);
       await load();
     } catch (e) {
       setAddError(e.response?.data?.message || 'Failed to register key');
@@ -169,21 +172,25 @@ const OrgFeatureFlagsDetailPage = () => {
     }
   };
 
-  const removeKey = async (key) => {
-    if (!window.confirm(`Remove "${key}" from registry? Orgs keep stored value but it stops appearing here.`)) {
-      return;
-    }
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
     try {
-      await apiClient.delete(`/api/feature-flags/registry/${encodeURIComponent(key)}`);
-      setToast(`Removed "${key}"`);
+      await apiClient.delete(
+        `/api/feature-flags/registry/${encodeURIComponent(removeTarget)}`,
+      );
+      toast.success(`Removed "${removeTarget}"`);
+      setRemoveTarget(null);
       await load();
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to remove');
+      toast.error(e.response?.data?.message || 'Failed to remove');
+    } finally {
+      setRemoving(false);
     }
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 900, mx: 'auto' }}>
+    <div className="ff-page">
       <PageHeader
         backLabel="Organizations"
         backPath="/superadmin/feature-flags"
@@ -192,222 +199,300 @@ const OrgFeatureFlagsDetailPage = () => {
         description="Toggle which sidebar features this organization can access."
       />
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
-        <Button
-          variant="outlined"
-          startIcon={<AddIcon />}
-          onClick={openAdd}
-          sx={{
-            textTransform: 'none',
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 500,
-            borderColor: 'var(--primary-color, #4f46e5)',
-            color: 'var(--primary-color, #4f46e5)',
-            '&:hover': {
-              borderColor: 'var(--primary-dark, #4338ca)',
-              background: 'rgba(79, 70, 229, 0.04)',
-            },
-          }}
-        >
-          New flag
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<ResetIcon />}
-          onClick={reset}
-          disabled={!dirty || saving}
-          sx={{
-            textTransform: 'none',
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 500,
-            borderColor: '#D3D3D5',
-            color: '#121214',
-            '&:hover': { borderColor: '#a0a0a0', background: '#f5f5f5' },
-          }}
-        >
-          Reset
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={save}
-          disabled={!dirty || saving}
-          sx={{
-            textTransform: 'none',
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 500,
-            background: 'var(--primary-color, #4f46e5)',
-            '&:hover': { background: 'var(--primary-dark, #4338ca)' },
-          }}
-        >
-          {saving ? 'Saving…' : 'Save changes'}
-        </Button>
-      </Box>
-
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{
-          borderColor: '#E5E5E7',
-          borderRadius: 2,
-          fontFamily: 'Inter, sans-serif',
-        }}
-      >
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: 'grey.50' }}>
-              <TableCell sx={{ fontWeight: 600 }}>Feature</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Key</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="center">Source</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="center">Status</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="right">Enabled</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="right" />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <CircularProgress size={28} />
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && knownKeys.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                  No known feature keys.
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && knownKeys.map((key) => {
-              const enabled = flags?.[key] === true;
-              const isDynamic = registryKeys.has(key);
-              return (
-                <TableRow key={key} hover>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {FEATURE_LABELS[key] || key}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-                      {key}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      size="small"
-                      label={isDynamic ? 'Custom' : 'Built-in'}
-                      variant="outlined"
-                      sx={{ fontFamily: 'Inter, sans-serif' }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      size="small"
-                      label={enabled ? 'Enabled' : 'Denied'}
-                      color={enabled ? 'success' : 'default'}
-                      variant={enabled ? 'filled' : 'outlined'}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Switch
-                      checked={enabled}
-                      onChange={() => toggle(key)}
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: 'var(--primary-color, #4f46e5)',
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: 'var(--primary-color, #4f46e5)',
-                        },
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell align="right" sx={{ width: 56 }}>
-                    {isDynamic ? (
-                      <Tooltip title="Remove from registry">
-                        <IconButton size="small" onClick={() => removeKey(key)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-          Register a new feature flag
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-            New flags are globally available to all orgs after registration.
-            Each org starts as denied — flip the toggle to enable.
-          </Typography>
-          {addError && <Alert severity="error" sx={{ mb: 2 }}>{addError}</Alert>}
-          <TextField
-            label="Key (slug)"
-            fullWidth
-            margin="dense"
-            value={newKey}
-            onChange={(e) => setNewKey(e.target.value)}
-            placeholder="e.g. inventoryTracker"
-            helperText="Start with a letter. Letters, digits, _, - only. Max 64 chars."
-            inputProps={{ maxLength: 64 }}
-          />
-          <TextField
-            label="Display label"
-            fullWidth
-            margin="dense"
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            placeholder="e.g. Inventory Tracker"
-            inputProps={{ maxLength: 120 }}
-          />
-          <TextField
-            label="Description (optional)"
-            fullWidth
-            margin="dense"
-            multiline
-            minRows={2}
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-            inputProps={{ maxLength: 500 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddOpen(false)} disabled={adding} sx={{ textTransform: 'none' }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={submitAdd}
-            disabled={adding}
-            variant="contained"
-            sx={{
-              textTransform: 'none',
-              background: 'var(--primary-color, #4f46e5)',
-              '&:hover': { background: 'var(--primary-dark, #4338ca)' },
-            }}
+      <div className="ff-toolbar">
+        <span className="ff-meta">
+          {loading ? (
+            'Loading…'
+          ) : (
+            <>
+              <strong>{enabledCount}</strong> of <strong>{knownKeys.length}</strong> features enabled
+              {dirty && <span className="ff-badge ff-badge--brand" style={{ marginLeft: 10 }}>Unsaved changes</span>}
+            </>
+          )}
+        </span>
+        <div className="ff-toolbar__actions">
+          <button type="button" className="ff-btn ff-btn--outline-brand" onClick={openAdd}>
+            <Plus size={16} /> New flag
+          </button>
+          <button
+            type="button"
+            className="ff-btn ff-btn--secondary"
+            onClick={reset}
+            disabled={!dirty || saving}
           >
-            {adding ? 'Registering…' : 'Register'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <RotateCcw size={16} /> Reset
+          </button>
+          <button
+            type="button"
+            className="ff-btn ff-btn--primary"
+            onClick={save}
+            disabled={!dirty || saving}
+          >
+            <Save size={16} /> {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </div>
 
-      <Snackbar
-        open={!!toast}
-        autoHideDuration={2500}
-        onClose={() => setToast('')}
-        message={toast}
-      />
-    </Box>
+      {error && (
+        <div className="ff-alert ff-alert--error" role="alert">
+          {error}
+        </div>
+      )}
+
+      <div className="ff-card">
+        <div className="ff-table-wrap">
+          <table className="ff-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Key</th>
+                <th className="ff-center">Source</th>
+                <th className="ff-center">Status</th>
+                <th className="ff-center">Enabled</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="ff-state">
+                      <div className="ff-spinner" />
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && knownKeys.length === 0 && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="ff-state">
+                      <div className="ff-state__icon">
+                        <ToggleRight size={22} />
+                      </div>
+                      <div className="ff-state__title">No feature keys yet</div>
+                      <div>Register one with “New flag” to get started.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                knownKeys.map((key) => {
+                  const enabled = flags?.[key] === true;
+                  const isDynamic = registryKeys.has(key);
+                  return (
+                    <tr key={key}>
+                      <td>
+                        <span className="ff-feature__label">
+                          {FEATURE_LABELS[key] || key}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="ff-mono">{key}</span>
+                      </td>
+                      <td className="ff-center">
+                        <span className="ff-badge ff-badge--outline">
+                          {isDynamic ? 'Custom' : 'Built-in'}
+                        </span>
+                      </td>
+                      <td className="ff-center">
+                        {enabled ? (
+                          <span className="ff-badge ff-badge--success">
+                            <span className="ff-badge__dot" /> Enabled
+                          </span>
+                        ) : (
+                          <span className="ff-badge ff-badge--neutral">Denied</span>
+                        )}
+                      </td>
+                      <td className="ff-center">
+                        <Toggle
+                          checked={enabled}
+                          onChange={() => toggle(key)}
+                          label={`Toggle ${FEATURE_LABELS[key] || key}`}
+                        />
+                      </td>
+                      <td className="ff-right" style={{ width: 56 }}>
+                        {isDynamic && (
+                          <button
+                            type="button"
+                            className="ff-icon-btn ff-icon-btn--danger"
+                            title="Remove from registry"
+                            onClick={() => setRemoveTarget(key)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Register new flag modal */}
+      {addOpen && (
+        <div
+          className="ff-modal-overlay"
+          onClick={() => !adding && setAddOpen(false)}
+        >
+          <div
+            className="ff-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ff-add-title"
+          >
+            <div className="ff-modal__header">
+              <div>
+                <h2 className="ff-modal__title" id="ff-add-title">
+                  Register a new feature flag
+                </h2>
+                <p className="ff-modal__subtitle">
+                  New flags become available to all organizations. Each one starts
+                  denied — flip the toggle to enable it.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ff-icon-btn"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ff-modal__body">
+              {addError && (
+                <div className="ff-alert ff-alert--error" role="alert">
+                  {addError}
+                </div>
+              )}
+
+              <div className="ff-field">
+                <label className="ff-field__label" htmlFor="ff-new-key">
+                  Key (slug)
+                </label>
+                <input
+                  id="ff-new-key"
+                  className="ff-input ff-mono"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  placeholder="e.g. inventoryTracker"
+                  maxLength={64}
+                  autoFocus
+                />
+                <span className="ff-field__help">
+                  Start with a letter. Letters, digits, _, - only. Max 64 chars.
+                </span>
+              </div>
+
+              <div className="ff-field">
+                <label className="ff-field__label" htmlFor="ff-new-label">
+                  Display label
+                </label>
+                <input
+                  id="ff-new-label"
+                  className="ff-input"
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  placeholder="e.g. Inventory Tracker"
+                  maxLength={120}
+                />
+              </div>
+
+              <div className="ff-field">
+                <label className="ff-field__label" htmlFor="ff-new-desc">
+                  Description <span className="ff-muted">(optional)</span>
+                </label>
+                <textarea
+                  id="ff-new-desc"
+                  className="ff-textarea"
+                  rows={2}
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  maxLength={500}
+                />
+              </div>
+            </div>
+
+            <div className="ff-modal__footer">
+              <button
+                type="button"
+                className="ff-btn ff-btn--ghost"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--primary"
+                onClick={submitAdd}
+                disabled={adding}
+              >
+                {adding ? 'Registering…' : 'Register'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove flag confirm modal */}
+      {removeTarget && (
+        <div
+          className="ff-modal-overlay"
+          onClick={() => !removing && setRemoveTarget(null)}
+        >
+          <div
+            className="ff-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ff-remove-title"
+          >
+            <div className="ff-modal__header">
+              <div style={{ display: 'flex', gap: 14 }}>
+                <span className="ff-confirm__icon">
+                  <AlertTriangle size={22} />
+                </span>
+                <div>
+                  <h2 className="ff-modal__title" id="ff-remove-title">
+                    Remove “{removeTarget}”?
+                  </h2>
+                  <p className="ff-modal__subtitle">
+                    It stops appearing here for all organizations. Each org keeps its
+                    stored value, so re-registering the key restores it.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="ff-modal__footer">
+              <button
+                type="button"
+                className="ff-btn ff-btn--ghost"
+                onClick={() => setRemoveTarget(null)}
+                disabled={removing}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--danger"
+                onClick={confirmRemove}
+                disabled={removing}
+              >
+                {removing ? 'Removing…' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
