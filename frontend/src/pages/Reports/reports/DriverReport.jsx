@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box, Alert
 } from '@mui/material';
+import dayjs from 'dayjs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Pagination, PaginationContent, PaginationEllipsis,
@@ -11,15 +12,24 @@ import TableShimmer from '@/components/ui/TableShimmer';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
+const COLUMN_COUNT = 9;
+
+const formatNumber = (value, digits = 0) =>
+    typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: digits }) : '-';
+
+const formatCurrency = (value) =>
+    typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-';
+
+const formatDate = (value) => (value ? dayjs(value).format('DD MMM YYYY') : '-');
+
 // --- **** DriverReport COMPONENT **** ---
-const DriverReport = ({ handleViewOutliers }) => {
+const DriverReport = () => {
     // State for fetched data, loading, and errors specific to this report
     const [driverReportData, setDriverReportData] = useState([]);
     const [isLoadingDrivers, setIsLoadingDrivers] = useState(true);
     const [driverError, setDriverError] = useState(null);
 
     // State for filters
-    const [searchText, setSearchText] = useState("");
     const [selectedEmployee, setSelectedEmployee] = useState('all');
     const [employeeOptions, setEmployeeOptions] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -59,110 +69,14 @@ const DriverReport = ({ handleViewOutliers }) => {
         fetchDriverReports();
     }, []);
 
-    // Define columns based on API response
-    const driverColumns = useMemo(() => [
-        { field: 'driverName', headerName: 'Driver Name', flex: 1.5 },
-        { field: 'mobileNumber', headerName: 'Mobile Number', flex: 1.2 },
-        { 
-            field: 'journeysCompleted', 
-            headerName: 'Journeys Completed', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right' 
-        },
-        {
-            field: 'totalWeightSlipTrips', 
-            headerName: 'Weight Slip Trips', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
-            headerAlign: 'right'
-        },
-        {
-            field: 'totalDistanceDrivenKm', 
-            headerName: 'Total Distance (KM)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '-'
-        },
-        {
-            field: 'averageTripDistance', 
-            headerName: 'Avg. Trip Distance (KM)', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: 1 }) : '-'
-        },
-        {
-            field: 'totalRevenue', 
-            headerName: 'Total Revenue', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'totalExpenses', 
-            headerName: 'Total Expenses', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'totalProfit', 
-            headerName: 'Total Profit', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'avgRevenuePerTrip', 
-            headerName: 'Avg Revenue/Trip', 
-            type: 'number', 
-            flex: 1.2, 
-            align: 'right', 
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
-        },
-        {
-            field: 'profitMargin',
-            headerName: 'Profit Margin (%)',
-            type: 'number',
-            flex: 1,
-            align: 'right',
-            headerAlign: 'right',
-            valueFormatter: (value) => typeof value === 'number' ? `${value.toFixed(2)}%` : 'N/A'
-        },
-    ], []);
-
-    // Client-side filtering based on search text and filters
+    // Client-side filtering by selected employee (driver name)
     const filteredRows = useMemo(() => {
         let rows = driverReportData;
-
-        // Filter by search text - updated to use driverName
-        if (searchText) {
-            const lowerSearchText = searchText.toLowerCase();
-            rows = rows.filter(row =>
-                row.driverName?.toLowerCase().includes(lowerSearchText)
-            );
-        }
-
-        // Filter by selected employee (driver name)
         if (selectedEmployee && selectedEmployee !== 'all') {
             rows = rows.filter(row => row.driverName === selectedEmployee);
         }
-
         return rows;
-    }, [driverReportData, searchText, selectedEmployee]);
+    }, [driverReportData, selectedEmployee]);
 
     // Pagination
     const totalPages = Math.ceil(filteredRows.length / itemsPerPage) || 1;
@@ -172,7 +86,7 @@ const DriverReport = ({ handleViewOutliers }) => {
     }, [filteredRows, currentPage, itemsPerPage]);
 
     // Reset page when filters change
-    useEffect(() => { setCurrentPage(1); }, [searchText, selectedEmployee]);
+    useEffect(() => { setCurrentPage(1); }, [selectedEmployee]);
 
     const renderPageItems = () => {
         const items = [];
@@ -186,59 +100,34 @@ const DriverReport = ({ handleViewOutliers }) => {
         return items;
     };
 
-    // Export to CSV function
-    const handleExportCSV = () => {
-        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)'];
-        const csvContent = [
+    const buildCsv = () => {
+        const headers = ['Driver Name', 'Mobile Number', 'Refuels', 'Total Distance (KM)', 'Diesel (L)', 'AdBlue (L)', 'Total Fuel Cost (₹)', 'Avg Mileage (km/L)', 'Last Refuel'];
+        return [
             headers.join(','),
             ...filteredRows.map(row => [
                 row.driverName || '-',
                 row.mobileNumber || '-',
-                row.journeysCompleted || '-',
-                row.totalWeightSlipTrips || '-',
-                typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
-                typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
-                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
-                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
-                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
-                typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
-                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
+                row.totalRefuels || 0,
+                typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
+                typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
+                typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
+                typeof row.totalFuelCost === 'number' ? row.totalFuelCost.toFixed(2) : '-',
+                typeof row.avgMileageKmPerL === 'number' ? row.avgMileageKmPerL.toFixed(2) : '-',
+                row.lastRefuelAt ? dayjs(row.lastRefuelAt).format('DD/MM/YYYY') : '-',
             ].join(','))
         ].join('\n');
+    };
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const downloadCsv = (extension, mimeType) => {
+        const blob = new Blob([buildCsv()], { type: mimeType });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.csv`;
+        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.${extension}`;
         link.click();
     };
 
-    // Export to Excel function
-    const handleExportExcel = () => {
-        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)'];
-        const csvContent = [
-            headers.join(','),
-            ...filteredRows.map(row => [
-                row.driverName || '-',
-                row.mobileNumber || '-',
-                row.journeysCompleted || '-',
-                row.totalWeightSlipTrips || '-',
-                typeof row.totalDistanceDrivenKm === 'number' ? row.totalDistanceDrivenKm.toFixed(0) : '-',
-                typeof row.averageTripDistance === 'number' ? row.averageTripDistance.toFixed(1) : '-',
-                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
-                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
-                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
-                typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
-                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
-            ].join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
-        link.click();
-    };
+    const handleExportCSV = () => downloadCsv('csv', 'text/csv;charset=utf-8;');
+    const handleExportExcel = () => downloadCsv('xlsx', 'application/vnd.ms-excel;charset=utf-8;');
 
     return (
         <Box sx={{ padding: '24px' }}>
@@ -247,7 +136,7 @@ const DriverReport = ({ handleViewOutliers }) => {
                 <div className="report-header-top">
                     <h3 className="report-title">Driver Report</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
+                        <button
                             onClick={handleExportCSV}
                             style={{
                                 width: '44px',
@@ -268,7 +157,7 @@ const DriverReport = ({ handleViewOutliers }) => {
                         >
                             <CsvIcon width={24} height={24} />
                         </button>
-                        <button 
+                        <button
                             onClick={handleExportExcel}
                             style={{
                                 width: '44px',
@@ -318,7 +207,7 @@ const DriverReport = ({ handleViewOutliers }) => {
             {/* Loading and Error States */}
             {isLoadingDrivers && (
                 <div className="report-content">
-                    <TableShimmer columns={13} rows={10} />
+                    <TableShimmer columns={COLUMN_COUNT} rows={10} />
                 </div>
             )}
             {driverError && !isLoadingDrivers && (
@@ -334,22 +223,20 @@ const DriverReport = ({ handleViewOutliers }) => {
                                 <tr className="table-header-row">
                                     <th>Driver Name</th>
                                     <th>Mobile Number</th>
-                                    <th>Journeys</th>
-                                    <th>WS Trips</th>
+                                    <th>Refuels</th>
                                     <th>Total Distance</th>
-                                    <th>Avg Distance</th>
-                                    <th>Revenue</th>
-                                    <th>Expenses</th>
-                                    <th>Profit</th>
-                                    <th>Avg Rev/Trip</th>
-                                    <th>Margin</th>
+                                    <th>Diesel (L)</th>
+                                    <th>AdBlue (L)</th>
+                                    <th>Fuel Cost</th>
+                                    <th>Avg Mileage</th>
+                                    <th>Last Refuel</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paginatedRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="driver-empty-state">
-                                            No driver summary data found.
+                                        <td colSpan={COLUMN_COUNT} className="driver-empty-state">
+                                            No driver fuel data found.
                                         </td>
                                     </tr>
                                 ) : (
@@ -362,59 +249,29 @@ const DriverReport = ({ handleViewOutliers }) => {
                                                 <div className="cell-primary">{row.mobileNumber || '-'}</div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{row.journeysCompleted || '-'}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{row.totalWeightSlipTrips || '-'}</div>
+                                                <div className="cell-primary">{row.totalRefuels || 0}</div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div className="cell-primary">
-                                                    {typeof row.totalDistanceDrivenKm === 'number'
-                                                        ? row.totalDistanceDrivenKm.toLocaleString('en-IN', { maximumFractionDigits: 0 })
-                                                        : '-'}
+                                                    {typeof row.totalDistanceKm === 'number' ? `${formatNumber(row.totalDistanceKm)} km` : '-'}
                                                 </div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.averageTripDistance === 'number'
-                                                        ? row.averageTripDistance.toLocaleString('en-IN', { maximumFractionDigits: 1 })
-                                                        : '-'}
-                                                </div>
+                                                <div className="cell-primary">{formatNumber(row.totalDieselLiters, 1)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatNumber(row.totalAdBlueLiters, 1)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatCurrency(row.totalFuelCost)}</div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div className="cell-primary">
-                                                    {typeof row.totalRevenue === 'number'
-                                                        ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
+                                                    {typeof row.avgMileageKmPerL === 'number' ? `${row.avgMileageKmPerL.toFixed(2)} km/L` : '-'}
                                                 </div>
                                             </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalExpenses === 'number'
-                                                        ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalProfit === 'number'
-                                                        ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.avgRevenuePerTrip === 'number'
-                                                        ? `₹${row.avgRevenuePerTrip.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.profitMargin === 'number'
-                                                        ? `${row.profitMargin.toFixed(1)}%`
-                                                        : 'N/A'}
-                                                </div>
+                                            <td>
+                                                <div className="cell-primary">{formatDate(row.lastRefuelAt)}</div>
                                             </td>
                                         </tr>
                                     ))
