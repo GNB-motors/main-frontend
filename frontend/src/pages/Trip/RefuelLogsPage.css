@@ -24,6 +24,13 @@
   gap: 12px;
 }
 
+.refuel-report-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
 .refuel-tab {
 
   color: #666666;
@@ -174,6 +181,12 @@
   overflow: hidden;
 }
 
+/* Single-fuel-type reports (Diesel / AdBlue) drop the Fuel Type column, so the
+   table needs less minimum width before it starts to scroll horizontally. */
+.refuel-table.refuel-table-single {
+  min-width: 820px;
+}
+
 .refuel-table thead {
   background: #f8f8fb;
 }
@@ -195,7 +208,7 @@
   font-size: 14px;
   color: #121214;
   border-bottom: 1px solid #f0f0f3;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .refuel-table tr:last-child td {
@@ -237,7 +250,9 @@
 }
 
 .refuel-empty-state {
-  padding: 60px 20px;
+  height: 60vh;
+  vertical-align: middle;
+  padding: 20px;
   text-align: center;
   font-size: 15px;
   color: #5d5d5e;
@@ -559,23 +574,25 @@
 }
 
 .refuel-pagination-btn {
-  padding: 6px;
-  border-radius: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
   outline: none;
-  border: none;
+  border: 1px solid #ececee;
   justify-content: center;
   align-items: center;
   display: flex;
-  background: transparent;
+  background: #ffffff;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .refuel-pagination-btn:first-child { margin-right: 8px; }
 .refuel-pagination-btn:last-child  { margin-left: 8px; }
 
-.refuel-pagination-btn:hover:not(:disabled) { opacity: 0.7; }
-.refuel-pagination-btn:disabled { cursor: not-allowed; opacity: 0.3; }
+.refuel-pagination-btn:hover:not(:disabled) { background: #f7f7f8; border-color: #d8d8db; }
+.refuel-pagination-btn:disabled { cursor: not-allowed; opacity: 0.4; }
 .refuel-pagination-btn svg { width: 12px; height: 12px; color: #121214; }
 
 .refuel-page-number {
@@ -608,13 +625,17 @@
 }
 
 .refuel-page-number-current {
-  background: white;
-  outline: 1px var(--primary-color, #4f46e5) solid;
-  outline-offset: -1px;
+  background: var(--primary-color, #4f46e5);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+}
+
+.refuel-page-number-current:hover {
+  background: var(--primary-color, #4f46e5);
 }
 
 .refuel-page-number-current span {
-  color: #121214;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .refuel-page-overflow {

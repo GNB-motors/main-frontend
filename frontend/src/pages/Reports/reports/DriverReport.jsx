@@ -134,33 +134,13 @@ const DriverReport = ({ handleViewOutliers }) => {
             valueFormatter: (value) => typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '-'
         },
         {
-            field: 'profitMargin', 
-            headerName: 'Profit Margin (%)', 
-            type: 'number', 
-            flex: 1, 
-            align: 'right', 
+            field: 'profitMargin',
+            headerName: 'Profit Margin (%)',
+            type: 'number',
+            flex: 1,
+            align: 'right',
             headerAlign: 'right',
             valueFormatter: (value) => typeof value === 'number' ? `${value.toFixed(2)}%` : 'N/A'
-        },
-        {
-            field: 'onTimeArrivalRate', 
-            headerName: 'On-Time Arrival', 
-            flex: 1.2, 
-            align: 'center', 
-            headerAlign: 'center',
-            valueFormatter: (value) => value || 'N/A'
-        },
-        {
-            field: 'documentsExpired', 
-            headerName: 'Docs Status', 
-            flex: 1, 
-            align: 'center', 
-            headerAlign: 'center',
-            renderCell: (params) => (
-                <Typography sx={{ color: params.value ? 'red' : 'green', fontWeight: 500 }}>
-                    {params.value ? 'Expired' : 'Valid'}
-                </Typography>
-            )
         },
     ], []);
 
@@ -208,7 +188,7 @@ const DriverReport = ({ handleViewOutliers }) => {
 
     // Export to CSV function
     const handleExportCSV = () => {
-        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)', 'On-Time Arrival', 'Docs Status'];
+        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)'];
         const csvContent = [
             headers.join(','),
             ...filteredRows.map(row => [
@@ -223,8 +203,6 @@ const DriverReport = ({ handleViewOutliers }) => {
                 typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
                 typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
                 typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
-                row.onTimeArrivalRate || 'N/A',
-                row.documentsExpired ? 'Expired' : 'Valid'
             ].join(','))
         ].join('\n');
 
@@ -237,9 +215,7 @@ const DriverReport = ({ handleViewOutliers }) => {
 
     // Export to Excel function
     const handleExportExcel = () => {
-        // For now, we'll use CSV format with .xlsx extension
-        // You can integrate a library like xlsx or exceljs for proper Excel format
-        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)', 'On-Time Arrival', 'Docs Status'];
+        const headers = ['Driver Name', 'Mobile Number', 'Journeys Completed', 'Weight Slip Trips', 'Total Distance (KM)', 'Avg. Trip Distance (KM)', 'Total Revenue', 'Total Expenses', 'Total Profit', 'Avg Revenue/Trip', 'Profit Margin (%)'];
         const csvContent = [
             headers.join(','),
             ...filteredRows.map(row => [
@@ -254,8 +230,6 @@ const DriverReport = ({ handleViewOutliers }) => {
                 typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
                 typeof row.avgRevenuePerTrip === 'number' ? row.avgRevenuePerTrip.toFixed(2) : '-',
                 typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-',
-                row.onTimeArrivalRate || 'N/A',
-                row.documentsExpired ? 'Expired' : 'Valid'
             ].join(','))
         ].join('\n');
 
@@ -369,14 +343,12 @@ const DriverReport = ({ handleViewOutliers }) => {
                                     <th>Profit</th>
                                     <th>Avg Rev/Trip</th>
                                     <th>Margin</th>
-                                    <th>On-Time</th>
-                                    <th>Docs</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paginatedRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={13} className="driver-empty-state">
+                                        <td colSpan={11} className="driver-empty-state">
                                             No driver summary data found.
                                         </td>
                                     </tr>
@@ -443,16 +415,6 @@ const DriverReport = ({ handleViewOutliers }) => {
                                                         ? `${row.profitMargin.toFixed(1)}%`
                                                         : 'N/A'}
                                                 </div>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <div className="cell-primary">
-                                                    {row.onTimeArrivalRate || 'N/A'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <span style={{ color: row.documentsExpired ? 'red' : 'green', fontWeight: 500 }}>
-                                                    {row.documentsExpired ? 'Expired' : 'Valid'}
-                                                </span>
                                             </td>
                                         </tr>
                                     ))

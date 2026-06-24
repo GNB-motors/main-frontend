@@ -18,6 +18,7 @@ import {
     AlertTriangle,
     BookOpen,
     Fuel,
+    Droplet,
 } from 'lucide-react';
 import './ReportsSidebar.css';
 import { getThemeCSS } from '../utils/colorTheme';
@@ -55,7 +56,8 @@ const ReportsSidebar = ({
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
                 { id: 'modelComparison', name: 'Model Comparison', icon: BarChart3 },
-                { id: 'fuelBills', name: 'Fuel Bills', icon: Receipt },
+                { id: 'dieselReport', name: 'Diesel Report', icon: Fuel },
+                { id: 'adblueReport', name: 'AdBlue Report', icon: Droplet },
             ]
         }
     ];

@@ -123,12 +123,20 @@ const formatCurrency = (value) => {
   })}`;
 };
 
-const RefuelLogsPage = () => {
+const RefuelLogsPage = ({ fuelType: fixedFuelType }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  // When `fuelType` is provided (Diesel Report / AdBlue Report inside the Reports
+  // page) the view is locked to that fuel type: the All/Diesel/AdBlue tabs are
+  // hidden and a report title is shown instead. Standalone routes keep the tabs.
+  const isFixedFuelType = fixedFuelType === 'DIESEL' || fixedFuelType === 'ADBLUE';
+  const reportTitle = fixedFuelType === 'ADBLUE' ? 'AdBlue Report' : 'Diesel Report';
   const tabParam = searchParams.get('tab');
-  const activeTab =
-    tabParam && filterTabs.some((item) => item.id === tabParam) ? tabParam : 'all';
+  const activeTab = isFixedFuelType
+    ? fixedFuelType.toLowerCase()
+    : tabParam && filterTabs.some((item) => item.id === tabParam) ? tabParam : 'all';
+  // The Fuel Type column is redundant in a single-fuel-type report.
+  const columnCount = isFixedFuelType ? 10 : 11;
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [logs, setLogs] = useState([]);
@@ -381,18 +389,22 @@ const RefuelLogsPage = () => {
   return (
     <div className="refuel-logs-page">
       <div className="refuel-logs-header">
-        <div className="refuel-tabs">
-          {filterTabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`refuel-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => handleTabChange(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {isFixedFuelType ? (
+          <h3 className="refuel-report-title">{reportTitle}</h3>
+        ) : (
+          <div className="refuel-tabs">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`refuel-tab ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => handleTabChange(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="refuel-header-actions">
           <div className="refuel-search">
@@ -416,14 +428,14 @@ const RefuelLogsPage = () => {
         onMouseLeave={endTableDrag}
         onClickCapture={handleTableClickCapture}
       >
-        <table className="refuel-table">
+        <table className={`refuel-table ${isFixedFuelType ? 'refuel-table-single' : ''}`}>
           <thead>
             <tr>
               <th>Date &amp; Time</th>
               <th>Vehicle</th>
               <th>Driver</th>
               <th>Location</th>
-              <th>Fuel Type</th>
+              {!isFixedFuelType && <th>Fuel Type</th>}
               <th>Quantity (L)</th>
               <th>Unit Price</th>
               <th>Total Amount</th>
@@ -435,19 +447,19 @@ const RefuelLogsPage = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={11} className="refuel-empty-state">
+                <td colSpan={columnCount} className="refuel-empty-state">
                   Loading refuel logs...
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={11} className="refuel-empty-state">
+                <td colSpan={columnCount} className="refuel-empty-state">
                   {error}
                 </td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={11} className="refuel-empty-state">
+                <td colSpan={columnCount} className="refuel-empty-state">
                   <div className="refuel-empty-state-inner">
                     <FileText size={48} color="#9ca3af" />
                     <p>No refuel logs found</p>
@@ -487,14 +499,16 @@ const RefuelLogsPage = () => {
                       <div className="cell-primary">{log.location || '-'}</div>
                       <div className="cell-secondary">{log.vendor || '--'}</div>
                     </td>
-                    <td>
-                      <span className={`fuel-type-pill ${
-                        log.fuelType ? log.fuelType.toLowerCase() : 'unknown'
-                      }`}
-                      >
-                        {log.fuelType || 'Unknown'}
-                      </span>
-                    </td>
+                    {!isFixedFuelType && (
+                      <td>
+                        <span className={`fuel-type-pill ${
+                          log.fuelType ? log.fuelType.toLowerCase() : 'unknown'
+                        }`}
+                        >
+                          {log.fuelType || 'Unknown'}
+                        </span>
+                      </td>
+                    )}
                     <td>
                       <div className="cell-primary">{log.quantity || '-'}</div>
                       <div className="cell-secondary">Litres</div>

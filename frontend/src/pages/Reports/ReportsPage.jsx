@@ -96,8 +96,10 @@ const ReportsPage = () => {
                 return <VehicleReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
             case 'modelComparison':
                 return <ModelComparisonPage />;
-            case 'fuelBills':
-                return <RefuelLogsPage />;
+            case 'dieselReport':
+                return <RefuelLogsPage fuelType="DIESEL" />;
+            case 'adblueReport':
+                return <RefuelLogsPage fuelType="ADBLUE" />;
             default:
                 return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
         }
