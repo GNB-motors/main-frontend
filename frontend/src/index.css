@@ -13,6 +13,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+/* Dashboard "operations console" faces: technical display + tabular mono for data/plates */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -52,6 +55,22 @@
     --primary-color:     #4f46e5;
     --primary-dark:      #4338ca;
     --primary-light:     #eef2ff;
+
+    /* ── Dashboard "operations console" tokens ──────────────
+       Operational ink + teal accent + a single severity scale.
+       Used by the redesigned Overview page; deliberately off the
+       generic indigo so the console reads like an instrument.
+       ──────────────────────────────────────────────────── */
+    --canvas:        #f4f6fb;  /* console page background (cool off-white) */
+    --ink:           #0e1726;  /* structure / map console frame (blue-leaning near-navy) */
+    --ink-soft:      #1b2535;
+    --accent:        #0e8c8c;  /* clean / verified teal */
+    --accent-dark:   #0b6f6f;
+    --signal-high:   #e5484d;  /* HIGH severity */
+    --signal-med:    #f2a413;  /* MEDIUM severity */
+    --signal-low:    #8b93a7;  /* LOW severity */
+    --font-display:  'Space Grotesk', 'DM Sans', sans-serif;
+    --font-mono:     'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
     /* Layout */
     --navbar-height: 72px;
@@ -172,6 +191,12 @@ body {
     transform: translateY(-2px);
 }
 
+/* On the console (Overview) the hover accent is teal, not indigo.
+   Higher specificity (0,2,1) scopes it to the overview only. */
+.page-content > .space-y-6 [data-slot="card"]:hover {
+    border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
 .page-content [data-slot="card-title"] {
     font-size: 15px;
     font-weight: 800;
@@ -193,7 +218,7 @@ body {
    is precise and won't bleed into other pages.
    ───────────────────────────────────────────────────────── */
 .page-content > .space-y-6 {
-    background: linear-gradient(135deg, #f3f7fe 0%, #eef2ff 60%, #f5f7ff 100%);
+    background: var(--canvas);
     border-radius: 20px;
     padding: 24px;
     min-height: 100%;
@@ -209,11 +234,11 @@ body {
    Specificity: (0,1,2) — beats any bare h1/p rule.
    ───────────────────────────────────────────────────────── */
 .page-content > .space-y-6 > div:first-child h1 {
-    font-family: 'DM Sans', 'Montserrat', sans-serif;
+    font-family: var(--font-display);
     font-size: 26px;
     font-weight: 700;
-    letter-spacing: -0.5px;
-    color: #0f172a;
+    letter-spacing: -0.6px;
+    color: var(--ink);
 }
 
 .page-content > .space-y-6 > div:first-child p {
@@ -222,6 +247,64 @@ body {
     font-weight: 400;
     color: #64748b;
     letter-spacing: 0.1px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Operations-console utilities
+   ─────────────────────────────────────────────────────────
+   Plain global classes (no @layer) so they compose with
+   Tailwind without specificity fights. Scoped to the console
+   surfaces via their own class names, not element selectors.
+   ───────────────────────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+
+/* Tabular mono — every number, ₹ amount, km/L, %, timestamp */
+.num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv01' 1;
+    letter-spacing: -0.01em;
+}
+
+/* Section eyebrow label */
+.console-eyebrow {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--signal-low);
+}
+
+/* Indian number-plate treatment for registration numbers */
+.reg-plate {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.78em;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--color-grey-300);
+    border-radius: 5px;
+    padding: 1px 6px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+/* Recharts axis ticks in the data face */
+.recharts-cartesian-axis-tick-value tspan {
+    font-family: var(--font-mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-content [data-slot="card"],
+    .page-content [data-slot="card"]:hover {
+        transition: none;
+        transform: none;
+    }
 }
 
 /* ─────────────────────────────────────────────────────────
