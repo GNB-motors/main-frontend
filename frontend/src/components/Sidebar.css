@@ -288,7 +288,7 @@
 }
 
 .chevron-icon {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.45s ease-in-out;
     flex-shrink: 0;
     margin-left: auto;
     transform: rotate(0deg); /* closed: point right */
@@ -299,20 +299,37 @@
     transform: rotate(-180deg);
 }
 
+/* Animate to the EXACT content height via grid rows (0fr → 1fr). Unlike a
+   max-height trick, there's no overshoot, so the panel eases open over the full
+   duration instead of snapping — and closing collapses cleanly with no jump. */
 .nav-children {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.45s ease-in-out, opacity 0.32s ease-in-out;
+}
+
+.nav-children.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+/* Inner wrapper holds the actual links and clips them while the row collapses. */
+.nav-children-inner {
+    overflow: hidden;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    max-height: 0;
-    opacity: 0;
     gap: 6px;
     padding-top: 6px;
 }
 
-.nav-children.open {
-    max-height: 360px;
-    opacity: 1;
+/* Respect users who prefer less motion — open/close instantly, no easing. */
+@media (prefers-reduced-motion: reduce) {
+    .nav-children,
+    .chevron-icon {
+        transition: none;
+    }
 }
 
 .nav-child {
@@ -386,12 +403,12 @@
     }
     
     .sidebar:hover .nav-children {
-        display: flex;
+        display: grid;
     }
-    
+
     .sidebar:hover .nav-children.open {
         opacity: 1;
-        max-height: 360px;
+        grid-template-rows: 1fr;
     }
     
     .sidebar .nav-child {

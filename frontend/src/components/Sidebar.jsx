@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
@@ -10,7 +10,7 @@ import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive } from '../utils/sideNav
 import './Sidebar.css';
 
 
-const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
+const Sidebar = ({ setSidebarOpen }) => {
     const navigate = useNavigate();
     const location = useLocation();
     // Per-group open state, keyed by the group's feature-flag key.
@@ -68,9 +68,37 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
     }, [isSidebarHovered, location.pathname]);
 
+    // Accordion behaviour: opening one group collapses the others — but a beat
+    // later, so the switch reads as a guided hand-off rather than a sudden snap.
+    const closeOthersTimer = useRef(null);
+
     const toggleGroup = (key) => {
-        setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+        // Clicking an already-open group just closes it.
+        if (openGroups[key]) {
+            setOpenGroups((prev) => ({ ...prev, [key]: false }));
+            return;
+        }
+        // Open the clicked group right away…
+        setOpenGroups((prev) => ({ ...prev, [key]: true }));
+        // …then ease the others shut a moment after, for the staggered feel.
+        // Reduced-motion users get the collapse immediately (no lingering).
+        if (closeOthersTimer.current) clearTimeout(closeOthersTimer.current);
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        closeOthersTimer.current = setTimeout(() => {
+            setOpenGroups(() => {
+                const next = {};
+                SIDE_NAV_GROUPS.forEach((g) => {
+                    next[g.key] = g.key === key;
+                });
+                return next;
+            });
+        }, reduceMotion ? 0 : 200);
     };
+
+    // Tidy the stagger timer on unmount.
+    useEffect(() => () => {
+        if (closeOthersTimer.current) clearTimeout(closeOthersTimer.current);
+    }, []);
 
     const handleLogout = () => {
         // Clear user tokens here in a real application
@@ -134,17 +162,19 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     />
                 </button>
                 <div className={`nav-children ${isOpen ? 'open' : ''}`}>
-                    {item.children.map((child) => (
-                        <NavLink
-                            key={child.to}
-                            to={child.to}
-                            end={child.end}
-                            className="nav-link nav-child"
-                            onClick={closeSidebarOnMobile}
-                        >
-                            <span>{child.label}</span>
-                        </NavLink>
-                    ))}
+                    <div className="nav-children-inner">
+                        {item.children.map((child) => (
+                            <NavLink
+                                key={child.to}
+                                to={child.to}
+                                end={child.end}
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>{child.label}</span>
+                            </NavLink>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
