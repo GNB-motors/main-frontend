@@ -72,6 +72,12 @@ export const DriverService = {
                 role: driverData.role || driverData.role || 'DRIVER',
                 orgId: businessRefId || undefined,
             };
+            // Custom role (Roles & Permissions) — omit entirely rather than send null,
+            // so backend validation (which allows the key to be absent but rejects an
+            // explicit null for a non-FIELD_AGENT create) never has to special-case it.
+            if (driverData.roleId) {
+                body.roleId = driverData.roleId;
+            }
             // include vehicle assignment if provided
             if (driverData.vehicle_registration_no) {
                 body.vehicle_registration_no = driverData.vehicle_registration_no;
@@ -128,6 +134,7 @@ export const DriverService = {
             if (driverData.location !== undefined) body.location = driverData.location;
             if (driverData.password !== undefined) body.password = driverData.password;
             if (driverData.role !== undefined) body.role = driverData.role;
+            if (driverData.roleId !== undefined) body.roleId = driverData.roleId;
             if (driverData.status !== undefined) body.status = driverData.status;
             if (driverData.vehicle_registration_no !== undefined) body.vehicle_registration_no = driverData.vehicle_registration_no;
             // include orgId if present

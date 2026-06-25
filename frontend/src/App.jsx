@@ -17,6 +17,7 @@ import FleetEdgeAccountsPage from './pages/Settings/FleetEdgeAccountsPage.jsx';
 import OnboardingPage from './pages/Onboarding/OnboardingPage.jsx';
 import DriversPage from './pages/Drivers/DriversPage.jsx';
 import AddDriverPage from './pages/Drivers/AddDriverPage.jsx';
+import RolesPermissionsPage from './pages/Drivers/RolesPermissionsPage.jsx';
 import BulkUploadDriversPage from "./pages/Drivers/BulkUploadDriversPage.jsx";
 import BulkUploadVehiclesPage from "./pages/Profile/BulkUploadVehiclesPage.jsx";
 import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
@@ -96,6 +97,7 @@ function App() {
         <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
+        <Route path="/drivers/roles" element={<RolesPermissionsPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />
         <Route path="/trip-management/weight-slip/:id" element={<WeightSlipTripDetailPage />} />

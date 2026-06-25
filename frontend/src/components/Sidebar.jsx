@@ -5,7 +5,8 @@ import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
-import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive, getNavGroupId, getVisibleNavChildren } from '../utils/sideNavUtils.js';
+import { usePermissions } from '../contexts/PermissionsContext.jsx';
+import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive } from '../utils/sideNavUtils.js';
 import './Sidebar.css';
 
 
@@ -16,6 +17,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [openGroups, setOpenGroups] = useState({});
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const { isEnabled } = useFeatureFlags();
+    const { canView } = usePermissions();
 
     // Defensive: ensure :root has the current theme CSS variables on mount and
     // whenever the theme color changes. The Sidebar previously kept a LOCAL
@@ -38,9 +40,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             const next = { ...prev };
             let changed = false;
             SIDE_NAV_GROUPS.forEach((group) => {
-                const groupId = getNavGroupId(group);
-                if (isGroupActive(group, location.pathname) && !next[groupId]) {
-                    next[groupId] = true;
+                if (isGroupActive(group, location.pathname) && !next[group.key]) {
+                    next[group.key] = true;
                     changed = true;
                 }
             });
@@ -56,9 +57,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                 setOpenGroups((prev) => {
                     const next = { ...prev };
                     SIDE_NAV_GROUPS.forEach((group) => {
-                        const groupId = getNavGroupId(group);
                         if (!isGroupActive(group, location.pathname)) {
-                            next[groupId] = false;
+                            next[group.key] = false;
                         }
                     });
                     return next;
@@ -68,8 +68,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
     }, [isSidebarHovered, location.pathname]);
 
-    const toggleGroup = (groupId) => {
-        setOpenGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+    const toggleGroup = (key) => {
+        setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
     const handleLogout = () => {
@@ -93,11 +93,16 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     // Render one item from the SIDE_NAV_ITEMS config.
     const renderNavItem = (item) => {
+        // `key: null` => always visible. Otherwise gate on the org-level feature flag.
+        if (item.key && !isEnabled(item.key)) return null;
+        // `permissionModule: null` => this layer doesn't gate the item. Otherwise gate
+        // on the logged-in employee's own Roles & Permissions access (OWNER/MANAGER
+        // resolve to full access on the backend, so this is a no-op for them).
+        if (item.permissionModule && !canView(item.permissionModule)) return null;
+
         const Icon = item.icon;
 
         if (item.type === 'link') {
-            if (item.key && !isEnabled(item.key)) return null;
-
             return (
                 <NavLink
                     key={item.to}
@@ -112,18 +117,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
 
         // type === 'group' (collapsible dropdown)
-        if (item.key && !isEnabled(item.key)) return null;
-
-        const visibleChildren = getVisibleNavChildren(item, isEnabled);
-        if (!visibleChildren.length) return null;
-
-        const groupId = getNavGroupId(item);
-        const isOpen = !!openGroups[groupId];
+        const isOpen = !!openGroups[item.key];
         return (
-            <div className="nav-section" key={groupId}>
+            <div className="nav-section" key={item.key}>
                 <button
                     className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
-                    onClick={() => toggleGroup(groupId)}
+                    onClick={() => toggleGroup(item.key)}
                 >
                     <div className="nav-parent-left">
                         <Icon size={20} />
@@ -135,9 +134,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     />
                 </button>
                 <div className={`nav-children ${isOpen ? 'open' : ''}`}>
-                    {visibleChildren.map((child) => (
+                    {item.children.map((child) => (
                         <NavLink
-                            key={`${child.to}-${child.label}`}
+                            key={child.to}
                             to={child.to}
                             end={child.end}
                             className="nav-link nav-child"

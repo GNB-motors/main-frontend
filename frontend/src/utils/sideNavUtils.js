@@ -1,4 +1,4 @@
-import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation, ShieldCheck } from 'lucide-react';
+import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, ShieldCheck } from 'lucide-react';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -7,47 +7,43 @@ import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation,
  * sirf is list ko map karke render karta hai — naya link add karna ho to bas
  * yahan ek entry add karo (aur `key` do). Sidebar code chedne ki zarurat nahi.
  *
- * `key`      -> feature-flag key. Sidebar isEnabled(key) === true hone par hi item
- *               dikhata hai. `key: null` ka matlab "hamesha dikhao" (no gating).
- * `groupId`  -> collapsible group open/close state (defaults to `key` when set).
+ * `key`   -> feature-flag key (SUPER_ADMIN → org level). Sidebar isEnabled(key)
+ *            === true hone par hi item dikhता hai. `key: null` ka matlab
+ *            "hamesha dikhao" (no gating), jaise Profile — guaranteed fallback page.
+ *
+ * `permissionModule` -> Roles & Permissions module key (Owner → employee level,
+ *            see role.constants.js on the backend). Sidebar canView(module)
+ *            === true hone par hi item dikhता hai. `permissionModule: null`
+ *            ka matlab "is layer se hamesha dikhao" — OWNER/MANAGER apne aap
+ *            full access paate hain (backend resolvePermissions), is field ka
+ *            matlab sirf itna hai ki ye nav item kisi specific module se gated
+ *            nahi hai.
+ *
+ * Donon gates independent hain aur dono pass hone chahiye item dikhane ke liye
+ * (org-level feature flag AND employee-level permission).
  *
  * type 'link'  -> single NavLink.
- *                 fields: { key, to, label, icon, end? }
+ *                 fields: { key, permissionModule, to, label, icon, end? }
  * type 'group' -> collapsible dropdown.
- *                 fields: { key?, groupId?, label, icon, children[], matchRoutes[] }
- *                 children:    [{ to, label, end?, key? }]
+ *                 fields: { key, permissionModule, label, icon, children[], matchRoutes[] }
+ *                 children:    [{ to, label, end? }]
  *                 matchRoutes: routes jinpe hone par group apne aap expand rahe
  *                              (chhupe/deep routes bhi include karo).
  */
 export const SIDE_NAV_ITEMS = [
-  { type: 'link', key: 'overview', to: '/overview', label: 'Overview', icon: Grid },
-  { type: 'link', key: 'reports',  to: '/reports',  label: 'Reports',  icon: FileText },
-  {
-    type: 'group',
-    groupId: 'fuelManagement',
-    label: 'Fuel Management',
-    icon: Fuel,
-    children: [
-      { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
-      { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
-      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
-    ],
-    matchRoutes: [
-      '/mileage-tracking',
-      '/fuel-comparison',
-      '/field-agent-fuel',
-      '/trip-management',
-    ],
-  },
+  { type: 'link', key: 'overview', permissionModule: 'overview', to: '/overview', label: 'Overview', icon: Grid },
+  { type: 'link', key: 'reports', permissionModule: 'reports', to: '/reports', label: 'Reports', icon: FileText },
   {
     type: 'group',
     key: 'vehicles',
+    permissionModule: 'vehicles',
     label: 'Vehicles',
     icon: Truck,
     children: [
       { to: '/vehicles', label: 'All Vehicles', end: true },
       { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
       { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
+      { to: '/vehicles/add', label: 'Add Vehicle' },
     ],
     matchRoutes: [
       '/vehicles',
@@ -59,35 +55,45 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence/add-repair',
     ],
   },
-
-  { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },
-  { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
-
-  // ─── Geofence group ───────────────────────────────────────────────────────
-  // Both sub-pages are grouped under a single collapsible "Geofence" dropdown.
-  // This matches the nav layout shown in the client screenshots (Image 2).
-  ...(import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED === 'false' ? [] : [{
+  {
     type: 'group',
-    key: null,
-    label: 'Geofence',
-    icon: Navigation,
+    key: 'vehicleActivity',
+    permissionModule: 'vehicleActivity',
+    label: 'Vehicle Activity',
+    icon: Truck,
     children: [
-      { to: '/geofence',       label: 'Anomalies'     },
-      { to: '/geofence/zones', label: 'Zones & Alerts' },
+      // Trip Management intentionally hidden — route still exists for deep links.
+      { to: '/refuel-logs', label: 'Refuel Logs' },
+      { to: '/mileage-tracking', label: 'Mileage Tracking' },
+      { to: '/model-comparison', label: 'Model Comparison' },
     ],
-    matchRoutes: ['/geofence', '/geofence/zones'],
-  }]),
-
+    matchRoutes: ['/trip-management', '/refuel-logs', '/mileage-tracking', '/model-comparison'],
+  },
+  {
+    type: 'group',
+    key: 'drivers',
+    permissionModule: 'employees',
+    label: 'Employees',
+    icon: Users,
+    children: [
+      { to: '/drivers', label: 'Employee List', end: true },
+      { to: '/drivers/roles', label: 'Roles & Permissions' },
+    ],
+    matchRoutes: ['/drivers', '/drivers/add', '/drivers/roles'],
+  },
+  { type: 'link', key: 'locations', permissionModule: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
+  { type: 'link', key: 'fuelComparison', permissionModule: 'fuelComparison', to: '/fuel-comparison', label: 'Fuel Comparison', icon: Fuel },
+  { type: 'link', key: null, permissionModule: 'fieldAgentFuel', to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
+  { type: 'link', key: 'khataLedger', permissionModule: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
   // ─── Insurance group ──────────────────────────────────────────────────────
-  // Self-contained Insurance CRM feature for fleet clients. Left ungated
-  // (key:null) so it's visible out of the box. To restrict it to insurance
-  // clients, change `key: null` → `key: 'insurance'` (and provision that
-  // feature flag per org via the superadmin Feature Flags page).
+  // Self-contained Insurance CRM feature for fleet clients. key:null +
+  // permissionModule:null → visible to everyone out of the box. To gate per-org,
+  // set key:'insurance' (and provision that feature flag); to gate per-employee,
+  // register an 'insurance' module in role.constants.js and set permissionModule.
   {
     type: 'group',
     key: null,
-    groupId: 'insurance',
+    permissionModule: null,
     label: 'Insurance',
     icon: ShieldCheck,
     children: [
@@ -103,22 +109,15 @@ export const SIDE_NAV_ITEMS = [
     ],
   },
 
-  // Always visible (no feature flag) — guaranteed fallback page.
-  { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
+  // Always visible (no feature flag, no permission gate) — guaranteed fallback page.
+  { type: 'link', key: null, permissionModule: 'profile', to: '/profile', label: 'Profile', icon: User },
 ];
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */
 export const SIDE_NAV_GROUPS = SIDE_NAV_ITEMS.filter((item) => item.type === 'group');
 
-/** Stable id for group expand/collapse state. */
-export const getNavGroupId = (group) => group.groupId || group.key;
-
-/** Children visible for the current org's feature flags. */
-export const getVisibleNavChildren = (group, isEnabled) =>
-  (group.children || []).filter((child) => !child.key || isEnabled(child.key));
-
 /**
- * Kya current path is group ke andar aata hai? (exact match ya sub-route)
+ * Kya current path is group ke andar aata hai? (exact match ya sub-route).
  * Group ko auto-expand / auto-close karne ke liye use hota hai.
  */
 export const isGroupActive = (group, pathname) =>

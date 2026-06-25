@@ -48,6 +48,7 @@ const AddDriverPage = () => {
           mobileNumber: editing.mobileNumber || editing.mobile_number || '',
           location: editing.location || '',
           role: editing.role || 'DRIVER',
+          roleId: editing.roleId || '',
           password: '', // Don't prefill password
         };
         console.log('Editing driver:', editing);
@@ -143,6 +144,10 @@ const AddDriverPage = () => {
         if (formData.location !== undefined) updatePayload.location = formData.location;
         if (formData.password) updatePayload.password = formData.password;
         if (formData.role !== undefined) updatePayload.role = formData.role;
+        // Empty string means "pre-defined role selected, no custom role" — send
+        // null explicitly so the backend clears any previously-assigned roleId
+        // rather than leaving a stale one in place.
+        updatePayload.roleId = formData.roleId || null;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
         await uploadDocuments(driverId);
@@ -158,6 +163,7 @@ const AddDriverPage = () => {
           location: formData.location || null,
           password: formData.password || null,
           role: formData.role || 'DRIVER',
+          roleId: formData.roleId || undefined,
         };
 
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
