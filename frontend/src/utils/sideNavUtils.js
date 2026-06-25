@@ -1,4 +1,4 @@
-import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation } from 'lucide-react';
+import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation, ShieldCheck } from 'lucide-react';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -78,6 +78,30 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: ['/geofence', '/geofence/zones'],
   }]),
+
+  // ─── Insurance group ──────────────────────────────────────────────────────
+  // Self-contained Insurance CRM feature for fleet clients. Left ungated
+  // (key:null) so it's visible out of the box. To restrict it to insurance
+  // clients, change `key: null` → `key: 'insurance'` (and provision that
+  // feature flag per org via the superadmin Feature Flags page).
+  {
+    type: 'group',
+    key: null,
+    groupId: 'insurance',
+    label: 'Insurance',
+    icon: ShieldCheck,
+    children: [
+      { to: '/insurance/overview', label: 'Business Overview', end: true },
+      { to: '/insurance/leads', label: 'Leads' },
+      { to: '/insurance/communication', label: 'Communication' },
+    ],
+    matchRoutes: [
+      '/insurance/overview',
+      '/insurance/leads',
+      '/insurance/leads/bulk',
+      '/insurance/communication',
+    ],
+  },
 
   // Always visible (no feature flag) — guaranteed fallback page.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },

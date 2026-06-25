@@ -53,6 +53,13 @@ import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.j
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
+// Insurance feature module
+import InsuranceOverviewPage from './pages/Insurance/Overview/InsuranceOverviewPage.jsx';
+import LeadsPage from './pages/Insurance/Leads/LeadsPage.jsx';
+import BulkImportLeadsPage from './pages/Insurance/Leads/BulkImportLeadsPage.jsx';
+import LeadDetailsPage from './pages/Insurance/Leads/LeadDetailsPage.jsx';
+import CommunicationPage from './pages/Insurance/Communication/CommunicationPage.jsx';
+
 function App() {
   return (
     <Routes>
@@ -120,6 +127,13 @@ function App() {
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/fleetedge-accounts" element={<FleetEdgeAccountsPage />} />
+
+        {/* Insurance feature module */}
+        <Route path="/insurance/overview" element={<InsuranceOverviewPage />} />
+        <Route path="/insurance/leads" element={<LeadsPage />} />
+        <Route path="/insurance/leads/bulk" element={<BulkImportLeadsPage />} />
+        <Route path="/insurance/leads/:id" element={<LeadDetailsPage />} />
+        <Route path="/insurance/communication" element={<CommunicationPage />} />
       </Route>
     </Routes>
   );
