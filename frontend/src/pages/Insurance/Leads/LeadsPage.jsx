@@ -6,8 +6,9 @@ import {
   ChevronLeft, ChevronRight, ArrowUpDown,
 } from 'lucide-react';
 import { InsuranceService } from '../InsuranceService';
-import { LEAD_STATUSES, LEAD_PRIORITIES } from '../insuranceConstants';
 import { StatusBadge, PriorityDropdown } from '../components/badges';
+import { statusOptions, priorityOptions } from '../components/leadMeta';
+import Dropdown from '../components/Dropdown';
 import KpiCard from '../components/KpiCard';
 import AddLeadModal from './AddLeadModal';
 
@@ -166,18 +167,21 @@ export default function LeadsPage() {
             onChange={(e) => setFilter({ search: e.target.value })}
           />
         </div>
-        <select className={inputCls} value={filters.status} onChange={(e) => setFilter({ status: e.target.value })}>
-          <option value="">All Statuses</option>
-          {LEAD_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select className={inputCls} value={filters.priority} onChange={(e) => setFilter({ priority: e.target.value })}>
-          <option value="">All Priorities</option>
-          {LEAD_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <select className={inputCls} value={filters.assignedAgent} onChange={(e) => setFilter({ assignedAgent: e.target.value })}>
-          <option value="">All Agents</option>
-          {agents.map((a) => <option key={a._id} value={a._id}>{agentName(a)}</option>)}
-        </select>
+        <div className="w-44">
+          <Dropdown value={filters.status} onChange={(v) => setFilter({ status: v })} options={statusOptions(true)} placeholder="All statuses" ariaLabel="Filter by status" />
+        </div>
+        <div className="w-40">
+          <Dropdown value={filters.priority} onChange={(v) => setFilter({ priority: v })} options={priorityOptions(true)} placeholder="All priorities" ariaLabel="Filter by priority" />
+        </div>
+        <div className="w-44">
+          <Dropdown
+            value={filters.assignedAgent}
+            onChange={(v) => setFilter({ assignedAgent: v })}
+            options={[{ value: '', label: 'All agents' }, ...agents.map((a) => ({ value: a._id, label: agentName(a) }))]}
+            placeholder="All agents"
+            ariaLabel="Filter by agent"
+          />
+        </div>
       </div>
 
       {/* Table */}

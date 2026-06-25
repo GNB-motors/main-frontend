@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import Modal from '../components/Modal';
+import Dropdown from '../components/Dropdown';
+import { priorityOptions } from '../components/leadMeta';
 import { InsuranceService } from '../InsuranceService';
 
 const MOBILE_RE = /^(\+91[-\s]?|0)?[6-9]\d{9}$/;
@@ -91,22 +93,16 @@ export default function AddLeadModal({ agents = [], onClose, onCreated }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Assign Agent</label>
-            <select className={fieldCls} value={form.assignedAgent} onChange={(e) => set('assignedAgent', e.target.value)}>
-              <option value="">Unassigned</option>
-              {agents.map((a) => (
-                <option key={a._id} value={a._id}>
-                  {a.firstName} {a.lastName}
-                </option>
-              ))}
-            </select>
+            <Dropdown
+              value={form.assignedAgent}
+              onChange={(v) => set('assignedAgent', v)}
+              placeholder="Unassigned"
+              options={[{ value: '', label: 'Unassigned' }, ...agents.map((a) => ({ value: a._id, label: `${a.firstName} ${a.lastName}` }))]}
+            />
           </div>
           <div>
             <label className={labelCls}>Priority</label>
-            <select className={fieldCls} value={form.priority} onChange={(e) => set('priority', e.target.value)}>
-              <option value="Hot">Hot</option>
-              <option value="Warm">Warm</option>
-              <option value="Cold">Cold</option>
-            </select>
+            <Dropdown value={form.priority} onChange={(v) => set('priority', v)} options={priorityOptions()} />
           </div>
         </div>
         <div>

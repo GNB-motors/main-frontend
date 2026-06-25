@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 import { ArrowLeft, Download, UploadCloud, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { InsuranceService } from '../InsuranceService';
+import Dropdown from '../components/Dropdown';
 
 const MAX_ROWS = 1000;
 
@@ -155,14 +156,16 @@ export default function BulkImportLeadsPage() {
                 <label className="text-xs font-semibold text-slate-600">
                   {f.label}{f.required && <span className="text-red-500"> *</span>}
                 </label>
-                <select
-                  className="w-40 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
-                  value={mapping[f.key] || ''}
-                  onChange={(e) => setMapping((m) => ({ ...m, [f.key]: e.target.value }))}
-                >
-                  <option value="">— skip —</option>
-                  {columns.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <div className="w-44">
+                  <Dropdown
+                    size="sm"
+                    align="right"
+                    value={mapping[f.key] || ''}
+                    onChange={(v) => setMapping((m) => ({ ...m, [f.key]: v }))}
+                    placeholder="— skip —"
+                    options={[{ value: '', label: '— skip —' }, ...columns.map((c) => ({ value: c, label: c }))]}
+                  />
+                </div>
               </div>
             ))}
           </div>

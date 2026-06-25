@@ -6,8 +6,9 @@ import {
   ArrowRight, Flag, UserCheck, ShieldCheck, FileText,
 } from 'lucide-react';
 import { InsuranceService } from '../InsuranceService';
-import { LEAD_STATUSES } from '../insuranceConstants';
 import { StatusBadge, PriorityFlag, PriorityDropdown } from '../components/badges';
+import { statusOptions } from '../components/leadMeta';
+import Dropdown from '../components/Dropdown';
 
 const ACTIVITY_META = {
   CREATED: { Icon: Plus, color: 'text-blue-500 bg-blue-50' },
@@ -216,10 +217,12 @@ export default function LeadDetailsPage() {
                 <div><label className={labelCls}>Vehicle Number</label><input className={fieldCls} value={form.vehicleNumber} onChange={(e) => setForm((f) => ({ ...f, vehicleNumber: e.target.value }))} /></div>
                 <div>
                   <label className={labelCls}>Assigned Agent</label>
-                  <select className={fieldCls} value={form.assignedAgent} onChange={(e) => setForm((f) => ({ ...f, assignedAgent: e.target.value }))}>
-                    <option value="">Unassigned</option>
-                    {agents.map((a) => <option key={a._id} value={a._id}>{a.firstName} {a.lastName}</option>)}
-                  </select>
+                  <Dropdown
+                    value={form.assignedAgent}
+                    onChange={(v) => setForm((f) => ({ ...f, assignedAgent: v }))}
+                    placeholder="Unassigned"
+                    options={[{ value: '', label: 'Unassigned' }, ...agents.map((a) => ({ value: a._id, label: `${a.firstName} ${a.lastName}` }))]}
+                  />
                 </div>
                 <div><label className={labelCls}>Policy Number</label><input className={fieldCls} value={form.policyNumber} onChange={(e) => setForm((f) => ({ ...f, policyNumber: e.target.value }))} /></div>
                 <div className="col-span-2"><label className={labelCls}>Remarks</label><textarea rows={3} className={fieldCls} value={form.remarks} onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))} /></div>
@@ -233,9 +236,7 @@ export default function LeadDetailsPage() {
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Status</label>
-                <select className={fieldCls} value={lead.status} onChange={(e) => changeStatus(e.target.value)}>
-                  {LEAD_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <Dropdown value={lead.status} onChange={changeStatus} options={statusOptions()} ariaLabel="Lead status" />
               </div>
               <div>
                 <label className={labelCls}>Priority</label>
