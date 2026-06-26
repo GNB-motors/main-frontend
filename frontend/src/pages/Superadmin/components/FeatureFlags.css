@@ -600,6 +600,64 @@
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
 }
 
+/* ── Delete-confirm modal extras ─────────────────────────── */
+
+/* Warning / info box inside the confirm modal */
+.ff-warn-box {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #9a3412;
+  line-height: 1.55;
+}
+
+.ff-warn-box strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #7c2d12;
+  font-weight: 700;
+}
+
+.ff-warn-box ul {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+
+.ff-warn-box li {
+  margin-bottom: 2px;
+}
+
+/* Danger-focused text input for typing the org name */
+.ff-input--danger:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+}
+
+/* Delete action cell in the table */
+.ff-table td.ff-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Row hover should not trigger red on non-hover state */
+.ff-table tbody tr.ff-clickable:hover .ff-icon-btn.ff-icon-btn--danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Delete-confirm spinner (inline in button) */
+.ff-btn--danger .ff-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: ff-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   .ff-page {
