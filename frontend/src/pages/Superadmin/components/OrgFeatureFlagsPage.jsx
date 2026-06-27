@@ -1,28 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building2, ChevronRight, Inbox, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Search, Building2, ChevronRight, Inbox, Trash2, AlertTriangle, X, Flame } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
 import './FeatureFlags.css';
 
-/* ─────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────
    DeleteConfirmModal
-   Requires the super-admin to type the exact org
-   name before the delete button becomes active.
-───────────────────────────────────────────────── */
+   Supports two modes:
+     • "delete"  — DELETE /api/admin/organizations/:id
+                   Removes entities, preserves historical data.
+     • "purge"   — DELETE /api/admin/organizations/:id/purge
+                   Removes everything — no data survives.
+
+   The super-admin must type the exact org name before either button activates.
+──────────────────────────────────────────────────────────────────────────── */
 const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
-  const [typedName, setTypedName] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState('');
+  const [typedName, setTypedName]   = useState('');
+  const [activeMode, setActiveMode] = useState(null); // 'delete' | 'purge'
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
   const inputRef = useRef(null);
 
   // Auto-focus the confirmation input when modal opens
   useEffect(() => {
-    const timer = setTimeout(() => inputRef.current?.focus(), 80);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
   }, []);
 
-  // Block page scroll while the modal is open
+  // Block page scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -31,23 +37,26 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
   const displayName = org.companyName || org.ownerEmail || '(unnamed)';
   const isConfirmed = typedName.trim() === displayName.trim();
 
-  const handleDelete = async () => {
-    if (!isConfirmed || deleting) return;
-    setDeleting(true);
+  const handleAction = async (mode) => {
+    if (!isConfirmed || loading) return;
+    setActiveMode(mode);
+    setLoading(true);
     setError('');
     try {
-      await apiClient.delete(`/api/admin/organizations/${org._id}`);
+      const url = mode === 'purge'
+        ? `/api/admin/organizations/${org._id}/purge`
+        : `/api/admin/organizations/${org._id}`;
+      await apiClient.delete(url);
       onConfirmed(org._id);
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to delete organization. Please try again.');
-      setDeleting(false);
+      setError(e.response?.data?.message || 'Operation failed. Please try again.');
+      setLoading(false);
+      setActiveMode(null);
     }
   };
 
-  // Allow pressing Enter to confirm
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && isConfirmed) handleDelete();
-    if (e.key === 'Escape') onCancel();
+    if (e.key === 'Escape' && !loading) onCancel();
   };
 
   return (
@@ -56,9 +65,9 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="del-modal-title"
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      onClick={(e) => { if (e.target === e.currentTarget && !loading) onCancel(); }}
     >
-      <div className="ff-modal">
+      <div className="ff-modal ff-modal--wide">
 
         {/* ── Header ── */}
         <div className="ff-modal__header">
@@ -68,10 +77,10 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
             </span>
             <div>
               <h2 className="ff-modal__title" id="del-modal-title">
-                Delete Organisation
+                Remove Organisation
               </h2>
               <p className="ff-modal__subtitle">
-                This action is <strong>permanent and cannot be undone</strong>.
+                Choose a removal mode. <strong>Both actions are permanent and cannot be undone.</strong>
               </p>
             </div>
           </div>
@@ -79,7 +88,7 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
             className="ff-icon-btn"
             onClick={onCancel}
             aria-label="Close"
-            disabled={deleting}
+            disabled={loading}
           >
             <X size={18} />
           </button>
@@ -88,37 +97,72 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
         {/* ── Body ── */}
         <div className="ff-modal__body">
 
-          {/* What will be deleted */}
-          <div className="ff-warn-box">
-            <strong>⚠ The following will be permanently deleted:</strong>
-            <ul>
-              <li>Owner, Manager &amp; Driver user accounts</li>
-              <li>All registered vehicles</li>
-              <li>Maintenance records &amp; service options</li>
-              <li>Custom geofence zones</li>
-              <li>FleetEdge account integrations</li>
-              <li>Field-agent links to this organisation (agents themselves survive)</li>
-            </ul>
-          </div>
+          {/* Two-column comparison */}
+          <div className="ff-compare">
 
-          {/* What is preserved */}
-          <div style={{
-            background: '#f0fdf4',
-            border: '1px solid #86efac',
-            borderRadius: 10,
-            padding: '12px 14px',
-            fontSize: 13,
-            color: '#166534',
-            lineHeight: 1.55,
-          }}>
-            <strong style={{ display: 'block', marginBottom: 4, color: '#14532d', fontWeight: 700 }}>
-              ✓ Historical data is preserved for future use:
-            </strong>
-            <ul style={{ margin: '6px 0 0 18px', padding: 0 }}>
-              <li>Trips, fuel logs, mileage &amp; location history</li>
-              <li>Uploaded documents (fuel receipts, weight certs, odometer photos)</li>
-              <li>Revenue, expense &amp; ledger records</li>
-            </ul>
+            {/* ── Delete Organisation (soft) ── */}
+            <div className="ff-compare__col ff-compare__col--delete">
+              <div className="ff-compare__head">
+                <Trash2 size={16} />
+                <span>Delete Organisation</span>
+              </div>
+              <p className="ff-compare__desc">
+                Removes the organisation's operational setup while retaining all
+                historical records for future analytics.
+              </p>
+              <div className="ff-compare__section ff-compare__section--warn">
+                <strong>Will be deleted:</strong>
+                <ul>
+                  <li>Owner, Manager &amp; Driver accounts</li>
+                  <li>All registered vehicles</li>
+                  <li>Maintenance records &amp; options</li>
+                  <li>Custom geofence zones</li>
+                  <li>FleetEdge account integrations</li>
+                  <li>Field-agent links (agents survive)</li>
+                </ul>
+              </div>
+              <div className="ff-compare__section ff-compare__section--safe">
+                <strong>Preserved for future use:</strong>
+                <ul>
+                  <li>Trips, fuel logs &amp; mileage</li>
+                  <li>Uploaded documents &amp; OCR data</li>
+                  <li>Revenue &amp; ledger records</li>
+                  <li>Route masters &amp; location history</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* ── Divider ── */}
+            <div className="ff-compare__divider" aria-hidden="true">
+              <span>or</span>
+            </div>
+
+            {/* ── Purge All Data (hard) ── */}
+            <div className="ff-compare__col ff-compare__col--purge">
+              <div className="ff-compare__head ff-compare__head--purge">
+                <Flame size={16} />
+                <span>Purge All Data</span>
+              </div>
+              <p className="ff-compare__desc">
+                Wipes every record tied to this organisation across all collections.
+                Zero data survives. Use only if completely decommissioning.
+              </p>
+              <div className="ff-compare__section ff-compare__section--purge">
+                <strong>Everything deleted — including:</strong>
+                <ul>
+                  <li>All of the above <em>plus</em></li>
+                  <li>All trips &amp; trip ledger entries</li>
+                  <li>All fuel logs &amp; comparisons</li>
+                  <li>All uploaded documents</li>
+                  <li>All mileage &amp; GPS traces</li>
+                  <li>All routes, locations &amp; weight slips</li>
+                  <li>All expense records</li>
+                  <li>All geofence events &amp; anomalies</li>
+                  <li>All FleetEdge vehicle &amp; consumption cache</li>
+                </ul>
+              </div>
+            </div>
+
           </div>
 
           {/* Confirmation input */}
@@ -126,18 +170,18 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
             <label className="ff-field__label" htmlFor="del-confirm-input">
               Type <strong style={{ fontFamily: 'monospace', letterSpacing: '0.02em' }}>
                 {displayName}
-              </strong> to confirm deletion
+              </strong> to unlock the action buttons
             </label>
             <input
               ref={inputRef}
               id="del-confirm-input"
-              className={`ff-input ff-input--danger`}
+              className="ff-input ff-input--danger"
               type="text"
               value={typedName}
               onChange={(e) => setTypedName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={displayName}
-              disabled={deleting}
+              disabled={loading}
               autoComplete="off"
               spellCheck={false}
             />
@@ -155,32 +199,58 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
         </div>
 
         {/* ── Footer ── */}
-        <div className="ff-modal__footer">
+        <div className="ff-modal__footer ff-modal__footer--split">
           <button
             className="ff-btn ff-btn--secondary"
             onClick={onCancel}
-            disabled={deleting}
+            disabled={loading}
           >
             Cancel
           </button>
-          <button
-            className="ff-btn ff-btn--danger"
-            onClick={handleDelete}
-            disabled={!isConfirmed || deleting}
-            aria-busy={deleting}
-          >
-            {deleting ? (
-              <>
-                <span className="ff-btn-spinner" aria-hidden="true" />
-                Deleting…
-              </>
-            ) : (
-              <>
-                <Trash2 size={15} />
-                Delete Organisation
-              </>
-            )}
-          </button>
+
+          <div className="ff-footer__actions">
+            {/* Soft delete */}
+            <button
+              className="ff-btn ff-btn--danger"
+              onClick={() => handleAction('delete')}
+              disabled={!isConfirmed || loading}
+              aria-busy={loading && activeMode === 'delete'}
+              title="Removes entities only — preserves all historical data"
+            >
+              {loading && activeMode === 'delete' ? (
+                <>
+                  <span className="ff-btn-spinner" aria-hidden="true" />
+                  Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 size={14} />
+                  Delete Organisation
+                </>
+              )}
+            </button>
+
+            {/* Hard purge */}
+            <button
+              className="ff-btn ff-btn--purge"
+              onClick={() => handleAction('purge')}
+              disabled={!isConfirmed || loading}
+              aria-busy={loading && activeMode === 'purge'}
+              title="Permanently removes ALL data including historical records"
+            >
+              {loading && activeMode === 'purge' ? (
+                <>
+                  <span className="ff-btn-spinner" aria-hidden="true" />
+                  Purging…
+                </>
+              ) : (
+                <>
+                  <Flame size={14} />
+                  Purge All Data
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
       </div>
@@ -188,9 +258,9 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
   );
 };
 
-/* ─────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────
    OrgFeatureFlagsPage (main page)
-───────────────────────────────────────────────── */
+──────────────────────────────────────────────────────────────────────────── */
 const OrgFeatureFlagsPage = () => {
   const navigate = useNavigate();
   const [orgs, setOrgs] = useState([]);
@@ -198,7 +268,7 @@ const OrgFeatureFlagsPage = () => {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
 
-  // The org currently staged for deletion (null = modal closed)
+  // The org currently staged for removal (null = modal closed)
   const [orgToDelete, setOrgToDelete] = useState(null);
 
   useEffect(() => {
@@ -239,7 +309,7 @@ const OrgFeatureFlagsPage = () => {
   };
 
   /**
-   * Called by the modal once the API delete call succeeds.
+   * Called by the modal once the API call (delete or purge) succeeds.
    * Removes the org from local state without a full reload.
    */
   const handleDeleteConfirmed = (deletedOrgId) => {
@@ -290,9 +360,9 @@ const OrgFeatureFlagsPage = () => {
                 <th>GSTIN</th>
                 <th className="ff-center">Onboarded</th>
                 <th className="ff-center">Enabled Features</th>
-                {/* Two action columns: open-detail chevron + delete */}
+                {/* Two action columns: open-detail chevron + remove */}
                 <th aria-label="Open" />
-                <th aria-label="Delete" />
+                <th aria-label="Remove" />
               </tr>
             </thead>
             <tbody>
@@ -356,12 +426,12 @@ const OrgFeatureFlagsPage = () => {
                         <ChevronRight size={18} />
                       </span>
                     </td>
-                    {/* Delete button — stops event propagation so row click isn't triggered */}
+                    {/* Remove button — stops row-click propagation */}
                     <td className="ff-actions">
                       <button
                         className="ff-icon-btn ff-icon-btn--danger"
-                        title={`Delete ${org.companyName || org.ownerEmail || 'organisation'}`}
-                        aria-label={`Delete ${org.companyName || org.ownerEmail || 'organisation'}`}
+                        title={`Remove ${org.companyName || org.ownerEmail || 'organisation'}`}
+                        aria-label={`Remove ${org.companyName || org.ownerEmail || 'organisation'}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOrgToDelete(org);

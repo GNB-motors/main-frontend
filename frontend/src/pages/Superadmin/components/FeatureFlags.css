@@ -678,3 +678,230 @@
     padding: 12px 14px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Purge / Hard-Delete modal additions
+   ═══════════════════════════════════════════════════════════ */
+
+/* Wider variant of .ff-modal for the two-column comparison */
+.ff-modal--wide {
+  max-width: 760px;
+}
+
+/* ── Two-column comparison layout ─────────────────────────── */
+.ff-compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ff-compare__col {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fafafa;
+}
+
+.ff-compare__col--delete {
+  background: #fafafa;
+}
+
+.ff-compare__col--purge {
+  background: #fff5f5;
+}
+
+/* Column header row */
+.ff-compare__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #dc2626;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ff-compare__head--purge {
+  color: #991b1b;
+}
+
+/* Short description under the heading */
+.ff-compare__desc {
+  font-size: 12.5px;
+  color: #6b7280;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Inner section blocks (warn / safe / purge) */
+.ff-compare__section {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.ff-compare__section strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 700;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ff-compare__section ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.ff-compare__section li {
+  margin-bottom: 2px;
+}
+
+/* Delete col: orange-ish warning */
+.ff-compare__section--warn {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+}
+
+.ff-compare__section--warn strong {
+  color: #7c2d12;
+}
+
+/* Delete col: green "preserved" section */
+.ff-compare__section--safe {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.ff-compare__section--safe strong {
+  color: #14532d;
+}
+
+/* Purge col: deep crimson "everything goes" section */
+.ff-compare__section--purge {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+.ff-compare__section--purge strong {
+  color: #7f1d1d;
+}
+
+.ff-compare__section--purge em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* Divider between the two columns */
+.ff-compare__divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.ff-compare__divider span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #fff;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+/* ── Footer split layout ───────────────────────────────────── */
+.ff-modal__footer--split {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ff-footer__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Purge button ─────────────────────────────────────────── */
+.ff-btn--purge {
+  background: #7f1d1d;
+  color: #fff;
+  border-color: #7f1d1d;
+}
+
+.ff-btn--purge:not(:disabled):hover {
+  background: #991b1b;
+  box-shadow: 0 4px 14px rgba(127, 29, 29, 0.40);
+}
+
+/* Pulsing glow on the purge button when enabled — draws attention to severity */
+.ff-btn--purge:not(:disabled) {
+  animation: ff-purge-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes ff-purge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(127, 29, 29, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(127, 29, 29, 0.22); }
+}
+
+/* Spinner inside purge button */
+.ff-btn--purge .ff-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: ff-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+/* ── Responsive: stack comparison columns on small screens ── */
+@media (max-width: 640px) {
+  .ff-modal--wide {
+    max-width: 100%;
+  }
+
+  .ff-compare {
+    grid-template-columns: 1fr;
+  }
+
+  .ff-compare__divider {
+    flex-direction: row;
+    padding: 6px 16px;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .ff-modal__footer--split {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .ff-footer__actions {
+    flex-direction: column;
+  }
+
+  .ff-footer__actions .ff-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
