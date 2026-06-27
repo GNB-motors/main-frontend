@@ -16,6 +16,7 @@ import apiClient from '../utils/axiosConfig';
 const PermissionsContext = createContext({
   permissions: {},
   loading: true,
+  canAccess: () => true,
   canView: () => true,
   canManage: () => true,
   refresh: async () => {},
@@ -47,21 +48,16 @@ export const PermissionsProvider = ({ children }) => {
     refresh();
   }, [refresh]);
 
-  // OWNER and SUPER_ADMIN always resolve to full access on the backend (see
-  // role.service.js resolvePermissions) — these helpers don't special-case
-  // that here, they just read what the API already computed, so frontend and
-  // backend can never disagree about who has access to what.
-  const canView = useCallback(
-    (moduleKey) => permissions?.[moduleKey]?.view === true,
-    [permissions],
-  );
-  const canManage = useCallback(
-    (moduleKey) => permissions?.[moduleKey]?.manage === true,
-    [permissions],
-  );
+  // Single-toggle model: a granted key means the employee can both view and
+  // act on it. OWNER and SUPER_ADMIN resolve to full access on the backend, so
+  // these helpers just read what the API already computed. canView/canManage
+  // are kept as aliases of canAccess so existing call sites keep working.
+  const canAccess = useCallback((key) => permissions?.[key] === true, [permissions]);
+  const canView = canAccess;
+  const canManage = canAccess;
 
   return (
-    <PermissionsContext.Provider value={{ permissions, loading, canView, canManage, refresh }}>
+    <PermissionsContext.Provider value={{ permissions, loading, canAccess, canView, canManage, refresh }}>
       {children}
     </PermissionsContext.Provider>
   );

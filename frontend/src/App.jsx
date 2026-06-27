@@ -29,6 +29,7 @@ import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import OrgFeatureFlagsPage from './pages/Superadmin/components/OrgFeatureFlagsPage.jsx';
 import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx';
+import PermissionsRegistryPage from './pages/Superadmin/components/PermissionsRegistryPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -77,6 +78,7 @@ function App() {
         <Route path="add-user" element={<AddUserPage />} />
         <Route path="feature-flags" element={<OrgFeatureFlagsPage />} />
         <Route path="feature-flags/:orgId" element={<OrgFeatureFlagsDetailPage />} />
+        <Route path="permissions" element={<PermissionsRegistryPage />} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
