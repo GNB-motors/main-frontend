@@ -209,6 +209,7 @@ const RolesPermissionsPage = () => {
             </div>
 
             <div className="rp-card">
+                <div className="rp-inner">
                 {/* Left rail — roles + add */}
                 <div className="rp-rail">
                     <div className="rp-rail-scroll">
@@ -313,6 +314,7 @@ const RolesPermissionsPage = () => {
                             )}
                         </div>
                     )}
+                </div>
                 </div>
             </div>
 

@@ -72,7 +72,7 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'group',
     key: 'drivers',
-    permissionModule: 'employees',
+    permissionModule: 'drivers',
     label: 'Employees',
     icon: Users,
     children: [
@@ -83,17 +83,16 @@ export const SIDE_NAV_ITEMS = [
   },
   { type: 'link', key: 'locations', permissionModule: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
   { type: 'link', key: 'fuelComparison', permissionModule: 'fuelComparison', to: '/fuel-comparison', label: 'Fuel Comparison', icon: Fuel },
-  { type: 'link', key: null, permissionModule: 'fieldAgentFuel', to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
+  { type: 'link', key: null, permissionModule: null, to: '/field-agent-fuel', label: 'Field Agent Fuel', icon: Fuel },
   { type: 'link', key: 'khataLedger', permissionModule: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
   // ─── Insurance group ──────────────────────────────────────────────────────
-  // Self-contained Insurance CRM feature for fleet clients. key:null +
-  // permissionModule:null → visible to everyone out of the box. To gate per-org,
-  // set key:'insurance' (and provision that feature flag); to gate per-employee,
-  // register an 'insurance' module in role.constants.js and set permissionModule.
+  // 'insurance' is a feature flag AND the matching permission key (they're the
+  // same catalog). So it shows only when the org has the Insurance flag enabled
+  // AND the employee's role grants 'insurance'.
   {
     type: 'group',
-    key: null,
-    permissionModule: null,
+    key: 'insurance',
+    permissionModule: 'insurance',
     label: 'Insurance',
     icon: ShieldCheck,
     children: [
@@ -110,7 +109,7 @@ export const SIDE_NAV_ITEMS = [
   },
 
   // Always visible (no feature flag, no permission gate) — guaranteed fallback page.
-  { type: 'link', key: null, permissionModule: 'profile', to: '/profile', label: 'Profile', icon: User },
+  { type: 'link', key: null, permissionModule: null, to: '/profile', label: 'Profile', icon: User },
 ];
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */

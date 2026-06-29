@@ -12,7 +12,8 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 24px;
+    /* Extra bottom space so the fixed white footer never covers the card. */
+    padding: 24px 24px 88px;
     background: var(--core-morning-fog-solids-morning-fog-900, #f3f3f6);
     overflow: hidden;
     font-family: 'Inter', sans-serif;
@@ -40,10 +41,23 @@
     flex: 1;
     min-height: 0;
     display: flex;
+    padding: 12px;
     background: #fff;
     border-radius: 20px;
     border: 1px solid var(--core-morning-fog-solids-morning-fog-800, #ECECEE);
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 10px 30px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+}
+
+/* The connected grey inner surface — left rail + right content share it, no
+   divider, so the two sides read as one continuous panel (not a white left box). */
+.rp-inner {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    background: var(--core-morning-fog-solids-morning-fog-900, #f6f6f9);
+    border: 1px solid var(--core-morning-fog-solids-morning-fog-800, #ECECEE);
+    border-radius: 14px;
     overflow: hidden;
 }
 
@@ -55,7 +69,7 @@
     flex-direction: column;
     padding: 16px;
     gap: 10px;
-    border-right: 1px solid var(--core-morning-fog-solids-morning-fog-800, #ECECEE);
+    /* No divider/panel — the rail flows into the content as one surface. */
 }
 
 .rp-rail-scroll {
@@ -100,12 +114,14 @@
     transition: background-color 0.12s ease;
 }
 
-.rp-role:hover { background: var(--core-morning-fog-solids-morning-fog-900, #f3f3f6); }
+.rp-role:hover { background: rgba(255, 255, 255, 0.65); }
 
+/* Selected role = a white pill on the grey rail (matches the reference). */
 .rp-role.active {
-    background: var(--primary-light, #eef2ff);
-    color: var(--primary-color, #4f46e5);
+    background: #fff;
+    color: var(--alias-type-type-primary, #121214);
     font-weight: 600;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 .rp-role-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -214,10 +230,9 @@
 }
 
 .rp-section {
-    background: var(--core-morning-fog-solids-morning-fog-900, #f6f6f9);
-    border: 1px solid var(--core-morning-fog-solids-morning-fog-800, #ECECEE);
-    border-radius: 16px;
-    padding: 8px;
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
 .rp-section-head {
@@ -353,13 +368,22 @@
 }
 .rp-toggle.on .rp-toggle-handle { transform: translateX(16px); }
 
-/* ── Page footer (outside the card) ─────────────────────── */
+/* ── Fixed white footer bar (does not scroll) ───────────── */
 .rp-pagefooter {
-    flex-shrink: 0;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
     display: flex;
     justify-content: flex-end;
     align-items: center;
     gap: 12px;
+    padding: 14px 32px;
+    min-height: 64px;
+    box-sizing: border-box;
+    background: #fff;
+    border-top: 1px solid var(--core-morning-fog-solids-morning-fog-800, #ECECEE);
 }
 
 .rp-btn-cancel,
