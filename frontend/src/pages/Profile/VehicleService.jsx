@@ -1,4 +1,5 @@
 import axios from 'axios';
+import apiClient from '../../utils/axiosConfig';
 
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -278,10 +279,10 @@ const getVehicleDocuments = async (vehicleId, token) => {
 const getFleetDashboard = async (token, search) => {
   try {
     const url = search
-      ? `${API_BASE_URL}/api/vehicles/dashboard?search=${encodeURIComponent(search)}`
-      : `${API_BASE_URL}/api/vehicles/dashboard`;
-    const response = await axios.get(url, {
-      headers: { Authorization: `Bearer ${token}` },
+      ? `/api/vehicles/dashboard?search=${encodeURIComponent(search)}`
+      : `/api/vehicles/dashboard`;
+    const response = await apiClient.get(url, {
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
     });
     return response.data?.data || response.data || [];
   } catch (error) {

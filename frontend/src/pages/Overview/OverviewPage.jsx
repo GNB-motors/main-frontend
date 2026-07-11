@@ -33,6 +33,8 @@ import { OverviewService } from "./OverviewService.jsx";
 import StatCard from "./components/StatCard.jsx";
 import FleetMap from "./components/FleetMap.jsx";
 import ExceptionsRail from "./components/ExceptionsRail.jsx";
+import LiveFleetStatusWidget from "./components/LiveFleetStatusWidget.jsx";
+import { VehicleService } from "../Profile/VehicleService.jsx";
 
 // --- Palette (mirrors index.css console tokens) ---
 const C = {
@@ -313,6 +315,7 @@ const OverviewPage = () => {
   const [financials, setFinancials] = useState(null);
   const [driverLocations, setDriverLocations] = useState([]);
   const [exceptions, setExceptions] = useState(null);
+  const [vehiclesList, setVehiclesList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState(null);
@@ -335,13 +338,14 @@ const OverviewPage = () => {
           params.days = selectedDays;
         }
 
-        const [summary, fuel, drivers, fin, liveLocations, exc] = await Promise.all([
+        const [summary, fuel, drivers, fin, liveLocations, exc, vehiclesListResponse] = await Promise.all([
           OverviewService.getDashboardSummary(params),
           OverviewService.getFuelAnalytics(params),
           OverviewService.getDriverPerformance(params),
           OverviewService.getFinancials(params),
           OverviewService.getDriverLocations().catch(() => []),
           OverviewService.getExceptions(params).catch(() => null),
+          VehicleService.getFleetDashboard().catch(() => []),
         ]);
 
         setSummaryData(summary?.summaryCards);
@@ -350,6 +354,7 @@ const OverviewPage = () => {
         setFinancials(fin);
         setDriverLocations(liveLocations);
         setExceptions(exc);
+        setVehiclesList(vehiclesListResponse);
         setLastUpdated(new Date());
         hasLoadedOnce.current = true;
       } catch (err) {
@@ -462,11 +467,12 @@ const OverviewPage = () => {
 
       {/* 1. Hero: Live map + Exceptions rail */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 flex flex-col gap-4">
           <FleetMap locations={driverLocations} />
+          <ExceptionsRail data={exceptions} loading={false} error={exceptions === null} />
         </div>
         <div>
-          <ExceptionsRail data={exceptions} loading={false} error={exceptions === null} />
+          <LiveFleetStatusWidget vehicles={vehiclesList} loading={isLoading} />
         </div>
       </div>
 
