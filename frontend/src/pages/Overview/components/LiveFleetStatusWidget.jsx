@@ -1,14 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Clock, Droplets, MapPin, Search, Info } from 'lucide-react';
+import { Activity, Clock, Droplets, MapPin, Search, Info, RefreshCw } from 'lucide-react';
 import { VehicleService } from '../../Profile/VehicleService';
 import { useNavigate } from 'react-router-dom';
 
-export default function LiveFleetStatusWidget({ vehicles = [], loading = false }) {
+export default function LiveFleetStatusWidget() {
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedVin, setExpandedVin] = useState(null);
   const navigate = useNavigate();
+
+  const fetchLiveStatus = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
+    else setIsRefreshing(true);
+    
+    try {
+      const data = await VehicleService.getFleetDashboard();
+      setVehicles(data || []);
+    } catch (error) {
+      console.error("Failed to fetch live fleet status", error);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveStatus();
+  }, []);
 
   const filtered = vehicles.filter(v => {
     if (!v.liveStatus) return false; // Only show vehicles with live data
@@ -37,8 +59,8 @@ export default function LiveFleetStatusWidget({ vehicles = [], loading = false }
 
   return (
     <Card className="flex flex-col h-[600px] bg-slate-50/50">
-      <div className="p-3 border-b border-slate-200 bg-white">
-        <div className="relative">
+      <div className="p-3 border-b border-slate-200 bg-white flex gap-2">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
@@ -48,13 +70,26 @@ export default function LiveFleetStatusWidget({ vehicles = [], loading = false }
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
+        <button 
+          onClick={() => fetchLiveStatus(false)}
+          disabled={loading || isRefreshing}
+          className="px-3 py-2 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors text-slate-600 flex items-center justify-center disabled:opacity-50"
+          title="Refresh Data"
+        >
+          <RefreshCw size={16} className={(loading || isRefreshing) ? "animate-spin text-[#0e8c8c]" : ""} />
+        </button>
       </div>
       
       <div className="bg-blue-50/60 px-4 py-3 border-b border-blue-100 flex gap-2.5 items-start">
         <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
-        <p className="text-xs text-blue-700/90 leading-relaxed">
-          Showing data from the last sync. To fetch live status, use the <strong>Pull from FleetEdge now</strong> button in your browser extension.
-        </p>
+        <div className="flex-1">
+          <p className="text-xs text-blue-700/90 leading-relaxed">
+            Showing data from the last sync. To fetch live status, use the <strong>Pull from FleetEdge now</strong> button in your browser extension, then click refresh.
+          </p>
+        </div>
+        {isRefreshing && (
+          <RefreshCw size={14} className="text-blue-500 animate-spin shrink-0 mt-0.5" />
+        )}
       </div>
       
       <div className="flex-1 overflow-y-auto p-3 space-y-3">

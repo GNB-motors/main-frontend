@@ -315,7 +315,6 @@ const OverviewPage = () => {
   const [financials, setFinancials] = useState(null);
   const [driverLocations, setDriverLocations] = useState([]);
   const [exceptions, setExceptions] = useState(null);
-  const [vehiclesList, setVehiclesList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState(null);
@@ -338,14 +337,13 @@ const OverviewPage = () => {
           params.days = selectedDays;
         }
 
-        const [summary, fuel, drivers, fin, liveLocations, exc, vehiclesListResponse] = await Promise.all([
+        const [summary, fuel, drivers, fin, liveLocations, exc] = await Promise.all([
           OverviewService.getDashboardSummary(params),
           OverviewService.getFuelAnalytics(params),
           OverviewService.getDriverPerformance(params),
           OverviewService.getFinancials(params),
           OverviewService.getDriverLocations().catch(() => []),
           OverviewService.getExceptions(params).catch(() => null),
-          VehicleService.getFleetDashboard().catch(() => []),
         ]);
 
         setSummaryData(summary?.summaryCards);
@@ -354,7 +352,6 @@ const OverviewPage = () => {
         setFinancials(fin);
         setDriverLocations(liveLocations);
         setExceptions(exc);
-        setVehiclesList(vehiclesListResponse);
         setLastUpdated(new Date());
         hasLoadedOnce.current = true;
       } catch (err) {
@@ -472,7 +469,7 @@ const OverviewPage = () => {
           <ExceptionsRail data={exceptions} loading={false} error={exceptions === null} />
         </div>
         <div>
-          <LiveFleetStatusWidget vehicles={vehiclesList} loading={isLoading} />
+          <LiveFleetStatusWidget />
         </div>
       </div>
 
