@@ -33,6 +33,8 @@ import { OverviewService } from "./OverviewService.jsx";
 import StatCard from "./components/StatCard.jsx";
 import FleetMap from "./components/FleetMap.jsx";
 import ExceptionsRail from "./components/ExceptionsRail.jsx";
+import LiveFleetStatusWidget from "./components/LiveFleetStatusWidget.jsx";
+import { VehicleService } from "../Profile/VehicleService.jsx";
 
 // --- Palette (mirrors index.css console tokens) ---
 const C = {
@@ -462,11 +464,12 @@ const OverviewPage = () => {
 
       {/* 1. Hero: Live map + Exceptions rail */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 flex flex-col gap-4">
           <FleetMap locations={driverLocations} />
+          <ExceptionsRail data={exceptions} loading={false} error={exceptions === null} />
         </div>
         <div>
-          <ExceptionsRail data={exceptions} loading={false} error={exceptions === null} />
+          <LiveFleetStatusWidget />
         </div>
       </div>
 

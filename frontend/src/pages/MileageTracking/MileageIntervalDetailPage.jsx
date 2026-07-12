@@ -278,6 +278,7 @@ const MileageIntervalDetailPage = () => {
                 <MetricRow label="GPS Distance" value={fmt(fe.distanceKm, 1, 'km')} />
                 <MetricRow label="GPS Fuel Consumed" value={fmt(fe.fuelConsumedL, 2, 'L')} />
                 <MetricRow label="GPS Mileage" value={fmt(fe.mileageKmPerL, 2, 'km/L')} highlight />
+                <MetricRow label="DEF Consumed" value={fmt(fe.defConsumed, 2, 'L')} />
                 <MetricRow label="Snapshots" value={fe.snapshotCount ?? '—'} />
                 <MetricRow label="First Snapshot" value={fmtDate(fe.firstSnapshotAt)} />
                 <MetricRow label="Last Snapshot" value={fmtDate(fe.lastSnapshotAt)} />
