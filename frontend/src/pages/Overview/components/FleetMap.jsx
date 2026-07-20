@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
-const MAP_CONTAINER_STYLE = { width: "100%", height: "100%", minHeight: "460px" };
+const MAP_CONTAINER_STYLE = { width: "100%", height: "100%", minHeight: "400px" };
 const STALE_THRESHOLD_MS = 15 * 60 * 1000;
 
 const STATUS = {
@@ -70,7 +70,7 @@ const FleetMap = ({ locations }) => {
   const staleCount = active.filter((l) => isStale(l.updatedAt)).length;
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden">
+    <Card className="flex h-full flex-col overflow-hidden rounded-none border-0">
       <CardHeader className="flex flex-row items-center justify-between gap-2 p-4 pb-3">
         <div className="flex items-center gap-2">
           <Truck size={16} style={{ color: "var(--accent)" }} strokeWidth={2.4} />
@@ -94,14 +94,14 @@ const FleetMap = ({ locations }) => {
         {!isLoaded ? (
           <Skeleton className="h-full min-h-[460px] w-full rounded-xl bg-slate-200/50" />
         ) : active.length === 0 ? (
-          <div className="flex h-full min-h-[460px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 text-slate-400">
+          <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 text-slate-400">
             <Truck size={44} className="opacity-30" />
             <p className="text-sm font-medium">No drivers are sharing location right now</p>
           </div>
         ) : (
           <div
             className="h-full overflow-hidden rounded-xl"
-            style={{ border: "2px solid var(--ink)", minHeight: 460 }}
+            style={{ border: "2px solid var(--ink)", minHeight: 400 }}
           >
             <GoogleMap
               mapContainerStyle={MAP_CONTAINER_STYLE}
