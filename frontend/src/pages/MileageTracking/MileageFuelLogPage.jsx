@@ -240,7 +240,9 @@ const MileageFuelLogPage = () => {
             }
 
             const payload = {
-                ...formData, vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
+                ...formData,
+                fuelType: 'DIESEL',
+                vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
                 documentId: fuelRes.data.data?._id || fuelRes.data._id || '',
                 ...(odoDocId && { odometerDocId: odoDocId }),
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
@@ -356,14 +358,11 @@ const MileageFuelLogPage = () => {
                         </div>
                     </div>
 
-                    {/* Fuel & Filling Type */}
+                    {/* Fuel & Filling Type — diesel only; AdBlue has its own page */}
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Fuel Type</label>
-                            <select name="fuelType" value={formData.fuelType} onChange={handleFormChange}>
-                                <option value="DIESEL">Diesel</option>
-                                <option value="ADBLUE">AdBlue</option>
-                            </select>
+                            <input type="text" value="Diesel" readOnly disabled className="mileage-readonly-input" />
                         </div>
                         <div className="mileage-form-group">
                             <label>Filling Type</label>

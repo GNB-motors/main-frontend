@@ -1,0 +1,63 @@
+/* AdBlue table — fixed columns so headers and cells stay aligned.
+   Overrides shared .refuel-table rules that use min-height (which stretches
+   a single row and makes content look misaligned under the header). */
+
+.adblue-tracking-page .adblue-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+}
+
+.adblue-tracking-page .adblue-col-date { width: 16%; }
+.adblue-tracking-page .adblue-col-vehicle { width: 18%; }
+.adblue-tracking-page .adblue-col-driver { width: 18%; }
+.adblue-tracking-page .adblue-col-place { width: 16%; }
+.adblue-tracking-page .adblue-col-litres { width: 12%; }
+.adblue-tracking-page .adblue-col-amount { width: 12%; }
+.adblue-tracking-page .adblue-col-actions { width: 8%; }
+
+.adblue-tracking-page .adblue-table th,
+.adblue-tracking-page .adblue-table td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adblue-tracking-page .adblue-table th:last-child,
+.adblue-tracking-page .adblue-table td:last-child {
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.adblue-tracking-page .adblue-table tbody tr {
+  height: auto;
+}
+
+.adblue-tracking-page .adblue-table .cell-primary {
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adblue-tracking-page .adblue-table .cell-secondary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adblue-tracking-page .adblue-table .refuel-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.adblue-tracking-page .refuel-empty-state {
+  height: 40vh;
+}

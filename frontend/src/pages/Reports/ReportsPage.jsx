@@ -23,6 +23,7 @@ import VehicleReport from './reports/VehicleReport.jsx';
 import MileageIntervalReport from './reports/MileageIntervalReport.jsx';
 
 import RefuelLogsPage from '../Trip/RefuelLogsPage.jsx';
+import AdBlueComparisonReport from './reports/AdBlueComparisonReport.jsx';
 import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
 
 // --- MAIN REPORTS PAGE COMPONENT ---
@@ -102,7 +103,7 @@ const ReportsPage = () => {
             case 'dieselReport':
                 return <RefuelLogsPage fuelType="DIESEL" />;
             case 'adblueReport':
-                return <RefuelLogsPage fuelType="ADBLUE" />;
+                return <AdBlueComparisonReport />;
             default:
                 return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
         }

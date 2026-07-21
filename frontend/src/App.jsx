@@ -38,6 +38,8 @@ import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import MileageTrackingPage from './pages/MileageTracking/MileageTrackingPage.jsx';
 import MileageTrackingVehicleDetail from './pages/MileageTracking/MileageTrackingVehicleDetail.jsx';
 import MileageFuelLogPage from './pages/MileageTracking/MileageFuelLogPage.jsx';
+import AdBlueLogPage from './pages/MileageTracking/AdBlueLogPage.jsx';
+import AdBlueTrackingPage from './pages/MileageTracking/AdBlueTrackingPage.jsx';
 import MileageIntervalDetailPage from './pages/MileageTracking/MileageIntervalDetailPage.jsx';
 import ModelComparisonPage from './pages/MileageTracking/ModelComparisonPage.jsx';
 import LocationPage from './pages/Locations/LocationPage.jsx';
@@ -100,9 +102,11 @@ function App() {
         <Route path="/mileage-tracking/vehicle/:vehicleId" element={<MileageTrackingVehicleDetail />} />
         <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
         <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
+        <Route path="/adblue-tracking" element={<AdBlueTrackingPage />} />
+        <Route path="/adblue-tracking/new" element={<AdBlueLogPage />} />
         <Route path="/model-comparison" element={<ModelComparisonPage />} />
         <Route path="/expected-mileage" element={<ModelComparisonPage />} />
-        <Route path="/def-tracking" element={<Navigate to="/refuel-logs?tab=adblue" replace />} />
+        <Route path="/def-tracking" element={<Navigate to="/adblue-tracking" replace />} />
         <Route path="/fuel-bills" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />

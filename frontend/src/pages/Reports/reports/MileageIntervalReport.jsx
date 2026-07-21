@@ -11,8 +11,9 @@ import TableShimmer from '@/components/ui/TableShimmer';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 import apiClient from '../../../utils/axiosConfig';
+import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
 
-const COLUMN_COUNT = 14;
+const COLUMN_COUNT = 15;
 const PAGE_SIZE = 10;
 
 const formatNumber = (value, digits = 0) =>
@@ -83,6 +84,7 @@ const MileageIntervalReport = () => {
 
   const [vehicleOptions, setVehicleOptions] = useState([]);
   const [driverOptions, setDriverOptions] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -94,18 +96,18 @@ const MileageIntervalReport = () => {
         const vehicles = vehiclesRes.data?.data || vehiclesRes.data || [];
         setVehicleOptions(
           (Array.isArray(vehicles) ? vehicles : []).map((v) => ({
-            id: v._id || v.id,
+            id: String(v._id || v.id),
             label: v.registrationNumber || v.vehicleNumber || '—',
-          })).filter((v) => v.id),
+          })).filter((v) => v.id && v.id !== 'undefined'),
         );
         setDriverOptions(
           (Array.isArray(employees) ? employees : [])
             .filter((d) => !d.role || d.role === 'DRIVER')
             .map((d) => ({
-              id: d._id || d.id,
+              id: String(d._id || d.id),
               label: `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Unknown',
             }))
-            .filter((d) => d.id),
+            .filter((d) => d.id && d.id !== 'undefined'),
         );
       } catch (err) {
         console.error('Failed to load report filters:', err);
@@ -127,8 +129,8 @@ const MileageIntervalReport = () => {
         const endIso = toEndOfDayIso(endDate);
         if (startIso) params.startDate = startIso;
         if (endIso) params.endDate = endIso;
-        if (vehicleId && vehicleId !== 'all') params.vehicleId = vehicleId;
-        if (driverId && driverId !== 'all') params.driverId = driverId;
+        if (vehicleId && vehicleId !== 'all') params.vehicleId = String(vehicleId);
+        if (driverId && driverId !== 'all') params.driverId = String(driverId);
 
         const result = await ReportsService.getMileageIntervalReports(params);
         setRows(Array.isArray(result.data) ? result.data : []);
@@ -172,59 +174,34 @@ const MileageIntervalReport = () => {
     return driverOptions.find((d) => d.id === driverId)?.label || 'All Drivers';
   }, [driverId, driverOptions]);
 
+  /** Same filters as the table fetch — CSV export must use these so only matching rows are downloaded. */
   const buildFilterParams = () => {
     const params = {};
     const startIso = toStartOfDayIso(startDate);
     const endIso = toEndOfDayIso(endDate);
     if (startIso) params.startDate = startIso;
     if (endIso) params.endDate = endIso;
-    if (vehicleId && vehicleId !== 'all') params.vehicleId = vehicleId;
-    if (driverId && driverId !== 'all') params.driverId = driverId;
+    if (vehicleId && vehicleId !== 'all') params.vehicleId = String(vehicleId);
+    if (driverId && driverId !== 'all') params.driverId = String(driverId);
     return params;
   };
 
-  const rowsToCsv = (exportRows) => {
-    const headers = [
-      'Date', 'Vehicle', 'Driver', 'Pump Location', 'Source', 'Destination',
-      'Start Odo', 'End Odo', 'Distance (km)', 'Fuel (L)', 'Mileage (km/L)',
-      'DEF (L)', 'Cost (₹)', 'Alert',
-    ];
-    return [
-      headers.join(','),
-      ...exportRows.map((row) => [
-        row.date ? dayjs(row.date).format('DD/MM/YYYY') : '',
-        `"${row.vehicleNumber || ''}"`,
-        `"${row.driverName || ''}"`,
-        `"${row.pumpLocation || ''}"`,
-        `"${row.source?.name || ''}"`,
-        `"${row.destination?.name || ''}"`,
-        row.startOdo ?? '',
-        row.endOdo ?? '',
-        row.distanceKm ?? '',
-        row.fuelLiters ?? '',
-        row.mileageKmPerL ?? '',
-        row.defLiters ?? '',
-        row.cost ?? '',
-        row.alert?.status || '',
-      ].join(',')),
-    ].join('\n');
-  };
-
-  const downloadCsv = async (extension, mimeType) => {
+  const downloadCsv = async (extension) => {
+    if (isExporting) return;
+    setIsExporting(true);
     try {
-      const result = await ReportsService.getMileageIntervalReports({
-        ...buildFilterParams(),
-        page: 1,
-        limit: 200,
+      await exportFilteredReportCsv({
+        fetchExport: (filters) =>
+          ReportsService.exportReportCsv('api/reports/mileage-intervals/export', filters),
+        filters: buildFilterParams(),
+        filenamePrefix: 'mileage_interval_report',
+        extension,
+        errorMessage: 'Could not export mileage report.',
       });
-      const exportRows = Array.isArray(result.data) ? result.data : rows;
-      const blob = new Blob([rowsToCsv(exportRows)], { type: mimeType });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `mileage_interval_report_${dayjs().format('YYYY-MM-DD')}.${extension}`;
-      link.click();
-    } catch (err) {
-      console.error('Export failed:', err);
+    } catch {
+      // toast handled inside exportFilteredReportCsv
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -249,20 +226,22 @@ const MileageIntervalReport = () => {
           <h3 className="report-title">Mileage Report</h3>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={() => downloadCsv('csv', 'text/csv;charset=utf-8;')}
-              style={exportBtnStyle}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#ECECEE'; }}
+              onClick={() => downloadCsv('csv')}
+              disabled={isExporting}
+              style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
+              onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
-              title="Export to CSV"
+              title="Export filtered rows to CSV"
             >
               <CsvIcon width={24} height={24} />
             </button>
             <button
-              onClick={() => downloadCsv('xlsx', 'application/vnd.ms-excel;charset=utf-8;')}
-              style={exportBtnStyle}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#ECECEE'; }}
+              onClick={() => downloadCsv('xlsx')}
+              disabled={isExporting}
+              style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
+              onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
-              title="Export to Excel"
+              title="Export filtered rows to Excel"
             >
               <ExcelIcon width={22} height={22} />
             </button>
@@ -361,7 +340,8 @@ const MileageIntervalReport = () => {
             <table className="vehicle-table">
               <thead>
                 <tr className="table-header-row">
-                  <th>Date</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
                   <th>Vehicle</th>
                   <th>Driver</th>
                   <th>Pump Location</th>
@@ -387,7 +367,12 @@ const MileageIntervalReport = () => {
                 ) : (
                   rows.map((row) => (
                     <tr key={row.id} className="trip-table-row">
-                      <td><div className="cell-primary">{formatDate(row.date)}</div></td>
+                      <td><div className="cell-primary">{formatDate(row.startDate || row.date)}</div></td>
+                      <td>
+                        <div className="cell-primary">
+                          {row.endDate ? formatDate(row.endDate) : (row.intervalStatus === 'ONGOING' ? '...' : '—')}
+                        </div>
+                      </td>
                       <td><div className="cell-primary">{row.vehicleNumber || '—'}</div></td>
                       <td><div className="cell-primary">{row.driverName || '—'}</div></td>
                       <td><div className="cell-primary">{row.pumpLocation || '—'}</div></td>
