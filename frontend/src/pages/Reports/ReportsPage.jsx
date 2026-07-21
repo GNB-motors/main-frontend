@@ -20,6 +20,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 // --- IMPORTS FOR SEGREGATED REPORT COMPONENTS ---
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
+import MileageIntervalReport from './reports/MileageIntervalReport.jsx';
 
 import RefuelLogsPage from '../Trip/RefuelLogsPage.jsx';
 import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
@@ -94,6 +95,8 @@ const ReportsPage = () => {
                 return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
             case 'vehicle':
                 return <VehicleReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
+            case 'mileageIntervals':
+                return <MileageIntervalReport />;
             case 'modelComparison':
                 return <ModelComparisonPage />;
             case 'dieselReport':

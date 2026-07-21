@@ -81,6 +81,32 @@ export const ReportsService = {
         }
     },
     /**
+     * Flat mileage-interval report across all vehicles.
+     * @param {object} params - { page, limit, startDate, endDate, vehicleId, driverId, search, status }
+     * @returns {Promise<{ data: Array, meta: Object }>}
+     */
+    getMileageIntervalReports: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`api/reports/mileage-intervals`, { params });
+
+            if (response.data && response.data.status === 'success') {
+                return {
+                    data: Array.isArray(response.data.data) ? response.data.data : [],
+                    meta: response.data.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
+                };
+            }
+
+            return {
+                data: response.data?.data || [],
+                meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
+            };
+        } catch (error) {
+            console.error("API Error fetching mileage interval reports:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable while fetching mileage report." };
+        }
+    },
+
+    /**
      * Fetches aggregated driver report data.
      * @param {object} params - Optional query parameters { page, limit }.
      * @returns {Promise<Array>} - Array of driver report data.
