@@ -23,6 +23,7 @@ import {
   Activity,
   Fuel,
   CalendarDays,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -285,7 +286,80 @@ const UnderperformingList = ({ drivers }) => {
   );
 };
 
-// --- Skeleton ---
+// --- Skeleton helpers ---
+const StatRowSkeleton = () => (
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {[...Array(4)].map((_, i) => (
+      <Card key={i} className="animate-pulse">
+        <CardContent className="p-5">
+          <Skeleton className="mb-3 h-3 w-16 rounded-md bg-slate-200" />
+          <Skeleton className="mb-2.5 h-7 w-24 rounded-md bg-slate-200" />
+          <Skeleton className="h-3 w-32 rounded-md bg-slate-200" />
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
+
+const FinancialSkeleton = () => (
+  <Card className="animate-pulse">
+    <CardContent className="p-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+            <Skeleton className="mb-3 h-3 w-16 rounded-md bg-slate-200" />
+            <Skeleton className="h-8 w-28 rounded-md bg-slate-200" />
+          </div>
+        ))}
+      </div>
+      {/* Chart area skeleton */}
+      <div className="mt-6 border-t border-slate-100 pt-4">
+        <Skeleton className="mb-3 h-3.5 w-36 rounded-md bg-slate-200" />
+        <Skeleton className="h-[200px] w-full rounded-xl bg-slate-200" />
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const DriverPerfSkeleton = () => (
+  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    {[...Array(3)].map((_, i) => (
+      <Card key={i} className="animate-pulse">
+        <CardHeader className="p-4 pb-1.5">
+          <Skeleton className="h-4 w-40 rounded-md bg-slate-200" />
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="flex items-center gap-4 mt-2">
+            <Skeleton className="h-12 w-12 rounded-full bg-slate-200 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-32 rounded-md bg-slate-200" />
+              <Skeleton className="h-3 w-24 rounded-md bg-slate-200" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
+
+// Chart row skeleton (2 side-by-side chart placeholders)
+const ChartRowSkeleton = () => (
+  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    {[...Array(2)].map((_, i) => (
+      <Card key={i} className="animate-pulse">
+        <CardHeader className="p-4 pb-2">
+          <Skeleton className="mb-1 h-4 w-44 rounded-md bg-slate-200" />
+          <Skeleton className="h-3 w-32 rounded-md bg-slate-200" />
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <Skeleton className="h-[220px] w-full rounded-xl bg-slate-200" />
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
+
+// --- Full-page first-load skeleton ---
 const DashboardSkeleton = () => (
   <div className="min-h-screen w-full space-y-6 p-3 sm:p-5">
     <div className="mb-4 flex items-center justify-between">
@@ -295,10 +369,11 @@ const DashboardSkeleton = () => (
       </div>
       <Skeleton className="h-9 w-64 rounded-xl bg-slate-200" />
     </div>
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <Skeleton className="h-[520px] rounded-2xl bg-slate-200 lg:col-span-2" />
-      <Skeleton className="h-[520px] rounded-2xl bg-slate-200" />
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" style={{ height: 620 }}>
+      <Skeleton className="rounded-2xl bg-slate-200 lg:col-span-2 h-full" />
+      <Skeleton className="rounded-2xl bg-slate-200 h-full" />
     </div>
+    <Skeleton className="h-[660px] w-full rounded-2xl bg-slate-200" />
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {[...Array(4)].map((_, i) => (
         <Skeleton key={i} className="h-24 rounded-2xl bg-slate-200" />
@@ -396,11 +471,19 @@ const OverviewPage = () => {
   const finSummary = financials?.summary;
 
   return (
-    <div
-      className={`min-h-screen w-full space-y-6 p-3 font-sans antialiased text-slate-900 transition-opacity duration-300 sm:p-5 ${
-        isFetching ? "pointer-events-none opacity-60" : "opacity-100"
-      }`}
-    >
+    <div className="min-h-screen w-full space-y-6 p-3 font-sans antialiased text-slate-900 sm:p-5">
+
+      {/* ── Top-of-page loading bar — visible during day switching ── */}
+      {isFetching && (
+        <div className="fixed inset-x-0 top-0 z-[9999] h-[3px] overflow-hidden">
+          <div
+            className="h-full w-full animate-pulse"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, #0e8c8c 30%, #2dd4bf 50%, #0e8c8c 70%, transparent 100%)',
+            }}
+          />
+        </div>
+      )}
       {/* Header */}
       <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -431,6 +514,14 @@ const OverviewPage = () => {
           return (
             <div className="flex items-center gap-2.5">
               <CalendarDays size={16} strokeWidth={2.5} className="shrink-0 text-slate-400" />
+              {/* Spinning refresh indicator while fetching */}
+              {isFetching && (
+                <RefreshCw
+                  size={13}
+                  className="shrink-0 animate-spin text-[#0e8c8c]"
+                  strokeWidth={2.5}
+                />
+              )}
               <div
                 className="relative flex items-center rounded-xl border border-slate-200 bg-slate-200/60 p-[3px] shadow-inner"
                 style={{ minWidth: 240 }}
@@ -462,97 +553,116 @@ const OverviewPage = () => {
         })()}
       </div>
 
-      {/* 1. Hero: Live map + Exceptions rail */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <FleetMap locations={driverLocations} />
-          <ExceptionsRail data={exceptions} loading={false} error={exceptions === null} />
+      {/* 1. Hero: Needs Attention + Live Fleet Status side-by-side, then full-width map below */}
+
+      {/* Top row — equal height panels */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" style={{ height: 620 }}>
+        {/* Needs Attention — left 2/3 */}
+        <div className="lg:col-span-2 min-h-0 rounded-2xl overflow-hidden border border-slate-300">
+          <ExceptionsRail data={exceptions} loading={isFetching} error={!isFetching && exceptions === null} />
         </div>
-        <div>
+        {/* Live Fleet Status — right 1/3, same height */}
+        <div className="min-h-0 rounded-2xl overflow-hidden border border-slate-300">
           <LiveFleetStatusWidget />
         </div>
       </div>
 
+      {/* Map row — full width */}
+      <div className="rounded-2xl overflow-hidden border border-slate-300" style={{ height: 660 }}>
+        <FleetMap locations={driverLocations} />
+      </div>
+
       {/* 2. Fleet KPIs */}
-      {vehicles && (
+      {(vehicles || isFetching) && (
         <>
           <SectionLabel>Fleet Overview</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Vehicles"
-              value={formatNumber(vehicles.total || 0)}
-              sub={`${formatNumber(vehicles.active || 0)} active · ${formatNumber(vehicles.onTrip || 0)} on trip`}
-              icon={<Truck size={18} />}
-            />
-            <StatCard
-              label="Drivers"
-              value={formatNumber(drivers?.total || 0)}
-              sub={`${formatNumber(drivers?.active || 0)} active`}
-              icon={<Users size={18} />}
-            />
-            <StatCard
-              label="Trips"
-              value={formatNumber(trips?.total || 0)}
-              sub={`${formatNumber(trips?.completed || 0)} done · ${formatNumber(trips?.ongoing || 0)} ongoing`}
-              icon={<Activity size={18} />}
-            />
-            <StatCard
-              label="Distance"
-              value={`${formatNumber(kilometers?.total || 0)} km`}
-              icon={<Map size={18} />}
-            />
-          </div>
-        </>
-      )}
-
-      {/* 3. Fuel analytics */}
-      {fuel && (fuel.totalLitres > 0 || fuel.totalCost > 0) && (
-        <>
-          <SectionLabel>Fuel Analytics</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Fuel Consumed"
-              value={`${formatNumber(fuel.totalLitres || 0)} L`}
-              sub={`Cost ${formatCurrency(fuel.totalCost || 0)}`}
-              icon={<Fuel size={18} />}
-            />
-            <StatCard
-              label="Avg Efficiency"
-              value={`${(fuel.avgKmpl || 0).toFixed(2)} km/l`}
-              sub="Fleet-wide"
-              icon={<TrendingUp size={18} />}
-            />
-            {fuelSummary && (
-              <>
-                <StatCard
-                  label="Avg Variance"
-                  value={`${(fuelSummary.averageVariance || 0).toFixed(2)} km/l`}
-                  sub={`Fleet ${(fuelAnalytics.fleetWideAverageVariance || 0).toFixed(2)}`}
-                  icon={<TrendingUp size={18} />}
-                />
-                <StatCard
-                  label="Outliers"
-                  value={formatNumber(fuelSummary.outlierCount || 0)}
-                  sub={`of ${formatNumber(fuelSummary.totalTrips || 0)} trips`}
-                  icon={<AlertTriangle size={18} />}
-                />
-              </>
-            )}
-          </div>
-          {(fuelAnalytics?.dailyVariance?.length > 0 || fuelAnalytics?.dailyOutliers?.length > 0) && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <FuelVarianceChart data={fuelAnalytics.dailyVariance} />
-              <OutlierChart data={fuelAnalytics.dailyOutliers} />
+          {isFetching ? <StatRowSkeleton /> : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                label="Vehicles"
+                value={formatNumber(vehicles.total || 0)}
+                sub={`${formatNumber(vehicles.active || 0)} active · ${formatNumber(vehicles.onTrip || 0)} on trip`}
+                icon={<Truck size={18} />}
+              />
+              <StatCard
+                label="Drivers"
+                value={formatNumber(drivers?.total || 0)}
+                sub={`${formatNumber(drivers?.active || 0)} active`}
+                icon={<Users size={18} />}
+              />
+              <StatCard
+                label="Trips"
+                value={formatNumber(trips?.total || 0)}
+                sub={`${formatNumber(trips?.completed || 0)} done · ${formatNumber(trips?.ongoing || 0)} ongoing`}
+                icon={<Activity size={18} />}
+              />
+              <StatCard
+                label="Distance"
+                value={`${formatNumber(kilometers?.total || 0)} km`}
+                icon={<Map size={18} />}
+              />
             </div>
           )}
         </>
       )}
 
+      {/* 3. Fuel analytics */}
+      {(isFetching || (fuel && (fuel.totalLitres > 0 || fuel.totalCost > 0))) && (
+        <>
+          <SectionLabel>Fuel Analytics</SectionLabel>
+          {isFetching ? (
+            <>
+              <StatRowSkeleton />
+              <ChartRowSkeleton />
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  label="Fuel Consumed"
+                  value={`${formatNumber(fuel.totalLitres || 0)} L`}
+                  sub={`Cost ${formatCurrency(fuel.totalCost || 0)}`}
+                  icon={<Fuel size={18} />}
+                />
+                <StatCard
+                  label="Avg Efficiency"
+                  value={`${(fuel.avgKmpl || 0).toFixed(2)} km/l`}
+                  sub="Fleet-wide"
+                  icon={<TrendingUp size={18} />}
+                />
+                {fuelSummary && (
+                  <>
+                    <StatCard
+                      label="Avg Variance"
+                      value={`${(fuelSummary.averageVariance || 0).toFixed(2)} km/l`}
+                      sub={`Fleet ${(fuelAnalytics.fleetWideAverageVariance || 0).toFixed(2)}`}
+                      icon={<TrendingUp size={18} />}
+                    />
+                    <StatCard
+                      label="Outliers"
+                      value={formatNumber(fuelSummary.outlierCount || 0)}
+                      sub={`of ${formatNumber(fuelSummary.totalTrips || 0)} trips`}
+                      icon={<AlertTriangle size={18} />}
+                    />
+                  </>
+                )}
+              </div>
+              {(fuelAnalytics?.dailyVariance?.length > 0 || fuelAnalytics?.dailyOutliers?.length > 0) && (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <FuelVarianceChart data={fuelAnalytics.dailyVariance} />
+                  <OutlierChart data={fuelAnalytics.dailyOutliers} />
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
       {/* 4. Financial overview */}
-      {finSummary && (finSummary.totalRevenue > 0 || finSummary.totalExpenses > 0) && (
+      {(isFetching || (finSummary && (finSummary.totalRevenue > 0 || finSummary.totalExpenses > 0))) && (
         <>
           <SectionLabel>Financial Overview</SectionLabel>
-          <Card>
+          {isFetching ? <FinancialSkeleton /> : <Card>
             <CardContent className="p-4 sm:p-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
@@ -592,15 +702,15 @@ const OverviewPage = () => {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card>}
         </>
       )}
 
       {/* 5. Driver performance */}
-      {driverPerformance && (driverPerformance.topPerformingDriver || driverPerformance.averageDriverRating !== undefined) && (
+      {(isFetching || (driverPerformance && (driverPerformance.topPerformingDriver || driverPerformance.averageDriverRating !== undefined))) && (
         <>
           <SectionLabel>Driver Performance</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {isFetching ? <DriverPerfSkeleton /> : <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {driverPerformance.topPerformingDriver ? (
               <DriverCard driver={driverPerformance.topPerformingDriver} label="Top Performing Driver" variant="top" />
             ) : (
@@ -691,7 +801,7 @@ const OverviewPage = () => {
                 </CardContent>
               </Card>
             )}
-          </div>
+          </div>}
         </>
       )}
     </div>
