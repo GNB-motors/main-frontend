@@ -11,6 +11,7 @@ import {
 import TableShimmer from '@/components/ui/TableShimmer';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
+import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
 
 const COLUMN_COUNT = 9;
 
@@ -33,6 +34,7 @@ const DriverReport = () => {
     const [selectedEmployee, setSelectedEmployee] = useState('all');
     const [employeeOptions, setEmployeeOptions] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [isExporting, setIsExporting] = useState(false);
     const itemsPerPage = 10;
 
     // Fetch employee list from employees API
@@ -100,34 +102,59 @@ const DriverReport = () => {
         return items;
     };
 
-    const buildCsv = () => {
-        const headers = ['Driver Name', 'Mobile Number', 'Refuels', 'Total Distance (KM)', 'Diesel (L)', 'AdBlue (L)', 'Total Fuel Cost (₹)', 'Avg Mileage (km/L)', 'Last Refuel'];
-        return [
-            headers.join(','),
-            ...filteredRows.map(row => [
-                row.driverName || '-',
-                row.mobileNumber || '-',
-                row.totalRefuels || 0,
-                typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
-                typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
-                typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
-                typeof row.totalFuelCost === 'number' ? row.totalFuelCost.toFixed(2) : '-',
-                typeof row.avgMileageKmPerL === 'number' ? row.avgMileageKmPerL.toFixed(2) : '-',
-                row.lastRefuelAt ? dayjs(row.lastRefuelAt).format('DD/MM/YYYY') : '-',
-            ].join(','))
-        ].join('\n');
+    const DRIVER_CSV_HEADERS = [
+        'Driver Name', 'Mobile Number', 'Refuels', 'Total Distance (KM)',
+        'Diesel (L)', 'AdBlue (L)', 'Total Fuel Cost (₹)', 'Avg Mileage (km/L)', 'Last Refuel',
+    ];
+
+    const mapDriverCsvRow = (row) => [
+        row.driverName || '-',
+        row.mobileNumber || '-',
+        row.totalRefuels || 0,
+        typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
+        typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
+        typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
+        typeof row.totalFuelCost === 'number' ? row.totalFuelCost.toFixed(2) : '-',
+        typeof row.avgMileageKmPerL === 'number' ? row.avgMileageKmPerL.toFixed(2) : '-',
+        row.lastRefuelAt ? dayjs(row.lastRefuelAt).format('DD/MM/YYYY') : '-',
+    ];
+
+    const downloadCsv = async (extension) => {
+        if (isExporting) return;
+        setIsExporting(true);
+        try {
+            // Export only the currently filtered rows (selected employee), not the full dataset
+            await exportFilteredReportCsv({
+                headers: DRIVER_CSV_HEADERS,
+                rows: filteredRows,
+                mapRow: mapDriverCsvRow,
+                filenamePrefix: 'driver_report',
+                extension,
+                errorMessage: 'Could not export driver report.',
+            });
+        } catch {
+            // toast handled inside exportFilteredReportCsv
+        } finally {
+            setIsExporting(false);
+        }
     };
 
-    const downloadCsv = (extension, mimeType) => {
-        const blob = new Blob([buildCsv()], { type: mimeType });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `driver_report_${dayjs().format('YYYY-MM-DD')}.${extension}`;
-        link.click();
-    };
+    const handleExportCSV = () => downloadCsv('csv');
+    const handleExportExcel = () => downloadCsv('xlsx');
 
-    const handleExportCSV = () => downloadCsv('csv', 'text/csv;charset=utf-8;');
-    const handleExportExcel = () => downloadCsv('xlsx', 'application/vnd.ms-excel;charset=utf-8;');
+    const exportBtnStyle = {
+        width: '44px',
+        height: '44px',
+        padding: '6px 8px',
+        background: '#F8F8FB',
+        borderRadius: '8px',
+        border: '1px solid #ECECEE',
+        cursor: 'pointer',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        transition: 'all 0.2s ease',
+    };
 
     return (
         <Box sx={{ padding: '24px' }}>
@@ -138,43 +165,21 @@ const DriverReport = () => {
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                             onClick={handleExportCSV}
-                            style={{
-                                width: '44px',
-                                height: '44px',
-                                padding: '6px 8px',
-                                background: '#F8F8FB',
-                                borderRadius: '8px',
-                                border: '1px solid #ECECEE',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
-                            title="Export to CSV"
+                            disabled={isExporting}
+                            style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
+                            onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
+                            title="Export filtered rows to CSV"
                         >
                             <CsvIcon width={24} height={24} />
                         </button>
                         <button
                             onClick={handleExportExcel}
-                            style={{
-                                width: '44px',
-                                height: '44px',
-                                padding: '6px 8px',
-                                background: '#F8F8FB',
-                                borderRadius: '8px',
-                                border: '1px solid #ECECEE',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#ECECEE'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = '#F8F8FB'}
-                            title="Export to Excel"
+                            disabled={isExporting}
+                            style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
+                            onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
+                            title="Export filtered rows to Excel"
                         >
                             <ExcelIcon width={22} height={22} />
                         </button>

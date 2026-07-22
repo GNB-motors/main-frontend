@@ -81,6 +81,67 @@ export const ReportsService = {
         }
     },
     /**
+     * Flat mileage-interval report across all vehicles.
+     * @param {object} params - { page, limit, startDate, endDate, vehicleId, driverId, search, status }
+     * @returns {Promise<{ data: Array, meta: Object }>}
+     */
+    getMileageIntervalReports: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`api/reports/mileage-intervals`, { params });
+
+            if (response.data && response.data.status === 'success') {
+                return {
+                    data: Array.isArray(response.data.data) ? response.data.data : [],
+                    meta: response.data.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
+                };
+            }
+
+            return {
+                data: response.data?.data || [],
+                meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
+            };
+        } catch (error) {
+            console.error("API Error fetching mileage interval reports:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable while fetching mileage report." };
+        }
+    },
+
+    /**
+     * Generic filtered CSV export — call any report `/export` endpoint with the
+     * same filters used by the table. Reuse from Mileage, Driver, etc.
+     * @param {string} endpoint - e.g. 'api/reports/mileage-intervals/export'
+     * @param {object} params - active filters only
+     * @returns {Promise<Blob>}
+     */
+    exportReportCsv: async (endpoint, params = {}) => {
+        try {
+            const response = await apiClient.get(endpoint, {
+                params,
+                responseType: 'blob',
+            });
+            return response.data;
+        } catch (error) {
+            console.error(`API Error exporting report (${endpoint}):`, error.response?.data || error.message);
+            const data = error.response?.data;
+            if (data instanceof Blob) {
+                try {
+                    const text = await data.text();
+                    const parsed = JSON.parse(text);
+                    throw parsed;
+                } catch (parseErr) {
+                    if (parseErr && (parseErr.detail || parseErr.message)) throw parseErr;
+                }
+            }
+            throw data || { detail: 'Network error or server unavailable while exporting report.' };
+        }
+    },
+
+    /** @deprecated Prefer exportReportCsv — kept for existing callers */
+    exportMileageIntervalReportsCsv: async (params = {}) => {
+        return ReportsService.exportReportCsv('api/reports/mileage-intervals/export', params);
+    },
+
+    /**
      * Fetches aggregated driver report data.
      * @param {object} params - Optional query parameters { page, limit }.
      * @returns {Promise<Array>} - Array of driver report data.

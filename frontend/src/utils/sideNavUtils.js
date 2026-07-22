@@ -29,11 +29,13 @@ export const SIDE_NAV_ITEMS = [
     icon: Fuel,
     children: [
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
+      { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
       { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
     ],
     matchRoutes: [
       '/mileage-tracking',
+      '/adblue-tracking',
       '/fuel-comparison',
       '/field-agent-fuel',
       '/trip-management',

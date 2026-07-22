@@ -119,7 +119,7 @@ const ExceptionsRail = ({ data, loading, error }) => {
         </div>
         {!loading && !error && <HeaderChip counts={counts} />}
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto p-4 pt-0" style={{ maxHeight: 512 }}>
+      <CardContent className="flex-1 overflow-y-auto p-4 pt-0">
         {loading ? (
           <div className="space-y-2.5">
             {[...Array(5)].map((_, i) => (
