@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OverviewService } from "./OverviewService.jsx";
+import OwnerValueDigest from "./OwnerValueDigest.jsx";
 
 // --- Helpers ---
 const getInitials = (name) => {
@@ -589,6 +590,8 @@ const OverviewPage = () => {
       )}
 
       {/* Driver Live Location Map */}
+      <OwnerValueDigest />
+
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
         <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Driver Live Tracking</h2>

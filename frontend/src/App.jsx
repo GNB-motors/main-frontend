@@ -37,6 +37,9 @@ import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
+import FuelIntegrityPage from './pages/FuelIntegrity/FuelIntegrityPage.jsx';
+import RouteDeviationPage from './pages/RouteDeviation/RouteDeviationPage.jsx';
+import OwnerAlertsPage from './pages/OwnerAlerts/OwnerAlertsPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 
@@ -70,6 +73,9 @@ function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
+        <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
+        <Route path="/route-deviation" element={<RouteDeviationPage />} />
+        <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
