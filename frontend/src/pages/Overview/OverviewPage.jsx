@@ -26,6 +26,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { DateRangePicker } from "../../components/DateRangePicker";
+import LiveDieselMarquee from "../../components/LiveDieselMarquee";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -472,6 +474,7 @@ const OverviewPage = () => {
 
   return (
     <div className="min-h-screen w-full space-y-6 p-3 font-sans antialiased text-slate-900 sm:p-5">
+      <LiveDieselMarquee />
 
       {/* ── Top-of-page loading bar — visible during day switching ── */}
       {isFetching && (

@@ -44,6 +44,7 @@ import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
+import FuelPricesPage from './pages/FuelPrices/FuelPricesPage.jsx';
 import GeofencePage from './pages/Geofence/GeofencePage.jsx';
 import GeofenceZonesPage from './pages/Geofence/GeofenceZonesPage.jsx';
 import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
@@ -83,6 +84,7 @@ function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
+        <Route path="/fuel-prices" element={<FuelPricesPage />} />
         <Route path="/geofence" element={<GeofencePage />} />
         <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
         <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
