@@ -55,6 +55,7 @@ const ReportsSidebar = ({
             reports: [
                 { id: 'driver', name: 'Driver Report', icon: User },
                 { id: 'vehicle', name: 'Vehicle Report', icon: Truck },
+                { id: 'mileageIntervals', name: 'Mileage Report', icon: FileText },
                 { id: 'modelComparison', name: 'Model Comparison', icon: BarChart3 },
                 { id: 'dieselReport', name: 'Diesel Report', icon: Fuel },
                 { id: 'adblueReport', name: 'AdBlue Report', icon: Droplet },

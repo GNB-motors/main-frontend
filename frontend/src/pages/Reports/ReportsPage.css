@@ -180,6 +180,22 @@
   line-height: 1;
 }
 
+.report-filters .report-date-input {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #ECECEE;
+  background: #fff;
+  font-size: 13px;
+  color: #111827;
+  min-width: 150px;
+}
+
+.report-filters .report-date-input:focus {
+  outline: none;
+  border-color: #c7c7d1;
+}
+
 .report-content {
   background-color: transparent;
   border-radius: var(--border-radius-lg);

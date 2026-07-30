@@ -85,6 +85,9 @@ const Navbar = ({ toggleSidebar }) => {
         if (location.pathname.match(/^\/mileage-tracking\/[a-f0-9]+$/)) {
             return 'Mileage Tracking';
         }
+        if (location.pathname.startsWith('/adblue-tracking')) {
+            return 'AdBlue';
+        }
 
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path
@@ -95,6 +98,7 @@ const Navbar = ({ toggleSidebar }) => {
     const isRefuelLogsPage = location.pathname.includes('/refuel-logs');
     const isMileagePage = location.pathname.startsWith('/mileage-tracking');
     const isMileageListPage = location.pathname === '/mileage-tracking';
+    const isAdBlueListPage = location.pathname === '/adblue-tracking';
     const isTripListPage = location.pathname === '/trip-management';
 
     return (
@@ -158,6 +162,15 @@ const Navbar = ({ toggleSidebar }) => {
                     >
                         <Plus size={16} />
                         <span>Log Fuel</span>
+                    </button>
+                )}
+                {isAdBlueListPage && (
+                    <button
+                        className="btn btn-primary trip-action-btn"
+                        onClick={() => navigate('/adblue-tracking/new')}
+                    >
+                        <Plus size={16} />
+                        <span>Log AdBlue</span>
                     </button>
                 )}
 

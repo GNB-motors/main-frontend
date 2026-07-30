@@ -166,7 +166,7 @@ const MileageTrackingVehicleDetail = () => {
                           <span style={{ color: '#2563eb', fontWeight: 600 }}>{interval.mileageKmPerL.toFixed(2)}</span>
                         ) : '—'}
                       </td>
-                      <td>{interval.defLiters != null ? `${interval.defLiters.toFixed(1)} L` : '—'}</td>
+                      <td>{interval.fleetEdge?.defConsumed != null ? `${interval.fleetEdge.defConsumed.toFixed(1)} L` : '—'}</td>
                       <td>
                         {interval.fuelCost != null ? (
                           <span style={{ fontWeight: 600 }}>₹{interval.fuelCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>

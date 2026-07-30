@@ -123,14 +123,18 @@ const formatCurrency = (value) => {
   })}`;
 };
 
-const RefuelLogsPage = ({ fuelType: fixedFuelType }) => {
+const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   // When `fuelType` is provided (Diesel Report / AdBlue Report inside the Reports
   // page) the view is locked to that fuel type: the All/Diesel/AdBlue tabs are
   // hidden and a report title is shown instead. Standalone routes keep the tabs.
   const isFixedFuelType = fixedFuelType === 'DIESEL' || fixedFuelType === 'ADBLUE';
-  const reportTitle = fixedFuelType === 'ADBLUE' ? 'AdBlue Report' : 'Diesel Report';
+  const isAdBluePage = fixedFuelType === 'ADBLUE';
+  const reportTitle = title
+    || (isAdBluePage ? 'AdBlue Report' : 'Diesel Report');
+  const newLogPath = isAdBluePage ? '/adblue-tracking/new' : '/mileage-tracking/new';
+  const emptyActionLabel = isAdBluePage ? 'Log AdBlue' : 'Add Refuel Log';
   const tabParam = searchParams.get('tab');
   const activeTab = isFixedFuelType
     ? fixedFuelType.toLowerCase()
@@ -468,9 +472,9 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType }) => {
                     ) : (
                       <button
                         className="refuel-empty-action-btn"
-                        onClick={() => navigate('/mileage-tracking/new')}
+                        onClick={() => navigate(newLogPath)}
                       >
-                        <PlusCircle size={18} /> Add Refuel Log
+                        <PlusCircle size={18} /> {emptyActionLabel}
                       </button>
                     )}
                   </div>
