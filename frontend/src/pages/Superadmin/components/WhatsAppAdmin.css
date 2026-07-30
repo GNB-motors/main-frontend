@@ -1,0 +1,278 @@
+.wa-page .wa-hero {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px 22px;
+  border-radius: 12px;
+  border: 1px solid var(--ff-border);
+  background: #fff;
+  margin-bottom: 20px;
+}
+
+.wa-hero--ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.wa-hero--degraded,
+.wa-hero--down {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.wa-hero--disabled {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.wa-hero__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--ff-primary);
+  flex-shrink: 0;
+}
+
+.wa-hero__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.wa-hero__summary {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ff-text);
+  line-height: 1.45;
+}
+
+.wa-hero__sync {
+  font-size: 13px;
+  color: var(--ff-text-secondary);
+  font-weight: 500;
+}
+
+.wa-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wa-pill--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.wa-pill--warn {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.wa-pill--fail {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.wa-pill--muted {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.wa-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.wa-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .wa-grid,
+  .wa-grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wa-card {
+  padding: 18px 20px 20px;
+  margin-bottom: 16px;
+}
+
+.wa-card__title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wa-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.wa-card__head .wa-card__title {
+  margin: 0;
+}
+
+.wa-card__hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ff-text-secondary);
+  line-height: 1.45;
+}
+
+.wa-card__hint--fail {
+  color: #991b1b;
+}
+
+.wa-dl {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.wa-dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.wa-dl dt {
+  font-size: 12px;
+  color: var(--ff-text-secondary);
+  font-weight: 500;
+}
+
+.wa-dl dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ff-text);
+  word-break: break-word;
+}
+
+.wa-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.wa-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.wa-check--pass {
+  color: #166534;
+}
+
+.wa-check--warn {
+  color: #9a3412;
+}
+
+.wa-check--fail {
+  color: #991b1b;
+}
+
+.wa-check--na {
+  color: #6b7280;
+}
+
+.wa-check__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ff-text);
+}
+
+.wa-check__detail {
+  font-size: 12px;
+  color: var(--ff-text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.wa-form {
+  display: grid;
+  gap: 12px;
+}
+
+.wa-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ff-text-secondary);
+}
+
+.wa-form input {
+  border: 1px solid var(--ff-border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--ff-text);
+  background: #fff;
+}
+
+.wa-form input:focus {
+  outline: 2px solid var(--ff-primary-light);
+  border-color: var(--ff-primary);
+}
+
+.wa-pre {
+  margin: 14px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow: auto;
+  max-height: 280px;
+}
+
+.wa-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ff-primary);
+  text-decoration: none;
+}
+
+.wa-alerts {
+  margin: 0;
+  padding-left: 18px;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.wa-spin {
+  animation: wa-spin 0.8s linear infinite;
+}
+
+@keyframes wa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ff-btn--sm {
+  padding: 6px 10px;
+  font-size: 12px;
+}

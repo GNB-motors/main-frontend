@@ -23,6 +23,7 @@ const FEATURE_LABELS = {
   locations: 'Locations',
   fuelComparison: 'Fuel Comparison',
   khataLedger: 'Khata Ledger',
+  whatsappMileage: 'WhatsApp mileage',
 };
 
 /* Accessible pill toggle that matches the app's indigo brand. */

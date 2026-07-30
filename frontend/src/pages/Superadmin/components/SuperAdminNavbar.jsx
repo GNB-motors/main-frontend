@@ -11,6 +11,10 @@ const SuperAdminNavbar = ({ toggleSidebar }) => {
             return 'Dashboard';
         } else if (location.pathname.includes('/add-user')) {
             return 'Add New User';
+        } else if (location.pathname.includes('/feature-flags')) {
+            return 'Feature Flags';
+        } else if (location.pathname.includes('/whatsapp')) {
+            return 'WhatsApp';
         }
         return 'Super Admin';
     };
