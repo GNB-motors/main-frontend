@@ -39,6 +39,7 @@ import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
 import FuelIntegrityPage from './pages/FuelIntegrity/FuelIntegrityPage.jsx';
 import RouteDeviationPage from './pages/RouteDeviation/RouteDeviationPage.jsx';
+import LiveTrackingPage from './pages/LiveTracking/LiveTrackingPage.jsx';
 import OwnerAlertsPage from './pages/OwnerAlerts/OwnerAlertsPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
@@ -75,6 +76,7 @@ function App() {
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
         <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
         <Route path="/route-deviation" element={<RouteDeviationPage />} />
+        <Route path="/live-tracking" element={<LiveTrackingPage />} />
         <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />

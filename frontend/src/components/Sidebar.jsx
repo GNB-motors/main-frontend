@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User, Truck, MapPin, Fuel, BookOpen, ShieldAlert, Route, Bell } from 'lucide-react';
+import { Grid, FileText, Settings, LogOut, Users, User, Truck, MapPin, Fuel, BookOpen, ShieldAlert, Route, Bell, Navigation } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
@@ -159,6 +159,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/route-deviation" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Route size={20} />
                         <span>Route Deviation</span>
+                    </NavLink>
+                    <NavLink to="/live-tracking" className="nav-link" onClick={closeSidebarOnMobile}>
+                        <Navigation size={20} />
+                        <span>Live Tracking</span>
                     </NavLink>
                     <NavLink to="/owner-alerts" className="nav-link" onClick={closeSidebarOnMobile}>
                         <Bell size={20} />
