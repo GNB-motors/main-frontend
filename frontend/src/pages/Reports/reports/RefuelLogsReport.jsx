@@ -23,12 +23,23 @@ const filterTabs = [
   { id: 'all', label: 'All' },
   { id: 'diesel', label: 'Diesel' },
   { id: 'adblue', label: 'AdBlue' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'needs_review', label: 'Needs review' },
 ];
 
-const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search } = {}) => {
+const fetchRefuelLogs = async ({
+  page = 1,
+  limit = PAGE_SIZE,
+  fuelType,
+  search,
+  submissionChannel,
+  reviewStatus,
+} = {}) => {
   const params = { page, limit };
   if (fuelType) params.fuelType = fuelType;
   if (search) params.search = search;
+  if (submissionChannel) params.submissionChannel = submissionChannel;
+  if (reviewStatus) params.reviewStatus = reviewStatus;
   const response = await apiClient.get('api/fuel-logs', { params });
   if (response.data.status === 'success') {
     const mapped = response.data.data.map(log => ({
@@ -63,6 +74,8 @@ const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search }
       rawRate: log.rate,
       rawOdometer: log.odometerReading,
       rawLocation: log.location,
+      submissionChannel: log.submissionChannel || 'APP',
+      reviewStatus: log.reviewStatus || 'AUTO_OK',
     }));
     const total = response.data.meta?.total ?? mapped.length;
     return { logs: mapped, total };
@@ -176,6 +189,8 @@ const RefuelLogsReport = () => {
         page: pagination.page,
         limit: pagination.limit,
         fuelType: TAB_TO_FUEL_TYPE[activeTab],
+        submissionChannel: activeTab === 'whatsapp' ? 'WHATSAPP' : undefined,
+        reviewStatus: activeTab === 'needs_review' ? 'NEEDS_REVIEW' : undefined,
         search: debouncedSearch,
       });
       setLogs(fetched);
@@ -366,7 +381,13 @@ const RefuelLogsReport = () => {
                       <div className="cell-primary">{log.odometer ? `${log.odometer} km` : '-'}</div>
                       <div className="cell-secondary">Reading</div>
                     </td>
-                    <td><div className="cell-primary">{log.notes || '-'}</div></td>
+                    <td>
+                      <div className="cell-primary">{log.notes || '-'}</div>
+                      <div className="cell-secondary">
+                        {log.submissionChannel === 'WHATSAPP' ? 'WhatsApp' : log.submissionChannel === 'FIELD_AGENT' ? 'Field agent' : 'App'}
+                        {log.reviewStatus === 'NEEDS_REVIEW' ? ' · Needs review' : ''}
+                      </div>
+                    </td>
                     <td>
                       <div className="refuel-actions">
                         <button type="button" className="refuel-action-btn edit" title="Edit" onClick={() => handleEditClick(log)}>
