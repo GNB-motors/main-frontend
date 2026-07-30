@@ -26,7 +26,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { DateRangePicker } from "../../components/DateRangePicker";
 import LiveDieselMarquee from "../../components/LiveDieselMarquee";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
