@@ -1,6 +1,3 @@
-import React from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
-
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 export function getAuthHeaders() {
@@ -40,11 +37,3 @@ export function formatPercent(n) {
   const sign = n > 0 ? '+' : '';
   return `${sign}${n.toFixed(1)}%`;
 }
-
-/** Sortable-column header indicator. `active` = this column is the current sort key. */
-export const SortIcon = ({ active, dir }) => {
-  if (!active) return <span className="sort-icon inactive">↕</span>;
-  return dir === 'asc'
-    ? <ChevronUp size={13} className="sort-icon active" />
-    : <ChevronDown size={13} className="sort-icon active" />;
-};

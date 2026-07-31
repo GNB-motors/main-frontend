@@ -23,8 +23,8 @@ import {
   formatCurrency,
   formatDate,
   formatNumber,
-  SortIcon,
 } from './superAdminFormat';
+import { SortIcon } from './components/SortIcon.jsx';
 import './SuperAdminPage.css';
 
 // ── component ──────────────────────────────────────────────────────────────

@@ -20,8 +20,8 @@ import {
   formatCurrency,
   formatNumber,
   formatPercent,
-  SortIcon,
 } from '../superAdminFormat';
+import { SortIcon } from './SortIcon.jsx';
 import DateRangeFilter from './DateRangeFilter';
 import '../SuperAdminPage.css';
 import './OrgDetailPage.css';
