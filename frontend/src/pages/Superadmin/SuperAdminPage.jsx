@@ -363,9 +363,6 @@ const SuperAdminPage = () => {
                   <th className="sortable" onClick={() => handleSort('userCount')}>
                     Users <SortIcon active={sortKey === 'userCount'} dir={sortDir} />
                   </th>
-                  <th className="sortable" onClick={() => handleSort('tripCount')}>
-                    Trips <SortIcon active={sortKey === 'tripCount'} dir={sortDir} />
-                  </th>
                   <th className="sortable" onClick={() => handleSort('totalExpenses')}>
                     Expenses <SortIcon active={sortKey === 'totalExpenses'} dir={sortDir} />
                   </th>
@@ -399,10 +396,6 @@ const SuperAdminPage = () => {
                     {/* Users */}
                     <td>
                       <span className="num">{org.userCount}</span>
-                    </td>
-                    {/* Trips */}
-                    <td>
-                      <span className="num">{org.tripCount}</span>
                     </td>
                     {/* Expenses */}
                     <td>
