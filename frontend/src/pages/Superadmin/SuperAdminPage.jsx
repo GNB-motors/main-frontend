@@ -4,11 +4,10 @@ import {
   Users,
   Building2,
   Car,
+  CarFront,
   IndianRupee,
   Search,
   RefreshCw,
-  ChevronUp,
-  ChevronDown,
   CheckCircle2,
   Clock,
   Fuel,
@@ -16,44 +15,17 @@ import {
   ScanLine,
   AlertTriangle,
   ClipboardList,
+  ArrowRight,
 } from 'lucide-react';
+import {
+  API_BASE_URL,
+  getAuthHeaders,
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  SortIcon,
+} from './superAdminFormat';
 import './SuperAdminPage.css';
-
-// ── helpers ────────────────────────────────────────────────────────────────
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-function formatCurrency(amount) {
-  if (amount === null || amount === undefined) return '—';
-  if (amount >= 10_000_000) return `₹${(amount / 10_000_000).toFixed(1)}Cr`;
-  if (amount >= 100_000)   return `₹${(amount / 100_000).toFixed(1)}L`;
-  if (amount >= 1_000)     return `₹${(amount / 1_000).toFixed(1)}K`;
-  return `₹${amount.toFixed(0)}`;
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatNumber(n) {
-  if (n === null || n === undefined) return '—';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return `${Math.round(n * 10) / 10}`;
-}
 
 // ── component ──────────────────────────────────────────────────────────────
 
@@ -220,6 +192,18 @@ const SuperAdminPage = () => {
       icon: <IndianRupee size={22} />,
       colorClass: 'orange',
     },
+    {
+      label: 'Active Vehicles',
+      value: statsLoading ? '…' : stats?.activeVehicles ?? '—',
+      icon: <CarFront size={22} />,
+      colorClass: 'teal',
+    },
+    {
+      label: 'Inactive Vehicles',
+      value: statsLoading ? '…' : stats?.inactiveVehicles ?? '—',
+      icon: <CarFront size={22} />,
+      colorClass: 'red',
+    },
   ];
 
   // ── fuel & receipts cards config ────────────────────────────────────────
@@ -284,14 +268,6 @@ const SuperAdminPage = () => {
       colorClass: 'amber',
     },
   ];
-
-  // ── SortIcon helper ─────────────────────────────────────────────────────
-  const SortIcon = ({ col }) => {
-    if (sortKey !== col) return <span className="sort-icon inactive">↕</span>;
-    return sortDir === 'asc'
-      ? <ChevronUp size={13} className="sort-icon active" />
-      : <ChevronDown size={13} className="sort-icon active" />;
-  };
 
   // ── render ──────────────────────────────────────────────────────────────
   return (
@@ -386,29 +362,34 @@ const SuperAdminPage = () => {
               <thead>
                 <tr>
                   <th className="sortable" onClick={() => handleSort('companyName')}>
-                    Organisation <SortIcon col="companyName" />
+                    Organisation <SortIcon active={sortKey === 'companyName'} dir={sortDir} />
                   </th>
                   <th className="sortable" onClick={() => handleSort('vehicleCount')}>
-                    Vehicles <SortIcon col="vehicleCount" />
+                    Vehicles <SortIcon active={sortKey === 'vehicleCount'} dir={sortDir} />
                   </th>
                   <th className="sortable" onClick={() => handleSort('userCount')}>
-                    Users <SortIcon col="userCount" />
+                    Users <SortIcon active={sortKey === 'userCount'} dir={sortDir} />
                   </th>
                   <th className="sortable" onClick={() => handleSort('tripCount')}>
-                    Trips <SortIcon col="tripCount" />
+                    Trips <SortIcon active={sortKey === 'tripCount'} dir={sortDir} />
                   </th>
                   <th className="sortable" onClick={() => handleSort('totalExpenses')}>
-                    Expenses <SortIcon col="totalExpenses" />
+                    Expenses <SortIcon active={sortKey === 'totalExpenses'} dir={sortDir} />
                   </th>
                   <th>Status</th>
                   <th className="sortable" onClick={() => handleSort('createdAt')}>
-                    Created <SortIcon col="createdAt" />
+                    Created <SortIcon active={sortKey === 'createdAt'} dir={sortDir} />
                   </th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
                 {displayedOrgs.map((org) => (
-                  <tr key={org._id}>
+                  <tr
+                    key={org._id}
+                    className="orgs-table-row-clickable"
+                    onClick={() => navigate(`/superadmin/organizations/${org._id}`)}
+                  >
                     {/* Name + email */}
                     <td>
                       <div className="org-name-cell">
@@ -451,6 +432,12 @@ const SuperAdminPage = () => {
                     {/* Created */}
                     <td>
                       <span className="date-value">{formatDate(org.createdAt)}</span>
+                    </td>
+                    {/* View action */}
+                    <td>
+                      <span className="orgs-table-view-link">
+                        View <ArrowRight size={13} />
+                      </span>
                     </td>
                   </tr>
                 ))}
