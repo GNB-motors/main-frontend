@@ -11,6 +11,10 @@ import {
   ChevronDown,
   CheckCircle2,
   Clock,
+  Fuel,
+  Receipt,
+  ScanLine,
+  AlertTriangle,
 } from 'lucide-react';
 import './SuperAdminPage.css';
 
@@ -43,6 +47,13 @@ function formatDate(dateStr) {
   });
 }
 
+function formatNumber(n) {
+  if (n === null || n === undefined) return '—';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return `${Math.round(n * 10) / 10}`;
+}
+
 // ── component ──────────────────────────────────────────────────────────────
 
 const SuperAdminPage = () => {
@@ -58,6 +69,11 @@ const SuperAdminPage = () => {
   const [orgs, setOrgs] = useState([]);
   const [orgsLoading, setOrgsLoading] = useState(true);
   const [orgsError, setOrgsError] = useState(null);
+
+  // Platform-wide fuel & receipts stats
+  const [fuelStats, setFuelStats] = useState(null);
+  const [fuelLoading, setFuelLoading] = useState(true);
+  const [fuelError, setFuelError] = useState(null);
 
   // Table controls
   const [search, setSearch] = useState('');
@@ -118,10 +134,30 @@ const SuperAdminPage = () => {
     }
   }, []);
 
+  // ── fetch platform fuel & receipts stats ────────────────────────────────
+  const fetchFuelStats = useCallback(async () => {
+    setFuelLoading(true);
+    setFuelError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/platform-fuel-stats`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setFuelStats(json.data);
+    } catch (err) {
+      console.error('[SuperAdmin] platform-fuel-stats fetch failed:', err);
+      setFuelError('Failed to load fuel stats.');
+    } finally {
+      setFuelLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchOrgs();
-  }, [fetchStats, fetchOrgs]);
+    fetchFuelStats();
+  }, [fetchStats, fetchOrgs, fetchFuelStats]);
 
   // ── sort + filter ───────────────────────────────────────────────────────
   const handleSort = (key) => {
@@ -185,6 +221,63 @@ const SuperAdminPage = () => {
     },
   ];
 
+  // ── fuel & receipts cards config ────────────────────────────────────────
+  const successRate =
+    fuelStats && fuelStats.totalReceipts > 0
+      ? Math.round((fuelStats.receiptsByStatus.SUCCESS / fuelStats.totalReceipts) * 100)
+      : null;
+  const pendingCount = fuelStats
+    ? fuelStats.receiptsByStatus.PENDING + fuelStats.receiptsByStatus.MANUAL_REVIEW
+    : null;
+  const totalFuelSpend = fuelStats
+    ? fuelStats.fuel.DIESEL.amount + fuelStats.fuel.ADBLUE.amount
+    : null;
+
+  const fuelCards = [
+    {
+      label: 'Receipts Processed',
+      value: fuelStats?.totalReceipts,
+      icon: <Receipt size={22} />,
+      colorClass: 'teal',
+    },
+    {
+      label: 'OCR Success Rate',
+      value: successRate != null ? `${successRate}%` : null,
+      icon: <ScanLine size={22} />,
+      colorClass: 'green',
+    },
+    {
+      label: 'Failed OCR',
+      value: fuelStats?.receiptsByStatus.ERROR,
+      icon: <AlertTriangle size={22} />,
+      colorClass: 'red',
+    },
+    {
+      label: 'Pending / Manual Review',
+      value: pendingCount,
+      icon: <Clock size={22} />,
+      colorClass: 'amber',
+    },
+    {
+      label: 'Diesel Logged',
+      value: fuelStats ? `${formatNumber(fuelStats.fuel.DIESEL.litres)} L` : null,
+      icon: <Fuel size={22} />,
+      colorClass: 'purple',
+    },
+    {
+      label: 'Fuel Spend',
+      value: totalFuelSpend != null ? formatCurrency(totalFuelSpend) : null,
+      icon: <IndianRupee size={22} />,
+      colorClass: 'orange',
+    },
+    {
+      label: 'Logs Needing Review',
+      value: fuelStats?.needsReview,
+      icon: <AlertTriangle size={22} />,
+      colorClass: 'amber',
+    },
+  ];
+
   // ── SortIcon helper ─────────────────────────────────────────────────────
   const SortIcon = ({ col }) => {
     if (sortKey !== col) return <span className="sort-icon inactive">↕</span>;
@@ -216,6 +309,25 @@ const SuperAdminPage = () => {
         ))}
       </div>
 
+      {/* Fuel & Receipts stats (platform-wide) */}
+      <div className="fuel-stats-section">
+        <h2 className="fuel-stats-title">
+          Fuel &amp; Receipts <span>platform-wide</span>
+        </h2>
+        <div className="stats-grid">
+          {fuelCards.map((card) => (
+            <div className="stat-card" key={card.label}>
+              <div className={`stat-icon ${card.colorClass}`}>{card.icon}</div>
+              <div className="stat-info">
+                <p className="stat-label">{card.label}</p>
+                <h3 className="stat-value">{fuelLoading ? '…' : card.value ?? '—'}</h3>
+                {fuelError && <span className="stat-change negative">{fuelError}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Organisations Table */}
       <div className="content-card orgs-table-card">
         {/* Table header row */}
@@ -239,7 +351,7 @@ const SuperAdminPage = () => {
             </div>
             <button
               className="action-btn refresh-btn"
-              onClick={() => { fetchStats(); fetchOrgs(); }}
+              onClick={() => { fetchStats(); fetchOrgs(); fetchFuelStats(); }}
               title="Refresh data"
             >
               <RefreshCw size={15} />

@@ -71,6 +71,32 @@
 .stat-icon.green  { background-color: #dcfce7; color: #22c55e; }
 .stat-icon.purple { background-color: #f3e8ff; color: #a855f7; }
 .stat-icon.orange { background-color: #fed7aa; color: #f97316; }
+.stat-icon.teal   { background-color: #ccfbf1; color: #14b8a6; }
+.stat-icon.red    { background-color: #fee2e2; color: #dc2626; }
+.stat-icon.amber  { background-color: #fef3c7; color: #d97706; }
+
+/* ── Fuel & receipts section ──────────────────────────────────────────────── */
+.fuel-stats-section {
+  margin-bottom: 28px;
+}
+
+.fuel-stats-section .stats-grid {
+  margin-bottom: 0;
+}
+
+.fuel-stats-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 14px 0;
+}
+
+.fuel-stats-title span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-left: 8px;
+}
 
 .stat-info { flex: 1; min-width: 0; }
 

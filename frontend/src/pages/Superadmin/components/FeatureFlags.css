@@ -21,7 +21,7 @@
 
   font-family: 'Inter', sans-serif;
   padding: 32px 24px 64px;
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   color: var(--ff-text);
@@ -172,7 +172,11 @@
   white-space: nowrap;
 }
 
-.ff-table--orgs th.ff-center            { width: 120px; }
+.ff-table--orgs th:nth-child(1) { width: 28%; } /* Organization */
+.ff-table--orgs th:nth-child(2) { width: 24%; } /* Owner Email */
+.ff-table--orgs th:nth-child(3) { width: 18%; } /* GSTIN */
+.ff-table--orgs th:nth-child(4) { width: 110px; } /* Onboarded */
+.ff-table--orgs th:nth-child(5) { width: 140px; } /* Enabled Features */
 .ff-table--orgs th[aria-label="Open"]   { width: 44px; }
 .ff-table--orgs th[aria-label="Remove"] { width: 60px; }
 
