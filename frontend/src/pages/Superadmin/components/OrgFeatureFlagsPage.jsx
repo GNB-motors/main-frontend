@@ -324,7 +324,7 @@ const OrgFeatureFlagsPage = () => {
         backPath="/superadmin"
         currentLabel="Feature Flags"
         title="Feature Flags"
-        description="Pick an organization to manage its enabled sidebar features."
+        description="Pick an organization to manage its enabled sidebar features and email reports."
       />
 
       <div className="ff-toolbar">
