@@ -15,6 +15,7 @@ import {
   Receipt,
   ScanLine,
   AlertTriangle,
+  ClipboardList,
 } from 'lucide-react';
 import './SuperAdminPage.css';
 
@@ -234,6 +235,12 @@ const SuperAdminPage = () => {
     : null;
 
   const fuelCards = [
+    {
+      label: 'Fuel Logs Recorded',
+      value: fuelStats?.totalFuelLogs,
+      icon: <ClipboardList size={22} />,
+      colorClass: 'blue',
+    },
     {
       label: 'Receipts Processed',
       value: fuelStats?.totalReceipts,
