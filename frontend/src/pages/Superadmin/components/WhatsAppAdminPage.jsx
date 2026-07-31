@@ -45,6 +45,12 @@ const WhatsAppAdminPage = () => {
   const [testText, setTestText] = useState('');
   const [testSending, setTestSending] = useState(false);
 
+  const [drafts, setDrafts] = useState([]);
+  const [draftsTotal, setDraftsTotal] = useState(0);
+  const [draftsLoading, setDraftsLoading] = useState(false);
+  const [draftFilter, setDraftFilter] = useState('READY');
+  const [draftBusyId, setDraftBusyId] = useState(null);
+
   useEffect(() => {
     if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
       navigate('/overview');
@@ -65,9 +71,30 @@ const WhatsAppAdminPage = () => {
     }
   }, []);
 
+  const loadDrafts = useCallback(async () => {
+    setDraftsLoading(true);
+    try {
+      const res = await apiClient.get('/api/whatsapp/admin/drafts', {
+        params: { status: draftFilter, limit: 50 },
+      });
+      setDrafts(res.data?.data?.items ?? []);
+      setDraftsTotal(res.data?.data?.total ?? 0);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to load drafts');
+      setDrafts([]);
+      setDraftsTotal(0);
+    } finally {
+      setDraftsLoading(false);
+    }
+  }, [draftFilter]);
+
   useEffect(() => {
     loadStatus();
   }, [loadStatus]);
+
+  useEffect(() => {
+    loadDrafts();
+  }, [loadDrafts]);
 
   const handleLookupSession = async (e) => {
     e.preventDefault();
@@ -119,6 +146,30 @@ const WhatsAppAdminPage = () => {
     }
   };
 
+  const runDraftAction = async (id, action) => {
+    setDraftBusyId(id);
+    try {
+      if (action === 'publish') {
+        await apiClient.post(`/api/whatsapp/admin/drafts/${id}/publish`);
+        toast.success('Draft published to org mileage');
+      } else if (action === 'reject') {
+        const reason = window.prompt('Reject reason (optional)') || undefined;
+        await apiClient.post(`/api/whatsapp/admin/drafts/${id}/reject`, { reason });
+        toast.success('Draft rejected');
+      } else if (action === 'clear') {
+        await apiClient.post(`/api/whatsapp/admin/drafts/${id}/clear`, {
+          note: 'cleared_from_ui',
+        });
+        toast.success('Draft cleared');
+      }
+      await Promise.all([loadDrafts(), loadStatus()]);
+    } catch (err) {
+      toast.error(err.response?.data?.message || `Failed to ${action} draft`);
+    } finally {
+      setDraftBusyId(null);
+    }
+  };
+
   const overall = STATUS_META[status?.overall] || STATUS_META.disabled;
   const enabledOrgs = (status?.orgs || []).filter((o) => o.whatsappMileage);
 
@@ -129,7 +180,7 @@ const WhatsAppAdminPage = () => {
         backPath="/superadmin"
         currentLabel="WhatsApp"
         title="WhatsApp mileage"
-        description="See if WhatsApp is enabled, in sync with Meta, and what to check before rollout."
+        description="Status, Meta sync, and the draft inbox — publish WhatsApp fills into org mileage."
       />
 
       <div className="ff-toolbar">
@@ -139,15 +190,27 @@ const WhatsAppAdminPage = () => {
             : status?.checkedAt
               ? <>Last check <strong>{new Date(status.checkedAt).toLocaleString()}</strong></>
               : '—'}
+          {status?.drafts ? (
+            <>
+              {' · '}
+              <strong>{status.drafts.READY || 0}</strong> ready drafts
+            </>
+          ) : null}
         </span>
         <div className="ff-toolbar__actions">
           <button
             type="button"
             className="ff-btn ff-btn--secondary"
-            onClick={loadStatus}
-            disabled={loading}
+            onClick={() => {
+              loadStatus();
+              loadDrafts();
+            }}
+            disabled={loading || draftsLoading}
           >
-            <RefreshCw size={16} className={loading ? 'wa-spin' : undefined} />
+            <RefreshCw
+              size={16}
+              className={loading || draftsLoading ? 'wa-spin' : undefined}
+            />
             Refresh
           </button>
         </div>
@@ -286,6 +349,118 @@ const WhatsAppAdminPage = () => {
               </dl>
             </div>
           </div>
+
+          <section className="ff-card wa-card">
+            <div className="wa-card__head">
+              <h3 className="wa-card__title">Draft inbox</h3>
+              <select
+                className="wa-select"
+                value={draftFilter}
+                onChange={(e) => setDraftFilter(e.target.value)}
+                aria-label="Draft status filter"
+              >
+                <option value="READY">READY</option>
+                <option value="PUBLISHED">PUBLISHED</option>
+                <option value="REJECTED">REJECTED</option>
+                <option value="CLEARED">CLEARED</option>
+                <option value="ALL">ALL</option>
+              </select>
+            </div>
+            <p className="wa-card__hint">
+              Manager confirms on WhatsApp → draft lands here. Publish writes the real fuel log for
+              that org. ({draftsTotal} shown)
+            </p>
+            {draftsLoading ? (
+              <p className="wa-card__hint">Loading drafts…</p>
+            ) : drafts.length === 0 ? (
+              <p className="wa-card__hint">No drafts in this filter.</p>
+            ) : (
+              <div className="ff-table-wrap">
+                <table className="ff-table">
+                  <thead>
+                    <tr>
+                      <th>When</th>
+                      <th>Org</th>
+                      <th>Vehicle</th>
+                      <th>Fill</th>
+                      <th>Odo</th>
+                      <th>Status</th>
+                      <th aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drafts.map((d) => (
+                      <tr key={d._id}>
+                        <td>{d.createdAt ? new Date(d.createdAt).toLocaleString() : '—'}</td>
+                        <td>
+                          <div className="ff-org-name">
+                            {d.orgId?.companyName || String(d.orgId || '—')}
+                          </div>
+                        </td>
+                        <td>{d.vehicleReg || d.vehicleId?.registrationNumber || '—'}</td>
+                        <td>
+                          {d.litres != null ? `${Number(d.litres).toFixed(1)} L` : '—'}
+                          {d.fillingType === 'FULL_TANK'
+                            ? ' · full'
+                            : d.fillingType === 'PARTIAL'
+                              ? ' · partial'
+                              : ''}
+                        </td>
+                        <td>
+                          {d.odometerReading != null
+                            ? `${Number(d.odometerReading).toLocaleString()} (${d.odometerSource || '—'})`
+                            : '—'}
+                        </td>
+                        <td>
+                          <span
+                            className={`wa-pill ${
+                              d.status === 'READY'
+                                ? 'wa-pill--warn'
+                                : d.status === 'PUBLISHED'
+                                  ? 'wa-pill--ok'
+                                  : 'wa-pill--muted'
+                            }`}
+                          >
+                            {d.status}
+                          </span>
+                        </td>
+                        <td className="ff-center wa-draft-actions">
+                          {d.status === 'READY' && (
+                            <>
+                              <button
+                                type="button"
+                                className="ff-btn ff-btn--primary ff-btn--sm"
+                                disabled={draftBusyId === d._id}
+                                onClick={() => runDraftAction(d._id, 'publish')}
+                              >
+                                Publish
+                              </button>
+                              <button
+                                type="button"
+                                className="ff-btn ff-btn--secondary ff-btn--sm"
+                                disabled={draftBusyId === d._id}
+                                onClick={() => runDraftAction(d._id, 'reject')}
+                              >
+                                Reject
+                              </button>
+                              <button
+                                type="button"
+                                className="ff-btn ff-btn--secondary ff-btn--sm"
+                                disabled={draftBusyId === d._id}
+                                onClick={() => runDraftAction(d._id, 'clear')}
+                              >
+                                Clear
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
 
           <section className="ff-card wa-card">
             <h3 className="wa-card__title">What to check</h3>

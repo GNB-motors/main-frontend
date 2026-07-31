@@ -1,3 +1,18 @@
+.wa-select {
+  border: 1px solid var(--ff-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  background: #fff;
+}
+
+.wa-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .wa-page .wa-hero {
   display: flex;
   gap: 16px;
