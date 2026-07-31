@@ -352,7 +352,7 @@ const OrgFeatureFlagsPage = () => {
 
       <div className="ff-card">
         <div className="ff-table-wrap">
-          <table className="ff-table">
+          <table className="ff-table ff-table--orgs">
             <thead>
               <tr>
                 <th>Organization</th>
@@ -402,12 +402,12 @@ const OrgFeatureFlagsPage = () => {
                         <span className="ff-org__avatar">
                           <Building2 size={18} />
                         </span>
-                        <span className="ff-org__name">
+                        <span className="ff-org__name" title={org.companyName || '(unnamed)'}>
                           {org.companyName || '(unnamed)'}
                         </span>
                       </div>
                     </td>
-                    <td className="ff-muted">{org.ownerEmail || '—'}</td>
+                    <td className="ff-muted" title={org.ownerEmail || ''}>{org.ownerEmail || '—'}</td>
                     <td className="ff-muted">{org.gstin || '—'}</td>
                     <td className="ff-center">
                       {org.isOnboarded ? (
