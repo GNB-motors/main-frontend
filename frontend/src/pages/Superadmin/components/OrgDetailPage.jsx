@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Car,
   CarFront,
+  Users,
   IndianRupee,
   TrendingUp,
   TrendingDown,
@@ -112,6 +113,12 @@ const OrgDetailPage = () => {
       value: detail?.vehicleStats?.inactive,
       icon: <CarFront size={22} />,
       colorClass: 'red',
+    },
+    {
+      label: 'Total Employees',
+      value: detail?.totalUsers,
+      icon: <Users size={22} />,
+      colorClass: 'blue',
     },
   ];
 

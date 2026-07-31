@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users,
   Building2,
   Car,
   CarFront,
@@ -175,12 +174,6 @@ const SuperAdminPage = () => {
       value: statsLoading ? '…' : stats?.totalVehicles ?? '—',
       icon: <Car size={22} />,
       colorClass: 'purple',
-    },
-    {
-      label: 'Total Users',
-      value: statsLoading ? '…' : stats?.totalUsers ?? '—',
-      icon: <Users size={22} />,
-      colorClass: 'blue',
     },
     {
       label: 'Total Expenses',
