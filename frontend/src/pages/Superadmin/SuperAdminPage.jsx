@@ -1,103 +1,343 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building2, Car, Activity } from 'lucide-react';
+import {
+  Users,
+  Building2,
+  Car,
+  IndianRupee,
+  Search,
+  RefreshCw,
+  ChevronUp,
+  ChevronDown,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react';
 import './SuperAdminPage.css';
+
+// ── helpers ────────────────────────────────────────────────────────────────
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+
+function getAuthHeaders() {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+function formatCurrency(amount) {
+  if (amount === null || amount === undefined) return '—';
+  if (amount >= 10_000_000) return `₹${(amount / 10_000_000).toFixed(1)}Cr`;
+  if (amount >= 100_000)   return `₹${(amount / 100_000).toFixed(1)}L`;
+  if (amount >= 1_000)     return `₹${(amount / 1_000).toFixed(1)}K`;
+  return `₹${amount.toFixed(0)}`;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+// ── component ──────────────────────────────────────────────────────────────
 
 const SuperAdminPage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState({});
 
+  // Global stats for top cards
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(null);
+
+  // Organisations table
+  const [orgs, setOrgs] = useState([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
+  const [orgsError, setOrgsError] = useState(null);
+
+  // Table controls
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('createdAt');
+  const [sortDir, setSortDir] = useState('desc');
+
+  // ── auth guard ──────────────────────────────────────────────────────────
   useEffect(() => {
-    // Check if user is actually a super admin
     const userRole = localStorage.getItem('user_role');
     if (userRole !== 'SUPER_ADMIN') {
-      // Redirect non-super-admins away
       navigate('/overview');
       return;
     }
-
-    // Load user data from localStorage
     setUser({
       firstName: localStorage.getItem('user_firstName') || '',
-      lastName: localStorage.getItem('user_lastName') || '',
-      email: localStorage.getItem('user_email') || '',
-      role: localStorage.getItem('user_role') || '',
-      userId: localStorage.getItem('user_id') || '',
+      lastName:  localStorage.getItem('user_lastName')  || '',
+      email:     localStorage.getItem('user_email')     || '',
+      role:      userRole,
+      userId:    localStorage.getItem('user_id')        || '',
     });
   }, [navigate]);
 
+  // ── fetch global stats ──────────────────────────────────────────────────
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/dashboard-stats`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setStats(json.data);
+    } catch (err) {
+      console.error('[SuperAdmin] dashboard-stats fetch failed:', err);
+      setStatsError('Failed to load statistics.');
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  // ── fetch orgs table ────────────────────────────────────────────────────
+  const fetchOrgs = useCallback(async () => {
+    setOrgsLoading(true);
+    setOrgsError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/organizations-overview`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setOrgs(json.data || []);
+    } catch (err) {
+      console.error('[SuperAdmin] organizations-overview fetch failed:', err);
+      setOrgsError('Failed to load organisations.');
+    } finally {
+      setOrgsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    fetchOrgs();
+  }, [fetchStats, fetchOrgs]);
+
+  // ── sort + filter ───────────────────────────────────────────────────────
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const displayedOrgs = orgs
+    .filter((org) => {
+      const q = search.toLowerCase();
+      return (
+        (org.companyName || '').toLowerCase().includes(q) ||
+        (org.ownerEmail  || '').toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      let va = a[sortKey];
+      let vb = b[sortKey];
+      if (sortKey === 'createdAt') {
+        va = new Date(va);
+        vb = new Date(vb);
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  // ── stat cards config ───────────────────────────────────────────────────
+  const statCards = [
+    {
+      label: 'Total Organisations',
+      value: statsLoading ? '…' : stats?.totalOrganizations ?? '—',
+      icon: <Building2 size={22} />,
+      colorClass: 'green',
+    },
+    {
+      label: 'Total Vehicles',
+      value: statsLoading ? '…' : stats?.totalVehicles ?? '—',
+      icon: <Car size={22} />,
+      colorClass: 'purple',
+    },
+    {
+      label: 'Total Users',
+      value: statsLoading ? '…' : stats?.totalUsers ?? '—',
+      icon: <Users size={22} />,
+      colorClass: 'blue',
+    },
+    {
+      label: 'Total Expenses',
+      value: statsLoading
+        ? '…'
+        : stats?.totalExpenses != null
+        ? formatCurrency(stats.totalExpenses)
+        : '—',
+      icon: <IndianRupee size={22} />,
+      colorClass: 'orange',
+    },
+  ];
+
+  // ── SortIcon helper ─────────────────────────────────────────────────────
+  const SortIcon = ({ col }) => {
+    if (sortKey !== col) return <span className="sort-icon inactive">↕</span>;
+    return sortDir === 'asc'
+      ? <ChevronUp size={13} className="sort-icon active" />
+      : <ChevronDown size={13} className="sort-icon active" />;
+  };
+
+  // ── render ──────────────────────────────────────────────────────────────
   return (
     <div className="super-admin-dashboard">
+      {/* Welcome */}
       <div className="welcome-section">
         <h1>Welcome back, {user.firstName}! 👋</h1>
-        <p>Here's what's happening with your system today.</p>
+        <p>Here's a live snapshot of all organisations on your platform.</p>
       </div>
 
+      {/* Top stat cards */}
       <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon blue">
-            <Users size={24} />
+        {statCards.map((card) => (
+          <div className="stat-card" key={card.label}>
+            <div className={`stat-icon ${card.colorClass}`}>{card.icon}</div>
+            <div className="stat-info">
+              <p className="stat-label">{card.label}</p>
+              <h3 className="stat-value">{card.value}</h3>
+              {statsError && <span className="stat-change negative">{statsError}</span>}
+            </div>
           </div>
-          <div className="stat-info">
-            <p className="stat-label">Total Users</p>
-            <h3 className="stat-value">-</h3>
-            <span className="stat-change positive">Coming soon</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon green">
-            <Building2 size={24} />
-          </div>
-          <div className="stat-info">
-            <p className="stat-label">Organizations</p>
-            <h3 className="stat-value">-</h3>
-            <span className="stat-change positive">Coming soon</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon purple">
-            <Car size={24} />
-          </div>
-          <div className="stat-info">
-            <p className="stat-label">Total Vehicles</p>
-            <h3 className="stat-value">-</h3>
-            <span className="stat-change positive">Coming soon</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon orange">
-            <Activity size={24} />
-          </div>
-          <div className="stat-info">
-            <p className="stat-label">System Status</p>
-            <h3 className="stat-value">Active</h3>
-            <span className="stat-change positive">All systems operational</span>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="content-section">
-        <div className="content-card">
-          <h3>Recent Activity</h3>
-          <div className="empty-state">
-            <p>No recent activity to display</p>
+      {/* Organisations Table */}
+      <div className="content-card orgs-table-card">
+        {/* Table header row */}
+        <div className="orgs-table-header">
+          <div>
+            <h3>Organisations Overview</h3>
+            <p className="orgs-table-subtitle">
+              {orgsLoading ? 'Loading…' : `${displayedOrgs.length} organisation${displayedOrgs.length !== 1 ? 's' : ''}`}
+            </p>
           </div>
-        </div>
-
-        <div className="content-card">
-          <h3>Quick Actions</h3>
-          <div className="quick-actions">
-            <button 
-              className="action-btn"
-              onClick={() => navigate('/superadmin/add-user')}
+          <div className="orgs-table-actions">
+            <div className="search-wrapper">
+              <Search size={15} className="search-icon" />
+              <input
+                type="text"
+                className="orgs-search-input"
+                placeholder="Search by name or email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <button
+              className="action-btn refresh-btn"
+              onClick={() => { fetchStats(); fetchOrgs(); }}
+              title="Refresh data"
             >
-              <Users size={20} />
-              <span>Add New User</span>
+              <RefreshCw size={15} />
+              <span>Refresh</span>
             </button>
           </div>
+        </div>
+
+        {/* Table */}
+        <div className="orgs-table-wrapper">
+          {orgsError ? (
+            <div className="empty-state">
+              <p className="error-text">{orgsError}</p>
+            </div>
+          ) : orgsLoading ? (
+            <div className="empty-state">
+              <p>Loading organisations…</p>
+            </div>
+          ) : displayedOrgs.length === 0 ? (
+            <div className="empty-state">
+              <p>No organisations found{search ? ' matching your search' : ''}.</p>
+            </div>
+          ) : (
+            <table className="orgs-table">
+              <thead>
+                <tr>
+                  <th className="sortable" onClick={() => handleSort('companyName')}>
+                    Organisation <SortIcon col="companyName" />
+                  </th>
+                  <th className="sortable" onClick={() => handleSort('vehicleCount')}>
+                    Vehicles <SortIcon col="vehicleCount" />
+                  </th>
+                  <th className="sortable" onClick={() => handleSort('userCount')}>
+                    Users <SortIcon col="userCount" />
+                  </th>
+                  <th className="sortable" onClick={() => handleSort('tripCount')}>
+                    Trips <SortIcon col="tripCount" />
+                  </th>
+                  <th className="sortable" onClick={() => handleSort('totalExpenses')}>
+                    Expenses <SortIcon col="totalExpenses" />
+                  </th>
+                  <th>Status</th>
+                  <th className="sortable" onClick={() => handleSort('createdAt')}>
+                    Created <SortIcon col="createdAt" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedOrgs.map((org) => (
+                  <tr key={org._id}>
+                    {/* Name + email */}
+                    <td>
+                      <div className="org-name-cell">
+                        <span className="org-company-name">
+                          {org.companyName || <span className="no-name">Unnamed Org</span>}
+                        </span>
+                        <span className="org-email">{org.ownerEmail}</span>
+                      </div>
+                    </td>
+                    {/* Vehicles */}
+                    <td>
+                      <span className="num">{org.vehicleCount}</span>
+                    </td>
+                    {/* Users */}
+                    <td>
+                      <span className="num">{org.userCount}</span>
+                    </td>
+                    {/* Trips */}
+                    <td>
+                      <span className="num">{org.tripCount}</span>
+                    </td>
+                    {/* Expenses */}
+                    <td>
+                      <span className="num expense-value">{formatCurrency(org.totalExpenses)}</span>
+                    </td>
+                    {/* Status badge */}
+                    <td>
+                      {org.isOnboarded ? (
+                        <span className="status-badge status-active">
+                          <CheckCircle2 size={11} />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="status-badge status-pending">
+                          <Clock size={11} />
+                          Pending
+                        </span>
+                      )}
+                    </td>
+                    {/* Created */}
+                    <td>
+                      <span className="date-value">{formatDate(org.createdAt)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
