@@ -56,6 +56,8 @@ import GeofenceZonesPage from './pages/Geofence/GeofenceZonesPage.jsx';
 import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
 import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
+import KhataLedgerDriverDetailPage from './pages/KhataLedger/KhataLedgerDriverDetailPage.jsx';
+import KhataLedgerVehicleDetailPage from './pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
@@ -129,6 +131,8 @@ function App() {
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />
         <Route path="/khata-ledger" element={<KhataLedgerPage />} />
+        <Route path="/khata-ledger/drivers/:id" element={<KhataLedgerDriverDetailPage />} />
+        <Route path="/khata-ledger/trucks/:id" element={<KhataLedgerVehicleDetailPage />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
