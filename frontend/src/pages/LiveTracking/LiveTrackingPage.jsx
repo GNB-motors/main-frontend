@@ -3,53 +3,22 @@ import { GoogleMap, useLoadScript, MarkerF, InfoWindowF, PolylineF } from '@reac
 import {
     Navigation, AlertTriangle, RefreshCw, Truck, WifiOff, CircleParking, Loader2
 } from 'lucide-react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
+import {
+    INDIA_CENTER,
+    IST_ZONE,
+    POLL_INTERVAL_MS,
+    getStateMeta,
+    formatIST,
+    formatRelativeIST,
+    pinIcon,
+} from './liveTracking.shared.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import '../FuelComparison/FuelComparison.css';
 import './LiveTracking.css';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(relativeTime);
-
-const IST_ZONE = 'Asia/Kolkata';
-const POLL_INTERVAL_MS = 45 * 1000; // 45s — page reads our DB only; the backend cron talks to FleetEdge
-const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 const MAP_CONTAINER_STYLE = { width: '100%', height: '560px', borderRadius: '0.75rem' };
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-
-const STATE_META = {
-    ACTIVE: { color: '#10B981', label: 'Active', icon: Truck },
-    PARKED: { color: '#F59E0B', label: 'Parked', icon: CircleParking },
-    OFFLINE: { color: '#94A3B8', label: 'Offline', icon: WifiOff },
-};
-const getStateMeta = (state) => STATE_META[state] || STATE_META.OFFLINE;
-
-const toIST = (utcStr) => (utcStr ? dayjs.utc(utcStr).tz(IST_ZONE) : null);
-const formatIST = (utcStr) => {
-    const d = toIST(utcStr);
-    return d ? d.format('DD MMM YYYY, hh:mm A [IST]') : '—';
-};
-const formatRelativeIST = (utcStr) => {
-    const d = toIST(utcStr);
-    return d ? d.fromNow() : null;
-};
-
-const pinIcon = (color, dimmed) => ({
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40" opacity="${dimmed ? 0.55 : 1}">
-          <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 24 16 24s16-12 16-24C32 7.16 24.84 0 16 0z" fill="${color}"/>
-          <circle cx="16" cy="14" r="6" fill="white"/>
-        </svg>`
-    )}`,
-    scaledSize: typeof window !== 'undefined' && window.google
-        ? new window.google.maps.Size(32, 40)
-        : undefined,
-});
 
 const KpiCard = ({ icon: Icon, label, value, colorClass }) => (
     <div className={`fc-kpi-card fc-kpi-${colorClass}`}>

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Link } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -22,31 +23,41 @@ import {
   Users,
   Activity,
   Fuel,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
   CalendarDays,
-  RefreshCw,
+  Navigation,
+  WifiOff,
+  ShieldAlert,
+  Maximize2,
 } from "lucide-react";
+import { GoogleMap, useLoadScript, MarkerF, InfoWindowF } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { OverviewService } from "./OverviewService.jsx";
-import StatCard from "./components/StatCard.jsx";
-import FleetMap from "./components/FleetMap.jsx";
-import ExceptionsRail from "./components/ExceptionsRail.jsx";
-import LiveFleetStatusWidget from "./components/LiveFleetStatusWidget.jsx";
-import OwnerValueDigest from "./OwnerValueDigest.jsx";
-import { VehicleService } from "../Profile/VehicleService.jsx";
-
-// --- Palette (mirrors index.css console tokens) ---
-const C = {
-  ink: "#0e1726",
-  accent: "#0e8c8c",
-  amber: "#f2a413",
-  red: "#e5484d",
-  slate: "#94a3b8",
-  grid: "#e8ecf3",
-};
+import { useOwnerValueDigest } from "./OwnerValueDigest.jsx";
+import { LiveTrackingService } from "../LiveTracking/LiveTrackingService.jsx";
+import {
+  INDIA_CENTER,
+  POLL_INTERVAL_MS,
+  STATE_META,
+  getStateMeta,
+  formatIST,
+  pinIcon,
+  withCoordinates,
+  fitMapToPositions,
+} from "../LiveTracking/liveTracking.shared.js";
 
 // --- Helpers ---
 const getInitials = (name) => {
@@ -62,78 +73,98 @@ const formatCurrency = (value) =>
     currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value || 0);
+  }).format(value);
 
-const formatNumber = (value) => new Intl.NumberFormat("en-IN").format(value || 0);
+const formatNumber = (value) =>
+  new Intl.NumberFormat("en-IN").format(value || 0);
 
 const getDateLabel = (date) => {
   if (!date) return "";
   return new Date(date).toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 };
 
-// --- Section eyebrow ---
-const SectionLabel = ({ children }) => (
-  <div className="flex items-center gap-4 pt-2 pb-1">
-    <h2 className="console-eyebrow shrink-0">{children}</h2>
-    <Separator className="flex-1 bg-slate-200/70" />
-  </div>
-);
+// --- KPI Stat Card ---
+const StatCard = ({ title, value, subtext, icon, trend, iconBg, iconColor, to }) => {
+  const card = (
+    <Card className="relative h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
+      <CardContent className="flex items-center gap-4 p-5">
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: iconBg || "#EFF6FF", color: iconColor || "#3B82F6" }}
+        >
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{value}</p>
+          {subtext && <p className="mt-0.5 text-xs text-muted-foreground">{subtext}</p>}
+        </div>
+        {trend && (
+          <div className={`flex flex-col items-center gap-0.5 text-xs font-semibold ${trend.direction === "up" ? "text-emerald-600" : "text-red-500"}`}>
+            {trend.direction === "up" ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+            <span>{trend.value}%</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
-// --- Chart tooltip ---
+  return to ? (
+    <Link to={to} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {card}
+    </Link>
+  ) : (
+    card
+  );
+};
+
+// --- Chart Tooltip ---
 const CustomTooltip = ({ active, payload, label, formatter, labelFormatter }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-slate-100 bg-white/95 p-3 shadow-xl backdrop-blur-sm">
-      <p className="num mb-1.5 text-xs font-bold text-slate-500">
+    <div className="rounded-lg border bg-background p-3 shadow-lg">
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">
         {labelFormatter ? labelFormatter(label) : label}
       </p>
       {payload.map((entry, i) => (
         <div key={i} className="flex items-center gap-2 text-sm">
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="font-medium text-slate-600">{entry.name}:</span>
-          <span className="num font-bold text-slate-900">
-            {formatter ? formatter(entry.value) : entry.value}
-          </span>
+          <span className="text-muted-foreground">{entry.name}:</span>
+          <span className="font-semibold">{formatter ? formatter(entry.value) : entry.value}</span>
         </div>
       ))}
     </div>
   );
 };
 
-const chartAxis = {
-  fontSize: 11,
-  tickLine: false,
-  axisLine: false,
-  stroke: C.slate,
-};
-
-// --- Fuel variance chart ---
+// --- Fuel Variance Chart ---
 const FuelVarianceChart = ({ data }) => {
   if (!data?.length) return null;
   return (
     <Card>
-      <CardHeader className="p-4 pb-1.5">
-        <CardTitle className="text-[15px]">Fuel Efficiency Variance</CardTitle>
-        <CardDescription>Daily km/l vs expected baseline</CardDescription>
+      <CardHeader>
+        <CardTitle>Fuel Consumption Variance</CardTitle>
+        <CardDescription>Daily fuel efficiency variance (km/l)</CardDescription>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="mt-2 h-[280px] w-full">
+      <CardContent>
+        <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.grid} />
-              <XAxis dataKey="date" {...chartAxis} tickFormatter={getDateLabel} />
-              <YAxis {...chartAxis} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickFormatter={getDateLabel} />
+              <YAxis fontSize={12} tickLine={false} axisLine={false} />
               <Tooltip
                 content={<CustomTooltip formatter={(v) => v.toFixed(2) + " km/l"} labelFormatter={getDateLabel} />}
               />
+              <Legend />
               <Line
                 type="monotone"
                 dataKey="averageVariance"
-                name="Avg variance"
-                stroke={C.accent}
-                strokeWidth={2.5}
-                dot={{ r: 3, fill: C.accent, strokeWidth: 2, stroke: "#fff" }}
-                activeDot={{ r: 5, strokeWidth: 0 }}
+                name="Avg. Variance"
+                stroke="#3B82F6"
+                strokeWidth={2}
+                dot={{ r: 3, fill: "#3B82F6" }}
+                activeDot={{ r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -143,24 +174,26 @@ const FuelVarianceChart = ({ data }) => {
   );
 };
 
-// --- Outlier chart ---
+// --- Outlier Chart ---
 const OutlierChart = ({ data }) => {
   if (!data?.length) return null;
   return (
     <Card>
-      <CardHeader className="p-4 pb-1.5">
-        <CardTitle className="text-[15px]">Daily Outliers</CardTitle>
-        <CardDescription>Abnormal fuel-consumption days</CardDescription>
+      <CardHeader>
+        <CardTitle>Daily Outliers</CardTitle>
+        <CardDescription>Abnormal fuel consumption days</CardDescription>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="mt-2 h-[280px] w-full">
+      <CardContent>
+        <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.grid} />
-              <XAxis dataKey="date" {...chartAxis} tickFormatter={getDateLabel} />
-              <YAxis {...chartAxis} />
-              <Tooltip content={<CustomTooltip labelFormatter={getDateLabel} />} />
-              <Bar dataKey="outlierCount" name="Outliers" fill={C.red} radius={[5, 5, 0, 0]} maxBarSize={36} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickFormatter={getDateLabel} />
+              <YAxis fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip
+                content={<CustomTooltip labelFormatter={getDateLabel} />}
+              />
+              <Bar dataKey="outlierCount" name="Outlier Count" fill="#EF4444" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -169,68 +202,67 @@ const OutlierChart = ({ data }) => {
   );
 };
 
-// --- Financial chart ---
+// --- Financial Chart ---
 const FinancialChart = ({ data }) => {
   if (!data?.dailyTrend?.length) return null;
   return (
-    <div className="mt-2 h-[280px] w-full">
+    <div className="h-[280px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data.dailyTrend} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.grid} />
-          <XAxis dataKey="date" {...chartAxis} tickFormatter={getDateLabel} />
-          <YAxis {...chartAxis} />
-          <Tooltip content={<CustomTooltip formatter={(v) => formatCurrency(v)} labelFormatter={getDateLabel} />} />
-          <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", fontWeight: 600, color: "#475569" }} />
-          <Line type="monotone" dataKey="revenue" name="Revenue" stroke={C.accent} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-          <Line type="monotone" dataKey="expenses" name="Expenses" stroke={C.red} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-          <Line type="monotone" dataKey="profit" name="Profit" stroke={C.amber} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+          <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickFormatter={getDateLabel} />
+          <YAxis fontSize={12} tickLine={false} axisLine={false} />
+          <Tooltip
+            content={<CustomTooltip formatter={(v) => formatCurrency(v)} labelFormatter={getDateLabel} />}
+          />
+          <Legend />
+          <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#10B981" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#EF4444" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="profit" name="Profit" stroke="#F59E0B" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
   );
 };
 
-// --- Driver card ---
+// --- Driver Card ---
 const DriverCard = ({ driver, label, variant = "top" }) => {
   if (!driver) return null;
   const isTop = variant === "top";
-  const ratingColor = driver.rating >= 4 ? C.accent : driver.rating >= 3 ? C.amber : C.red;
   return (
     <Card>
-      <CardHeader className="p-4 pb-1.5">
+      <CardHeader>
         <div className="flex items-center gap-2">
-          {isTop ? <Trophy size={17} style={{ color: C.amber }} /> : <TrendingDown size={17} style={{ color: C.red }} />}
-          <CardTitle className="text-[15px]">{label}</CardTitle>
+          {isTop ? (
+            <Trophy size={18} className="text-amber-500" />
+          ) : (
+            <TrendingDown size={18} className="text-red-500" />
+          )}
+          <CardTitle>{label}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="mt-1 flex items-center gap-4">
-          <Avatar size="lg" className="border-2 border-white shadow-sm">
-            <AvatarFallback
-              className="font-bold"
-              style={{
-                background: `color-mix(in srgb, ${isTop ? C.accent : C.red} 14%, transparent)`,
-                color: isTop ? C.accent : C.red,
-              }}
-            >
+      <CardContent>
+        <div className="flex items-center gap-4">
+          <Avatar size="lg">
+            <AvatarFallback className={isTop ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}>
               {getInitials(driver.driverName)}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-bold" style={{ color: C.ink }}>
-              {driver.driverName}
-            </p>
-            {driver.mobileNumber && <p className="num text-[11px] font-medium text-slate-500">{driver.mobileNumber}</p>}
-            <div className="mt-1.5 flex flex-wrap gap-2">
-              <Badge variant="secondary" className="num bg-slate-100 text-[10px] font-bold text-slate-600">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-foreground truncate">{driver.driverName}</p>
+            {driver.mobileNumber && (
+              <p className="text-xs text-muted-foreground">{driver.mobileNumber}</p>
+            )}
+            <div className="mt-2 flex gap-2 flex-wrap">
+              <Badge variant="secondary" className="text-xs">
                 {driver.tripCount || 0} trips
               </Badge>
-              <Badge variant="secondary" className="num bg-slate-100 text-[10px] font-bold text-slate-600">
+              <Badge variant="secondary" className="text-xs">
                 {formatNumber(driver.totalFuelLitres || 0)} L
               </Badge>
             </div>
           </div>
-          <div className="num flex items-center gap-1 text-lg font-extrabold" style={{ color: ratingColor }}>
+          <div className="flex items-center gap-1 text-lg font-bold" style={{ color: driver.rating >= 4 ? "#10B981" : driver.rating >= 3 ? "#F59E0B" : "#EF4444" }}>
             <Star size={18} fill="currentColor" />
             {(driver.rating || 0).toFixed(1)}
           </div>
@@ -240,42 +272,33 @@ const DriverCard = ({ driver, label, variant = "top" }) => {
   );
 };
 
-// --- Underperforming drivers ---
+// --- Underperforming Drivers ---
 const UnderperformingList = ({ drivers }) => {
   if (!drivers?.length || !drivers[0]?.driverName) return null;
   return (
     <Card>
-      <CardHeader className="p-4 pb-1.5">
+      <CardHeader>
         <div className="flex items-center gap-2">
-          <AlertTriangle size={17} style={{ color: C.red }} />
-          <CardTitle className="text-[15px]">Underperforming Drivers</CardTitle>
+          <AlertTriangle size={18} className="text-red-500" />
+          <CardTitle>Underperforming Drivers</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="mt-1 space-y-2">
+      <CardContent>
+        <div className="space-y-3">
           {drivers.map((driver) => (
-            <div
-              key={driver.driverId || driver.id}
-              className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-2.5 transition-colors hover:bg-slate-100"
-            >
-              <Avatar className="h-9 w-9 shadow-sm">
-                <AvatarFallback
-                  className="text-xs font-bold"
-                  style={{ background: `color-mix(in srgb, ${C.red} 14%, transparent)`, color: C.red }}
-                >
+            <div key={driver.driverId || driver.id} className="flex items-center gap-3 rounded-lg border p-3">
+              <Avatar>
+                <AvatarFallback className="bg-red-100 text-red-700 text-xs">
                   {getInitials(driver.driverName)}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold" style={{ color: C.ink }}>
-                  {driver.driverName}
-                </p>
-                {driver.mobileNumber && <p className="num text-[11px] font-medium text-slate-500">{driver.mobileNumber}</p>}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{driver.driverName}</p>
+                {driver.mobileNumber && (
+                  <p className="text-xs text-muted-foreground">{driver.mobileNumber}</p>
+                )}
               </div>
-              <div
-                className="num flex items-center gap-1 text-sm font-extrabold"
-                style={{ color: driver.rating >= 3 ? C.amber : C.red }}
-              >
+              <div className="flex items-center gap-1 text-sm font-bold" style={{ color: driver.rating >= 3 ? "#F59E0B" : "#EF4444" }}>
                 <Star size={14} fill="currentColor" />
                 {(driver.rating || 0).toFixed(1)}
               </div>
@@ -287,122 +310,223 @@ const UnderperformingList = ({ drivers }) => {
   );
 };
 
-// --- Skeleton helpers ---
-const StatRowSkeleton = () => (
-  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    {[...Array(4)].map((_, i) => (
-      <Card key={i} className="animate-pulse">
-        <CardContent className="p-5">
-          <Skeleton className="mb-3 h-3 w-16 rounded-md bg-slate-200" />
-          <Skeleton className="mb-2.5 h-7 w-24 rounded-md bg-slate-200" />
-          <Skeleton className="h-3 w-32 rounded-md bg-slate-200" />
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
+// --- Live Vehicle Map ---
+// Reads the same /api/livetracking/positions feed the full Live Tracking page
+// uses, so the dashboard preview and "Expand" always show identical points.
+const MAP_CONTAINER_STYLE = { width: "100%", height: "450px", borderRadius: "0.75rem" };
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
-const FinancialSkeleton = () => (
-  <Card className="animate-pulse">
-    <CardContent className="p-5">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-            <Skeleton className="mb-3 h-3 w-16 rounded-md bg-slate-200" />
-            <Skeleton className="h-8 w-28 rounded-md bg-slate-200" />
+const LiveVehicleMap = () => {
+  const [positions, setPositions] = useState([]);
+  const [isFetching, setIsFetching] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedReg, setSelectedReg] = useState(null);
+  const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  const mapRef = useRef(null);
+  const fetchInFlightRef = useRef(false);
+
+  const fetchPositions = useCallback(async () => {
+    if (fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
+    try {
+      setPositions(await LiveTrackingService.getPositions());
+      setError(null);
+    } catch (err) {
+      setError(err.detail || "Could not load live positions.");
+    } finally {
+      fetchInFlightRef.current = false;
+      setIsFetching(false);
+    }
+  }, []);
+
+  // Poll on the same cadence as the full page; the backend cron is what talks
+  // to FleetEdge, this is a cheap read of our own DB.
+  useEffect(() => {
+    fetchPositions();
+    const intervalId = setInterval(fetchPositions, POLL_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, [fetchPositions]);
+
+  const located = useMemo(() => withCoordinates(positions), [positions]);
+
+  const activeCount = positions.filter((p) => p.state === "ACTIVE").length;
+  const parkedCount = positions.filter((p) => p.state === "PARKED").length;
+  const offlineCount = positions.filter((p) => p.state === "OFFLINE").length;
+
+  const selectedVehicle = positions.find((p) => p.registrationNumber === selectedReg) || null;
+
+  // Called from both onLoad and an effect: onLoad covers the first paint (it
+  // fires outside React's render cycle, so the effect alone would run before
+  // the map exists), the effect covers later polls that move or add vehicles.
+  const fitToVehicles = useCallback(() => {
+    fitMapToPositions(mapRef.current, located);
+  }, [located]);
+
+  useEffect(() => {
+    fitToVehicles();
+  }, [fitToVehicles, isLoaded]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Navigation size={18} className="text-blue-500" />
+            <CardTitle>Live Vehicle Locations</CardTitle>
           </div>
-        ))}
-      </div>
-      {/* Chart area skeleton */}
-      <div className="mt-6 border-t border-slate-100 pt-4">
-        <Skeleton className="mb-3 h-3.5 w-36 rounded-md bg-slate-200" />
-        <Skeleton className="h-[200px] w-full rounded-xl bg-slate-200" />
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const DriverPerfSkeleton = () => (
-  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-    {[...Array(3)].map((_, i) => (
-      <Card key={i} className="animate-pulse">
-        <CardHeader className="p-4 pb-1.5">
-          <Skeleton className="h-4 w-40 rounded-md bg-slate-200" />
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <div className="flex items-center gap-4 mt-2">
-            <Skeleton className="h-12 w-12 rounded-full bg-slate-200 shrink-0" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-32 rounded-md bg-slate-200" />
-              <Skeleton className="h-3 w-24 rounded-md bg-slate-200" />
-            </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATE_META.ACTIVE.color }} /> Active ({activeCount})
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATE_META.PARKED.color }} /> Parked ({parkedCount})
+            </span>
+            <span className="flex items-center gap-1">
+              <WifiOff size={12} /> Offline ({offlineCount})
+            </span>
+            <Link
+              to="/live-tracking"
+              className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium text-foreground transition-colors hover:bg-accent"
+              title="Open full live tracking"
+            >
+              <Maximize2 size={12} /> Expand
+            </Link>
           </div>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
+        </div>
+        <CardDescription>Real-time vehicle positions on the map</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!isLoaded || (isFetching && positions.length === 0) ? (
+          <Skeleton className="h-[450px] w-full rounded-xl" />
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
+            <AlertTriangle size={40} className="opacity-30" />
+            <p className="text-sm">{error}</p>
+          </div>
+        ) : located.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
+            <Navigation size={40} className="opacity-30" />
+            <p className="text-sm">No vehicles with coordinates right now</p>
+          </div>
+        ) : (
+            <GoogleMap
+              mapContainerStyle={MAP_CONTAINER_STYLE}
+              center={INDIA_CENTER}
+              zoom={5}
+              onLoad={(map) => {
+                mapRef.current = map;
+                fitToVehicles();
+              }}
+              onUnmount={() => {
+                mapRef.current = null;
+              }}
+              options={{
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: true,
+              }}
+            >
+              {located.map((v) => {
+                const meta = getStateMeta(v.state);
+                return (
+                  <MarkerF
+                    key={v.registrationNumber || v.vin}
+                    position={{ lat: v.latitude, lng: v.longitude }}
+                    title={v.registrationNumber || v.vin}
+                    icon={pinIcon(meta.color, v.isStale || v.state === "OFFLINE")}
+                    onClick={() => setSelectedReg(v.registrationNumber)}
+                  />
+                );
+              })}
 
-// Chart row skeleton (2 side-by-side chart placeholders)
-const ChartRowSkeleton = () => (
-  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-    {[...Array(2)].map((_, i) => (
-      <Card key={i} className="animate-pulse">
-        <CardHeader className="p-4 pb-2">
-          <Skeleton className="mb-1 h-4 w-44 rounded-md bg-slate-200" />
-          <Skeleton className="h-3 w-32 rounded-md bg-slate-200" />
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <Skeleton className="h-[220px] w-full rounded-xl bg-slate-200" />
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
+              {selectedVehicle && selectedVehicle.latitude != null && (
+                <InfoWindowF
+                  position={{ lat: selectedVehicle.latitude, lng: selectedVehicle.longitude }}
+                  onCloseClick={() => setSelectedReg(null)}
+                >
+                  <div style={{ padding: "4px 2px", minWidth: 180, fontFamily: "system-ui, sans-serif" }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
+                      {selectedVehicle.registrationNumber || selectedVehicle.vin}
+                    </p>
+                    <p style={{ fontSize: 12, color: getStateMeta(selectedVehicle.state).color, fontWeight: 600, margin: "4px 0" }}>
+                      {getStateMeta(selectedVehicle.state).label}
+                      {selectedVehicle.isStale ? " (stale)" : ""}
+                    </p>
+                    <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0" }}>
+                      Speed: {selectedVehicle.speed != null ? `${Math.round(selectedVehicle.speed)} km/h` : "—"}
+                      {" · "}Ignition: {selectedVehicle.ignition ? "On" : "Off"}
+                    </p>
+                    {selectedVehicle.primaryFuelLevel != null && (
+                      <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0" }}>
+                        Fuel: {selectedVehicle.primaryFuelLevel} L
+                      </p>
+                    )}
+                    <p style={{ fontSize: 11, color: "#9ca3af", margin: "4px 0" }}>
+                      {"🕐 "}
+                      {formatIST(selectedVehicle.eventDateTime)}
+                    </p>
+                    <Link
+                      to="/live-tracking"
+                      style={{ fontSize: 11, color: "#2563eb", fontWeight: 600 }}
+                    >
+                      Open in Live Tracking →
+                    </Link>
+                  </div>
+                </InfoWindowF>
+              )}
+            </GoogleMap>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
-// --- Full-page first-load skeleton ---
+// --- Skeleton Loader ---
 const DashboardSkeleton = () => (
-  <div className="min-h-screen w-full space-y-6 p-3 sm:p-5">
-    <div className="mb-4 flex items-center justify-between">
+  <div className="space-y-6 p-1">
+    <div className="flex items-center justify-between">
       <div>
-        <Skeleton className="h-8 w-56 bg-slate-200" />
-        <Skeleton className="mt-2 h-4 w-72 bg-slate-200" />
+        <Skeleton className="h-8 w-52" />
+        <Skeleton className="mt-2 h-4 w-72" />
       </div>
-      <Skeleton className="h-9 w-64 rounded-xl bg-slate-200" />
+      <Skeleton className="h-9 w-36 rounded-lg" />
     </div>
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" style={{ height: 620 }}>
-      <Skeleton className="rounded-2xl bg-slate-200 lg:col-span-2 h-full" />
-      <Skeleton className="rounded-2xl bg-slate-200 h-full" />
-    </div>
-    <Skeleton className="h-[660px] w-full rounded-2xl bg-slate-200" />
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {[...Array(4)].map((_, i) => (
-        <Skeleton key={i} className="h-24 rounded-2xl bg-slate-200" />
+        <Card key={i}>
+          <CardContent className="flex items-center gap-4 p-5">
+            <Skeleton className="h-12 w-12 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </CardContent>
+        </Card>
       ))}
+    </div>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <Card><CardContent className="p-5"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
+      <Card><CardContent className="p-5"><Skeleton className="h-[300px] w-full rounded-lg" /></CardContent></Card>
     </div>
   </div>
 );
 
-// --- Main ---
+// --- Main Component ---
 const OverviewPage = () => {
   const [summaryData, setSummaryData] = useState(null);
   const [fuelAnalytics, setFuelAnalytics] = useState(null);
   const [driverPerformance, setDriverPerformance] = useState(null);
   const [financials, setFinancials] = useState(null);
-  const [driverLocations, setDriverLocations] = useState([]);
-  const [exceptions, setExceptions] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState(null);
   const [selectedDays, setSelectedDays] = useState(7);
   const [customDateRange, setCustomDateRange] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const hasLoadedOnce = React.useRef(false);
+  const { money: riskMoney, isLoading: riskLoading } = useOwnerValueDigest();
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!hasLoadedOnce.current) setIsLoading(true);
-      else setIsFetching(true);
+      setIsLoading(true);
       setError(null);
       try {
         let params = {};
@@ -413,49 +537,40 @@ const OverviewPage = () => {
           params.days = selectedDays;
         }
 
-        const [summary, fuel, drivers, fin, liveLocations, exc] = await Promise.all([
+        const [summary, fuel, drivers, fin] = await Promise.all([
           OverviewService.getDashboardSummary(params),
           OverviewService.getFuelAnalytics(params),
           OverviewService.getDriverPerformance(params),
           OverviewService.getFinancials(params),
-          OverviewService.getDriverLocations().catch(() => []),
-          OverviewService.getExceptions(params).catch(() => null),
         ]);
 
         setSummaryData(summary?.summaryCards);
         setFuelAnalytics(fuel);
         setDriverPerformance(drivers);
         setFinancials(fin);
-        setDriverLocations(liveLocations);
-        setExceptions(exc);
-        setLastUpdated(new Date());
-        hasLoadedOnce.current = true;
       } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
         setError(err.detail || "Could not load dashboard data. Please try again.");
       } finally {
         setIsLoading(false);
-        setIsFetching(false);
       }
     };
     fetchData();
   }, [selectedDays, customDateRange]);
 
-  if (isLoading) return <DashboardSkeleton />;
+  if (isLoading) return <div className="p-2"><DashboardSkeleton /></div>;
 
   if (error) {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center gap-4 text-center font-sans">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 shadow-sm">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
           <AlertTriangle size={32} className="text-red-500" />
         </div>
-        <p className="text-xl font-bold" style={{ color: C.ink }}>
-          Something went wrong
-        </p>
-        <p className="max-w-md text-sm font-medium text-slate-500">{error}</p>
+        <p className="text-lg font-medium text-foreground">Something went wrong</p>
+        <p className="max-w-md text-sm text-muted-foreground">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-2 rounded-lg px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
-          style={{ background: C.accent }}
+          className="mt-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Try Again
         </button>
@@ -472,340 +587,257 @@ const OverviewPage = () => {
   const finSummary = financials?.summary;
 
   return (
-    <div className="min-h-screen w-full space-y-6 p-3 font-sans antialiased text-slate-900 sm:p-5">
-
-      {/* ── Top-of-page loading bar — visible during day switching ── */}
-      {isFetching && (
-        <div className="fixed inset-x-0 top-0 z-[9999] h-[3px] overflow-hidden">
-          <div
-            className="h-full w-full animate-pulse"
-            style={{
-              background: 'linear-gradient(90deg, transparent 0%, #0e8c8c 30%, #2dd4bf 50%, #0e8c8c 70%, transparent 100%)',
-            }}
-          />
-        </div>
-      )}
+    <div className="space-y-6 p-1">
       {/* Header */}
-      <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1>Fleet Operations</h1>
-          <p>
-            Live positions and the refuel-log exceptions that need you
-            {lastUpdated && (
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard Overview</h1>
+          <p className="text-sm text-muted-foreground">Complete fleet analytics and performance metrics</p>
+        </div>
+        <Select value={String(selectedDays)} onValueChange={(v) => { setSelectedDays(Number(v)); setCustomDateRange(null); }}>
+          <SelectTrigger className="w-40">
+            <CalendarDays size={14} className="mr-1.5 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 Days</SelectItem>
+            <SelectItem value="14">Last 14 Days</SelectItem>
+            <SelectItem value="30">Last 30 Days</SelectItem>
+            <SelectItem value="90">Last 90 Days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Fleet KPI Cards */}
+      {vehicles && (
+        <>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Fleet Overview</h2>
+            <Separator className="flex-1" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <StatCard
+              title="Total Vehicles"
+              value={formatNumber(vehicles.total || 0)}
+              subtext={`${formatNumber(vehicles.active || 0)} active · ${formatNumber(vehicles.onTrip || 0)} on trip`}
+              icon={<Truck size={22} />}
+              iconBg="#DBEAFE" iconColor="#2563EB"
+            />
+            <StatCard
+              title="Total Drivers"
+              value={formatNumber(drivers?.total || 0)}
+              subtext={`${formatNumber(drivers?.active || 0)} active`}
+              icon={<Users size={22} />}
+              iconBg="#D1FAE5" iconColor="#059669"
+            />
+            <StatCard
+              title="Total Trips"
+              value={formatNumber(trips?.total || 0)}
+              subtext={`${formatNumber(trips?.completed || 0)} completed · ${formatNumber(trips?.ongoing || 0)} ongoing`}
+              icon={<Activity size={22} />}
+              iconBg="#FEF3C7" iconColor="#D97706"
+            />
+            <StatCard
+              title="Distance Covered"
+              value={`${formatNumber(kilometers?.total || 0)} km`}
+              icon={<Map size={22} />}
+              iconBg="#FCE7F3" iconColor="#DB2777"
+            />
+            {riskLoading ? (
+              <Skeleton className="h-[110px] w-full rounded-xl" />
+            ) : (
+              riskMoney && (
+                <StatCard
+                  title="Est. ₹ at risk today"
+                  value={formatCurrency(riskMoney.totalWasteInr || 0)}
+                  subtext={`Fuel ${formatCurrency(riskMoney.money?.theftLossInr || 0)} · Detours ${formatCurrency(riskMoney.money?.detourWasteInr || 0)} · Idling ${formatCurrency(riskMoney.money?.idlingWasteInr || 0)}`}
+                  icon={<ShieldAlert size={22} />}
+                  iconBg="#FEF3C7" iconColor="#D97706"
+                  to="/owner-alerts"
+                />
+              )
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Live Vehicle Map */}
+      <div className="flex items-center gap-3">
+        <Separator className="flex-1" />
+        <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Live Tracking</h2>
+        <Separator className="flex-1" />
+      </div>
+      <LiveVehicleMap />
+
+      {/* Fuel Analytics */}
+      {fuel && (fuel.totalLitres > 0 || fuel.totalCost > 0) && (
+        <>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Fuel Analytics</h2>
+            <Separator className="flex-1" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Total Fuel Consumed"
+              value={`${formatNumber(fuel.totalLitres || 0)} L`}
+              subtext={`Cost: ${formatCurrency(fuel.totalCost || 0)}`}
+              icon={<Fuel size={22} />}
+              iconBg="#DBEAFE" iconColor="#2563EB"
+            />
+            <StatCard
+              title="Fleet Avg Efficiency"
+              value={`${(fuel.avgKmpl || 0).toFixed(2)} km/l`}
+              subtext="Overall fuel efficiency"
+              icon={<TrendingUp size={22} />}
+              iconBg="#D1FAE5" iconColor="#059669"
+            />
+            {fuelSummary && (
               <>
-                {" · "}
-                <span className="num" style={{ color: C.accent }}>
-                  as of {lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                </span>
+                <StatCard
+                  title="Avg Variance"
+                  value={`${(fuelSummary.averageVariance || 0).toFixed(2)} km/l`}
+                  subtext={`Fleet avg: ${(fuelAnalytics.fleetWideAverageVariance || 0).toFixed(2)}`}
+                  icon={<TrendingUp size={22} />}
+                  iconBg="#FEF3C7" iconColor="#D97706"
+                />
+                <StatCard
+                  title="Outliers Detected"
+                  value={formatNumber(fuelSummary.outlierCount || 0)}
+                  subtext={`Out of ${formatNumber(fuelSummary.totalTrips || 0)} trips`}
+                  icon={<AlertTriangle size={22} />}
+                  iconBg="#FEE2E2" iconColor="#DC2626"
+                />
               </>
             )}
-          </p>
-        </div>
+          </div>
 
-        {/* Day-range segmented control */}
-        {(() => {
-          const OPTIONS = [
-            { value: 7, label: "7D" },
-            { value: 14, label: "14D" },
-            { value: 30, label: "30D" },
-            { value: 90, label: "90D" },
-          ];
-          const idx = OPTIONS.findIndex((o) => o.value === selectedDays);
-          const pillWidth = 100 / OPTIONS.length;
-          return (
-            <div className="flex items-center gap-2.5">
-              <CalendarDays size={16} strokeWidth={2.5} className="shrink-0 text-slate-400" />
-              {/* Spinning refresh indicator while fetching */}
-              {isFetching && (
-                <RefreshCw
-                  size={13}
-                  className="shrink-0 animate-spin text-[#0e8c8c]"
-                  strokeWidth={2.5}
-                />
-              )}
-              <div
-                className="relative flex items-center rounded-xl border border-slate-200 bg-slate-200/60 p-[3px] shadow-inner"
-                style={{ minWidth: 240 }}
-              >
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-[3px] top-[3px] rounded-[9px] border border-slate-200/60 bg-white shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.34,1.26,0.64,1)]"
-                  style={{
-                    width: `calc(${pillWidth}% - 1.5px)`,
-                    transform: `translateX(calc(${idx * 100}% + ${idx * 1.5}px))`,
-                  }}
-                />
-                {OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setSelectedDays(option.value);
-                      setCustomDateRange(null);
-                    }}
-                    className="num relative z-10 flex-1 select-none rounded-[9px] py-1.5 text-xs font-bold transition-colors duration-200"
-                    style={{ color: selectedDays === option.value ? C.accent : "#64748b" }}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* 1. Hero: Needs Attention + Live Fleet Status side-by-side, then full-width map below */}
-
-      {/* Top row — equal height panels */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" style={{ height: 620 }}>
-        {/* Needs Attention — left 2/3 */}
-        <div className="lg:col-span-2 min-h-0 rounded-2xl overflow-hidden border border-slate-300">
-          <ExceptionsRail data={exceptions} loading={isFetching} error={!isFetching && exceptions === null} />
-        </div>
-        {/* Live Fleet Status — right 1/3, same height */}
-        <div className="min-h-0 rounded-2xl overflow-hidden border border-slate-300">
-          <LiveFleetStatusWidget />
-        </div>
-      </div>
-
-      {/* Map row — full width */}
-      <div className="rounded-2xl overflow-hidden border border-slate-300" style={{ height: 660 }}>
-        <FleetMap locations={driverLocations} />
-      </div>
-
-      {/* Owner value digest — ₹/utilization/risk rollups (from feat/live-map-refresh) */}
-      <OwnerValueDigest />
-
-      {/* 2. Fleet KPIs */}
-      {(vehicles || isFetching) && (
-        <>
-          <SectionLabel>Fleet Overview</SectionLabel>
-          {isFetching ? <StatRowSkeleton /> : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                label="Vehicles"
-                value={formatNumber(vehicles.total || 0)}
-                sub={`${formatNumber(vehicles.active || 0)} active · ${formatNumber(vehicles.onTrip || 0)} on trip`}
-                icon={<Truck size={18} />}
-              />
-              <StatCard
-                label="Drivers"
-                value={formatNumber(drivers?.total || 0)}
-                sub={`${formatNumber(drivers?.active || 0)} active`}
-                icon={<Users size={18} />}
-              />
-              <StatCard
-                label="Trips"
-                value={formatNumber(trips?.total || 0)}
-                sub={`${formatNumber(trips?.completed || 0)} done · ${formatNumber(trips?.ongoing || 0)} ongoing`}
-                icon={<Activity size={18} />}
-              />
-              <StatCard
-                label="Distance"
-                value={`${formatNumber(kilometers?.total || 0)} km`}
-                icon={<Map size={18} />}
-              />
+          {/* Fuel Charts */}
+          {(fuelAnalytics?.dailyVariance?.length > 0 || fuelAnalytics?.dailyOutliers?.length > 0) && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <FuelVarianceChart data={fuelAnalytics.dailyVariance} />
+              <OutlierChart data={fuelAnalytics.dailyOutliers} />
             </div>
           )}
         </>
       )}
 
-      {/* 3. Fuel analytics */}
-      {(isFetching || (fuel && (fuel.totalLitres > 0 || fuel.totalCost > 0))) && (
+      {/* Financial Overview */}
+      {finSummary && (finSummary.totalRevenue > 0 || finSummary.totalExpenses > 0) && (
         <>
-          <SectionLabel>Fuel Analytics</SectionLabel>
-          {isFetching ? (
-            <>
-              <StatRowSkeleton />
-              <ChartRowSkeleton />
-            </>
-          ) : (
-            <>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Financial Overview</h2>
+            <Separator className="flex-1" />
+          </div>
+          <Card>
+            <CardContent className="p-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                  label="Fuel Consumed"
-                  value={`${formatNumber(fuel.totalLitres || 0)} L`}
-                  sub={`Cost ${formatCurrency(fuel.totalCost || 0)}`}
-                  icon={<Fuel size={18} />}
-                />
-                <StatCard
-                  label="Avg Efficiency"
-                  value={`${(fuel.avgKmpl || 0).toFixed(2)} km/l`}
-                  sub="Fleet-wide"
-                  icon={<TrendingUp size={18} />}
-                />
-                {fuelSummary && (
-                  <>
-                    <StatCard
-                      label="Avg Variance"
-                      value={`${(fuelSummary.averageVariance || 0).toFixed(2)} km/l`}
-                      sub={`Fleet ${(fuelAnalytics.fleetWideAverageVariance || 0).toFixed(2)}`}
-                      icon={<TrendingUp size={18} />}
-                    />
-                    <StatCard
-                      label="Outliers"
-                      value={formatNumber(fuelSummary.outlierCount || 0)}
-                      sub={`of ${formatNumber(fuelSummary.totalTrips || 0)} trips`}
-                      icon={<AlertTriangle size={18} />}
-                    />
-                  </>
-                )}
-              </div>
-              {(fuelAnalytics?.dailyVariance?.length > 0 || fuelAnalytics?.dailyOutliers?.length > 0) && (
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <FuelVarianceChart data={fuelAnalytics.dailyVariance} />
-                  <OutlierChart data={fuelAnalytics.dailyOutliers} />
+                <div className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 p-4 dark:bg-emerald-950/20">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Revenue</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-600">{formatCurrency(finSummary.totalRevenue || 0)}</p>
                 </div>
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      {/* 4. Financial overview */}
-      {(isFetching || (finSummary && (finSummary.totalRevenue > 0 || finSummary.totalExpenses > 0))) && (
-        <>
-          <SectionLabel>Financial Overview</SectionLabel>
-          {isFetching ? <FinancialSkeleton /> : <Card>
-            <CardContent className="p-4 sm:p-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                  <p className="console-eyebrow">Revenue</p>
-                  <p className="num mt-2 text-2xl font-semibold" style={{ color: C.accent }}>
-                    {formatCurrency(finSummary.totalRevenue || 0)}
-                  </p>
+                <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 dark:bg-red-950/20">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Expenses</p>
+                  <p className="mt-1 text-2xl font-bold text-red-600">{formatCurrency(finSummary.totalExpenses || 0)}</p>
                 </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                  <p className="console-eyebrow">Expenses</p>
-                  <p className="num mt-2 text-2xl font-semibold" style={{ color: C.red }}>
-                    {formatCurrency(finSummary.totalExpenses || 0)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                  <p className="console-eyebrow">Net Profit</p>
-                  <p
-                    className="num mt-2 text-2xl font-semibold"
-                    style={{ color: (finSummary.netProfit || 0) >= 0 ? C.accent : C.red }}
-                  >
+                <div className={`rounded-lg border-l-4 p-4 ${(finSummary.netProfit || 0) >= 0 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20" : "border-red-500 bg-red-50 dark:bg-red-950/20"}`}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Net Profit</p>
+                  <p className={`mt-1 text-2xl font-bold ${(finSummary.netProfit || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                     {formatCurrency(finSummary.netProfit || 0)}
                   </p>
                 </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                  <p className="console-eyebrow">Margin</p>
-                  <p className="num mt-2 text-2xl font-semibold" style={{ color: C.amber }}>
-                    {(finSummary.profitMargin || 0).toFixed(1)}%
-                  </p>
+                <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 dark:bg-amber-950/20">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Profit Margin</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-600">{(finSummary.profitMargin || 0).toFixed(2)}%</p>
                 </div>
               </div>
               {financials?.dailyTrend?.length > 0 && (
-                <div className="mt-6 border-t border-slate-100 pt-4">
-                  <h3 className="font-display mb-2 text-sm font-semibold" style={{ color: C.ink }}>
-                    Daily Revenue Trend
-                  </h3>
+                <>
+                  <Separator className="my-5" />
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">Daily Revenue Trend</h3>
                   <FinancialChart data={financials} />
-                </div>
+                </>
               )}
             </CardContent>
-          </Card>}
+          </Card>
         </>
       )}
 
-      {/* 5. Driver performance */}
-      {(isFetching || (driverPerformance && (driverPerformance.topPerformingDriver || driverPerformance.averageDriverRating !== undefined))) && (
+      {/* Driver Performance */}
+      {driverPerformance && (driverPerformance.topPerformingDriver || driverPerformance.averageDriverRating !== undefined) && (
         <>
-          <SectionLabel>Driver Performance</SectionLabel>
-          {isFetching ? <DriverPerfSkeleton /> : <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {driverPerformance.topPerformingDriver ? (
-              <DriverCard driver={driverPerformance.topPerformingDriver} label="Top Performing Driver" variant="top" />
-            ) : (
-              <Card>
-                <CardHeader className="p-4 pb-1.5">
-                  <div className="flex items-center gap-2">
-                    <Trophy size={17} style={{ color: C.amber }} />
-                    <CardTitle className="text-[15px]">Top Performing Driver</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex flex-col items-center gap-2 py-6 text-center">
-                    <span
-                      className="flex h-12 w-12 items-center justify-center rounded-full"
-                      style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}
-                    >
-                      <Trophy size={22} />
-                    </span>
-                    <p className="text-sm font-semibold" style={{ color: C.ink }}>
-                      Awaiting data
-                    </p>
-                    <p className="max-w-[200px] text-xs font-medium text-slate-400">
-                      Driver rankings appear once trips are completed in this period.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Driver Performance</h2>
+            <Separator className="flex-1" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {driverPerformance.topPerformingDriver && (
+              <DriverCard
+                driver={driverPerformance.topPerformingDriver}
+                label="Top Performing Driver"
+                variant="top"
+              />
             )}
-
             {driverPerformance.averageDriverRating !== undefined && (
               <Card>
-                <CardHeader className="p-4 pb-1.5">
+                <CardHeader>
                   <div className="flex items-center gap-2">
-                    <Star size={17} style={{ color: C.accent }} />
-                    <CardTitle className="text-[15px]">Average Rating</CardTitle>
+                    <Star size={18} className="text-blue-500" />
+                    <CardTitle>Average Rating</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex flex-col items-center gap-2 py-4">
+                <CardContent>
+                  <div className="flex flex-col items-center gap-2 py-2">
                     <span
-                      className="num text-6xl font-extrabold tracking-tighter"
+                      className="text-5xl font-bold"
                       style={{
-                        color:
-                          driverPerformance.averageDriverRating >= 4
-                            ? C.accent
-                            : driverPerformance.averageDriverRating >= 3
-                            ? C.amber
-                            : C.red,
+                        color: driverPerformance.averageDriverRating >= 4 ? "#10B981"
+                          : driverPerformance.averageDriverRating >= 3 ? "#F59E0B" : "#EF4444"
                       }}
                     >
                       {(driverPerformance.averageDriverRating || 0).toFixed(1)}
                     </span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
-                          size={20}
+                          size={16}
                           fill={s <= Math.round(driverPerformance.averageDriverRating) ? "currentColor" : "none"}
-                          style={{ color: s <= Math.round(driverPerformance.averageDriverRating) ? C.amber : "#e2e8f0" }}
+                          className={s <= Math.round(driverPerformance.averageDriverRating) ? "text-amber-400" : "text-muted-foreground/30"}
                         />
                       ))}
                     </div>
-                    <p className="console-eyebrow mt-1">
-                      out of 5 · {formatNumber(driverPerformance.totalDrivers || 0)} drivers
+                    <p className="text-xs text-muted-foreground">
+                      out of 5 ({formatNumber(driverPerformance.totalDrivers || 0)} drivers)
                     </p>
                   </div>
                 </CardContent>
               </Card>
             )}
-
             {driverPerformance.underperformingDrivers?.length > 0 && driverPerformance.underperformingDrivers[0]?.driverName ? (
               <UnderperformingList drivers={driverPerformance.underperformingDrivers} />
             ) : (
               <Card>
-                <CardHeader className="p-4 pb-1.5">
+                <CardHeader>
                   <div className="flex items-center gap-2">
-                    <Users size={17} style={{ color: C.accent }} />
-                    <CardTitle className="text-[15px]">Total Drivers</CardTitle>
+                    <Users size={18} className="text-emerald-500" />
+                    <CardTitle>Total Drivers</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex flex-col items-center gap-2 py-4">
-                    <span className="num text-6xl font-extrabold tracking-tighter" style={{ color: C.accent }}>
+                <CardContent>
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <span className="text-5xl font-bold text-emerald-600">
                       {formatNumber(driverPerformance.totalDrivers || 0)}
                     </span>
-                    <p className="console-eyebrow mt-1">active drivers in fleet</p>
+                    <p className="text-xs text-muted-foreground">active drivers in fleet</p>
                   </div>
                 </CardContent>
               </Card>
             )}
-          </div>}
+          </div>
         </>
       )}
     </div>
