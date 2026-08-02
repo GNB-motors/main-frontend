@@ -1,4 +1,4 @@
-import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation } from 'lucide-react';
+import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation, ShieldAlert } from 'lucide-react';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -31,12 +31,14 @@ export const SIDE_NAV_ITEMS = [
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
       { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
+      { to: '/fuel-integrity', label: 'Fuel Integrity', key: null },
       { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
     ],
     matchRoutes: [
       '/mileage-tracking',
       '/adblue-tracking',
       '/fuel-comparison',
+      '/fuel-integrity',
       '/field-agent-fuel',
       '/trip-management',
     ],
@@ -60,6 +62,29 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence/add-service',
       '/vehicles/service-intelligence/add-repair',
     ],
+  },
+
+  // ─── Fleet Intelligence ───────────────────────────────────────────────────
+  // Observe-only owner surfaces backed by the Wave 3–5 pipelines. Both are
+  // read-only feeds — a flagged deviation or an alert means "please review",
+  // never an accusation, so they sit apart from the operational pages.
+  //
+  // NOTE: key: null means always visible. The backend FEATURE_FLAG_KEYS has no
+  // routeDeviation / ownerAlerts entry yet, so these cannot be gated per-org
+  // until those flags are added (see featureFlag.constants.js).
+  //
+  // Live Tracking has deliberately NO nav entry — the live map is embedded in
+  // the Overview page on this branch; /live-tracking remains routable.
+  {
+    type: 'group',
+    groupId: 'fleetIntelligence',
+    label: 'Fleet Intelligence',
+    icon: ShieldAlert,
+    children: [
+      { to: '/route-deviation', label: 'Route Deviation', key: null },
+      { to: '/owner-alerts', label: 'Owner Alerts', key: null },
+    ],
+    matchRoutes: ['/route-deviation', '/owner-alerts'],
   },
 
   { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },
