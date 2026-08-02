@@ -16,6 +16,13 @@ const getInitials = (name) => {
     return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 };
 
+// Human-friendly labels for the role enum.
+const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', FIELD_AGENT: 'Field Agent', SUPER_ADMIN: 'Super Admin' };
+const formatRole = (role, isSuperadmin) => {
+    if (isSuperadmin) return 'Super Admin';
+    return ROLE_LABELS[role] || role || 'Employee';
+};
+
 // --- Add Driver Modal Component ---
 const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) => {
     const [firstName, setFirstName] = useState('');
@@ -372,27 +379,21 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
 
 // --- Filter Dropdown Component ---
 const FilterDropdown = ({ isOpen, onClose, filters, tempFilters, onFilterChange, onApplyFilters, onClearFilters, isLoading, drivers = [] }) => {
-    // Get unique roles from actual drivers data
-    const getUniqueRoles = () => {
-        const roles = new Set();
+    // Canonical assignable roles are always offered (so FIELD_AGENT is selectable even
+    // when none are loaded yet), plus any extra roles present in the fetched data.
+    const getRoleOptions = () => {
+        const values = new Set(['DRIVER', 'MANAGER', 'FIELD_AGENT']);
         drivers.forEach(driver => {
-            if (driver.is_superadmin) {
-                roles.add('Super Admin');
-            } else if (driver.role) {
-                roles.add(driver.role);
-            } else {
-                roles.add('Employee'); // Default role
-            }
+            if (driver.is_superadmin) values.add('SUPER_ADMIN');
+            else if (driver.role) values.add(driver.role);
         });
-        return Array.from(roles).sort();
+        return Array.from(values).map(value => ({ value, label: ROLE_LABELS[value] || value }));
     };
 
-    const uniqueRoles = getUniqueRoles();
-    
     const filterOptions = {
         role: [
             { value: '', label: 'All Roles' },
-            ...uniqueRoles.map(role => ({ value: role, label: role }))
+            ...getRoleOptions()
         ],
         vehicleAssignment: [
             { value: '', label: 'All' },
@@ -651,6 +652,9 @@ const DriversPage = () => {
                 // normalize contact fields used in UI
                 mobileNumber: d.mobileNumber || d.mobile_number || d.mobile || '',
                 email: d.email || d.email_address || '',
+                // FIELD_AGENT rows carry a per-org membership status; surface that as the
+                // displayed status (their account-level status stays PENDING and isn't meaningful here).
+                status: d.role === 'FIELD_AGENT' ? (d.membershipStatus || d.status) : d.status,
             }));
             setDrivers(normalizedDrivers);
             if (meta) {
@@ -1053,13 +1057,13 @@ const DriversPage = () => {
                                                 <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                                                 <div className="drivers-driver-info">
                                                     <span>{driver.name}</span>
-                                                    <span className="drivers-driver-role">{driver.is_superadmin ? 'Super Admin' : driver.role || 'Employee'}</span>
+                                                    <span className="drivers-driver-role">{formatRole(driver.role, driver.is_superadmin)}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>{driver.id ? driver.id.substring(0, 8) + '...' : '-'}</td>
                                         <td>{driver.mobileNumber || driver.email || '-'}</td>
-                                        <td>{driver.role || '-'}</td>
+                                        <td>{formatRole(driver.role, driver.is_superadmin)}</td>
                                         <td>{driver.email || '-'}</td>
                                         <td>
                                             <div className="drivers-status-cell">

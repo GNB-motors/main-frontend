@@ -22,7 +22,7 @@ const Footer = ({ onLoginClick }) => {
                         >
                             Executive Login
                         </button>
-                        <a href="#" className="text-[#0A192F]/50 hover:text-blue-600 transition-colors">
+                        <a href="/privacy-policy.html" className="text-[#0A192F]/50 hover:text-blue-600 transition-colors">
                             Privacy Policy
                         </a>
                         <a href="#" className="text-[#0A192F]/50 hover:text-blue-600 transition-colors">

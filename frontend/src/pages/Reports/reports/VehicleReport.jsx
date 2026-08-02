@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     Box, Alert
 } from '@mui/material';
+import dayjs from 'dayjs';
 import {
     Pagination, PaginationContent, PaginationEllipsis,
     PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
@@ -10,12 +11,21 @@ import TableShimmer from '@/components/ui/TableShimmer';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 
-// --- VehicleReport COMPONENT (Uses fetched data) ---
+const COLUMN_COUNT = 13;
+
+const formatNumber = (value, digits = 0) =>
+    typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: digits }) : '-';
+
+const formatCurrency = (value) =>
+    typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-';
+
+const formatDate = (value) => (value ? dayjs(value).format('DD MMM YYYY') : '-');
+
+// --- VehicleReport COMPONENT (aggregated from refuel logs) ---
 const VehicleReport = () => {
     const [vehicleReportData, setVehicleReportData] = useState([]);
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [vehicleError, setVehicleError] = useState(null);
-    const [searchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
@@ -25,7 +35,7 @@ const VehicleReport = () => {
             setVehicleError(null);
             try {
                 const data = await ReportsService.getVehicleReports();
-                setVehicleReportData(data);
+                setVehicleReportData(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Failed to fetch vehicle reports:", err);
                 setVehicleError(err.detail || "Could not load vehicle reports.");
@@ -38,27 +48,12 @@ const VehicleReport = () => {
         fetchVehicleReports();
     }, []);
 
-
-    const filteredRows = useMemo(() => {
-        let rows = vehicleReportData;
-
-        // Filter by search text - updated to use 'id' field
-        if (searchText) {
-            const lowerSearchText = searchText.toLowerCase();
-            rows = rows.filter((row) => row.id?.toLowerCase().includes(lowerSearchText));
-        }
-
-        return rows;
-    }, [vehicleReportData, searchText]);
-
     // Pagination
-    const totalPages = Math.ceil(filteredRows.length / itemsPerPage) || 1;
+    const totalPages = Math.ceil(vehicleReportData.length / itemsPerPage) || 1;
     const paginatedRows = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
-        return filteredRows.slice(start, start + itemsPerPage);
-    }, [filteredRows, currentPage, itemsPerPage]);
-
-    useEffect(() => { setCurrentPage(1); }, [searchText]);
+        return vehicleReportData.slice(start, start + itemsPerPage);
+    }, [vehicleReportData, currentPage, itemsPerPage]);
 
     const renderPageItems = () => {
         const items = [];
@@ -72,71 +67,38 @@ const VehicleReport = () => {
         return items;
     };
 
-    // Export to CSV function
-    const handleExportCSV = () => {
-        const headers = ['Registration Number', 'Vehicle Type', 'Model', 'Total Journeys', 'Weight Slip Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'AdBlue (L)', 'AdBlue Cost (₹)', 'Total Revenue (₹)', 'Total Expenses (₹)', 'Total Profit (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)', 'Revenue per KM (₹)', 'Profit Margin (%)'];
-        const csvContent = [
+    const buildCsv = () => {
+        const headers = ['Registration Number', 'Vehicle Type', 'Model', 'Refuels', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'AdBlue (L)', 'AdBlue Cost (₹)', 'Total Fuel Cost (₹)', 'Avg. Efficiency (km/L)', 'Cost per KM (₹)', 'Last Refuel'];
+        return [
             headers.join(','),
-            ...filteredRows.map(row => [
+            ...vehicleReportData.map(row => [
                 row.registrationNumber || '-',
                 row.vehicleType || '-',
                 row.model || '-',
-                row.totalJourneys || '-',
-                row.totalWeightSlipTrips || '-',
+                row.totalRefuels || 0,
                 typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
                 typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
                 typeof row.totalDieselCost === 'number' ? row.totalDieselCost.toFixed(2) : '-',
                 typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
                 typeof row.totalAdBlueCost === 'number' ? row.totalAdBlueCost.toFixed(2) : '-',
-                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
-                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
-                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
+                typeof row.totalFuelCost === 'number' ? row.totalFuelCost.toFixed(2) : '-',
                 typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A',
                 typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-',
-                typeof row.revenuePerKm === 'number' ? row.revenuePerKm.toFixed(2) : '-',
-                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-'
+                row.lastRefuelAt ? dayjs(row.lastRefuelAt).format('DD/MM/YYYY') : '-',
             ].join(','))
         ].join('\n');
+    };
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const downloadCsv = (extension, mimeType) => {
+        const blob = new Blob([buildCsv()], { type: mimeType });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `vehicle_report_${dayjs().format('YYYY-MM-DD')}.csv`;
+        link.download = `vehicle_report_${dayjs().format('YYYY-MM-DD')}.${extension}`;
         link.click();
     };
 
-    // Export to Excel function
-    const handleExportExcel = () => {
-        const headers = ['Registration Number', 'Vehicle Type', 'Model', 'Total Journeys', 'Weight Slip Trips', 'Total Distance (KM)', 'Diesel (L)', 'Diesel Cost (₹)', 'AdBlue (L)', 'AdBlue Cost (₹)', 'Total Revenue (₹)', 'Total Expenses (₹)', 'Total Profit (₹)', 'Avg. Efficiency (km/l)', 'Cost per KM (₹)', 'Revenue per KM (₹)', 'Profit Margin (%)'];
-        const csvContent = [
-            headers.join(','),
-            ...filteredRows.map(row => [
-                row.registrationNumber || '-',
-                row.vehicleType || '-',
-                row.model || '-',
-                row.totalJourneys || '-',
-                row.totalWeightSlipTrips || '-',
-                typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
-                typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
-                typeof row.totalDieselCost === 'number' ? row.totalDieselCost.toFixed(2) : '-',
-                typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
-                typeof row.totalAdBlueCost === 'number' ? row.totalAdBlueCost.toFixed(2) : '-',
-                typeof row.totalRevenue === 'number' ? row.totalRevenue.toFixed(2) : '-',
-                typeof row.totalExpenses === 'number' ? row.totalExpenses.toFixed(2) : '-',
-                typeof row.totalProfit === 'number' ? row.totalProfit.toFixed(2) : '-',
-                typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A',
-                typeof row.costPerKm === 'number' ? row.costPerKm.toFixed(2) : '-',
-                typeof row.revenuePerKm === 'number' ? row.revenuePerKm.toFixed(2) : '-',
-                typeof row.profitMargin === 'number' ? row.profitMargin.toFixed(2) : '-'
-            ].join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `vehicle_report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
-        link.click();
-    };
+    const handleExportCSV = () => downloadCsv('csv', 'text/csv;charset=utf-8;');
+    const handleExportExcel = () => downloadCsv('xlsx', 'application/vnd.ms-excel;charset=utf-8;');
 
     return (
         <Box sx={{ padding: '24px' }}>
@@ -145,7 +107,7 @@ const VehicleReport = () => {
                 <div className="report-header-top">
                     <h3 className="report-title">Vehicle Report</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
+                        <button
                             onClick={handleExportCSV}
                             style={{
                                 width: '44px',
@@ -166,7 +128,7 @@ const VehicleReport = () => {
                         >
                             <CsvIcon width={24} height={24} />
                         </button>
-                        <button 
+                        <button
                             onClick={handleExportExcel}
                             style={{
                                 width: '44px',
@@ -189,12 +151,11 @@ const VehicleReport = () => {
                         </button>
                     </div>
                 </div>
-
             </div>
 
             {isLoadingVehicles && (
                 <div className="report-content">
-                    <TableShimmer columns={17} rows={10} />
+                    <TableShimmer columns={COLUMN_COUNT} rows={10} />
                 </div>
             )}
 
@@ -209,27 +170,23 @@ const VehicleReport = () => {
                                     <th>Reg Number</th>
                                     <th>Type</th>
                                     <th>Model</th>
-                                    <th>Journeys</th>
-                                    <th>WS Trips</th>
+                                    <th>Refuels</th>
                                     <th>Distance</th>
                                     <th>Diesel (L)</th>
                                     <th>Diesel Cost</th>
                                     <th>AdBlue (L)</th>
                                     <th>AdBlue Cost</th>
-                                    <th>Revenue</th>
-                                    <th>Expenses</th>
-                                    <th>Profit</th>
+                                    <th>Total Fuel Cost</th>
                                     <th>Efficiency</th>
                                     <th>Cost/KM</th>
-                                    <th>Rev/KM</th>
-                                    <th>Margin</th>
+                                    <th>Last Refuel</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paginatedRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={17} className="vehicle-empty-state">
-                                            No vehicle summary data found. Try adjusting your filters.
+                                        <td colSpan={COLUMN_COUNT} className="vehicle-empty-state">
+                                            No vehicle fuel data found.
                                         </td>
                                     </tr>
                                 ) : (
@@ -245,66 +202,31 @@ const VehicleReport = () => {
                                                 <div className="cell-primary">{row.model || '-'}</div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{row.totalJourneys || '-'}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{row.totalWeightSlipTrips || '-'}</div>
+                                                <div className="cell-primary">{row.totalRefuels || 0}</div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div className="cell-primary">
-                                                    {typeof row.totalDistanceKm === 'number'
-                                                        ? row.totalDistanceKm.toLocaleString('en-IN', { maximumFractionDigits: 0 })
-                                                        : '-'}
+                                                    {typeof row.totalDistanceKm === 'number' ? `${formatNumber(row.totalDistanceKm)} km` : '-'}
                                                 </div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-'}
-                                                </div>
+                                                <div className="cell-primary">{formatNumber(row.totalDieselLiters, 1)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatCurrency(row.totalDieselCost)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatNumber(row.totalAdBlueLiters, 1)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatCurrency(row.totalAdBlueCost)}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="cell-primary">{formatCurrency(row.totalFuelCost)}</div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div className="cell-primary">
-                                                    {typeof row.totalDieselCost === 'number'
-                                                        ? `₹${row.totalDieselCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalAdBlueCost === 'number'
-                                                        ? `₹${row.totalAdBlueCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalRevenue === 'number'
-                                                        ? `₹${row.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalExpenses === 'number'
-                                                        ? `₹${row.totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalProfit === 'number'
-                                                        ? `₹${row.totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                                                        : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.averageEfficiencyKmpl === 'number' ? row.averageEfficiencyKmpl.toFixed(2) : 'N/A'}
+                                                    {typeof row.averageEfficiencyKmpl === 'number' ? `${row.averageEfficiencyKmpl.toFixed(2)} km/L` : 'N/A'}
                                                 </div>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
@@ -312,15 +234,8 @@ const VehicleReport = () => {
                                                     {typeof row.costPerKm === 'number' ? `₹${row.costPerKm.toFixed(2)}` : '-'}
                                                 </div>
                                             </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.revenuePerKm === 'number' ? `₹${row.revenuePerKm.toFixed(2)}` : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.profitMargin === 'number' ? `${row.profitMargin.toFixed(1)}%` : 'N/A'}
-                                                </div>
+                                            <td>
+                                                <div className="cell-primary">{formatDate(row.lastRefuelAt)}</div>
                                             </td>
                                         </tr>
                                     ))
@@ -329,7 +244,7 @@ const VehicleReport = () => {
                         </table>
                     </div>
 
-                    {filteredRows.length > 0 && totalPages > 1 && (
+                    {vehicleReportData.length > 0 && totalPages > 1 && (
                         <div className="pagination-wrapper">
                             <Pagination className="justify-end">
                                 <PaginationContent>

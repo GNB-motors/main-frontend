@@ -44,7 +44,7 @@
 
 .processing-progress-fill {
   height: 100%;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   transition: width 0.4s ease;
 }
 
@@ -300,14 +300,14 @@
 }
 
 .form-actions .btn-primary {
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
   border: none;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
 }
 
 .form-actions .btn-primary:hover:not(.disabled) {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
 }

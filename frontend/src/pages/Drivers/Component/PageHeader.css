@@ -84,7 +84,7 @@
 
 /* Previous (clickable back link) */
 .page-header-breadcrumb-previous span {
-  color: var(--alias-type-type-brand-primary, #2A4FD6);
+  color: var(--alias-type-type-brand-primary, var(--primary-color, var(--primary-color, #4f46e5)));
 }
 
 /* Current (active page) */
@@ -169,7 +169,7 @@
 /* Accessibility */
 .page-header-back-button:focus,
 .page-header-breadcrumb-item:focus {
-  outline: 2px solid var(--alias-type-type-brand-primary, #2A4FD6);
+  outline: 2px solid var(--alias-type-type-brand-primary, var(--primary-color, var(--primary-color, #4f46e5)));
   outline-offset: 2px;
   border-radius: 4px;
 }

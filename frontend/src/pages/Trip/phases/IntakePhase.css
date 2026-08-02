@@ -49,7 +49,7 @@
 }
 
 .intake-next-btn {
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
   border: none;
   border-radius: 8px;
@@ -62,7 +62,7 @@
 }
 
 .intake-next-btn:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
@@ -91,7 +91,7 @@
 
 .intake-progress-fill {
   height: 100%;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   transition: width 0.4s ease;
 }
 
@@ -171,7 +171,7 @@
 
 .intake-start-btn {
   padding: 10px 28px;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
   border: none;
   border-radius: 8px;
@@ -182,7 +182,7 @@
 }
 
 .intake-start-btn:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
@@ -242,7 +242,7 @@
 
 .dropdown-button:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -307,7 +307,7 @@
 
 .dropdown-item.selected {
   background: #eff6ff;
-  border-left: 3px solid #2563eb;
+  border-left: 3px solid var(--primary-color, var(--primary-color, #4f46e5));
   padding-left: 11px;
 }
 
@@ -555,7 +555,7 @@
 
 .multi-slot-action-btn.view {
   background: white;
-  color: #2563eb;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
 }
 
 .multi-slot-action-btn.view:hover {
@@ -855,7 +855,7 @@
 .slot-dropzone-drag-text {
   font-size: 16px;
   font-weight: 700;
-  color: #2563eb;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
   margin: 0;
 }
 
@@ -877,7 +877,7 @@
 }
 
 .slot-highlight {
-  color: #2563eb;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
   font-weight: 700;
 }
 
@@ -889,7 +889,7 @@
 }
 
 .slot-browse-link {
-  color: #2563eb;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
   font-weight: 600;
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -899,7 +899,7 @@
 }
 
 .slot-browse-link:hover {
-  color: #1d4ed8;
+  color: var(--primary-dark, #4338ca);
 }
 
 .slot-filled-container {
@@ -1155,7 +1155,7 @@
 /* legacy, kept for PartialFuelSection */
 .ocr-modal-btn {
   padding: 8px 20px;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
   border: none;
   border-radius: 6px;

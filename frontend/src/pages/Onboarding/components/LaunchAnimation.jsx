@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Lottie from 'lottie-react';
 import TruckAnimation from '../../../assets/animations/truck-material-onsite.json';
+import apiClient from '../../../utils/axiosConfig';
+import { fetchAndResolveLandingRoute } from '../../../utils/featureFlagRoutes.js';
 import './LaunchAnimation.css';
 
 const LaunchAnimation = () => {
@@ -13,8 +15,9 @@ const LaunchAnimation = () => {
         const timer = setTimeout(() => {
             setAnimationComplete(true);
             // Small delay after fade to ensure smooth transition
-            setTimeout(() => {
-                navigate('/overview');
+            setTimeout(async () => {
+                const landing = await fetchAndResolveLandingRoute(apiClient);
+                navigate(landing);
             }, 500);
         }, 3000);
 

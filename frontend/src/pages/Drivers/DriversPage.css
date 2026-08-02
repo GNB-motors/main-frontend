@@ -369,10 +369,10 @@
     padding-right: 24px;
     padding-top: 10px;
     padding-bottom: 10px;
-    background: var(--action-primary-background-color-action-background-primary-default, #2A4FD6);
-    box-shadow: 0px 2px 0px #213EA7;
+    background: var(--action-primary-background-color-action-background-primary-default, var(--primary-color, var(--primary-color, #4f46e5)));
+    box-shadow: 0px 2px 0px var(--primary-dark, #4338ca);
     border-radius: 8px;
-    outline: 1px var(--action-primary-border-color-action-border-primary-default, #213EA7) solid;
+    outline: 1px var(--action-primary-border-color-action-border-primary-default, var(--primary-dark, #4338ca)) solid;
     outline-offset: -1px;
     justify-content: center;
     align-items: center;
@@ -400,13 +400,13 @@
 }
 
 .drivers-add-driver-btn:hover {
-    background-color: #213EA7;
+    background-color: var(--primary-dark, #4338ca);
     filter: none;
 }
 
 .drivers-add-driver-btn:active {
     transform: translateY(1px);
-    box-shadow: 0px 1px 0px #213EA7;
+    box-shadow: 0px 1px 0px var(--primary-dark, #4338ca);
 }
 
 /* Table Container */
@@ -911,7 +911,7 @@
 /* Current page number */
 .drivers-page-number-current {
     background: var(--action-tertiary-background-color-action-background-tertiary-default, white);
-    outline: 1px var(--action-tertiary-border-color-action-border-tertiary-default, #2A4FD6) solid;
+    outline: 1px var(--action-tertiary-border-color-action-border-tertiary-default, var(--primary-color, var(--primary-color, #4f46e5))) solid;
     outline-offset: -1px;
 }
 
@@ -1105,9 +1105,9 @@
 }
 
 .drivers-btn-primary {
-    background-color: var(--primary-color, #3B82F6);
+    background-color: var(--primary-color, var(--primary-color, var(--primary-color, #4f46e5)));
     color: var(--color-white);
-    border-color: var(--primary-color, #3B82F6);
+    border-color: var(--primary-color, var(--primary-color, var(--primary-color, #4f46e5)));
 }
 
 .drivers-btn-primary:hover {

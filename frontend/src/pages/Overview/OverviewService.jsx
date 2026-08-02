@@ -94,6 +94,22 @@ export const OverviewService = {
     },
 
     /**
+     * Fetches refuel-log exceptions needing attention (action rail).
+     * Severity-ranked items + per-severity counts.
+     * @param {object} params - Optional query parameters { days, startDate, endDate, limit }
+     * @returns {Promise<Object>} - { counts, items, dateRange }
+     */
+    getExceptions: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/dashboard/exceptions`, { params });
+            return response.data?.data || response.data || {};
+        } catch (error) {
+            console.error("API Error fetching exceptions:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch exceptions." };
+        }
+    },
+
+    /**
      * Fetches recent activity feed
      * @param {object} params - Optional query parameters
      * @returns {Promise<Array>} - Activity data

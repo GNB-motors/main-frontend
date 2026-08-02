@@ -2,6 +2,43 @@
    Vehicles Page Styles
    ========================================================================== */
 
+/* Skeleton shimmer for the Vehicle Dashboard table (and reusable elsewhere). */
+@keyframes vd-shimmer {
+    0%   { background-position: -150% 0; }
+    100% { background-position: 150% 0; }
+}
+
+.vd-skeleton {
+    display: inline-block;
+    height: 14px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #eef2f7 0%, #e2e8f0 50%, #eef2f7 100%);
+    background-size: 200% 100%;
+    animation: vd-shimmer 1.4s linear infinite;
+}
+
+/* Pill-shaped variant for doc-badge cells. */
+.vd-skeleton-pill {
+    height: 22px;
+    border-radius: 999px;
+    width: 92px;
+}
+
+/* Compact variant for the action button. */
+.vd-skeleton-btn {
+    height: 28px;
+    border-radius: 8px;
+    width: 70px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vd-skeleton,
+    .vd-skeleton-pill,
+    .vd-skeleton-btn {
+        animation: none;
+    }
+}
+
 /* Vehicle Modal Styles (Add Vehicle Modal) */
 .vehicle-modal-overlay {
     position: fixed;
@@ -99,8 +136,8 @@
 
 .vehicle-form-group input:focus {
     outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px rgba(41, 64, 211, 0.1);
+    border-color: var(--primary-color, #3B82F6);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05); /* Neutral shadow */
 }
 
 .vehicle-form-group input:disabled {
@@ -156,12 +193,12 @@
 }
 
 .vehicle-btn-primary {
-    background-color: var(--color-primary-500);
+    background-color: var(--primary-color, #3B82F6);
     color: white;
 }
 
 .vehicle-btn-primary:hover:not(:disabled) {
-    background-color: var(--color-primary-600);
+    background-color: var(--primary-dark, #1d30b5);
 }
 
 /* Vehicle Badge Styles */
@@ -282,7 +319,9 @@
 
 /* Vehicle Actions Menu (Three Dots Dropdown) */
 .vehicle-action-menu-container {
-    position: relative;
+    /* position: relative removed — menu is now portaled to document.body
+       via ReactDOM.createPortal so overflow:hidden/auto parents cannot clip it */
+    display: inline-flex;
     display: inline-block;
 }
 
@@ -322,19 +361,16 @@
 }
 
 .vehicle-actions-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
+    /* position, top, right, z-index, margin-top are set via inline style
+       in the PortalDropdown component — the menu renders at document.body level */
     background-color: white;
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
     padding: 4px;
-    z-index: 9999;
     display: flex;
     flex-direction: column;
-    min-width: 140px;
+    min-width: 160px;
     border: 1px solid #ececee;
-    margin-top: 4px;
 }
 
 .vehicle-actions-menu button {
@@ -598,12 +634,15 @@
     max-height: calc(100vh - 80px);
     overflow-y: auto;
     background-color: transparent;
+    /* Prevent content from being hidden behind the fixed 64px FormFooter */
+    padding-bottom: 64px !important;
 }
 
 .vehicles-content-wrapper {
     flex: 1;
     padding: 24px 24px 0 24px;
-    overflow: hidden;
+    overflow-y: auto;   /* was: overflow: hidden — clipped content and broke scrolling */
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -702,10 +741,10 @@
     padding-right: 24px;
     padding-top: 10px;
     padding-bottom: 10px;
-    background: var(--action-primary-background-color-action-background-primary-default, #2A4FD6);
-    box-shadow: 0px 2px 0px #213EA7;
+    background: var(--primary-color, #3B82F6);
+    box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
     border-radius: 8px;
-    outline: 1px var(--action-primary-border-color-action-border-primary-default, #213EA7) solid;
+    outline: 1px var(--primary-dark, #1d30b5) solid;
     outline-offset: -1px;
     justify-content: center;
     align-items: center;
@@ -733,13 +772,13 @@
 }
 
 .vehicles-add-btn:hover {
-    background-color: #213EA7;
+    background-color: var(--primary-dark, #1d30b5);
     filter: none;
 }
 
 .vehicles-add-btn:active {
     transform: translateY(1px);
-    box-shadow: 0px 1px 0px #213EA7;
+    box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5);
 }
 
 .vehicles-add-btn:disabled {
@@ -876,7 +915,7 @@
     white-space: nowrap;
 }
 
-/* Column widths for vehicles table - 6 columns total */
+/* Column widths for vehicles table - 7 columns total */
 .vehicles-table th:nth-child(1),
 .vehicles-table td:nth-child(1) {
     width: 140px;
@@ -909,6 +948,12 @@
 
 .vehicles-table th:nth-child(6),
 .vehicles-table td:nth-child(6) {
+    width: 160px;
+    min-width: 160px;
+}
+
+.vehicles-table th:nth-child(7),
+.vehicles-table td:nth-child(7) {
     width: 80px;
     min-width: 80px;
     text-align: center;
@@ -1005,7 +1050,7 @@
 }
 
 .vehicles-page-number-current {
-    background: var(--action-primary-background-color-action-background-primary-default, #2A4FD6);
+    background: var(--primary-color, #3B82F6);
     cursor: default;
 }
 

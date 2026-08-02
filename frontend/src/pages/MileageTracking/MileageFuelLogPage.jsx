@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
 import { TripService, OCRService } from '../Trip/services';
+import LocationAutocomplete from '../../components/LocationAutocomplete/LocationAutocomplete';
 import './MileageTracking.css';
 
 /* ── UI Icons ── */
@@ -87,14 +88,21 @@ const MileageFuelLogPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [selectedDriver, setSelectedDriver] = useState(null);
+    const [selectedSource, setSelectedSource] = useState(null);
+    const [selectedDest, setSelectedDest] = useState(null);
     const [vehicleSearch, setVehicleSearch] = useState('');
     const [driverSearch, setDriverSearch] = useState('');
+    const [locationSearch, setLocationSearch] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
     const [showDriverDropdown, setShowDriverDropdown] = useState(false);
+    const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+    const [showDestDropdown, setShowDestDropdown] = useState(false);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
+    const [locationResults, setLocationResults] = useState([]);
     const [loadingVehicles, setLoadingVehicles] = useState(true);
     const [loadingDrivers, setLoadingDrivers] = useState(true);
+    const [loadingLocations, setLoadingLocations] = useState(false);
     const [lastOdometer, setLastOdometer] = useState(null);
     const [loadingLastOdometer, setLoadingLastOdometer] = useState(false);
     const [formData, setFormData] = useState({ fuelType: 'DIESEL', fillingType: 'PARTIAL', litres: '', rate: '', odometerReading: '', location: '' });
@@ -119,10 +127,22 @@ const MileageFuelLogPage = () => {
     }, [selectedVehicle]);
 
     useEffect(() => {
-        const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); };
+        const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); setShowSourceDropdown(false); setShowDestDropdown(false); };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            setLoadingLocations(true);
+            try {
+                const res = await apiClient.get('/api/locations', { params: { search: locationSearch, limit: 20 } });
+                setLocationResults(res.data?.results || []);
+            } catch { setLocationResults([]); }
+            finally { setLoadingLocations(false); }
+        }, locationSearch ? 300 : 0);
+        return () => clearTimeout(timer);
+    }, [locationSearch]);
 
     useEffect(() => {
         const fetchDeps = async () => {
@@ -187,9 +207,9 @@ const MileageFuelLogPage = () => {
         e.preventDefault();
         if (!selectedVehicle || !selectedDriver) return toast.error("Please select a vehicle and a driver.");
         if (!fixedDocs.fuel) return toast.error("Fuel Slip is required.");
-        if (formData.fillingType === 'FULL_TANK' && !fixedDocs.odometer) return toast.error("Odometer Image is required for FULL TANK logs.");
+        // Odometer is now optional for FULL_TANK, no validation needed here
         const currentOdo = parseFloat(formData.odometerReading);
-        if (formData.fillingType === 'FULL_TANK' && lastOdometer && lastOdometer.odometerReading) {
+        if (formData.fillingType === 'FULL_TANK' && !isNaN(currentOdo) && lastOdometer && lastOdometer.odometerReading) {
             if (currentOdo <= lastOdometer.odometerReading) return toast.error(`Odometer reading must be strictly greater than the previous reading (${lastOdometer.odometerReading} km)`);
         }
         setIsLoading(true);
@@ -197,13 +217,17 @@ const MileageFuelLogPage = () => {
             const fuelData = new FormData();
             fuelData.append('file', fixedDocs.fuel.file); fuelData.append('docType', 'FUEL_SLIP');
             fuelData.append('entityType', 'VEHICLE'); fuelData.append('entityId', selectedVehicle.id);
-            const fuelRes = await apiClient.post('/api/documents', fuelData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            if (fixedDocs.fuel.ocrData) fuelData.append('ocrData', JSON.stringify(fixedDocs.fuel.ocrData));
+            
+            const fuelRes = await apiClient.post('/api/documents', fuelData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
             let odoDocId = '';
             if (fixedDocs.odometer) {
                 const odoData = new FormData();
                 odoData.append('file', fixedDocs.odometer.file); odoData.append('docType', 'ODOMETER');
                 odoData.append('entityType', 'VEHICLE'); odoData.append('entityId', selectedVehicle.id);
-                const odoRes = await apiClient.post('/api/documents', odoData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                if (fixedDocs.odometer.ocrData) odoData.append('ocrData', JSON.stringify(fixedDocs.odometer.ocrData));
+                
+                const odoRes = await apiClient.post('/api/documents', odoData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
                 odoDocId = odoRes.data.data?._id || odoRes.data._id || '';
             }
             let refuelTimeStr;
@@ -216,13 +240,19 @@ const MileageFuelLogPage = () => {
             }
 
             const payload = {
-                ...formData, vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
-                documentId: fuelRes.data.data?._id || fuelRes.data._id || '', odometerDocId: odoDocId,
+                ...formData,
+                fuelType: 'DIESEL',
+                vehicleId: selectedVehicle.id, driverId: selectedDriver.id,
+                documentId: fuelRes.data.data?._id || fuelRes.data._id || '',
+                ...(odoDocId && { odometerDocId: odoDocId }),
                 litres: parseFloat(formData.litres), rate: parseFloat(formData.rate),
-                odometerReading: formData.odometerReading ? parseInt(formData.odometerReading, 10) : undefined,
+                odometerReading: formData.odometerReading ? parseFloat(formData.odometerReading) : undefined,
+                location: formData.location ? formData.location : undefined,
+                ...(selectedSource && { routeSource: selectedSource.id }),
+                ...(selectedDest && { routeDestination: selectedDest.id }),
                 ...(refuelTimeStr && { refuelTime: refuelTimeStr })
             };
-            await apiClient.post('/api/mileage/fuel-log', payload);
+            await apiClient.post('/api/mileage/fuel-log', payload, { timeout: 60000 });
             toast.success('Mileage log submitted successfully!');
             navigate('/mileage-tracking');
         } catch (err) { toast.error(err.response?.data?.message || 'Failed to submit log.'); }
@@ -253,7 +283,7 @@ const MileageFuelLogPage = () => {
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Select Vehicle *</label>
-                            <div className="dropdown-wrapper">
+                            <div className="dropdown-wrapper" style={{ zIndex: showVehicleDropdown ? 200 : undefined }}>
                                 <button type="button" className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
                                     onClick={(e) => { e.stopPropagation(); setShowVehicleDropdown(!showVehicleDropdown); setShowDriverDropdown(false); }}>
                                     <span>{selectedVehicle ? selectedVehicle.name : (loadingVehicles ? 'Loading...' : 'Choose vehicle...')}</span>
@@ -272,17 +302,17 @@ const MileageFuelLogPage = () => {
                                     </div>
                                 )}
                             </div>
-                            {selectedVehicle && (
-                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {loadingLastOdometer ? <><Loader2 size={12} className="spinning"/> Fetching prior logs...</>
-                                        : lastOdometer ? <span><b>Previous Odometer:</b> {lastOdometer.odometerReading} km <span style={{ color: '#94a3b8' }}>({new Date(lastOdometer.refuelTime).toLocaleDateString()})</span></span>
-                                        : <span>No prior FULL_TANK logs found. Starting fresh.</span>}
-                                </div>
-                            )}
+                                {selectedVehicle && (
+                                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        {loadingLastOdometer ? <><Loader2 size={13} className="spinning"/> Fetching prior logs...</>
+                                            : lastOdometer ? <span><b>Previous Log:</b> {lastOdometer.fillingType?.replace('_', ' ')} fill {lastOdometer.odometerReading ? `at ${lastOdometer.odometerReading} km` : '(No odometer recorded)'} <span style={{ color: '#94a3b8' }}>({new Date(lastOdometer.refuelTime).toLocaleDateString()})</span></span>
+                                            : <span>No prior fuel logs found. Starting fresh.</span>}
+                                    </div>
+                                )}
                         </div>
                         <div className="mileage-form-group">
                             <label>Select Driver *</label>
-                            <div className="dropdown-wrapper">
+                            <div className="dropdown-wrapper" style={{ zIndex: showDriverDropdown ? 200 : undefined }}>
                                 <button type="button" className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
                                     onClick={(e) => { e.stopPropagation(); setShowDriverDropdown(!showDriverDropdown); setShowVehicleDropdown(false); }}>
                                     <span>{selectedDriver ? selectedDriver.name : (loadingDrivers ? 'Loading...' : 'Choose driver...')}</span>
@@ -304,14 +334,35 @@ const MileageFuelLogPage = () => {
                         </div>
                     </div>
 
-                    {/* Fuel & Filling Type */}
+                    {/* Source & Destination */}
+                    <div className="mileage-form-row">
+                        <div className="mileage-form-group">
+                            <label>Source Location</label>
+                            <LocationAutocomplete
+                                value={selectedSource ? selectedSource.name : ''}
+                                onChange={() => {}}
+                                onLocationSelect={(loc) => setSelectedSource(loc ? { id: loc._id, name: loc.name } : null)}
+                                placeholder="Choose source..."
+                                allowCustomText={false}
+                            />
+                        </div>
+                        <div className="mileage-form-group">
+                            <label>Destination Location</label>
+                            <LocationAutocomplete
+                                value={selectedDest ? selectedDest.name : ''}
+                                onChange={() => {}}
+                                onLocationSelect={(loc) => setSelectedDest(loc ? { id: loc._id, name: loc.name } : null)}
+                                placeholder="Choose destination..."
+                                allowCustomText={false}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Fuel & Filling Type — diesel only; AdBlue has its own page */}
                     <div className="mileage-form-row">
                         <div className="mileage-form-group">
                             <label>Fuel Type</label>
-                            <select name="fuelType" value={formData.fuelType} onChange={handleFormChange}>
-                                <option value="DIESEL">Diesel</option>
-                                <option value="ADBLUE">AdBlue</option>
-                            </select>
+                            <input type="text" value="Diesel" readOnly disabled className="mileage-readonly-input" />
                         </div>
                         <div className="mileage-form-group">
                             <label>Filling Type</label>
@@ -338,12 +389,12 @@ const MileageFuelLogPage = () => {
                     <div className="mileage-form-row">
                         {formData.fillingType === 'FULL_TANK' && (
                         <div className="mileage-form-group">
-                            <label>Odometer Reading (KM) *</label>
-                            <input type="number" placeholder="105450" name="odometerReading" value={formData.odometerReading} onChange={handleFormChange} required />
+                            <label>Odometer Reading (KM) (Optional)</label>
+                            <input type="number" placeholder="105450" name="odometerReading" value={formData.odometerReading} onChange={handleFormChange} />
                         </div>
                         )}
                         <div className="mileage-form-group">
-                            <label>Location</label>
+                            <label>Pump Location</label>
                             <input type="text" placeholder="E.g. Reliance Pump" name="location" value={formData.location} onChange={handleFormChange} />
                         </div>
                     </div>
@@ -354,7 +405,7 @@ const MileageFuelLogPage = () => {
                         <div className="mileage-slots-row">
                             <SlotUpload docType="fuel" title="FUEL RECEIPT" label="fuel slip" inputId="drop-fuel" required doc={fixedDocs.fuel} isScanning={ocrScanning.fuel} onDrop={handleDocDrop} onRemove={removeDoc} />
                             {formData.fillingType === 'FULL_TANK' && (
-                                <SlotUpload docType="odometer" title="END ODOMETER IMAGE" label="odometer image" inputId="drop-odometer" required doc={fixedDocs.odometer} isScanning={ocrScanning.odometer} onDrop={handleDocDrop} onRemove={removeDoc} />
+                                <SlotUpload docType="odometer" title="END ODOMETER IMAGE" label="odometer image" inputId="drop-odometer" doc={fixedDocs.odometer} isScanning={ocrScanning.odometer} onDrop={handleDocDrop} onRemove={removeDoc} />
                             )}
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 import DashboardLayout from './components/DashboardLayout';
 // Removed ProfileProvider import - profile logic completely removed
@@ -26,13 +26,23 @@ import TripDetailPage from './pages/Trip/TripDetailPage.jsx';
 import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
 import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
 import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
+import OrgFeatureFlagsPage from './pages/Superadmin/components/OrgFeatureFlagsPage.jsx';
+import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx';
+import OrgDetailPage from './pages/Superadmin/components/OrgDetailPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
+import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
+import ServiceIntelligencePage from './pages/Maintenance/ServiceIntelligencePage.jsx';
+import AddMaintenancePage from './pages/Maintenance/AddMaintenancePage.jsx';
 import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
 import MileageTrackingPage from './pages/MileageTracking/MileageTrackingPage.jsx';
+import MileageTrackingVehicleDetail from './pages/MileageTracking/MileageTrackingVehicleDetail.jsx';
 import MileageFuelLogPage from './pages/MileageTracking/MileageFuelLogPage.jsx';
+import AdBlueLogPage from './pages/MileageTracking/AdBlueLogPage.jsx';
+import AdBlueTrackingPage from './pages/MileageTracking/AdBlueTrackingPage.jsx';
 import MileageIntervalDetailPage from './pages/MileageTracking/MileageIntervalDetailPage.jsx';
+import ModelComparisonPage from './pages/MileageTracking/ModelComparisonPage.jsx';
 import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
@@ -41,6 +51,10 @@ import FuelIntegrityPage from './pages/FuelIntegrity/FuelIntegrityPage.jsx';
 import RouteDeviationPage from './pages/RouteDeviation/RouteDeviationPage.jsx';
 import LiveTrackingPage from './pages/LiveTracking/LiveTrackingPage.jsx';
 import OwnerAlertsPage from './pages/OwnerAlerts/OwnerAlertsPage.jsx';
+import GeofencePage from './pages/Geofence/GeofencePage.jsx';
+import GeofenceZonesPage from './pages/Geofence/GeofenceZonesPage.jsx';
+import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
+import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 
@@ -60,6 +74,9 @@ function App() {
       <Route path="/superadmin" element={<SuperAdminLayout />}>
         <Route index element={<SuperAdminPage />} />
         <Route path="add-user" element={<AddUserPage />} />
+        <Route path="feature-flags" element={<OrgFeatureFlagsPage />} />
+        <Route path="feature-flags/:orgId" element={<OrgFeatureFlagsDetailPage />} />
+        <Route path="organizations/:id" element={<OrgDetailPage />} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
@@ -78,6 +95,10 @@ function App() {
         <Route path="/route-deviation" element={<RouteDeviationPage />} />
         <Route path="/live-tracking" element={<LiveTrackingPage />} />
         <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
+        <Route path="/geofence" element={<GeofencePage />} />
+        <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
+        <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
+        <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
@@ -88,10 +109,21 @@ function App() {
         <Route path="/trip/:tripId" element={<TripManagementPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
         <Route path="/mileage-tracking" element={<MileageTrackingPage />} />
+        <Route path="/mileage-tracking/vehicle/:vehicleId" element={<MileageTrackingVehicleDetail />} />
         <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
         <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
+        <Route path="/adblue-tracking" element={<AdBlueTrackingPage />} />
+        <Route path="/adblue-tracking/new" element={<AdBlueLogPage />} />
+        <Route path="/model-comparison" element={<ModelComparisonPage />} />
+        <Route path="/expected-mileage" element={<ModelComparisonPage />} />
+        <Route path="/def-tracking" element={<Navigate to="/adblue-tracking" replace />} />
+        <Route path="/fuel-bills" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
+        <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
+        <Route path="/vehicles/service-intelligence" element={<ServiceIntelligencePage />} />
+        <Route path="/vehicles/service-intelligence/add-service" element={<AddMaintenancePage recordType="SERVICE" />} />
+        <Route path="/vehicles/service-intelligence/add-repair" element={<AddMaintenancePage recordType="REPAIR" />} />
         <Route path="/vehicles/add" element={<AddVehiclePage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
         <Route path="/routes" element={<RoutesPage />} />

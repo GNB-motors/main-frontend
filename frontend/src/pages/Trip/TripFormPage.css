@@ -187,7 +187,7 @@
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
@@ -219,7 +219,7 @@
 }
 
 .document-upload-card:hover {
-  border-color: #2563eb;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   background: #f8faff;
 }
 
@@ -249,7 +249,7 @@
 }
 
 .upload-area:hover {
-  border-color: #2563eb;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   background: #f8faff;
 }
 
@@ -278,7 +278,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2563eb;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
   margin-bottom: 12px;
 }
 
@@ -338,7 +338,7 @@
   width: 100%;
   padding: 10px;
   margin-top: 12px;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
   border: none;
   border-radius: 6px;
@@ -354,7 +354,7 @@
 }
 
 .process-btn:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
 }
 
 .process-btn:disabled {
@@ -442,12 +442,12 @@
 }
 
 .add-receipt-btn.adblue {
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
 }
 
 .add-receipt-btn.adblue:hover {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
 }
 
 .fuel-receipts-grid {
@@ -465,7 +465,7 @@
 }
 
 .fuel-receipt-card:hover {
-  border-color: #2563eb;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -608,14 +608,14 @@
 
 .btn-primary,
 .save-btn {
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover,
 .save-btn:hover {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
 }
 
 .end-btn {
@@ -712,7 +712,7 @@
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #1a73e8;
+  accent-color: var(--primary-color, var(--primary-color, #4f46e5));
 }
 
 .toggle-label input[type="checkbox"]:disabled {
@@ -751,7 +751,7 @@
 
 .manual-input-container input:focus {
   outline: none;
-  border-color: #1a73e8;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
 }
 
@@ -906,7 +906,7 @@
 
 .modern-progress-fill {
   height: 100%;
-  background-color: #2563eb;
+  background-color: var(--primary-color, var(--primary-color, #4f46e5));
   border-radius: 999px;
 }
 
@@ -971,7 +971,7 @@
 .modern-form-group input:focus,
 .modern-form-group select:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: var(--primary-color, var(--primary-color, #4f46e5));
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
@@ -1264,12 +1264,12 @@
 }
 
 .start-trip-btn {
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
 }
 
 .start-trip-btn:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
@@ -1315,7 +1315,7 @@
 
 .add-receipt-btn.diesel {
   background: #eff6ff;
-  color: #2563eb;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
   border-color: #bfdbfe;
 }
 
@@ -1338,4 +1338,4 @@
 .add-receipt-btn.disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
+}

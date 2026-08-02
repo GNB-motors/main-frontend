@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Search, ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus, FileText } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService, WeightSlipTripService } from './services';
@@ -86,6 +86,23 @@ const TripManagementPage = () => {
     return () => window.removeEventListener('startNewTrip', h);
   }, [navigate]);
 
+  // Receive search input from the Navbar
+  useEffect(() => {
+    const handleSearch = (e) => {
+      const value = e.detail?.value ?? '';
+      setSearchQuery(value);
+      setWeightSlipPagination(p => ({ ...p, page: 1 }));
+      setRefuelPagination(p => ({ ...p, page: 1 }));
+    };
+    window.addEventListener('tripSearchChange', handleSearch);
+    return () => window.removeEventListener('tripSearchChange', handleSearch);
+  }, []);
+
+  // Reset Navbar search on unmount
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent('tripSearchReset', { detail: { value: '' } }));
+  }, []);
+
   const filterTrips = (trips) => {
     if (!searchQuery) return trips;
     const q = searchQuery.toLowerCase();
@@ -141,65 +158,60 @@ const TripManagementPage = () => {
       <div className="trip-management-header">
         <div className="header-content">
           <div className="tabs-container">
-            <button className={`tab-btn ${activeTab === 'trips' ? 'active' : ''}`} onClick={() => { setActiveTab('trips'); setSearchQuery(''); }}>
+            <button
+              className={`tab-btn ${activeTab === 'trips' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('trips');
+                setSearchQuery('');
+                window.dispatchEvent(new CustomEvent('tripSearchReset', { detail: { value: '' } }));
+              }}
+            >
               Trips
             </button>
-            <button className={`tab-btn ${activeTab === 'refuel' ? 'active' : ''}`} onClick={() => { setActiveTab('refuel'); setSearchQuery(''); }}>
+            <button
+              className={`tab-btn ${activeTab === 'refuel' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('refuel');
+                setSearchQuery('');
+                window.dispatchEvent(new CustomEvent('tripSearchReset', { detail: { value: '' } }));
+              }}
+            >
               Refuel Journeys
             </button>
-          </div>
-          <div className="search-bar">
-            <Search width={18} height={18} color="#9ca3af" />
-            <input
-              type="text"
-              placeholder={`Search ${activeTab === 'trips' ? 'trips' : 'refuel journeys'}...`}
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setActivePagination(p => ({ ...p, page: 1 }));
-              }}
-            />
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="trip-content-area">
-        {isLoading ? (
-          <div className="loading-state"><p>Loading {activeTab === 'trips' ? 'trips' : 'refuel journeys'}...</p></div>
-        ) : filteredTrips.length === 0 ? (
-          <div className="empty-state">
-            <p>No {activeTab === 'trips' ? 'trips' : 'refuel journeys'} found</p>
-            {searchQuery && <p className="empty-subtext">Try adjusting your search</p>}
-          </div>
-        ) : (
-          <div className="table-wrapper">
-            <Table>
-              <TableHeader>
-                <TableRow className="table-header-row">
-                  {activeTab === 'trips' ? (
-                    <>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Driver</TableHead>
-                      <TableHead>Route</TableHead>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Net Weight</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </>
-                  ) : (
-                    <>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Driver</TableHead>
-                      <TableHead>Trips Count</TableHead>
-                      <TableHead>Total Fuel</TableHead>
-                      <TableHead>Revenue</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </>
-                  )}
-                </TableRow>
-              </TableHeader>
+        <div className="table-wrapper">
+          <Table>
+            <TableHeader>
+              <TableRow className="table-header-row">
+                {activeTab === 'trips' ? (
+                  <>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Driver</TableHead>
+                    <TableHead>Route</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Net Weight</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Driver</TableHead>
+                    <TableHead>Trips Count</TableHead>
+                    <TableHead>Total Fuel</TableHead>
+                    <TableHead>Revenue</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                  </>
+                )}
+              </TableRow>
+            </TableHeader>
+            {!isLoading && filteredTrips.length > 0 && (
               <TableBody>
                 {activeTab === 'trips'
                   ? filteredTrips.map((trip) => (
@@ -250,9 +262,28 @@ const TripManagementPage = () => {
                   ))
                 }
               </TableBody>
-            </Table>
-          </div>
-        )}
+            )}
+          </Table>
+
+          {isLoading && (
+            <div className="loading-state">
+              <p>Loading {activeTab === 'trips' ? 'trips' : 'refuel journeys'}...</p>
+            </div>
+          )}
+          {!isLoading && filteredTrips.length === 0 && (
+            <div className="empty-state">
+              <FileText size={48} color="#9ca3af" />
+              <p>No {activeTab === 'trips' ? 'trips' : 'refuel journeys'} found</p>
+              {searchQuery ? (
+                <p className="empty-subtext">Try adjusting your search</p>
+              ) : (
+                <button className="empty-action-btn" onClick={() => navigate('/trip/new')}>
+                  <Plus size={16} /> Start New Trip
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Shadcn Pagination - Standard layout */}
         {!isLoading && filteredTrips.length > 0 && totalPages > 1 && (

@@ -48,7 +48,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
     const handleCustomHexChange = (e) => {
         const value = e.target.value;
         setCustomHex(value);
-        
+
         // Validate hex color
         const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
         if (hexRegex.test(value)) {
@@ -80,12 +80,10 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
     };
 
     return (
-        <div className="step-container">
-            <div className="step-header">
-                <h2>Company & Theme</h2>
-                <p className="step-description">
-                    Set up your company details and choose your brand color
-                </p>
+        <div className="ob-step-body">
+            <div className="ob-step-header">
+                <h2>Company &amp; Theme</h2>
+                <p>Set up your company details and choose your brand colour.</p>
             </div>
 
             <div className="form-section">
@@ -126,7 +124,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
                     <label>
                         Primary Theme Color <span className="required">*</span>
                     </label>
-                    
+
                     <div className="color-swatches">
                         {colorSwatches.map((color) => (
                             <button
@@ -139,7 +137,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
                             >
                                 {selectedColor === color.hex && (
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="white">
-                                        <path d="M7 10L9 12L13 8" stroke="white" strokeWidth="2" fill="none"/>
+                                        <path d="M7 10L9 12L13 8" stroke="white" strokeWidth="2" fill="none" />
                                     </svg>
                                 )}
                             </button>
@@ -160,8 +158,8 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
                                 placeholder="#2940d3"
                                 maxLength={7}
                             />
-                            <div 
-                                className="color-preview" 
+                            <div
+                                className="color-preview"
                                 style={{ backgroundColor: selectedColor }}
                             ></div>
                         </div>
@@ -176,8 +174,8 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
                         </div>
                         <div className="preview-body">
                             <p>This is how your theme will look</p>
-                            <button 
-                                className="preview-button" 
+                            <button
+                                className="preview-button"
                                 style={{ backgroundColor: selectedColor }}
                             >
                                 Sample Button
@@ -189,25 +187,23 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
 
             <div className="step-notice">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#F59E0B"/>
+                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#F59E0B" />
                 </svg>
                 <span>Changes are saved locally. Backend editing is currently disabled.</span>
             </div>
 
-            <div className="step-actions">
-                <button 
-                    type="button" 
-                    className="btn btn-secondary"
-                    onClick={onBack}
-                >
+            <div className="ob-step-footer">
+                <button type="button" className="ob-btn ob-btn--ghost ob-btn--back" onClick={onBack}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                     Back
                 </button>
-                <button 
-                    type="button" 
-                    className="btn btn-primary"
-                    onClick={handleSave}
-                >
+                <button type="button" className="ob-btn ob-btn--dark" onClick={handleSave}>
                     Save & Continue
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                 </button>
             </div>
         </div>

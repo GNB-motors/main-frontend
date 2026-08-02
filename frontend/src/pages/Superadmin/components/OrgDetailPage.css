@@ -1,0 +1,101 @@
+/* Keep the shared PageHeader aligned to the page (it self-centres via max-width + auto margins) */
+.org-detail-page .page-header-container {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.org-detail-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: -8px 0 20px;
+}
+
+.org-detail-toolbar-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: #94a3b8;
+  max-width: 480px;
+}
+
+.mileage-variance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.mileage-variance-card {
+  padding: 18px 20px;
+}
+
+.mileage-variance-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 14px;
+}
+
+.mileage-variance-empty {
+  margin: 0;
+  padding: 8px 0 4px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.mileage-variance-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mileage-variance-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.mileage-variance-stat.positive { background: #f0fdf9; color: #0e8c8c; }
+.mileage-variance-stat.negative { background: #fef2f2; color: #dc2626; }
+
+.mileage-variance-stat > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.mileage-variance-count {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mileage-variance-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.mileage-variance-footnote {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.variance-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.variance-pill.positive { color: #0e8c8c; background: #ccfbf1; }
+.variance-pill.negative { color: #dc2626; background: #fee2e2; }

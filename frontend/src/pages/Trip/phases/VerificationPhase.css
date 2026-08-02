@@ -24,7 +24,7 @@
 
 .vp-progress-fill {
   height: 100%;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   transition: width 0.4s ease;
 }
 
@@ -262,7 +262,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #2563eb;
+  color: var(--primary-color, var(--primary-color, #4f46e5));
   font-weight: 500;
 }
 
@@ -370,7 +370,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 28px;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   color: white;
   border: none;
   border-radius: 8px;
@@ -382,7 +382,7 @@
 }
 
 .vp-btn-submit:hover:not(.disabled) {
-  background: #1d4ed8;
+  background: var(--primary-dark, #4338ca);
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
 }
@@ -487,7 +487,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #2563eb;
+  background: var(--primary-color, var(--primary-color, #4f46e5));
   animation: vp-dot-bounce 1.2s ease-in-out infinite;
 }
 

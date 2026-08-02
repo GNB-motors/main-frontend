@@ -15,12 +15,25 @@
     left: 0;
     z-index: 1004 !important;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    /* Prevent the sidebar from ever growing taller than the viewport */
+    overflow: hidden;
 }
 
 .sidebar-content {
     display: flex;
     flex-direction: column;
-    flex-grow: 1; /* Pushes footer down */
+    flex-grow: 1;    /* Takes all remaining height, pushing footer to bottom */
+    min-height: 0;   /* Allows flex child to shrink and scroll instead of overflow */
+    overflow-y: auto;  /* Nav items scroll; logout button stays pinned below */
+    overflow-x: hidden;
+    /* Hide scrollbar visually but keep it functional */
+    scrollbar-width: none;       /* Firefox */
+    -ms-overflow-style: none;    /* IE/Edge */
+}
+
+/* Chrome / Safari — hide scrollbar track inside sidebar nav */
+.sidebar-content::-webkit-scrollbar {
+    display: none;
 }
 
 .sidebar-header {
@@ -103,14 +116,17 @@
 }
 
 .nav-link.active {
-    /* Use a light primary background and primary-color text to match other sidebars */
-    background-color:  #dbeafe !important;
-    color:  #2563eb !important;
+    /* Use the themed light primary background + primary text colour so the
+       active highlight follows the user's chosen primary color. */
+    background-color: var(--primary-light);
+    color: var(--primary-color);
 }
 
 .sidebar-footer {
     padding-top: 12px;
     border-top: 1px solid var(--color-grey-200);
+    flex-shrink: 0;  /* Never shrink — logout button always visible at bottom */
+    background-color: var(--color-white); /* Match sidebar bg so it looks solid */
 }
 
 .logout-btn {
@@ -266,10 +282,9 @@
 }
 
 .nav-parent.active-parent {
-    /* Use the same fixed active styling as .nav-link.active so Vehicle Activity
-       does not inherit profile primary color. */
-    background-color: #dbeafe !important;
-    color: #2563eb !important;
+    /* Active parent uses themed light primary background + primary text. */
+    background-color: var(--primary-light);
+    color: var(--primary-color);
 }
 
 .chevron-icon {
@@ -291,18 +306,19 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 0;
     opacity: 0;
-    gap: 4px;
-    padding-top: 4px;
+    gap: 6px;
+    padding-top: 6px;
 }
 
 .nav-children.open {
-    max-height: 200px;
+    max-height: 360px;
     opacity: 1;
 }
 
 .nav-child {
-    padding-left: 52px !important;
-    font-size: 13px;
+    padding: 11px 10px 11px 48px !important;
+    font-size: 14px;
+    line-height: 1.35;
 }
 
 .nav-child span {
@@ -327,8 +343,7 @@
         height: 24px;
         margin: 0px 0 0 24px;
     }
-    }
-    
+
     .sidebar .chevron-icon {
         opacity: 0;
         width: 0;
@@ -376,12 +391,13 @@
     
     .sidebar:hover .nav-children.open {
         opacity: 1;
-        max-height: 200px;
+        max-height: 360px;
     }
     
     .sidebar .nav-child {
         justify-content: flex-start;
     }
+}
 
 
 /* Mobile styles */

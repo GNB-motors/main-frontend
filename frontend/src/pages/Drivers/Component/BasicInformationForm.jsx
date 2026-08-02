@@ -152,7 +152,8 @@ const BasicInformationForm = forwardRef(({
                   onChange={(e) => handleInputChange('role', e.target.value)}
                 >
                   <option value="DRIVER">Driver</option>
-                  <option value="MANAGER">manager</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="FIELD_AGENT">Field Agent</option>
                 </select>
               </div>
             </div>

@@ -1,57 +1,76 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Grid, FileText, Settings, LogOut, Users, User, Truck, MapPin, Fuel, BookOpen, ShieldAlert, Route, Bell, Navigation } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
-import { getPrimaryColor, getLightColor, getThemeCSS } from '../utils/colorTheme';
+import { applyThemeToRoot } from '../utils/colorTheme';
+import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
+import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive, getNavGroupId, getVisibleNavChildren } from '../utils/sideNavUtils.js';
 import './Sidebar.css';
 
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [themeColors, setThemeColors] = useState(getThemeCSS());
-    const [isVehicleActivityOpen, setIsVehicleActivityOpen] = useState(false);
+    // Per-group open state, keyed by the group's feature-flag key.
+    const [openGroups, setOpenGroups] = useState({});
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+    const { isEnabled } = useFeatureFlags();
 
-    // Update theme colors when component mounts or profile color changes
+    // Defensive: ensure :root has the current theme CSS variables on mount and
+    // whenever the theme color changes. The Sidebar previously kept a LOCAL
+    // copy of theme colors and applied them inline on <aside>, which created a
+    // competing CSS variable scope: when the local state was stale (e.g. before
+    // the profile API resolved), descendants resolved var(--primary-light) to
+    // the stale inline value instead of the freshly-updated :root value. By
+    // dropping the inline style and routing all updates through :root, every
+    // descendant sees a single source of truth.
     useEffect(() => {
-        const updateTheme = () => {
-            setThemeColors(getThemeCSS());
-        };
-
-        updateTheme();
-
-        // Listen for storage changes (when profile color is updated)
-        window.addEventListener('storage', updateTheme);
-
-        return () => {
-            window.removeEventListener('storage', updateTheme);
-        };
+        applyThemeToRoot();
+        const handleThemeChange = () => applyThemeToRoot();
+        window.addEventListener('themeColorChange', handleThemeChange);
+        return () => window.removeEventListener('themeColorChange', handleThemeChange);
     }, []);
 
-    // Check if any Vehicle Activity child route is active
+    // Auto-expand any group whose child route is currently active.
     useEffect(() => {
-        const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
-        if (vehicleActivityRoutes.includes(location.pathname)) {
-            setIsVehicleActivityOpen(true);
-        }
+        setOpenGroups((prev) => {
+            const next = { ...prev };
+            let changed = false;
+            SIDE_NAV_GROUPS.forEach((group) => {
+                const groupId = getNavGroupId(group);
+                if (isGroupActive(group, location.pathname) && !next[groupId]) {
+                    next[groupId] = true;
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
     }, [location.pathname]);
 
-    // Auto-close Vehicle Activity when sidebar is not hovered on desktop
+    // Auto-close dropdowns when sidebar is not hovered on desktop, unless the
+    // group's own route is active.
     useEffect(() => {
         if (!isSidebarHovered && window.innerWidth > 992) {
-            // Close after a small delay when mouse leaves
             const timer = setTimeout(() => {
-                const vehicleActivityRoutes = ['/trip-management', '/refuel-logs', '/mileage-tracking'];
-                // Keep it open only if we're on a child route
-                if (!vehicleActivityRoutes.includes(location.pathname)) {
-                    setIsVehicleActivityOpen(false);
-                }
+                setOpenGroups((prev) => {
+                    const next = { ...prev };
+                    SIDE_NAV_GROUPS.forEach((group) => {
+                        const groupId = getNavGroupId(group);
+                        if (!isGroupActive(group, location.pathname)) {
+                            next[groupId] = false;
+                        }
+                    });
+                    return next;
+                });
             }, 200);
             return () => clearTimeout(timer);
         }
     }, [isSidebarHovered, location.pathname]);
+
+    const toggleGroup = (groupId) => {
+        setOpenGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+    };
 
     const handleLogout = () => {
         // Clear user tokens here in a real application
@@ -72,10 +91,69 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
     };
 
+    // Render one item from the SIDE_NAV_ITEMS config.
+    const renderNavItem = (item) => {
+        const Icon = item.icon;
+
+        if (item.type === 'link') {
+            if (item.key && !isEnabled(item.key)) return null;
+
+            return (
+                <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className="nav-link"
+                    onClick={closeSidebarOnMobile}
+                >
+                    <Icon size={20} /><span>{item.label}</span>
+                </NavLink>
+            );
+        }
+
+        // type === 'group' (collapsible dropdown)
+        if (item.key && !isEnabled(item.key)) return null;
+
+        const visibleChildren = getVisibleNavChildren(item, isEnabled);
+        if (!visibleChildren.length) return null;
+
+        const groupId = getNavGroupId(item);
+        const isOpen = !!openGroups[groupId];
+        return (
+            <div className="nav-section" key={groupId}>
+                <button
+                    className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
+                    onClick={() => toggleGroup(groupId)}
+                >
+                    <div className="nav-parent-left">
+                        <Icon size={20} />
+                        <span>{item.label}</span>
+                    </div>
+                    <ChevronIcon
+                        size={16}
+                        className={`chevron-icon ${isOpen ? 'rotated' : ''}`}
+                    />
+                </button>
+                <div className={`nav-children ${isOpen ? 'open' : ''}`}>
+                    {visibleChildren.map((child) => (
+                        <NavLink
+                            key={`${child.to}-${child.label}`}
+                            to={child.to}
+                            end={child.end}
+                            className="nav-link nav-child"
+                            onClick={closeSidebarOnMobile}
+                        >
+                            <span>{child.label}</span>
+                        </NavLink>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <aside
             className="sidebar"
-            style={themeColors}
             onMouseEnter={() => setIsSidebarHovered(true)}
             onMouseLeave={() => setIsSidebarHovered(false)}
         >
@@ -84,94 +162,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <img src={UkoLogo} alt="Uko Logo" className="logo-img" />
                 </div>
                 <nav className="sidebar-nav">
-                    <NavLink to="/overview" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Grid size={20} /><span>Overview</span>
-                    </NavLink>
-
-                    {/* Vehicle Activity Section */}
-                    <div className="nav-section">
-                        <button
-                            className={`nav-link nav-parent ${isVehicleActivityOpen ? 'active-parent' : ''}`}
-                            onClick={() => setIsVehicleActivityOpen(!isVehicleActivityOpen)}
-                        >
-                            <div className="nav-parent-left">
-                                <Truck size={20} />
-                                <span>Vehicle Activity</span>
-                            </div>
-                            <ChevronIcon
-                                size={16}
-                                className={`chevron-icon ${isVehicleActivityOpen ? 'rotated' : ''}`}
-                            />
-                        </button>
-                        <div className={`nav-children ${isVehicleActivityOpen ? 'open' : ''}`}>
-                            <NavLink
-                                to="/trip-management"
-                                className="nav-link nav-child"
-                                onClick={closeSidebarOnMobile}
-                            >
-                                <span>Trip Management</span>
-                            </NavLink>
-                            <NavLink
-                                to="/refuel-logs"
-                                className="nav-link nav-child"
-                                onClick={closeSidebarOnMobile}
-                            >
-                                <span>Refuel Logs</span>
-                            </NavLink>
-                            <NavLink
-                                to="/mileage-tracking"
-                                className="nav-link nav-child"
-                                onClick={closeSidebarOnMobile}
-                            >
-                                <span>Mileage Tracking</span>
-                            </NavLink>
-                        </div>
-                    </div>
-
-                    <NavLink to="/reports" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <FileText size={20} /><span>Reports</span>
-                    </NavLink>
-                    {/* --- Added Drivers Link --- */}
-                    <NavLink to="/drivers" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Users size={20} />
-                        <span>Employees</span>
-                    </NavLink>
-                    <NavLink to="/vehicles" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Truck size={20} />
-                        <span>Vehicles</span>
-                    </NavLink>
-                    <NavLink to="/locations" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <MapPin size={20} />
-                        <span>Locations</span>
-                    </NavLink>
-                    <NavLink to="/khata-ledger" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <BookOpen size={20} />
-                        <span>Khata Ledger</span>
-                    </NavLink>
-                    <NavLink to="/fuel-comparison" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Fuel size={20} />
-                        <span>Fuel Comparison</span>
-                    </NavLink>
-                    <NavLink to="/fuel-integrity" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <ShieldAlert size={20} />
-                        <span>Fuel Integrity</span>
-                    </NavLink>
-                    <NavLink to="/route-deviation" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Route size={20} />
-                        <span>Route Deviation</span>
-                    </NavLink>
-                    <NavLink to="/live-tracking" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Navigation size={20} />
-                        <span>Live Tracking</span>
-                    </NavLink>
-                    <NavLink to="/owner-alerts" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <Bell size={20} />
-                        <span>Owner Alerts</span>
-                    </NavLink>
-                    <NavLink to="/profile" className="nav-link" onClick={closeSidebarOnMobile}>
-                        <User size={20} />
-                        <span>Profile</span>
-                    </NavLink>
+                    {SIDE_NAV_ITEMS.map(renderNavItem)}
                 </nav>
             </div>
 

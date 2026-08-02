@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { clearAuthData } from '../../../utils/authUtils';
 
-const StepProfile = ({ onNext, onDataChange, formData }) => {
+const StepProfile = ({ onNext, onBack, onDataChange, formData }) => {
     const navigate = useNavigate();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -28,7 +28,7 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
         // Load user data from localStorage (stored during login)
         const loadUserData = () => {
             setIsLoading(true);
-            
+
             try {
                 const userFirstName = localStorage.getItem('user_firstName') || '';
                 const userLastName = localStorage.getItem('user_lastName') || '';
@@ -36,7 +36,7 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
                 const userMobile = localStorage.getItem('user_mobileNumber') || '';
                 const userIdValue = localStorage.getItem('user_id') || '';
                 const userOrgId = localStorage.getItem('user_orgId') || '';
-                
+
                 console.log('Loading user data from localStorage:', {
                     firstName: userFirstName,
                     lastName: userLastName,
@@ -45,21 +45,21 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
                     userId: userIdValue,
                     orgId: userOrgId
                 });
-                
+
                 setFirstName(userFirstName);
                 setLastName(userLastName);
                 setEmail(userEmail);
                 setPhone(userMobile);
                 setUserId(userIdValue);
                 setOrgId(userOrgId);
-                
+
                 // Load saved GSTIN from sessionStorage if available
                 const savedProfile = sessionStorage.getItem('onboardingProfile');
                 if (savedProfile) {
                     const parsed = JSON.parse(savedProfile);
                     setGstin(parsed.gstin || '');
                 }
-                
+
                 // Store in sessionStorage for later steps
                 sessionStorage.setItem('onboardingUser', JSON.stringify({
                     id: userIdValue,
@@ -69,7 +69,7 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
                     email: userEmail,
                     mobileNumber: userMobile,
                 }));
-                
+
                 if (userFirstName && userEmail) {
                     toast.success('Profile loaded successfully');
                 } else {
@@ -136,104 +136,98 @@ const StepProfile = ({ onNext, onDataChange, formData }) => {
 
     if (isLoading) {
         return (
-            <div className="step-loading">
-                <div className="spinner"></div>
-                <p>Loading your profile...</p>
+            <div className="ob-step-body ob-step-loading">
+                <div className="ob-spinner" />
+                <p>Loading your profile…</p>
             </div>
         );
     }
 
     return (
-        <div className="step-container">
-            <div className="step-header">
+        <div className="ob-step-body">
+            <div className="ob-step-header">
                 <h2>Review Your Profile</h2>
-                <p className="step-description">
-                    Let's start by confirming your basic information
-                </p>
+                <p>Let's confirm your basic information before we continue.</p>
             </div>
 
             <div className="form-section">
-                <div className="form-group">
-                    <label htmlFor="firstName">
-                        First Name
-                    </label>
-                    <input
-                        type="text"
-                        id="firstName"
-                        className="form-input"
-                        value={firstName}
-                        readOnly
-                        disabled
-                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
-                    />
-                    <small className="form-hint">Loaded from your account</small>
+                <div className="form-row">
+                    <div className="form-group">
+                        <label htmlFor="firstName">FIRST NAME</label>
+                        <input
+                            type="text"
+                            id="firstName"
+                            className="form-input ob-input--readonly"
+                            value={firstName}
+                            readOnly
+                            disabled
+                        />
+                        <small className="form-hint">Loaded from your account</small>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="lastName">LAST NAME</label>
+                        <input
+                            type="text"
+                            id="lastName"
+                            className="form-input ob-input--readonly"
+                            value={lastName}
+                            readOnly
+                            disabled
+                        />
+                        <small className="form-hint">Loaded from your account</small>
+                    </div>
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="lastName">
-                        Last Name
-                    </label>
-                    <input
-                        type="text"
-                        id="lastName"
-                        className="form-input"
-                        value={lastName}
-                        readOnly
-                        disabled
-                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
-                    />
-                    <small className="form-hint">Loaded from your account</small>
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="email">
-                        Email
-                    </label>
+                    <label htmlFor="email">EMAIL</label>
                     <input
                         type="email"
                         id="email"
-                        className="form-input"
+                        className="form-input ob-input--readonly"
                         value={email}
                         readOnly
                         disabled
-                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
                     />
                     <small className="form-hint">Loaded from your account</small>
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="phone">
-                        Mobile Number
-                    </label>
+                    <label htmlFor="phone">MOBILE NUMBER</label>
                     <input
                         type="tel"
                         id="phone"
-                        className="form-input"
+                        className="form-input ob-input--readonly"
                         value={phone || 'Not provided'}
                         readOnly
                         disabled
-                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
                     />
                     <small className="form-hint">Loaded from your account</small>
                 </div>
-
-                
             </div>
 
-            <div className="step-notice" style={{ backgroundColor: '#EFF6FF', borderColor: '#DBEAFE' }}>
+            <div className="ob-notice ob-notice--blue">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#3B82F6"/>
+                    <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z" fill="#3B82F6" />
                 </svg>
                 <span>Profile information is loaded from your account and cannot be edited here.</span>
             </div>
 
-            <div className="step-actions">
-                <button 
-                    type="button" 
-                    className="btn btn-primary"
+            <div className="ob-step-footer">
+                <button type="button" className="ob-btn ob-btn--ghost ob-btn--back" onClick={onBack}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Back
+                </button>
+                <button
+                    type="button"
+                    className="ob-btn ob-btn--dark"
                     onClick={handleSave}
                 >
                     Continue
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                 </button>
             </div>
         </div>

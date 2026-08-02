@@ -72,7 +72,7 @@
 }
 
 .mileage-listing-container .search-bar:focus-within {
-  border-color: #2563eb;
+  border-color: var(--primary-color, #3B82F6);
   background: white;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
@@ -95,10 +95,10 @@
   height: 44px;
   min-width: 112px;
   padding: 10px 24px;
-  background: #2A4FD6;
-  box-shadow: 0px 2px 0px #213EA7;
+  background: var(--primary-color, #3B82F6);
+  box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
   border-radius: 8px;
-  outline: 1px #213EA7 solid;
+  outline: 1px var(--primary-dark, #1d30b5) solid;
   outline-offset: -1px;
   justify-content: center;
   align-items: center;
@@ -114,12 +114,12 @@
 }
 
 .log-fuel-btn:hover {
-  background-color: #213EA7;
+  background-color: var(--primary-dark, #1d30b5);
 }
 
 .log-fuel-btn:active {
   transform: translateY(1px);
-  box-shadow: 0px 1px 0px #213EA7;
+  box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5);
 }
 
 .log-fuel-btn svg {
@@ -136,47 +136,127 @@
   flex-direction: column;
 }
 
-/* Table styles — inherited from TripManagementPage.css classes */
-.mileage-listing-container .table-wrapper {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+/* ── Native Table (matches DriversPage) ──────────────────────────────── */
+.mileage-table-container {
+  align-self: stretch;
+  background: #F8F8FB;
+  box-shadow: 2px 2px 0px white inset;
+  border-radius: 16px;
+  outline: 1px #DFDFE2 solid;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  display: flex;
   overflow: hidden;
-  background: white;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 8px;
 }
 
-.mileage-listing-container .table-header-row th {
-  background-color: #f8f9fa;
-  padding: 16px 20px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #9ca3af;
-  border-bottom: 1px solid #e5e7eb;
+.mileage-table-wrapper {
+  width: 100%;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+}
+
+.mileage-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 12px;
+  table-layout: fixed;
+  display: block;
+  height: 100%;
+}
+
+.mileage-table thead {
+  width: calc(100% - 6px);
+  display: table;
+  table-layout: fixed;
+}
+
+.mileage-table tbody {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 64px;
+}
+
+.mileage-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.mileage-table th {
+  padding: 11px 16px;
+  color: #5D5D5E;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  line-height: 20px;
+  text-align: left;
+  border-bottom: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mileage-listing-container .trip-table-row td {
-  padding: 18px 20px;
-  font-size: 14px;
-  color: #374151;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: middle;
-}
-
-.mileage-listing-container .trip-table-row:last-child td {
-  border-bottom: none;
-}
-
-.mileage-listing-container .trip-table-row {
+.mileage-table tbody tr {
+  background: white;
+  border-radius: 12px;
+  outline: 1px #ECECEE solid;
+  outline-offset: -1px;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 12px;
+  min-height: 60px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.2s ease;
 }
 
-.mileage-listing-container .trip-table-row:hover {
-  background-color: #fafbff;
+.mileage-table tbody tr:hover {
+  background-color: #FAFAFA;
+  z-index: 10;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
+
+.mileage-table td {
+  padding: 12px 16px;
+  color: #121214;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  line-height: 21px;
+  border-bottom: none;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mileage-table td:last-child {
+  overflow: visible;
+}
+
+.mileage-vehicle-cell {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Custom scrollbar */
+.mileage-table tbody::-webkit-scrollbar { width: 6px; }
+.mileage-table tbody::-webkit-scrollbar-track { background: transparent; }
+.mileage-table tbody::-webkit-scrollbar-thumb { background: #DFDFE2; border-radius: 3px; }
+.mileage-table tbody::-webkit-scrollbar-thumb:hover { background: #CECECE; }
 
 /* Last column hover fx */
-.mileage-listing-container .last-col {
+.mileage-last-col {
   position: relative;
   white-space: nowrap;
 }
@@ -187,23 +267,23 @@
   transition: opacity 0.15s ease;
 }
 
-.mileage-listing-container .trip-table-row:hover .date-text {
+.mileage-table-row:hover .date-text {
   opacity: 0;
 }
 
 .mileage-listing-container .view-details-btn {
   position: absolute;
-  right: 20px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 5px 16px;
-  border: 1.5px solid #1a73e8;
+  border: 1.5px solid var(--primary-color, #3B82F6);
   border-radius: 20px;
   background: white;
-  color: #1a73e8;
+  color: var(--primary-color, #3B82F6);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -213,7 +293,7 @@
   pointer-events: none;
 }
 
-.mileage-listing-container .trip-table-row:hover .view-details-btn {
+.mileage-table-row:hover .view-details-btn {
   opacity: 1;
   pointer-events: auto;
 }
@@ -231,6 +311,13 @@
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* When the table is empty / loading, collapse the table to header-only
+   and let the loading/empty state fill the remaining wrapper space. */
+.mileage-table-wrapper.is-empty .mileage-table {
+  height: auto;
+  flex-shrink: 0;
 }
 
 /* Empty / Loading */
@@ -258,12 +345,128 @@
   margin-top: 8px !important;
 }
 
-/* Pagination */
-.pagination-wrapper {
-  margin-top: auto;
-  padding: 16px 4px 4px;
+.empty-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 10px 22px;
+  background: var(--primary-color, #3B82F6);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);
+}
+
+.empty-action-btn:hover {
+  background: var(--primary-dark, #1d30b5);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+  transform: translateY(-1px);
+}
+
+.empty-action-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Pagination Footer (matches DriversPage) ─────────────────────────── */
+.mileage-pagination-controls {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-top: 1px solid #DFDFE2;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: auto;
+  flex-shrink: 0;
+  min-height: 24px;
+}
+
+.mileage-pagination-btn {
+  padding: 6px;
+  border-radius: 0;
+  outline: none;
+  border: none;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  background: transparent;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.mileage-pagination-btn:first-child { margin-right: 8px; }
+.mileage-pagination-btn:last-child  { margin-left: 8px; }
+
+.mileage-pagination-btn:hover:not(:disabled) { opacity: 0.7; }
+.mileage-pagination-btn:disabled { cursor: not-allowed; opacity: 0.3; }
+.mileage-pagination-btn svg { width: 12px; height: 12px; color: #121214; }
+
+.mileage-page-number {
+  width: 32px;
+  height: 32px;
+  padding: 10px;
+  border-radius: 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  display: inline-flex;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mileage-page-number span {
+  text-align: center;
+  color: #5D5D5E;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  line-height: 21px;
+}
+
+.mileage-page-number:hover:not(.mileage-page-number-current) {
+  background: #F7F7F8;
+}
+
+.mileage-page-number-current {
+  background: white;
+  outline: 1px var(--primary-color, #4f46e5) solid;
+  outline-offset: -1px;
+}
+
+.mileage-page-number-current span {
+  color: #121214;
+}
+
+.mileage-page-overflow {
+  width: 32px;
+  height: 32px;
+  padding: 10px;
+  border-radius: 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  display: inline-flex;
+}
+
+.mileage-page-overflow span {
+  text-align: center;
+  color: #5D5D5E;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  line-height: 21px;
 }
 
 
@@ -351,7 +554,7 @@
   background: #eff6ff;
   border: 1.5px solid #bfdbfe;
   border-radius: 999px;
-  color: #2563eb;
+  color: var(--primary-color, #3B82F6);
   font-size: 13px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -424,12 +627,20 @@
 .mileage-form-group input:focus,
 .mileage-form-group select:focus {
   outline: none;
-  border-color: #2A4FD6;
+  border-color: var(--primary-color, #3B82F6);
   box-shadow: 0 0 0 3px rgba(42, 79, 214, 0.1);
 }
 
 .mileage-form-group input::placeholder {
   color: #9CA3AF;
+}
+
+.mileage-form-group input.mileage-readonly-input,
+.mileage-form-group input.mileage-readonly-input:disabled {
+  background: #f8fafc;
+  color: #334155;
+  cursor: default;
+  opacity: 1;
 }
 
 /* Custom Dropdown */
@@ -458,7 +669,7 @@
 }
 
 .dropdown-button:hover { border-color: #9ca3af; }
-.dropdown-button:focus { outline: none; border-color: #2A4FD6; box-shadow: 0 0 0 3px rgba(42, 79, 214, 0.1); }
+.dropdown-button:focus { outline: none; border-color: var(--primary-color, #3B82F6); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
 .dropdown-button.disabled { opacity: 0.5; cursor: not-allowed; }
 .dropdown-button span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-button svg { transition: transform 0.2s ease; color: #9ca3af; flex-shrink: 0; width: 16px; height: 16px; }
@@ -502,7 +713,7 @@
 }
 
 .dropdown-item:hover { background: #f8fafc; }
-.dropdown-item.selected { background: #eff6ff; border-left: 3px solid #2A4FD6; padding-left: 11px; }
+.dropdown-item.selected { background: #eff6ff; border-left: 3px solid var(--primary-color, #3B82F6); padding-left: 11px; }
 
 .item-main { font-size: 14px; font-weight: 600; color: #121214; margin-bottom: 2px; }
 .item-sub { font-size: 12px; color: #64748b; }
@@ -529,6 +740,10 @@
   padding: 12px 16px;
   border-bottom: 1px solid #ECECEE;
   background: #FAFAFA;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .modern-document-slot .slot-header h3 {
@@ -556,10 +771,10 @@
 
 .slot-dropzone:hover,
 .slot-dropzone.dragging {
-  background-image: repeating-linear-gradient(90deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(90deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, #2A4FD6 0, #2A4FD6 8px, transparent 8px, transparent 16px);
+  background-image: repeating-linear-gradient(90deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
+                    repeating-linear-gradient(180deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
+                    repeating-linear-gradient(90deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
+                    repeating-linear-gradient(180deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px);
   animation: border-march 0.5s linear infinite;
 }
 
@@ -585,12 +800,12 @@
 .slot-icon-wrapper { margin-bottom: 12px; transition: transform 0.25s ease; }
 .slot-dropzone:hover .slot-icon-wrapper { transform: translateY(-4px); }
 .slot-dropzone-title { font-size: 14px; font-weight: 500; color: #121214; margin: 0 0 4px 0; }
-.slot-highlight { color: #2A4FD6; font-weight: 600; }
+.slot-highlight { color: var(--primary-color, #3B82F6); font-weight: 600; }
 .slot-dropzone-sub { font-size: 13px; color: #5D5D5E; margin: 0; }
-.slot-browse-link { color: #2A4FD6; font-weight: 500; text-decoration: underline; text-decoration-style: dotted; cursor: pointer; }
+.slot-browse-link { color: var(--primary-color, #3B82F6); font-weight: 500; text-decoration: underline; text-decoration-style: dotted; cursor: pointer; }
 .slot-dropzone-drag-icon { font-size: 32px; margin-bottom: 10px; animation: mt-float 0.7s ease infinite alternate; }
 @keyframes mt-float { from { transform: translateY(0); } to { transform: translateY(-6px); } }
-.slot-dropzone-drag-text { font-size: 16px; font-weight: 700; color: #2A4FD6; margin: 0; }
+.slot-dropzone-drag-text { font-size: 16px; font-weight: 700; color: var(--primary-color, #3B82F6); margin: 0; }
 
 .slot-filled-container { display: flex; flex-direction: column; }
 .slot-image-wrapper { position: relative; height: 192px; background-color: #0f172a; overflow: hidden; }
@@ -633,15 +848,15 @@
 }
 
 .mileage-btn-primary {
-  background: #2A4FD6;
+  background: var(--primary-color, #3B82F6);
   color: #F8F8FB;
-  box-shadow: 0px 2px 0px #213EA7;
-  outline: 1px #213EA7 solid;
+  box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
+  outline: 1px var(--primary-dark, #1d30b5) solid;
   outline-offset: -1px;
 }
 
-.mileage-btn-primary:hover:not(:disabled) { background: #213EA7; }
-.mileage-btn-primary:active:not(:disabled) { transform: translateY(1px); box-shadow: 0px 1px 0px #213EA7; }
+.mileage-btn-primary:hover:not(:disabled) { background: var(--primary-dark, #1d30b5); }
+.mileage-btn-primary:active:not(:disabled) { transform: translateY(1px); box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5); }
 .mileage-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; background: #9ca3af; box-shadow: none; outline-color: #9ca3af; }
 
 .mileage-btn-secondary {
@@ -663,7 +878,6 @@
   .mileage-form-header { padding: 16px; }
   .mileage-form-content { padding: 16px 16px 48px; }
 }
-
 
 /* ═══════════════════════════════════════════
    MILEAGE INTERVAL DETAIL PAGE (mid-)
@@ -1003,3 +1217,1009 @@
   .mid-variance-cells { flex-wrap: wrap; }
 }
 
+/* ═══════════════════════════════════════════
+   MILEAGE INTERVAL DETAIL — V2 REDESIGN (mid2-)
+   Modern SaaS-style fleet analytics layout
+   ═══════════════════════════════════════════ */
+
+.mid2-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: #f8fafc;
+  font-family: 'Inter', sans-serif;
+  color: #0f172a;
+}
+
+/* ── Header (sticky info bar) ─────────────── */
+.mid2-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: white;
+  border-bottom: 1px solid #eef2f7;
+  flex-shrink: 0;
+}
+
+.mid2-header-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 32px;
+}
+
+.mid2-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.mid2-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mid2-back-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.mid2-back-btn:active {
+  transform: scale(0.96);
+}
+
+.mid2-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.mid2-subtitle {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.mid2-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mid2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* ── Content area ─────────────────────────── */
+.mid2-content {
+  flex: 1;
+  padding: 24px 32px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Flag banner ──────────────────────────── */
+.mid2-flag-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 16px;
+  padding: 16px 20px;
+  color: #991b1b;
+}
+
+.mid2-flag-banner > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mid2-flag-banner strong {
+  font-size: 14px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.mid2-flag-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── Card ─────────────────────────────────── */
+.mid2-card {
+  background: white;
+  border: 1px solid #eef2f7;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.mid2-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mid2-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mid2-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+/* ── Two-column grid ──────────────────────── */
+.mid2-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Metric list ──────────────────────────── */
+.mid2-metric-list {
+  padding: 6px 0;
+}
+
+.mid2-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 22px;
+  gap: 12px;
+  position: relative;
+}
+
+.mid2-metric-row + .mid2-metric-row::before {
+  content: '';
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 0;
+  height: 1px;
+  background: #f5f7fa;
+}
+
+.mid2-metric-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.mid2-metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+}
+
+.mid2-metric-highlight {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* ── GPS empty / failed state ─────────────── */
+.mid2-gps-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  text-align: center;
+  gap: 8px;
+}
+
+.mid2-gps-empty-title {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.mid2-gps-empty-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  max-width: 340px;
+  line-height: 1.55;
+}
+
+/* ── Variance comparison (hero) ───────────── */
+.mid2-variance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 22px;
+}
+
+.mid2-variance-block {
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mid2-vb-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.mid2-vb-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+}
+
+.mid2-vb-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.mid2-vb-sub {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.mid2-vb-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.mid2-vb-vs {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+/* Two-bar comparison */
+.mid2-vb-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mid2-vb-bar-track {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mid2-vb-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mid2-vb-bar-sys {
+  background: linear-gradient(90deg, #60a5fa, #2563eb);
+}
+
+.mid2-vb-bar-gps {
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.mid2-vb-delta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: center;
+  padding: 6px 14px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Legend */
+.mid2-variance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 6px 22px 20px;
+  font-size: 12px;
+}
+
+.mid2-variance-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+/* ── Fuel logs timeline ───────────────────── */
+.mid2-timeline {
+  padding: 22px;
+}
+
+.mid2-tl-entry {
+  display: flex;
+  gap: 14px;
+  position: relative;
+}
+
+.mid2-tl-track {
+  position: relative;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.mid2-tl-dot {
+  position: relative;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin: 18px auto 0;
+  box-shadow: 0 0 0 4px white, 0 0 0 5px currentColor;
+}
+
+.mid2-tl-line {
+  position: absolute;
+  top: 36px;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.mid2-tl-content {
+  flex: 1;
+  background: white;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  transition: all 0.15s ease;
+  min-width: 0;
+}
+
+.mid2-tl-content:hover {
+  border-color: #d6dce5;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.mid2-tl-entry:last-child .mid2-tl-content {
+  margin-bottom: 0;
+}
+
+.mid2-tl-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.mid2-tl-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.mid2-tl-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.mid2-tl-item svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.mid2-tl-ongoing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 34px;
+  margin-top: 4px;
+  padding: 12px 16px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* ── Responsive ───────────────────────────── */
+@media (max-width: 1100px) {
+  .mid2-variance-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .mid2-grid-2 { grid-template-columns: 1fr; }
+  .mid2-content { padding: 16px; gap: 16px; }
+  .mid2-header-bottom { padding: 18px 16px; flex-wrap: wrap; }
+  .mid2-header-right { width: 100%; justify-content: flex-start; }
+  .mid2-title { font-size: 19px; }
+  .mid2-variance-grid { padding: 16px; }
+  .mid2-timeline { padding: 16px; }
+  .mid2-tl-details { gap: 6px 16px; }
+}
+
+
+/* ═══════════════════════════════════════════
+   MODEL COMPARISON PAGE (mc-)
+   ═══════════════════════════════════════════ */
+
+.mc-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: #f8fafc;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Header ───────────────────────────────── */
+.mc-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.mc-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mc-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mc-title {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.mc-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* ── Scrollable content ───────────────────── */
+.mc-content {
+  flex: 1;
+  padding: 24px 32px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* ── Loading / Empty ──────────────────────── */
+.mc-loading,
+.mc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 80px 20px;
+  text-align: center;
+  gap: 8px;
+}
+
+.mc-loading p,
+.mc-empty p {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.mc-empty-sub {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* ── KPI Row ──────────────────────────────── */
+.mc-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.mc-kpi-card {
+  background: white;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.mc-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mc-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mc-kpi-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mc-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* ── Card ─────────────────────────────────── */
+.mc-card {
+  background: white;
+  border: 1px solid #eef2f7;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.mc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mc-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mc-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+/* ── Chart ────────────────────────────────── */
+.mc-chart-area {
+  padding: 20px 16px 24px;
+  overflow: visible;
+}
+
+/* ── Tooltip ──────────────────────────────── */
+.mc-tooltip {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  min-width: 180px;
+}
+
+.mc-tooltip-model {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mc-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+.mc-tooltip-row strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* ── Table ────────────────────────────────── */
+.mc-table-wrapper {
+  overflow-x: auto;
+}
+
+.mc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+
+.mc-table th {
+  padding: 10px 16px;
+  text-align: left;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
+
+.mc-th-right {
+  text-align: right !important;
+}
+
+.mc-table tbody tr {
+  border-bottom: 1px solid #f8fafc;
+  transition: background 0.15s;
+}
+
+.mc-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.mc-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.mc-row-best {
+  background: rgba(59, 130, 246, 0.03);
+}
+
+.mc-table td {
+  padding: 13px 16px;
+  color: #1e293b;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.mc-td-model {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.mc-model-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mc-model-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mc-best-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: rgba(59, 130, 246, 0.10);
+  color: #2563eb;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.mc-td-right {
+  text-align: right;
+  color: #475569;
+}
+
+.mc-td-primary {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+}
+
+/* ── Card header variants ─────────────────── */
+.mc-card-header--tall {
+  align-items: flex-start;
+}
+
+.mc-card-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mc-card-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.mc-card-model-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  background: rgba(59, 130, 246, 0.10);
+  color: #2563eb;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mc-card-sub {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mc-card-sub strong {
+  color: #0f172a;
+}
+
+/* ── At-risk inline indicator ─────────────── */
+.mc-at-risk-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #D97706;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* ── Small empty state ────────────────────── */
+.mc-empty-sm {
+  padding: 40px 20px;
+  flex: unset;
+}
+
+/* ── Performance legend ───────────────────── */
+.mc-perf-legend {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 22px 18px;
+  flex-wrap: wrap;
+}
+
+.mc-perf-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.mc-perf-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mc-perf-legend-bar {
+  width: 12px;
+  height: 10px;
+  border-radius: 3px 3px 1px 1px;
+  flex-shrink: 0;
+}
+
+.mc-perf-legend-bar--multi {
+  background: linear-gradient(90deg, #10B981 0 33%, #F59E0B 33% 66%, #EF4444 66% 100%);
+}
+
+.mc-perf-legend-dash {
+  width: 18px;
+  height: 2px;
+  background: #F59E0B;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* ── Table row interactions ───────────────── */
+.mc-table-row {
+  cursor: pointer;
+}
+
+.mc-row-selected {
+  background: rgba(59, 130, 246, 0.05) !important;
+  outline: 1.5px solid rgba(59, 130, 246, 0.25);
+  outline-offset: -1.5px;
+}
+
+.mc-row-selected .mc-td-primary {
+  color: #1D4ED8 !important;
+}
+
+/* ── At risk / OK badges in table ────────── */
+.mc-at-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 8px;
+  background: rgba(239, 68, 68, 0.10);
+  color: #DC2626;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mc-ok-badge {
+  font-size: 13px;
+  color: #10B981;
+  font-weight: 700;
+}
+
+/* ── Responsive ───────────────────────────── */
+@media (max-width: 1100px) {
+  .mc-kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .mc-header { padding: 14px 16px; }
+  .mc-content { padding: 16px; gap: 16px; }
+  .mc-kpi-row { grid-template-columns: 1fr 1fr; }
+  .mc-card-hint { display: none; }
+}
+
+/* ── Glass Tooltip & Enhancements ─────────────── */
+.mc-glass-tooltip {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 8px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px;
+  min-width: 180px;
+  color: #0f172a;
+  font-family: 'Inter', sans-serif;
+}
+
+.mc-glass-tooltip-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mc-glass-tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+.mc-glass-tooltip-label {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mc-glass-tooltip-value {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.mc-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}

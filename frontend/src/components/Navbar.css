@@ -1,75 +1,196 @@
-.navbar { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: var(--spacing-md) var(--spacing-lg); 
-    background-color: var(--color-white); 
-    border-bottom: 1px solid var(--color-grey-200);
-    height: var(--navbar-height, 72px); /* Use CSS variable for consistent positioning */
+/* ─────────────────────────────────────────────────────────
+   Navbar.css
+   Perfect Version: Keeps Premium UI (Frosted Glass) + Dynamic Themes
+   ───────────────────────────────────────────────────────── */
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 var(--spacing-lg);
+    /* Frosted glass effect - KEPT INTACT */
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid rgba(226,232,240,0.7);
+    height: var(--navbar-height, 72px);
     min-height: var(--navbar-height, 72px);
     box-sizing: border-box;
-    position: fixed; /* Fixed at top for consistent positioning */
+    position: fixed;
     top: 0;
-    left: 100px; /* Start after the main sidebar */
+    left: 100px;
     right: 0;
-    z-index: 1001; /* Ensure navbar is above ReportsSidebar */
-}
-.navbar-left { display: flex; align-items: center; gap: var(--spacing-md); }
-.navbar-left h2 { font-size: 24px; font-weight: 600; margin: 0; }
-.menu-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--color-grey-700); padding: 0;}
-.navbar-right { display: flex; align-items: center; gap: 12px; }
-.navbar-right .btn { text-decoration: none;}
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-xs); padding: 12px var(--spacing-md); border: none; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 600; }
-.btn-primary { 
-    background-color: var(--primary-color, #3B82F6); 
-    color: var(--color-white); 
-    transition: background-color 0.2s; 
-}
-.btn-primary:hover { 
-    background-color: var(--primary-dark, #1d30b5ff); 
+    z-index: 1001;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 20px rgba(15,23,42,0.04);
+    transition: left 0.4s cubic-bezier(0.4,0,0.2,1);
 }
 
-.trip-action-btn {
-    background-color: #1a73e8 !important;
-    color: white !important;
-    font-size: 14px;
-    font-weight: 600;
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.navbar-left h2 {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0;
+    color: #0f172a;
+    letter-spacing: -0.4px;
+}
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.menu-toggle:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-right .btn {
+    text-decoration: none;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: 9px var(--spacing-md);
+    border: none;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.1px;
+    transition: all 0.2s ease;
+}
+
+/* --- DYNAMIC THEME FIXES --- */
+
+.btn-primary, .trip-action-btn {
+    /* Uses the dynamic root variable set by DashboardLayout */
+    background: var(--primary-color, #3B82F6) !important;
+    color: #ffffff !important;
+    /* Neutralized shadow so it looks good on any color */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
     white-space: nowrap;
 }
 
-.trip-action-btn:hover {
-    background-color: #1557b0 !important;
+.btn-primary:hover, .trip-action-btn:hover {
+    background: var(--primary-dark, #1d30b5) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.20) !important;
+    transform: translateY(-1px);
 }
 
 .active-trips-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background-color: #e8f0fe;
+    gap: 7px;
+    padding: 7px 14px;
+    /* Uses the light variant injected by DashboardLayout */
+    background: var(--primary-light, #eff6ff); 
     border-radius: 20px;
+    border: 1px solid var(--primary-color, #3B82F6);
+    opacity: 0.85; /* Softens the border slightly */
 }
 
 .active-trips-badge svg {
-    color: #1a73e8;
+    color: var(--primary-color, #3B82F6);
     flex-shrink: 0;
 }
 
 .active-trips-badge span {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a73e8;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--primary-color, #3B82F6);
     white-space: nowrap;
+}
+
+/* Navbar count badge (used by mileage tracking) */
+.navbar-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 9px;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Navbar search input (used by mileage tracking) */
+.navbar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 14px;
+    width: 320px;
+    max-width: 40vw;
+    transition: all 0.2s ease;
+}
+
+.navbar-search:focus-within {
+    border-color: var(--primary-color, #3B82F6);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.navbar-search input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13.5px;
+    color: #1e293b;
+    font-family: 'Inter', sans-serif;
+    min-width: 0;
+}
+
+.navbar-search input::placeholder {
+    color: #94a3b8;
 }
 
 /* Mobile styles */
 @media (max-width: 992px) {
     .navbar {
-        left: 0; /* Full width on mobile, sidebar is overlay */
-        z-index: 1003; /* Above sidebar on mobile */
+        left: 0;
+        z-index: 1003;
     }
-    
-    .menu-toggle { 
-        display: block; 
+
+    .menu-toggle {
+        display: block;
+    }
+
+    .navbar-search {
+        width: 200px;
+        padding: 7px 12px;
+    }
+}
+
+@media (max-width: 640px) {
+    .navbar-search {
+        display: none;
     }
 }

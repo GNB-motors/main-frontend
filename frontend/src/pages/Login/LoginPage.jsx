@@ -6,6 +6,8 @@ import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
+import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
+import apiClient from '../../utils/axiosConfig.js';
 
 // --- Carousel Data ---
 const slideData = [
@@ -92,7 +94,16 @@ const LoginPage = () => {
                 localStorage.setItem('user_lastName', user.lastName || '');
                 localStorage.setItem('user_status', user.status || '');
                 localStorage.setItem('user_mobileNumber', user.mobileNumber || '');
-                
+
+                // Store primaryThemeColor so Sidebar/Navbar use the correct colour
+                // immediately on login — without this it falls back to default blue
+                // because ProfilePage only mounts on /profile, not on app boot
+                if (user.primaryThemeColor) {
+                    localStorage.setItem('primaryThemeColor', user.primaryThemeColor);
+                    // CustomEvent fires same-tab unlike window 'storage' event
+                    window.dispatchEvent(new CustomEvent('themeColorChange'));
+                }
+
                 // Store orgId if available
                 if (user.orgId) {
                     localStorage.setItem('user_orgId', user.orgId);
@@ -110,10 +121,26 @@ const LoginPage = () => {
                 // For OWNER and other roles, check if onboarding is completed
                 const isOnboarded = organization?.isOnboarded === true;
 
-                if (isOnboarded) {
+                if (user.role === 'FIELD_AGENT') {
+                    try {
+                        const orgsRes = await apiClient.get('/api/me/orgs');
+                        const orgs = orgsRes.data?.data || [];
+                        if (orgs.length > 0) {
+                            localStorage.setItem('user_orgId', orgs[0].orgId);
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch orgs for field agent', err);
+                    }
+                    toast.success("Welcome Field Agent! Redirecting to dashboard...");
+                    setTimeout(() => {
+                        navigate('/field-agent-fuel');
+                    }, 1500);
+                    return;
+                } else if (isOnboarded) {
+                    const landing = resolveLandingRoute(organization?.featureFlags);
                     toast.success("Welcome back! Redirecting to dashboard...");
                     setTimeout(() => {
-                        navigate('/overview');
+                        navigate(landing);
                     }, 1500);
                 } else {
                     toast.success("Login successful! Redirecting to onboarding...");

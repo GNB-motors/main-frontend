@@ -1,15 +1,43 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Box, Typography, CircularProgress, Alert,
-    IconButton, Slider
+    Box,
+    Typography,
+    CircularProgress,
+    Alert,
+    Slider,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField,
 } from '@mui/material';
-import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, Wallet, Percent, MapPin, DollarSign } from 'lucide-react';
-import dayjs from 'dayjs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-    Pagination, PaginationContent, PaginationEllipsis,
-    PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+    ChevronRight,
+    TrendingUp,
+    Wallet,
+    Percent,
+    MapPin,
+    DollarSign,
+    Filter,
+} from 'lucide-react';
+import dayjs from 'dayjs';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from '@/components/ui/pagination';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
@@ -33,6 +61,7 @@ const SummaryCard = ({ icon: Icon, label, value, iconColor = '#2F58EE' }) => {
 // --- Main Trip Ledger Report Component ---
 const TripLedgerReport = () => {
     const navigate = useNavigate();
+
     // Data states
     const [ledgerData, setLedgerData] = useState([]);
     const [summaryData, setSummaryData] = useState(null);
@@ -49,15 +78,17 @@ const TripLedgerReport = () => {
     const [selectedDriver, setSelectedDriver] = useState('all');
     const [selectedVehicle, setSelectedVehicle] = useState('all');
     const [selectedRoute, setSelectedRoute] = useState('all');
+
+    // Profit Range & Modal States
     const [profitRange, setProfitRange] = useState([-1000000, 10000000]);
     const [minProfit, setMinProfit] = useState(-1000000);
     const [maxProfit, setMaxProfit] = useState(10000000);
+    const [isProfitModalOpen, setIsProfitModalOpen] = useState(false);
+    const [localProfit, setLocalProfit] = useState(['', '']);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
-
-    // Expandable row states
 
     // Fetch ledger data
     useEffect(() => {
@@ -67,10 +98,10 @@ const TripLedgerReport = () => {
             try {
                 const data = await ReportsService.getTripLedger();
                 setLedgerData(data);
-                
+
                 // Calculate profit range from data
                 if (data.length > 0) {
-                    const profits = data.map(d => d.performance?.netProfit || 0);
+                    const profits = data.map((d) => d.performance?.netProfit || 0);
                     const min = Math.min(...profits);
                     const max = Math.max(...profits);
                     setMinProfit(min);
@@ -78,8 +109,8 @@ const TripLedgerReport = () => {
                     setProfitRange([min, max]);
                 }
             } catch (err) {
-                console.error("Failed to fetch trip ledger:", err);
-                setLedgerError(err.detail || "Could not load trip ledger data.");
+                console.error('Failed to fetch trip ledger:', err);
+                setLedgerError(err.detail || 'Could not load trip ledger data.');
             } finally {
                 setIsLoadingLedger(false);
             }
@@ -97,8 +128,8 @@ const TripLedgerReport = () => {
                 const data = await ReportsService.getTripLedgerSummary();
                 setSummaryData(data);
             } catch (err) {
-                console.error("Failed to fetch trip ledger summary:", err);
-                setSummaryError(err.detail || "Could not load summary data.");
+                console.error('Failed to fetch trip ledger summary:', err);
+                setSummaryError(err.detail || 'Could not load summary data.');
             } finally {
                 setIsLoadingSummary(false);
             }
@@ -113,10 +144,10 @@ const TripLedgerReport = () => {
             setIsLoadingEmployees(true);
             try {
                 const data = await DriverService.getAllDrivers(null, { limit: 100 });
-                const driverList = Array.isArray(data?.data || data) ? (data?.data || data) : [];
+                const driverList = Array.isArray(data?.data || data) ? data?.data || data : [];
                 setEmployees(driverList);
             } catch (err) {
-                console.error("Failed to fetch employees:", err);
+                console.error('Failed to fetch employees:', err);
                 setEmployees([]);
             } finally {
                 setIsLoadingEmployees(false);
@@ -134,7 +165,7 @@ const TripLedgerReport = () => {
                 const data = await DriverService.getAvailableVehicles(null);
                 setVehicles(Array.isArray(data) ? data : []);
             } catch (err) {
-                console.error("Failed to fetch vehicles:", err);
+                console.error('Failed to fetch vehicles:', err);
                 setVehicles([]);
             } finally {
                 setIsLoadingVehicles(false);
@@ -147,20 +178,20 @@ const TripLedgerReport = () => {
     // Extract unique options for filters from API data
     const driverOptions = useMemo(() => {
         return employees
-            .map(emp => `${emp.firstName || ''} ${emp.lastName || ''}`.trim())
+            .map((emp) => `${emp.firstName || ''} ${emp.lastName || ''}`.trim())
             .filter(Boolean)
             .sort();
     }, [employees]);
 
     const vehicleOptions = useMemo(() => {
         return vehicles
-            .map(vehicle => vehicle.registrationNumber || '')
+            .map((vehicle) => vehicle.registrationNumber || '')
             .filter(Boolean)
             .sort();
     }, [vehicles]);
 
     const routeOptions = useMemo(() => {
-        const routes = [...new Set(ledgerData.map(d => d.route?.name).filter(Boolean))];
+        const routes = [...new Set(ledgerData.map((d) => d.route?.name).filter(Boolean))];
         return routes.sort();
     }, [ledgerData]);
 
@@ -168,23 +199,18 @@ const TripLedgerReport = () => {
     const filteredData = useMemo(() => {
         let rows = ledgerData;
 
-        // Filter by driver
         if (selectedDriver && selectedDriver !== 'all') {
-            rows = rows.filter(row => row.driver?.fullName === selectedDriver);
+            rows = rows.filter((row) => row.driver?.fullName === selectedDriver);
         }
-
-        // Filter by vehicle
         if (selectedVehicle && selectedVehicle !== 'all') {
-            rows = rows.filter(row => row.vehicle?.registrationNumber === selectedVehicle);
+            rows = rows.filter((row) => row.vehicle?.registrationNumber === selectedVehicle);
         }
-
-        // Filter by route
         if (selectedRoute && selectedRoute !== 'all') {
-            rows = rows.filter(row => row.route?.name === selectedRoute);
+            rows = rows.filter((row) => row.route?.name === selectedRoute);
         }
 
         // Filter by profit range
-        rows = rows.filter(row => {
+        rows = rows.filter((row) => {
             const profit = row.performance?.netProfit || 0;
             return profit >= profitRange[0] && profit <= profitRange[1];
         });
@@ -193,23 +219,21 @@ const TripLedgerReport = () => {
     }, [ledgerData, selectedDriver, selectedVehicle, selectedRoute, profitRange]);
 
     // Pagination
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
     const paginatedData = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredData.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredData, currentPage, itemsPerPage]);
 
-    // Reset page when filters change
     useEffect(() => {
         setCurrentPage(1);
     }, [selectedDriver, selectedVehicle, selectedRoute, profitRange]);
 
-    // Navigate to trip detail page
+    // Navigation and Formatting Helpers
     const handleViewTripDetail = (row) => {
         navigate(`/reports/trip/${row._id}`, { state: { trip: row } });
     };
 
-    // Format helpers
     const formatCurrency = (value) => {
         if (typeof value !== 'number') return '-';
         return `₹${value.toLocaleString('en-IN')}`;
@@ -225,6 +249,13 @@ const TripLedgerReport = () => {
         return `${value.toLocaleString('en-IN')} kg`;
     };
 
+    // Safe formatting for the profit button label (ChatGPT Fix 3)
+    const formatProfitLabel = (value) => {
+        if (value === undefined || value === null) return '';
+        if (Math.abs(value) < 1000) return `₹${value}`;
+        return `₹${(value / 1000).toFixed(1)}K`;
+    };
+
     const renderPageItems = () => {
         const items = [];
         for (let i = 1; i <= totalPages; i++) {
@@ -237,12 +268,52 @@ const TripLedgerReport = () => {
         return items;
     };
 
-    // Export to CSV
+    // Profit Modal Handlers
+    const handleOpenProfitModal = () => {
+        setLocalProfit([
+            profitRange[0] === minProfit ? '' : profitRange[0].toString(),
+            profitRange[1] === maxProfit ? '' : profitRange[1].toString(),
+        ]);
+        setIsProfitModalOpen(true);
+    };
+
+    const handleApplyProfit = () => {
+        // ChatGPT Fix 1 & 2: Safe parsing & Clamping protection
+        let parsedMin = localProfit[0] === '' || isNaN(Number(localProfit[0])) ? minProfit : Number(localProfit[0]);
+        let parsedMax = localProfit[1] === '' || isNaN(Number(localProfit[1])) ? maxProfit : Number(localProfit[1]);
+
+        parsedMin = Math.max(minProfit, parsedMin);
+        parsedMax = Math.min(maxProfit, parsedMax);
+
+        if (parsedMin > parsedMax) {
+            setProfitRange([parsedMax, parsedMin]);
+        } else {
+            setProfitRange([parsedMin, parsedMax]);
+        }
+        setIsProfitModalOpen(false);
+    };
+
+    const handleResetProfit = () => {
+        setProfitRange([minProfit, maxProfit]);
+        // ChatGPT Fix 4: Reset local state correctly
+        setLocalProfit(['', '']);
+        setIsProfitModalOpen(false);
+    };
+
+    const handleLocalSliderChange = (event, newValue) => {
+        setLocalProfit([newValue[0].toString(), newValue[1].toString()]);
+    };
+
+    // Safe slider values for real-time rendering
+    const safeSliderMin = localProfit[0] === '' || isNaN(Number(localProfit[0])) ? minProfit : Number(localProfit[0]);
+    const safeSliderMax = localProfit[1] === '' || isNaN(Number(localProfit[1])) ? maxProfit : Number(localProfit[1]);
+
+    // Export functions
     const handleExportCSV = () => {
         const headers = ['Trip No', 'Date', 'Driver', 'Vehicle', 'Route', 'Net Weight (kg)', 'Revenue (₹)', 'Expense (₹)', 'Profit (₹)', 'Margin (%)'];
         const csvContent = [
             headers.join(','),
-            ...filteredData.map(row => [
+            ...filteredData.map((row) => [
                 row.tripNumber || '-',
                 row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
                 row.driver?.fullName || '-',
@@ -252,8 +323,9 @@ const TripLedgerReport = () => {
                 row.performance?.totalRevenue || 0,
                 row.performance?.totalExpense || 0,
                 row.performance?.netProfit || 0,
-                row.performance?.profitMargin?.toFixed(2) || 0
-            ].join(','))
+                row.performance?.profitMargin?.toFixed(2) || 0,
+            ].join(',')
+            ),
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -263,13 +335,11 @@ const TripLedgerReport = () => {
         link.click();
     };
 
-    // Export to Excel
     const handleExportExcel = () => {
-        // Using CSV format with .xlsx extension (for basic Excel support)
         const headers = ['Trip No', 'Date', 'Driver', 'Vehicle', 'Route', 'Net Weight (kg)', 'Revenue (₹)', 'Expense (₹)', 'Profit (₹)', 'Margin (%)'];
         const csvContent = [
             headers.join(','),
-            ...filteredData.map(row => [
+            ...filteredData.map((row) => [
                 row.tripNumber || '-',
                 row.tripDate ? dayjs(row.tripDate).format('DD/MM/YYYY') : '-',
                 row.driver?.fullName || '-',
@@ -279,8 +349,9 @@ const TripLedgerReport = () => {
                 row.performance?.totalRevenue || 0,
                 row.performance?.totalExpense || 0,
                 row.performance?.netProfit || 0,
-                row.performance?.profitMargin?.toFixed(2) || 0
-            ].join(','))
+                row.performance?.profitMargin?.toFixed(2) || 0,
+            ].join(',')
+            ),
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
@@ -297,18 +368,10 @@ const TripLedgerReport = () => {
                 <div className="report-header-top">
                     <h3 className="report-title">Trip Report</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
-                            onClick={handleExportCSV}
-                            className="export-btn"
-                            title="Export to CSV"
-                        >
+                        <button onClick={handleExportCSV} className="export-btn" title="Export to CSV">
                             <CsvIcon width={24} height={24} />
                         </button>
-                        <button 
-                            onClick={handleExportExcel}
-                            className="export-btn"
-                            title="Export to Excel"
-                        >
+                        <button onClick={handleExportExcel} className="export-btn" title="Export to Excel">
                             <ExcelIcon width={22} height={22} />
                         </button>
                     </div>
@@ -322,39 +385,16 @@ const TripLedgerReport = () => {
                         </Box>
                     ) : summaryError ? (
                         <Alert severity="error" sx={{ width: '100%' }}>{summaryError}</Alert>
-                    ) : summaryData && (
-                        <>
-                            <SummaryCard 
-                                icon={DollarSign} 
-                                label="Total Revenue" 
-                                value={formatCurrency(summaryData.totalRevenue)}
-                                iconColor="#2F58EE"
-                            />
-                            <SummaryCard 
-                                icon={Wallet} 
-                                label="Total Expense" 
-                                value={formatCurrency(summaryData.totalExpense)}
-                                iconColor="#EE2F2F"
-                            />
-                            <SummaryCard 
-                                icon={TrendingUp} 
-                                label="Total Profit" 
-                                value={formatCurrency(summaryData.totalProfit)}
-                                iconColor="#2ECC71"
-                            />
-                            <SummaryCard 
-                                icon={Percent} 
-                                label="Avg Margin" 
-                                value={`${summaryData.avgProfitMargin?.toFixed(2) || 0}%`}
-                                iconColor="#F39C12"
-                            />
-                            <SummaryCard 
-                                icon={MapPin} 
-                                label="Total Distance" 
-                                value={`${summaryData.totalDistanceKm?.toLocaleString('en-IN') || 0} km`}
-                                iconColor="#9B59B6"
-                            />
-                        </>
+                    ) : (
+                        summaryData && (
+                            <>
+                                <SummaryCard icon={DollarSign} label="Total Revenue" value={formatCurrency(summaryData.totalRevenue)} iconColor="#2F58EE" />
+                                <SummaryCard icon={Wallet} label="Total Expense" value={formatCurrency(summaryData.totalExpense)} iconColor="#EE2F2F" />
+                                <SummaryCard icon={TrendingUp} label="Total Profit" value={formatCurrency(summaryData.totalProfit)} iconColor="#2ECC71" />
+                                <SummaryCard icon={Percent} label="Avg Margin" value={`${summaryData.avgProfitMargin?.toFixed(2) || 0}%`} iconColor="#F39C12" />
+                                <SummaryCard icon={MapPin} label="Total Distance" value={`${summaryData.totalDistanceKm?.toLocaleString('en-IN') || 0} km`} iconColor="#9B59B6" />
+                            </>
+                        )
                     )}
                 </div>
 
@@ -411,19 +451,28 @@ const TripLedgerReport = () => {
                         </Select>
                     </div>
 
-                    <div className="date-input-group profit-range-filter">
-                        <label>Profit Range</label>
-                        <Box sx={{ width: 180, px: 1 }}>
-                            <Slider
-                                value={profitRange}
-                                onChange={(e, newValue) => setProfitRange(newValue)}
-                                valueLabelDisplay="auto"
-                                valueLabelFormat={(value) => `₹${(value / 1000).toFixed(0)}K`}
-                                min={minProfit}
-                                max={maxProfit}
-                                size="small"
-                            />
-                        </Box>
+                    {/* New Clean Profit Range Filter Button */}
+                    <div className="date-input-group">
+                        <label>Profit Filter</label>
+                        <Button
+                            variant="outlined"
+                            onClick={handleOpenProfitModal}
+                            startIcon={<Filter size={16} />}
+                            sx={{
+                                height: 40,
+                                textTransform: 'none',
+                                borderColor: '#e2e8f0',
+                                color: '#475569',
+                                backgroundColor: 'white',
+                                minWidth: '200px',
+                                justifyContent: 'flex-start',
+                                '&:hover': { borderColor: '#cbd5e1', backgroundColor: '#f8fafc' },
+                            }}
+                        >
+                            {profitRange[0] === minProfit && profitRange[1] === maxProfit
+                                ? 'All Profits'
+                                : `${formatProfitLabel(profitRange[0])} - ${formatProfitLabel(profitRange[1])}`}
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -469,11 +518,7 @@ const TripLedgerReport = () => {
                                     </tr>
                                 ) : (
                                     paginatedData.map((row) => (
-                                        <tr
-                                            key={row._id}
-                                            className="trip-table-row"
-                                            onClick={() => handleViewTripDetail(row)}
-                                        >
+                                        <tr key={row._id} className="trip-table-row" onClick={() => handleViewTripDetail(row)}>
                                             <td>
                                                 <div className="cell-primary">{row.tripNumber || '-'}</div>
                                             </td>
@@ -531,7 +576,7 @@ const TripLedgerReport = () => {
                                 <PaginationContent>
                                     <PaginationItem>
                                         <PaginationPrevious
-                                            onClick={() => currentPage > 1 && setCurrentPage(p => p - 1)}
+                                            onClick={() => currentPage > 1 && setCurrentPage((p) => p - 1)}
                                             className={currentPage <= 1 ? 'pointer-events-none opacity-40' : ''}
                                         />
                                     </PaginationItem>
@@ -553,7 +598,7 @@ const TripLedgerReport = () => {
                                     )}
                                     <PaginationItem>
                                         <PaginationNext
-                                            onClick={() => currentPage < totalPages && setCurrentPage(p => p + 1)}
+                                            onClick={() => currentPage < totalPages && setCurrentPage((p) => p + 1)}
                                             className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : ''}
                                         />
                                     </PaginationItem>
@@ -563,6 +608,65 @@ const TripLedgerReport = () => {
                     )}
                 </div>
             )}
+
+            {/* Profit Filter Modal */}
+            <Dialog
+                open={isProfitModalOpen}
+                onClose={() => setIsProfitModalOpen(false)}
+                // UI Fix to prevent horizontal scrollbar clipping
+                PaperProps={{ sx: { borderRadius: 2, minWidth: 400 } }}
+            >
+                <DialogTitle sx={{ fontWeight: 600, fontSize: '1.1rem', pb: 1 }}>Filter by Profit</DialogTitle>
+                <DialogContent sx={{ overflowX: 'hidden' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <TextField
+                                label="Min Profit (₹)"
+                                type="number"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={localProfit[0]}
+                                onChange={(e) => setLocalProfit([e.target.value, localProfit[1]])}
+                            />
+                            <TextField
+                                label="Max Profit (₹)"
+                                type="number"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={localProfit[1]}
+                                onChange={(e) => setLocalProfit([localProfit[0], e.target.value])}
+                            />
+                        </Box>
+                        <Box sx={{ px: 2 }}>
+                            <Typography variant="caption" color="text.secondary" gutterBottom>
+                                Range Selector
+                            </Typography>
+                            <Slider
+                                value={[safeSliderMin, safeSliderMax]}
+                                onChange={handleLocalSliderChange}
+                                valueLabelDisplay="auto"
+                                valueLabelFormat={(value) => formatProfitLabel(value)}
+                                min={minProfit}
+                                max={maxProfit}
+                                disableSwap
+                            />
+                        </Box>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={handleResetProfit} color="error" sx={{ mr: 'auto', textTransform: 'none' }}>
+                        Reset
+                    </Button>
+                    <Button onClick={() => setIsProfitModalOpen(false)} color="inherit" sx={{ textTransform: 'none' }}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleApplyProfit} variant="contained" sx={{ textTransform: 'none', boxShadow: 'none' }}>
+                        Apply Filter
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

@@ -206,6 +206,8 @@ const ProfilePage = () => {
                     localStorage.setItem('profile_id', user.id);
                     localStorage.setItem('profile_owner_email', user.email);
                     localStorage.setItem('primaryThemeColor', user.primaryThemeColor || '#2940d3');
+                    // Dispatch so Sidebar/Navbar re-render with the loaded colour in the same tab
+                    window.dispatchEvent(new CustomEvent('themeColorChange'));
                 }
                 if (organization) {
                     localStorage.setItem('profile_company_name', organization.companyName);
@@ -224,7 +226,7 @@ const ProfilePage = () => {
 
     if (isLoading) return <ProfileSkeleton />;
 
-    if (error || !userData || !organizationData) {
+    if (error || !userData) {
         return (
             <div className="flex h-full w-full items-center justify-center p-6">
                 <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">

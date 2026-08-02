@@ -1,0 +1,439 @@
+/* ─── AddZoneDrawer — WheelsEye-style Add Place modal ───────────────────────
+   Completely self-contained. Does not use .search-input-wrapper from
+   GoogleMapsModal.css (that class is position:absolute and breaks form layout).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Overlay */
+.azd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+/* Modal box */
+.azd-modal {
+  background: white;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+}
+
+/* ─── Header ── */
+.azd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.azd-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+.azd-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+.azd-close-btn:hover { background: #f1f5f9; color: #0f172a; }
+
+/* ─── Content (two columns) ── */
+.azd-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Left form column */
+.azd-form-col {
+  width: 320px;
+  flex-shrink: 0;
+  padding: 20px 22px;
+  overflow-y: auto;
+  border-right: 1px solid #e2e8f0;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Right map column */
+.azd-map-col {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  background: #f1f5f9;
+}
+
+/* ─── Labels ── */
+.azd-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin: 14px 0 6px;
+}
+.azd-label:first-child { margin-top: 0; }
+.azd-radius-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-color, #4f46e5);
+}
+
+/* ─── Standard input ── */
+.azd-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.azd-input:focus { border-color: var(--primary-color, #4f46e5); }
+.azd-input-err { border-color: #fca5a5 !important; }
+
+/* ─── Location search ── */
+.azd-location-wrap {
+  position: relative;
+  width: 100%;
+  margin-bottom: 2px;
+}
+.azd-location-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: white;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.azd-location-input-row.azd-focused   { border-color: var(--primary-color, #4f46e5); }
+.azd-location-input-row.azd-error-border { border-color: #fca5a5; }
+.azd-pin-icon { color: #94a3b8; flex-shrink: 0; }
+.azd-location-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #0f172a;
+  background: transparent;
+  font-family: inherit;
+  min-width: 0;
+}
+.azd-location-input::placeholder { color: #94a3b8; }
+
+/* Suggestions dropdown */
+.azd-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  z-index: 9999;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+.azd-suggestion-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid #f1f5f9;
+}
+.azd-suggestion-item:last-child { border-bottom: none; }
+.azd-suggestion-item:hover { background: #f0f9ff; color: #0f172a; }
+
+/* ─── Geofence type dropdown ── */
+.azd-type-wrap { position: relative; }
+.azd-type-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.azd-type-trigger:hover,
+.azd-type-open { border-color: var(--primary-color, #4f46e5); }
+.azd-type-label { flex: 1; }
+.azd-type-label:empty::before { content: 'Select'; color: #94a3b8; }
+.azd-chevron { font-size: 12px; color: #64748b; }
+.azd-type-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  z-index: 200;
+  overflow: hidden;
+}
+.azd-type-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.12s;
+  font-family: inherit;
+}
+.azd-type-option:last-child { border-bottom: none; }
+.azd-type-option:hover,
+.azd-type-selected { background: #f0f9ff; }
+.azd-type-icon { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+.azd-type-name { flex: 1; font-weight: 500; }
+.azd-new-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Radius slider ── */
+.azd-slider {
+  width: 100%;
+  accent-color: var(--primary-color, #4f46e5);
+  cursor: pointer;
+}
+
+/* ─── Alert checkboxes ── */
+.azd-alerts-section { margin-top: 4px; }
+.azd-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  margin-bottom: 8px;
+  font-family: inherit;
+}
+.azd-check input { accent-color: var(--primary-color, #4f46e5); cursor: pointer; }
+
+/* ─── Polygon drawing instructions ── */
+.azd-poly-instructions {
+  background: #f0f4ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #3730a3;
+  line-height: 1.8;
+}
+.azd-poly-instructions p { margin: 0; }
+.azd-poly-done {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+.azd-poly-note {
+  font-size: 12px;
+  color: #6366f1;
+  margin-top: 4px !important;
+}
+.azd-finish-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 9px 0;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.azd-finish-btn:hover { background: #4f46e5; }
+
+/* ─── Error messages ── */
+.azd-error-msg {
+  font-size: 12px;
+  color: #ef4444;
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+.azd-save-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+/* ─── Map area ── */
+.azd-map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.azd-map {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+.azd-map-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Drawing hint banner */
+.azd-drawing-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.80);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Success variant — shown at bottom-left after polygon is complete */
+.azd-hint-success {
+  top: auto;
+  bottom: 14px;
+  left: 14px;
+  transform: none;
+  background: rgba(16, 185, 129, 0.90);
+}
+
+/* Polygon control buttons */
+.azd-poly-controls {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+.azd-poly-btn {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.10);
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.azd-poly-btn:hover { background: #f1f5f9; }
+.azd-poly-clear {
+  color: var(--primary-color, #4f46e5);
+  border-color: var(--primary-color, #4f46e5);
+}
+
+/* ─── Footer ── */
+.azd-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.azd-save-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: not-allowed;
+  background: #e2e8f0;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.azd-save-active {
+  background: var(--primary-color, #4f46e5);
+  color: white;
+  cursor: pointer;
+}
+.azd-save-active:hover:not(:disabled) { filter: brightness(1.08); }
+.azd-save-btn:disabled { opacity: 0.6; }
+
+/* ─── Spinner ── */
+.azd-spin { animation: azd-spin-kf 0.8s linear infinite; }
+@keyframes azd-spin-kf {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Responsive ── */
+@media (max-width: 700px) {
+  .azd-modal { max-width: 100%; border-radius: 0; max-height: 100vh; }
+  .azd-content { flex-direction: column; }
+  .azd-form-col { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; max-height: 50vh; }
+  .azd-map-col { height: 300px; }
+  .azd-map, .azd-map-placeholder { min-height: 300px; }
+}

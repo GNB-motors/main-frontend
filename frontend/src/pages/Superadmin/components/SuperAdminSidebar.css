@@ -1,4 +1,12 @@
-.sidebar {
+/* SuperAdminSidebar.css
+   All selectors are prefixed with `superadmin-` to prevent these styles from
+   leaking onto the main app's Sidebar (which uses the same conceptual class
+   names like `sidebar`, `nav-link`, etc.). Previously these unscoped rules
+   were overriding the main Sidebar's themed active/hover styles with
+   hardcoded blue colours.
+*/
+
+.superadmin-sidebar {
     width: 100px;
     background-color: #ffffff;
     padding: 24px;
@@ -6,8 +14,8 @@
     flex-direction: column;
     border-right: 1px solid #e5e7eb;
     flex-shrink: 0;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 margin-left 0.3s ease;
     position: fixed;
     height: 100vh;
@@ -17,17 +25,17 @@
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }
 
-.sidebar:hover {
+.superadmin-sidebar:hover {
     width: 260px;
 }
 
-.sidebar-content {
+.superadmin-sidebar-content {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
 
-.sidebar-header {
+.superadmin-sidebar-header {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -37,20 +45,20 @@
     transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.logo-img {
+.superadmin-logo-img {
     flex-shrink: 0;
     height: 64px;
-    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar:not(:hover) .logo-img {
+.superadmin-sidebar:not(:hover) .superadmin-logo-img {
     height: 40px;
     margin-left: -8px;
 }
 
-.logo-text {
+.superadmin-logo-text {
     font-size: 20px;
     font-weight: 700;
     margin: 0;
@@ -59,24 +67,24 @@
     opacity: 0;
     visibility: hidden;
     width: 0;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar:hover .logo-text {
+.superadmin-sidebar:hover .superadmin-logo-text {
     opacity: 1;
     visibility: visible;
     width: auto;
 }
 
-.sidebar-nav {
+.superadmin-sidebar-nav {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.nav-link {
+.superadmin-nav-link {
     display: flex;
     align-items: center;
     padding: 12px;
@@ -97,84 +105,84 @@
     width: 100%;
 }
 
-.sidebar:hover .nav-link {
+.superadmin-sidebar:hover .superadmin-nav-link {
     gap: 12px;
 }
 
-.sidebar:not(:hover) .nav-link {
+.superadmin-sidebar:not(:hover) .superadmin-nav-link {
     justify-content: center;
 }
 
-.nav-link span {
+.superadmin-nav-link span {
     opacity: 0;
     visibility: hidden;
     width: 0;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar:hover .nav-link span {
+.superadmin-sidebar:hover .superadmin-nav-link span {
     opacity: 1;
     visibility: visible;
     width: auto;
 }
 
-.nav-link svg {
+.superadmin-nav-link svg {
     color: inherit;
     flex-shrink: 0;
     transition: color 0.2s ease;
 }
 
-.nav-link:hover {
+.superadmin-nav-link:hover {
     background-color: #eff6ff;
     color: #3b82f6;
 }
 
-.nav-link.active {
+.superadmin-nav-link.active {
     background-color: #dbeafe;
     color: #2563eb;
 }
 
-.sidebar-footer {
+.superadmin-sidebar-footer {
     margin-top: auto;
     padding-top: 16px;
     border-top: 1px solid #e5e7eb;
 }
 
-.logout-btn {
+.superadmin-logout-btn {
     color: #ef4444;
 }
 
-.logout-btn:hover {
+.superadmin-logout-btn:hover {
     background-color: #fee2e2;
     color: #dc2626;
 }
 
 /* Mobile styles */
 @media (max-width: 992px) {
-    .sidebar {
+    .superadmin-sidebar {
         transform: translateX(-100%);
         width: 260px;
     }
-    
-    .sidebar.open {
+
+    .superadmin-sidebar.open {
         transform: translateX(0);
     }
-    
-    .sidebar:not(:hover) .logo-img {
+
+    .superadmin-sidebar:not(:hover) .superadmin-logo-img {
         height: 64px;
         margin-left: 0;
     }
-    
-    .logo-text,
-    .nav-link span {
+
+    .superadmin-logo-text,
+    .superadmin-nav-link span {
         opacity: 1;
         visibility: visible;
         width: auto;
     }
-    
-    .nav-link {
+
+    .superadmin-nav-link {
         gap: 12px;
         justify-content: flex-start;
     }
