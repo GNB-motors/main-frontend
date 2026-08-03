@@ -89,6 +89,17 @@ export const getVehicleLabel = (vehicle) => {
   return vehicle.registrationNumber || vehicle.name || '-';
 };
 
+// Khata split fields (vehicleSplit / driverSplit / byVehicle / byDriver) come back
+// from the API as a { label: amount } map. Normalise to a descending array so the
+// "top N" slices actually show the largest contributors.
+export const toSplitArray = (split) => {
+  if (Array.isArray(split)) return split;
+  if (!split || typeof split !== 'object') return [];
+  return Object.entries(split)
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => (b.amount || 0) - (a.amount || 0));
+};
+
 export const getInitialDateRange = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);

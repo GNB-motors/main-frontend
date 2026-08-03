@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
 import AddFuelLogModal from './AddFuelLogModal';
-import { formatCurrency, getDriverName, getInitialDateRange } from '../utils';
+import { formatCurrency, getDriverName, getInitialDateRange, toSplitArray } from '../utils';
 
 const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
   const navigate = useNavigate();
@@ -130,7 +130,7 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
                     <TableCell>{driver.entryCount ?? driver.count ?? 0}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {(driver.vehicleSplit || driver.byVehicle || [])
+                        {toSplitArray(driver.vehicleSplit || driver.byVehicle)
                           .slice(0, 3)
                           .map((split) => {
                             const vehicle = vehicles.find((v) => v._id === (split.vehicleId || split._id));

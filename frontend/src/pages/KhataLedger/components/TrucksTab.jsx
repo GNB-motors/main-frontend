@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
 import AddFuelLogModal from './AddFuelLogModal';
-import { formatCurrency, getDriverName, getVehicleLabel, getInitialDateRange } from '../utils';
+import { formatCurrency, getDriverName, getVehicleLabel, getInitialDateRange, toSplitArray } from '../utils';
 
 const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
   const navigate = useNavigate();
@@ -129,11 +129,11 @@ const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
                     <TableCell>{truck.entryCount ?? truck.count ?? 0}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {(truck.driverSplit || truck.byDriver || [])
+                        {toSplitArray(truck.driverSplit || truck.byDriver)
                           .slice(0, 3)
                           .map((split) => {
                             const driver = drivers.find((d) => d._id === (split.driverId || split._id));
-                            const label = getDriverName(driver) || split.name || 'Unknown';
+                            const label = (driver && getDriverName(driver)) || split.name || 'Unknown';
                             return (
                               <Badge key={split.driverId || split._id || label} variant="outline" className="text-xs">
                                 <User size={10} className="mr-1" />

@@ -21,6 +21,7 @@ import {
   getDriverName,
   getVehicleLabel,
   getInitialDateRange,
+  toSplitArray,
 } from '../utils';
 
 const LedgerDetailView = ({ entityType, entityId }) => {
@@ -130,10 +131,21 @@ const LedgerDetailView = ({ entityType, entityId }) => {
     fetchData(1);
   }, [fetchData]);
 
-  const splitItems = summary.split || (isDriver ? summary.byVehicle : summary.byDriver) || [];
+  const splitItems = toSplitArray(summary.split || (isDriver ? summary.byVehicle : summary.byDriver));
   const categoryEntries = Object.entries(summary.byCategory || {});
   const sourceEntries = Object.entries(summary.bySource || {});
   const crossOptions = isDriver ? filterOptions.vehicles : filterOptions.drivers;
+
+  const topSplit = splitItems[0];
+  const topSplitMatch =
+    topSplit &&
+    (isDriver
+      ? filterOptions.vehicles.find((v) => v._id === (topSplit.vehicleId || topSplit._id))
+      : filterOptions.drivers.find((d) => d._id === (topSplit.driverId || topSplit._id)));
+  const topSplitLabel =
+    (topSplitMatch && (isDriver ? getVehicleLabel(topSplitMatch) : getDriverName(topSplitMatch))) ||
+    topSplit?.name ||
+    '-';
 
   return (
     <div className="space-y-5 p-1">
@@ -211,11 +223,7 @@ const LedgerDetailView = ({ entityType, entityId }) => {
               {isDriver ? 'Top Vehicle' : 'Top Driver'}
             </p>
             <p className="mt-0.5 text-lg font-semibold">
-              {splitItems[0]
-                ? isDriver
-                  ? getVehicleLabel(filterOptions.vehicles.find((v) => v._id === splitItems[0].vehicleId || v._id === splitItems[0]._id)) || splitItems[0].name || '-'
-                  : getDriverName(filterOptions.drivers.find((d) => d._id === splitItems[0].driverId || d._id === splitItems[0]._id)) || splitItems[0].name || '-'
-                : '-'}
+              {splitItems[0] ? topSplitLabel : '-'}
             </p>
             <p className="text-xs text-muted-foreground">{splitItems[0] ? formatCurrency(splitItems[0].amount) : ''}</p>
           </CardContent>
@@ -331,9 +339,11 @@ const LedgerDetailView = ({ entityType, entityId }) => {
                 <p className="text-sm text-muted-foreground">No data</p>
               ) : (
                 splitItems.slice(0, 6).map((item) => {
-                  const label = isDriver
-                    ? getVehicleLabel(filterOptions.vehicles.find((v) => v._id === (item.vehicleId || item._id))) || item.name || 'Unknown'
-                    : getDriverName(filterOptions.drivers.find((d) => d._id === (item.driverId || item._id))) || item.name || 'Unknown';
+                  const match = isDriver
+                    ? filterOptions.vehicles.find((v) => v._id === (item.vehicleId || item._id))
+                    : filterOptions.drivers.find((d) => d._id === (item.driverId || item._id));
+                  const label =
+                    (match && (isDriver ? getVehicleLabel(match) : getDriverName(match))) || item.name || 'Unknown';
                   return (
                     <div key={item.vehicleId || item.driverId || item._id || item.name} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{label}</span>
