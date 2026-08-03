@@ -86,6 +86,16 @@ const KhataLedgerService = {
     const response = await apiClient.delete(`/api/driver-vehicle-assignments/${id}`);
     return response.data;
   },
+
+  getActiveAssignment: async ({ driverId, vehicleId } = {}) => {
+    const params = { activeOn: new Date().toISOString() };
+    if (driverId) params.driverId = driverId;
+    if (vehicleId) params.vehicleId = vehicleId;
+    const response = await apiClient.get('/api/driver-vehicle-assignments', { params });
+    const data = unwrap(response);
+    const list = data?.results || data?.items || data || [];
+    return Array.isArray(list) && list.length ? list[0] : null;
+  },
 };
 
 export default KhataLedgerService;

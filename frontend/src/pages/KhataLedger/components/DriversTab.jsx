@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, ChevronLeft, ChevronRight, Eye, Truck } from 'lucide-react';
+import { Search, User, ChevronLeft, ChevronRight, Eye, Truck, Fuel } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
+import AddFuelLogModal from './AddFuelLogModal';
 import { formatCurrency, getDriverName, getInitialDateRange } from '../utils';
 
 const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
@@ -18,6 +19,7 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalResults: 0 });
+  const [fuelModalDriverId, setFuelModalDriverId] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 400);
@@ -143,13 +145,22 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <button
-                        onClick={() => navigate(`/khata-ledger/drivers/${driver._id}`)}
-                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                      >
-                        <Eye size={13} />
-                        View Ledger
-                      </button>
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => setFuelModalDriverId(driver._id)}
+                          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                        >
+                          <Fuel size={13} />
+                          Add Fuel
+                        </button>
+                        <button
+                          onClick={() => navigate(`/khata-ledger/drivers/${driver._id}`)}
+                          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                        >
+                          <Eye size={13} />
+                          View Ledger
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -182,6 +193,13 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
           )}
         </CardContent>
       </Card>
+
+      <AddFuelLogModal
+        open={!!fuelModalDriverId}
+        onClose={() => setFuelModalDriverId(null)}
+        driverId={fuelModalDriverId}
+        onAdded={() => fetchDrivers(meta.page)}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, IndianRupee, User, Truck } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, IndianRupee, User, Truck, Fuel } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
 import TripService from '../../Trip/services/TripService';
+import AddFuelLogModal from './AddFuelLogModal';
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -38,6 +39,7 @@ const LedgerDetailView = ({ entityType, entityId }) => {
   const [category, setCategory] = useState('');
   const [source, setSource] = useState('');
   const [crossFilterId, setCrossFilterId] = useState('');
+  const [fuelModalOpen, setFuelModalOpen] = useState(false);
 
   const [filterOptions, setFilterOptions] = useState({ vehicles: [], drivers: [] });
 
@@ -153,7 +155,17 @@ const LedgerDetailView = ({ entityType, entityId }) => {
             </p>
           </div>
         </div>
-        <DateRangeFilter value={dateRange} onChange={setDateRange} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFuelModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm"
+            style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
+          >
+            <Fuel size={18} />
+            Add Fuel
+          </button>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -439,6 +451,14 @@ const LedgerDetailView = ({ entityType, entityId }) => {
           )}
         </CardContent>
       </Card>
+
+      <AddFuelLogModal
+        open={fuelModalOpen}
+        onClose={() => setFuelModalOpen(false)}
+        driverId={isDriver ? entityId : undefined}
+        vehicleId={!isDriver ? entityId : undefined}
+        onAdded={() => fetchData(meta.page)}
+      />
     </div>
   );
 };

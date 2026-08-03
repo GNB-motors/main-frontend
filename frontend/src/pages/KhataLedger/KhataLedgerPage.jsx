@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Fuel } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import TripService from '../Trip/services/TripService';
 import AllTransactionsTab from './components/AllTransactionsTab';
 import DriversTab from './components/DriversTab';
 import TrucksTab from './components/TrucksTab';
 import AssignmentsTab from './components/AssignmentsTab';
+import AddFuelLogModal from './components/AddFuelLogModal';
 
 const TAB_KEYS = {
   all: 'all',
@@ -21,6 +22,7 @@ const KhataLedgerPage = () => {
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [dropdownsLoading, setDropdownsLoading] = useState(true);
+  const [fuelModalOpen, setFuelModalOpen] = useState(false);
 
   useEffect(() => {
     const loadDropdowns = async () => {
@@ -56,6 +58,14 @@ const KhataLedgerPage = () => {
           </h1>
           <p className="text-sm text-muted-foreground">Track all expenses by driver, truck, assignment, or as a flat list</p>
         </div>
+        <button
+          onClick={() => setFuelModalOpen(true)}
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm"
+          style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
+        >
+          <Fuel size={18} />
+          Add Fuel
+        </button>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -82,6 +92,8 @@ const KhataLedgerPage = () => {
           <AssignmentsTab vehicles={vehicles} drivers={drivers} loading={dropdownsLoading} />
         </TabsContent>
       </Tabs>
+
+      <AddFuelLogModal open={fuelModalOpen} onClose={() => setFuelModalOpen(false)} />
     </div>
   );
 };
