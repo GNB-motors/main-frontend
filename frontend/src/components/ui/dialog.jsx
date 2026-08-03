@@ -16,7 +16,8 @@ function DialogOverlay({ className, ...props }) {
     <DialogPrimitive.Backdrop
       data-slot="dialog-backdrop"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 transition-opacity duration-100",
+        // z must clear the legacy page CSS (side panels/map overlays sit at 9999-10001)
+        "fixed inset-0 z-[10050] bg-black/50 backdrop-blur-sm data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 transition-opacity duration-100",
         className
       )}
       {...props}
@@ -31,7 +32,7 @@ function DialogContent({ className, children, ...props }) {
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-card p-0 text-card-foreground shadow-lg",
+          "fixed left-1/2 top-1/2 z-[10051] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-card p-0 text-card-foreground shadow-lg",
           "data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[starting-style]:scale-95",
           "transition-all duration-100",
           className
