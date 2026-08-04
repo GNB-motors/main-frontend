@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, IndianRupee, User, Truck, Fuel } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, IndianRupee, User, Truck, Fuel } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -393,6 +393,15 @@ const LedgerDetailView = ({ entityType, entityId }) => {
                         <p className="text-sm font-medium">{tx.title}</p>
                         {tx.description && (
                           <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground">{tx.description}</p>
+                        )}
+                        {tx.mileageFlag && (
+                          <span
+                            title={tx.mileageFlag.reason}
+                            className="mt-1 inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700"
+                          >
+                            <AlertTriangle size={11} />
+                            {tx.mileageFlag.actualKmPerL?.toFixed(2)} vs {tx.mileageFlag.expectedKmPerL} km/L
+                          </span>
                         )}
                       </div>
                     </TableCell>

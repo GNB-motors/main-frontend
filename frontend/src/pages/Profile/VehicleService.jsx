@@ -4,6 +4,18 @@ import apiClient from '../../utils/axiosConfig';
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
+/**
+ * Shape the form's expected-mileage input for the API. Returns undefined for an
+ * empty/absent value so the key is dropped from the payload entirely — the API
+ * rejects `expectedMileage` when the org lacks the Mileage Integrity feature.
+ */
+const toExpectedMileage = (value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  const kmPerL = Number(value);
+  if (!Number.isFinite(kmPerL) || kmPerL <= 0) return undefined;
+  return { kmPerL, source: 'MANUAL' };
+};
+
 const getAllVehicles = async (businessRefId, token, page = 1, limit = 10) => {
   try {
     // New API: GET /vehicles with optional orgId query param and pagination
@@ -46,6 +58,9 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
       // Include manufacturer and vehicleCategory if provided (for manual override)
       manufacturer: vehicleData.manufacturer || undefined,
       vehicleCategory: vehicleData.vehicleCategory || undefined,
+      // Omitted entirely unless the org has Mileage Integrity on — the API
+      // rejects this key when the feature is off.
+      expectedMileage: toExpectedMileage(vehicleData.expected_mileage),
     };
 
     const response = await axios.post(
@@ -147,6 +162,9 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
      // Include manufacturer and vehicleCategory for manual override
      if (vehicleData.manufacturer !== undefined) body.manufacturer = vehicleData.manufacturer;
      if (vehicleData.vehicleCategory !== undefined) body.vehicleCategory = vehicleData.vehicleCategory;
+     if (vehicleData.expected_mileage !== undefined) {
+       body.expectedMileage = toExpectedMileage(vehicleData.expected_mileage) || { kmPerL: null };
+     }
      // Include orgId when provided by caller (some servers expect it)
      if (businessRefId) body.orgId = businessRefId;
 
