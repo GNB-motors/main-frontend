@@ -201,6 +201,7 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
     const [mobileNumber, setMobileNumber] = useState('');
     const [location, setLocation] = useState('');
     const [role, setRole] = useState('');
+    const [status, setStatus] = useState('');
     const [vehicleRegistrationNo, setVehicleRegistrationNo] = useState('');
     const [error, setError] = useState(null);
 
@@ -213,6 +214,7 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
             setMobileNumber(driver.mobileNumber || driver.mobile_number || '');
             setLocation(driver.location || '');
             setRole(driver.role || '');
+            setStatus(driver.status || 'PENDING');
             setVehicleRegistrationNo(driver.vehicle_registration_no || ''); // Use vehicle_registration_no from backend
             setError(null);
         }
@@ -224,6 +226,7 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
             setMobileNumber('');
             setLocation('');
             setRole('');
+            setStatus('');
             setVehicleRegistrationNo('');
             setError(null);
         }
@@ -246,6 +249,7 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
             mobileNumber: mobileNumber || undefined,
             location: location || undefined,
             role: role || undefined,
+            status: status || undefined,
             vehicle_registration_no: vehicleRegistrationNo || null // Send null if empty string
         };
 
@@ -340,6 +344,19 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
                                 placeholder="e.g., Driver, Manager"
                                 disabled={isSubmitting}
                             />
+                        </div>
+                        <div className="drivers-form-group">
+                            <label htmlFor="editDriverStatus">Status</label>
+                            <select
+                                id="editDriverStatus"
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                disabled={isSubmitting}
+                            >
+                                <option value="PENDING">Pending</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="SUSPENDED">Suspended</option>
+                            </select>
                         </div>
                     </div>
                     <div className="drivers-form-row">
