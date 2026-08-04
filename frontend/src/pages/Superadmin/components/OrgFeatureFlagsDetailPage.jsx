@@ -23,6 +23,7 @@ const FEATURE_LABELS = {
   locations: 'Locations',
   fuelComparison: 'Fuel Comparison',
   khataLedger: 'Khata Ledger',
+  dailyMileageReport: 'Daily Mileage Report Email',
 };
 
 /* Accessible pill toggle that matches the app's indigo brand. */
@@ -196,7 +197,7 @@ const OrgFeatureFlagsDetailPage = () => {
         backPath="/superadmin/feature-flags"
         currentLabel={orgName || '…'}
         title={orgName || 'Organization'}
-        description="Toggle which sidebar features this organization can access."
+        description="Toggle which sidebar features and automated email reports this organization can access."
       />
 
       <div className="ff-toolbar">
@@ -287,13 +288,22 @@ const OrgFeatureFlagsDetailPage = () => {
                         <span className="ff-feature__label">
                           {FEATURE_LABELS[key] || key}
                         </span>
+                        {key === 'dailyMileageReport' && (
+                          <div className="ff-feature__hint">
+                            Sends a daily 09:00 IST mileage digest to this org.
+                          </div>
+                        )}
                       </td>
                       <td>
                         <span className="ff-mono">{key}</span>
                       </td>
                       <td className="ff-center">
                         <span className="ff-badge ff-badge--outline">
-                          {isDynamic ? 'Custom' : 'Built-in'}
+                          {key === 'dailyMileageReport'
+                            ? 'Email'
+                            : isDynamic
+                              ? 'Custom'
+                              : 'Built-in'}
                         </span>
                       </td>
                       <td className="ff-center">
