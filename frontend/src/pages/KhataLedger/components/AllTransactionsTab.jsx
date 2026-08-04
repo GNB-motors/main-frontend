@@ -224,7 +224,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [includeTripExpenses, setIncludeTripExpenses] = useState(false);
+  const [includeTripExpenses, setIncludeTripExpenses] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);

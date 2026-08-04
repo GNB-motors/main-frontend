@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import KhataLedgerService from '../KhataLedgerService';
 import { getDriverName, getVehicleLabel } from '../utils';
 
@@ -20,8 +18,8 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
   useEffect(() => {
     if (editingAssignment) {
       setForm({
-        driverId: editingAssignment.driverId || '',
-        vehicleId: editingAssignment.vehicleId || '',
+        driverId: editingAssignment.driverId?._id || editingAssignment.driverId || '',
+        vehicleId: editingAssignment.vehicleId?._id || editingAssignment.vehicleId || '',
         startDate: editingAssignment.startDate ? new Date(editingAssignment.startDate).toISOString().split('T')[0] : '',
         endDate: editingAssignment.endDate ? new Date(editingAssignment.endDate).toISOString().split('T')[0] : '',
         status: editingAssignment.status || 'ACTIVE',
@@ -89,9 +87,9 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
                 Driver <span className="text-red-500">*</span>
-              </Label>
+              </label>
               <select
                 className={inputClass}
                 value={form.driverId}
@@ -106,9 +104,9 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
               </select>
             </div>
             <div>
-              <Label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
                 Vehicle <span className="text-red-500">*</span>
-              </Label>
+              </label>
               <select
                 className={inputClass}
                 value={form.vehicleId}
@@ -126,10 +124,10 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
                 Effective From <span className="text-red-500">*</span>
-              </Label>
-              <Input
+              </label>
+              <input
                 type="date"
                 className={inputClass}
                 value={form.startDate}
@@ -137,8 +135,8 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
               />
             </div>
             <div>
-              <Label className="mb-1 block text-sm font-medium text-gray-700">Effective To</Label>
-              <Input
+              <label className="mb-1 block text-sm font-medium text-gray-700">Effective To</label>
+              <input
                 type="date"
                 className={inputClass}
                 value={form.endDate}
@@ -148,7 +146,7 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
           </div>
 
           <div>
-            <Label className="mb-1 block text-sm font-medium text-gray-700">Status</Label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
             <select
               className={inputClass}
               value={form.status}
@@ -160,7 +158,7 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
           </div>
 
           <div>
-            <Label className="mb-1 block text-sm font-medium text-gray-700">Notes</Label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Notes</label>
             <textarea
               className={inputClass}
               value={form.notes}

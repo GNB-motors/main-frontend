@@ -82,8 +82,11 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
   };
 
   const enrichedAssignments = assignments.map((a) => {
-    const driver = drivers.find((d) => d._id === a.driverId);
-    const vehicle = vehicles.find((v) => v._id === a.vehicleId);
+    const dId = a.driverId?._id || a.driverId;
+    const vId = a.vehicleId?._id || a.vehicleId;
+    const driver = drivers.find((d) => d._id === dId) || a.driverId;
+    const vehicle = vehicles.find((v) => v._id === vId) || a.vehicleId;
+    
     return {
       ...a,
       driverName: getDriverName(driver) || a.driverName || 'Unknown',
