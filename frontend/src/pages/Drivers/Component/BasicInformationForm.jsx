@@ -17,6 +17,7 @@ const BasicInformationForm = forwardRef(({
     location: initialData.location || '',
     password: initialData.password || '',
     role: initialData.role || 'DRIVER',
+    status: initialData.status || 'PENDING',
   });
 
   // Update form data when initialData changes (for edit mode)
@@ -30,6 +31,7 @@ const BasicInformationForm = forwardRef(({
         location: initialData.location || '',
         password: initialData.password || '',
         role: initialData.role || 'DRIVER',
+        status: initialData.status || 'PENDING',
       });
     }
   }, [initialData]);
@@ -142,7 +144,7 @@ const BasicInformationForm = forwardRef(({
               </div>
             </div>
 
-            {/* Row 4: Role */}
+            {/* Row 4: Role, Status */}
             <div className="basic-info-form-row">
               <div className="basic-info-form-field">
                 <label className="basic-info-label">Role</label>
@@ -156,6 +158,21 @@ const BasicInformationForm = forwardRef(({
                   <option value="FIELD_AGENT">Field Agent</option>
                 </select>
               </div>
+
+              {isEdit && (
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Status</label>
+                  <select 
+                    className="basic-info-input"
+                    value={formData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="SUSPENDED">Suspended</option>
+                  </select>
+                </div>
+              )}
             </div>
           </form>
         </div>

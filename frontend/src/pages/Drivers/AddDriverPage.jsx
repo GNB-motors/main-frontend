@@ -48,6 +48,7 @@ const AddDriverPage = () => {
           mobileNumber: editing.mobileNumber || editing.mobile_number || '',
           location: editing.location || '',
           role: editing.role || 'DRIVER',
+          status: editing.status || 'PENDING',
           password: '', // Don't prefill password
         };
         console.log('Editing driver:', editing);
@@ -143,6 +144,7 @@ const AddDriverPage = () => {
         if (formData.location !== undefined) updatePayload.location = formData.location;
         if (formData.password) updatePayload.password = formData.password;
         if (formData.role !== undefined) updatePayload.role = formData.role;
+        if (formData.status !== undefined) updatePayload.status = formData.status;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
         await uploadDocuments(driverId);
