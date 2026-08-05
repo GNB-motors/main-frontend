@@ -57,6 +57,14 @@ import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
 import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
+import DailyDigestPage from './pages/DailyDigest/DailyDigestPage.jsx';
+import CompliancePage from './pages/Compliance/CompliancePage.jsx';
+import FleetAlertsPage from './pages/FleetAlerts/FleetAlertsPage.jsx';
+import FuelSpendPage from './pages/FuelSpend/FuelSpendPage.jsx';
+import DefLedgerPage from './pages/DefLedger/DefLedgerPage.jsx';
+import FleetCoveragePage from './pages/FleetCoverage/FleetCoveragePage.jsx';
+import AuditTrailPage from './pages/AuditTrail/AuditTrailPage.jsx';
+import Vehicle360Page from './pages/Vehicle360/Vehicle360Page.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -88,6 +96,14 @@ function App() {
         }
       >
         <Route path="/overview" element={<OverviewPage />} />
+        <Route path="/digest" element={<DailyDigestPage />} />
+        <Route path="/compliance" element={<CompliancePage />} />
+        <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
+        <Route path="/fuel-spend" element={<FuelSpendPage />} />
+        <Route path="/def-ledger" element={<DefLedgerPage />} />
+        <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
+        <Route path="/audit-trail" element={<AuditTrailPage />} />
+        <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />

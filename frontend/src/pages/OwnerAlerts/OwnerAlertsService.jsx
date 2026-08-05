@@ -8,11 +8,12 @@ export const OwnerAlertsService = {
      * Paginated alert feed, newest first.
      * @param {object} params - { vehicle, type, acknowledged, from, to, page, limit }
      */
-    getAlerts: async (params = {}) => {
+    getAlerts: async (params = {}, signal) => {
         try {
-            const response = await apiClient.get(`/api/owner-alerts`, { params });
+            const response = await apiClient.get(`/api/owner-alerts`, { params, signal });
             return response.data?.data || {};
         } catch (error) {
+            if (error?.code === 'ERR_CANCELED') throw error;
             console.error("API Error fetching owner alerts:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Could not fetch owner alerts." };
         }

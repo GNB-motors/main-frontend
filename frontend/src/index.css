@@ -16,6 +16,8 @@
 /* Dashboard "operations console" faces: technical display + tabular mono for data/plates */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* Fleet instrument cluster display face — expanded grotesk, vehicle-signage feel */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -428,4 +430,191 @@ body {
   border-color: var(--primary-color, #4f46e5);
   background-color: color-mix(in srgb, var(--primary-color, #4f46e5) 10%, transparent);
   color: var(--primary-color, #4f46e5);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Fleet Instrument Cluster — token layer (new screens)
+   ─────────────────────────────────────────────────────────
+   "A GNB screen is the instrument cluster for a fleet the
+   owner can't see." Glass panels are the automotive HUD
+   metaphor; signal colours use vehicle warning-lamp
+   semantics (green/amber/red mean what drivers already
+   think they mean).
+
+   Light mode is the default and is REQUIRED (owners read
+   phones in daylight); .dark is the full night cluster.
+   New screens consume ONLY these tokens so both themes flip
+   cleanly. Legacy pages keep their own styles.
+   ───────────────────────────────────────────────────────── */
+:root {
+    /* Brand — from the GNB mark */
+    --gnb-500: #1B4D8F;
+    --gnb-400: #2E6FC0;
+    --gnb-300: #5B9BE5;
+
+    /* Signal — warning-lamp semantics, non-negotiable meanings.
+       Darkened ~8% here for contrast on light surfaces. */
+    --ok:       #25855A;
+    --caution:  #D98E13;
+    --critical: #D13A40;
+    --inert:    #7C8AA0;
+
+    /* Cluster surfaces — light "paper" cluster */
+    --paper-50:  #F7F9FC;
+    --paper-100: #EDF1F7;
+    --cluster-bg:      var(--paper-50);
+    --cluster-panel:   #FFFFFF;
+    --cluster-raised:  #F2F5FA;
+    --cluster-text:    #0B1220;
+    --cluster-text-dim:#55627A;
+    --glass:     rgba(11, 18, 32, 0.04);
+    --glass-hi:  rgba(11, 18, 32, 0.07);
+    --hairline:  rgba(11, 18, 32, 0.10);
+    --cluster-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 8px 32px rgba(11,18,32,.08);
+
+    --font-cluster-display: 'Archivo', 'Space Grotesk', 'DM Sans', sans-serif;
+}
+
+.dark {
+    /* Cluster surfaces — night instrument cluster, blue-black */
+    --ink-900: #070C16;
+    --ink-800: #0B1220;
+    --ink-700: #131C2E;
+    --cluster-bg:      var(--ink-900);
+    --cluster-panel:   var(--ink-800);
+    --cluster-raised:  var(--ink-700);
+    --cluster-text:    #E8EEF7;
+    --cluster-text-dim:#8FA0B8;
+    --glass:     rgba(255, 255, 255, 0.06);
+    --glass-hi:  rgba(255, 255, 255, 0.10);
+    --hairline:  rgba(255, 255, 255, 0.12);
+    --cluster-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 8px 32px rgba(0,0,0,.35);
+
+    /* Signal hues restored to full brightness on dark */
+    --ok:       #2FA36B;
+    --caution:  #F5A524;
+    --critical: #E5484D;
+    --inert:    #7C8AA0;
+}
+
+/* Glass panel — panels only, never nested (backdrop-filter is
+   expensive; cap ≈6 concurrent per viewport). */
+.cluster-panel {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--cluster-shadow);
+    color: var(--cluster-text);
+}
+
+/* Flat variant for inner rows — no blur, so nesting stays cheap */
+.cluster-inset {
+    background: var(--glass);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+}
+
+.cluster-page {
+    background: var(--cluster-bg);
+    color: var(--cluster-text);
+    border-radius: 20px;
+    padding: 24px;
+    min-height: 100%;
+}
+
+.cluster-eyebrow {
+    font-family: var(--font-cluster-display);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cluster-text-dim);
+}
+
+.cluster-title {
+    font-family: var(--font-cluster-display);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--cluster-text);
+}
+
+.text-dim { color: var(--cluster-text-dim); }
+
+/* Signal utilities */
+.signal-ok       { color: var(--ok); }
+.signal-caution  { color: var(--caution); }
+.signal-critical { color: var(--critical); }
+.signal-inert    { color: var(--inert); }
+.signal-bg-ok       { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.signal-bg-caution  { background: color-mix(in srgb, var(--caution) 16%, transparent); }
+.signal-bg-critical { background: color-mix(in srgb, var(--critical) 14%, transparent); }
+.signal-bg-inert    { background: color-mix(in srgb, var(--inert) 14%, transparent); }
+
+/* Warning lamp — the cluster's atomic signal element.
+   Dark when clean; illuminated when the component carries penalty. */
+.lamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--cluster-text-dim);
+}
+.lamp::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 99px;
+    background: var(--inert);
+    opacity: 0.35;
+    flex: 0 0 auto;
+}
+.lamp--ok::before       { background: var(--ok); opacity: 1; }
+.lamp--caution::before  { background: var(--caution); opacity: 1; box-shadow: 0 0 8px color-mix(in srgb, var(--caution) 65%, transparent); }
+.lamp--critical::before { background: var(--critical); opacity: 1; box-shadow: 0 0 8px color-mix(in srgb, var(--critical) 65%, transparent); }
+.lamp--ok       { color: var(--ok); }
+.lamp--caution  { color: var(--caution); }
+.lamp--critical { color: var(--critical); }
+
+/* Freshness badge — system-wide data-staleness contract */
+.freshness {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--cluster-text-dim);
+}
+.freshness::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--ok);
+}
+.freshness--stale { color: var(--caution); }
+.freshness--stale::before { background: var(--caution); }
+.freshness--dead { color: var(--critical); }
+.freshness--dead::before { background: var(--critical); }
+
+/* Keyboard focus — visible ring on both themes (4.5:1) */
+.cluster-page :focus-visible,
+.cluster-panel :focus-visible {
+    outline: 2px solid var(--gnb-300);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Cluster self-test + every transition respects reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .cluster-panel,
+    .cluster-inset {
+        transition: none;
+    }
 }

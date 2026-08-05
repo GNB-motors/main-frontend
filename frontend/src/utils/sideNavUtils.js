@@ -1,4 +1,4 @@
-import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation, ShieldAlert } from 'lucide-react';
+import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation, ShieldAlert, CalendarClock } from 'lucide-react';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -21,6 +21,7 @@ import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation,
  */
 export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'overview', to: '/overview', label: 'Overview', icon: Grid },
+  { type: 'link', key: null,      to: '/digest',  label: 'Daily Digest', icon: CalendarClock },
   { type: 'link', key: 'reports',  to: '/reports',  label: 'Reports',  icon: FileText },
   {
     type: 'group',
@@ -32,6 +33,8 @@ export const SIDE_NAV_ITEMS = [
       { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
       { to: '/fuel-integrity', label: 'Fuel Integrity', key: null },
+      { to: '/fuel-spend', label: 'Fuel Spend', key: null },
+      { to: '/def-ledger', label: 'DEF Ledger', key: null },
       { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
     ],
     matchRoutes: [
@@ -39,6 +42,8 @@ export const SIDE_NAV_ITEMS = [
       '/adblue-tracking',
       '/fuel-comparison',
       '/fuel-integrity',
+      '/fuel-spend',
+      '/def-ledger',
       '/field-agent-fuel',
       '/trip-management',
     ],
@@ -81,10 +86,21 @@ export const SIDE_NAV_ITEMS = [
     label: 'Fleet Intelligence',
     icon: ShieldAlert,
     children: [
+      { to: '/compliance', label: 'Compliance', key: null },
+      { to: '/fleet-alerts', label: 'Fleet Alerts', key: null },
+      { to: '/fleet-coverage', label: 'Fleet Coverage', key: null },
+      { to: '/audit-trail', label: 'Audit Trail', key: null },
       { to: '/route-deviation', label: 'Route Deviation', key: null },
       { to: '/owner-alerts', label: 'Owner Alerts', key: null },
     ],
-    matchRoutes: ['/route-deviation', '/owner-alerts'],
+    matchRoutes: [
+      '/compliance',
+      '/fleet-alerts',
+      '/fleet-coverage',
+      '/audit-trail',
+      '/route-deviation',
+      '/owner-alerts',
+    ],
   },
 
   { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },

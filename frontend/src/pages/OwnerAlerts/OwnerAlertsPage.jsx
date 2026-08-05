@@ -9,6 +9,7 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { formatINR } from '../../utils/formatters';
 import '../FuelComparison/FuelComparison.css';
 import './OwnerAlerts.css';
 
@@ -30,9 +31,6 @@ const formatRelativeIST = (utcStr) => {
     const d = toIST(utcStr);
     return d ? d.fromNow() : null;
 };
-
-const formatInr = (value) =>
-    `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}`;
 
 const OwnerAlertsPage = () => {
     const [themeColors] = useState(getThemeCSS());
@@ -185,7 +183,7 @@ const OwnerAlertsPage = () => {
                                 <div className="oa-alert-main">
                                     <div className="oa-alert-hero">
                                         {alert.inrEstimate != null && (
-                                            <span className="oa-alert-inr">{formatInr(alert.inrEstimate)} est.</span>
+                                            <span className="oa-alert-inr">{formatINR(alert.inrEstimate)} est.</span>
                                         )}
                                         <span className="oa-alert-message">{alert.message}</span>
                                     </div>

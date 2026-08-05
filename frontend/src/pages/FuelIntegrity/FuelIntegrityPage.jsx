@@ -13,6 +13,8 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { FuelIntegrityService } from './FuelIntegrityService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { formatINR } from '../../utils/formatters';
+import EvidenceDrawer from '../../components/cluster/EvidenceDrawer.jsx';
 import '../FuelComparison/FuelComparison.css';
 import './FuelIntegrity.css';
 
@@ -36,9 +38,6 @@ const formatRelativeIST = (utcStr) => {
     const d = toIST(utcStr);
     return d ? d.fromNow() : null;
 };
-
-const formatInr = (value) =>
-    `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}`;
 
 const formatLitres = (value) =>
     value == null ? '—' : `${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 }).format(value)} L`;
@@ -98,6 +97,7 @@ const FuelIntegrityPage = () => {
 
     // Per-vehicle drill-down
     const [drillVehicle, setDrillVehicle] = useState(null);
+    const [evidenceWindow, setEvidenceWindow] = useState(null);
 
     const buildParams = useCallback(() => {
         const params = {};
@@ -250,7 +250,7 @@ const FuelIntegrityPage = () => {
                 <KpiCard
                     icon={AlertTriangle}
                     label="Est. Loss Value"
-                    value={formatInr(totals?.siphonSuspectedLossInr)}
+                    value={formatINR(totals?.siphonSuspectedLossInr)}
                     sub={`at ₹${pricePerL}/L (estimate)`}
                     colorClass="warning"
                 />
@@ -368,7 +368,7 @@ const FuelIntegrityPage = () => {
                                             {ev.kind === 'fill' ? '+' : '−'}{formatLitres(Math.abs(ev.litres ?? 0))}
                                         </span>
                                         {ev.inr != null && (
-                                            <span className="fi-event-inr">≈ {formatInr(ev.inr)} est.</span>
+                                            <span className="fi-event-inr">≈ {formatINR(ev.inr)} est.</span>
                                         )}
                                         {ev.kind === 'fill' && <ConfirmationBadge status={ev.confirmationStatus} />}
                                     </div>
@@ -401,7 +401,7 @@ const FuelIntegrityPage = () => {
                                                     {v.siphonSuspectedLossL}
                                                 </div>
                                             </td>
-                                            <td className="num-col"><div className="fc-primary-text">{formatInr(v.siphonSuspectedLossInr)}</div></td>
+                                            <td className="num-col"><div className="fc-primary-text">{formatINR(v.siphonSuspectedLossInr)}</div></td>
                                             <td className="num-col">
                                                 {v.billFlagCount > 0
                                                     ? <Chip size="small" label={v.billFlagCount} color="warning" variant="outlined" />
@@ -475,6 +475,7 @@ const FuelIntegrityPage = () => {
                                     <th className="num-col">Unaccounted (L)</th>
                                     <th>Review</th>
                                     <th className="num-col">DEF %</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -510,6 +511,15 @@ const FuelIntegrityPage = () => {
                                                 <span className="fc-secondary-text">{w.defToFuelRatioPct != null ? `${w.defToFuelRatioPct}%` : '—'}</span>
                                             )}
                                         </td>
+                                        <td>
+                                            <button
+                                                className="fc-btn fc-btn-secondary"
+                                                style={{ padding: '4px 10px', fontSize: 12 }}
+                                                onClick={() => setEvidenceWindow(w)}
+                                            >
+                                                Show working
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {drillWindows.length === 0 && (
@@ -520,6 +530,13 @@ const FuelIntegrityPage = () => {
                     </div>
                 </div>
             )}
+
+            <EvidenceDrawer
+                open={!!evidenceWindow}
+                onClose={() => setEvidenceWindow(null)}
+                window={evidenceWindow}
+                context={{ fuelPriceInrPerL: pricePerL }}
+            />
         </div>
     );
 };

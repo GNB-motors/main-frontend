@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Menu, Search } from 'lucide-react';
+import { Plus, Menu, Search, Sun, Moon } from 'lucide-react';
 import { applyThemeToRoot } from '../utils/colorTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTripCreationContext } from '../contexts/TripCreationContext';
 import './Navbar.css';
 
@@ -95,11 +96,11 @@ const Navbar = ({ toggleSidebar }) => {
     };
 
     const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
-    const isRefuelLogsPage = location.pathname.includes('/refuel-logs');
     const isMileagePage = location.pathname.startsWith('/mileage-tracking');
     const isMileageListPage = location.pathname === '/mileage-tracking';
     const isAdBlueListPage = location.pathname === '/adblue-tracking';
     const isTripListPage = location.pathname === '/trip-management';
+    const { isDark, toggleTheme } = useTheme();
 
     return (
         <header className="navbar">
@@ -111,6 +112,15 @@ const Navbar = ({ toggleSidebar }) => {
                 )}
             </div>
             <div className="navbar-right">
+                <button
+                    type="button"
+                    className="theme-toggle"
+                    onClick={toggleTheme}
+                    title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
                 {isMileageListPage && (
                     <div className="navbar-search">
                         <Search size={16} color="#94a3b8" />

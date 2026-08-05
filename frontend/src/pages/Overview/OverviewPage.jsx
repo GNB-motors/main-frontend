@@ -47,6 +47,8 @@ import {
 } from "@/components/ui/select";
 import { OverviewService } from "./OverviewService.jsx";
 import { useOwnerValueDigest } from "./OwnerValueDigest.jsx";
+import OwnerValueHero from "./components/OwnerValueHero.jsx";
+import FleetValuePanels from "./components/FleetValuePanels.jsx";
 import { LiveTrackingService } from "../LiveTracking/LiveTrackingService.jsx";
 import {
   INDIA_CENTER,
@@ -58,6 +60,7 @@ import {
   withCoordinates,
   fitMapToPositions,
 } from "../LiveTracking/liveTracking.shared.js";
+import { formatINR, formatNum } from "../../utils/formatters";
 
 // --- Helpers ---
 const getInitials = (name) => {
@@ -66,17 +69,6 @@ const getInitials = (name) => {
   if (parts.length === 1) return name.substring(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
-
-const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-
-const formatNumber = (value) =>
-  new Intl.NumberFormat("en-IN").format(value || 0);
 
 const getDateLabel = (date) => {
   if (!date) return "";
@@ -213,7 +205,7 @@ const FinancialChart = ({ data }) => {
           <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickFormatter={getDateLabel} />
           <YAxis fontSize={12} tickLine={false} axisLine={false} />
           <Tooltip
-            content={<CustomTooltip formatter={(v) => formatCurrency(v)} labelFormatter={getDateLabel} />}
+            content={<CustomTooltip formatter={(v) => formatINR(v)} labelFormatter={getDateLabel} />}
           />
           <Legend />
           <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#10B981" strokeWidth={2} dot={false} />
@@ -258,7 +250,7 @@ const DriverCard = ({ driver, label, variant = "top" }) => {
                 {driver.tripCount || 0} trips
               </Badge>
               <Badge variant="secondary" className="text-xs">
-                {formatNumber(driver.totalFuelLitres || 0)} L
+                {formatNum(driver.totalFuelLitres || 0)} L
               </Badge>
             </div>
           </div>
@@ -558,6 +550,16 @@ const OverviewPage = () => {
     fetchData();
   }, [selectedDays, customDateRange]);
 
+  // Shared {from} window for the owner-value panels, following the day filter.
+  // Must be declared before any early return so hook order stays consistent.
+  const valueWindow = useMemo(() => {
+    const to = new Date();
+    const from = customDateRange?.start
+      ? new Date(customDateRange.start)
+      : new Date(to.getTime() - selectedDays * 24 * 3600 * 1000);
+    return { from: from.toISOString(), to: to.toISOString() };
+  }, [selectedDays, customDateRange]);
+
   if (isLoading) return <div className="p-2"><DashboardSkeleton /></div>;
 
   if (error) {
@@ -608,6 +610,9 @@ const OverviewPage = () => {
         </Select>
       </div>
 
+      {/* Owner value — fleet health gauge, money strip, costliest vehicles */}
+      <OwnerValueHero moneyParams={valueWindow} />
+
       {/* Fleet KPI Cards */}
       {vehicles && (
         <>
@@ -619,28 +624,28 @@ const OverviewPage = () => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <StatCard
               title="Total Vehicles"
-              value={formatNumber(vehicles.total || 0)}
-              subtext={`${formatNumber(vehicles.active || 0)} active · ${formatNumber(vehicles.onTrip || 0)} on trip`}
+              value={formatNum(vehicles.total || 0)}
+              subtext={`${formatNum(vehicles.active || 0)} active · ${formatNum(vehicles.onTrip || 0)} on trip`}
               icon={<Truck size={22} />}
               iconBg="#DBEAFE" iconColor="#2563EB"
             />
             <StatCard
               title="Total Drivers"
-              value={formatNumber(drivers?.total || 0)}
-              subtext={`${formatNumber(drivers?.active || 0)} active`}
+              value={formatNum(drivers?.total || 0)}
+              subtext={`${formatNum(drivers?.active || 0)} active`}
               icon={<Users size={22} />}
               iconBg="#D1FAE5" iconColor="#059669"
             />
             <StatCard
               title="Total Trips"
-              value={formatNumber(trips?.total || 0)}
-              subtext={`${formatNumber(trips?.completed || 0)} completed · ${formatNumber(trips?.ongoing || 0)} ongoing`}
+              value={formatNum(trips?.total || 0)}
+              subtext={`${formatNum(trips?.completed || 0)} completed · ${formatNum(trips?.ongoing || 0)} ongoing`}
               icon={<Activity size={22} />}
               iconBg="#FEF3C7" iconColor="#D97706"
             />
             <StatCard
               title="Distance Covered"
-              value={`${formatNumber(kilometers?.total || 0)} km`}
+              value={`${formatNum(kilometers?.total || 0)} km`}
               icon={<Map size={22} />}
               iconBg="#FCE7F3" iconColor="#DB2777"
             />
@@ -650,8 +655,8 @@ const OverviewPage = () => {
               riskMoney && (
                 <StatCard
                   title="Est. ₹ at risk today"
-                  value={formatCurrency(riskMoney.totalWasteInr || 0)}
-                  subtext={`Fuel ${formatCurrency(riskMoney.money?.theftLossInr || 0)} · Detours ${formatCurrency(riskMoney.money?.detourWasteInr || 0)} · Idling ${formatCurrency(riskMoney.money?.idlingWasteInr || 0)}`}
+                  value={formatINR(riskMoney.totalWasteInr || 0)}
+                  subtext={`Fuel ${formatINR(riskMoney.money?.theftLossInr || 0)} · Detours ${formatINR(riskMoney.money?.detourWasteInr || 0)} · Idling ${formatINR(riskMoney.money?.idlingWasteInr || 0)}`}
                   icon={<ShieldAlert size={22} />}
                   iconBg="#FEF3C7" iconColor="#D97706"
                   to="/owner-alerts"
@@ -661,6 +666,9 @@ const OverviewPage = () => {
           </div>
         </>
       )}
+
+      {/* Utilization & downtime risk (owner-value layer) */}
+      <FleetValuePanels moneyParams={valueWindow} />
 
       {/* Live Vehicle Map */}
       <div className="flex items-center gap-3">
@@ -681,8 +689,8 @@ const OverviewPage = () => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Fuel Consumed"
-              value={`${formatNumber(fuel.totalLitres || 0)} L`}
-              subtext={`Cost: ${formatCurrency(fuel.totalCost || 0)}`}
+              value={`${formatNum(fuel.totalLitres || 0)} L`}
+              subtext={`Cost: ${formatINR(fuel.totalCost || 0)}`}
               icon={<Fuel size={22} />}
               iconBg="#DBEAFE" iconColor="#2563EB"
             />
@@ -704,8 +712,8 @@ const OverviewPage = () => {
                 />
                 <StatCard
                   title="Outliers Detected"
-                  value={formatNumber(fuelSummary.outlierCount || 0)}
-                  subtext={`Out of ${formatNumber(fuelSummary.totalTrips || 0)} trips`}
+                  value={formatNum(fuelSummary.outlierCount || 0)}
+                  subtext={`Out of ${formatNum(fuelSummary.totalTrips || 0)} trips`}
                   icon={<AlertTriangle size={22} />}
                   iconBg="#FEE2E2" iconColor="#DC2626"
                 />
@@ -736,16 +744,16 @@ const OverviewPage = () => {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 p-4 dark:bg-emerald-950/20">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Revenue</p>
-                  <p className="mt-1 text-2xl font-bold text-emerald-600">{formatCurrency(finSummary.totalRevenue || 0)}</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-600">{formatINR(finSummary.totalRevenue || 0)}</p>
                 </div>
                 <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 dark:bg-red-950/20">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Expenses</p>
-                  <p className="mt-1 text-2xl font-bold text-red-600">{formatCurrency(finSummary.totalExpenses || 0)}</p>
+                  <p className="mt-1 text-2xl font-bold text-red-600">{formatINR(finSummary.totalExpenses || 0)}</p>
                 </div>
                 <div className={`rounded-lg border-l-4 p-4 ${(finSummary.netProfit || 0) >= 0 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20" : "border-red-500 bg-red-50 dark:bg-red-950/20"}`}>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Net Profit</p>
                   <p className={`mt-1 text-2xl font-bold ${(finSummary.netProfit || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                    {formatCurrency(finSummary.netProfit || 0)}
+                    {formatINR(finSummary.netProfit || 0)}
                   </p>
                 </div>
                 <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 dark:bg-amber-950/20">
@@ -811,7 +819,7 @@ const OverviewPage = () => {
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      out of 5 ({formatNumber(driverPerformance.totalDrivers || 0)} drivers)
+                      out of 5 ({formatNum(driverPerformance.totalDrivers || 0)} drivers)
                     </p>
                   </div>
                 </CardContent>
@@ -830,7 +838,7 @@ const OverviewPage = () => {
                 <CardContent>
                   <div className="flex flex-col items-center gap-2 py-2">
                     <span className="text-5xl font-bold text-emerald-600">
-                      {formatNumber(driverPerformance.totalDrivers || 0)}
+                      {formatNum(driverPerformance.totalDrivers || 0)}
                     </span>
                     <p className="text-xs text-muted-foreground">active drivers in fleet</p>
                   </div>

@@ -37,11 +37,12 @@ export const FuelIntegrityService = {
      * Per-vehicle rollup for the summary strip.
      * @param {object} params - { from, to }
      */
-    getSummary: async (params = {}) => {
+    getSummary: async (params = {}, signal) => {
         try {
-            const response = await apiClient.get(`/api/fuel-integrity/summary`, { params });
+            const response = await apiClient.get(`/api/fuel-integrity/summary`, { params, signal });
             return response.data?.data || {};
         } catch (error) {
+            if (error?.code === 'ERR_CANCELED') throw error;
             console.error("API Error fetching fuel integrity summary:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Could not fetch fuel integrity summary." };
         }
