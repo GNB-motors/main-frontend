@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { toast } from 'react-toastify';
+import * as XLSX from 'xlsx';
 
 /**
  * Shared filtered-report CSV export helpers.
@@ -42,7 +43,7 @@ export function buildCsvString(headers, rowArrays) {
 
 export function getReportExportMime(extension = 'csv') {
   return extension === 'xlsx'
-    ? 'application/vnd.ms-excel;charset=utf-8;'
+    ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     : 'text/csv;charset=utf-8;';
 }
 
@@ -92,7 +93,16 @@ export async function exportFilteredReportCsv({
       content = blob instanceof Blob ? blob : new Blob([blob], { type: mimeType });
     } else if (Array.isArray(headers) && Array.isArray(rows) && typeof mapRow === 'function') {
       const rowArrays = rows.map((row) => mapRow(row));
-      content = buildCsvString(headers, rowArrays);
+      
+      if (extension === 'xlsx') {
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rowArrays]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        content = new Blob([excelBuffer], { type: mimeType });
+      } else {
+        content = buildCsvString(headers, rowArrays);
+      }
     } else {
       throw new Error('Provide fetchExport, or headers + rows + mapRow');
     }

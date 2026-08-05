@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
@@ -74,7 +75,6 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) 
             setLocation('');
             setPassword('');
             setRole('DRIVER');
-            setVehicleRegistrationNo('');
             setError(null);
         }
     }, [isOpen]);
@@ -552,10 +552,26 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
     );
 };
 
-// --- Action Menu Component ---
-const ActionMenu = ({ driver, onEdit, onDelete }) => {
-    return (
-        <div className="drivers-action-menu">
+// --- Action Menu Component (portal-based to escape table stacking context) ---
+const ActionMenu = ({ driver, onEdit, onDelete, position }) => {
+    if (!position) return null;
+
+    // Decide whether to open upward (if too close to the bottom of the viewport)
+    const MENU_HEIGHT = driver.is_superadmin ? 60 : 110;
+    const spaceBelow = window.innerHeight - position.bottom;
+    const openUpward = spaceBelow < MENU_HEIGHT + 16;
+
+    const style = {
+        position: 'fixed',
+        right: window.innerWidth - position.right,
+        zIndex: 99999,
+        ...(openUpward
+            ? { bottom: window.innerHeight - position.top + 4 }
+            : { top: position.bottom + 4 }),
+    };
+
+    return createPortal(
+        <div className="drivers-action-menu" style={style}>
             <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
                 <Edit size={16} />
                 <span>Edit</span>
@@ -569,7 +585,8 @@ const ActionMenu = ({ driver, onEdit, onDelete }) => {
                     </button>
                 </>
             )}
-        </div>
+        </div>,
+        document.body
     );
 };
 
@@ -603,7 +620,7 @@ const DriversPage = () => {
     }, []);
 
     // Modal States
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    // isAddModalOpen removed -- Add Employee is now a separate page at /drivers/add
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingDriver, setEditingDriver] = useState(null); // Driver object to edit
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -611,6 +628,7 @@ const DriversPage = () => {
 
     // Action Menu State
     const [openMenuDriverId, setOpenMenuDriverId] = useState(null);
+    const [menuPosition, setMenuPosition] = useState(null); // {top, bottom, right} from getBoundingClientRect
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -636,6 +654,21 @@ const DriversPage = () => {
     // Profile context removed - drivers page should render independently
     // Read businessRefId from localStorage as a fallback
     const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
+
+    // Close Action Menu on scroll to prevent detached floating menu
+    useEffect(() => {
+        const handleScroll = () => {
+            if (openMenuDriverId !== null) {
+                setOpenMenuDriverId(null);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { capture: true });
+        
+        return () => {
+            window.removeEventListener('scroll', handleScroll, { capture: true });
+        };
+    }, [openMenuDriverId]);
 
     // --- Data Fetching ---
     const fetchDrivers = async () => {
@@ -720,36 +753,12 @@ const DriversPage = () => {
         // is not available locally. If token is missing, fetchDrivers will surface an auth error.
         fetchDrivers();
         fetchVehicles();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [businessRefId, currentPage, searchTerm, filters.role]);
 
     // --- Action Handlers ---
-    const handleAddDriver = async (driverData) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !businessRefId) {
-            throw new Error("Missing auth token or business ID.");
-        }
-        setIsSubmitting(true);
-        setActionError(null); // Clear previous action error
-        try {
-            const newDriver = await DriverService.addDriver(businessRefId, driverData);
-            const nd = {
-                ...newDriver,
-                id: newDriver.id || newDriver._id || newDriver._id,
-                firstName: newDriver.firstName || newDriver.first_name || '',
-                lastName: newDriver.lastName || newDriver.last_name || '',
-                name: newDriver.name || `${(newDriver.firstName || newDriver.first_name || '').trim()} ${(newDriver.lastName || newDriver.last_name || '').trim()}`.trim(),
-            };
-            setDrivers(prevDrivers => [...prevDrivers, nd]); // Add new driver to state
-            setIsAddModalOpen(false); // Close modal on success
-            toast.success(`Employee "${driverData.name}" added successfully!`);
-        } catch (apiError) {
-             console.error("Failed to add driver:", apiError);
-             // Re-throw the error so the modal can display it
-             throw apiError;
-        } finally {
-             setIsSubmitting(false);
-        }
-    };
+    // handleAddDriver removed -- Add Employee is now a separate page at /drivers/add
+
 
     const handleOpenEditModal = (driver) => {
         // Navigate to the Add Driver page but pass the driver to edit via location state
@@ -766,8 +775,8 @@ const DriversPage = () => {
 
     const handleUpdateDriver = async (driverId, updateData) => {
          const token = localStorage.getItem('authToken');
-         if (!token || !businessRefId) {
-             throw new Error("Missing auth token or business ID.");
+         if (!token) {
+             throw new Error("Missing auth token. Please log in again.");
          }
          setIsSubmitting(true);
          setActionError(null);
@@ -798,8 +807,8 @@ const DriversPage = () => {
 
      const handleDeleteDriver = async (driverId) => {
         const token = localStorage.getItem('authToken');
-        if (!token || !businessRefId) {
-            setActionError("Authentication error.");
+        if (!token) {
+            setActionError("Authentication error. Please log in again.");
             return;
         }
         
@@ -822,8 +831,8 @@ const DriversPage = () => {
             setDeletingDriver(null);
             toast.success("Employee deleted successfully!");
         } catch (err) {
-             console.error("Failed to delete driver:", err);
-            const errorMessage = err.detail || "Failed to delete driver.";
+             console.error("Failed to delete employee:", err);
+            const errorMessage = err.detail || err.message || "Failed to delete employee.";
             setActionError(errorMessage);
             toast.error(errorMessage);
         } finally {
@@ -939,9 +948,12 @@ const DriversPage = () => {
     // Close action menu and filter dropdown if clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            // Check if the click is outside the action menu button/area
-            if (openMenuDriverId && !event.target.closest(`.drivers-action-menu-container-${openMenuDriverId}`)) {
+            // Check if the click is outside the action menu button/area AND outside the portal menu
+            if (openMenuDriverId &&
+                !event.target.closest(`.drivers-action-menu-container-${openMenuDriverId}`) &&
+                !event.target.closest('.drivers-action-menu')) {
                 setOpenMenuDriverId(null);
+                setMenuPosition(null);
             }
             
             // Check if the click is outside the filter dropdown
@@ -1092,7 +1104,14 @@ const DriversPage = () => {
                                                         className="drivers-action-menu-btn"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setOpenMenuDriverId(openMenuDriverId === driver.id ? null : driver.id);
+                                                            if (openMenuDriverId === driver.id) {
+                                                                setOpenMenuDriverId(null);
+                                                                setMenuPosition(null);
+                                                            } else {
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                setMenuPosition({ top: rect.top, bottom: rect.bottom, right: rect.right });
+                                                                setOpenMenuDriverId(driver.id);
+                                                            }
                                                         }}
                                                     >
                                                         <MoreHorizontal size={18} />
@@ -1102,6 +1121,7 @@ const DriversPage = () => {
                                                             driver={driver}
                                                             onEdit={handleOpenEditModal}
                                                             onDelete={handleOpenDeleteModal}
+                                                            position={menuPosition}
                                                         />
                                                     )}
                                                 </div>

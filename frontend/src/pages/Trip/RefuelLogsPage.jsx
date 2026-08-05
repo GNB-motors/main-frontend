@@ -10,6 +10,9 @@ import '../../components/JourneySetupModal/modal.css';
 import apiClient from '../../utils/axiosConfig';
 import ChevronIcon from './assets/ChevronIcon.jsx';
 import DocumentService from './services/DocumentService';
+import { VehicleService } from '../Profile/VehicleService.jsx';
+import { exportFilteredReportCsv } from '../../utils/reportCsvExport';
+import { CsvIcon, ExcelIcon } from '../../components/Icons';
 
 const FUEL_TYPES = ['DIESEL', 'ADBLUE'];
 const FILLING_TYPES = ['PARTIAL', 'FULL_TANK'];
@@ -24,13 +27,16 @@ const TAB_TO_FUEL_TYPE = {
   adblue: 'ADBLUE',
 };
 
-const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search } = {}) => {
+const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search, vehicleId } = {}) => {
   const params = { page, limit };
   if (fuelType) {
     params.fuelType = fuelType;
   }
   if (search) {
     params.search = search;
+  }
+  if (vehicleId) {
+    params.vehicleId = vehicleId;
   }
 
   const response = await apiClient.get('api/fuel-logs', { params });
@@ -53,7 +59,8 @@ const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search }
         quantity: log.litres || '-',
         unitPrice: log.rate || null,
         totalAmount: log.totalAmount || '-',
-        odometer: log.odometerReading || '-',
+        odometer: log.odometerReading ? (log.odometerSource === 'FLEETEDGE' ? `${log.odometerReading} (FE)` : log.odometerReading) : '-',
+        rawOdometerSource: log.odometerSource,
         paymentMethod: '-', // Not available in API
         notes: log.fillingType ? (log.fillingType === 'FULL_TANK' ? 'Full Tank' : log.fillingType) : '-',
         tripId: log.tripId,
@@ -143,6 +150,9 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   const columnCount = isFixedFuelType ? 10 : 11;
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -237,6 +247,26 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     };
   }, []);
 
+  // Fetch vehicles for the filter dropdown if this is a report page
+  useEffect(() => {
+    if (!isFixedFuelType) return;
+    
+    const fetchVehicles = async () => {
+      const token = localStorage.getItem('authToken');
+      const orgId = localStorage.getItem('profile_business_ref_id') || null;
+      if (!token) return;
+      try {
+        const result = await VehicleService.getAllVehicles(orgId, token, 1, 1000);
+        if (result && result.data) {
+          setVehicles(result.data);
+        }
+      } catch (err) {
+        console.error('Failed to load vehicles for filter', err);
+      }
+    };
+    fetchVehicles();
+  }, [isFixedFuelType]);
+
   // Debounce the search box, then snap back to page 1 so results start at the top.
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -255,6 +285,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         limit: pagination.limit,
         fuelType: TAB_TO_FUEL_TYPE[activeTab],
         search: debouncedSearch,
+        vehicleId: selectedVehicleId || undefined,
       });
       setLogs(fetchedLogs);
       setPagination((p) => ({ ...p, total }));
@@ -266,10 +297,10 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     }
   };
 
-  // Refetch whenever the page, fuel-type tab, or search term changes (all server-side).
+  // Refetch whenever the page, fuel-type tab, search term, or vehicle filter changes (all server-side).
   useEffect(() => {
     loadLogs();
-  }, [pagination.page, activeTab, debouncedSearch]);
+  }, [pagination.page, activeTab, debouncedSearch, selectedVehicleId]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
 
@@ -390,11 +421,134 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     }
   };
 
+  const REFUEL_CSV_HEADERS = [
+    'Date', 'Time', 'Vehicle No', 'Vehicle Model', 'Driver Name', 
+    'Location', 'Quantity (L)', 'Unit Price (₹)', 'Total Amount (₹)', 
+    'Odometer Reading', 'Notes'
+  ];
+
+  const mapRefuelCsvRow = (row) => [
+    row.date || '-',
+    row.time || '-',
+    row.vehicleNo || '-',
+    row.vehicleModel || '-',
+    row.driverName || '-',
+    row.location || '-',
+    row.quantity || '-',
+    row.unitPrice != null ? row.unitPrice : '-',
+    row.totalAmount != null ? row.totalAmount : '-',
+    row.odometer || '-',
+    row.notes || '-'
+  ];
+
+  const downloadCsv = async (extension) => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      let allLogs = [];
+      let currentPage = 1;
+      let hasMore = true;
+      
+      // Backend max limit is 1000, so we fetch in chunks until we get all logs
+      while (hasMore) {
+        const { logs: chunkLogs, total } = await fetchRefuelLogs({
+          page: currentPage,
+          limit: 1000,
+          fuelType: TAB_TO_FUEL_TYPE[activeTab],
+          search: debouncedSearch,
+          vehicleId: selectedVehicleId || undefined,
+        });
+        
+        allLogs = allLogs.concat(chunkLogs);
+        
+        // Stop if we've fetched all items or the server returned an empty page
+        if (allLogs.length >= total || chunkLogs.length === 0) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      }
+
+      await exportFilteredReportCsv({
+        headers: REFUEL_CSV_HEADERS,
+        rows: allLogs,
+        mapRow: mapRefuelCsvRow,
+        filenamePrefix: isAdBluePage ? 'adblue_report' : 'diesel_report',
+        extension,
+        errorMessage: 'Could not export report.',
+      });
+    } catch {
+      // error handled inside exportFilteredReportCsv
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCSV = () => downloadCsv('csv');
+  const handleExportExcel = () => downloadCsv('xlsx');
+
+  const exportBtnStyle = {
+    width: '44px',
+    height: '44px',
+    padding: '6px 8px',
+    background: '#F8F8FB',
+    borderRadius: '8px',
+    border: '1px solid #ECECEE',
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    transition: 'all 0.2s ease',
+  };
+
   return (
     <div className="refuel-logs-page">
       <div className="refuel-logs-header">
         {isFixedFuelType ? (
-          <h3 className="refuel-report-title">{reportTitle}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <h3 className="refuel-report-title" style={{ margin: 0 }}>{reportTitle}</h3>
+              <select
+                className="refuel-filter-select"
+                value={selectedVehicleId}
+                onChange={(e) => {
+                  setSelectedVehicleId(e.target.value);
+                  setPagination((p) => ({ ...p, page: 1 }));
+                }}
+                style={{ padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #ccc', outline: 'none' }}
+              >
+                <option value="">All Vehicles</option>
+                {vehicles.map(v => (
+                  <option key={v._id || v.id} value={v._id || v.id}>
+                    {v.registrationNumber || v.registration_no || v._id}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                <button
+                    onClick={handleExportCSV}
+                    disabled={isExporting}
+                    style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
+                    onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
+                    title="Export filtered rows to CSV"
+                >
+                    <CsvIcon width={24} height={24} />
+                </button>
+                <button
+                    onClick={handleExportExcel}
+                    disabled={isExporting}
+                    style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
+                    onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
+                    title="Export filtered rows to Excel"
+                >
+                    <ExcelIcon width={22} height={22} />
+                </button>
+            </div>
+          </div>
         ) : (
           <div className="refuel-tabs">
             {filterTabs.map((tab) => (

@@ -172,11 +172,20 @@
   white-space: nowrap;
 }
 
+/* Prevent ellipsis on icon-only columns */
+.ff-table--orgs th[aria-label="Open"],
+.ff-table--orgs th[aria-label="Remove"],
+.ff-table--orgs td.ff-right,
+.ff-table--orgs td.ff-actions {
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .ff-table--orgs th:nth-child(1) { width: 28%; } /* Organization */
 .ff-table--orgs th:nth-child(2) { width: 24%; } /* Owner Email */
 .ff-table--orgs th:nth-child(3) { width: 18%; } /* GSTIN */
 .ff-table--orgs th:nth-child(4) { width: 110px; } /* Onboarded */
-.ff-table--orgs th:nth-child(5) { width: 140px; } /* Enabled Features */
+.ff-table--orgs th:nth-child(5) { width: 160px; } /* Enabled Features */
 .ff-table--orgs th[aria-label="Open"]   { width: 44px; }
 .ff-table--orgs th[aria-label="Remove"] { width: 60px; }
 
