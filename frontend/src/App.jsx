@@ -29,6 +29,7 @@ import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import OrgFeatureFlagsPage from './pages/Superadmin/components/OrgFeatureFlagsPage.jsx';
 import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx';
 import OrgDetailPage from './pages/Superadmin/components/OrgDetailPage.jsx';
+import LemuLogsPage from './pages/Superadmin/components/LemuLogsPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -85,6 +86,7 @@ function App() {
         <Route path="feature-flags" element={<OrgFeatureFlagsPage />} />
         <Route path="feature-flags/:orgId" element={<OrgFeatureFlagsDetailPage />} />
         <Route path="organizations/:id" element={<OrgDetailPage />} />
+        <Route path="lemu" element={<LemuLogsPage />} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
