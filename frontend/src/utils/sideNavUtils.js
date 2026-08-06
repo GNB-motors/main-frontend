@@ -89,7 +89,22 @@ export const SIDE_NAV_ITEMS = [
 
   { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
+  // `key` gates the whole group, so an org without the khataLedger flag sees
+  // nothing. matchRoutes uses the bare prefix — the startsWith check in
+  // isGroupActive covers the children, both detail pages and the form routes.
+  {
+    type: 'group',
+    key: 'khataLedger',
+    label: 'Khata Ledger',
+    icon: BookOpen,
+    children: [
+      { to: '/khata-ledger/drivers', label: 'Drivers' },
+      { to: '/khata-ledger/trucks', label: 'Trucks' },
+      { to: '/khata-ledger/transactions', label: 'All Transactions' },
+      { to: '/khata-ledger/assignments', label: 'Assignments' },
+    ],
+    matchRoutes: ['/khata-ledger'],
+  },
 
   // ─── Geofence group ───────────────────────────────────────────────────────
   // Both sub-pages are grouped under a single collapsible "Geofence" dropdown.

@@ -1,23 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, IndianRupee, User, Truck, Fuel } from 'lucide-react';
+import { Fuel, Truck, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
-import KhataLedgerService from '../KhataLedgerService';
 import TripService from '../../Trip/services/TripService';
-import AddFuelLogModal from './AddFuelLogModal';
+import KhataLedgerService from '../KhataLedgerService';
+import LedgerPageHeader from './LedgerPageHeader';
+import StatRow from './StatRow';
+import FilterBar, { FilterSelect } from './FilterBar';
+import LedgerTable from './LedgerTable';
+import PaginationFooter from './PaginationFooter';
+import ShareBars from './ShareBars';
 import {
   CATEGORIES,
+  CATEGORY_DOTS,
   CATEGORY_LABELS,
-  CATEGORY_COLORS,
+  SOURCES,
   SOURCE_LABELS,
-  SOURCE_COLORS,
+  describeDateRange,
   formatCurrency,
-  formatDate,
+  formatCurrencyCompact,
+  formatNumber,
   getDriverName,
   getVehicleLabel,
   getInitialDateRange,
@@ -27,60 +33,51 @@ import {
 const LedgerDetailView = ({ entityType, entityId }) => {
   const navigate = useNavigate();
   const isDriver = entityType === 'driver';
+  const listPath = isDriver ? '/khata-ledger/drivers' : '/khata-ledger/trucks';
 
   const [entityName, setEntityName] = useState('');
   const [entityLoading, setEntityLoading] = useState(true);
 
-  const [transactions, setTransactions] = useState([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalResults: 0 });
-  const [summary, setSummary] = useState({ totalAmount: 0, count: 0, byCategory: {}, bySource: {}, split: [] });
+  const [summary, setSummary] = useState({ totalAmount: 0, count: 0, byCategory: {}, bySource: {} });
 
   const [dateRange, setDateRange] = useState(getInitialDateRange);
   const [category, setCategory] = useState('');
   const [source, setSource] = useState('');
   const [crossFilterId, setCrossFilterId] = useState('');
-  const [fuelModalOpen, setFuelModalOpen] = useState(false);
-
-  const [filterOptions, setFilterOptions] = useState({ vehicles: [], drivers: [] });
+  const [crossOptions, setCrossOptions] = useState([]);
 
   useEffect(() => {
     const loadEntity = async () => {
       setEntityLoading(true);
       try {
-        if (isDriver) {
-          const res = await TripService.getDriverById(entityId);
-          const data = res?.data ?? res;
-          setEntityName(getDriverName(data) || 'Driver Ledger');
-        } else {
-          const res = await TripService.getVehicleById(entityId);
-          const data = res?.data ?? res;
-          setEntityName(getVehicleLabel(data) || 'Truck Ledger');
-        }
+        const res = isDriver
+          ? await TripService.getDriverById(entityId)
+          : await TripService.getVehicleById(entityId);
+        const data = res?.data ?? res;
+        setEntityName((isDriver ? getDriverName(data) : getVehicleLabel(data)) || '');
       } catch {
-        setEntityName(isDriver ? 'Driver Ledger' : 'Truck Ledger');
+        setEntityName(isDriver ? 'Driver ledger' : 'Truck ledger');
       } finally {
         setEntityLoading(false);
       }
     };
 
-    const loadFilterOptions = async () => {
+    const loadCrossOptions = async () => {
       try {
-        const [vRes, dRes] = await Promise.all([
-          TripService.getVehicles({ limit: 200 }),
-          TripService.getDrivers({ limit: 200 }),
-        ]);
-        setFilterOptions({
-          vehicles: vRes?.data || vRes?.results || vRes || [],
-          drivers: dRes?.data || dRes?.results || dRes || [],
-        });
+        const res = isDriver
+          ? await TripService.getVehicles({ limit: 200 })
+          : await TripService.getDrivers({ limit: 200 });
+        setCrossOptions(res?.data || res?.results || res || []);
       } catch {
-        // non-critical
+        // The cross filter is an enhancement; the ledger still loads without it.
       }
     };
 
     loadEntity();
-    loadFilterOptions();
+    loadCrossOptions();
   }, [entityId, isDriver]);
 
   const fetchData = useCallback(
@@ -92,9 +89,7 @@ const LedgerDetailView = ({ entityType, entityId }) => {
         if (dateRange.endDate) params.endDate = dateRange.endDate;
         if (category) params.category = category;
         if (source) params.source = source;
-        if (crossFilterId) {
-          params[isDriver ? 'vehicleId' : 'driverId'] = crossFilterId;
-        }
+        if (crossFilterId) params[isDriver ? 'vehicleId' : 'driverId'] = crossFilterId;
 
         const [ledgerData, summaryData] = await Promise.all([
           isDriver
@@ -105,379 +100,193 @@ const LedgerDetailView = ({ entityType, entityId }) => {
             : KhataLedgerService.getVehicleSummary(entityId, params),
         ]);
 
-        setTransactions(ledgerData.results || ledgerData.items || ledgerData || []);
+        setRows(ledgerData.results || []);
         setMeta({
           page: ledgerData.page || 1,
           totalPages: ledgerData.totalPages || 1,
-          totalResults: ledgerData.totalResults || ledgerData.total || 0,
+          totalResults: ledgerData.total ?? ledgerData.totalResults ?? 0,
         });
         setSummary(summaryData || { totalAmount: 0, count: 0 });
       } catch (err) {
-        if (err?.response?.status === 404) {
-          setTransactions([]);
-          setMeta({ page: 1, totalPages: 1, totalResults: 0 });
-          setSummary({ totalAmount: 0, count: 0, byCategory: {}, bySource: {}, split: [] });
-        } else {
-          toast.error(err?.response?.data?.message || err?.message || 'Failed to load ledger');
-        }
+        toast.error(err?.response?.data?.message || err?.message || 'Could not load this ledger');
       } finally {
         setLoading(false);
       }
     },
-    [entityId, isDriver, dateRange, category, source, crossFilterId]
+    [entityId, isDriver, dateRange, category, source, crossFilterId],
   );
 
   useEffect(() => {
     fetchData(1);
   }, [fetchData]);
 
-  const splitItems = toSplitArray(summary.split || (isDriver ? summary.byVehicle : summary.byDriver));
-  const categoryEntries = Object.entries(summary.byCategory || {});
-  const sourceEntries = Object.entries(summary.bySource || {});
-  const crossOptions = isDriver ? filterOptions.vehicles : filterOptions.drivers;
+  const categoryItems = Object.entries(summary.byCategory || {})
+    .map(([key, amount]) => ({
+      key,
+      label: CATEGORY_LABELS[key] || key,
+      amount,
+      dotClass: CATEGORY_DOTS[key] || CATEGORY_DOTS.MISCELLANEOUS,
+    }))
+    .sort((a, b) => b.amount - a.amount);
 
-  const topSplit = splitItems[0];
-  const topSplitMatch =
-    topSplit &&
-    (isDriver
-      ? filterOptions.vehicles.find((v) => v._id === (topSplit.vehicleId || topSplit._id))
-      : filterOptions.drivers.find((d) => d._id === (topSplit.driverId || topSplit._id)));
-  const topSplitLabel =
-    (topSplitMatch && (isDriver ? getVehicleLabel(topSplitMatch) : getDriverName(topSplitMatch))) ||
-    topSplit?.name ||
-    '-';
+  const sourceItems = Object.entries(summary.bySource || {})
+    .map(([key, amount]) => ({ key, label: SOURCE_LABELS[key] || key, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const splitItems = toSplitArray(isDriver ? summary.byVehicle : summary.byDriver).map((s) => ({
+    key: s.name,
+    label: s.name,
+    amount: s.amount,
+  }));
+
+  const clearAll = () => {
+    setCategory('');
+    setSource('');
+    setCrossFilterId('');
+  };
+
+  const crossLabel = (id) => {
+    const match = crossOptions.find((o) => o._id === id);
+    return isDriver ? getVehicleLabel(match) : getDriverName(match);
+  };
+
+  const activeFilters = [
+    category && {
+      key: 'category',
+      label: `Category: ${CATEGORY_LABELS[category] || category}`,
+      onClear: () => setCategory(''),
+    },
+    source && {
+      key: 'source',
+      label: `Source: ${SOURCE_LABELS[source] || source}`,
+      onClear: () => setSource(''),
+    },
+    crossFilterId && {
+      key: 'cross',
+      label: `${isDriver ? 'Truck' : 'Driver'}: ${crossLabel(crossFilterId)}`,
+      onClear: () => setCrossFilterId(''),
+    },
+  ].filter(Boolean);
+
+  const periodLabel = describeDateRange(dateRange);
+  const unattributed = summary.unattributedAmount || 0;
+
+  const stats = [
+    {
+      label: 'Total spend',
+      value: formatCurrencyCompact(summary.totalAmount),
+      context: periodLabel,
+      accent: true,
+    },
+    { label: 'Entries', value: formatNumber(summary.count ?? 0), context: 'In this period' },
+    {
+      label: 'Top category',
+      value: categoryItems[0]?.label || '—',
+      context: categoryItems[0] ? formatCurrency(categoryItems[0].amount) : 'No entries yet',
+      mono: false,
+    },
+    {
+      label: isDriver ? 'Top truck' : 'Top driver',
+      value: splitItems[0]?.label || '—',
+      context: splitItems[0] ? formatCurrency(splitItems[0].amount) : 'No entries yet',
+      mono: false,
+    },
+  ];
+
+  const fuelHref = `/khata-ledger/fuel/new?${isDriver ? 'driverId' : 'vehicleId'}=${entityId}`;
 
   return (
     <div className="space-y-5 p-1">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/khata-ledger', { state: { tab: isDriver ? 'drivers' : 'trucks' } })}
-            className="rounded-lg border p-2 hover:bg-muted"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-              {isDriver ? <User size={24} style={{ color: 'var(--primary-color, #4f46e5)' }} /> : <Truck size={24} style={{ color: 'var(--primary-color, #4f46e5)' }} />}
-              {entityLoading ? <Skeleton className="h-8 w-40" /> : entityName}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isDriver ? 'Driver' : 'Truck'} ledger — merged transactions and summaries
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setFuelModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm"
-            style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
-          >
-            <Fuel size={18} />
-            Add Fuel
-          </button>
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
-        </div>
-      </div>
+      <LedgerPageHeader
+        eyebrow={isDriver ? 'Driver ledger' : 'Truck ledger'}
+        title={entityLoading ? '' : entityName || (isDriver ? 'Driver' : 'Truck')}
+        icon={isDriver ? User : Truck}
+        description={
+          isDriver
+            ? 'Everything filed against this driver, across every truck they drove.'
+            : "Everything filed against this truck, including its drivers' entries."
+        }
+        backTo={listPath}
+      >
+        <DateRangeFilter value={dateRange} onChange={setDateRange} />
+        <Button
+          size="lg"
+          onClick={() => navigate(fuelHref, { state: { from: `${listPath}/${entityId}` } })}
+          style={{ backgroundColor: 'var(--primary-color, #4f46e5)', color: '#fff' }}
+        >
+          <Fuel size={16} />
+          Add Fuel
+        </Button>
+      </LedgerPageHeader>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-xl"
-              style={{ backgroundColor: 'var(--primary-light, #eef2ff)', color: 'var(--primary-color, #4f46e5)' }}
-            >
-              <IndianRupee size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
-              <p className="mt-0.5 text-xl font-bold">{formatCurrency(summary.totalAmount)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-              <BookOpen size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Entries</p>
-              <p className="mt-0.5 text-xl font-bold">{summary.count ?? 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top Category</p>
-            <p className="mt-0.5 text-lg font-semibold">
-              {categoryEntries[0] ? CATEGORY_LABELS[categoryEntries[0][0]] || categoryEntries[0][0] : '-'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {categoryEntries[0] ? formatCurrency(categoryEntries[0][1]) : ''}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {isDriver ? 'Top Vehicle' : 'Top Driver'}
-            </p>
-            <p className="mt-0.5 text-lg font-semibold">
-              {splitItems[0] ? topSplitLabel : '-'}
-            </p>
-            <p className="text-xs text-muted-foreground">{splitItems[0] ? formatCurrency(splitItems[0].amount) : ''}</p>
-          </CardContent>
-        </Card>
-      </div>
+      {entityLoading && <Skeleton className="h-6 w-48" />}
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="mb-1 block text-xs text-gray-500">Category</label>
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="">All Categories</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {CATEGORY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-gray-500">Source</label>
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-              >
-                <option value="">All Sources</option>
-                {Object.keys(SOURCE_LABELS).map((s) => (
-                  <option key={s} value={s}>
-                    {SOURCE_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-gray-500">{isDriver ? 'Vehicle' : 'Driver'}</label>
-              <select
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                value={crossFilterId}
-                onChange={(e) => setCrossFilterId(e.target.value)}
-              >
-                <option value="">All {isDriver ? 'Vehicles' : 'Drivers'}</option>
-                {crossOptions.map((opt) => (
-                  <option key={opt._id} value={opt._id}>
-                    {isDriver ? getVehicleLabel(opt) : getDriverName(opt)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={() => {
-                setCategory('');
-                setSource('');
-                setCrossFilterId('');
-              }}
-              className="rounded-lg border px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
-            >
-              Clear Filters
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      <StatRow items={stats} loading={loading} />
+
+      {unattributed > 0 && (
+        <Card className="card-static border-l-4 border-l-amber-400">
+          <CardContent className="p-4 text-sm">
+            <span className="font-medium text-foreground">
+              {formatCurrency(unattributed)} unattributed
+            </span>{' '}
+            <span className="text-muted-foreground">
+              — these entries have no {isDriver ? 'truck' : 'driver'} on them. Add an assignment
+              covering those dates so future entries resolve automatically.
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
+      <FilterBar
+        hideSearch
+        searchValue=""
+        onSearchChange={() => {}}
+        activeFilters={activeFilters}
+        onClearAll={activeFilters.length ? clearAll : undefined}
+      >
+        <FilterSelect
+          label="Category"
+          value={category}
+          onChange={setCategory}
+          allLabel="All categories"
+          options={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] }))}
+        />
+        <FilterSelect
+          label="Source"
+          value={source}
+          onChange={setSource}
+          allLabel="All sources"
+          options={SOURCES.map((s) => ({ value: s, label: SOURCE_LABELS[s] }))}
+        />
+        <FilterSelect
+          label={isDriver ? 'Truck' : 'Driver'}
+          value={crossFilterId}
+          onChange={setCrossFilterId}
+          allLabel={isDriver ? 'All trucks' : 'All drivers'}
+          options={crossOptions.map((o) => ({
+            value: o._id,
+            label: isDriver ? getVehicleLabel(o) : getDriverName(o),
+          }))}
+        />
+      </FilterBar>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="mb-3 text-sm font-semibold">By Category</p>
-            <div className="space-y-2">
-              {categoryEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No data</p>
-              ) : (
-                categoryEntries.slice(0, 6).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between text-sm">
-                    <Badge className={`text-xs ${CATEGORY_COLORS[key] || CATEGORY_COLORS.MISCELLANEOUS}`}>
-                      {CATEGORY_LABELS[key] || key}
-                    </Badge>
-                    <span className="font-medium">{formatCurrency(value)}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="mb-3 text-sm font-semibold">By Source</p>
-            <div className="space-y-2">
-              {sourceEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No data</p>
-              ) : (
-                sourceEntries.map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between text-sm">
-                    <Badge variant="outline" className={`text-xs ${SOURCE_COLORS[key] || SOURCE_COLORS.MANUAL}`}>
-                      {SOURCE_LABELS[key] || key}
-                    </Badge>
-                    <span className="font-medium">{formatCurrency(value)}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="mb-3 text-sm font-semibold">{isDriver ? 'By Vehicle' : 'By Driver'}</p>
-            <div className="space-y-2">
-              {splitItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No data</p>
-              ) : (
-                splitItems.slice(0, 6).map((item) => {
-                  const match = isDriver
-                    ? filterOptions.vehicles.find((v) => v._id === (item.vehicleId || item._id))
-                    : filterOptions.drivers.find((d) => d._id === (item.driverId || item._id));
-                  const label =
-                    (match && (isDriver ? getVehicleLabel(match) : getDriverName(match))) || item.name || 'Unknown';
-                  return (
-                    <div key={item.vehicleId || item.driverId || item._id || item.name} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="font-medium">{formatCurrency(item.amount)}</span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <ShareBars title="By category" items={categoryItems} />
+        <ShareBars title="By source" items={sourceItems} />
+        <ShareBars title={isDriver ? 'By truck' : 'By driver'} items={splitItems} />
       </div>
 
-      <Card>
+      <Card className="card-static overflow-hidden p-0">
         <CardContent className="p-0">
-          {loading ? (
-            <div className="space-y-3 p-5">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full rounded" />
-              ))}
-            </div>
-          ) : transactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-              <BookOpen size={40} className="opacity-30" />
-              <p className="text-sm">No transactions found</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Trip</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((tx) => (
-                  <TableRow key={`${tx.source}-${tx._id}`}>
-                    <TableCell className="whitespace-nowrap text-sm">{formatDate(tx.expenseDate || tx.date)}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm font-medium">{tx.title}</p>
-                        {tx.description && (
-                          <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground">{tx.description}</p>
-                        )}
-                        {tx.mileageFlag && (
-                          <span
-                            title={tx.mileageFlag.reason}
-                            className="mt-1 inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700"
-                          >
-                            <AlertTriangle size={11} />
-                            {tx.mileageFlag.actualKmPerL?.toFixed(2)} vs {tx.mileageFlag.expectedKmPerL} km/L
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`text-xs ${CATEGORY_COLORS[tx.category] || CATEGORY_COLORS.MISCELLANEOUS}`}>
-                        {CATEGORY_LABELS[tx.category] || tx.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(tx.amount)}</TableCell>
-                    <TableCell className="text-sm">
-                      {tx.vehicle ? (
-                        <span className="flex items-center gap-1">
-                          <Truck size={14} className="text-gray-400" />
-                          {getVehicleLabel(tx.vehicle)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {tx.driver ? (
-                        <span className="flex items-center gap-1">
-                          <User size={14} className="text-gray-400" />
-                          {getDriverName(tx.driver)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-xs ${SOURCE_COLORS[tx.source] || SOURCE_COLORS.MANUAL}`}>
-                        {SOURCE_LABELS[tx.source] || tx.source}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {tx.trip ? tx.trip.tripNumber || tx.trip._id?.slice(-6) : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-
-          {meta.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-xs text-muted-foreground">
-                Page {meta.page} of {meta.totalPages} ({meta.totalResults} total)
-              </p>
-              <div className="flex gap-1">
-                <button
-                  disabled={meta.page <= 1}
-                  onClick={() => fetchData(meta.page - 1)}
-                  className="rounded-lg border p-2 text-sm disabled:opacity-40"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  disabled={meta.page >= meta.totalPages}
-                  onClick={() => fetchData(meta.page + 1)}
-                  className="rounded-lg border p-2 text-sm disabled:opacity-40"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+          <LedgerTable rows={rows} loading={loading} showTrip />
+          <PaginationFooter
+            page={meta.page}
+            totalPages={meta.totalPages}
+            totalResults={meta.totalResults}
+            onPageChange={fetchData}
+          />
         </CardContent>
       </Card>
-
-      <AddFuelLogModal
-        open={fuelModalOpen}
-        onClose={() => setFuelModalOpen(false)}
-        driverId={isDriver ? entityId : undefined}
-        vehicleId={!isDriver ? entityId : undefined}
-        onAdded={() => fetchData(meta.page)}
-      />
     </div>
   );
 };

@@ -1,3 +1,6 @@
+import { formatDateIST } from '@/utils/dateUtils';
+import { getDriverName, getVehicleRegistration } from '@/utils/dataFormatters';
+
 export const CATEGORIES = [
   'FUEL',
   'TOLL',
@@ -28,25 +31,43 @@ export const CATEGORY_LABELS = {
   TYRE: 'Tyre',
   LOADING_UNLOADING: 'Loading/Unloading',
   MISCELLANEOUS: 'Miscellaneous',
+  // Synthesised by /api/khata when it normalises rows out of the other
+  // collections — they never appear on a manual expense.
   TRIP_EXPENSE: 'Trip Expense',
+  FUEL_EXPENSE: 'Fuel Refill',
+  SERVICE: 'Service',
 };
 
-export const CATEGORY_COLORS = {
-  FUEL: 'bg-blue-100 text-blue-700',
-  TOLL: 'bg-amber-100 text-amber-700',
-  MAINTENANCE: 'bg-purple-100 text-purple-700',
-  REPAIR: 'bg-red-100 text-red-700',
-  DRIVER_SALARY: 'bg-green-100 text-green-700',
-  DRIVER_ALLOWANCE: 'bg-teal-100 text-teal-700',
-  DRIVER_MEAL: 'bg-pink-100 text-pink-700',
-  INSURANCE: 'bg-indigo-100 text-indigo-700',
-  PERMIT: 'bg-cyan-100 text-cyan-700',
-  FINE: 'bg-rose-100 text-rose-700',
-  TYRE: 'bg-orange-100 text-orange-700',
-  LOADING_UNLOADING: 'bg-lime-100 text-lime-700',
-  MISCELLANEOUS: 'bg-gray-100 text-gray-700',
-  TRIP_EXPENSE: 'bg-violet-100 text-violet-700',
+// Category identity is carried by a small dot, not a pastel background wash.
+// Thirteen filled badges in a dense table read as noise; a dot keeps the
+// colour coding while letting the amount column stay the loudest thing.
+export const CATEGORY_DOTS = {
+  FUEL: 'bg-blue-500',
+  TOLL: 'bg-amber-500',
+  MAINTENANCE: 'bg-purple-500',
+  REPAIR: 'bg-red-500',
+  DRIVER_SALARY: 'bg-green-600',
+  DRIVER_ALLOWANCE: 'bg-teal-500',
+  DRIVER_MEAL: 'bg-pink-500',
+  INSURANCE: 'bg-indigo-500',
+  PERMIT: 'bg-cyan-500',
+  FINE: 'bg-rose-600',
+  TYRE: 'bg-orange-500',
+  LOADING_UNLOADING: 'bg-lime-600',
+  MISCELLANEOUS: 'bg-gray-400',
+  TRIP_EXPENSE: 'bg-violet-500',
+  FUEL_EXPENSE: 'bg-blue-500',
+  SERVICE: 'bg-purple-500',
 };
+
+/** Everything the khata ledgers can surface. */
+export const SOURCES = ['MANUAL', 'TRIP', 'FUEL', 'MAINTENANCE'];
+
+/**
+ * /api/expenses merges only these three — maintenance rows are reachable via
+ * /api/khata/* only, and asking that endpoint for source=MAINTENANCE is a 400.
+ */
+export const EXPENSE_SOURCES = ['MANUAL', 'TRIP', 'FUEL'];
 
 export const SOURCE_LABELS = {
   MANUAL: 'Manual',
@@ -55,11 +76,10 @@ export const SOURCE_LABELS = {
   MAINTENANCE: 'Maintenance',
 };
 
-export const SOURCE_COLORS = {
-  MANUAL: 'border-blue-300 text-blue-600',
-  TRIP: 'border-violet-300 text-violet-600',
-  FUEL: 'border-orange-300 text-orange-600',
-  MAINTENANCE: 'border-purple-300 text-purple-600',
+export const ASSIGNMENT_STATUS_STYLES = {
+  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  INACTIVE: 'bg-muted text-muted-foreground border-border',
+  ENDED: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
 export const formatCurrency = (v) =>
@@ -70,28 +90,39 @@ export const formatCurrency = (v) =>
     maximumFractionDigits: 0,
   }).format(v || 0);
 
-export const formatDate = (d) =>
-  d
-    ? new Date(d).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
-    : '-';
-
-export const getDriverName = (driver) => {
-  if (!driver) return '-';
-  return [driver.firstName, driver.lastName].filter(Boolean).join(' ') || '-';
+/** Stat-card variant — ₹4.82L / ₹1.2Cr so big totals don't blow out the cell. */
+export const formatCurrencyCompact = (v) => {
+  const n = Number(v) || 0;
+  const abs = Math.abs(n);
+  if (abs >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`;
+  if (abs >= 1e5) return `₹${(n / 1e5).toFixed(2)}L`;
+  return formatCurrency(n);
 };
 
-export const getVehicleLabel = (vehicle) => {
-  if (!vehicle) return '-';
-  return vehicle.registrationNumber || vehicle.name || '-';
+export const formatNumber = (v) => new Intl.NumberFormat('en-IN').format(Number(v) || 0);
+
+/** The fleet runs on IST — never format ledger dates off the browser timezone. */
+export const formatDate = formatDateIST;
+
+/** `<input type="date">` wants a local yyyy-mm-dd, not an ISO instant. */
+export const toDateInputValue = (d) => {
+  if (!d) return '';
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().split('T')[0];
 };
 
-// Khata split fields (vehicleSplit / driverSplit / byVehicle / byDriver) come back
-// from the API as a { label: amount } map. Normalise to a descending array so the
-// "top N" slices actually show the largest contributors.
+export { getDriverName, getVehicleRegistration };
+
+/** Kept as an alias — a lot of khata rows carry `registrationNumber` only. */
+export const getVehicleLabel = getVehicleRegistration;
+
+/**
+ * Khata split fields (vehicleSplit / driverSplit / byVehicle / byDriver) come back
+ * from /api/khata as a { label: amount } map — the label is already the registration
+ * number or the driver's full name, so there is nothing to look up. Normalise to a
+ * descending array so the "top N" slices show the largest contributors.
+ */
 export const toSplitArray = (split) => {
   if (Array.isArray(split)) return split;
   if (!split || typeof split !== 'object') return [];
@@ -108,4 +139,17 @@ export const getInitialDateRange = () => {
     startDate: start.toISOString(),
     endDate: end.toISOString(),
   };
+};
+
+/** Label for the currently applied range, used as stat-card context copy. */
+export const describeDateRange = (range) => {
+  if (!range?.startDate || !range?.endDate) return 'All time';
+  const start = new Date(range.startDate);
+  const end = new Date(range.endDate);
+  const sameMonth =
+    start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    return start.toLocaleDateString('en-IN', { month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+  }
+  return `${formatDateIST(range.startDate)} – ${formatDateIST(range.endDate)}`;
 };

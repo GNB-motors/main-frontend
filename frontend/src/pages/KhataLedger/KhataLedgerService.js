@@ -14,6 +14,11 @@ const KhataLedgerService = {
     return unwrap(response);
   },
 
+  getExpenseById: async (id) => {
+    const response = await apiClient.get(`/api/expenses/${id}`);
+    return unwrap(response);
+  },
+
   createExpense: async (data) => {
     const response = await apiClient.post('/api/expenses', data);
     return unwrap(response);
@@ -61,10 +66,17 @@ const KhataLedgerService = {
     return unwrap(response);
   },
 
-  // Driver-vehicle assignments
+  // Driver-vehicle assignments.
+  // This endpoint answers { status, data: [...], meta: {...} } — `meta` is a
+  // sibling of `data`, so the shared unwrap() drops it. Read both off the raw
+  // response, otherwise pagination is unreachable.
   getAssignments: async (params = {}) => {
     const response = await apiClient.get('/api/driver-vehicle-assignments', { params });
-    return unwrap(response);
+    const body = response.data || {};
+    return {
+      results: Array.isArray(body.data) ? body.data : [],
+      meta: body.meta || { page: 1, totalPages: 1, total: 0 },
+    };
   },
 
   createAssignment: async (data) => {
@@ -92,9 +104,8 @@ const KhataLedgerService = {
     if (driverId) params.driverId = driverId;
     if (vehicleId) params.vehicleId = vehicleId;
     const response = await apiClient.get('/api/driver-vehicle-assignments', { params });
-    const data = unwrap(response);
-    const list = data?.results || data?.items || data || [];
-    return Array.isArray(list) && list.length ? list[0] : null;
+    const list = Array.isArray(response.data?.data) ? response.data.data : [];
+    return list.length ? list[0] : null;
   },
 };
 

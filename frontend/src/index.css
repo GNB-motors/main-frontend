@@ -197,6 +197,21 @@ body {
     border-color: color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
+/*
+   Opt out of the lift for cards that are containers rather than affordances —
+   filter bars, table shells, form panels. Nothing happens when you click them,
+   so the lift promises an interaction that isn't there, and it drags anchored
+   popovers (an open select list) around under the cursor.
+
+   Specificity (0,4,0) via the extra class beats the base hover rule at (0,3,0),
+   so it wins on the cascade without !important.
+*/
+.page-content [data-slot="card"].card-static:hover {
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.05);
+    border-color: #eef1f8;
+    transform: none;
+}
+
 .page-content [data-slot="card-title"] {
     font-size: 15px;
     font-weight: 800;

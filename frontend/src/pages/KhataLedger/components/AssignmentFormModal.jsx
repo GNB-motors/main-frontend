@@ -1,10 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { toast } from 'react-toastify';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import SelectField from './SelectField';
 import KhataLedgerService from '../KhataLedgerService';
-import { getDriverName, getVehicleLabel } from '../utils';
+import { getDriverName, getVehicleLabel, toDateInputValue } from '../utils';
 
-const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehicles = [], drivers = [] }) => {
+const fieldClass =
+  'h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
+
+const Field = ({ label, required, hint, children }) => (
+  <div>
+    <label className="mb-1.5 block text-sm font-medium text-foreground">
+      {label}
+      {required && <span className="ml-0.5 text-destructive">*</span>}
+    </label>
+    {children}
+    {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+  </div>
+);
+
+/**
+ * Six fields and a yes/no — small enough to stay a dialog while the fuel and
+ * expense forms moved to their own routes.
+ */
+const AssignmentFormModal = ({
+  isOpen,
+  onClose,
+  onSaved,
+  editingAssignment,
+  vehicles = [],
+  drivers = [],
+}) => {
   const [form, setForm] = useState({
     driverId: '',
     vehicleId: '',
@@ -16,12 +50,13 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (editingAssignment) {
       setForm({
         driverId: editingAssignment.driverId?._id || editingAssignment.driverId || '',
         vehicleId: editingAssignment.vehicleId?._id || editingAssignment.vehicleId || '',
-        startDate: editingAssignment.startDate ? new Date(editingAssignment.startDate).toISOString().split('T')[0] : '',
-        endDate: editingAssignment.endDate ? new Date(editingAssignment.endDate).toISOString().split('T')[0] : '',
+        startDate: toDateInputValue(editingAssignment.startDate),
+        endDate: toDateInputValue(editingAssignment.endDate),
         status: editingAssignment.status || 'ACTIVE',
         notes: editingAssignment.notes || '',
       });
@@ -29,7 +64,7 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
       setForm({
         driverId: '',
         vehicleId: '',
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: toDateInputValue(new Date()),
         endDate: '',
         status: 'ACTIVE',
         notes: '',
@@ -37,14 +72,19 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
     }
   }, [editingAssignment, isOpen]);
 
-  if (!isOpen) return null;
+  const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.driverId || !form.vehicleId || !form.startDate) {
-      toast.error('Driver, vehicle, and start date are required');
+      toast.error('Pick a driver, a truck, and the date the assignment starts');
       return;
     }
+    if (form.endDate && new Date(form.endDate) < new Date(form.startDate)) {
+      toast.error('The end date cannot be before the start date');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -60,135 +100,116 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
         toast.success('Assignment updated');
       } else {
         await KhataLedgerService.createAssignment(payload);
-        toast.success('Assignment created');
+        toast.success('Assignment added');
       }
       onSaved();
       onClose();
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to save assignment');
+      toast.error(err?.response?.data?.message || err?.message || 'Could not save that assignment');
     } finally {
       setSaving(false);
     }
   };
 
-  const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color,#4f46e5)] focus:border-[var(--primary-color,#4f46e5)]';
-
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{editingAssignment ? 'Edit Assignment' : 'Add Assignment'}</h2>
-          <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100">
-            <X size={20} />
-          </button>
-        </div>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && !saving) onClose();
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{editingAssignment ? 'Edit assignment' : 'Add assignment'}</DialogTitle>
+          <DialogDescription>
+            Links a driver to a truck for a period, so entries get attributed to both.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Driver <span className="text-red-500">*</span>
-              </label>
-              <select
-                className={inputClass}
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 px-6 py-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <SelectField
+                label="Driver"
+                required
+                inDialog
                 value={form.driverId}
-                onChange={(e) => setForm({ ...form, driverId: e.target.value })}
-              >
-                <option value="">Select driver</option>
-                {drivers.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {getDriverName(d)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Vehicle <span className="text-red-500">*</span>
-              </label>
-              <select
-                className={inputClass}
+                onChange={(v) => set('driverId', v)}
+                placeholder="Select a driver"
+                options={drivers.map((d) => ({ value: d._id, label: getDriverName(d) }))}
+              />
+
+              <SelectField
+                label="Truck"
+                required
+                inDialog
                 value={form.vehicleId}
-                onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
-              >
-                <option value="">Select vehicle</option>
-                {vehicles.map((v) => (
-                  <option key={v._id} value={v._id}>
-                    {getVehicleLabel(v)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Effective From <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                className={inputClass}
-                value={form.startDate}
-                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                onChange={(v) => set('vehicleId', v)}
+                placeholder="Select a truck"
+                options={vehicles.map((v) => ({ value: v._id, label: getVehicleLabel(v) }))}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Effective To</label>
-              <input
-                type="date"
-                className={inputClass}
-                value={form.endDate}
-                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-              />
-            </div>
-          </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
-            <select
-              className={inputClass}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Starts" required>
+                <input
+                  type="date"
+                  className={`${fieldClass} num`}
+                  value={form.startDate}
+                  onChange={(e) => set('startDate', e.target.value)}
+                />
+              </Field>
+
+              <Field label="Ends" hint="Leave blank while it is ongoing.">
+                <input
+                  type="date"
+                  className={`${fieldClass} num`}
+                  value={form.endDate}
+                  onChange={(e) => set('endDate', e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <SelectField
+              label="Status"
+              inDialog
               value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Notes</label>
-            <textarea
-              className={inputClass}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Optional notes..."
-              rows={2}
-              maxLength={500}
+              onChange={(v) => set('status', v || 'ACTIVE')}
+              placeholder="Active"
+              options={[
+                { value: 'ACTIVE', label: 'Active' },
+                { value: 'INACTIVE', label: 'Inactive' },
+              ]}
             />
+
+            <Field label="Notes">
+              <textarea
+                className={`${fieldClass} h-auto py-2`}
+                value={form.notes}
+                onChange={(e) => set('notes', e.target.value)}
+                placeholder="Why this pairing, or anything worth remembering…"
+                rows={2}
+                maxLength={500}
+              />
+            </Field>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" size="lg" onClick={onClose} disabled={saving}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              size="lg"
               disabled={saving}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
+              style={{ backgroundColor: 'var(--primary-color, #4f46e5)', color: '#fff' }}
             >
-              {saving ? 'Saving...' : editingAssignment ? 'Update' : 'Add Assignment'}
-            </button>
-          </div>
+              {saving ? 'Saving…' : editingAssignment ? 'Save changes' : 'Add assignment'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

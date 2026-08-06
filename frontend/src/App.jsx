@@ -55,7 +55,12 @@ import GeofencePage from './pages/Geofence/GeofencePage.jsx';
 import GeofenceZonesPage from './pages/Geofence/GeofenceZonesPage.jsx';
 import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
 import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
-import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
+import KhataLedgerDriversPage from './pages/KhataLedger/DriversPage.jsx';
+import KhataLedgerTrucksPage from './pages/KhataLedger/TrucksPage.jsx';
+import KhataLedgerTransactionsPage from './pages/KhataLedger/TransactionsPage.jsx';
+import KhataLedgerAssignmentsPage from './pages/KhataLedger/AssignmentsPage.jsx';
+import KhataLedgerExpenseFormPage from './pages/KhataLedger/ExpenseFormPage.jsx';
+import KhataLedgerFuelFormPage from './pages/KhataLedger/FuelLogFormPage.jsx';
 import KhataLedgerDriverDetailPage from './pages/KhataLedger/KhataLedgerDriverDetailPage.jsx';
 import KhataLedgerVehicleDetailPage from './pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
@@ -130,9 +135,16 @@ function App() {
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />
-        <Route path="/khata-ledger" element={<KhataLedgerPage />} />
+        <Route path="/khata-ledger" element={<Navigate to="/khata-ledger/drivers" replace />} />
+        <Route path="/khata-ledger/drivers" element={<KhataLedgerDriversPage />} />
         <Route path="/khata-ledger/drivers/:id" element={<KhataLedgerDriverDetailPage />} />
+        <Route path="/khata-ledger/trucks" element={<KhataLedgerTrucksPage />} />
         <Route path="/khata-ledger/trucks/:id" element={<KhataLedgerVehicleDetailPage />} />
+        <Route path="/khata-ledger/transactions" element={<KhataLedgerTransactionsPage />} />
+        <Route path="/khata-ledger/assignments" element={<KhataLedgerAssignmentsPage />} />
+        <Route path="/khata-ledger/expenses/new" element={<KhataLedgerExpenseFormPage />} />
+        <Route path="/khata-ledger/expenses/:id/edit" element={<KhataLedgerExpenseFormPage />} />
+        <Route path="/khata-ledger/fuel/new" element={<KhataLedgerFuelFormPage />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
