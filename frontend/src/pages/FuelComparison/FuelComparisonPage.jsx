@@ -15,6 +15,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { ReportsService } from '../Reports/ReportsService.jsx';
 import { CsvIcon } from '../../components/Icons';
 import { getThemeCSS } from '../../utils/colorTheme';
+import LiveDieselMarquee from '../../components/LiveDieselMarquee';
 import './FuelComparison.css';
 
 // Extend dayjs with timezone and relative time support
@@ -381,8 +382,9 @@ const FuelComparisonPage = () => {
                 onApproved={() => { setReviewingTask(null); fetchData(); fetchStatus(); }}
             />
         )}
+            <LiveDieselMarquee />
             {/* Header & Title */}
-            <div className="fc-header-bar">
+            <div className="fc-header-bar mt-4">
                 <div className="fc-title-area">
                     <div className="fc-icon-wrap">
                         <Fuel size={24} color="#0f172a" />
