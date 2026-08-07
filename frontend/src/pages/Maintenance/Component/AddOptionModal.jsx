@@ -38,7 +38,7 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
       onSaved?.(v);
       onClose?.();
     } catch (err) {
-      toast.error(err?.detail || 'Failed to add');
+      toast.error(err?.message || err?.detail || 'Failed to add');
     } finally {
       setSubmitting(false);
     }

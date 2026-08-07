@@ -240,7 +240,7 @@ const TripFormPage = () => {
         // Do not auto-select driver or vehicle - let user choose
       } catch (err) {
         console.error('Failed to load drivers/vehicles for trip form:', err);
-        if (mounted) setDropdownError(err?.detail || 'Could not load employees or vehicles.');
+        if (mounted) setDropdownError(err?.message || err?.detail || 'Could not load employees or vehicles.');
       } finally {
         if (mounted) setLoadingDropdowns(false);
       }
@@ -404,10 +404,10 @@ const TripFormPage = () => {
         }
       } catch (err) {
         console.error('Failed to upload fuel receipt:', err);
-        toast.error(err?.detail || err?.message || 'Upload failed');
+        toast.error(err?.message || err?.detail || err?.message || 'Upload failed');
         setFuelReceipts(prev => prev.map(r => 
           r.id === receiptId 
-            ? { ...r, uploadError: err?.detail || err?.message || 'Upload failed' } 
+            ? { ...r, uploadError: err?.message || err?.detail || err?.message || 'Upload failed' } 
             : r
         ));
       }
@@ -500,10 +500,10 @@ const TripFormPage = () => {
       }
     } catch (err) {
       console.error('Failed to upload document:', err);
-      toast.error(err?.detail || err?.message || 'Upload failed');
+      toast.error(err?.message || err?.detail || err?.message || 'Upload failed');
       const withError = { 
         ...(section === 'start' ? startDocs[field] : endDocs[field]), 
-        uploadError: err?.detail || err?.message || 'Upload failed' 
+        uploadError: err?.message || err?.detail || err?.message || 'Upload failed' 
       };
       if (section === 'start') setStartDocs(prev => ({ ...prev, [field]: withError }));
       else setEndDocs(prev => ({ ...prev, [field]: withError }));

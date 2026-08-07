@@ -83,7 +83,7 @@ const UploadFuelModal = ({ isOpen, onClose, onUploadSuccess, vehicles = [], them
       onUploadSuccess();
       onClose();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.detail || 'Failed to upload fuel log.');
+      setError(err?.response?.data?.message || err?.message || err?.detail || 'Failed to upload fuel log.');
     } finally {
       setLoading(false);
     }

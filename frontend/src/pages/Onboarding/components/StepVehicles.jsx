@@ -142,7 +142,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
             onNext();
         } catch (error) {
             console.error('Onboarding submission failed:', error);
-            const errorMsg = error.detail || error.message || 'Failed to complete onboarding';
+            const errorMsg = error.message || error.detail || error.message || 'Failed to complete onboarding';
             toast.error(errorMsg);
         } finally {
             setIsSubmitting(false);

@@ -49,7 +49,7 @@ const DriverReport = ({ handleViewOutliers }) => {
                 setDriverReportData(data);
             } catch (err) {
                 console.error("Failed to fetch driver reports:", err);
-                setDriverError(err.detail || "Could not load driver reports.");
+                setDriverError(err.message || err.detail || "Could not load driver reports.");
                 setDriverReportData([]);
             } finally {
                 setIsLoadingDrivers(false);

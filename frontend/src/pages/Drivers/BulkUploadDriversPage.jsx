@@ -267,7 +267,7 @@ const BulkUploadDriversPage = () => {
       } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.detail?.includes('timeout')) {
         toast.error("Request timed out. The upload may still be processing on the server. Please check the employees list or try again with fewer rows.");
       } else {
-        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.detail || error.message || "Upload failed";
+        const errorMsg = error.response?.data?.message || error.response?.data?.message || data?.detail || error.message || error.detail || error.message || "Upload failed";
         toast.error(errorMsg);
       }
       setUploadResult(null);

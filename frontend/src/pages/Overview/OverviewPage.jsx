@@ -452,7 +452,7 @@ const OverviewPage = () => {
         setDriverLocations(liveLocations);
         hasLoadedOnce.current = true;
       } catch (err) {
-        setError(err.detail || "Could not load dashboard data. Please try again.");
+        setError(err.message || err.detail || "Could not load dashboard data. Please try again.");
       } finally {
         setIsLoading(false);
         setIsFetching(false);

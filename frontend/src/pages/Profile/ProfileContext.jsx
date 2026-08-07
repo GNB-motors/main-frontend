@@ -41,7 +41,7 @@ export const ProfileProvider = ({ children }) => {
                 console.log("ProfileContext: Profile data loaded:", data);
             } catch (error) {
                 console.error("ProfileContext: Failed to fetch profile:", error);
-                setProfileError(error?.detail || "Failed to load profile data in context.");
+                setProfileError(error?.message || error?.detail || "Failed to load profile data in context.");
                 setProfile(null); // Clear profile on error
                 
                 // Handle 401 errors with auto-logout
@@ -91,7 +91,7 @@ export const ProfileProvider = ({ children }) => {
                     else if (data.businessRefId) localStorage.setItem('profile_business_ref_id', data.businessRefId);
             } catch (error) {
                  console.error("ProfileContext: Failed to reload profile:", error);
-                 setProfileError(error?.detail || "Failed to reload profile data.");
+                 setProfileError(error?.message || error?.detail || "Failed to reload profile data.");
             } finally {
                 setIsLoadingProfile(false);
             }

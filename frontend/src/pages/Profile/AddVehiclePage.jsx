@@ -173,7 +173,7 @@ const AddVehiclePage = () => {
           if (selectedAccountId) {
             try {
               await reassignVehicleAccount(token, newVehicleId, selectedAccountId);
-            } catch (_) { /* non-fatal — resolver will tag on next ingestion */ }
+            } catch { /* non-fatal — resolver will tag on next ingestion */ }
           }
         }
         toast.success(`Vehicle "${formData.registration_no}" created successfully`);
@@ -181,7 +181,7 @@ const AddVehiclePage = () => {
       }
     } catch (err) {
       console.error('Add/Edit vehicle error', err);
-      const msg = err?.detail || 'Failed to create/update vehicle';
+      const msg = err?.message || err?.detail || 'Failed to create/update vehicle';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);

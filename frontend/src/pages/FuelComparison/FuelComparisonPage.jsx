@@ -174,7 +174,7 @@ const ReviewModal = ({ task, onClose, onApproved }) => {
             await ReportsService.approveReviewTask(task._id, updates);
             onApproved();
         } catch (err) {
-            setError(err.detail || 'Failed to approve task');
+            setError(err.message || err.detail || 'Failed to approve task');
         } finally {
             setSaving(false);
         }
@@ -296,7 +296,7 @@ const FuelComparisonPage = () => {
             const data = await ReportsService.getExtensionStatus();
             setStatus(data);
         } catch (err) {
-            setStatusError(err.detail || 'Could not load sync status.');
+            setStatusError(err.message || err.detail || 'Could not load sync status.');
         } finally {
             setIsLoadingStatus(false);
         }

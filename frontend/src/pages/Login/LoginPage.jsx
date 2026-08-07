@@ -153,8 +153,7 @@ const LoginPage = () => {
         } catch (loginApiError) {
             const errorMessage = loginApiError?.userMessage
                 || loginApiError?.response?.data?.message
-                || loginApiError?.detail
-                || loginApiError?.message
+                || loginApiError?.message || loginApiError?.detail || loginApiError?.message
                 || 'Login failed. Please check your credentials.';
             const isRateLimit = errorMessage?.toLowerCase().includes('too many');
             if (!isRateLimit || !import.meta.env.DEV) {

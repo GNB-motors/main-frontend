@@ -136,7 +136,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
       toast.success(`${isService ? 'Service' : 'Repair'} record added.`);
       navigate('/vehicles/service-intelligence', { state: { focusTab: recordType } });
     } catch (err) {
-      toast.error(err?.detail || 'Failed to save record');
+      toast.error(err?.message || err?.detail || 'Failed to save record');
     } finally {
       setIsSubmitting(false);
     }

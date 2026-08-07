@@ -217,7 +217,7 @@ const BulkUploadVehiclesPage = () => {
       }
     } catch (error) {
       console.error("Submission error:", error);
-      const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message || "Upload failed";
+      const errorMsg = error.response?.data?.message || error.response?.data?.message || data?.detail || error.message || "Upload failed";
       toast.error(errorMsg);
       setUploadResult(null);
     } finally {

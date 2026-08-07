@@ -286,7 +286,7 @@ const VehiclesPage = () => {
                 setTotalVehicles(result.meta.total);
             } catch (apiError) {
                 console.error('Failed to fetch vehicles:', apiError);
-                setVehicleError(apiError?.detail || 'Failed to load vehicles.');
+                setVehicleError(apiError?.message || apiError?.detail || 'Failed to load vehicles.');
             } finally {
                 setIsLoadingVehicles(false);
             }
@@ -352,7 +352,7 @@ const VehiclesPage = () => {
             setDeletingVehicle(null);
         } catch (apiError) {
             console.error("Failed to remove vehicle:", apiError);
-            const errorMessage = apiError?.detail || "Could not remove vehicle.";
+            const errorMessage = apiError?.message || apiError?.detail || "Could not remove vehicle.";
             setFormError(errorMessage);
             toast.error(errorMessage);
             setVehicles(originalVehicles);
@@ -428,7 +428,7 @@ const VehiclesPage = () => {
             console.log("Vehicle updated successfully:", normalizedUpdated);
         } catch (apiError) {
             console.error("Failed to update vehicle:", apiError);
-            const errorMessage = apiError?.detail || "Could not update vehicle.";
+            const errorMessage = apiError?.message || apiError?.detail || "Could not update vehicle.";
             setFormError(errorMessage);
             toast.error(errorMessage);
         } finally {

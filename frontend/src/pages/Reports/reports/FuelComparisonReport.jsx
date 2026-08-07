@@ -356,7 +356,7 @@ const FuelComparisonReport = () => {
             const data = await ReportsService.getExtensionStatus();
             setStatus(data);
         } catch (err) {
-            setStatusError(err.detail || 'Could not load sync status.');
+            setStatusError(err.message || err.detail || 'Could not load sync status.');
         } finally {
             setIsLoadingStatus(false);
         }
@@ -376,7 +376,7 @@ const FuelComparisonReport = () => {
             setCompTotal(data.total || 0);
             setCompTotalPages(data.totalPages || 0);
         } catch (err) {
-            setCompError(err.detail || 'Could not load comparison data.');
+            setCompError(err.message || err.detail || 'Could not load comparison data.');
         } finally {
             setIsLoadingComp(false);
         }
@@ -392,7 +392,7 @@ const FuelComparisonReport = () => {
             setFlaggedTotal(data.total || 0);
             setFlaggedTotalPages(data.totalPages || 0);
         } catch (err) {
-            setFlaggedError(err.detail || 'Could not load flagged records.');
+            setFlaggedError(err.message || err.detail || 'Could not load flagged records.');
         } finally {
             setIsLoadingFlagged(false);
         }

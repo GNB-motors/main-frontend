@@ -328,7 +328,7 @@ const RequestFormPage = () => {
         } catch (vehErr) {
           console.error("Error fetching vehicles:", vehErr);
           setVehicleError(
-            vehErr.response?.data?.detail || "Failed to load vehicles.",
+            vehErr.response?.data?.message || data?.detail || "Failed to load vehicles.",
           );
         } finally {
           setIsLoadingVehicles(false);
@@ -457,7 +457,7 @@ const RequestFormPage = () => {
       
       setExtractedData((prev) => ({ ...prev, [type]: extractedReceiptData }));
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Failed to process image.";
+      const errorMsg = err.response?.data?.message || data?.detail || "Failed to process image.";
       setError((prev) => ({ ...prev, [type]: errorMsg }));
       setPreviews((prev) => ({ ...prev, [type]: null }));
     } finally {

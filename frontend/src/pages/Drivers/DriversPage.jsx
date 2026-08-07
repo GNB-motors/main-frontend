@@ -23,176 +23,6 @@ const formatRole = (role, isSuperadmin) => {
     return ROLE_LABELS[role] || role || 'Employee';
 };
 
-// --- Add Driver Modal Component ---
-const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) => {
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
-    const [mobileNumber, setMobileNumber] = useState('');
-    const [location, setLocation] = useState('');
-    const [password, setPassword] = useState('');
-    const [role, setRole] = useState('DRIVER');
-    const [error, setError] = useState(null);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(null); // Clear previous errors
-
-        if (!firstName) {
-            setError("First name is required.");
-            return;
-        }
-
-        const driverData = {
-            firstName: firstName || null,
-            lastName: lastName || null,
-            email: email || null,
-            mobileNumber: mobileNumber || null,
-            location: location || null,
-            password: password || null,
-            role: role || 'DRIVER',
-        };
-
-        try {
-            await onSubmit(driverData);
-            // Clear form and close modal on successful submission (handled by parent)
-            // No need to clear here if useEffect handles it based on isOpen
-        } catch (submitError) {
-            const errorMessage = submitError?.detail || "Failed to add driver. Please try again.";
-            setError(errorMessage);
-            toast.error(errorMessage);
-        }
-    };
-
-    // Reset form when modal opens or closes
-    useEffect(() => {
-        if (!isOpen) {
-            setFirstName('');
-            setLastName('');
-            setEmail('');
-            setMobileNumber('');
-            setLocation('');
-            setPassword('');
-            setRole('DRIVER');
-            setVehicleRegistrationNo('');
-            setError(null);
-        }
-    }, [isOpen]);
-
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="drivers-modal-overlay" onClick={onClose}>
-            <div className="drivers-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="drivers-modal-header">
-                    <h4>Add New Employee</h4>
-                    <button onClick={onClose} className="drivers-close-btn">&times;</button>
-                </div>
-                <form onSubmit={handleSubmit} className="drivers-modal-form">
-                    <div className="drivers-form-row">
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverFirstName">First Name *</label>
-                            <input
-                                id="driverFirstName"
-                                type="text"
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                placeholder="First name"
-                                required
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverLastName">Last Name</label>
-                            <input
-                                id="driverLastName"
-                                type="text"
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                placeholder="Last name"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-                    <div className="drivers-form-row">
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverEmail">Email</label>
-                            <input
-                                id="driverEmail"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="email@example.com"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverMobile">Mobile Number</label>
-                            <input
-                                id="driverMobile"
-                                type="text"
-                                value={mobileNumber}
-                                onChange={(e) => setMobileNumber(e.target.value)}
-                                placeholder="+919XXXXXXXXX"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-                    <div className="drivers-form-row">
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverLocation">Location</label>
-                            <input
-                                id="driverLocation"
-                                type="text"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                placeholder="e.g., Pune Base"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverPassword">Password</label>
-                            <input
-                                id="driverPassword"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Temporary password"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-                    <div className="drivers-form-row">
-                        <div className="drivers-form-group">
-                            <label htmlFor="driverRole">Role</label>
-                            <input
-                                id="driverRole"
-                                type="text"
-                                value={role}
-                                onChange={(e) => setRole(e.target.value)}
-                                placeholder="e.g., DRIVER, MANAGER"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                    </div>
-
-                    {error && <div className="drivers-error-message">{error}</div>}
-
-                    <div className="drivers-modal-actions">
-                        <button type="button" className="drivers-btn drivers-btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="drivers-btn drivers-btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Adding...' : 'Add Employee'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
 // --- Edit Driver Modal Component ---
 const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmitting, availableVehicles = [] }) => {
     const [firstName, setFirstName] = useState('');
@@ -253,7 +83,7 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
             await onSubmit(driver.id, updateData); // Pass driver ID and updateData
             // Parent handles closing and state update
         } catch (submitError) {
-            const errorMessage = submitError?.detail || "Failed to update driver. Please try again.";
+            const errorMessage = submitError?.message || submitError?.detail || "Failed to update driver. Please try again.";
             setError(errorMessage);
             toast.error(errorMessage);
         }
@@ -600,7 +430,6 @@ const DriversPage = () => {
     }, []);
 
     // Modal States
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingDriver, setEditingDriver] = useState(null); // Driver object to edit
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -681,7 +510,7 @@ const DriversPage = () => {
             console.log("Drivers fetched:", normalizedDrivers, 'meta=', meta);
         } catch (apiError) {
             console.error("Failed to fetch drivers:", apiError);
-            setError(apiError?.detail || "Could not load drivers list.");
+            setError(apiError?.message || apiError?.detail || "Could not load drivers list.");
         } finally {
             setIsLoading(false); // Finish loading drivers
         }
@@ -717,26 +546,11 @@ const DriversPage = () => {
         // is not available locally. If token is missing, fetchDrivers will surface an auth error.
         fetchDrivers();
         fetchVehicles();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [businessRefId, currentPage, searchTerm, filters.role]);
 
     // --- Action Handlers ---
-    const handleAddDriver = async (driverData) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !businessRefId) {
-            throw new Error("Missing auth token or business ID.");
-        }
-        setIsSubmitting(true);
-        setActionError(null); // Clear previous action error
-        try {
-            const newDriver = await DriverService.addDriver(businessRefId, driverData);
-            const nd = {
-                ...newDriver,
-                id: newDriver.id || newDriver._id || newDriver._id,
-                firstName: newDriver.firstName || newDriver.first_name || '',
-                lastName: newDriver.lastName || newDriver.last_name || '',
-                name: newDriver.name || `${(newDriver.firstName || newDriver.first_name || '').trim()} ${(newDriver.lastName || newDriver.last_name || '').trim()}`.trim(),
-            };
-            setDrivers(prevDrivers => [...prevDrivers, nd]); // Add new driver to state
+                setDrivers(prevDrivers => [...prevDrivers, nd]); // Add new driver to state
             setIsAddModalOpen(false); // Close modal on success
             toast.success(`Employee "${driverData.name}" added successfully!`);
         } catch (apiError) {
@@ -820,7 +634,7 @@ const DriversPage = () => {
             toast.success("Employee deleted successfully!");
         } catch (err) {
              console.error("Failed to delete driver:", err);
-            const errorMessage = err.detail || "Failed to delete driver.";
+            const errorMessage = err.message || err.detail || "Failed to delete driver.";
             setActionError(errorMessage);
             toast.error(errorMessage);
         } finally {

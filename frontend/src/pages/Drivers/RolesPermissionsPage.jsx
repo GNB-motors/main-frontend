@@ -96,7 +96,7 @@ const RolesPermissionsPage = () => {
             }
             setIsDirty(false);
         } catch (err) {
-            toast.error(err.detail || err.message || 'Failed to load roles');
+            toast.error(err.message || err.detail || err.message || 'Failed to load roles');
         } finally {
             setIsLoading(false);
         }
@@ -152,7 +152,7 @@ const RolesPermissionsPage = () => {
             toast.success(`"${selectedRole.name}" permissions updated`);
             await fetchRoles(selectedRole._id);
         } catch (err) {
-            toast.error(err.detail || err.message || 'Failed to save permissions');
+            toast.error(err.message || err.detail || err.message || 'Failed to save permissions');
         } finally {
             setIsSaving(false);
         }
@@ -184,7 +184,7 @@ const RolesPermissionsPage = () => {
             setNewRoleBase('MANAGER');
             await fetchRoles(created._id);
         } catch (err) {
-            toast.error(err.detail || err.message || 'Failed to create role');
+            toast.error(err.message || err.detail || err.message || 'Failed to create role');
         } finally {
             setIsCreating(false);
         }
@@ -199,7 +199,7 @@ const RolesPermissionsPage = () => {
             setDeleteTarget(null);
             await fetchRoles();
         } catch (err) {
-            toast.error(err.detail || err.message || 'Failed to delete role');
+            toast.error(err.message || err.detail || err.message || 'Failed to delete role');
         } finally {
             setIsDeleting(false);
         }

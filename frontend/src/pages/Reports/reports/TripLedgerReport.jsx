@@ -110,7 +110,7 @@ const TripLedgerReport = () => {
                 }
             } catch (err) {
                 console.error('Failed to fetch trip ledger:', err);
-                setLedgerError(err.detail || 'Could not load trip ledger data.');
+                setLedgerError(err.message || err.detail || 'Could not load trip ledger data.');
             } finally {
                 setIsLoadingLedger(false);
             }
@@ -129,7 +129,7 @@ const TripLedgerReport = () => {
                 setSummaryData(data);
             } catch (err) {
                 console.error('Failed to fetch trip ledger summary:', err);
-                setSummaryError(err.detail || 'Could not load summary data.');
+                setSummaryError(err.message || err.detail || 'Could not load summary data.');
             } finally {
                 setIsLoadingSummary(false);
             }

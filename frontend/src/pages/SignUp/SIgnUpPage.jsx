@@ -47,7 +47,7 @@ const SignUpPage = () => {
             setGstin('');
         } catch (apiError) {
             console.error('Failed to add user:', apiError);
-            const errorMessage = apiError?.detail || 'Failed to add user. Please try again.';
+            const errorMessage = apiError?.message || apiError?.detail || 'Failed to add user. Please try again.';
             toast.error(errorMessage);
         } finally {
             setIsLoading(false);

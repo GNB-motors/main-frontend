@@ -53,7 +53,7 @@ const AlertsTab = () => {
       setAlerts(data);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
-      toast.error(err?.detail || 'Failed to load alerts');
+      toast.error(err?.message || err?.detail || 'Failed to load alerts');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }

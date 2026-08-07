@@ -28,7 +28,7 @@ const VehicleReport = () => {
                 setVehicleReportData(data);
             } catch (err) {
                 console.error("Failed to fetch vehicle reports:", err);
-                setVehicleError(err.detail || "Could not load vehicle reports.");
+                setVehicleError(err.message || err.detail || "Could not load vehicle reports.");
                 setVehicleReportData([]);
             } finally {
                 setIsLoadingVehicles(false);

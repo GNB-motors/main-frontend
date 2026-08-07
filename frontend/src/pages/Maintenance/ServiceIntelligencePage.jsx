@@ -67,7 +67,7 @@ const ServiceIntelligencePage = () => {
       setRows(res.data);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
-      toast.error(err?.detail || 'Failed to load records');
+      toast.error(err?.message || err?.detail || 'Failed to load records');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }
@@ -92,7 +92,7 @@ const ServiceIntelligencePage = () => {
       setRows((prev) => prev.filter((r) => r._id !== row._id));
       toast.success('Record deleted');
     } catch (err) {
-      toast.error(err?.detail || 'Failed to delete');
+      toast.error(err?.message || err?.detail || 'Failed to delete');
     }
   };
 
