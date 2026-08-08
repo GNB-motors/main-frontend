@@ -79,6 +79,11 @@ import ReceiptsPage from './pages/ErpReceipts/ReceiptsPage.jsx';
 import VendorPaymentsPage from './pages/ErpVendorPayments/VendorPaymentsPage.jsx';
 import SupplierPaymentsPage from './pages/ErpSupplierPayments/SupplierPaymentsPage.jsx';
 import FinancePage from './pages/ErpFinance/FinancePage.jsx';
+import ErpHomePage from './pages/ErpHome/ErpHomePage.jsx';
+import ErpPipelinePage from './pages/ErpPipeline/ErpPipelinePage.jsx';
+import ErpBillingPage from './pages/ErpBilling/ErpBillingPage.jsx';
+import ErpPayablesPage from './pages/ErpPayables/ErpPayablesPage.jsx';
+import ErpAccountsPage from './pages/ErpAccounts/ErpAccountsPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -147,33 +152,42 @@ function App() {
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />
         <Route path="/khata-ledger" element={<KhataLedgerPage />} />
-        {/* ISOCL ERP — Stage 0 masters + Stage 1 call planning */}
-        <Route path="/erp/parties" element={<PartiesPage />} />
-        <Route path="/erp/rates" element={<RatesPage />} />
+        {/* ISOCL ERP — Hub & Spoke Architecture */}
+        <Route path="/erp" element={<ErpHomePage />} />
+        <Route path="/erp/pipeline" element={<ErpPipelinePage />} />
+        <Route path="/erp/billing" element={<ErpBillingPage />} />
+        <Route path="/erp/payables" element={<ErpPayablesPage />} />
+        <Route path="/erp/accounts" element={<ErpAccountsPage />} />
+        <Route path="/erp/approvals" element={<ApprovalsPage />} />
         <Route path="/erp/call-tasks" element={<CallTasksPage />} />
         <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />
-        <Route path="/erp/delivery-orders" element={<DeliveryOrdersPage />} />
-        <Route path="/erp/approvals" element={<ApprovalsPage />} />
-        <Route path="/erp/placement-board" element={<PlacementBoardPage />} />
-        <Route path="/erp/placements" element={<PlacementsPage />} />
-        <Route path="/erp/trips" element={<TripDashboardPage />} />
         <Route path="/erp/trips/:tripId" element={<ErpTripDetailPage />} />
+
+        {/* Masters & Settings */}
+        <Route path="/erp/parties" element={<PartiesPage />} />
+        <Route path="/erp/rates" element={<RatesPage />} />
         <Route path="/erp/vendors" element={<VendorsPage />} />
         <Route path="/erp/material-compatibility" element={<MaterialCompatibilityPage />} />
-        <Route path="/erp/advances" element={<AdvancesPage />} />
         <Route path="/erp/advance-masters" element={<AdvanceMastersPage />} />
-        <Route path="/erp/consignments" element={<ConsignmentsPage />} />
-        <Route path="/erp/trip-close" element={<TripClosePage />} />
-        <Route path="/erp/pods" element={<PodsPage />} />
-        <Route path="/erp/unloading" element={<UnloadingPage />} />
-        <Route path="/erp/sale-bills" element={<SaleBillsPage />} />
-        <Route path="/erp/outstanding" element={<OutstandingPage />} />
-        <Route path="/erp/receipts" element={<ReceiptsPage />} />
-        <Route path="/erp/vendor-payments" element={<VendorPaymentsPage />} />
-        <Route path="/erp/supplier-payments" element={<SupplierPaymentsPage />} />
-        <Route path="/erp/finance" element={<FinancePage />} />
-        <Route path="/erp/ledger" element={<LedgerPage />} />
         <Route path="/erp/settings" element={<ErpSettingsPage />} />
+
+        {/* Legacy Route Redirects (1 Release Backward Compatibility) */}
+        <Route path="/erp/delivery-orders" element={<Navigate to="/erp/pipeline?tab=dos" replace />} />
+        <Route path="/erp/placement-board" element={<Navigate to="/erp/pipeline?tab=placement" replace />} />
+        <Route path="/erp/placements" element={<Navigate to="/erp/pipeline?tab=placement" replace />} />
+        <Route path="/erp/trips" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
+        <Route path="/erp/advances" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
+        <Route path="/erp/consignments" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
+        <Route path="/erp/trip-close" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
+        <Route path="/erp/pods" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
+        <Route path="/erp/unloading" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
+        <Route path="/erp/sale-bills" element={<Navigate to="/erp/billing?tab=bills" replace />} />
+        <Route path="/erp/outstanding" element={<Navigate to="/erp/billing?tab=outstanding" replace />} />
+        <Route path="/erp/receipts" element={<Navigate to="/erp/billing?tab=receipts" replace />} />
+        <Route path="/erp/vendor-payments" element={<Navigate to="/erp/payables?tab=vendor" replace />} />
+        <Route path="/erp/supplier-payments" element={<Navigate to="/erp/payables?tab=supplier" replace />} />
+        <Route path="/erp/ledger" element={<Navigate to="/erp/accounts?tab=ledger" replace />} />
+        <Route path="/erp/finance" element={<Navigate to="/erp/accounts?tab=finance" replace />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}

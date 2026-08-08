@@ -14,6 +14,8 @@ import {
   Banknote,
   Landmark,
   Settings,
+  LayoutDashboard,
+  FileCheck,
 } from 'lucide-react';
 
 /**
@@ -82,9 +84,9 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
 
-  // ─── ISOCL ERP (split by pipeline phase) ───────────────────────────────────
-  // Har group alag feature-flag children use karta hai — koi bhi group jisme
-  // koi child enabled na ho, poora hide ho jaata hai (Sidebar.jsx).
+  // ─── ISOCL ERP Hub-and-Spoke Architecture ──────────────────────────────────
+  { type: 'link', key: null, to: '/erp', label: 'ERP Home', icon: LayoutDashboard },
+  { type: 'link', key: 'erpApprovals', to: '/erp/approvals', label: 'Approvals', icon: FileCheck, badgeKey: 'approvalsCount' },
   {
     type: 'group',
     groupId: 'erpPlanning',
@@ -93,65 +95,19 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/erp/call-tasks', label: 'Call Tasks', key: 'erpCallPlanning' },
       { to: '/erp/call-schedules', label: 'Call Schedules', key: 'erpCallPlanning' },
-      { to: '/erp/delivery-orders', label: 'Delivery Orders', key: 'erpDeliveryOrders' },
     ],
-    matchRoutes: ['/erp/call-tasks', '/erp/call-schedules', '/erp/delivery-orders'],
+    matchRoutes: ['/erp/call-tasks', '/erp/call-schedules'],
   },
-  {
-    type: 'group',
-    groupId: 'erpOperations',
-    label: 'Operations',
-    icon: ClipboardList,
-    children: [
-      { to: '/erp/placement-board', label: 'Placement Board', key: 'erpPlacement' },
-      { to: '/erp/placements', label: 'Placements', key: 'erpPlacement' },
-      { to: '/erp/trips', label: 'Trip Dashboard', key: null },
-      { to: '/erp/advances', label: 'Trip Advances', key: 'erpAdvances' },
-      { to: '/erp/consignments', label: 'CN Updation', key: 'erpCnUpdation' },
-      { to: '/erp/trip-close', label: 'Trip Close', key: 'erpTripClose' },
-      { to: '/erp/pods', label: 'POD / Challan', key: 'erpPod' },
-      { to: '/erp/unloading', label: 'Unloading Entry', key: 'erpUnloading' },
-    ],
-    matchRoutes: [
-      '/erp/placement-board',
-      '/erp/placements',
-      '/erp/trips',
-      '/erp/advances',
-      '/erp/consignments',
-      '/erp/trip-close',
-      '/erp/pods',
-      '/erp/unloading',
-    ],
-  },
-  { type: 'link', key: 'erpBilling', to: '/erp/sale-bills', label: 'Sale Bills', icon: Receipt },
-  {
-    type: 'group',
-    groupId: 'erpAccounts',
-    label: 'Accounts',
-    icon: Banknote,
-    children: [
-      { to: '/erp/outstanding', label: 'Outstanding', key: 'erpAccounts' },
-      { to: '/erp/receipts', label: 'Receipts', key: 'erpAccounts' },
-      { to: '/erp/vendor-payments', label: 'Vendor Payments', key: 'erpAccounts' },
-      { to: '/erp/supplier-payments', label: 'Supplier Payments', key: 'erpAccounts' },
-      { to: '/erp/ledger', label: 'Ledger', key: 'erpAccounts' },
-    ],
-    matchRoutes: [
-      '/erp/outstanding',
-      '/erp/receipts',
-      '/erp/vendor-payments',
-      '/erp/supplier-payments',
-      '/erp/ledger',
-    ],
-  },
-  { type: 'link', key: 'erpFinance', to: '/erp/finance', label: 'Finance', icon: Landmark },
+  { type: 'link', key: 'erpOperations', to: '/erp/pipeline', label: 'Pipeline', icon: ClipboardList },
+  { type: 'link', key: 'erpBilling', to: '/erp/billing', label: 'Billing & Receivables', icon: Receipt },
+  { type: 'link', key: 'erpAccounts', to: '/erp/payables', label: 'Payables', icon: Banknote },
+  { type: 'link', key: 'erpAccounts', to: '/erp/accounts', label: 'Accounts & Ledger', icon: Landmark },
   {
     type: 'group',
     groupId: 'erpMasters',
-    label: 'Masters',
+    label: 'Masters & Settings',
     icon: Settings,
     children: [
-      { to: '/erp/approvals', label: 'Approvals', key: 'erpMasters' },
       { to: '/erp/parties', label: 'Party Master', key: 'erpMasters' },
       { to: '/erp/rates', label: 'Rate Master', key: 'erpMasters' },
       { to: '/erp/vendors', label: 'Vendor Master', key: 'erpMasters' },
@@ -160,7 +116,6 @@ export const SIDE_NAV_ITEMS = [
       { to: '/erp/settings', label: 'ERP Settings', key: 'erpMasters' },
     ],
     matchRoutes: [
-      '/erp/approvals',
       '/erp/parties',
       '/erp/rates',
       '/erp/vendors',

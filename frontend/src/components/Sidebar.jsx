@@ -17,6 +17,28 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const { isEnabled } = useFeatureFlags();
 
+    useEffect(() => {
+        const fetchApprovalsCount = async () => {
+            try {
+                const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+                if (!token) return;
+                const res = await fetch('/api/erp/approvals/summary', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setApprovalsCount(data.data?.pendingCount || 0);
+                }
+            } catch {
+                // ignore network error silently
+            }
+        };
+
+        fetchApprovalsCount();
+        const interval = setInterval(fetchApprovalsCount, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Defensive: ensure :root has the current theme CSS variables on mount and
     // whenever the theme color changes. The Sidebar previously kept a LOCAL
     // copy of theme colors and applied them inline on <aside>, which created a
@@ -107,6 +129,11 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     onClick={closeSidebarOnMobile}
                 >
                     <Icon size={20} /><span>{item.label}</span>
+                    {item.badgeKey === 'approvalsCount' && approvalsCount > 0 && (
+                      <span className="erp-badge warning" style={{ marginLeft: 'auto', fontSize: '11px', padding: '2px 7px' }}>
+                        {approvalsCount}
+                      </span>
+                    )}
                 </NavLink>
             );
         }

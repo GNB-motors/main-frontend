@@ -119,7 +119,9 @@ const TripDashboardPage = () => {
             <tr>
               <th>Trip No</th>
               <th>Date</th>
-              <th>State</th>
+              <th>Overall Stage</th>
+              <th>Advance Gate</th>
+              <th>CN Gate</th>
               <th>Vehicle</th>
               <th>Party</th>
               <th>Route (From ➔ To)</th>
@@ -134,7 +136,7 @@ const TripDashboardPage = () => {
               </tr>
             ) : trips.length === 0 ? (
               <tr>
-                <td colSpan={8} className="erp-muted">No trips found.</td>
+                <td colSpan={10} className="erp-muted">No trips found.</td>
               </tr>
             ) : (
               trips.map((t) => (
@@ -149,6 +151,24 @@ const TripDashboardPage = () => {
                     <span className={`erp-badge ${getBadgeClass(t.state)}`}>
                       {t.state}
                     </span>
+                  </td>
+                  <td>
+                    {t.state === 'PLACED' ? (
+                      <span className={`erp-badge ${getBadgeClass(t.advanceGate)}`}>
+                        {t.advanceGate}
+                      </span>
+                    ) : (
+                      <span className="erp-muted">—</span>
+                    )}
+                  </td>
+                  <td>
+                    {t.state === 'PLACED' ? (
+                      <span className={`erp-badge ${getBadgeClass(t.cnGate)}`}>
+                        {t.cnGate}
+                      </span>
+                    ) : (
+                      <span className="erp-muted">—</span>
+                    )}
                   </td>
                   <td>{t.vehicleNumber || '—'}</td>
                   <td>{t.partyId?.name || '—'}</td>

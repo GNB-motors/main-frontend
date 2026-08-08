@@ -100,7 +100,10 @@ const PodsPage = () => {
   }, [location.state]);
 
   const openRecord = (row) => {
-    setSelected(row);
+    setSelected({
+      ...row,
+      tripId: row.tripId || row._id,
+    });
     setForm(EMPTY_FORM);
     setFile(null);
     setDocumentId('');
@@ -113,9 +116,10 @@ const PodsPage = () => {
       toast.error('Choose a challan scan first');
       return;
     }
+    const targetTripId = selected.tripId || selected._id;
     setUploading(true);
     try {
-      const res = await PodService.upload({ tripId: selected.tripId, file });
+      const res = await PodService.upload({ tripId: targetTripId, file });
       setDocumentId(res.data.documentId);
       toast.success('Scan uploaded');
     } catch (err) {
@@ -128,9 +132,10 @@ const PodsPage = () => {
   const handleRecord = async (e) => {
     e.preventDefault();
     setBusy(true);
+    const targetTripId = selected.tripId || selected._id;
     try {
       await PodService.record({
-        tripId: selected.tripId,
+        tripId: targetTripId,
         receivedDate: form.receivedDate,
         copyType: form.copyType,
         receivedVia: form.receivedVia,
