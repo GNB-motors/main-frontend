@@ -59,6 +59,13 @@ import CallTasksPage from './pages/ErpCallPlanning/CallTasksPage.jsx';
 import CallSchedulesPage from './pages/ErpCallPlanning/CallSchedulesPage.jsx';
 import DeliveryOrdersPage from './pages/ErpDeliveryOrders/DeliveryOrdersPage.jsx';
 import ApprovalsPage from './pages/ErpApprovals/ApprovalsPage.jsx';
+import PlacementBoardPage from './pages/ErpPlacement/PlacementBoardPage.jsx';
+import PlacementsPage from './pages/ErpPlacement/PlacementsPage.jsx';
+import VendorsPage from './pages/ErpMasters/VendorsPage.jsx';
+import MaterialCompatibilityPage from './pages/ErpMasters/MaterialCompatibilityPage.jsx';
+import ErpSettingsPage from './pages/ErpMasters/ErpSettingsPage.jsx';
+import AdvancesPage from './pages/ErpAdvances/AdvancesPage.jsx';
+import AdvanceMastersPage from './pages/ErpAdvances/AdvanceMastersPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -134,6 +141,13 @@ function App() {
         <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />
         <Route path="/erp/delivery-orders" element={<DeliveryOrdersPage />} />
         <Route path="/erp/approvals" element={<ApprovalsPage />} />
+        <Route path="/erp/placement-board" element={<PlacementBoardPage />} />
+        <Route path="/erp/placements" element={<PlacementsPage />} />
+        <Route path="/erp/vendors" element={<VendorsPage />} />
+        <Route path="/erp/material-compatibility" element={<MaterialCompatibilityPage />} />
+        <Route path="/erp/advances" element={<AdvancesPage />} />
+        <Route path="/erp/advance-masters" element={<AdvanceMastersPage />} />
+        <Route path="/erp/settings" element={<ErpSettingsPage />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
