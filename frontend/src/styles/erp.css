@@ -118,6 +118,76 @@
   flex-wrap: wrap;
 }
 
+.erp-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.erp-tab {
+  border: none;
+  background: transparent;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.erp-tab.active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.erp-table-wrap {
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: auto;
+}
+
+.erp-muted {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.erp-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.erp-icon-btn {
+  border: none;
+  background: transparent;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex;
+}
+
+.erp-icon-btn:hover {
+  background: #e2e8f0;
+  color: #1a202c;
+}
+
+.erp-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.erp-form {
+  padding: 0 20px 20px;
+}
+
 .erp-search {
   position: relative;
   display: flex;

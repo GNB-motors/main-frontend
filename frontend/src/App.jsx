@@ -66,6 +66,17 @@ import MaterialCompatibilityPage from './pages/ErpMasters/MaterialCompatibilityP
 import ErpSettingsPage from './pages/ErpMasters/ErpSettingsPage.jsx';
 import AdvancesPage from './pages/ErpAdvances/AdvancesPage.jsx';
 import AdvanceMastersPage from './pages/ErpAdvances/AdvanceMastersPage.jsx';
+import ConsignmentsPage from './pages/ErpConsignments/ConsignmentsPage.jsx';
+import TripClosePage from './pages/ErpTrips/TripClosePage.jsx';
+import PodsPage from './pages/ErpPods/PodsPage.jsx';
+import LedgerPage from './pages/ErpLedger/LedgerPage.jsx';
+import UnloadingPage from './pages/ErpUnloading/UnloadingPage.jsx';
+import SaleBillsPage from './pages/ErpSaleBills/SaleBillsPage.jsx';
+import OutstandingPage from './pages/ErpOutstanding/OutstandingPage.jsx';
+import ReceiptsPage from './pages/ErpReceipts/ReceiptsPage.jsx';
+import VendorPaymentsPage from './pages/ErpVendorPayments/VendorPaymentsPage.jsx';
+import SupplierPaymentsPage from './pages/ErpSupplierPayments/SupplierPaymentsPage.jsx';
+import FinancePage from './pages/ErpFinance/FinancePage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -147,6 +158,17 @@ function App() {
         <Route path="/erp/material-compatibility" element={<MaterialCompatibilityPage />} />
         <Route path="/erp/advances" element={<AdvancesPage />} />
         <Route path="/erp/advance-masters" element={<AdvanceMastersPage />} />
+        <Route path="/erp/consignments" element={<ConsignmentsPage />} />
+        <Route path="/erp/trip-close" element={<TripClosePage />} />
+        <Route path="/erp/pods" element={<PodsPage />} />
+        <Route path="/erp/unloading" element={<UnloadingPage />} />
+        <Route path="/erp/sale-bills" element={<SaleBillsPage />} />
+        <Route path="/erp/outstanding" element={<OutstandingPage />} />
+        <Route path="/erp/receipts" element={<ReceiptsPage />} />
+        <Route path="/erp/vendor-payments" element={<VendorPaymentsPage />} />
+        <Route path="/erp/supplier-payments" element={<SupplierPaymentsPage />} />
+        <Route path="/erp/finance" element={<FinancePage />} />
+        <Route path="/erp/ledger" element={<LedgerPage />} />
         <Route path="/erp/settings" element={<ErpSettingsPage />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
