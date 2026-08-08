@@ -53,6 +53,12 @@ import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
 import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
+import PartiesPage from './pages/ErpMasters/PartiesPage.jsx';
+import RatesPage from './pages/ErpMasters/RatesPage.jsx';
+import CallTasksPage from './pages/ErpCallPlanning/CallTasksPage.jsx';
+import CallSchedulesPage from './pages/ErpCallPlanning/CallSchedulesPage.jsx';
+import DeliveryOrdersPage from './pages/ErpDeliveryOrders/DeliveryOrdersPage.jsx';
+import ApprovalsPage from './pages/ErpApprovals/ApprovalsPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -121,6 +127,13 @@ function App() {
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />
         <Route path="/khata-ledger" element={<KhataLedgerPage />} />
+        {/* ISOCL ERP — Stage 0 masters + Stage 1 call planning */}
+        <Route path="/erp/parties" element={<PartiesPage />} />
+        <Route path="/erp/rates" element={<RatesPage />} />
+        <Route path="/erp/call-tasks" element={<CallTasksPage />} />
+        <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />
+        <Route path="/erp/delivery-orders" element={<DeliveryOrdersPage />} />
+        <Route path="/erp/approvals" element={<ApprovalsPage />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}

@@ -1,4 +1,4 @@
-import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation } from 'lucide-react';
+import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation, PhoneCall } from 'lucide-react';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -65,6 +65,33 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
+
+  // ─── ISOCL ERP ────────────────────────────────────────────────────────────
+  // Each child carries its own stage flag, so an org that only has Stage 1
+  // enabled sees Call Planning and nothing else. The group itself is ungated —
+  // getVisibleNavChildren hides it entirely when no child is enabled.
+  {
+    type: 'group',
+    groupId: 'erp',
+    label: 'ERP',
+    icon: PhoneCall,
+    children: [
+      { to: '/erp/call-tasks', label: 'Call Tasks', key: 'erpCallPlanning' },
+      { to: '/erp/call-schedules', label: 'Call Schedules', key: 'erpCallPlanning' },
+      { to: '/erp/delivery-orders', label: 'Delivery Orders', key: 'erpDeliveryOrders' },
+      { to: '/erp/approvals', label: 'Approvals', key: 'erpMasters' },
+      { to: '/erp/parties', label: 'Party Master', key: 'erpMasters' },
+      { to: '/erp/rates', label: 'Rate Master', key: 'erpMasters' },
+    ],
+    matchRoutes: [
+      '/erp/call-tasks',
+      '/erp/call-schedules',
+      '/erp/delivery-orders',
+      '/erp/approvals',
+      '/erp/parties',
+      '/erp/rates',
+    ],
+  },
 
   // ─── Geofence group ───────────────────────────────────────────────────────
   // Both sub-pages are grouped under a single collapsible "Geofence" dropdown.
