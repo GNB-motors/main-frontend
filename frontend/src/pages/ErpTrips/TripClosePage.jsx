@@ -8,13 +8,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Flag, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import TripCloseService from './TripCloseService';
 import '../../styles/erp.css';
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
 const TripClosePage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [tab, setTab] = useState('pending');
   const [pending, setPending] = useState([]);
   const [closed, setClosed] = useState([]);
@@ -65,6 +68,14 @@ const TripClosePage = () => {
     if (tab === 'pending') fetchPending();
     else fetchClosed();
   }, [tab, fetchPending, fetchClosed]);
+
+  useEffect(() => {
+    if (location.state?.action === 'openTripClose' && location.state?.trip) {
+      setTab('pending');
+      openClose(location.state.trip);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const openClose = (trip) => {
     setSelected(trip);

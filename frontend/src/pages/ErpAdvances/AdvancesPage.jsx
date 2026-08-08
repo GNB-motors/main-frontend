@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Wallet,
   X,
@@ -37,6 +38,9 @@ const LEG_LABELS = {
 const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
 
 const AdvancesPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [advances, setAdvances] = useState([]);
   const [placements, setPlacements] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -92,6 +96,14 @@ const AdvancesPage = () => {
     fetchAdvances(statusFilter);
     fetchPlacements();
   }, [fetchAdvances, fetchPlacements, statusFilter]);
+
+  useEffect(() => {
+    if (location.state?.action === 'openAdvance' && location.state?.trip) {
+      setShowRaise(true);
+      setTripId(location.state.trip._id);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Re-cost whenever the trip or the chosen legs change.
   useEffect(() => {

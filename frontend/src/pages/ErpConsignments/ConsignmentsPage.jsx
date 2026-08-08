@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { FileText, Upload, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ConsignmentService from './ConsignmentService';
@@ -25,6 +26,9 @@ const EMPTY_FORM = {
 };
 
 const ConsignmentsPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [tab, setTab] = useState('pending');
   const [pending, setPending] = useState([]);
   const [saved, setSaved] = useState([]);
@@ -72,6 +76,15 @@ const ConsignmentsPage = () => {
     else fetchSaved();
   }, [tab, fetchPending, fetchSaved]);
 
+  useEffect(() => {
+    if (location.state?.action === 'openCnUpdate' && location.state?.trip) {
+      setTab('pending');
+      openSave(location.state.trip);
+      // Clear state so it doesn't reopen on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const openSave = (trip) => {
     setSelectedTrip(trip);
     setForm({
@@ -114,10 +127,6 @@ const ConsignmentsPage = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!biltyDocumentId) {
-      toast.error('Bilty upload kiye bina CN save nahi ho sakta');
-      return;
-    }
     setBusy(true);
     try {
       const seals = form.sealNumbers
@@ -133,7 +142,7 @@ const ConsignmentsPage = () => {
         ...(form.temperature !== '' ? { temperature: Number(form.temperature) } : {}),
         ...(form.density !== '' ? { density: Number(form.density) } : {}),
         sealNumbers: seals,
-        biltyDocumentId,
+        ...(biltyDocumentId ? { biltyDocumentId } : {}),
       });
       toast.success('CN saved');
       closeSave();
@@ -367,7 +376,7 @@ const ConsignmentsPage = () => {
               <div className="erp-callout">
                 <Upload size={16} />
                 <div>
-                  <strong>Bilty is mandatory</strong>
+                  <strong>Bilty Upload (Optional)</strong>
                   <p className="erp-muted">
                     Upload the LR / consignment note before saving. OCR is best-effort and will
                     not block the save.
@@ -393,11 +402,7 @@ const ConsignmentsPage = () => {
                       <span className="erp-badge success">
                         <CheckCircle2 size={12} /> Uploaded
                       </span>
-                    ) : (
-                      <span className="erp-badge warning">
-                        <AlertTriangle size={12} /> Required
-                      </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>

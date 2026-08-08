@@ -105,6 +105,7 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/erp/placement-board', label: 'Placement Board', key: 'erpPlacement' },
       { to: '/erp/placements', label: 'Placements', key: 'erpPlacement' },
+      { to: '/erp/trips', label: 'Trip Dashboard', key: null },
       { to: '/erp/advances', label: 'Trip Advances', key: 'erpAdvances' },
       { to: '/erp/consignments', label: 'CN Updation', key: 'erpCnUpdation' },
       { to: '/erp/trip-close', label: 'Trip Close', key: 'erpTripClose' },
@@ -114,6 +115,7 @@ export const SIDE_NAV_ITEMS = [
     matchRoutes: [
       '/erp/placement-board',
       '/erp/placements',
+      '/erp/trips',
       '/erp/advances',
       '/erp/consignments',
       '/erp/trip-close',

@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Scale, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UnloadingApi from './UnloadingService';
@@ -12,6 +13,9 @@ const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
 const UnloadingPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [tab, setTab] = useState('pending');
   const [pending, setPending] = useState([]);
   const [saved, setSaved] = useState([]);
@@ -76,6 +80,15 @@ const UnloadingPage = () => {
     else if (tab === 'saved') fetchSaved();
     else fetchBills();
   }, [tab, fetchPending, fetchSaved, fetchBills]);
+
+  useEffect(() => {
+    if (location.state?.action === 'openUnloading' && location.state?.trip) {
+      setTab('pending');
+      const tripData = { ...location.state.trip, tripId: location.state.trip._id };
+      openEntry(tripData);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const openEntry = (row) => {
     setSelected(row);

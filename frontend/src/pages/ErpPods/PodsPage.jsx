@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PackageCheck, X, AlertTriangle, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PodService from './PodService';
 import '../../styles/erp.css';
 
@@ -22,6 +23,9 @@ const EMPTY_FORM = {
 };
 
 const PodsPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [tab, setTab] = useState('pending');
   const [pending, setPending] = useState([]);
   const [recorded, setRecorded] = useState([]);
@@ -86,6 +90,14 @@ const PodsPage = () => {
     else if (tab === 'recorded') fetchRecorded();
     else fetchAgeing();
   }, [tab, fetchPending, fetchRecorded, fetchAgeing]);
+
+  useEffect(() => {
+    if (location.state?.action === 'openPod' && location.state?.trip) {
+      setTab('pending');
+      openRecord(location.state.trip);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const openRecord = (row) => {
     setSelected(row);

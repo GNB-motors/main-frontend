@@ -64,6 +64,8 @@ import PlacementsPage from './pages/ErpPlacement/PlacementsPage.jsx';
 import VendorsPage from './pages/ErpMasters/VendorsPage.jsx';
 import MaterialCompatibilityPage from './pages/ErpMasters/MaterialCompatibilityPage.jsx';
 import ErpSettingsPage from './pages/ErpMasters/ErpSettingsPage.jsx';
+import TripDashboardPage from './pages/ErpTrips/TripDashboardPage.jsx';
+import ErpTripDetailPage from './pages/ErpTrips/TripDetailPage.jsx';
 import AdvancesPage from './pages/ErpAdvances/AdvancesPage.jsx';
 import AdvanceMastersPage from './pages/ErpAdvances/AdvanceMastersPage.jsx';
 import ConsignmentsPage from './pages/ErpConsignments/ConsignmentsPage.jsx';
@@ -154,6 +156,8 @@ function App() {
         <Route path="/erp/approvals" element={<ApprovalsPage />} />
         <Route path="/erp/placement-board" element={<PlacementBoardPage />} />
         <Route path="/erp/placements" element={<PlacementsPage />} />
+        <Route path="/erp/trips" element={<TripDashboardPage />} />
+        <Route path="/erp/trips/:tripId" element={<ErpTripDetailPage />} />
         <Route path="/erp/vendors" element={<VendorsPage />} />
         <Route path="/erp/material-compatibility" element={<MaterialCompatibilityPage />} />
         <Route path="/erp/advances" element={<AdvancesPage />} />
