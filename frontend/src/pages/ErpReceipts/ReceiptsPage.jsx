@@ -210,7 +210,7 @@ const ReceiptsPage = () => {
           <button
             key={key}
             type="button"
-            className={tab === key ? 'active' : ''}
+            className={`erp-tab ${tab === key ? 'active' : ''}`}
             onClick={() => setTab(key)}
           >
             {label}

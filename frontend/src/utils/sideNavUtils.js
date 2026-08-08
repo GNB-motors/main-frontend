@@ -1,4 +1,20 @@
-import { Grid, FileText, Users, User, Truck, MapPin, Fuel, BookOpen, Navigation, PhoneCall } from 'lucide-react';
+import {
+  Grid,
+  FileText,
+  Users,
+  User,
+  Truck,
+  MapPin,
+  Fuel,
+  BookOpen,
+  Navigation,
+  PhoneCall,
+  ClipboardList,
+  Receipt,
+  Banknote,
+  Landmark,
+  Settings,
+} from 'lucide-react';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -66,19 +82,27 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
 
-  // ─── ISOCL ERP ────────────────────────────────────────────────────────────
-  // Each child carries its own stage flag, so an org that only has Stage 1
-  // enabled sees Call Planning and nothing else. The group itself is ungated —
-  // getVisibleNavChildren hides it entirely when no child is enabled.
+  // ─── ISOCL ERP (split by pipeline phase) ───────────────────────────────────
+  // Har group alag feature-flag children use karta hai — koi bhi group jisme
+  // koi child enabled na ho, poora hide ho jaata hai (Sidebar.jsx).
   {
     type: 'group',
-    groupId: 'erp',
-    label: 'ERP',
+    groupId: 'erpPlanning',
+    label: 'Planning',
     icon: PhoneCall,
     children: [
       { to: '/erp/call-tasks', label: 'Call Tasks', key: 'erpCallPlanning' },
       { to: '/erp/call-schedules', label: 'Call Schedules', key: 'erpCallPlanning' },
       { to: '/erp/delivery-orders', label: 'Delivery Orders', key: 'erpDeliveryOrders' },
+    ],
+    matchRoutes: ['/erp/call-tasks', '/erp/call-schedules', '/erp/delivery-orders'],
+  },
+  {
+    type: 'group',
+    groupId: 'erpOperations',
+    label: 'Operations',
+    icon: ClipboardList,
+    children: [
       { to: '/erp/placement-board', label: 'Placement Board', key: 'erpPlacement' },
       { to: '/erp/placements', label: 'Placements', key: 'erpPlacement' },
       { to: '/erp/advances', label: 'Trip Advances', key: 'erpAdvances' },
@@ -86,13 +110,45 @@ export const SIDE_NAV_ITEMS = [
       { to: '/erp/trip-close', label: 'Trip Close', key: 'erpTripClose' },
       { to: '/erp/pods', label: 'POD / Challan', key: 'erpPod' },
       { to: '/erp/unloading', label: 'Unloading Entry', key: 'erpUnloading' },
-      { to: '/erp/sale-bills', label: 'Sale Bills', key: 'erpBilling' },
+    ],
+    matchRoutes: [
+      '/erp/placement-board',
+      '/erp/placements',
+      '/erp/advances',
+      '/erp/consignments',
+      '/erp/trip-close',
+      '/erp/pods',
+      '/erp/unloading',
+    ],
+  },
+  { type: 'link', key: 'erpBilling', to: '/erp/sale-bills', label: 'Sale Bills', icon: Receipt },
+  {
+    type: 'group',
+    groupId: 'erpAccounts',
+    label: 'Accounts',
+    icon: Banknote,
+    children: [
       { to: '/erp/outstanding', label: 'Outstanding', key: 'erpAccounts' },
       { to: '/erp/receipts', label: 'Receipts', key: 'erpAccounts' },
       { to: '/erp/vendor-payments', label: 'Vendor Payments', key: 'erpAccounts' },
       { to: '/erp/supplier-payments', label: 'Supplier Payments', key: 'erpAccounts' },
-      { to: '/erp/finance', label: 'Finance', key: 'erpFinance' },
       { to: '/erp/ledger', label: 'Ledger', key: 'erpAccounts' },
+    ],
+    matchRoutes: [
+      '/erp/outstanding',
+      '/erp/receipts',
+      '/erp/vendor-payments',
+      '/erp/supplier-payments',
+      '/erp/ledger',
+    ],
+  },
+  { type: 'link', key: 'erpFinance', to: '/erp/finance', label: 'Finance', icon: Landmark },
+  {
+    type: 'group',
+    groupId: 'erpMasters',
+    label: 'Masters',
+    icon: Settings,
+    children: [
       { to: '/erp/approvals', label: 'Approvals', key: 'erpMasters' },
       { to: '/erp/parties', label: 'Party Master', key: 'erpMasters' },
       { to: '/erp/rates', label: 'Rate Master', key: 'erpMasters' },
@@ -102,29 +158,12 @@ export const SIDE_NAV_ITEMS = [
       { to: '/erp/settings', label: 'ERP Settings', key: 'erpMasters' },
     ],
     matchRoutes: [
-      '/erp/call-tasks',
-      '/erp/call-schedules',
-      '/erp/delivery-orders',
-      '/erp/placement-board',
-      '/erp/placements',
-      '/erp/advances',
-      '/erp/advance-masters',
-      '/erp/consignments',
-      '/erp/trip-close',
-      '/erp/pods',
-      '/erp/unloading',
-      '/erp/sale-bills',
-      '/erp/outstanding',
-      '/erp/receipts',
-      '/erp/vendor-payments',
-      '/erp/supplier-payments',
-      '/erp/finance',
-      '/erp/ledger',
       '/erp/approvals',
       '/erp/parties',
       '/erp/rates',
       '/erp/vendors',
       '/erp/material-compatibility',
+      '/erp/advance-masters',
       '/erp/settings',
     ],
   },

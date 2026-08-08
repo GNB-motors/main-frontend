@@ -124,8 +124,10 @@
   padding: 4px;
   background: #e2e8f0;
   border-radius: 10px;
+  margin-bottom: 20px;
 }
 
+.erp-tabs button,
 .erp-tab {
   border: none;
   background: transparent;
@@ -135,12 +137,236 @@
   font-weight: 600;
   color: #475569;
   cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
 }
 
+.erp-tabs button.active,
 .erp-tab.active {
   background: #fff;
   color: #0f172a;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* ─── Page header (Stage 8+ pages) ─────────────────────────────────────────── */
+.erp-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.erp-page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.erp-page-header p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.erp-page-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+/* ─── Card ────────────────────────────────────────────────────────────────── */
+.erp-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+.erp-card h3,
+.erp-card h4 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-card h4 {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.erp-card > p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ─── Buttons (erp-btn alias for Stage 8+ pages) ──────────────────────────── */
+.erp-btn {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #1a202c;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.erp-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e0;
+}
+
+.erp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.erp-btn.primary,
+.erp-btn-primary {
+  background: #00c896;
+  border-color: #00c896;
+  color: #fff;
+}
+
+.erp-btn.primary:hover:not(:disabled),
+.erp-btn-primary:hover:not(:disabled) {
+  background: #00b876;
+  border-color: #00b876;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.2);
+}
+
+.erp-btn.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* ─── Split layout ────────────────────────────────────────────────────────── */
+.erp-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .erp-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Lists ───────────────────────────────────────────────────────────────── */
+.erp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.erp-link-btn {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1a202c;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.erp-link-btn:hover {
+  background: #f0fdfa;
+  border-color: #00c896;
+  color: #0f766e;
+}
+
+/* ─── Form actions ────────────────────────────────────────────────────────── */
+.erp-form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+/* Labels used directly inside erp-form-grid (Receipts, Finance, etc.) */
+.erp-form-grid > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.erp-form-grid > label input,
+.erp-form-grid > label select,
+.erp-form-grid > label textarea {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 400;
+  background: #fff;
+  color: #1a202c;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.erp-form-grid > label input:focus,
+.erp-form-grid > label select:focus,
+.erp-form-grid > label textarea:focus {
+  outline: none;
+  border-color: #00c896;
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.12);
+}
+
+.erp-form-grid.erp-card {
+  margin-top: 0;
+}
+
+.erp-table.compact thead th,
+.erp-table.compact tbody td {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.erp-table.compact input {
+  width: 100%;
+  min-width: 64px;
+  padding: 6px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.erp-table.compact input:focus {
+  outline: none;
+  border-color: #00c896;
 }
 
 .erp-table-wrap {
