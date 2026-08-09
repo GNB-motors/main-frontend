@@ -1,4 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+
+function RedirectWithState({ to }) {
+  const location = useLocation();
+  return <Navigate to={to} state={location.state} replace />;
+}
+
 
 import DashboardLayout from './components/DashboardLayout';
 // Removed ProfileProvider import - profile logic completely removed
@@ -174,22 +180,22 @@ function App() {
         <Route path="/erp/settings" element={<ErpSettingsPage />} />
 
         {/* Legacy Route Redirects (1 Release Backward Compatibility) */}
-        <Route path="/erp/delivery-orders" element={<Navigate to="/erp/pipeline?tab=dos" replace />} />
-        <Route path="/erp/placement-board" element={<Navigate to="/erp/pipeline?tab=placement" replace />} />
-        <Route path="/erp/placements" element={<Navigate to="/erp/pipeline?tab=placement" replace />} />
-        <Route path="/erp/trips" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
-        <Route path="/erp/advances" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
-        <Route path="/erp/consignments" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
-        <Route path="/erp/trip-close" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
-        <Route path="/erp/pods" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
-        <Route path="/erp/unloading" element={<Navigate to="/erp/pipeline?tab=trips" replace />} />
-        <Route path="/erp/sale-bills" element={<Navigate to="/erp/billing?tab=bills" replace />} />
-        <Route path="/erp/outstanding" element={<Navigate to="/erp/billing?tab=outstanding" replace />} />
-        <Route path="/erp/receipts" element={<Navigate to="/erp/billing?tab=receipts" replace />} />
-        <Route path="/erp/vendor-payments" element={<Navigate to="/erp/payables?tab=vendor" replace />} />
-        <Route path="/erp/supplier-payments" element={<Navigate to="/erp/payables?tab=supplier" replace />} />
-        <Route path="/erp/ledger" element={<Navigate to="/erp/accounts?tab=ledger" replace />} />
-        <Route path="/erp/finance" element={<Navigate to="/erp/accounts?tab=finance" replace />} />
+        <Route path="/erp/delivery-orders" element={<RedirectWithState to="/erp/pipeline?tab=dos" />} />
+        <Route path="/erp/placement-board" element={<RedirectWithState to="/erp/pipeline?tab=placement" />} />
+        <Route path="/erp/placements" element={<RedirectWithState to="/erp/pipeline?tab=placement" />} />
+        <Route path="/erp/trips" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
+        <Route path="/erp/advances" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
+        <Route path="/erp/consignments" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
+        <Route path="/erp/trip-close" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
+        <Route path="/erp/pods" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
+        <Route path="/erp/unloading" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
+        <Route path="/erp/sale-bills" element={<RedirectWithState to="/erp/billing?tab=bills" />} />
+        <Route path="/erp/outstanding" element={<RedirectWithState to="/erp/billing?tab=outstanding" />} />
+        <Route path="/erp/receipts" element={<RedirectWithState to="/erp/billing?tab=receipts" />} />
+        <Route path="/erp/vendor-payments" element={<RedirectWithState to="/erp/payables?tab=vendor" />} />
+        <Route path="/erp/supplier-payments" element={<RedirectWithState to="/erp/payables?tab=supplier" />} />
+        <Route path="/erp/ledger" element={<RedirectWithState to="/erp/accounts?tab=ledger" />} />
+        <Route path="/erp/finance" element={<RedirectWithState to="/erp/accounts?tab=finance" />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}

@@ -231,7 +231,7 @@ const TripDetailPage = () => {
           ? [
               { label: 'Bill no', value: saleBill.billNumber },
               { label: 'Bill date', value: day(saleBill.billDate) },
-              { label: 'Grand total', value: money(saleBill.grandTotal) },
+              { label: 'Grand total', value: money(saleBill.netAmount ?? saleBill.grandTotal) },
             ]
           : null,
       },
@@ -246,7 +246,7 @@ const TripDetailPage = () => {
         facts: hasBill
           ? [
               { label: 'Status', value: saleBill.status || 'BILLED' },
-              { label: 'Invoiced', value: money(saleBill.grandTotal) },
+              { label: 'Invoiced', value: money(saleBill.netAmount ?? saleBill.grandTotal) },
             ]
           : null,
       },

@@ -140,7 +140,7 @@ const CallTasksPage = () => {
         toast.success(`Sure order from ${draft.partyName} — opening the delivery order form`);
         closeOutcomeModal();
         // Hand off to Stage 2 with the party pre-selected.
-        navigate('/erp/delivery-orders', { state: { doDraft: draft } });
+        navigate('/erp/pipeline?tab=dos', { state: { doDraft: draft } });
         return;
       }
       if (res.data?.childTask) {

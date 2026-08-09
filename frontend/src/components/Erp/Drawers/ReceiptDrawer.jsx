@@ -37,9 +37,12 @@ const ReceiptDrawer = ({
       await ReceiptService.create({
         partyId,
         receiptDate,
+        mode: paymentMode,
         paymentMode,
         amount: Number(amount),
+        instrumentNo: reference,
         reference,
+        narration: remarks,
         remarks,
         allocations: bill ? [{ billId: bill._id, amount: Number(amount) }] : [],
       });
