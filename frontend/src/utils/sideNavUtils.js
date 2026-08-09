@@ -16,7 +16,10 @@ import {
   Settings,
   LayoutDashboard,
   FileCheck,
+  Gauge,
 } from 'lucide-react';
+
+import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
 
 /**
  * Single source of truth for the dashboard sidebar.
@@ -29,36 +32,39 @@ import {
  *               dikhata hai. `key: null` ka matlab "hamesha dikhao" (no gating).
  * `groupId`  -> collapsible group open/close state (defaults to `key` when set).
  *
- * type 'link'  -> single NavLink.
- *                 fields: { key, to, label, icon, end? }
- * type 'group' -> collapsible dropdown.
- *                 fields: { key?, groupId?, label, icon, children[], matchRoutes[] }
- *                 children:    [{ to, label, end?, key? }]
- *                 matchRoutes: routes jinpe hone par group apne aap expand rahe
- *                              (chhupe/deep routes bhi include karo).
+ * type 'link'    -> single NavLink.
+ *                   fields: { key, to, label, icon, end? }
+ * type 'group'   -> collapsible dropdown.
+ *                   fields: { key?, groupId?, label, icon, children[], matchRoutes[] }
+ *                   children:    [{ to, label, end?, key? }]
+ *                   matchRoutes: routes jinpe hone par group apne aap expand rahe
+ *                                (chhupe/deep routes bhi include karo).
+ * type 'section' -> non-clickable heading jo neeche wale items ko group karta hai.
+ *                   fields: { label }
+ *                   Agar uske neeche ka koi bhi item visible nahi hai to heading
+ *                   apne aap hat jaati hai (getVisibleNavItems dekho).
+ *
+ * `access`   -> module gate: 'erp' | 'fleet' | 'both'. Item's apna feature-flag
+ *               `key` iske upar bhi lagta hai. moduleAccess.js dekho.
+ *
+ * `hoistWhenSole` -> 'erp' | 'fleet'. Agar org ke paas sirf yahi ek module hai,
+ *               to ye item apne section se nikal kar sabse upar chala jaata hai
+ *               (shared Vehicles/Employees ke bhi upar) — kyunki tab wahi is
+ *               org ka landing page hai. Dono module hone par ye hilta nahi;
+ *               top slot combined Overview le leta hai.
+ *
+ * Order matters: ERP/CRM sabse upar hai kyunki wahi ab primary workflow hai.
  */
 export const SIDE_NAV_ITEMS = [
-  { type: 'link', key: 'overview', to: '/overview', label: 'Overview', icon: Grid },
-  { type: 'link', key: 'reports',  to: '/reports',  label: 'Reports',  icon: FileText },
-  {
-    type: 'group',
-    groupId: 'fuelManagement',
-    label: 'Fuel Management',
-    icon: Fuel,
-    children: [
-      { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
-      { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
-      { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
-      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
-    ],
-    matchRoutes: [
-      '/mileage-tracking',
-      '/adblue-tracking',
-      '/fuel-comparison',
-      '/field-agent-fuel',
-      '/trip-management',
-    ],
-  },
+  // Cross-module landing page. Sirf tab dikhta hai jab dono module hain —
+  // ek hi module wale org ke liye ye combined view ka koi matlab nahi, unke liye
+  // unka apna module home (ERP Home / Fleet Operations) hi top item ban jaata hai.
+  { type: 'link', key: null, access: 'both', to: '/command-center', label: 'Overview', icon: Gauge, end: true },
+
+  // ─── Shared master data ────────────────────────────────────────────────────
+  // Vehicles aur Employees dono module use karte hain, isliye ye kisi ek section
+  // ke andar nahi hain — top par rehte hain aur module gate nahi lagta (sirf
+  // apni feature-flag key). moduleAccess.js ka SHARED_FLAG_KEYS dekho.
   {
     type: 'group',
     key: 'vehicles',
@@ -79,17 +85,15 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence/add-repair',
     ],
   },
+  { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
 
-  { type: 'link', key: 'drivers',   to: '/drivers',   label: 'Employees', icon: Users  },
-  { type: 'link', key: 'locations', to: '/locations', label: 'Locations', icon: MapPin },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
-
-  // ─── ISOCL ERP Hub-and-Spoke Architecture ──────────────────────────────────
-  { type: 'link', key: null, to: '/erp', label: 'ERP Home', icon: LayoutDashboard },
-  { type: 'link', key: 'erpApprovals', to: '/erp/approvals', label: 'Approvals', icon: FileCheck, badgeKey: 'approvalsCount' },
+  // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
+  { type: 'section', label: 'ERP & CRM', access: 'erp' },
+  { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard },
   {
     type: 'group',
     groupId: 'erpPlanning',
+    access: 'erp',
     label: 'Planning',
     icon: PhoneCall,
     children: [
@@ -98,13 +102,15 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: ['/erp/call-tasks', '/erp/call-schedules'],
   },
-  { type: 'link', key: 'erpOperations', to: '/erp/pipeline', label: 'Pipeline', icon: ClipboardList },
-  { type: 'link', key: 'erpBilling', to: '/erp/billing', label: 'Billing & Receivables', icon: Receipt },
-  { type: 'link', key: 'erpAccounts', to: '/erp/payables', label: 'Payables', icon: Banknote },
-  { type: 'link', key: 'erpAccounts', to: '/erp/accounts', label: 'Accounts & Ledger', icon: Landmark },
+  { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/approvals', label: 'Approvals', icon: FileCheck, badgeKey: 'approvalsCount' },
+  { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp/pipeline', label: 'Pipeline', icon: ClipboardList },
+  { type: 'link', key: 'erpBilling', access: 'erp', to: '/erp/billing', label: 'Billing & Receivables', icon: Receipt },
+  { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/payables', label: 'Payables', icon: Banknote },
+  { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/accounts', label: 'Accounts & Ledger', icon: Landmark },
   {
     type: 'group',
     groupId: 'erpMasters',
+    access: 'erp',
     label: 'Masters & Settings',
     icon: Settings,
     children: [
@@ -125,21 +131,50 @@ export const SIDE_NAV_ITEMS = [
     ],
   },
 
-  // ─── Geofence group ───────────────────────────────────────────────────────
-  // Both sub-pages are grouped under a single collapsible "Geofence" dropdown.
-  // This matches the nav layout shown in the client screenshots (Image 2).
-  ...(import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED === 'false' ? [] : [{
+  // ─── Fleet operations ───────────────────────────────────────────────────────
+  { type: 'section', label: 'Fleet', access: 'fleet' },
+  { type: 'link', key: 'overview', access: 'fleet', hoistWhenSole: 'fleet', to: '/overview', label: 'Fleet Operations', icon: Grid },
+  {
     type: 'group',
-    key: null,
+    groupId: 'fuelManagement',
+    access: 'fleet',
+    label: 'Fuel Management',
+    icon: Fuel,
+    children: [
+      { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
+      { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
+      { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
+      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
+    ],
+    matchRoutes: [
+      '/mileage-tracking',
+      '/adblue-tracking',
+      '/fuel-comparison',
+      '/field-agent-fuel',
+      '/trip-management',
+    ],
+  },
+  { type: 'link', key: 'locations', access: 'fleet', to: '/locations', label: 'Locations', icon: MapPin },
+  {
+    type: 'group',
+    groupId: 'geofence',
+    key: 'geofence',
+    access: 'fleet',
     label: 'Geofence',
     icon: Navigation,
     children: [
-      { to: '/geofence',       label: 'Anomalies'     },
+      { to: '/geofence', label: 'Anomalies' },
       { to: '/geofence/zones', label: 'Zones & Alerts' },
     ],
     matchRoutes: ['/geofence', '/geofence/zones'],
-  }]),
+  },
 
+  // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
+  { type: 'section', label: 'Insights' },
+  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
+  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
+
+  { type: 'section', label: 'Account' },
   // Always visible (no feature flag) — guaranteed fallback page.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
 ];
@@ -153,6 +188,41 @@ export const getNavGroupId = (group) => group.groupId || group.key;
 /** Children visible for the current org's feature flags. */
 export const getVisibleNavChildren = (group, isEnabled) =>
   (group.children || []).filter((child) => !child.key || isEnabled(child.key));
+
+/**
+ * Top-level items visible for the current org's feature flags.
+ *
+ * Teen pass hote hain:
+ *  1. flag/module se gated items hatao,
+ *  2. single-module org ke liye uska home top par hoist karo,
+ *  3. woh section headings hatao jinke neeche kuch bacha hi nahi (hoisting ke
+ *     baad ek section khaali ho sakta hai, isliye ye pass last me chalta hai).
+ */
+export const getVisibleNavItems = (isEnabled) => {
+  const access = { erp: hasErpAccess(isEnabled), fleet: hasFleetAccess(isEnabled) };
+
+  const soleModule =
+    access.erp && !access.fleet ? 'erp' : access.fleet && !access.erp ? 'fleet' : null;
+
+  let items = SIDE_NAV_ITEMS.filter((item) => {
+    if (!satisfiesAccess(item.access, access)) return false;
+    if (item.type === 'section') return true;
+    if (item.key && !isEnabled(item.key)) return false;
+    if (item.type === 'group') return getVisibleNavChildren(item, isEnabled).length > 0;
+    return true;
+  });
+
+  if (soleModule) {
+    const i = items.findIndex((item) => item.hoistWhenSole === soleModule);
+    if (i > -1) items = [items[i], ...items.slice(0, i), ...items.slice(i + 1)];
+  }
+
+  return items.filter((item, i) => {
+    if (item.type !== 'section') return true;
+    const next = items[i + 1];
+    return !!next && next.type !== 'section';
+  });
+};
 
 /**
  * Kya current path is group ke andar aata hai? (exact match ya sub-route)

@@ -1,21 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
-import { SIDE_NAV_ITEMS, SIDE_NAV_GROUPS, isGroupActive, getNavGroupId, getVisibleNavChildren } from '../utils/sideNavUtils.js';
+import { SIDE_NAV_GROUPS, isGroupActive, getNavGroupId, getVisibleNavChildren, getVisibleNavItems } from '../utils/sideNavUtils.js';
 import './Sidebar.css';
 
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    // Per-group open state, keyed by the group's feature-flag key.
-    const [openGroups, setOpenGroups] = useState({});
+    // Accordion: at most one group open at a time, keyed by getNavGroupId().
+    const [openGroupId, setOpenGroupId] = useState(null);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+    const [approvalsCount, setApprovalsCount] = useState(0);
     const { isEnabled } = useFeatureFlags();
+
+    const navItems = useMemo(() => getVisibleNavItems(isEnabled), [isEnabled]);
 
     useEffect(() => {
         const fetchApprovalsCount = async () => {
@@ -54,44 +57,31 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         return () => window.removeEventListener('themeColorChange', handleThemeChange);
     }, []);
 
-    // Auto-expand any group whose child route is currently active.
-    useEffect(() => {
-        setOpenGroups((prev) => {
-            const next = { ...prev };
-            let changed = false;
-            SIDE_NAV_GROUPS.forEach((group) => {
-                const groupId = getNavGroupId(group);
-                if (isGroupActive(group, location.pathname) && !next[groupId]) {
-                    next[groupId] = true;
-                    changed = true;
-                }
-            });
-            return changed ? next : prev;
-        });
+    // The group (if any) that owns the current route.
+    const activeGroupId = useMemo(() => {
+        const match = SIDE_NAV_GROUPS.find((group) => isGroupActive(group, location.pathname));
+        return match ? getNavGroupId(match) : null;
     }, [location.pathname]);
 
-    // Auto-close dropdowns when sidebar is not hovered on desktop, unless the
+    // Auto-expand the group whose child route is active. Navigating to a route
+    // outside every group leaves the user's manual selection alone.
+    useEffect(() => {
+        if (activeGroupId) setOpenGroupId(activeGroupId);
+    }, [activeGroupId]);
+
+    // Auto-close the dropdown when sidebar is not hovered on desktop, unless the
     // group's own route is active.
     useEffect(() => {
         if (!isSidebarHovered && window.innerWidth > 992) {
-            const timer = setTimeout(() => {
-                setOpenGroups((prev) => {
-                    const next = { ...prev };
-                    SIDE_NAV_GROUPS.forEach((group) => {
-                        const groupId = getNavGroupId(group);
-                        if (!isGroupActive(group, location.pathname)) {
-                            next[groupId] = false;
-                        }
-                    });
-                    return next;
-                });
-            }, 200);
+            const timer = setTimeout(() => setOpenGroupId(activeGroupId), 200);
             return () => clearTimeout(timer);
         }
-    }, [isSidebarHovered, location.pathname]);
+    }, [isSidebarHovered, activeGroupId]);
 
+    // Opening a group collapses whichever one was open — the CSS grid-rows
+    // transition animates both at once, so they cross-fade smoothly.
     const toggleGroup = (groupId) => {
-        setOpenGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+        setOpenGroupId((prev) => (prev === groupId ? null : groupId));
     };
 
     const handleLogout = () => {
@@ -113,13 +103,20 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
     };
 
-    // Render one item from the SIDE_NAV_ITEMS config.
+    // Render one item from the SIDE_NAV_ITEMS config. Feature-flag filtering
+    // already happened in getVisibleNavItems().
     const renderNavItem = (item) => {
         const Icon = item.icon;
 
-        if (item.type === 'link') {
-            if (item.key && !isEnabled(item.key)) return null;
+        if (item.type === 'section') {
+            return (
+                <div className="nav-section-label" key={`section-${item.label}`}>
+                    <span>{item.label}</span>
+                </div>
+            );
+        }
 
+        if (item.type === 'link') {
             return (
                 <NavLink
                     key={item.to}
@@ -139,18 +136,15 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
 
         // type === 'group' (collapsible dropdown)
-        if (item.key && !isEnabled(item.key)) return null;
-
         const visibleChildren = getVisibleNavChildren(item, isEnabled);
-        if (!visibleChildren.length) return null;
-
         const groupId = getNavGroupId(item);
-        const isOpen = !!openGroups[groupId];
+        const isOpen = openGroupId === groupId;
         return (
             <div className="nav-section" key={groupId}>
                 <button
                     className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
                     onClick={() => toggleGroup(groupId)}
+                    aria-expanded={isOpen}
                 >
                     <div className="nav-parent-left">
                         <Icon size={20} />
@@ -162,17 +156,19 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     />
                 </button>
                 <div className={`nav-children ${isOpen ? 'open' : ''}`}>
-                    {visibleChildren.map((child) => (
-                        <NavLink
-                            key={`${child.to}-${child.label}`}
-                            to={child.to}
-                            end={child.end}
-                            className="nav-link nav-child"
-                            onClick={closeSidebarOnMobile}
-                        >
-                            <span>{child.label}</span>
-                        </NavLink>
-                    ))}
+                    <div className="nav-children-inner">
+                        {visibleChildren.map((child) => (
+                            <NavLink
+                                key={`${child.to}-${child.label}`}
+                                to={child.to}
+                                end={child.end}
+                                className="nav-link nav-child"
+                                onClick={closeSidebarOnMobile}
+                            >
+                                <span>{child.label}</span>
+                            </NavLink>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -180,7 +176,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     return (
         <aside
-            className="sidebar"
+            className={`sidebar ${isSidebarOpen ? 'open' : ''}`}
             onMouseEnter={() => setIsSidebarHovered(true)}
             onMouseLeave={() => setIsSidebarHovered(false)}
         >
@@ -189,7 +185,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <img src={UkoLogo} alt="Uko Logo" className="logo-img" />
                 </div>
                 <nav className="sidebar-nav">
-                    {SIDE_NAV_ITEMS.map(renderNavItem)}
+                    {navItems.map(renderNavItem)}
                 </nav>
             </div>
 

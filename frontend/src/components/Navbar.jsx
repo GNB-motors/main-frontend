@@ -89,6 +89,27 @@ const Navbar = ({ toggleSidebar }) => {
             return 'AdBlue';
         }
 
+        // Without this the slug fallback renders "Command center", which
+        // contradicts the sidebar label and the page's own heading.
+        if (location.pathname.startsWith('/command-center')) {
+            return 'Overview';
+        }
+        if (location.pathname.match(/^\/erp\/trips\/[a-f0-9]{24}$/)) {
+            return 'Trip Details';
+        }
+
+        // The fallback below is a URL slug, so any route ending in a raw
+        // ObjectId would render the id as the page title. Fall back to the
+        // section name instead of showing a 24-char hex string.
+        const segments = location.pathname.split('/').filter(Boolean);
+        const last = segments[segments.length - 1] || '';
+        if (/^[a-f0-9]{24}$/i.test(last)) {
+            const parent = segments[segments.length - 2] || '';
+            if (!parent) return 'Details';
+            const label = parent.replace(/-/g, ' ');
+            return label.charAt(0).toUpperCase() + label.slice(1);
+        }
+
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path
         return path.charAt(0).toUpperCase() + path.slice(1);

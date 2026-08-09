@@ -31,6 +31,7 @@ import TripCloseService from '../ErpTrips/TripCloseService';
 import PodService from '../ErpPods/PodService';
 import UnloadingApi from '../ErpUnloading/UnloadingService';
 import SaleBillApi from '../ErpSaleBills/SaleBillService';
+import ErpDashboardService from './ErpDashboardService';
 
 const formatMoney = (val) => `₹${(val || 0).toLocaleString('en-IN')}`;
 
@@ -51,15 +52,14 @@ const ErpHomePage = () => {
   const fetchSummary = useCallback(async () => {
     setLoadingSummary(true);
     try {
-      const res = await fetch('/api/erp/dashboard/summary', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await res.json();
+      const data = await ErpDashboardService.getSummary();
       if (data.success) {
         setSummary(data.data);
+      } else {
+        toast.error(data.message || 'Failed to load dashboard summary');
       }
-    } catch {
-      toast.error('Failed to load dashboard summary');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to load dashboard summary');
     } finally {
       setLoadingSummary(false);
     }

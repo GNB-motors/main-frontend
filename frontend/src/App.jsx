@@ -9,6 +9,7 @@ import LoginPage from './pages/Login/LoginPage.jsx';
 import SignUpPage from './pages/SignUp/SIgnUpPage.jsx';
 import ContactPage from './pages/Contact/ContactPage.jsx';
 import OverviewPage from './pages/Overview/OverviewPage.jsx';
+import CommandCenterPage from './pages/CommandCenter/CommandCenterPage.jsx';
 import ReportsPage from './pages/Reports/ReportsPage.jsx';
 import ProfilePage from './pages/Profile/ProfilePage.jsx';
 // import RequestFormPage from './pages/RequestForm/RequestFormPage.jsx';
@@ -114,6 +115,7 @@ function App() {
           </TripCreationProvider>
         }
       >
+        <Route path="/command-center" element={<CommandCenterPage />} />
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />

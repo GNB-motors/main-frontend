@@ -24,6 +24,7 @@ const FEATURE_LABELS = {
   fuelComparison: 'Fuel Comparison',
   khataLedger: 'Khata Ledger',
   dailyMileageReport: 'Daily Mileage Report Email',
+  geofence: 'Geofence',
 };
 
 /* Accessible pill toggle that matches the app's indigo brand. */

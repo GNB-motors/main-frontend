@@ -1,0 +1,556 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   ERP Trip 360 — transaction lifecycle detail.
+
+   This is one transaction moving through a state machine, not a dashboard of
+   peer cards. The visual weight is deliberately unequal: the current stage is
+   the loudest thing on the page, completed stages recede into a summary, and
+   blocked stages are visibly inert so nobody hunts for a button that cannot
+   work yet.
+
+   Colour is restrained on purpose — status is carried by one accent plus the
+   shared severity scale from index.css, never by decorative hues.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.trip360 {
+  --t-ink: #0e1726;
+  --t-ink-2: #46536a;
+  --t-muted: #7b8699;
+  --t-line: #e4e9f2;
+  --t-line-soft: #eef1f7;
+  --t-surface: #ffffff;
+  --t-canvas: #f6f8fc;
+  --t-accent: #2f5fd0;
+  --t-accent-soft: #eef3ff;
+  --t-done: #0f8b6c;
+  --t-done-soft: #e8f6f1;
+  --t-warn: #b7791f;
+  --t-warn-soft: #fdf6e7;
+  --t-blocked: #a4adbf;
+
+  color: var(--t-ink);
+}
+
+/* ── Back + breadcrumb ────────────────────────────────────────────────────── */
+.trip360-back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.trip360-back .trip360-btn.ghost {
+  margin-left: -8px; /* optically align the label with the heading below */
+}
+
+/* ── Identity strip ───────────────────────────────────────────────────────── */
+.trip360-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding-bottom: 4px;
+}
+
+.trip360-number {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.trip360-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--t-muted);
+}
+
+.trip360-meta-sep {
+  color: var(--t-line);
+}
+
+.trip360-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--t-line);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--t-surface);
+  color: var(--t-ink-2);
+  white-space: nowrap;
+}
+
+.trip360-chip.hire {
+  border-color: #e6d9b8;
+  background: var(--t-warn-soft);
+  color: var(--t-warn);
+}
+
+/* ── Next best action ─────────────────────────────────────────────────────── */
+.trip360-nba {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--t-line);
+  border-left: 3px solid var(--t-accent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--t-accent-soft), var(--t-surface) 70%);
+  padding: 14px 18px;
+  margin: 16px 0 20px;
+}
+
+.trip360-nba.settled {
+  border-left-color: var(--t-done);
+  background: linear-gradient(180deg, var(--t-done-soft), var(--t-surface) 70%);
+}
+
+.trip360-nba-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-accent);
+}
+
+.trip360-nba.settled .trip360-nba-eyebrow {
+  color: var(--t-done);
+}
+
+.trip360-nba-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  margin: 3px 0 0;
+}
+
+.trip360-nba-hint {
+  font-size: 12.5px;
+  color: var(--t-muted);
+  margin: 2px 0 0;
+}
+
+.trip360-nba-cta {
+  margin-left: auto;
+}
+
+/* ── Stepper ──────────────────────────────────────────────────────────────── */
+.trip360-stepper {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0;
+  border: 1px solid var(--t-line);
+  border-radius: 10px;
+  background: var(--t-surface);
+  padding: 16px 12px 12px;
+  overflow-x: auto;
+}
+
+.trip360-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 92px;
+  padding: 0 4px;
+  text-align: center;
+}
+
+/* Connector runs between dots, not under them. */
+.trip360-step::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: calc(-50% + 14px);
+  width: calc(100% - 28px);
+  height: 2px;
+  background: var(--t-line);
+}
+
+.trip360-step:first-child::before {
+  display: none;
+}
+
+.trip360-step.done::before,
+.trip360-step.current::before {
+  background: var(--t-done);
+}
+
+.trip360-step-dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--t-line);
+  background: var(--t-surface);
+  color: var(--t-blocked);
+  flex-shrink: 0;
+}
+
+.trip360-step.done .trip360-step-dot {
+  border-color: var(--t-done);
+  background: var(--t-done);
+  color: #fff;
+}
+
+.trip360-step.current .trip360-step-dot {
+  border-color: var(--t-accent);
+  background: var(--t-accent);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--t-accent-soft);
+}
+
+.trip360-step-label {
+  font-size: 11.5px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--t-muted);
+}
+
+.trip360-step.done .trip360-step-label {
+  color: var(--t-ink-2);
+}
+
+.trip360-step.current .trip360-step-label {
+  color: var(--t-accent);
+  font-weight: 700;
+}
+
+/* ── Master / detail split ────────────────────────────────────────────────── */
+.trip360-body {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+@media (max-width: 1100px) {
+  .trip360-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.trip360-rail {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .trip360-rail {
+    position: static;
+  }
+}
+
+.trip360-panel {
+  border: 1px solid var(--t-line);
+  border-radius: 10px;
+  background: var(--t-surface);
+  overflow: hidden;
+}
+
+.trip360-panel-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--t-line-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  background: #fbfcfe;
+}
+
+.trip360-panel-body {
+  padding: 12px 14px;
+}
+
+/* Label/value rows — dense, aligned, scannable. */
+.trip360-kv {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 6px 10px;
+  font-size: 13px;
+}
+
+.trip360-kv dt {
+  color: var(--t-muted);
+  font-weight: 500;
+}
+
+.trip360-kv dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--t-ink);
+  overflow-wrap: anywhere;
+}
+
+.trip360-money {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  font-size: 13px;
+  border-bottom: 1px dashed var(--t-line-soft);
+}
+
+.trip360-money:last-child {
+  border-bottom: 0;
+}
+
+.trip360-money-label {
+  color: var(--t-muted);
+}
+
+.trip360-money-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip360-money.total {
+  border-top: 1px solid var(--t-line);
+  border-bottom: 0;
+  margin-top: 4px;
+  padding-top: 10px;
+  font-size: 14px;
+}
+
+.trip360-money.total .trip360-money-label {
+  color: var(--t-ink);
+  font-weight: 600;
+}
+
+.trip360-money.pos .trip360-money-value { color: var(--t-done); }
+.trip360-money.neg .trip360-money-value { color: var(--signal-high, #e5484d); }
+
+/* ── Stage cards ──────────────────────────────────────────────────────────── */
+.trip360-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trip360-stage {
+  border: 1px solid var(--t-line);
+  border-left: 3px solid var(--t-line);
+  border-radius: 10px;
+  background: var(--t-surface);
+  padding: 14px 16px;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.trip360-stage.done {
+  border-left-color: var(--t-done);
+  background: #fcfdfe;
+}
+
+/* The current stage is the loudest element in the list — that is the whole
+   point of the page. */
+.trip360-stage.current {
+  border-left-color: var(--t-accent);
+  border-color: #c9d8f7;
+  box-shadow: 0 6px 20px rgba(47, 95, 208, 0.1);
+}
+
+.trip360-stage.blocked {
+  background: #fafbfd;
+  border-left-color: var(--t-line);
+}
+
+.trip360-stage.blocked .trip360-stage-title,
+.trip360-stage.blocked .trip360-stage-index {
+  color: var(--t-blocked);
+}
+
+.trip360-stage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trip360-stage-index {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 14px;
+}
+
+.trip360-stage-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--t-line-soft);
+  color: var(--t-muted);
+  flex-shrink: 0;
+}
+
+.trip360-stage.done .trip360-stage-icon {
+  background: var(--t-done-soft);
+  color: var(--t-done);
+}
+
+.trip360-stage.current .trip360-stage-icon {
+  background: var(--t-accent-soft);
+  color: var(--t-accent);
+}
+
+.trip360-stage-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.trip360-stage-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trip360-stage-body {
+  padding-top: 10px;
+}
+
+.trip360-empty {
+  font-size: 12.5px;
+  color: var(--t-muted);
+  margin: 0;
+}
+
+.trip360-blocked-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--t-blocked);
+  font-weight: 500;
+}
+
+.trip360-stage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-top: 12px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.trip360-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+
+.trip360-btn.primary {
+  background: var(--t-accent);
+  color: #fff;
+}
+
+.trip360-btn.primary:hover {
+  background: #2650b4;
+}
+
+.trip360-btn.secondary {
+  background: var(--t-surface);
+  border-color: var(--t-line);
+  color: var(--t-ink-2);
+}
+
+.trip360-btn.secondary:hover {
+  border-color: #c9d2e2;
+  background: #f7f9fc;
+}
+
+.trip360-btn.ghost {
+  background: transparent;
+  color: var(--t-accent);
+  padding: 6px 8px;
+}
+
+.trip360-btn.ghost:hover {
+  background: var(--t-accent-soft);
+}
+
+.trip360-btn:disabled {
+  cursor: not-allowed;
+  background: #f1f3f8;
+  border-color: transparent;
+  color: var(--t-blocked);
+}
+
+.trip360-btn:disabled:hover {
+  background: #f1f3f8;
+}
+
+/* ── Advance rows ─────────────────────────────────────────────────────────── */
+.trip360-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.trip360-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--t-line-soft);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+.trip360-row-amount {
+  margin-left: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Sub-block inside a combined stage ────────────────────────────────────── */
+.trip360-sub {
+  border-top: 1px dashed var(--t-line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.trip360-sub:first-child {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.trip360-sub-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  margin: 0 0 8px;
+}
