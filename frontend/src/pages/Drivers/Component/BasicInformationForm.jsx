@@ -155,6 +155,7 @@ const BasicInformationForm = forwardRef(({
                 >
                   <option value="DRIVER">Driver</option>
                   <option value="MANAGER">Manager</option>
+                  <option value="KAM">Key Account Manager</option>
                   <option value="FIELD_AGENT">Field Agent</option>
                 </select>
               </div>

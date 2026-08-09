@@ -18,7 +18,7 @@ const getInitials = (name) => {
 };
 
 // Human-friendly labels for the role enum.
-const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', FIELD_AGENT: 'Field Agent', SUPER_ADMIN: 'Super Admin' };
+const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', KAM: 'Key Account Manager', FIELD_AGENT: 'Field Agent', SUPER_ADMIN: 'Super Admin' };
 const formatRole = (role, isSuperadmin) => {
     if (isSuperadmin) return 'Super Admin';
     return ROLE_LABELS[role] || role || 'Employee';
@@ -399,7 +399,7 @@ const FilterDropdown = ({ isOpen, onClose, filters, tempFilters, onFilterChange,
     // Canonical assignable roles are always offered (so FIELD_AGENT is selectable even
     // when none are loaded yet), plus any extra roles present in the fetched data.
     const getRoleOptions = () => {
-        const values = new Set(['DRIVER', 'MANAGER', 'FIELD_AGENT']);
+        const values = new Set(['DRIVER', 'MANAGER', 'KAM', 'FIELD_AGENT']);
         drivers.forEach(driver => {
             if (driver.is_superadmin) values.add('SUPER_ADMIN');
             else if (driver.role) values.add(driver.role);
