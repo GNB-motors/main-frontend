@@ -231,7 +231,7 @@ const TripDetailPage = () => {
           ? [
               { label: 'Bill no', value: saleBill.billNumber },
               { label: 'Bill date', value: day(saleBill.billDate) },
-              { label: 'Grand total', value: money(saleBill.netAmount ?? saleBill.grandTotal) },
+              { label: 'Grand total', value: money(saleBill.netAmount) },
             ]
           : null,
       },
@@ -246,7 +246,7 @@ const TripDetailPage = () => {
         facts: hasBill
           ? [
               { label: 'Status', value: saleBill.status || 'BILLED' },
-              { label: 'Invoiced', value: money(saleBill.netAmount ?? saleBill.grandTotal) },
+              { label: 'Invoiced', value: money(saleBill.netAmount) },
             ]
           : null,
       },
@@ -285,7 +285,11 @@ const TripDetailPage = () => {
   const advanceTotal = advances.reduce((a, x) => a + (x.amount || 0), 0);
   const saleBill = data.saleBill;
   const purchaseBill = data.purchaseBill;
-  const billed = saleBill?.grandTotal || 0;
+  const billed = saleBill?.netAmount || 0;
+  // Falls back to the full invoice when the field is absent (older bills), so a
+  // missing value never reads as "fully paid".
+  const outstanding = saleBill ? (saleBill.outstandingAmount ?? billed) : 0;
+  const received = Math.max(0, billed - outstanding);
   const hireCost = purchaseBill?.netAmount || 0;
   const settled = currentIdx >= stages.length;
   const nextStage = settled ? null : stages[currentIdx];
@@ -438,11 +442,14 @@ const TripDetailPage = () => {
                   <MoneyRow label="Detention" value={money(data.unloading.detentionAmount)} />
                 </>
               )}
+              {saleBill && received > 0 && (
+                <MoneyRow label="Received" value={money(received)} tone="pos" />
+              )}
               {saleBill && (
                 <MoneyRow
-                  label={saleBill.status === 'PAID' ? 'Received' : 'Outstanding'}
-                  value={money(billed)}
-                  tone={saleBill.status === 'PAID' ? 'pos' : 'neg'}
+                  label={outstanding > 0 ? 'Outstanding' : 'Fully received'}
+                  value={money(outstanding)}
+                  tone={outstanding > 0 ? 'neg' : 'pos'}
                   total
                 />
               )}

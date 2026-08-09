@@ -23,7 +23,10 @@ const ReceiptDrawer = ({
     if (isOpen) {
       setReceiptDate(todayInput());
       setPaymentMode('BANK');
-      setAmount(bill ? String(bill.netReceivable || bill.grandTotal || '') : '');
+      // SaleBill carries netAmount/outstandingAmount; `netReceivable` belongs to
+      // Unloading and `grandTotal` to nothing at all, so the box never filled.
+      // Default to what is still owed, not the full invoice.
+      setAmount(bill ? String(bill.outstandingAmount ?? bill.netAmount ?? bill.netReceivable ?? '') : '');
       setReference('');
       setRemarks('');
     }
