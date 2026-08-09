@@ -1,11 +1,31 @@
-import { formatPct } from '../../utils/formatters';
+import { formatLitres, formatPct, formatNum } from '../../utils/formatters';
 
 /**
- * ArcGauge — small 200° dial for a single reading (fuel %, DEF %).
- * Colour follows warning-lamp semantics unless overridden:
- * red below `low`, amber below `warn`, green otherwise.
+ * ArcGauge — small 200° dial for a single reading (fuel, DEF, etc.).
+ *
+ * The gauge is confidence-aware:
+ *   measured        → solid arc, bold value
+ *   stale           → dashed value arc, value shown with age
+ *   no-data         → dashed empty arc, em-dash centre
+ *   unit unverified → dotted arc, "unit unverified" centre
+ *
+ * Colour still follows warning-lamp semantics for measured values, but
+ * unverified / no-data surfaces are rendered inert so the owner is never
+ * nudged by a green/amber/red arc that has no foundation.
+ *
+ * Backward-compatible: when called with only value/label/unit, it behaves as
+ * before (percent gauge with a measured reading).
  */
-export default function ArcGauge({ value, label, low = 15, warn = 35, size = 120, unit = '%' }) {
+export default function ArcGauge({
+  value,
+  label,
+  low = 15,
+  warn = 35,
+  size = 120,
+  unit = '%',
+  state = 'measured',
+  ageText = '',
+}) {
   const cx = 60;
   const cy = 56;
   const r = 46;
@@ -22,31 +42,113 @@ export default function ArcGauge({ value, label, low = 15, warn = 35, size = 120
   };
 
   const hasValue = value != null && !Number.isNaN(Number(value));
-  const v = hasValue ? Number(value) : 0;
-  const color = !hasValue ? 'var(--inert)' : v < low ? 'var(--critical)' : v < warn ? 'var(--caution)' : 'var(--ok)';
+  const isUnverified = unit === 'unverified';
+  const isNoData = state === 'no-data' || (!hasValue && !isUnverified);
+  const isStale = state === 'stale';
+  const isMeasured = state === 'measured' || state === 'measured-zero';
+
+  const v = isNoData || isUnverified ? 0 : Number(value);
+  const color = isNoData || isUnverified ? 'var(--inert)' : v < low ? 'var(--critical)' : v < warn ? 'var(--caution)' : 'var(--ok)';
+
+  const formatValue = () => {
+    if (unit === 'litres') return formatLitres(v);
+    if (unit === '%') return formatPct(v);
+    return formatNum(v);
+  };
+
+  const valueText = isNoData || isUnverified ? '' : formatValue();
+  const mainText = isNoData ? '—' : isUnverified ? 'unit' : valueText;
+  const subText = isNoData ? null : isUnverified ? 'unverified' : isStale ? ageText : null;
+  const twoLine = subText != null;
+
+  const ariaLabel = isNoData
+    ? `${label}: no reading`
+    : isUnverified
+      ? `${label}: unit unverified`
+      : isStale
+        ? `${label}: ${valueText}, ${ageText}`
+        : `${label}: ${valueText}`;
+
+  const unitDisplay = unit === 'litres' ? 'L' : unit === '%' ? null : unit;
+  const labelText = unitDisplay ? `${label} (${unitDisplay})` : label;
 
   return (
     <div className="flex flex-col items-center" style={{ width: size }}>
-      <svg viewBox="0 0 120 86" width={size} role="img" aria-label={`${label}: ${hasValue ? `${v}%` : 'no reading'}`}>
-        <path d={arc(0, 100)} fill="none" stroke="var(--hairline)" strokeWidth={8} strokeLinecap="round" />
-        {hasValue && v > 0.5 ? (
+      <svg viewBox="0 0 120 86" width={size} role="img" aria-label={ariaLabel}>
+        {/* background track */}
+        <path
+          d={arc(0, 100)}
+          fill="none"
+          stroke="var(--hairline)"
+          strokeWidth={8}
+          strokeLinecap="round"
+        />
+
+        {/* measured reading */}
+        {isMeasured && hasValue && v > 0.5 ? (
           <path d={arc(0, v)} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />
         ) : null}
+
+        {/* stale reading — value arc is dashed and muted */}
+        {isStale && hasValue ? (
+          <path
+            d={arc(0, v)}
+            fill="none"
+            stroke={color}
+            strokeWidth={8}
+            strokeLinecap="round"
+            strokeDasharray="4 5"
+            opacity={0.55}
+          />
+        ) : null}
+
+        {/* unverified unit — dotted full arc, inert */}
+        {isUnverified ? (
+          <path
+            d={arc(0, 100)}
+            fill="none"
+            stroke="var(--inert)"
+            strokeWidth={8}
+            strokeLinecap="round"
+            strokeDasharray="2 6"
+            opacity={0.45}
+          />
+        ) : null}
+
+        {/* no data — dashed full arc, inert */}
+        {isNoData ? (
+          <path
+            d={arc(0, 100)}
+            fill="none"
+            stroke="var(--inert)"
+            strokeWidth={8}
+            strokeLinecap="round"
+            strokeDasharray="4 5"
+            opacity={0.35}
+          />
+        ) : null}
+
         <text
           x={cx}
-          y={cy + 8}
+          y={twoLine ? cy - 2 : cy + 8}
           textAnchor="middle"
-          fontSize={20}
+          fontSize={twoLine ? 11 : 20}
           fontWeight={700}
           fill="var(--cluster-text)"
           style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
         >
-          {hasValue ? formatPct(v) : '—'}
+          <tspan x={cx} dy={0}>
+            {mainText}
+          </tspan>
+          {subText ? (
+            <tspan x={cx} dy={12} fontSize={10} fill="var(--cluster-text-dim)">
+              {subText}
+            </tspan>
+          ) : null}
         </text>
       </svg>
       <span className="text-dim -mt-1 text-[11px] font-medium tracking-wide">
-        {label}
-        {unit !== '%' ? ` (${unit})` : ''}
+        {labelText}
       </span>
     </div>
   );

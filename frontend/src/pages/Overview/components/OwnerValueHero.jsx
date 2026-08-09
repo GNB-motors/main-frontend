@@ -18,21 +18,22 @@ const MONEY_TILES = [
 function MoneyStrip({ money }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {MONEY_TILES.map(({ key, label, icon: Icon, to, tone }) => {
-        const value = money?.[key];
+      {MONEY_TILES.map((tile) => {
+        const value = money?.[tile.key];
+        const Icon = tile.icon;
         return (
           <Link
-            key={key}
-            to={to}
+            key={tile.key}
+            to={tile.to}
             className="cluster-inset group flex flex-col gap-1.5 p-3 transition-transform hover:-translate-y-0.5"
-            title={`Open ${label}`}
+            title={`Open ${tile.label}`}
           >
             <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-wide" style={{ color: 'var(--cluster-text-dim)' }}>
-              <Icon size={12} style={{ color: tone }} />
-              {label}
+              <Icon size={12} style={{ color: tile.tone }} />
+              {tile.label}
               <ArrowUpRight size={11} className="ml-auto opacity-0 transition-opacity group-hover:opacity-60" />
             </span>
-            <span className="num text-lg font-bold" style={{ color: value > 0 ? tone : 'var(--cluster-text)' }}>
+            <span className="num text-lg font-bold" style={{ color: value > 0 ? tile.tone : 'var(--cluster-text)' }}>
               {formatInrCompact(value)}
             </span>
           </Link>
@@ -108,9 +109,10 @@ function TopWasteVehicles({ topVehicles }) {
  * Each column is independently error-boundaried; a dead endpoint never blanks
  * the row.
  */
-export default function OwnerValueHero({ moneyParams = {} }) {
+export default function OwnerValueHero({ moneyParams = {}, hasFleetData = true }) {
   const { data: health, loading: healthLoading, error: healthError } = useHealthScore();
   const { data: moneyData, loading: moneyLoading, error: moneyError } = useMoney(moneyParams);
+  const noFleetData = hasFleetData === false;
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -127,9 +129,21 @@ export default function OwnerValueHero({ moneyParams = {} }) {
           ) : healthError && !health ? (
             <EmptyState title="Health score unavailable" hint="The score computes from telemetry, compliance and mileage data — it appears once those pipelines have run." />
           ) : (
-            <FleetHealthGauge score={health?.score ?? 0} grade={health?.grade ?? 'D'} components={health?.components ?? {}} />
+            <>
+              <FleetHealthGauge
+                score={health?.score ?? 0}
+                grade={health?.grade ?? 'D'}
+                components={health?.components ?? {}}
+                noData={noFleetData}
+              />
+              {noFleetData ? (
+                <p className="text-dim max-w-[220px] text-center text-[11px] leading-relaxed">
+                  Fleet health score appears once the fleet has vehicles, trips, and telemetry.
+                </p>
+              ) : null}
+            </>
           )}
-          {health?.components ? <PenaltyBreakdown components={health.components} /> : null}
+          {health?.components && !noFleetData ? <PenaltyBreakdown components={health.components} /> : null}
         </div>
       </PanelErrorBoundary>
 

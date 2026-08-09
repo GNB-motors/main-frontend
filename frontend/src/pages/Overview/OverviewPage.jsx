@@ -588,6 +588,8 @@ const OverviewPage = () => {
   const fuelSummary = fuelAnalytics?.summary;
   const finSummary = financials?.summary;
 
+  const hasFleetData = Boolean(vehicles?.total || trips?.total || kilometers?.total);
+
   return (
     <div className="space-y-6 p-1">
       {/* Header */}
@@ -611,7 +613,7 @@ const OverviewPage = () => {
       </div>
 
       {/* Owner value — fleet health gauge, money strip, costliest vehicles */}
-      <OwnerValueHero moneyParams={valueWindow} />
+      <OwnerValueHero moneyParams={valueWindow} hasFleetData={hasFleetData} />
 
       {/* Fleet KPI Cards */}
       {vehicles && (

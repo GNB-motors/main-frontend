@@ -6,7 +6,7 @@ import FleetDataService from '../../services/FleetDataService';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import EmptyState from '../../components/cluster/EmptyState';
 import FreshnessBadge from '../../components/cluster/FreshnessBadge';
-import ArcGauge from '../../components/cluster/ArcGauge';
+import { DataArcGauge, DataValue } from '../../components/data-state';
 import { formatINR, formatKm, formatLitres, formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
 
@@ -35,6 +35,27 @@ function riskLamp(risk) {
   if (risk === 'OVERDUE') return 'lamp--critical';
   if (risk === 'DUE_SOON') return 'lamp--caution';
   return 'lamp--ok';
+}
+
+/**
+ * A DEF ledger balance object is all-zero from the backend when nothing has
+ * ever been recorded. Treat that as no data rather than a confident "0 L".
+ */
+function hasDefLedgerData(balance) {
+  if (!balance) return false;
+  const hasValue = [balance.claimedAdblueL, balance.telemetryDefL, balance.expectedBalanceL].some(
+    (v) => v != null && Number(v) !== 0,
+  );
+  const hasFlags = (balance.flagCount ?? 0) > 0 || (balance.flags?.length ?? 0) > 0;
+  return hasValue || hasFlags;
+}
+
+function fuelUnit(health) {
+  return health?.fuelLevelUnit === 'litres' ? 'litres' : 'unverified';
+}
+
+function defUnit(health) {
+  return health?.defLevelUnit === 'litres' ? 'litres' : 'unverified';
 }
 
 export default function Vehicle360Page() {
@@ -112,15 +133,26 @@ export default function Vehicle360Page() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Health strip */}
           <PanelErrorBoundary name="vehicle-health">
-            <Panel
-              eyebrow="Live readings"
-              right={health?.isStale ? <span className="lamp lamp--caution">stale</span> : null}
-            >
+            <Panel eyebrow="Live readings">
               {health ? (
                 <>
                   <div className="flex items-start justify-around">
-                    <ArcGauge value={health.primaryFuelLevel} label="Fuel" low={15} warn={30} />
-                    <ArcGauge value={health.defLevel} label="DEF" low={10} warn={25} />
+                    <DataArcGauge
+                      value={health.primaryFuelLevel}
+                      label="Fuel"
+                      unit={fuelUnit(health)}
+                      at={health.pulledAt}
+                      low={15}
+                      warn={30}
+                    />
+                    <DataArcGauge
+                      value={health.defLevel}
+                      label="DEF"
+                      unit={defUnit(health)}
+                      at={health.pulledAt}
+                      low={10}
+                      warn={25}
+                    />
                   </div>
                   <div className="mt-2">
                     <KV k="Odometer (CAN)" v={health.canOdo != null ? formatKm(health.canOdo) : '—'} />
@@ -214,12 +246,12 @@ export default function Vehicle360Page() {
           {/* DEF ledger row */}
           <PanelErrorBoundary name="vehicle-def">
             <Panel eyebrow="DEF ledger" right={<Droplets size={13} style={{ color: 'var(--cluster-text-dim)' }} />}>
-              {p.defBalance ? (
+              {hasDefLedgerData(p.defBalance) ? (
                 <div>
-                  <KV k="Claimed (bills)" v={formatLitres(p.defBalance.claimedAdblueL)} />
-                  <KV k="Consumed (telemetry)" v={formatLitres(p.defBalance.telemetryDefL)} />
-                  <KV k="Expected balance" v={formatLitres(p.defBalance.expectedBalanceL)} />
-                  <KV k="Flags" v={formatNum(p.defBalance.flagCount)} />
+                  <KV k="Claimed (bills)" v={<DataValue value={p.defBalance.claimedAdblueL} unit="litres" />} />
+                  <KV k="Consumed (telemetry)" v={<DataValue value={p.defBalance.telemetryDefL} unit="litres" />} />
+                  <KV k="Expected balance" v={<DataValue value={p.defBalance.expectedBalanceL} unit="litres" />} />
+                  <KV k="Flags" v={<DataValue value={p.defBalance.flagCount} unit="flags" />} />
                   {p.defBalance.flagCount > 0 ? (
                     <Link to="/def-ledger" className="mt-2 inline-block text-[11px] font-semibold" style={{ color: 'var(--caution)' }}>
                       Review flags in the DEF ledger →
