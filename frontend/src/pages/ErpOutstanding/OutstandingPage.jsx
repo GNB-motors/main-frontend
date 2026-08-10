@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Wallet, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import OutstandingApi from './OutstandingService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -18,7 +19,7 @@ const VIEWS = [
   ['UPCOMING', 'Upcoming'],
 ];
 
-const OutstandingPage = () => {
+const OutstandingPage = ({ embedded = false }) => {
   const [view, setView] = useState('ALL');
   const [summary, setSummary] = useState(null);
   const [partyWise, setPartyWise] = useState([]);
@@ -70,18 +71,17 @@ const OutstandingPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <header className="erp-page-header">
-        <div>
-          <h1>
-            <Wallet size={22} /> Outstanding Receivables
-          </h1>
-          <p>Party-wise and due-date views for submitted sale bills.</p>
-        </div>
+    <PageShell
+      embedded={embedded}
+      title={<><Wallet size={22} /> Outstanding Receivables</>}
+      subtitle="Party-wise and due-date views for submitted sale bills."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Outstanding' }]}
+      actions={(
         <button type="button" className="erp-btn" onClick={exportCsv}>
           <Download size={16} /> Export CSV
         </button>
-      </header>
+      )}
+    >
 
       {summary && (
         <div className="erp-stats-row" style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -212,7 +212,7 @@ const OutstandingPage = () => {
           </table>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

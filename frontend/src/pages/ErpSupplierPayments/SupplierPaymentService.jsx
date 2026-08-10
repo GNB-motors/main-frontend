@@ -36,6 +36,16 @@ const SupplierInvoiceApi = {
 };
 
 const SupplierPaymentApi = {
+  /** Payment history — endpoint existed, client method did not. */
+  list: async (params = {}) => {
+    try {
+      const response = await apiClient.get(PAYMENT_BASE, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to fetch supplier payments');
+    }
+  },
+
   getOutstanding: async (params = {}) => {
     try {
       const response = await apiClient.get(`${PAYMENT_BASE}/outstanding`, { params });

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, Inbox } from 'lucide-react';
+import { Search } from 'lucide-react';
+import EmptyState from './EmptyState';
 import {
   Pagination,
   PaginationContent,
@@ -49,14 +50,13 @@ const ErpTable = ({
       {(toolbar || onSearchChange) && (
         <div className="erp-toolbar" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
           {onSearchChange && (
-            <div className="erp-search-box" style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <div className="erp-search" style={{ flex: 1, minWidth: '240px' }}>
+              <Search size={16} className="search-icon" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={searchPlaceholder}
-                style={{ width: '100%', paddingLeft: '36px', height: '38px' }}
               />
             </div>
           )}
@@ -80,12 +80,8 @@ const ErpTable = ({
               <TableShimmer columns={columns.length} rows={5} />
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} style={{ textAlign: 'center', padding: '40px 16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#64748b' }}>
-                    <Inbox size={32} style={{ color: '#cbd5e1' }} />
-                    <p style={{ margin: 0, fontWeight: 500 }}>{emptyText}</p>
-                    {emptyCta && <div style={{ marginTop: '8px' }}>{emptyCta}</div>}
-                  </div>
+                <td colSpan={columns.length} style={{ padding: 0 }}>
+                  <EmptyState text={emptyText} cta={emptyCta} />
                 </td>
               </tr>
             ) : (

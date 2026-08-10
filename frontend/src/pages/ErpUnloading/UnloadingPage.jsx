@@ -7,16 +7,17 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Scale, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UnloadingApi from './UnloadingService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
-const UnloadingPage = () => {
+const UnloadingPage = ({ embedded = false, initialTab = null }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState('pending');
+  const [tab, setTab] = useState(initialTab || 'pending');
   const [pending, setPending] = useState([]);
   const [saved, setSaved] = useState([]);
   const [bills, setBills] = useState([]);
@@ -153,15 +154,12 @@ const UnloadingPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <header className="erp-page-header">
-        <div>
-          <h1>
-            <Scale size={22} /> Unloading Entry
-          </h1>
-          <p>Shortage, detention and freight settlement after POD.</p>
-        </div>
-      </header>
+    <PageShell
+      embedded={embedded}
+      title={<><Scale size={22} /> Unloading Entry</>}
+      subtitle="Shortage, detention and freight settlement after POD."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Purchase Bills' }]}
+    >
 
       <div className="erp-tabs">
         {[
@@ -385,7 +383,7 @@ const UnloadingPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

@@ -786,6 +786,16 @@
   color: #15803d;
 }
 
+.erp-callout.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.erp-callout.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .erp-callout svg {
   flex-shrink: 0;
   margin-top: 1px;
@@ -968,4 +978,141 @@
 @keyframes fadeOut {
   from { opacity: 1; }
   to { opacity: 0; }
+}
+
+/* Drives the ErpTable loading skeleton. Referenced by ErpTable.jsx since it was
+   written; without this rule the shimmer bars render as frozen grey blocks. */
+@keyframes erpShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Stat tiles ──────────────────────────────────────────────────────────── */
+.erp-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.erp-stat {
+  display: block;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.erp-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.erp-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a202c;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.erp-stat-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.erp-stat-sub.danger { color: #b91c1c; }
+.erp-stat-sub.warning { color: #b45309; }
+.erp-stat-sub.success { color: #15803d; }
+
+.erp-stat-asof {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.erp-stat.clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.erp-stat.clickable:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.erp-stat-cta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #00c896;
+}
+
+/* ─── Hub panel ───────────────────────────────────────────────────────────── */
+.erp-hub-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ─── Table interaction ───────────────────────────────────────────────────── */
+.erp-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.erp-money-link {
+  color: #1a202c;
+  text-decoration: none;
+  border-bottom: 1px dashed #cbd5e0;
+}
+
+.erp-money-link:hover {
+  color: #00b876;
+  border-bottom-color: #00b876;
+}
+
+/* ─── Ageing bar ──────────────────────────────────────────────────────────── */
+.erp-ageing-track {
+  display: flex;
+  width: 100%;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+  background: #f1f5f9;
+}
+
+.erp-ageing-seg {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+
+.erp-ageing-seg:hover {
+  opacity: 0.82;
+}
+
+.erp-ageing-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }

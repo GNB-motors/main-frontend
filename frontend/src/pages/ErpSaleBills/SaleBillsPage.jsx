@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Receipt, X, Printer, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SaleBillApi from './SaleBillService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -13,7 +14,7 @@ const money = (n) =>
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
-const SaleBillsPage = () => {
+const SaleBillsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('pending');
   const [pendingGroups, setPendingGroups] = useState([]);
   const [bills, setBills] = useState([]);
@@ -215,15 +216,12 @@ const SaleBillsPage = () => {
     : 0;
 
   return (
-    <div className="erp-page">
-      <header className="erp-page-header">
-        <div>
-          <h1>
-            <Receipt size={22} /> Sale Bills
-          </h1>
-          <p>Create bills, submit to party, record received date for due date.</p>
-        </div>
-      </header>
+    <PageShell
+      embedded={embedded}
+      title={<><Receipt size={22} /> Sale Bills</>}
+      subtitle="Create bills, submit to party, record received date for due date."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Sale Bills' }]}
+    >
 
       <div className="erp-tabs">
         {[
@@ -650,7 +648,7 @@ const SaleBillsPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

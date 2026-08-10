@@ -6,11 +6,12 @@ import React, { useState } from 'react';
 import { Landmark } from 'lucide-react';
 import { toast } from 'react-toastify';
 import FinanceApi from './FinanceService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
-const FinancePage = () => {
+const FinancePage = ({ embedded = false }) => {
   const [tab, setTab] = useState('fleet');
   const [busy, setBusy] = useState(false);
 
@@ -87,19 +88,16 @@ const FinancePage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <header className="erp-page-header">
-        <div>
-          <h1>
-            <Landmark size={22} /> Finance
-          </h1>
-          <p>Fleet expense (labour/parts split), others vouchers, prepaid &amp; EMI — phase 1.</p>
-        </div>
-      </header>
+    <PageShell
+      embedded={embedded}
+      title={<><Landmark size={22} /> Finance</>}
+      subtitle="Fleet expense (labour/parts split), others vouchers, prepaid &amp; EMI — phase 1."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Accounts', to: '/erp/accounts' }, { label: 'Finance' }]}
+    >
 
       <div className="erp-tabs">
         {[['fleet', 'Fleet expense'], ['others', 'Others voucher']].map(([key, label]) => (
-          <button key={key} type="button" className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
+          <button key={key} type="button" className={`erp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
             {label}
           </button>
         ))}
@@ -242,7 +240,7 @@ const FinancePage = () => {
           </div>
         </form>
       )}
-    </div>
+    </PageShell>
   );
 };
 

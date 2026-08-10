@@ -27,35 +27,8 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CommandCenterService } from './CommandCenterService.jsx';
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Palette
-
-   Categorical slots are validated (lightness band, chroma floor, adjacent-pair
-   CVD separation, normal-vision floor, contrast vs surface) — do not swap a hue
-   here without re-running the check. `signal.*` is the reserved status scale and
-   is never reused as a series color; every status mark also carries a text label
-   so identity is never colour-alone.
-
-   `pipeline` is a sequential ramp (one hue, light → dark) because the trip
-   stages are ordered. It is not a categorical set.
-
-   The lead hue is the app primary (--primary-color, #4f46e5) so this page reads
-   as part of the product rather than as the separate teal "console" language.
-   It is hardcoded rather than read from the themeable CSS variable on purpose:
-   these are data marks, and an arbitrary user-picked hue cannot be checked for
-   CVD separation against its neighbours ahead of time.
-   ────────────────────────────────────────────────────────────────────────── */
-const C = {
-  ink: '#0e1726',
-  inkSoft: '#1b2535',
-  muted: '#8b93a7',
-  grid: '#e8ecf3',
-  cat: ['#4f46e5', '#b0479b'],
-  catSoft: '#eeecfd',
-  signal: { good: '#0f8b6c', warn: '#f2a413', critical: '#e5484d' },
-  pipeline: ['#c7c3f7', '#a9a3f2', '#8b83ed', '#6f68e9', '#544be6', '#3f37c4'],
-};
+import { C } from '../../utils/erpChartTheme';
+import { inr, compactInr, num, pct } from '../../utils/formatMoney';
 
 const PIPELINE_STAGES = [
   { key: 'PLACED', label: 'Placed' },
@@ -65,28 +38,6 @@ const PIPELINE_STAGES = [
   { key: 'UNLOADED', label: 'Unloaded' },
   { key: 'BILLED', label: 'Billed' },
 ];
-
-/* ── Formatters ───────────────────────────────────────────────────────────── */
-const inr = (v) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(v || 0);
-
-// Hero numbers only: full precision stays in the tooltips and the detail rows.
-const compactInr = (v) => {
-  const n = Math.abs(v || 0);
-  if (n >= 1e7) return `₹${(v / 1e7).toFixed(2)} Cr`;
-  if (n >= 1e5) return `₹${(v / 1e5).toFixed(2)} L`;
-  if (n >= 1e3) return `₹${(v / 1e3).toFixed(1)}k`;
-  return inr(v);
-};
-
-const num = (v) => new Intl.NumberFormat('en-IN').format(v || 0);
-
-const pct = (part, whole) => (whole > 0 ? (part / whole) * 100 : 0);
 
 /* ── Primitives ───────────────────────────────────────────────────────────── */
 

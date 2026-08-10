@@ -7,12 +7,13 @@ import { BookOpen, Plus, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LedgerApi from './LedgerService';
 import PartyService from '../ErpMasters/PartyService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
-const LedgerPage = () => {
+const LedgerPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('statement');
   const [parties, setParties] = useState([]);
   const [partyId, setPartyId] = useState('');
@@ -105,23 +106,17 @@ const LedgerPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <header className="erp-header">
-        <div>
-          <h1>
-            <BookOpen size={22} style={{ marginRight: 8 }} />
-            Ledger
-          </h1>
-          <p className="erp-subtitle">
-            Party / vendor / supplier / driver accounts. Stages 8–14 post entries here.
-          </p>
-        </div>
-        <div className="erp-header-actions">
-          <button type="button" className="btn btn-primary" onClick={() => setShowVoucher(true)}>
-            <Plus size={16} /> New voucher
-          </button>
-        </div>
-      </header>
+    <PageShell
+      embedded={embedded}
+      title={<><BookOpen size={22} style={{ marginRight: 8 }} /> Ledger</>}
+      subtitle="Party / vendor / supplier / driver accounts. Stages 8–14 post entries here."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Accounts', to: '/erp/accounts' }, { label: 'Ledger' }]}
+      actions={(
+        <button type="button" className="btn btn-primary" onClick={() => setShowVoucher(true)}>
+          <Plus size={16} /> New voucher
+        </button>
+      )}
+    >
 
       <div className="erp-toolbar">
         <div className="erp-tabs">
@@ -355,7 +350,7 @@ const LedgerPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

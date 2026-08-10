@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Package, Send } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { SupplierInvoiceApi, SupplierPaymentApi } from './SupplierPaymentService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -15,7 +16,7 @@ const todayInput = () => new Date().toISOString().slice(0, 10);
 
 const SUPPLY_TYPES = ['TYRE', 'SPARE_PARTS', 'DIESEL', 'SERVICE', 'OTHER'];
 
-const SupplierPaymentsPage = () => {
+const SupplierPaymentsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('invoices');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,9 +118,27 @@ const SupplierPaymentsPage = () => {
     }
   };
 
-  const openSupplier = (group) => {
-    setSelectedSupplier(group);
+  // Invoices are fetched per supplier — the list view only needs the totals,
+  // and shipping every supplier's invoices was an unbounded payload.
+  const openSupplier = async (group) => {
+    setSelectedSupplier({ ...group, invoices: [] });
     setSelectedInvoiceIds(new Set());
+    setBusy(true);
+    try {
+      const res = await SupplierPaymentApi.getOutstanding({
+        supplierId: group.supplierId,
+        includeInvoices: true,
+      });
+      const detail = (res.data || []).find(
+        (g) => String(g.supplierId) === String(group.supplierId),
+      );
+      setSelectedSupplier(detail || { ...group, invoices: [] });
+    } catch (err) {
+      toast.error(err.message);
+      setSelectedSupplier(null);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const toggleInvoice = (id) => {
@@ -191,15 +210,12 @@ const SupplierPaymentsPage = () => {
   ).values()];
 
   return (
-    <div className="erp-page">
-      <header className="erp-page-header">
-        <div>
-          <h1>
-            <Package size={22} /> Supplier Invoices & Payments
-          </h1>
-          <p>Manual supplier invoices, then the same approval → release flow as vendor payments.</p>
-        </div>
-      </header>
+    <PageShell
+      embedded={embedded}
+      title={<><Package size={22} /> Supplier Invoices &amp; Payments</>}
+      subtitle="Manual supplier invoices, then the same approval → release flow as vendor payments."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Supplier Payments' }]}
+    >
 
       <div className="erp-tabs">
         {[
@@ -207,7 +223,7 @@ const SupplierPaymentsPage = () => {
           ['pay', 'Pay suppliers'],
           ['release', 'Pending release'],
         ].map(([key, label]) => (
-          <button key={key} type="button" className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
+          <button key={key} type="button" className={`erp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
             {label}
           </button>
         ))}
@@ -500,7 +516,7 @@ const SupplierPaymentsPage = () => {
       {supplierOptions.length > 0 && tab === 'invoices' && (
         <p className="erp-hint">Known suppliers from recent invoices: {supplierOptions.map((s) => s.name).join(', ')}</p>
       )}
-    </div>
+    </PageShell>
   );
 };
 

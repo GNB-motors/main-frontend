@@ -52,7 +52,7 @@ const ErpPayablesPage = () => {
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div className="erp-hub-panel">
         {activeTab === 'vendor' && <VendorPaymentsPage embedded={true} />}
         {activeTab === 'supplier' && <SupplierPaymentsPage embedded={true} />}
         {activeTab === 'purchaseBills' && <UnloadingPage initialTab="bills" embedded={true} />}

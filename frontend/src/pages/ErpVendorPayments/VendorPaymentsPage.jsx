@@ -6,12 +6,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Truck, Send } from 'lucide-react';
 import { toast } from 'react-toastify';
 import VendorPaymentApi from './VendorPaymentService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
-const VendorPaymentsPage = () => {
+const VendorPaymentsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('outstanding');
   const [groups, setGroups] = useState([]);
   const [pending, setPending] = useState([]);
@@ -62,11 +63,30 @@ const VendorPaymentsPage = () => {
     else loadPending();
   }, [tab, loadOutstanding, loadPending]);
 
-  const openVendor = (group) => {
-    setSelectedVendor(group);
+  // The vendor list no longer ships every vendor's bills — that payload was
+  // unbounded and only the totals were rendered. Bills are fetched for the one
+  // vendor being paid.
+  const openVendor = async (group) => {
+    setSelectedVendor({ ...group, bills: [] });
     setSelectedBillIds(new Set());
     setOnAccount(null);
     setSelectedVoucherIds(new Set());
+    setBusy(true);
+    try {
+      const res = await VendorPaymentApi.getOutstanding({
+        vendorId: group.vendorId,
+        includeBills: true,
+      });
+      const detail = (res.data || []).find(
+        (g) => String(g.vendorId) === String(group.vendorId),
+      );
+      setSelectedVendor(detail || { ...group, bills: [] });
+    } catch (err) {
+      toast.error(err.message);
+      setSelectedVendor(null);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const toggleBill = (id) => {
@@ -135,15 +155,12 @@ const VendorPaymentsPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <header className="erp-page-header">
-        <div>
-          <h1>
-            <Truck size={22} /> Vendor Payments
-          </h1>
-          <p>Outstanding purchase bills → approval → bank release.</p>
-        </div>
-      </header>
+    <PageShell
+      embedded={embedded}
+      title={<><Truck size={22} /> Vendor Payments</>}
+      subtitle="Outstanding purchase bills → approval → bank release."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Vendor Payments' }]}
+    >
 
       <div className="erp-tabs">
         {[['outstanding', 'Outstanding bills'], ['release', 'Pending release']].map(
@@ -151,7 +168,7 @@ const VendorPaymentsPage = () => {
             <button
               key={key}
               type="button"
-              className={tab === key ? 'active' : ''}
+              className={`erp-tab ${tab === key ? 'active' : ''}`}
               onClick={() => setTab(key)}
             >
               {label}
@@ -319,7 +336,7 @@ const VendorPaymentsPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

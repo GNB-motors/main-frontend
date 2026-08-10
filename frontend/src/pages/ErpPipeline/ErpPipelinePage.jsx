@@ -52,7 +52,7 @@ const ErpPipelinePage = () => {
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div className="erp-hub-panel">
         {activeTab === 'dos' && <DeliveryOrdersPage embedded={true} />}
         {activeTab === 'placement' && <PlacementBoardPage embedded={true} />}
         {activeTab === 'trips' && <TripDashboardPage embedded={true} />}

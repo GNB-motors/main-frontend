@@ -15,6 +15,19 @@ const unwrapError = (error, fallback) => {
 };
 
 const VendorPaymentApi = {
+  /**
+   * Released/pending payment history. The endpoint always existed; there was
+   * simply no client method, so payment history was unreachable from the UI.
+   */
+  list: async (params = {}) => {
+    try {
+      const response = await apiClient.get(BASE, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to fetch vendor payments');
+    }
+  },
+
   getOutstanding: async (params = {}) => {
     try {
       const response = await apiClient.get(`${BASE}/outstanding`, { params });

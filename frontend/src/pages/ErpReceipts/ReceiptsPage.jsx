@@ -7,6 +7,7 @@ import { Banknote, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ReceiptApi from './ReceiptService';
 import PartyApi from '../ErpMasters/PartyService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -23,7 +24,7 @@ const emptyCnRow = () => ({
   remarks: '',
 });
 
-const ReceiptsPage = () => {
+const ReceiptsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('receipt');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -191,15 +192,12 @@ const ReceiptsPage = () => {
   const selectedBill = context?.bills?.find((b) => b.billId === selectedBillId);
 
   return (
-    <div className="erp-page">
-      <header className="erp-page-header">
-        <div>
-          <h1>
-            <Banknote size={22} /> Receipts & Adjustment
-          </h1>
-          <p>Record party receipts first, then CN-wise bill allocation when details arrive.</p>
-        </div>
-      </header>
+    <PageShell
+      embedded={embedded}
+      title={<><Banknote size={22} /> Receipts &amp; Adjustment</>}
+      subtitle="Record party receipts first, then CN-wise bill allocation when details arrive."
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Receipts' }]}
+    >
 
       <div className="erp-tabs">
         {[
@@ -519,7 +517,7 @@ const ReceiptsPage = () => {
           )}
         </section>
       )}
-    </div>
+    </PageShell>
   );
 };
 
