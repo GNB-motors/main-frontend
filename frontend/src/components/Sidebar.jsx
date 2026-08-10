@@ -5,6 +5,7 @@ import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
+import { useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import { SIDE_NAV_GROUPS, isGroupActive, getNavGroupId, getVisibleNavChildren, getVisibleNavItems } from '../utils/sideNavUtils.js';
 import './Sidebar.css';
 
@@ -16,7 +17,18 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [openGroupId, setOpenGroupId] = useState(null);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const [approvalsCount, setApprovalsCount] = useState(0);
+    // A broken/expired logo URL must not leave an empty header, so a load error
+    // falls back to the default mark exactly like "no logo uploaded" does.
+    const [logoFailed, setLogoFailed] = useState(false);
     const { isEnabled } = useFeatureFlags();
+    const { organization } = useOrganization();
+
+    const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
+    const logoAlt = organization?.companyName || 'Company logo';
+
+    useEffect(() => {
+        setLogoFailed(false);
+    }, [organization?.logoUrl]);
 
     const navItems = useMemo(() => getVisibleNavItems(isEnabled), [isEnabled]);
 
@@ -182,7 +194,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         >
             <div className="sidebar-content">
                 <div className="sidebar-header">
-                    <img src={UkoLogo} alt="Uko Logo" className="logo-img" />
+                    <img
+                        src={logoSrc}
+                        alt={logoAlt}
+                        className="logo-img"
+                        onError={() => setLogoFailed(true)}
+                    />
                 </div>
                 <nav className="sidebar-nav">
                     {navItems.map(renderNavItem)}

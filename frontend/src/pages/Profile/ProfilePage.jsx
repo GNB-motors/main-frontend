@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import DefaultAvatar from '../../assets/default-avatar.png';
 import { ProfileService } from './ProfileService';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { useOrganization } from '../../contexts/FeatureFlagsContext.jsx';
+import CompanyLogoUploader from '../../components/CompanyLogoUploader.jsx';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -125,7 +127,7 @@ const ProfileCard = ({ user, organization }) => {
 
 // ── Right details panel ───────────────────────────────────────────────────────
 
-const DetailsPanel = ({ user, organization }) => (
+const DetailsPanel = ({ user, organization, canEditLogo, onLogoChange }) => (
     <div className="flex h-full flex-col gap-6">
         {/* Personal */}
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_24px_rgba(41,64,211,0.08)]">
@@ -148,6 +150,30 @@ const DetailsPanel = ({ user, organization }) => (
                 <Field icon={Mail}       label="Owner Email"    value={organization?.ownerEmail} />
                 <Field icon={CreditCard} label="GSTIN"          value={organization?.gstin} />
                 <Field icon={Hash}       label="Organisation ID" value={organization?._id} />
+            </div>
+
+            {/* Company logo — only the org OWNER (or a super admin) may change it. */}
+            <div className="mt-6 border-t border-slate-100 pt-5">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Company Logo
+                </p>
+                {canEditLogo ? (
+                    <CompanyLogoUploader
+                        orgId={organization?._id}
+                        logoUrl={organization?.logoUrl}
+                        onChange={onLogoChange}
+                    />
+                ) : organization?.logoUrl ? (
+                    <img
+                        src={organization.logoUrl}
+                        alt="Company logo"
+                        className="max-h-16 max-w-[180px] object-contain"
+                    />
+                ) : (
+                    <p className="text-sm text-slate-400">
+                        No logo uploaded. Ask an owner to add one.
+                    </p>
+                )}
             </div>
         </div>
     </div>
@@ -192,6 +218,14 @@ const ProfilePage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [themeColors] = useState(getThemeCSS());
+    const { refresh: refreshOrganization } = useOrganization();
+
+    // Repaint this page from the server response, then re-read the shared
+    // context so the sidebar mark swaps over without a reload.
+    const handleLogoChange = (org) => {
+        if (org) setOrganizationData(org);
+        refreshOrganization?.();
+    };
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -247,7 +281,12 @@ const ProfilePage = () => {
 
                 {/* Right details */}
                 <div className="min-w-0 flex-1">
-                    <DetailsPanel user={userData} organization={organizationData} />
+                    <DetailsPanel
+                        user={userData}
+                        organization={organizationData}
+                        canEditLogo={['OWNER', 'SUPER_ADMIN'].includes(userData?.role)}
+                        onLogoChange={handleLogoChange}
+                    />
                 </div>
             </div>
         </div>

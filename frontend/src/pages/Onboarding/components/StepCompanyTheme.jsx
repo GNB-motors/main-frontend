@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../utils/axiosConfig';
+import CompanyLogoUploader from '../../../components/CompanyLogoUploader.jsx';
 
 const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
     const [companyName, setCompanyName] = useState('');
     const [selectedColor, setSelectedColor] = useState('#2940d3');
     const [customHex, setCustomHex] = useState('');
     const [gstin, setGstin] = useState('');
+    // The org row already exists at this point (created at owner registration),
+    // so the logo can be uploaded against it immediately rather than being held
+    // in memory until onboarding is submitted.
+    const [orgId] = useState(() => localStorage.getItem('user_orgId') || '');
+    const [logoUrl, setLogoUrl] = useState(null);
 
     // Predefined color swatches matching the app theme
     const colorSwatches = [
@@ -117,6 +123,19 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
                     />
                     <small className="form-hint">
                         Goods and Services Tax Identification Number (15 characters)
+                    </small>
+                </div>
+
+                <div className="form-group">
+                    <label>Company Logo (Optional)</label>
+                    <CompanyLogoUploader
+                        orgId={orgId}
+                        logoUrl={logoUrl}
+                        onChange={(org) => setLogoUrl(org?.logoUrl || null)}
+                        compact
+                    />
+                    <small className="form-hint">
+                        Shown in the sidebar. You can add or change this later from your profile.
                     </small>
                 </div>
 
