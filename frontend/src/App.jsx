@@ -54,11 +54,17 @@ import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
 import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
+import FuelIntegrityPage from './pages/FuelIntegrity/FuelIntegrityPage.jsx';
+import RouteDeviationPage from './pages/RouteDeviation/RouteDeviationPage.jsx';
+import LiveTrackingPage from './pages/LiveTracking/LiveTrackingPage.jsx';
+import OwnerAlertsPage from './pages/OwnerAlerts/OwnerAlertsPage.jsx';
 import GeofencePage from './pages/Geofence/GeofencePage.jsx';
 import GeofenceZonesPage from './pages/Geofence/GeofenceZonesPage.jsx';
 import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
 import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
+import KhataLedgerDriverDetailPage from './pages/KhataLedger/KhataLedgerDriverDetailPage.jsx';
+import KhataLedgerVehicleDetailPage from './pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx';
 import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 import PartiesPage from './pages/ErpMasters/PartiesPage.jsx';
 import RatesPage from './pages/ErpMasters/RatesPage.jsx';
@@ -126,6 +132,10 @@ function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
+        <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
+        <Route path="/route-deviation" element={<RouteDeviationPage />} />
+        <Route path="/live-tracking" element={<LiveTrackingPage />} />
+        <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
         <Route path="/geofence" element={<GeofencePage />} />
         <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
         <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
@@ -196,6 +206,9 @@ function App() {
         <Route path="/erp/supplier-payments" element={<RedirectWithState to="/erp/payables?tab=supplier" />} />
         <Route path="/erp/ledger" element={<RedirectWithState to="/erp/accounts?tab=ledger" />} />
         <Route path="/erp/finance" element={<RedirectWithState to="/erp/accounts?tab=finance" />} />
+
+        <Route path="/khata-ledger/drivers/:id" element={<KhataLedgerDriverDetailPage />} />
+        <Route path="/khata-ledger/trucks/:id" element={<KhataLedgerVehicleDetailPage />} />
         <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}

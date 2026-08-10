@@ -72,12 +72,10 @@ const DateRangeFilter = ({ value, onChange }) => {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" className="date-range-trigger">
-          <CalendarDays size={15} />
-          <span>{labelForValue(value)}</span>
-          <ChevronDown size={14} className="date-range-trigger-chevron" />
-        </button>
+      <PopoverTrigger className="date-range-trigger">
+        <CalendarDays size={15} />
+        <span>{labelForValue(value)}</span>
+        <ChevronDown size={14} className="date-range-trigger-chevron" />
       </PopoverTrigger>
       <PopoverContent align="end" className="date-range-popover">
         <div className="date-range-popover-body">

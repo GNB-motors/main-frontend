@@ -68,6 +68,8 @@ const AddVehiclePage = () => {
           registration_no: editing.registration_no || editing.registrationNumber || '',
           chassis_number: editing.chassis_number || editing.chassisNumber || '',
           model: editing.model || '',
+          // Absent for orgs without Mileage Integrity — the API projects it out.
+          expected_mileage: editing.expectedMileage?.kmPerL ?? '',
         });
 
         // Fetch existing vehicle documents — server returns subdocs with files[]

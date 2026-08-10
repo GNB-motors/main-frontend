@@ -1,18 +1,23 @@
 import React, { useState, useEffect, forwardRef } from 'react';
 import { Truck } from 'lucide-react';
+import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import '../../Drivers/Component/BasicInformationForm.css';
 
-const VehicleBasicInformationForm = forwardRef(({ 
-  initialData = {}, 
-  onSubmit, 
+const VehicleBasicInformationForm = forwardRef(({
+  initialData = {},
+  onSubmit,
   onCancel,
   isSubmitting = false,
-  isEdit = false 
+  isEdit = false
 }, ref) => {
+  const { isEnabled } = useFeatureFlags();
+  const showExpectedMileage = isEnabled('mileageIntegrity');
+
   const [formData, setFormData] = useState({
     registration_no: initialData.registration_no || '',
     chassis_number: initialData.chassis_number || '',
     model: initialData.model || '',
+    expected_mileage: initialData.expected_mileage ?? '',
   });
 
   // Update form data when initialData changes (for edit mode)
@@ -22,6 +27,7 @@ const VehicleBasicInformationForm = forwardRef(({
         registration_no: initialData.registration_no || '',
         chassis_number: initialData.chassis_number || '',
         model: initialData.model || '',
+        expected_mileage: initialData.expected_mileage ?? '',
       });
     }
   }, [initialData]);
@@ -35,6 +41,13 @@ const VehicleBasicInformationForm = forwardRef(({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // The API rejects expectedMileage outright unless the org owns the feature,
+    // so never let a stale value ride along when the flag is off.
+    if (!showExpectedMileage) {
+      const { expected_mileage: _omit, ...rest } = formData;
+      onSubmit(rest);
+      return;
+    }
     onSubmit(formData);
   };
 
@@ -98,6 +111,30 @@ const VehicleBasicInformationForm = forwardRef(({
                 />
               </div>
             </div>
+
+            {/* Row 3: Expected mileage — only for orgs with Mileage Integrity */}
+            {showExpectedMileage && (
+              <div className="basic-info-form-row">
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Expected Mileage (km/L)</label>
+                  <input
+                    type="number"
+                    className="basic-info-input"
+                    value={formData.expected_mileage}
+                    onChange={(e) => handleInputChange('expected_mileage', e.target.value)}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="e.g., 4.2"
+                    disabled={isSubmitting}
+                  />
+                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Fuel cycles that fall short of this are flagged for review. Leave blank to use
+                    the model average.
+                  </p>
+                </div>
+              </div>
+            )}
           </form>
         </div>
       </div>

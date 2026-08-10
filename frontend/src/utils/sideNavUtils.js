@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   FileCheck,
   Gauge,
+  ShieldAlert,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -91,9 +92,6 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard },
   {
-    type: 'group',
-    groupId: 'erpPlanning',
-    access: 'erp',
     label: 'Planning',
     icon: PhoneCall,
     children: [
