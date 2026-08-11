@@ -73,4 +73,85 @@ export const LemuService = {
             throw error.response?.data || { detail: "Could not resolve the error tracker." };
         }
     },
+
+    /**
+     * Latest structural manifest for the System map.
+     */
+    getManifest: async () => {
+        try {
+            const response = await apiClient.get(`/api/lemu/manifest`);
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU manifest:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch LEMU manifest." };
+        }
+    },
+
+    /**
+     * Version history for the Change feed.
+     * @param {object} params - { page, limit }
+     */
+    getManifests: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/lemu/manifests`, { params });
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU manifests:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch LEMU manifests." };
+        }
+    },
+
+    /**
+     * Per-minute pulse buckets for heat and status.
+     * @param {object} params - { limit }
+     */
+    getPulse: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/lemu/pulse`, { params });
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU pulse:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch LEMU pulse." };
+        }
+    },
+
+    /**
+     * Standing structural findings.
+     */
+    getFindings: async () => {
+        try {
+            const response = await apiClient.get(`/api/lemu/findings`);
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU findings:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch LEMU findings." };
+        }
+    },
+
+    /**
+     * Diff between a manifest version and its predecessor.
+     * @param {number|string} version
+     */
+    getManifestDiff: async (version) => {
+        try {
+            const response = await apiClient.get(`/api/lemu/manifest/diff/${encodeURIComponent(version)}`);
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU manifest diff:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch the manifest diff." };
+        }
+    },
+
+    /**
+     * Ask the backend to rebuild the structural manifest.
+     */
+    rebuildManifest: async () => {
+        try {
+            const response = await apiClient.post(`/api/lemu/manifest/rebuild`);
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error rebuilding LEMU manifest:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not rebuild the manifest." };
+        }
+    },
 };

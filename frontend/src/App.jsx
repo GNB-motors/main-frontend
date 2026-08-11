@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 
 import DashboardLayout from './components/DashboardLayout';
 // Removed ProfileProvider import - profile logic completely removed
@@ -23,13 +24,15 @@ import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
 import TripCreationFlow from './pages/Trip/TripCreationFlow.jsx';
 import WeightSlipTripDetailPage from './pages/Trip/WeightSlipTripDetailPage.jsx';
 import TripDetailPage from './pages/Trip/TripDetailPage.jsx';
-import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
-import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
-import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
-import OrgFeatureFlagsPage from './pages/Superadmin/components/OrgFeatureFlagsPage.jsx';
-import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx';
-import OrgDetailPage from './pages/Superadmin/components/OrgDetailPage.jsx';
-import LemuLogsPage from './pages/Superadmin/components/LemuLogsPage.jsx';
+// Superadmin pages are lazy-loaded: admin-only JSX (incl. the LEMU
+// observability page) must not ship in the customer bundle.
+const SuperAdminLayout = lazy(() => import('./pages/Superadmin/SuperAdminLayout.jsx'));
+const SuperAdminPage = lazy(() => import('./pages/Superadmin/SuperAdminPage.jsx'));
+const AddUserPage = lazy(() => import('./pages/Superadmin/components/AddUserPage.jsx'));
+const OrgFeatureFlagsPage = lazy(() => import('./pages/Superadmin/components/OrgFeatureFlagsPage.jsx'));
+const OrgFeatureFlagsDetailPage = lazy(() => import('./pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx'));
+const OrgDetailPage = lazy(() => import('./pages/Superadmin/components/OrgDetailPage.jsx'));
+const LemuLogsPage = lazy(() => import('./pages/Superadmin/components/LemuLogsPage.jsx'));
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -80,13 +83,17 @@ function App() {
       <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Super Admin Routes */}
-      <Route path="/superadmin" element={<SuperAdminLayout />}>
-        <Route index element={<SuperAdminPage />} />
-        <Route path="add-user" element={<AddUserPage />} />
-        <Route path="feature-flags" element={<OrgFeatureFlagsPage />} />
-        <Route path="feature-flags/:orgId" element={<OrgFeatureFlagsDetailPage />} />
-        <Route path="organizations/:id" element={<OrgDetailPage />} />
-        <Route path="lemu" element={<LemuLogsPage />} />
+      <Route path="/superadmin" element={
+        <Suspense fallback={<div style={{ padding: 24 }}>Loading admin…</div>}>
+          <SuperAdminLayout />
+        </Suspense>
+      }>
+        <Route index element={<Suspense fallback={null}><SuperAdminPage /></Suspense>} />
+        <Route path="add-user" element={<Suspense fallback={null}><AddUserPage /></Suspense>} />
+        <Route path="feature-flags" element={<Suspense fallback={null}><OrgFeatureFlagsPage /></Suspense>} />
+        <Route path="feature-flags/:orgId" element={<Suspense fallback={null}><OrgFeatureFlagsDetailPage /></Suspense>} />
+        <Route path="organizations/:id" element={<Suspense fallback={null}><OrgDetailPage /></Suspense>} />
+        <Route path="lemu" element={<Suspense fallback={null}><LemuLogsPage /></Suspense>} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
