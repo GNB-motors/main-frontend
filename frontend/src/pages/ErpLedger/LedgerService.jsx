@@ -26,6 +26,18 @@ const LedgerApi = {
     }
   },
 
+  exportStatementCsv: async (params = {}) => {
+    try {
+      const response = await apiClient.get(`${LEDGER}/statement`, {
+        params: { ...params, format: 'csv' },
+        responseType: 'blob',
+      });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to export statement');
+    }
+  },
+
   getBalance: async (params = {}) => {
     try {
       const response = await apiClient.get(`${LEDGER}/balance`, { params });

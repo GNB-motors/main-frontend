@@ -3,10 +3,13 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Truck, Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Truck, Send, Mail } from 'lucide-react';
 import { toast } from 'react-toastify';
 import VendorPaymentApi from './VendorPaymentService';
 import PageShell from '../../components/Erp/PageShell';
+import StatusBadge from '../../components/Erp/StatusBadge';
+import { formatDateIST } from '../../utils/dateUtils';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -98,6 +101,29 @@ const VendorPaymentsPage = ({ embedded = false }) => {
     });
   };
 
+  const vendorBills = selectedVendor?.bills || [];
+  const allSelected = vendorBills.length > 0 && vendorBills.every((b) => selectedBillIds.has(b.purchaseBillId));
+
+  const toggleAll = () => {
+    setSelectedBillIds(allSelected ? new Set() : new Set(vendorBills.map((b) => b.purchaseBillId)));
+  };
+
+  // Running total of the selection — you should never have to submit a payment
+  // to find out what it comes to.
+  const selectedTotal = vendorBills
+    .filter((b) => selectedBillIds.has(b.purchaseBillId))
+    .reduce((sum, b) => sum + (b.netAmount || 0), 0);
+
+  const retryEmail = async (payment) => {
+    try {
+      await VendorPaymentApi.retryEmail(payment._id);
+      toast.success('Payment advice re-sent');
+      loadPending();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   const prepareSubmit = async () => {
     if (!selectedVendor || selectedBillIds.size === 0) {
       toast.error('Select at least one bill');
@@ -185,11 +211,16 @@ const VendorPaymentsPage = ({ embedded = false }) => {
             <ul className="erp-list">
               {groups.map((g) => (
                 <li key={g.vendorId}>
-                  <button type="button" className="erp-link-btn" onClick={() => openVendor(g)}>
-                    {g.vendorName} — {money(g.totalOutstanding)} ({g.billCount} bills)
-                    {g.onAccountAvailable > 0 && ` · On-a/c ${money(g.onAccountAvailable)}`}
-                    {g.podPendingCount > 0 && ` · POD pending ${g.podPendingCount}`}
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" className="erp-link-btn" onClick={() => openVendor(g)}>
+                      {g.vendorName} — {money(g.totalOutstanding)} ({g.billCount} bills)
+                      {g.onAccountAvailable > 0 && ` · On-a/c ${money(g.onAccountAvailable)}`}
+                      {g.podPendingCount > 0 && ` · POD pending ${g.podPendingCount}`}
+                    </button>
+                    <Link to={`/erp/accounts/vendor/${g.vendorId}`} className="erp-muted" style={{ fontSize: 12 }}>
+                      ledger →
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -202,11 +233,18 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                 <table className="erp-table compact">
                   <thead>
                     <tr>
-                      <th />
+                      <th>
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAll}
+                          aria-label="Select all bills"
+                        />
+                      </th>
                       <th>Bill</th>
                       <th>Trip</th>
                       <th>Vehicle</th>
-                      <th>Net</th>
+                      <th style={{ textAlign: 'right' }}>Net</th>
                       <th>Due</th>
                     </tr>
                   </thead>
@@ -223,15 +261,24 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                         <td>{b.billNumber}</td>
                         <td>{b.tripNumber}</td>
                         <td>{b.vehicleNumber}</td>
-                        <td>{money(b.netAmount)}</td>
-                        <td>{b.dueDate?.slice?.(0, 10) || '—'}</td>
+                        <td className="erp-numeric" style={{ textAlign: 'right' }}>{money(b.netAmount)}</td>
+                        <td>{b.dueDate ? formatDateIST(b.dueDate) : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="erp-form-actions">
-                <button type="button" className="erp-btn primary" disabled={busy} onClick={prepareSubmit}>
+              <div className="erp-form-actions" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 14 }}>
+                  {selectedBillIds.size} of {vendorBills.length} selected ·{' '}
+                  <strong className="erp-numeric">{money(selectedTotal)}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="erp-btn primary"
+                  disabled={busy || selectedBillIds.size === 0}
+                  onClick={prepareSubmit}
+                >
                   <Send size={14} /> Submit for approval
                 </button>
               </div>
@@ -245,11 +292,29 @@ const VendorPaymentsPage = ({ embedded = false }) => {
           <h3>Approved — awaiting release</h3>
           {loading && <p>Loading…</p>}
           <ul className="erp-list">
+            {pending.length === 0 && !loading && (
+              <li className="erp-muted">Nothing awaiting release.</li>
+            )}
             {pending.map((p) => (
               <li key={p._id}>
-                <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
-                  {p.paymentNumber} — {money(p.netPayable)} net ({p.billAllocations?.length} bills)
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
+                    {p.paymentNumber} — {money(p.netPayable)} net ({p.billAllocations?.length} bills)
+                  </button>
+                  {p.emailStatus === 'FAILED' && (
+                    <>
+                      <StatusBadge status="FAILED" label="Email failed" />
+                      <button type="button" className="erp-btn small" onClick={() => retryEmail(p)}>
+                        <Mail size={13} /> Retry email
+                      </button>
+                    </>
+                  )}
+                </div>
+                {p.emailStatus === 'FAILED' && p.emailError && (
+                  <div className="erp-callout danger" style={{ marginTop: 8, marginBottom: 0 }}>
+                    {p.emailError}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

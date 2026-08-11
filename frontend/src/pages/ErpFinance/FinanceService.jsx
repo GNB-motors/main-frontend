@@ -50,12 +50,44 @@ const FinanceApi = {
     }
   },
 
-  getInstalmentDueList: async () => {
+  /** Register endpoint existed; no client method did. */
+  listOthersVouchers: async (params = {}) => {
     try {
-      const response = await apiClient.get(`${BASE}/instalment-plans/due`);
+      const response = await apiClient.get(`${BASE}/others-vouchers`, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to list others vouchers');
+    }
+  },
+
+  /** Register endpoint existed; no client method did. */
+  listVehiclePapers: async (params = {}) => {
+    try {
+      const response = await apiClient.get(`${BASE}/vehicle-papers`, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to list vehicle papers');
+    }
+  },
+
+  getInstalmentDueList: async (params = {}) => {
+    try {
+      const response = await apiClient.get(`${BASE}/instalment-plans/due`, { params });
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch instalment due list');
+    }
+  },
+
+  markInstalmentPaid: async (planId, instalmentNo, body = {}) => {
+    try {
+      const response = await apiClient.post(
+        `${BASE}/instalment-plans/${planId}/instalments/${instalmentNo}/pay`,
+        body,
+      );
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to mark instalment paid');
     }
   },
 };

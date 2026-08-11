@@ -20,6 +20,8 @@ import { toast } from 'react-toastify';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import PageHeader from '../../components/Erp/PageHeader';
 import ErpTable from '../../components/Erp/ErpTable';
+import StatTile from '../../components/Erp/StatTile';
+import { inr, compactInr } from '../../utils/formatMoney';
 import StatusBadge from '../../components/Erp/StatusBadge';
 import AdvanceDrawer from '../../components/Erp/Drawers/AdvanceDrawer';
 import ConsignmentDrawer from '../../components/Erp/Drawers/ConsignmentDrawer';
@@ -33,7 +35,6 @@ import UnloadingApi from '../ErpUnloading/UnloadingService';
 import SaleBillApi from '../ErpSaleBills/SaleBillService';
 import ErpDashboardService from './ErpDashboardService';
 
-const formatMoney = (val) => `₹${(val || 0).toLocaleString('en-IN')}`;
 
 const ErpHomePage = () => {
   const navigate = useNavigate();
@@ -137,63 +138,53 @@ const ErpHomePage = () => {
         }
       />
 
-      {/* KPI Cards Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="erp-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>Active Trips</span>
-            <Truck size={18} style={{ color: '#3b82f6' }} />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#1a202c' }}>
-            {(pCounts.activeTrips?.PLACED || 0) + (pCounts.activeTrips?.DISPATCHED || 0)}
-          </div>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>
-            {pCounts.activeTrips?.PLACED || 0} Placed · {pCounts.activeTrips?.DISPATCHED || 0} Dispatched
-          </span>
-        </div>
+      {/* KPI Cards Row — every money tile navigates. Receivables and Payables
+          used to be the only cards on this page without a destination, which is
+          what made the financial numbers untrackable. */}
+      <div className="erp-stat-grid">
+        <StatTile
+          label="Active Trips"
+          icon={Truck}
+          loading={loadingSummary}
+          value={(pCounts.activeTrips?.PLACED || 0) + (pCounts.activeTrips?.DISPATCHED || 0)}
+          sublabel={`${pCounts.activeTrips?.PLACED || 0} Placed · ${pCounts.activeTrips?.DISPATCHED || 0} Dispatched`}
+          to="/erp/pipeline?tab=trips"
+          cta="Pipeline"
+        />
 
-        <div
-          className="erp-card"
-          style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}
-          onClick={() => navigate('/erp/approvals')}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>Pending Approvals</span>
-            <FileCheck size={18} style={{ color: '#f59e0b' }} />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: pCounts.pendingApprovals > 0 ? '#b45309' : '#1a202c' }}>
-            {pCounts.pendingApprovals || 0}
-          </div>
-          <span style={{ fontSize: '12px', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            Review approvals <ArrowRight size={12} />
-          </span>
-        </div>
+        <StatTile
+          label="Pending Approvals"
+          icon={FileCheck}
+          loading={loadingSummary}
+          value={pCounts.pendingApprovals || 0}
+          sublabel={pCounts.pendingApprovals > 0 ? 'Waiting on you' : 'Nothing pending'}
+          sublabelTone={pCounts.pendingApprovals > 0 ? 'warning' : null}
+          to="/erp/approvals"
+          cta="Review approvals"
+        />
 
-        <div className="erp-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>Receivables Due</span>
-            <DollarSign size={18} style={{ color: '#10b981' }} />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#16a34a' }}>
-            {formatMoney(financials.receivablesOutstanding)}
-          </div>
-          <span style={{ fontSize: '12px', color: financials.receivablesOverdue > 0 ? '#dc2626' : '#64748b' }}>
-            {financials.receivablesOverdue > 0 ? `${formatMoney(financials.receivablesOverdue)} Overdue` : 'All current'}
-          </span>
-        </div>
+        <StatTile
+          label="Receivables Due"
+          icon={DollarSign}
+          loading={loadingSummary}
+          value={compactInr(financials.receivablesOutstanding)}
+          sublabel={financials.receivablesOverdue > 0
+            ? `${inr(financials.receivablesOverdue)} overdue`
+            : 'All current'}
+          sublabelTone={financials.receivablesOverdue > 0 ? 'danger' : 'success'}
+          to="/erp/accounts"
+          cta="Money overview"
+        />
 
-        <div className="erp-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>Payables Due</span>
-            <TrendingUp size={18} style={{ color: '#8b5cf6' }} />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#1a202c' }}>
-            {formatMoney(financials.payablesDue)}
-          </div>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>
-            Vendors: {formatMoney(financials.vendorPayables)} · Suppliers: {formatMoney(financials.supplierPayables)}
-          </span>
-        </div>
+        <StatTile
+          label="Payables Due"
+          icon={TrendingUp}
+          loading={loadingSummary}
+          value={compactInr(financials.payablesDue)}
+          sublabel={`Vendors ${compactInr(financials.vendorPayables)} · Suppliers ${compactInr(financials.supplierPayables)}`}
+          to="/erp/payables"
+          cta="Pay"
+        />
       </div>
 
       {/* Pipeline Funnel & Ageing Row */}
@@ -307,7 +298,7 @@ const ErpHomePage = () => {
               { header: 'Trip No', accessor: 'tripNumber', render: (r) => <strong>{r.tripNumber}</strong> },
               { header: 'CN No', render: (r) => r.cnNumber || '—' },
               { header: 'Party', render: (r) => r.partyName || '—' },
-              { header: 'Ageing', render: (r) => <StatusBadge status={r.isOverdue ? 'DANGER' : 'NEUTRAL'} label={`${r.ageingDays}d`} /> },
+              { header: 'Ageing', render: (r) => <StatusBadge tone={r.isOverdue ? 'danger' : 'neutral'} label={`${r.ageingDays}d`} /> },
               {
                 header: 'Action',
                 render: (r) => (
@@ -332,12 +323,22 @@ const ErpHomePage = () => {
             ] : [
               { header: 'Party', render: (r) => <strong>{r.partyName || r.partyId?.name}</strong> },
               { header: 'Unloadings', render: (r) => r.unloadings?.length || 1 },
-              { header: 'Total Value', render: (r) => formatMoney(r.totalAmount || r.netReceivable) },
+              { header: 'Total Value', render: (r) => inr(r.totalAmount || r.netReceivable) },
               {
                 header: 'Action',
+                // Carries the party through instead of dumping the user on an
+                // unfiltered Billing page and making them find the row again.
                 render: (r) => (
-                  <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => navigate('/erp/billing')}>
-                    Go to Billing
+                  <button
+                    className="btn btn-primary"
+                    style={{ padding: '6px 12px', fontSize: '12px' }}
+                    onClick={() => navigate(
+                      r.partyId
+                        ? `/erp/billing?tab=bills&partyId=${r.partyId}`
+                        : '/erp/billing?tab=bills',
+                    )}
+                  >
+                    Create bill
                   </button>
                 ),
               },

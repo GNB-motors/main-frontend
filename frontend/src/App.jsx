@@ -97,6 +97,7 @@ import ErpPipelinePage from './pages/ErpPipeline/ErpPipelinePage.jsx';
 import ErpBillingPage from './pages/ErpBilling/ErpBillingPage.jsx';
 import ErpPayablesPage from './pages/ErpPayables/ErpPayablesPage.jsx';
 import ErpAccountsPage from './pages/ErpAccounts/ErpAccountsPage.jsx';
+import Account360Page from './pages/ErpAccounts/Account360Page.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -176,6 +177,9 @@ function App() {
         <Route path="/erp/billing" element={<ErpBillingPage />} />
         <Route path="/erp/payables" element={<ErpPayablesPage />} />
         <Route path="/erp/accounts" element={<ErpAccountsPage />} />
+        {/* Account 360 — one party/vendor/supplier/driver. Different segment
+            count to /erp/accounts, so no route conflict. */}
+        <Route path="/erp/accounts/:accountType/:accountId" element={<Account360Page />} />
         <Route path="/erp/approvals" element={<ApprovalsPage />} />
         <Route path="/erp/call-tasks" element={<CallTasksPage />} />
         <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />

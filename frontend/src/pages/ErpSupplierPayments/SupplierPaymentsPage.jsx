@@ -7,12 +7,16 @@ import { Package, Send } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { SupplierInvoiceApi, SupplierPaymentApi } from './SupplierPaymentService';
 import PageShell from '../../components/Erp/PageShell';
+import EntityPicker from '../../components/Erp/EntityPicker';
+import { toISTDateString } from '../../utils/dateUtils';
 import '../../styles/erp.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+// IST, not UTC: a UTC slice is off by one day for the 5.5 hours after IST
+// midnight — exactly when an early-shift entry would be made.
+const todayInput = () => toISTDateString(new Date());
 
 const SUPPLY_TYPES = ['TYRE', 'SPARE_PARTS', 'DIESEL', 'SERVICE', 'OTHER'];
 
@@ -199,16 +203,6 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
     }
   };
 
-  const supplierOptions = [...new Map(
-    invoices
-      .filter((i) => i.supplierId?._id || i.supplierId)
-      .map((i) => {
-        const s = i.supplierId;
-        const id = s._id || s;
-        return [String(id), { id, name: s.name || 'Supplier', code: s.code || '' }];
-      }),
-  ).values()];
-
   return (
     <PageShell
       embedded={embedded}
@@ -233,12 +227,12 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
         <>
           <form className="erp-card erp-form-grid" onSubmit={submitInvoice}>
             <label>
-              Supplier ID
-              <input
-                required
+              Supplier <span className="required">*</span>
+              <EntityPicker
+                type="SUPPLIER"
                 value={invoiceForm.supplierId}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, supplierId: e.target.value })}
-                placeholder="Paste supplier _id from masters"
+                onChange={(id) => setInvoiceForm({ ...invoiceForm, supplierId: id })}
+                required
               />
             </label>
             <label>
@@ -513,9 +507,6 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
         </div>
       )}
 
-      {supplierOptions.length > 0 && tab === 'invoices' && (
-        <p className="erp-hint">Known suppliers from recent invoices: {supplierOptions.map((s) => s.name).join(', ')}</p>
-      )}
     </PageShell>
   );
 };

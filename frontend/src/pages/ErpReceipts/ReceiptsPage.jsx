@@ -8,12 +8,15 @@ import { toast } from 'react-toastify';
 import ReceiptApi from './ReceiptService';
 import PartyApi from '../ErpMasters/PartyService';
 import PageShell from '../../components/Erp/PageShell';
+import { toISTDateString } from '../../utils/dateUtils';
 import '../../styles/erp.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+// IST, not UTC: a UTC slice is off by one day for the 5.5 hours after IST
+// midnight — exactly when an early-shift entry would be made.
+const todayInput = () => toISTDateString(new Date());
 
 const emptyCnRow = () => ({
   amountReceived: 0,
