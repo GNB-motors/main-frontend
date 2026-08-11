@@ -9,6 +9,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit2, Ban, ShieldCheck, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
+import { accountPathFor } from '../ErpAccounts/documentRoutes';
 import ErpMasterService from './ErpMasterService';
 import '../../styles/erp.css';
 
@@ -239,7 +241,12 @@ const VendorsPage = () => {
                 {vendors.map((v) => (
                   <tr key={v._id}>
                     <td>
-                      <div className="erp-cell-strong">{v.name}</div>
+                      <div className="erp-cell-strong">
+                          {/* The only way to browse to an account — without this a
+                              fully-settled party is unreachable, since it drops off
+                              every outstanding list. */}
+                          <Link to={accountPathFor('VENDOR', v._id)}>{v.name}</Link>
+                        </div>
                       {v.contact?.person && (
                         <div className="erp-cell-muted">{v.contact.person}</div>
                       )}

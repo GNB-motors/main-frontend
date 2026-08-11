@@ -37,6 +37,16 @@ const FinanceHubApi = {
     }
   },
 
+  /** Account directory — the only way to browse to an Account 360. */
+  listAccounts: async (params = {}, opts = {}) => {
+    try {
+      const res = await apiClient.get(`${BASE}/accounts`, { params, signal: opts.signal });
+      return res.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to load accounts');
+    }
+  },
+
   getBalancesByAccountType: async (params = {}, opts = {}) => {
     try {
       const res = await apiClient.get(`${BASE}/balances`, { params, signal: opts.signal });

@@ -10,8 +10,9 @@ import { toast } from 'react-toastify';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PodService from './PodService';
 import '../../styles/erp.css';
+import { toISTDateString } from '../../utils/dateUtils';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const EMPTY_FORM = {
   receivedDate: todayInput(),

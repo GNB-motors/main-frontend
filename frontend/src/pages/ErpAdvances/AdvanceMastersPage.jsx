@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, X, Info, Gauge, Fuel, Receipt } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
+import { toISTDateString } from '../../utils/dateUtils';
 import AdvanceService from './AdvanceService';
 import '../../styles/erp.css';
 
@@ -72,7 +73,7 @@ const AdvanceMastersPage = () => {
       tab === 'mileage'
         ? { vehicleModel: '', routeId: '', loadType: 'LOAD', kmPerLitre: '' }
         : tab === 'fuel'
-          ? { state: '', rate: '', effectiveDate: new Date().toISOString().slice(0, 10) }
+          ? { state: '', rate: '', effectiveDate: toISTDateString(new Date()) }
           : {
               routeId: '',
               vehicleModel: '',

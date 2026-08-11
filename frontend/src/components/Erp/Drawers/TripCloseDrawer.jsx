@@ -3,8 +3,9 @@ import { AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import TripCloseService from '../../../pages/ErpTrips/TripCloseService';
+import { toISTDateString } from '../../../utils/dateUtils';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const TripCloseDrawer = ({ 
   isOpen, 

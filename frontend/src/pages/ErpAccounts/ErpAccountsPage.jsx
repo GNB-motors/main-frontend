@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageHeader from '../../components/Erp/PageHeader';
 import FinancialCommandCenterPage from './FinancialCommandCenterPage';
+import AccountsDirectoryPage from './AccountsDirectoryPage';
 import DayBookPage from './DayBookPage';
 import RegistersPage from './RegistersPage';
 import FinancePage from '../ErpFinance/FinancePage';
@@ -21,6 +22,7 @@ import '../../styles/erp.css';
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
+  { key: 'accounts', label: 'Accounts' },
   { key: 'daybook', label: 'Day Book' },
   { key: 'registers', label: 'Registers' },
   { key: 'finance', label: 'Fleet Finance' },
@@ -73,6 +75,7 @@ const ErpAccountsPage = () => {
 
       <div className="erp-hub-panel">
         {activeTab === 'overview' && <FinancialCommandCenterPage />}
+        {activeTab === 'accounts' && <AccountsDirectoryPage />}
         {activeTab === 'daybook' && <DayBookPage />}
         {activeTab === 'registers' && <RegistersPage />}
         {activeTab === 'finance' && <FinancePage embedded />}

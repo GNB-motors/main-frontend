@@ -98,6 +98,7 @@ import ErpBillingPage from './pages/ErpBilling/ErpBillingPage.jsx';
 import ErpPayablesPage from './pages/ErpPayables/ErpPayablesPage.jsx';
 import ErpAccountsPage from './pages/ErpAccounts/ErpAccountsPage.jsx';
 import Account360Page from './pages/ErpAccounts/Account360Page.jsx';
+import DocumentDetailPage from './pages/ErpAccounts/DocumentDetailPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -177,8 +178,17 @@ function App() {
         <Route path="/erp/billing" element={<ErpBillingPage />} />
         <Route path="/erp/payables" element={<ErpPayablesPage />} />
         <Route path="/erp/accounts" element={<ErpAccountsPage />} />
-        {/* Account 360 — one party/vendor/supplier/driver. Different segment
-            count to /erp/accounts, so no route conflict. */}
+
+        {/* Document detail — the targets of every ledger `Source` link.
+            /erp/accounts/voucher/:id MUST be declared before the Account 360
+            route below, which would otherwise match it with
+            accountType="voucher" and render a broken account page. */}
+        <Route path="/erp/accounts/voucher/:docId" element={<DocumentDetailPage segment="voucher" />} />
+        <Route path="/erp/billing/bill/:docId" element={<DocumentDetailPage segment="bill" />} />
+        <Route path="/erp/payables/purchase-bill/:docId" element={<DocumentDetailPage segment="purchase-bill" />} />
+        <Route path="/erp/payables/supplier-invoice/:docId" element={<DocumentDetailPage segment="supplier-invoice" />} />
+
+        {/* Account 360 — one party/vendor/supplier/driver. */}
         <Route path="/erp/accounts/:accountType/:accountId" element={<Account360Page />} />
         <Route path="/erp/approvals" element={<ApprovalsPage />} />
         <Route path="/erp/call-tasks" element={<CallTasksPage />} />

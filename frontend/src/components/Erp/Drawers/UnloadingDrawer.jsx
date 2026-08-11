@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import UnloadingApi from '../../../pages/ErpUnloading/UnloadingService';
@@ -79,6 +80,15 @@ const UnloadingDrawer = ({
     }
   };
 
+  // The calculate endpoint is the source of truth for rate, quantities and
+  // settings — the `trip` prop carries none of them. Before a preview exists we
+  // fall back to whatever the trip does know.
+  const shortage = preview?.shortage || {};
+  const detention = preview?.detention || {};
+  const qtyUnit = preview?.qtyUnit || trip?.qtyUnit || 'KL';
+  const loadedQty = preview?.loadedQty ?? trip?.loadedQty;
+  const effectiveRate = preview?.sbRate ?? trip?.sbRate ?? null;
+
   const footer = (
     <>
       <button type="button" className="btn btn-secondary" onClick={onClose}>
@@ -107,11 +117,19 @@ const UnloadingDrawer = ({
         <div className="erp-card" style={{ padding: '16px', background: '#f8fafc', marginBottom: '20px' }}>
           <h4 style={{ margin: '0 0 8px 0' }}>Loaded Details</h4>
           <p style={{ margin: 0 }}>
-            Qty: <strong>{trip?.loadedQty} {trip?.qtyUnit || 'KL'}</strong>
+            Qty: <strong>{loadedQty ?? '—'} {qtyUnit}</strong>
           </p>
           <p style={{ margin: '4px 0 0 0' }}>
-            Rate: <strong>{money(trip?.sbRate || 0)}</strong> ({trip?.sbRateType})
+            Rate: <strong>{money(effectiveRate)}</strong> per {qtyUnit}
+            {preview?.sbRateOverridden && (
+              <span className="erp-badge warning" style={{ marginLeft: 8 }}>Overridden</span>
+            )}
           </p>
+          {!preview && (
+            <p className="erp-field-hint" style={{ margin: '6px 0 0 0' }}>
+              Rate is resolved by the server — press Calculate Preview to confirm it.
+            </p>
+          )}
         </div>
 
         <div className="erp-form-grid">
@@ -176,24 +194,65 @@ const UnloadingDrawer = ({
               Settlement Preview
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px' }}>
-              <div className="erp-cell-muted">Gross Freight</div>
-              <div className="erp-numeric">{money(preview.grossAmount)}</div>
+              <div className="erp-cell-muted">
+                Gross freight
+                <div className="erp-field-hint">
+                  {preview.unloadedQty} {qtyUnit} delivered × {money(preview.sbRate)}
+                </div>
+              </div>
+              <div className="erp-numeric">{money(preview.freightAmount)}</div>
 
-              <div className="erp-cell-muted">Shortage ({preview.shortageQty} {trip?.qtyUnit || 'KL'})</div>
-              <div className="erp-numeric" style={{ color: preview.shortageDeduction > 0 ? '#dc2626' : 'inherit' }}>
-                {preview.shortageDeduction > 0 ? `− ${money(preview.shortageDeduction)}` : money(0)}
+              <div className="erp-cell-muted">
+                Shortage
+                <div className="erp-field-hint">
+                  {shortage.shortageQty || 0} {qtyUnit} short
+                  {shortage.allowedQty > 0 && `, ${shortage.allowedQty} allowed`}
+                  {' → '}
+                  {shortage.chargeableQty || 0} chargeable × {money(shortage.rate)}
+                </div>
+              </div>
+              <div className="erp-numeric" style={{ color: shortage.amount > 0 ? '#b91c1c' : 'inherit' }}>
+                {shortage.amount > 0 ? `− ${money(shortage.amount)}` : money(0)}
               </div>
 
-              <div className="erp-cell-muted">Detention ({preview.detentionDays} days)</div>
-              <div className="erp-numeric" style={{ color: preview.detentionAmount > 0 ? '#16a34a' : 'inherit' }}>
-                {preview.detentionAmount > 0 ? `+ ${money(preview.detentionAmount)}` : money(0)}
+              <div className="erp-cell-muted">
+                Detention
+                <div className="erp-field-hint">
+                  {detention.days || 0} days
+                  {detention.freeDays > 0 && `, ${detention.freeDays} free`}
+                  {' → '}
+                  {detention.chargeableDays || 0} chargeable × {money(detention.ratePerDay)}
+                </div>
+              </div>
+              {/* Detention is a DEDUCTION here, matching unloading.formula.js:
+                  net = freight − shortage − detention + otherCharges. */}
+              <div className="erp-numeric" style={{ color: detention.amount > 0 ? '#b91c1c' : 'inherit' }}>
+                {detention.amount > 0 ? `− ${money(detention.amount)}` : money(0)}
               </div>
 
-              <div className="erp-cell-strong" style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>Net Freight</div>
+              {preview.otherChargesTotal > 0 && (
+                <>
+                  <div className="erp-cell-muted">Other charges</div>
+                  <div className="erp-numeric" style={{ color: '#15803d' }}>
+                    {`+ ${money(preview.otherChargesTotal)}`}
+                  </div>
+                </>
+              )}
+
+              <div className="erp-cell-strong" style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                Net receivable
+              </div>
               <div className="erp-numeric erp-cell-strong" style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
-                {money(preview.netAmount)}
+                {money(preview.netReceivable)}
               </div>
             </div>
+
+            {preview.warnings?.length > 0 && (
+              <div className="erp-callout warning" style={{ marginTop: 16, marginBottom: 0 }}>
+                <AlertTriangle size={15} />
+                <span>{preview.warnings.join(' · ')}</span>
+              </div>
+            )}
           </div>
         )}
       </form>

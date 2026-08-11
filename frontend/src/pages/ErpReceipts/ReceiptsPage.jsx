@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Banknote, Download, RefreshCw } from 'lucide-react';
+import { Banknote, Download, RefreshCw, Info, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ReceiptApi from './ReceiptService';
 import PartyApi from '../ErpMasters/PartyService';
@@ -132,20 +132,42 @@ const ReceiptsPage = ({ embedded = false }) => {
     setSelectedBillId(bill.billId);
     const draft = {};
     for (const cn of bill.cns || []) {
-      draft[cn.cnId] = {
-        ...emptyCnRow(),
-        detentionDeducted: cn.detentionAmount || 0,
-        shortageDeducted: cn.shortageAmount || 0,
-      };
+      // Deductions start EMPTY, never prefilled from the unloading.
+      //
+      // The bill's outstanding is already net of the shortage/detention that
+      // were applied at unloading. Prefilling them here counts them a second
+      // time, so the line total always exceeded the outstanding and the post
+      // was rejected ("allocation 236400 exceeds outstanding 236376").
+      //
+      // These fields are only for deductions the CUSTOMER takes at payment
+      // time, which we have not already netted off.
+      draft[cn.cnId] = emptyCnRow();
     }
     setCnDraft(draft);
   };
 
+  /** What this row settles against the bill: cash + any customer deductions. */
   const lineTotal = (row) =>
     (Number(row.amountReceived) || 0)
     + (Number(row.detentionDeducted) || 0)
     + (Number(row.shortageDeducted) || 0)
     + (Number(row.othersDeducted) || 0);
+
+  /** Put the whole remaining outstanding on the first CN — the common case. */
+  const fillRemaining = () => {
+    if (!selectedBill) return;
+    const cns = selectedBill.cns || [];
+    if (!cns.length) return;
+    const cap = Math.min(
+      selectedBill.outstandingAmount || 0,
+      context?.voucher?.unadjustedAmount ?? Infinity,
+    );
+    const next = { ...cnDraft };
+    cns.forEach((cn, i) => {
+      next[cn.cnId] = { ...(next[cn.cnId] || emptyCnRow()), amountReceived: i === 0 ? cap : 0 };
+    });
+    setCnDraft(next);
+  };
 
   const submitAdjustment = async () => {
     if (!selectedVoucherId || !selectedBillId || !context) return;
@@ -193,6 +215,20 @@ const ReceiptsPage = ({ embedded = false }) => {
   };
 
   const selectedBill = context?.bills?.find((b) => b.billId === selectedBillId);
+
+  // Live totals so over-allocation is visible before posting, not after the
+  // server rejects it. The backend guards both limits; this mirrors them.
+  const allocatedTotal = (selectedBill?.cns || []).reduce(
+    (sum, cn) => sum + lineTotal(cnDraft[cn.cnId] || emptyCnRow()),
+    0,
+  );
+  const overBill = selectedBill
+    ? allocatedTotal > (selectedBill.outstandingAmount || 0) + 1e-9
+    : false;
+  const overReceipt = context
+    ? allocatedTotal > (context.voucher.unadjustedAmount || 0) + 1e-9
+    : false;
+  const nothingAllocated = allocatedTotal <= 0;
 
   return (
     <PageShell
@@ -349,7 +385,62 @@ const ReceiptsPage = ({ embedded = false }) => {
 
               {selectedBill && (
                 <>
-                  <h4>CN allocation — {selectedBill.billNumber}</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                    <h4 style={{ margin: '16px 0 8px' }}>CN allocation — {selectedBill.billNumber}</h4>
+                    <button type="button" className="erp-btn small" onClick={fillRemaining}>
+                      Settle in full
+                    </button>
+                  </div>
+
+                  <div className="erp-callout info" style={{ marginBottom: 12 }}>
+                    <Info size={15} />
+                    <span>
+                      <strong>Received</strong> is cash actually banked.{' '}
+                      <strong>Shortage / detention / others</strong> are only for amounts the
+                      customer deducted <em>on top of</em> the bill — anything already netted off at
+                      unloading is inside the outstanding figure and must not be entered again.
+                      Each row&apos;s <strong>Line</strong> = received + deductions, and the total
+                      cannot exceed the bill&apos;s outstanding.
+                    </span>
+                  </div>
+
+                  <div className="erp-stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: 12 }}>
+                    <div className="erp-stat">
+                      <div className="erp-stat-label">Bill outstanding</div>
+                      <div className="erp-stat-value" style={{ fontSize: 18 }}>
+                        {money(selectedBill.outstandingAmount)}
+                      </div>
+                    </div>
+                    <div className="erp-stat">
+                      <div className="erp-stat-label">Allocating</div>
+                      <div className="erp-stat-value" style={{ fontSize: 18, color: overBill || overReceipt ? '#b91c1c' : undefined }}>
+                        {money(allocatedTotal)}
+                      </div>
+                    </div>
+                    <div className="erp-stat">
+                      <div className="erp-stat-label">Bill left after</div>
+                      <div className="erp-stat-value" style={{ fontSize: 18 }}>
+                        {money(Math.max(0, (selectedBill.outstandingAmount || 0) - allocatedTotal))}
+                      </div>
+                    </div>
+                    <div className="erp-stat">
+                      <div className="erp-stat-label">Receipt left after</div>
+                      <div className="erp-stat-value" style={{ fontSize: 18, color: overReceipt ? '#b91c1c' : undefined }}>
+                        {money((context.voucher.unadjustedAmount || 0) - allocatedTotal)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {(overBill || overReceipt) && (
+                    <div className="erp-callout danger" style={{ marginBottom: 12 }}>
+                      <AlertTriangle size={15} />
+                      <span>
+                        {overBill && `Allocating ${money(allocatedTotal)} exceeds the bill's outstanding ${money(selectedBill.outstandingAmount)}. `}
+                        {overReceipt && `Allocating ${money(allocatedTotal)} exceeds the ${money(context.voucher.unadjustedAmount)} left on this receipt. `}
+                        Reduce the amounts before posting.
+                      </span>
+                    </div>
+                  )}
                   <div className="erp-table-wrap">
                     <table className="erp-table compact">
                       <thead>
@@ -459,8 +550,12 @@ const ReceiptsPage = ({ embedded = false }) => {
                     <button
                       type="button"
                       className="erp-btn primary"
-                      disabled={busy}
+                      disabled={busy || overBill || overReceipt || nothingAllocated}
                       onClick={submitAdjustment}
+                      title={
+                        nothingAllocated ? 'Enter an amount to allocate first'
+                          : (overBill || overReceipt) ? 'Reduce the allocation first' : ''
+                      }
                     >
                       Post adjustment
                     </button>

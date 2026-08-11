@@ -3,8 +3,9 @@ import { Upload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import ConsignmentService from '../../../pages/ErpConsignments/ConsignmentService';
+import { toISTDateString } from '../../../utils/dateUtils';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const EMPTY_FORM = {
   cnNumber: '',

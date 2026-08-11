@@ -9,6 +9,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit2, Trash2, Building2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
+import { accountPathFor } from '../ErpAccounts/documentRoutes';
 import apiClient from '../../utils/axiosConfig';
 import PartyService from './PartyService';
 import '../../styles/erp.css';
@@ -257,7 +259,12 @@ const PartiesPage = () => {
                   {parties.map((party) => (
                     <tr key={party._id}>
                       <td>
-                        <div className="erp-cell-strong">{party.name}</div>
+                        <div className="erp-cell-strong">
+                          {/* The only way to browse to an account — without this a
+                              fully-settled party is unreachable, since it drops off
+                              every outstanding list. */}
+                          <Link to={accountPathFor('PARTY', party._id)}>{party.name}</Link>
+                        </div>
                         {party.contact?.person && (
                           <div className="erp-cell-muted">{party.contact.person}</div>
                         )}

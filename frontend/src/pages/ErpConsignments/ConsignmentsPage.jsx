@@ -11,8 +11,9 @@ import { FileText, Upload, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ConsignmentService from './ConsignmentService';
 import '../../styles/erp.css';
+import { toISTDateString } from '../../utils/dateUtils';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const EMPTY_FORM = {
   cnNumber: '',

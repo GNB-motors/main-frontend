@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import ReceiptService from '../../../pages/ErpReceipts/ReceiptService';
+import { toISTDateString } from '../../../utils/dateUtils';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const ReceiptDrawer = ({
   isOpen,

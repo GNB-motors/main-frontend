@@ -13,6 +13,7 @@ import apiClient from '../../utils/axiosConfig';
 import RateMasterService from './RateMasterService';
 import PartyService from './PartyService';
 import '../../styles/erp.css';
+import { toISTDateString } from '../../utils/dateUtils';
 
 const UNITS = [
   { value: 'PER_KL', label: 'Per KL' },
@@ -20,7 +21,7 @@ const UNITS = [
   { value: 'PER_TRIP', label: 'Per Trip' },
 ];
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const EMPTY_FORM = {
   partyId: '',

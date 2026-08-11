@@ -11,8 +11,9 @@ import { toast } from 'react-toastify';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import TripCloseService from './TripCloseService';
 import '../../styles/erp.css';
+import { toISTDateString } from '../../utils/dateUtils';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const TripClosePage = () => {
   const location = useLocation();

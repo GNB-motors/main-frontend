@@ -15,6 +15,7 @@ import DeliveryOrderService from './DeliveryOrderService';
 import RateMasterService from '../ErpMasters/RateMasterService';
 import PartyService from '../ErpMasters/PartyService';
 import '../../styles/erp.css';
+import { toISTDateString } from '../../utils/dateUtils';
 
 const DO_TYPES = [
   { value: 'KL_DO', label: 'KL (volume)', unit: 'KL' },
@@ -31,7 +32,7 @@ const STATUS_TONE = {
   CANCELLED: 'danger',
 };
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const todayInput = () => toISTDateString(new Date());
 
 const EMPTY_FORM = {
   partyId: '',
