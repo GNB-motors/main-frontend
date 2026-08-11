@@ -665,3 +665,263 @@ body {
     font-size: 0.75rem;
     line-height: 1.625;
 }
+
+/* ─────────────────────────────────────────────────────────
+   Overview control-center — redesign primitives (PR: overview-v3)
+   Built entirely on the cluster tokens above so both themes flip
+   cleanly. No new colours — only compositions of existing signal
+   + brand tokens.
+   ───────────────────────────────────────────────────────── */
+
+/* Solid card surface — white in light mode, solid ink in dark. Replaces the
+   translucent .cluster-panel glass on this dense screen so cards read as clean
+   white cards, not tinted glass. */
+.ov-panel {
+    background: var(--cluster-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(11, 18, 32, 0.04), 0 1px 3px rgba(11, 18, 32, 0.05);
+    color: var(--cluster-text);
+}
+.dark .ov-panel {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+/* Inner inset on a white card — a hair off-white so it separates without glass */
+.ov-inset {
+    background: var(--cluster-raised);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+}
+
+/* Section divider label — replaces the separator+centred title pattern */
+.ov-section {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 4px 2px 0;
+}
+.ov-section-title {
+    font-family: var(--font-cluster-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--cluster-text);
+}
+.ov-section-q {
+    font-size: 12px;
+    color: var(--cluster-text-dim);
+}
+
+/* KPI tile — compact, scannable, one number does the talking */
+.ov-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    min-width: 0;
+}
+a.ov-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--cluster-shadow);
+    border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--hairline));
+}
+.ov-kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cluster-text-dim);
+}
+.ov-kpi-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--cluster-text);
+}
+.ov-kpi-sub {
+    font-size: 12px;
+    color: var(--cluster-text-dim);
+    line-height: 1.35;
+}
+/* Emphasised primary tile — the single most important KPI */
+.ov-kpi--primary {
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--gnb-400) 8%, var(--cluster-panel)),
+            var(--cluster-panel));
+    border-color: color-mix(in srgb, var(--gnb-400) 30%, var(--hairline));
+}
+.ov-kpi--primary .ov-kpi-value { font-size: 34px; }
+
+/* Status pill — reserved state semantics, always paired with a word */
+.ov-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.ov-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+.ov-pill--critical { color: var(--critical); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+.ov-pill--caution  { color: var(--caution);  background: color-mix(in srgb, var(--caution) 14%, transparent); }
+.ov-pill--ok       { color: var(--ok);       background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.ov-pill--inert    { color: var(--inert);    background: color-mix(in srgb, var(--inert) 12%, transparent); }
+.ov-pill--brand    { color: var(--gnb-400);  background: color-mix(in srgb, var(--gnb-400) 12%, transparent); }
+
+/* Stacked magnitude bar — 2px surface gaps between fills (dataviz spec) */
+.ov-stack {
+    display: flex;
+    width: 100%;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--hairline);
+    gap: 2px;
+}
+.ov-stack > span { height: 100%; min-width: 2px; }
+.ov-stack > span:first-child { border-top-left-radius: 7px; border-bottom-left-radius: 7px; }
+.ov-stack > span:last-child { border-top-right-radius: 7px; border-bottom-right-radius: 7px; }
+
+/* Two-tone track (loaded vs empty) */
+.ov-track {
+    position: relative;
+    height: 28px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--hairline);
+    display: flex;
+    gap: 2px;
+}
+.ov-track > span {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Action-center row */
+.ov-action {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--hairline)); }
+.ov-action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    flex: 0 0 auto;
+}
+
+/* Simple data table shell for the risk lists */
+.ov-table { width: 100%; border-collapse: collapse; }
+.ov-table thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cluster-text-dim);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--hairline);
+}
+.ov-table tbody td {
+    padding: 11px 10px;
+    border-bottom: 1px solid var(--hairline);
+    font-size: 13px;
+    color: var(--cluster-text);
+    vertical-align: middle;
+}
+.ov-table tbody tr:last-child td { border-bottom: 0; }
+.ov-table tbody tr { transition: background 0.12s ease; }
+.ov-table tbody tr:hover { background: var(--glass); }
+
+/* Segmented control (sort / toggle) */
+.ov-seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 9px;
+    border: 1px solid var(--hairline);
+    background: var(--glass);
+}
+.ov-seg button {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: var(--cluster-text-dim);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.ov-seg button:hover { color: var(--cluster-text); }
+.ov-seg button[aria-pressed="true"] {
+    color: var(--gnb-400);
+    background: var(--cluster-panel);
+    box-shadow: 0 1px 2px rgba(11,18,32,.08);
+}
+
+/* Header action buttons */
+.ov-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    color: var(--cluster-text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.ov-btn:hover { border-color: color-mix(in srgb, var(--gnb-400) 45%, var(--hairline)); color: var(--gnb-400); }
+.ov-btn--primary {
+    background: var(--gnb-400);
+    border-color: var(--gnb-400);
+    color: #fff;
+}
+.ov-btn--primary:hover { background: var(--gnb-500); border-color: var(--gnb-500); color: #fff; }
