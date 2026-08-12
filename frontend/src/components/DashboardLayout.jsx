@@ -7,10 +7,14 @@ import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { ProfileService } from '../pages/Profile/ProfileService.jsx';
 import { storeProfileData } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider } from '../contexts/FeatureFlagsContext.jsx';
+import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
     const [isSidebarOpen, setSidebarOpen] = React.useState(true);
+    // Re-key the routed page on location switch so every fetch effect re-runs
+    // against the newly selected branch (X-Branch-Id changes in the interceptor).
+    const { branchId } = useActiveBranch();
 
     React.useEffect(() => {
         // Set all CSS tokens on :root immediately — covers page refresh & login redirect.
@@ -51,7 +55,7 @@ const DashboardLayoutInner = () => {
             <Sidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
             <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
                 <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
-                <div className="page-content">
+                <div className="page-content" key={branchId || 'all-locations'}>
                     <Outlet />
                 </div>
             </main>
@@ -61,7 +65,9 @@ const DashboardLayoutInner = () => {
 
 const DashboardLayout = () => (
     <FeatureFlagsProvider>
-        <DashboardLayoutInner />
+        <BranchProvider>
+            <DashboardLayoutInner />
+        </BranchProvider>
     </FeatureFlagsProvider>
 );
 

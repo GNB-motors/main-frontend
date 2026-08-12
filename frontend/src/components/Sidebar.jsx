@@ -105,6 +105,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         localStorage.removeItem('profile_company_name');
         localStorage.removeItem('profile_gstin');
         localStorage.removeItem('primaryThemeColor');
+        // Clear the active location so it can't leak into the next session.
+        localStorage.removeItem('user_branchId');
         navigate('/login');
     };
 

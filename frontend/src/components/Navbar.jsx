@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Menu, Search } from 'lucide-react';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { useTripCreationContext } from '../contexts/TripCreationContext';
+import LocationSwitcher from './LocationSwitcher.jsx';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -132,6 +133,9 @@ const Navbar = ({ toggleSidebar }) => {
                 )}
             </div>
             <div className="navbar-right">
+                {/* Active location switcher — always first in the action bar.
+                    Renders only when the business has more than one location. */}
+                <LocationSwitcher />
                 {isMileageListPage && (
                     <div className="navbar-search">
                         <Search size={16} color="#94a3b8" />

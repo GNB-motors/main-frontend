@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { VehicleService } from './VehicleService.jsx';
 import { listAccounts, reassignVehicleAccount } from './FleetEdgeAccountService.jsx';
+import { useActiveBranch } from '../../contexts/BranchContext.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageHeader from '../Drivers/Component/PageHeader.jsx';
 import VehicleBasicInformationForm from './Component/VehicleBasicInformationForm.jsx';
@@ -35,6 +36,17 @@ const AddVehiclePage = () => {
   const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
+
+  // Owning location (branch) for the new vehicle. Defaults to the active location.
+  const { branchId: activeBranchId, branches } = useActiveBranch();
+  const [selectedBranchId, setSelectedBranchId] = useState('');
+
+  // Default the vehicle's location to the active location. '' means Enterprise
+  // (no specific location) — a valid choice that creates an enterprise-level vehicle.
+  useEffect(() => {
+    if (isEdit) return; // location transfer on edit is a deferred feature
+    setSelectedBranchId(activeBranchId ? String(activeBranchId) : '');
+  }, [activeBranchId, isEdit]);
 
   useEffect(() => {
     const updateTheme = () => setThemeColors(getThemeCSS());
@@ -126,6 +138,9 @@ const AddVehiclePage = () => {
       toast.warn('No auth token found. Request may fail.');
     }
 
+    // No hard requirement: an empty selection means "Enterprise" (no specific
+    // location), which the backend stores as an enterprise-level vehicle.
+
     // For each docType, collect the new files the user attached (skip slots
     // that hold an existing preview URL with no fresh file). Backend replaces
     // the whole subdoc when same docType is uploaded again.
@@ -168,7 +183,11 @@ const AddVehiclePage = () => {
         toast.success(`Vehicle "${formData.registration_no}" updated successfully`);
         navigate('/vehicles');
       } else {
-        const savedVehicle = await VehicleService.addVehicle(businessRefId, formData, token);
+        const savedVehicle = await VehicleService.addVehicle(
+          businessRefId,
+          { ...formData, branchId: selectedBranchId },
+          token,
+        );
         const newVehicleId = savedVehicle._id || savedVehicle.id;
         if (newVehicleId) {
           await uploadDocuments(newVehicleId);
@@ -218,6 +237,29 @@ const AddVehiclePage = () => {
           }
           onBack={() => navigate(-1)}
         />
+
+        {!isEdit && branches.length > 0 && (
+          <div style={{ padding: '0 24px 16px', maxWidth: 480 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
+              Location
+            </label>
+            <select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, color: '#1e293b', background: '#fff', cursor: 'pointer' }}
+            >
+              <option value="">Enterprise (no specific location)</option>
+              {branches.map((b) => (
+                <option key={b._id} value={String(b._id)}>
+                  {b.name}{b.isDefault ? ' (default)' : ''}
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+              The operating location this vehicle belongs to. Enterprise-level vehicles show only in the all-locations view.
+            </p>
+          </div>
+        )}
 
         {!isEdit && fleetEdgeAccounts.length > 1 && (
           <div style={{ padding: '0 24px 16px', maxWidth: 480 }}>

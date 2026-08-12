@@ -54,6 +54,7 @@ export const clearAuthData = () => {
     localStorage.removeItem('user_status');
     localStorage.removeItem('user_mobileNumber');
     localStorage.removeItem('user_orgId');
+    localStorage.removeItem('user_branchId');
     localStorage.removeItem('onboardingCompleted');
     
     // Clear profile data

@@ -16,12 +16,31 @@ const toExpectedMileage = (value) => {
   return { kmPerL, source: 'MANUAL' };
 };
 
-const getAllVehicles = async (businessRefId, token, page = 1, limit = 10) => {
+/**
+ * Decide which location a vehicle create should carry.
+ *  - explicit non-empty branchId (form picked a location) → that id
+ *  - explicit empty branchId (form picked "Enterprise")   → null (overrides header)
+ *  - no branchId key at all (other callers)               → active location, or null
+ */
+const resolveVehicleBranchId = (vehicleData) => {
+  if (vehicleData.branchId) return vehicleData.branchId;
+  if (Object.prototype.hasOwnProperty.call(vehicleData, 'branchId')) return null;
+  return localStorage.getItem('user_branchId') || null;
+};
+
+const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branchId) => {
   try {
     // New API: GET /vehicles with optional orgId query param and pagination
     let url = `${API_BASE_URL}/api/vehicles?page=${page}&limit=${limit}`;
     if (businessRefId) {
       url += `&orgId=${businessRefId}`;
+    }
+    // Scope to the active location. These calls use raw axios (not the shared
+    // apiClient), so the X-Branch-Id interceptor doesn't apply — pass it explicitly.
+    // Omit for the enterprise "All locations" view (branch not selected).
+    const activeBranchId = branchId !== undefined ? branchId : localStorage.getItem('user_branchId');
+    if (activeBranchId) {
+      url += `&branchId=${activeBranchId}`;
     }
     const response = await axios.get(url, {
       headers: {
@@ -55,6 +74,10 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
       inventory: vehicleData.inventory || [],
       // include orgId in body for servers that expect org context in payload
       orgId: businessRefId || undefined,
+      // Owning location. The form's explicit choice wins: a real id, or null for
+      // "Enterprise (no location)" — which must override the active-location header.
+      // If a caller doesn't specify branchId at all, use the active location.
+      branchId: resolveVehicleBranchId(vehicleData),
       // Include manufacturer and vehicleCategory if provided (for manual override)
       manufacturer: vehicleData.manufacturer || undefined,
       vehicleCategory: vehicleData.vehicleCategory || undefined,
@@ -106,6 +129,9 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
       ...(options.dry_run !== undefined ? { dry_run: !!options.dry_run } : {}),
       ...(options.upsert !== undefined ? { upsert: !!options.upsert } : {}),
       orgId: businessRefId || undefined,
+      // Location applied to the whole batch: explicit option, else the active
+      // location, else the org default (resolved server-side).
+      branchId: options.branchId || localStorage.getItem('user_branchId') || undefined,
     };
 
     const response = await axios.post(
