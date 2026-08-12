@@ -18,6 +18,7 @@ import { inr, compactInr, num } from '../../utils/formatMoney';
 import { formatDateIST } from '../../utils/dateUtils';
 import { AGEING_ORDER } from '../../utils/erpChartTheme';
 import '../../styles/erp.css';
+import '../../styles/erp-billing.css';
 
 const VIEWS = [
   ['ALL', 'Full outstanding'],
@@ -235,8 +236,9 @@ const OutstandingPage = ({ embedded = false }) => {
         </button>
       )}
     >
+      <div className="bill-redesign">
       {/* Tiles now filter the list below instead of being decorative. */}
-      <div className="erp-stat-grid">
+      <div className="erp-stat-grid bill-summary-grid">
         <StatTile
           label="Total outstanding"
           icon={Wallet}
@@ -326,6 +328,7 @@ const OutstandingPage = ({ embedded = false }) => {
           keyExtractor={(p) => p.partyId}
         />
       )}
+      </div>
     </PageShell>
   );
 };

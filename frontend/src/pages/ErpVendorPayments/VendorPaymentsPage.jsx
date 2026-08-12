@@ -11,6 +11,7 @@ import PageShell from '../../components/Erp/PageShell';
 import StatusBadge from '../../components/Erp/StatusBadge';
 import { formatDateIST } from '../../utils/dateUtils';
 import '../../styles/erp.css';
+import '../../styles/erp-payables.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
@@ -187,7 +188,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       subtitle="Outstanding purchase bills → approval → bank release."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Vendor Payments' }]}
     >
-
+      <div className="pay-redesign">
       <div className="erp-tabs">
         {[['outstanding', 'Outstanding bills'], ['release', 'Pending release']].map(
           ([key, label]) => (
@@ -401,6 +402,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
           </div>
         </div>
       )}
+      </div>
     </PageShell>
   );
 };

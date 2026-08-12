@@ -1,0 +1,232 @@
+/**
+ * Payables & Outgoing Payments — visual redesign for its three tabs:
+ * Vendor Payments, Supplier Payments, and Purchase Bills.
+ *
+ * Scoped entirely under `.pay-redesign`, a wrapper added only around the
+ * embedded content of those pages. Mirrors the Billing redesign so the two
+ * finance hubs look like one product. Shared ERP components/classes are used
+ * across many modules, so nothing here leaks out — Active Trips, the sidebar,
+ * and every other page are untouched.
+ *
+ * UI-only. Primary action is the app's indigo (#4f46e5); red/orange mark
+ * warning/overdue; green is kept only for semantic success status pills.
+ */
+
+.pay-redesign {
+  --pay-primary: #4f46e5;
+  --pay-primary-hover: #4338ca;
+  --pay-primary-soft: #eef2ff;
+  --pay-ink: #0f172a;
+  --pay-ink-2: #334155;
+  --pay-muted: #64748b;
+  --pay-border: #e6e9ef;
+  --pay-border-soft: #eef1f5;
+  --pay-radius: 12px;
+}
+
+/* ─── Spacing: tighten tabs → content ─────────────────────────────────────── */
+.pay-redesign .erp-tabs {
+  margin-bottom: 14px;
+  padding: 3px;
+  gap: 2px;
+  background: #eef1f5;
+  border-radius: 9px;
+}
+
+.pay-redesign .erp-table-wrap,
+.pay-redesign .erp-table-container {
+  margin-top: 14px;
+}
+
+.pay-redesign .erp-tab {
+  padding: 7px 14px;
+  font-size: 12.5px;
+  color: var(--pay-muted);
+  border-radius: 7px;
+}
+
+.pay-redesign .erp-tab.active {
+  color: var(--pay-ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+/* ─── Buttons: outlined secondary, indigo primary ─────────────────────────── */
+.pay-redesign .erp-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-color: var(--pay-border);
+  border-radius: 8px;
+}
+
+.pay-redesign .erp-btn:hover:not(:disabled) {
+  border-color: #cbd5e0;
+  background: #f8fafc;
+}
+
+.pay-redesign .erp-btn.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.pay-redesign .erp-btn.primary,
+.pay-redesign .erp-btn-primary {
+  background: var(--pay-primary);
+  border-color: var(--pay-primary);
+  color: #fff;
+}
+
+.pay-redesign .erp-btn.primary:hover:not(:disabled),
+.pay-redesign .erp-btn-primary:hover:not(:disabled) {
+  background: var(--pay-primary-hover);
+  border-color: var(--pay-primary-hover);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+/* ─── Vendor / supplier picker lists (were green on hover) ────────────────── */
+.pay-redesign .erp-list {
+  gap: 8px;
+}
+
+.pay-redesign .erp-link-btn {
+  border-color: var(--pay-border);
+  border-radius: 10px;
+  color: var(--pay-ink-2);
+}
+
+.pay-redesign .erp-link-btn:hover {
+  background: var(--pay-primary-soft);
+  border-color: var(--pay-primary);
+  color: var(--pay-primary-hover);
+}
+
+/* ─── Tables: dense, scannable, subtle separators + hover ─────────────────── */
+.pay-redesign .erp-table-wrap {
+  border-color: var(--pay-border);
+  border-radius: var(--pay-radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.pay-redesign .erp-table {
+  font-size: 13px;
+}
+
+.pay-redesign .erp-table thead th {
+  padding: 10px 14px;
+  background: #f8fafc;
+  color: var(--pay-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--pay-border);
+}
+
+.pay-redesign .erp-table tbody td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--pay-border-soft);
+  color: var(--pay-ink-2);
+  vertical-align: middle;
+}
+
+.pay-redesign .erp-table.compact thead th,
+.pay-redesign .erp-table.compact tbody td {
+  padding: 8px 12px;
+}
+
+.pay-redesign .erp-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.pay-redesign .erp-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Status pills: compact, polished ─────────────────────────────────────── */
+.pay-redesign .erp-badge {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.pay-redesign .erp-badge.success {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.pay-redesign .erp-badge.warning {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.pay-redesign .erp-badge.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.pay-redesign .erp-badge.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.pay-redesign .erp-badge.neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+/* ─── Cards / forms / filters ─────────────────────────────────────────────── */
+.pay-redesign .erp-card {
+  border-color: var(--pay-border);
+  border-radius: var(--pay-radius);
+  padding: 20px 22px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.pay-redesign .erp-card h3 {
+  font-size: 15px;
+  color: var(--pay-ink);
+}
+
+.pay-redesign .erp-form-grid {
+  gap: 16px 20px;
+}
+
+.pay-redesign .erp-form-grid > label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pay-ink-2);
+}
+
+.pay-redesign .erp-form-grid > label input,
+.pay-redesign .erp-form-grid > label select {
+  height: 40px;
+  padding: 8px 12px;
+  border-color: var(--pay-border);
+  border-radius: 8px;
+  color: var(--pay-ink);
+}
+
+.pay-redesign .erp-form-grid > label input:focus,
+.pay-redesign .erp-form-grid > label select:focus,
+.pay-redesign .erp-filter:focus,
+.pay-redesign .erp-search input:focus {
+  border-color: var(--pay-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.pay-redesign .erp-filter,
+.pay-redesign .erp-search input {
+  border-color: var(--pay-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--pay-ink);
+}
+
+.pay-redesign .erp-callout.info {
+  margin-top: 14px;
+}

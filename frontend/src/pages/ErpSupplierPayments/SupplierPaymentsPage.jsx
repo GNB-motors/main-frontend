@@ -10,6 +10,7 @@ import PageShell from '../../components/Erp/PageShell';
 import EntityPicker from '../../components/Erp/EntityPicker';
 import { toISTDateString } from '../../utils/dateUtils';
 import '../../styles/erp.css';
+import '../../styles/erp-payables.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
@@ -210,7 +211,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
       subtitle="Manual supplier invoices, then the same approval → release flow as vendor payments."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Supplier Payments' }]}
     >
-
+      <div className="pay-redesign">
       <div className="erp-tabs">
         {[
           ['invoices', 'New invoice'],
@@ -506,7 +507,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
           </div>
         </div>
       )}
-
+      </div>
     </PageShell>
   );
 };

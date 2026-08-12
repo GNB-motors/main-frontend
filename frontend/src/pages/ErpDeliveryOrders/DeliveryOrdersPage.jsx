@@ -7,7 +7,16 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, FileText, Search, X, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import {
+  Plus,
+  FileText,
+  Search,
+  X,
+  Info,
+  AlertTriangle,
+  CheckCircle2,
+  ArrowRight,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useLocation } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
@@ -15,6 +24,7 @@ import DeliveryOrderService from './DeliveryOrderService';
 import RateMasterService from '../ErpMasters/RateMasterService';
 import PartyService from '../ErpMasters/PartyService';
 import '../../styles/erp.css';
+import '../../styles/erp-ops.css';
 import { toISTDateString } from '../../utils/dateUtils';
 
 const DO_TYPES = [
@@ -51,7 +61,7 @@ const EMPTY_FORM = {
 
 const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
 
-const DeliveryOrdersPage = () => {
+const DeliveryOrdersPage = ({ embedded = false }) => {
   const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [parties, setParties] = useState([]);
@@ -235,7 +245,7 @@ const DeliveryOrdersPage = () => {
   const unitFor = (t) => DO_TYPES.find((d) => d.value === t)?.unit || '';
 
   return (
-    <div className="erp-page">
+    <div className={`erp-page ops-redesign${embedded ? ' ops-embedded' : ''}`}>
       <div className="erp-header">
         <div>
           <h1>Delivery Orders</h1>
@@ -293,7 +303,7 @@ const DeliveryOrdersPage = () => {
         ) : (
           <>
             <div className="erp-table-scroll">
-              <table className="erp-table">
+              <table className="erp-table ops-do-table">
                 <thead>
                   <tr>
                     <th>DO No.</th>
@@ -311,13 +321,17 @@ const DeliveryOrdersPage = () => {
                     <tr key={o._id}>
                       <td className="erp-cell-strong">{o.doNumber}</td>
                       <td>
-                        <div>{o.partyId?.name || '—'}</div>
+                        <div className="ops-do-party">{o.partyId?.name || '—'}</div>
                         <div className="erp-cell-muted">
                           {new Date(o.doDate).toLocaleDateString('en-IN')}
                         </div>
                       </td>
-                      <td className="erp-cell-muted">
-                        {o.fromLocation} → {o.toLocation}
+                      <td>
+                        <span className="ops-route">
+                          <span className="ops-loc">{o.fromLocation}</span>
+                          <ArrowRight size={14} className="ops-arrow" />
+                          <span className="ops-loc">{o.toLocation}</span>
+                        </span>
                       </td>
                       <td>{o.material}</td>
                       <td className="erp-numeric">

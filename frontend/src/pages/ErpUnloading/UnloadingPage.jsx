@@ -3,19 +3,19 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Scale, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UnloadingApi from './UnloadingService';
 import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
+import '../../styles/erp-payables.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
 const UnloadingPage = ({ embedded = false, initialTab = null }) => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [tab, setTab] = useState(initialTab || 'pending');
   const [pending, setPending] = useState([]);
@@ -160,7 +160,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
       subtitle="Shortage, detention and freight settlement after POD."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Purchase Bills' }]}
     >
-
+      <div className="pay-redesign">
       <div className="erp-tabs">
         {[
           ['pending', 'Pending'],
@@ -383,6 +383,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
           </div>
         </div>
       )}
+      </div>
     </PageShell>
   );
 };

@@ -7,8 +7,10 @@ import { Receipt, X, Printer, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SaleBillApi from './SaleBillService';
 import PageShell from '../../components/Erp/PageShell';
+import StatusBadge from '../../components/Erp/StatusBadge';
 import { toISTDateString } from '../../utils/dateUtils';
 import '../../styles/erp.css';
+import '../../styles/erp-billing.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
@@ -225,7 +227,7 @@ const SaleBillsPage = ({ embedded = false }) => {
       subtitle="Create bills, submit to party, record received date for due date."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Sale Bills' }]}
     >
-
+      <div className="bill-redesign">
       <div className="erp-tabs">
         {[
           ['pending', 'Pending Billing'],
@@ -365,7 +367,7 @@ const SaleBillsPage = ({ embedded = false }) => {
         </div>
       ) : (
         <div className="erp-table-wrap">
-          <table className="erp-table">
+          <table className="erp-table bill-sale-table">
             <thead>
               <tr>
                 <th>Bill #</th>
@@ -374,7 +376,7 @@ const SaleBillsPage = ({ embedded = false }) => {
                 <th>Lines</th>
                 <th>Net</th>
                 <th>Status</th>
-                <th />
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -392,22 +394,25 @@ const SaleBillsPage = ({ embedded = false }) => {
                     <td>{b.billDate ? new Date(b.billDate).toLocaleDateString('en-IN') : '—'}</td>
                     <td>{b.lines?.length ?? '—'}</td>
                     <td>{money(b.netAmount)}</td>
-                    <td>{b.status}</td>
                     <td>
-                      <button type="button" className="erp-btn" onClick={() => openDetail(b._id)}>
-                        View
-                      </button>
-                      {['APPROVED', 'SUBMITTED', 'PARTIALLY_PAID', 'PAID'].includes(b.status) && (
-                        <button
-                          type="button"
-                          className="erp-btn erp-btn-primary"
-                          style={{ marginLeft: 8 }}
-                          onClick={() => handlePrint(b._id)}
-                          disabled={busy}
-                        >
-                          <Printer size={14} /> Print
+                      <StatusBadge status={b.status} />
+                    </td>
+                    <td>
+                      <div className="bill-actions">
+                        <button type="button" className="erp-btn" onClick={() => openDetail(b._id)}>
+                          View
                         </button>
-                      )}
+                        {['APPROVED', 'SUBMITTED', 'PARTIALLY_PAID', 'PAID'].includes(b.status) && (
+                          <button
+                            type="button"
+                            className="erp-btn erp-btn-primary"
+                            onClick={() => handlePrint(b._id)}
+                            disabled={busy}
+                          >
+                            <Printer size={14} /> Print
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -651,6 +656,7 @@ const SaleBillsPage = ({ embedded = false }) => {
           </div>
         </div>
       )}
+      </div>
     </PageShell>
   );
 };

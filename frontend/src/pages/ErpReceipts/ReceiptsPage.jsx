@@ -3,13 +3,14 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Banknote, Download, RefreshCw, Info, AlertTriangle } from 'lucide-react';
+import { Banknote, Download, RefreshCw, Info, AlertTriangle, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ReceiptApi from './ReceiptService';
 import PartyApi from '../ErpMasters/PartyService';
 import PageShell from '../../components/Erp/PageShell';
 import { toISTDateString } from '../../utils/dateUtils';
 import '../../styles/erp.css';
+import '../../styles/erp-billing.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
@@ -216,6 +217,11 @@ const ReceiptsPage = ({ embedded = false }) => {
 
   const selectedBill = context?.bills?.find((b) => b.billId === selectedBillId);
 
+  // Party name for the detail header — voucher context first, then the picked
+  // list row as a fallback (the row drops off `unadjusted` once fully adjusted).
+  const selectedReceipt = unadjusted.find((v) => v._id === selectedVoucherId) || null;
+  const selectedPartyName = context?.voucher?.partyName || selectedReceipt?.partyName || '';
+
   // Live totals so over-allocation is visible before posting, not after the
   // server rejects it. The backend guards both limits; this mirrors them.
   const allocatedTotal = (selectedBill?.cns || []).reduce(
@@ -237,7 +243,7 @@ const ReceiptsPage = ({ embedded = false }) => {
       subtitle="Record party receipts first, then CN-wise bill allocation when details arrive."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Receipts' }]}
     >
-
+      <div className="bill-redesign">
       <div className="erp-tabs">
         {[
           ['receipt', 'New receipt'],
@@ -272,7 +278,7 @@ const ReceiptsPage = ({ embedded = false }) => {
               ))}
             </select>
           </label>
-          <label>
+          <label className="bill-amount-field">
             Amount
             <input
               type="number"
@@ -335,56 +341,101 @@ const ReceiptsPage = ({ embedded = false }) => {
       )}
 
       {tab === 'adjust' && (
-        <div className="erp-split">
-          <section className="erp-card">
-            <h3>Unadjusted receipts</h3>
-            {loading && <p>Loading…</p>}
-            {!loading && unadjusted.length === 0 && <p>No unadjusted receipts.</p>}
-            <ul className="erp-list">
+        <div className="adjust-workspace">
+          <aside className="adjust-master">
+            <div className="adjust-panel-head">
+              <h3>Unadjusted receipts</h3>
+            </div>
+            <div className="adjust-receipt-list">
+              {loading && <p className="erp-muted adjust-hint">Loading…</p>}
+              {!loading && unadjusted.length === 0 && (
+                <p className="erp-muted adjust-hint">No unadjusted receipts.</p>
+              )}
               {unadjusted.map((v) => (
-                <li key={v._id}>
-                  <button type="button" className="erp-link-btn" onClick={() => loadContext(v._id)}>
-                    {v.voucherNumber} — {v.partyName || ''} — {money(v.unadjustedAmount)} left
-                  </button>
-                </li>
+                <button
+                  type="button"
+                  key={v._id}
+                  className={`adjust-receipt-item ${selectedVoucherId === v._id ? 'selected' : ''}`}
+                  onClick={() => loadContext(v._id)}
+                >
+                  <span className="adjust-receipt-no">{v.voucherNumber}</span>
+                  <span className="adjust-receipt-party">{v.partyName || '—'}</span>
+                  <span className="adjust-receipt-amt">
+                    {money(v.unadjustedAmount)} <span>left</span>
+                  </span>
+                </button>
               ))}
-            </ul>
-          </section>
+            </div>
+          </aside>
 
-          {context && (
-            <section className="erp-card">
-              <h3>
-                {context.voucher.voucherNumber} — {money(context.voucher.unadjustedAmount)}{' '}
-                unadjusted
-              </h3>
-              <p>Select a bill, then allocate CN-wise.</p>
-              <div className="erp-table-wrap">
-                <table className="erp-table">
-                  <thead>
-                    <tr>
-                      <th>Bill</th>
-                      <th>Outstanding</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(context.bills || []).map((b) => (
-                      <tr key={b.billId}>
-                        <td>{b.billNumber}</td>
-                        <td>{money(b.outstandingAmount)}</td>
-                        <td>
-                          <button type="button" className="erp-btn small" onClick={() => openBill(b)}>
-                            Allocate
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <section className="adjust-detail">
+            {!context ? (
+              <div className="adjust-empty">
+                <FileText size={40} />
+                <h4>Select a receipt</h4>
+                <p>Choose an unadjusted receipt to view bills available for allocation.</p>
               </div>
+            ) : (
+              <>
+                <div className="adjust-detail-head">
+                  <div className="adjust-detail-id">
+                    <div className="adjust-detail-no">{context.voucher.voucherNumber}</div>
+                    <div className="adjust-detail-party">{selectedPartyName || '—'}</div>
+                  </div>
+                  <div className="adjust-detail-amount">
+                    <div className="adjust-amount-value">
+                      {money(context.voucher.unadjustedAmount)}
+                    </div>
+                    <div className="adjust-amount-label">Unadjusted amount</div>
+                  </div>
+                </div>
+                <p className="adjust-detail-desc">Select a bill to allocate this receipt.</p>
 
-              {selectedBill && (
-                <>
+                <div className="adjust-bills">
+                  <div className="adjust-section-head">Available bills</div>
+                  <div className="erp-table-wrap">
+                    <table className="erp-table adjust-bills-table">
+                      <thead>
+                        <tr>
+                          <th>Bill</th>
+                          <th>Outstanding</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(context.bills || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="erp-muted">
+                              No open bills for this party.
+                            </td>
+                          </tr>
+                        ) : (
+                          (context.bills || []).map((b) => (
+                            <tr
+                              key={b.billId}
+                              className={selectedBillId === b.billId ? 'active' : ''}
+                            >
+                              <td>{b.billNumber}</td>
+                              <td>{money(b.outstandingAmount)}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="erp-btn erp-btn-primary small"
+                                  onClick={() => openBill(b)}
+                                >
+                                  Allocate
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {selectedBill && (
+                  <div className="adjust-alloc">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
                     <h4 style={{ margin: '16px 0 8px' }}>CN allocation — {selectedBill.billNumber}</h4>
                     <button type="button" className="erp-btn small" onClick={fillRemaining}>
@@ -563,10 +614,11 @@ const ReceiptsPage = ({ embedded = false }) => {
                       <RefreshCw size={14} /> Refresh
                     </button>
                   </div>
-                </>
-              )}
-            </section>
-          )}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
         </div>
       )}
 
@@ -615,6 +667,7 @@ const ReceiptsPage = ({ embedded = false }) => {
           )}
         </section>
       )}
+      </div>
     </PageShell>
   );
 };

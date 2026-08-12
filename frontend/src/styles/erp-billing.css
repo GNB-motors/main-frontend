@@ -1,0 +1,606 @@
+/**
+ * Billing & Receivables — unified visual redesign for the three Billing tabs:
+ * Sale Bills, Party Outstanding, and Receipts.
+ *
+ * Everything is scoped under `.bill-redesign`, a wrapper added only around the
+ * embedded content of those three pages. The shared ERP components (StatTile,
+ * ErpTable, StatusBadge) and shared classes (erp-card, erp-stat, erp-table,
+ * erp-form-grid …) are used across many other modules, so nothing here leaks
+ * out: Active Trips, the sidebar/GNB, and every other page are untouched.
+ *
+ * UI-only — no data, fields, labels, tabs, or workflow are changed.
+ * Primary action is the app's indigo (#4f46e5) to match the rest of the app;
+ * red/orange mark overdue/warning, green is kept only for success status pills.
+ */
+
+.bill-redesign {
+  --bill-primary: #4f46e5;
+  --bill-primary-hover: #4338ca;
+  --bill-ink: #0f172a;
+  --bill-ink-2: #334155;
+  --bill-muted: #64748b;
+  --bill-faint: #94a3b8;
+  --bill-border: #e6e9ef;
+  --bill-border-soft: #eef1f5;
+  --bill-danger: #b91c1c;
+  --bill-danger-line: #dc2626;
+  --bill-warn: #b45309;
+  --bill-warn-line: #f59e0b;
+  --bill-radius: 12px;
+}
+
+/* ─── Tighten the gap between the tabs and the workflow below ──────────────── */
+.bill-redesign .erp-tabs {
+  margin-bottom: 14px;
+}
+
+.bill-redesign .erp-table-wrap,
+.bill-redesign .erp-table-container {
+  margin-top: 14px;
+}
+
+/* ─── Secondary tabs: refined, compact segmented control ──────────────────── */
+.bill-redesign .erp-tabs {
+  padding: 3px;
+  gap: 2px;
+  background: #eef1f5;
+  border-radius: 9px;
+}
+
+.bill-redesign .erp-tab {
+  padding: 7px 14px;
+  font-size: 12.5px;
+  color: var(--bill-muted);
+  border-radius: 7px;
+}
+
+.bill-redesign .erp-tab.active {
+  color: var(--bill-ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+/* ─── Buttons: outlined secondary, indigo primary ─────────────────────────── */
+.bill-redesign .erp-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-color: var(--bill-border);
+  border-radius: 8px;
+}
+
+.bill-redesign .erp-btn:hover:not(:disabled) {
+  border-color: #cbd5e0;
+  background: #f8fafc;
+}
+
+.bill-redesign .erp-btn.primary,
+.bill-redesign .erp-btn-primary {
+  background: var(--bill-primary);
+  border-color: var(--bill-primary);
+  color: #fff;
+}
+
+.bill-redesign .erp-btn.primary:hover:not(:disabled),
+.bill-redesign .erp-btn-primary:hover:not(:disabled) {
+  background: var(--bill-primary-hover);
+  border-color: var(--bill-primary-hover);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+/* ─── Tables: dense, scannable, subtle separators + hover ─────────────────── */
+.bill-redesign .erp-table-wrap {
+  border-color: var(--bill-border);
+  border-radius: var(--bill-radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.bill-redesign .erp-table {
+  font-size: 13px;
+}
+
+.bill-redesign .erp-table thead th {
+  padding: 10px 14px;
+  background: #f8fafc;
+  color: var(--bill-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--bill-border);
+}
+
+.bill-redesign .erp-table tbody td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--bill-border-soft);
+  color: var(--bill-ink-2);
+  vertical-align: middle;
+}
+
+.bill-redesign .erp-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* ─── Status pills: compact, polished ─────────────────────────────────────── */
+.bill-redesign .erp-badge {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.bill-redesign .erp-badge.success {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.bill-redesign .erp-badge.warning {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.bill-redesign .erp-badge.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.bill-redesign .erp-badge.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.bill-redesign .erp-badge.neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+/* ═══ SALE BILLS — the "Sale Bills" tab table ═════════════════════════════ */
+
+/* Bill # — the strongest anchor. */
+.bill-redesign .bill-sale-table td:nth-child(1) {
+  font-weight: 700;
+  color: var(--bill-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Party name — prominent. */
+.bill-redesign .bill-sale-table td:nth-child(2) {
+  font-weight: 600;
+  color: var(--bill-ink);
+}
+
+/* Date — secondary information. */
+.bill-redesign .bill-sale-table td:nth-child(3) {
+  color: var(--bill-muted);
+  font-size: 12.5px;
+}
+
+/* Net — right-aligned and emphasised. */
+.bill-redesign .bill-sale-table th:nth-child(5),
+.bill-redesign .bill-sale-table td:nth-child(5) {
+  text-align: right;
+}
+
+.bill-redesign .bill-sale-table td:nth-child(5) {
+  font-weight: 700;
+  color: var(--bill-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Action column stays flush right, actions grouped. */
+.bill-redesign .bill-sale-table th:nth-child(7),
+.bill-redesign .bill-sale-table td:nth-child(7) {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bill-actions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.bill-actions .erp-btn {
+  margin: 0;
+}
+
+/* ═══ PARTY OUTSTANDING — summary tiles ═══════════════════════════════════ */
+
+.bill-redesign .erp-stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+/* Compact, equal-height cards with a clear hierarchy. */
+.bill-redesign .erp-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border-color: var(--bill-border);
+  border-radius: var(--bill-radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.bill-redesign .erp-stat-label {
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--bill-muted);
+}
+
+/* The amount is the strongest element on the tile. */
+.bill-redesign .erp-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--bill-ink);
+}
+
+.bill-redesign .erp-stat-sub {
+  margin-top: 4px;
+  font-size: 11.5px;
+}
+
+/* Contextual links (Show all / Chase / Review / Party-wise): subtle + uniform. */
+.bill-redesign .erp-stat-cta {
+  margin-top: auto;
+  padding-top: 10px;
+  color: var(--bill-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.bill-redesign .erp-stat.clickable:hover {
+  transform: none;
+  border-color: #cbd5e0;
+  box-shadow: 0 3px 10px rgba(16, 24, 40, 0.08);
+}
+
+/* Tonal emphasis — scoped to the summary grid only (not the CN-allocation
+   mini-stats, which are also `.erp-stat`). Tiles render in a fixed order:
+   1 Total outstanding · 2 Overdue · 3 Due today · 4 Parties. */
+.bill-redesign .bill-summary-grid > .erp-stat:nth-child(2) {
+  border-left: 3px solid var(--bill-danger-line);
+}
+
+.bill-redesign .bill-summary-grid > .erp-stat:nth-child(2) .erp-stat-value {
+  color: var(--bill-danger);
+}
+
+.bill-redesign .bill-summary-grid > .erp-stat:nth-child(3) {
+  border-left: 3px solid var(--bill-warn-line);
+}
+
+.bill-redesign .bill-summary-grid > .erp-stat:nth-child(3) .erp-stat-value {
+  color: var(--bill-warn);
+}
+
+/* ═══ RECEIPTS — Adjust to Bills master-detail workspace ══════════════════ */
+
+.bill-redesign .adjust-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 35fr) minmax(0, 65fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .bill-redesign .adjust-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bill-redesign .adjust-master,
+.bill-redesign .adjust-detail {
+  background: #fff;
+  border: 1px solid var(--bill-border);
+  border-radius: var(--bill-radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  /* Stable height across empty → selected states so picking a receipt does
+     not resize the panels (which, with align-items:stretch, caused a jerk). */
+  min-height: 420px;
+}
+
+/* ── Left: master list ─────────────────────────────────────────────────── */
+.bill-redesign .adjust-master {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  gap: 10px;
+}
+
+.bill-redesign .adjust-panel-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bill-ink);
+}
+
+.bill-redesign .adjust-receipt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.bill-redesign .adjust-hint {
+  padding: 8px 2px;
+  font-size: 13px;
+}
+
+.bill-redesign .adjust-receipt-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--bill-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.bill-redesign .adjust-receipt-item:hover {
+  background: #f8fafc;
+  border-color: #cbd5e0;
+}
+
+.bill-redesign .adjust-receipt-item.selected {
+  border-color: var(--bill-primary);
+  background: #eef2ff;
+  box-shadow: inset 0 0 0 1px var(--bill-primary);
+}
+
+.bill-redesign .adjust-receipt-no {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bill-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-redesign .adjust-receipt-party {
+  font-size: 12.5px;
+  color: var(--bill-muted);
+}
+
+.bill-redesign .adjust-receipt-amt {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bill-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-redesign .adjust-receipt-amt span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bill-muted);
+}
+
+/* ── Right: detail / allocation ────────────────────────────────────────── */
+.bill-redesign .adjust-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.bill-redesign .adjust-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--bill-border-soft);
+}
+
+.bill-redesign .adjust-detail-no {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bill-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-redesign .adjust-detail-party {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--bill-muted);
+}
+
+.bill-redesign .adjust-detail-amount {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.bill-redesign .adjust-amount-value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--bill-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-redesign .adjust-amount-label {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--bill-muted);
+}
+
+.bill-redesign .adjust-detail-desc {
+  margin: 0;
+  padding: 12px 18px 0;
+  font-size: 13px;
+  color: var(--bill-muted);
+}
+
+.bill-redesign .adjust-bills {
+  padding: 12px 18px 18px;
+}
+
+.bill-redesign .adjust-section-head {
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bill-muted);
+}
+
+.bill-redesign .adjust-bills-table td:nth-child(1) {
+  font-weight: 700;
+  color: var(--bill-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-redesign .adjust-bills-table th:nth-child(2),
+.bill-redesign .adjust-bills-table td:nth-child(2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-redesign .adjust-bills-table td:nth-child(2) {
+  font-weight: 600;
+  color: var(--bill-ink);
+}
+
+.bill-redesign .adjust-bills-table th:nth-child(3),
+.bill-redesign .adjust-bills-table td:nth-child(3) {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.bill-redesign .adjust-bills-table tr.active {
+  background: #eef2ff;
+}
+
+/* Compact primary Allocate button (restore .small under the scope). */
+.bill-redesign .erp-btn.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* CN allocation lives below the bills, inside the same panel. */
+.bill-redesign .adjust-alloc {
+  padding: 4px 18px 18px;
+  border-top: 1px solid var(--bill-border-soft);
+}
+
+/* ── Empty state ───────────────────────────────────────────────────────── */
+.bill-redesign .adjust-empty {
+  flex: 1;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  padding: 40px 24px;
+}
+
+.bill-redesign .adjust-empty svg {
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.bill-redesign .adjust-empty h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bill-ink);
+}
+
+.bill-redesign .adjust-empty p {
+  margin: 0;
+  max-width: 320px;
+  font-size: 13px;
+  color: var(--bill-muted);
+}
+
+/* ─── Outstanding filter bar: one clean, compact horizontal row ───────────── */
+.bill-redesign .erp-toolbar {
+  gap: 10px;
+  align-items: center;
+}
+
+.bill-redesign .erp-filter {
+  padding: 8px 12px;
+  border-color: var(--bill-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--bill-ink);
+}
+
+.bill-redesign .erp-search input {
+  border-color: var(--bill-border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.bill-redesign .erp-filter:focus,
+.bill-redesign .erp-search input:focus {
+  border-color: var(--bill-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.bill-redesign .erp-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══ RECEIPTS — the "New receipt" form ═══════════════════════════════════ */
+
+.bill-redesign .erp-card {
+  border-color: var(--bill-border);
+  border-radius: var(--bill-radius);
+  padding: 20px 22px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+/* Clean, consistent finance form fields. */
+.bill-redesign .erp-form-grid {
+  gap: 16px 20px;
+}
+
+.bill-redesign .erp-form-grid > label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--bill-ink-2);
+  letter-spacing: 0.01em;
+}
+
+.bill-redesign .erp-form-grid > label input,
+.bill-redesign .erp-form-grid > label select {
+  height: 40px;
+  padding: 8px 12px;
+  border-color: var(--bill-border);
+  border-radius: 8px;
+  color: var(--bill-ink);
+}
+
+.bill-redesign .erp-form-grid > label input:focus,
+.bill-redesign .erp-form-grid > label select:focus {
+  border-color: var(--bill-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* Amount is the key financial input — make it read as the primary field.
+   Selector kept more specific than the general field rule above so the
+   taller height and heavier type win. */
+.bill-redesign .erp-form-grid > label.bill-amount-field > input {
+  height: 48px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bill-ink);
+}
+
+/* Record receipt sits on its own row, aligned right. */
+.bill-redesign .erp-form-actions {
+  justify-content: flex-end;
+  margin-top: 4px;
+}

@@ -22,6 +22,7 @@ import PlacementService from './PlacementService';
 import ErpMasterService from '../ErpMasters/ErpMasterService';
 import DeliveryOrderService from '../ErpDeliveryOrders/DeliveryOrderService';
 import '../../styles/erp.css';
+import '../../styles/erp-ops.css';
 
 const BOARD_STATE_TONE = {
   AVAILABLE: 'success',
@@ -33,7 +34,7 @@ const BOARD_STATE_TONE = {
 const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
 const dateLabel = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '—');
 
-const PlacementBoardPage = () => {
+const PlacementBoardPage = ({ embedded = false }) => {
   const [board, setBoard] = useState(null);
   const [orders, setOrders] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -232,7 +233,7 @@ const PlacementBoardPage = () => {
   };
 
   return (
-    <div className="erp-page">
+    <div className={`erp-page ops-redesign${embedded ? ' ops-embedded' : ''}`}>
       <div className="erp-header">
         <div>
           <h1>Placement Board</h1>
@@ -240,15 +241,9 @@ const PlacementBoardPage = () => {
             Tanker availability by location — pick a delivery order to check compatibility
           </p>
         </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-secondary" onClick={openHire} disabled={!selectedDoId}>
-            <Truck size={18} />
-            Place Hire Vehicle
-          </button>
-        </div>
       </div>
 
-      <div className="erp-toolbar">
+      <div className="erp-toolbar ops-pb-toolbar">
         <select
           className="erp-filter"
           value={selectedDoId}
@@ -263,11 +258,29 @@ const PlacementBoardPage = () => {
           ))}
         </select>
         {board?.summary && (
-          <span className="erp-cell-muted">
-            {board.summary.available} available · {board.summary.onTrip} on trip ·{' '}
-            {board.summary.maintenance} in maintenance
-          </span>
+          <div className="ops-avail">
+            <span className="ops-avail-item">
+              <i className="dot ok" />
+              {board.summary.available} available
+            </span>
+            <span className="ops-avail-item">
+              <i className="dot busy" />
+              {board.summary.onTrip} on trip
+            </span>
+            <span className="ops-avail-item">
+              <i className="dot warn" />
+              {board.summary.maintenance} in maintenance
+            </span>
+          </div>
         )}
+        <button
+          className="btn btn-secondary ops-hire-btn"
+          onClick={openHire}
+          disabled={!selectedDoId}
+        >
+          <Truck size={18} />
+          Place Hire Vehicle
+        </button>
       </div>
 
       {selectedOrder && (
@@ -300,24 +313,16 @@ const PlacementBoardPage = () => {
         </div>
       ) : (
         board.locations.map((loc) => (
-          <div className="erp-container" key={loc.location} style={{ marginTop: 20 }}>
-            <div
-              style={{
-                padding: '14px 16px',
-                borderBottom: '1px solid #f1f5f9',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <strong>{loc.location}</strong>
-              <span className="erp-cell-muted">
+          <div className="erp-container ops-loc-card" key={loc.location}>
+            <div className="ops-loc-head">
+              <span className="ops-loc-name">{loc.location}</span>
+              <span className="ops-loc-count">
                 {loc.available} of {loc.tankers.length} available
               </span>
             </div>
 
             <div className="erp-table-scroll">
-              <table className="erp-table">
+              <table className="erp-table ops-pb-table">
                 <thead>
                   <tr>
                     <th>Tanker</th>
@@ -404,8 +409,8 @@ const PlacementBoardPage = () => {
       )}
 
       {board?.spareDrivers?.length > 0 && (
-        <div className="erp-container" style={{ marginTop: 20 }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+        <div className="erp-container ops-loc-card">
+          <div className="ops-spare-head">
             <strong style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Users size={16} /> Spare Drivers ({board.spareDrivers.length})
             </strong>
