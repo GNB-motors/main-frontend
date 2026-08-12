@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import RegisterTable from '../../components/Erp/RegisterTable';
 import REGISTERS from './registerConfigs';
+import '../../styles/erp-accounts-workspace.css';
 
 /**
  * Registers hub — browsable history for everything the financial module writes.
@@ -32,7 +33,7 @@ const RegistersPage = () => {
   const config = REGISTERS.find((r) => r.key === active) || REGISTERS[0];
 
   return (
-    <div>
+    <div className="acc-workspace">
       <div className="erp-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
         {REGISTERS.map((r) => (
           <button

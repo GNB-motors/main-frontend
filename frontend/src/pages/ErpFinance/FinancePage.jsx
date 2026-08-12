@@ -9,9 +9,11 @@ import { toast } from 'react-toastify';
 import FinanceApi from './FinanceService';
 import PageShell from '../../components/Erp/PageShell';
 import EntityPicker from '../../components/Erp/EntityPicker';
+import ErpDatePicker from '../../components/Erp/ErpDatePicker';
 import { inr } from '../../utils/formatMoney';
 import { toISTDateString } from '../../utils/dateUtils';
 import '../../styles/erp.css';
+import '../../styles/erp-accounts-workspace.css';
 
 const todayInput = () => toISTDateString(new Date());
 
@@ -149,6 +151,7 @@ const FinancePage = ({ embedded = false }) => {
       subtitle="Fleet expense (labour/parts split), others vouchers, prepaid &amp; EMI."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Accounts', to: '/erp/accounts' }, { label: 'Finance' }]}
     >
+      <div className="acc-workspace">
       <div className="erp-tabs">
         {[['fleet', 'Fleet expense'], ['others', 'Others voucher']].map(([key, label]) => (
           <button key={key} type="button" className={`erp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
@@ -175,10 +178,10 @@ const FinancePage = ({ embedded = false }) => {
             </label>
             <label>
               Date
-              <input
-                type="date"
+              <ErpDatePicker
+                block
                 value={fleetForm.expenseDate}
-                onChange={(e) => setFleetForm({ ...fleetForm, expenseDate: e.target.value })}
+                onChange={(v) => setFleetForm({ ...fleetForm, expenseDate: v })}
               />
             </label>
             <label>
@@ -369,6 +372,7 @@ const FinancePage = ({ embedded = false }) => {
           </div>
         </form>
       )}
+      </div>
     </PageShell>
   );
 };

@@ -11,6 +11,7 @@ import { LedgerEntriesApi } from './FinanceHubService';
 import { accountPathFor, documentPathFor, SOURCE_TYPES } from './documentRoutes';
 import { inr, num } from '../../utils/formatMoney';
 import { formatDateIST, toISTDateString } from '../../utils/dateUtils';
+import '../../styles/erp-accounts-workspace.css';
 
 /**
  * Day Book — every ledger posting across every account, for a date range.
@@ -151,7 +152,7 @@ const DayBookPage = () => {
   }
 
   return (
-    <div>
+    <div className="acc-workspace">
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
         <DateRangeFilter
           value={{ from: params.from, to: params.to }}

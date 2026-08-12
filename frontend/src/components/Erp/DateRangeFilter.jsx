@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import ErpDatePicker from './ErpDatePicker';
 import { toISTDateString } from '../../utils/dateUtils';
 
 /**
@@ -122,24 +123,20 @@ const DateRangeFilter = ({
         </select>
       )}
 
-      <input
-        type="date"
-        className="erp-filter"
+      <ErpDatePicker
         value={from}
-        max={to || undefined}
+        maxDate={to}
         disabled={disabled}
-        onChange={(e) => onChange({ from: e.target.value, to })}
-        aria-label="From date"
+        onChange={(v) => onChange({ from: v, to })}
+        placeholder="From"
       />
       <span style={{ color: '#94a3b8', fontSize: '13px' }}>to</span>
-      <input
-        type="date"
-        className="erp-filter"
+      <ErpDatePicker
         value={to}
-        min={from || undefined}
+        minDate={from}
         disabled={disabled}
-        onChange={(e) => onChange({ from, to: e.target.value })}
-        aria-label="To date"
+        onChange={(v) => onChange({ from, to: v })}
+        placeholder="To"
       />
     </div>
   );
