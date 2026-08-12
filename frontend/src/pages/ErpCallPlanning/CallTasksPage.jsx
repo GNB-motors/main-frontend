@@ -7,9 +7,12 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { PhoneCall, RefreshCw, Info, CheckCircle2, X, CalendarClock } from 'lucide-react';
+import { PhoneCall, RefreshCw, Info, CheckCircle2, X, CalendarClock, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import { offset, shift } from '@floating-ui/react';
+import 'react-datepicker/dist/react-datepicker.css';
 import ErpCallService from './ErpCallService';
 import { CALL_OUTCOMES, OUTCOME_LABELS, OUTCOME_TONE } from './erpCall.constants';
 import '../../styles/erp.css';
@@ -354,14 +357,30 @@ const CallTasksPage = () => {
                     <label htmlFor="next-date">
                       Next Follow-up Date <span className="required">*</span>
                     </label>
-                    <input
-                      id="next-date"
-                      type="date"
-                      value={nextDate}
-                      min={toDateInput(new Date(Date.now() + 86400000))}
-                      onChange={(e) => setNextDate(e.target.value)}
-                      required
-                    />
+                    <div className="erp-date-input">
+                      <DatePicker
+                        id="next-date"
+                        selected={nextDate ? new Date(`${nextDate}T12:00:00`) : null}
+                        onChange={(d) => setNextDate(d ? toDateInput(d) : '')}
+                        minDate={new Date(Date.now() + 86400000)}
+                        dateFormat="dd/MM/yyyy"
+                        placeholderText="dd/mm/yyyy"
+                        popperPlacement="bottom-end"
+                        portalId="erp-datepicker-portal"
+                        showPopperArrow={false}
+                        popperProps={{
+                          strategy: 'fixed',
+                          middleware: [
+                            offset(6),
+                            shift({ mainAxis: false, crossAxis: true, padding: 8 }),
+                          ],
+                        }}
+                        wrapperClassName="erp-datepicker-wrapper"
+                        className="erp-datepicker-input"
+                        required
+                      />
+                      <Calendar size={18} className="erp-date-icon" />
+                    </div>
                     <span className="erp-field-hint">
                       Must be after today. A new task is created on this date.
                     </span>

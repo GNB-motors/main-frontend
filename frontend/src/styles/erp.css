@@ -606,15 +606,15 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  z-index: 1000;
+  z-index: 10000;
 }
 
 .erp-modal {
   background: #fff;
   border-radius: 14px;
   width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
+  max-width: 700px;
+  max-height: 94vh;
   overflow-y: auto;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
 }
@@ -703,6 +703,57 @@
   color: #94a3b8;
 }
 
+.erp-date-input {
+  position: relative;
+}
+
+.erp-datepicker-wrapper {
+  display: block;
+  width: 100%;
+}
+
+.erp-field .erp-datepicker-input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: #1a202c;
+}
+
+.erp-field .erp-datepicker-input:focus {
+  outline: none;
+  border-color: #e2e8f0;
+  box-shadow: none;
+}
+
+.erp-date-icon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* Popup is portaled to <body>, so target it globally and keep it above the modal */
+#erp-datepicker-portal .react-datepicker-popper {
+  z-index: 10001;
+}
+
+#erp-datepicker-portal .react-datepicker__day--selected,
+#erp-datepicker-portal .react-datepicker__day--keyboard-selected {
+  background-color: var(--primary-color, #4f46e5);
+  color: #fff;
+}
+
+#erp-datepicker-portal .react-datepicker__day--selected:hover,
+#erp-datepicker-portal .react-datepicker__day--keyboard-selected:hover {
+  background-color: var(--primary-dark, #4338ca);
+}
+
 /* ─── Weekday picker ──────────────────────────────────────────────────────── */
 .erp-weekdays {
   display: flex;
@@ -753,8 +804,8 @@
 }
 
 .erp-outcome.selected {
-  border-color: #00c896;
-  background: #f0fdfa;
+  border-color: var(--primary-color, #4f46e5);
+  background: #eef2ff;
 }
 
 .erp-outcome small {

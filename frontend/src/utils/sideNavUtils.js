@@ -90,7 +90,7 @@ export const SIDE_NAV_ITEMS = [
 
   // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
-  { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard },
+  { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
   {
     label: 'Planning',
     icon: PhoneCall,
