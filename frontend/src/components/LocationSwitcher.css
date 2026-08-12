@@ -112,3 +112,79 @@
     background: #eef2f7;
     padding: 0;
 }
+
+/* ── Add location ─────────────────────────────────────────────── */
+.location-switcher-add .location-switcher-add-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary-color, #2e5bd6);
+    font-weight: 600;
+}
+
+.location-switcher-add .location-switcher-add-label svg {
+    color: var(--primary-color, #2e5bd6);
+}
+
+.location-switcher-addrow {
+    padding: 6px 6px 2px;
+    list-style: none;
+}
+
+.location-switcher-addform {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.location-switcher-input {
+    flex: 1;
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 13px;
+    color: #1e293b;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    outline: none;
+}
+
+.location-switcher-input:focus {
+    border-color: var(--primary-color, #2e5bd6);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #2e5bd6) 14%, transparent);
+}
+
+.location-switcher-iconbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    width: 34px;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.location-switcher-iconbtn:hover {
+    background: #f1f5f9;
+}
+
+.location-switcher-iconbtn.save {
+    background: var(--primary-color, #2e5bd6);
+    border-color: var(--primary-color, #2e5bd6);
+    color: #fff;
+}
+
+.location-switcher-iconbtn.save:hover {
+    filter: brightness(0.95);
+}
+
+.location-switcher-iconbtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

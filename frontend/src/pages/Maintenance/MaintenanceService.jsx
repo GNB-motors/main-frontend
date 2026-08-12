@@ -4,6 +4,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000
 
 const authHeader = (token) => ({ Authorization: `Bearer ${token}` });
 
+// This service uses raw axios (not the shared apiClient), so the X-Branch-Id
+// interceptor doesn't apply — pass the active location explicitly as a query param.
+// Omitted in the enterprise "All locations" view.
+const activeBranchId = () => localStorage.getItem('user_branchId') || null;
+
 // Build a FormData payload for create/update. `attachments` is an array of File/Blob.
 const buildFormData = (payload, attachments) => {
   const fd = new FormData();
@@ -20,6 +25,8 @@ const listRecords = async (token, { recordType, vehicleId, search, page = 1, lim
   if (recordType) params.set('recordType', recordType);
   if (vehicleId) params.set('vehicleId', vehicleId);
   if (search) params.set('search', search);
+  const branchId = activeBranchId();
+  if (branchId) params.set('branchId', branchId);
   params.set('page', page);
   params.set('limit', limit);
 
@@ -80,7 +87,11 @@ const deleteRecord = async (token, id) => {
 // System-generated alerts (no caching server-side; refetch to refresh).
 const getAlerts = async (token) => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/api/maintenance/alerts`, {
+    const branchId = activeBranchId();
+    const url = branchId
+      ? `${API_BASE_URL}/api/maintenance/alerts?branchId=${branchId}`
+      : `${API_BASE_URL}/api/maintenance/alerts`;
+    const res = await axios.get(url, {
       headers: authHeader(token),
     });
     return Array.isArray(res.data?.data) ? res.data.data : [];

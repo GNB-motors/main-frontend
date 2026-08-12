@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapPin, ChevronDown, Check } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { MapPin, ChevronDown, Check, Plus, X } from 'lucide-react';
 import { useActiveBranch } from '../contexts/BranchContext.jsx';
+import { BranchService } from '../services/branchService';
 import './LocationSwitcher.css';
 
 /**
@@ -12,27 +14,41 @@ import './LocationSwitcher.css';
  * localStorage `user_branchId`); the axios interceptor then sends `X-Branch-Id`
  * on every request and the DashboardLayout remounts the page so its data reloads.
  *
- * Hidden when the business has one location or none — single-location businesses
- * see no change.
+ * Owners/managers get a "＋ Add location" shortcut at the bottom of the dropdown,
+ * so a location can be created without leaving the current screen; the new one is
+ * selected immediately. The control is shown for owners/managers even with no
+ * locations yet (so they can add the first); for everyone else it hides until the
+ * business has at least one location.
  */
 const ALL_LOCATIONS = '__ALL__';
 
 const LocationSwitcher = () => {
-  const { branchId, branches, activeBranch, loading, setBranch } = useActiveBranch();
+  const { branchId, branches, activeBranch, loading, setBranch, refresh } = useActiveBranch();
   const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const ref = useRef(null);
+
+  const canManage = ['OWNER', 'MANAGER'].includes(localStorage.getItem('user_role'));
 
   useEffect(() => {
     if (!open) return undefined;
     const onOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setAdding(false);
+      }
     };
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
   }, [open]);
 
-  // No locations defined yet → nothing to switch; everything is enterprise-level.
-  if (loading || !branches || branches.length < 1) return null;
+  // Hide only for non-managers with no locations. Owners/managers keep the control
+  // (even at zero) so they can add the first location from here.
+  if (loading) return null;
+  const hasBranches = Array.isArray(branches) && branches.length >= 1;
+  if (!hasBranches && !canManage) return null;
 
   const currentLabel = activeBranch ? activeBranch.name : 'All locations';
   const selectedValue = branchId || ALL_LOCATIONS;
@@ -40,6 +56,27 @@ const LocationSwitcher = () => {
   const choose = (value) => {
     setBranch(value === ALL_LOCATIONS ? null : value);
     setOpen(false);
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSubmitting(true);
+    try {
+      const created = await BranchService.createBranch({ name: trimmed });
+      await refresh(); // reload the list so the new location is present
+      if (created?._id) setBranch(String(created._id)); // switch to it
+      setName('');
+      setAdding(false);
+      setOpen(false);
+      toast.success(`Location "${trimmed}" added`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.detail || 'Could not add location');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -68,8 +105,10 @@ const LocationSwitcher = () => {
             <span>All locations (Enterprise)</span>
             {selectedValue === ALL_LOCATIONS && <Check size={15} />}
           </li>
-          <li className="location-switcher-divider" role="separator" />
-          {branches.map((b) => (
+
+          {hasBranches && <li className="location-switcher-divider" role="separator" />}
+
+          {(branches || []).map((b) => (
             <li
               key={b._id}
               role="option"
@@ -84,6 +123,57 @@ const LocationSwitcher = () => {
               {String(b._id) === String(branchId) && <Check size={15} />}
             </li>
           ))}
+
+          {canManage && (
+            <>
+              <li className="location-switcher-divider" role="separator" />
+              {adding ? (
+                <li className="location-switcher-addrow" onClick={(e) => e.stopPropagation()}>
+                  <form className="location-switcher-addform" onSubmit={handleCreate}>
+                    <input
+                      className="location-switcher-input"
+                      type="text"
+                      value={name}
+                      autoFocus
+                      maxLength={80}
+                      placeholder="New location name"
+                      disabled={submitting}
+                      onChange={(e) => setName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') { setAdding(false); setName(''); }
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="location-switcher-iconbtn save"
+                      disabled={submitting || !name.trim()}
+                      title="Save location"
+                    >
+                      <Check size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="location-switcher-iconbtn"
+                      disabled={submitting}
+                      title="Cancel"
+                      onClick={() => { setAdding(false); setName(''); }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </form>
+                </li>
+              ) : (
+                <li
+                  className="location-switcher-item location-switcher-add"
+                  onClick={(e) => { e.stopPropagation(); setAdding(true); }}
+                >
+                  <span className="location-switcher-add-label">
+                    <Plus size={15} /> Add location
+                  </span>
+                </li>
+              )}
+            </>
+          )}
         </ul>
       )}
     </div>

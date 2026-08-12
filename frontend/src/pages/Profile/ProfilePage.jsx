@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import DefaultAvatar from '../../assets/default-avatar.png';
 import { ProfileService } from './ProfileService';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { useOrganization } from '../../contexts/FeatureFlagsContext.jsx';
+import { useActiveBranch } from '../../contexts/BranchContext.jsx';
+import { BranchService } from '../../services/branchService';
 import CompanyLogoUploader from '../../components/CompanyLogoUploader.jsx';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -10,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import {
     User, Mail, Phone, MapPin, Building2, Hash,
-    CreditCard, ShieldCheck, AlertCircle,
+    CreditCard, ShieldCheck, AlertCircle, Plus,
 } from 'lucide-react';
 
 // ── Field row ─────────────────────────────────────────────────────────────────
@@ -125,9 +128,95 @@ const ProfileCard = ({ user, organization }) => {
     );
 };
 
+// ── Locations manager ─────────────────────────────────────────────────────────
+// Owners/managers can add operating locations (branches) here. A new location
+// immediately shows up in the header action-bar switcher, where you can switch to
+// it — all location-scoped screens then operate against the selected location.
+
+const LocationsManager = ({ canManage }) => {
+    const { branches, loading, refresh } = useActiveBranch();
+    const [name, setName] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        setSubmitting(true);
+        try {
+            await BranchService.createBranch({ name: trimmed });
+            await refresh(); // reload the switcher + this list
+            setName('');
+            toast.success(`Location "${trimmed}" added`);
+        } catch (err) {
+            toast.error(err?.response?.data?.message || err?.detail || 'Could not add location');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="rounded-2xl bg-white p-6 shadow-[0_4px_24px_rgba(41,64,211,0.08)]">
+            <SectionHeader icon={MapPin} title="Locations" />
+
+            {loading ? (
+                <p className="text-sm text-slate-400">Loading locations…</p>
+            ) : (branches?.length ?? 0) === 0 ? (
+                <p className="text-sm italic text-slate-400">
+                    No locations yet. Add one below — it will appear in the location switcher in the top bar.
+                </p>
+            ) : (
+                <ul className="flex flex-wrap gap-2">
+                    {branches.map((b) => (
+                        <li
+                            key={b._id}
+                            className="inline-flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700"
+                        >
+                            <MapPin size={13} className="text-blue-500" />
+                            {b.name}
+                            {b.isDefault && (
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-500">
+                                    default
+                                </span>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            {canManage && (
+                <form onSubmit={handleAdd} className="mt-4 flex gap-2 border-t border-slate-100 pt-4">
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="New location name (e.g. Chennai)"
+                        maxLength={80}
+                        disabled={submitting}
+                        className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                    />
+                    <button
+                        type="submit"
+                        disabled={submitting || !name.trim()}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Plus size={15} />
+                        {submitting ? 'Adding…' : 'Add'}
+                    </button>
+                </form>
+            )}
+
+            <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
+                Added locations appear in the switcher in the top action bar, where you can switch between them.
+                Records you create while a location is selected belong to that location; in “All locations” they are enterprise-wide.
+            </p>
+        </div>
+    );
+};
+
 // ── Right details panel ───────────────────────────────────────────────────────
 
-const DetailsPanel = ({ user, organization, canEditLogo, onLogoChange }) => (
+const DetailsPanel = ({ user, organization, canEditLogo, canManageLocations, onLogoChange }) => (
     <div className="flex h-full flex-col gap-6">
         {/* Personal */}
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_24px_rgba(41,64,211,0.08)]">
@@ -143,7 +232,7 @@ const DetailsPanel = ({ user, organization, canEditLogo, onLogoChange }) => (
         </div>
 
         {/* Organisation */}
-        <div className="flex flex-1 flex-col rounded-2xl bg-white p-6 shadow-[0_4px_24px_rgba(41,64,211,0.08)]">
+        <div className="flex flex-col rounded-2xl bg-white p-6 shadow-[0_4px_24px_rgba(41,64,211,0.08)]">
             <SectionHeader icon={Building2} title="Organisation Details" />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field icon={Building2}  label="Company Name"   value={organization?.companyName} />
@@ -176,6 +265,9 @@ const DetailsPanel = ({ user, organization, canEditLogo, onLogoChange }) => (
                 )}
             </div>
         </div>
+
+        {/* Locations (operating branches) */}
+        <LocationsManager canManage={canManageLocations} />
     </div>
 );
 
@@ -285,6 +377,7 @@ const ProfilePage = () => {
                         user={userData}
                         organization={organizationData}
                         canEditLogo={['OWNER', 'SUPER_ADMIN'].includes(userData?.role)}
+                        canManageLocations={['OWNER', 'MANAGER'].includes(userData?.role)}
                         onLogoChange={handleLogoChange}
                     />
                 </div>
