@@ -223,6 +223,26 @@ export const getVisibleNavItems = (isEnabled) => {
 };
 
 /**
+ * Pehla navigable route jispe current org ke flags ke hisaab se user ki access hai.
+ *
+ * Sidebar ke visible items ko order me dekhta hai: pehla `link` uska `to`, ya
+ * pehla `group` ka pehla visible child. Location switch ke baad user ko yahin
+ * land karaya jaata hai (LocationSwitcher). `/profile` hamesha visible hai isliye
+ * guaranteed fallback ke roop me kaam karta hai.
+ */
+export const getFirstNavPath = (isEnabled) => {
+  const items = getVisibleNavItems(isEnabled);
+  for (const item of items) {
+    if (item.type === 'link') return item.to;
+    if (item.type === 'group') {
+      const children = getVisibleNavChildren(item, isEnabled);
+      if (children.length) return children[0].to;
+    }
+  }
+  return '/profile';
+};
+
+/**
  * Kya current path is group ke andar aata hai? (exact match ya sub-route)
  * Group ko auto-expand / auto-close karne ke liye use hota hai.
  */

@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { MapPin, ChevronDown, Check, Plus, X } from 'lucide-react';
 import { useActiveBranch } from '../contexts/BranchContext.jsx';
+import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchService } from '../services/branchService';
+import { getFirstNavPath } from '../utils/sideNavUtils.js';
 import './LocationSwitcher.css';
 
 /**
@@ -24,6 +26,7 @@ const ALL_LOCATIONS = '__ALL__';
 
 const LocationSwitcher = () => {
   const { branchId, branches, activeBranch, loading, setBranch, refresh } = useActiveBranch();
+  const { isEnabled } = useFeatureFlags();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -53,9 +56,21 @@ const LocationSwitcher = () => {
   const currentLabel = activeBranch ? activeBranch.name : 'All locations';
   const selectedValue = branchId || ALL_LOCATIONS;
 
-  const choose = (value) => {
-    setBranch(value === ALL_LOCATIONS ? null : value);
+  // Switching location resets scope-sensitive pages: the current route may not
+  // even be the right landing spot for the new location, so we send the user to
+  // the first page they have access to in the sidebar and do a full reload. The
+  // reload guarantees every cached, branch-scoped fetch starts clean.
+  // setBranch persists to localStorage synchronously, so the branchId survives
+  // the reload (axios interceptor reads it back for X-Branch-Id).
+  const switchTo = (next) => {
+    const changed = String(next || '') !== String(branchId || '');
+    setBranch(next);
     setOpen(false);
+    if (changed) window.location.assign(getFirstNavPath(isEnabled));
+  };
+
+  const choose = (value) => {
+    switchTo(value === ALL_LOCATIONS ? null : value);
   };
 
   const handleCreate = async (e) => {
@@ -67,9 +82,13 @@ const LocationSwitcher = () => {
     try {
       const created = await BranchService.createBranch({ name: trimmed });
       await refresh(); // reload the list so the new location is present
-      if (created?._id) setBranch(String(created._id)); // switch to it
       setName('');
       setAdding(false);
+      if (created?._id) {
+        toast.success(`Location "${trimmed}" added`);
+        switchTo(String(created._id)); // switch to it → lands on first sidebar page + reload
+        return;
+      }
       setOpen(false);
       toast.success(`Location "${trimmed}" added`);
     } catch (err) {

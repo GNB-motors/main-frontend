@@ -53,7 +53,8 @@
 .location-switcher-menu {
     position: absolute;
     top: calc(100% + 6px);
-    left: 0;
+    right: 0;
+    left: auto;
     min-width: 240px;
     max-height: 320px;
     overflow-y: auto;
