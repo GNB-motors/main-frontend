@@ -33,7 +33,8 @@ const LedgerPage = ({ embedded = false }) => {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    PartyService.getParties({ limit: 200 })
+    // Financial view: only parties with a DO at the active location (scope=financial).
+    PartyService.getParties({ limit: 200, scope: 'financial' })
       .then((res) => setParties(res.data || []))
       .catch(() => setParties([]));
   }, []);

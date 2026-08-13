@@ -50,7 +50,8 @@ const ReceiptsPage = ({ embedded = false }) => {
 
   const loadParties = useCallback(async () => {
     try {
-      const res = await PartyApi.getParties({ limit: 200, status: 'ACTIVE' });
+      // Financial view: only parties with a DO at the active location (scope=financial).
+      const res = await PartyApi.getParties({ limit: 200, status: 'ACTIVE', scope: 'financial' });
       setParties(res.data || []);
     } catch {
       setParties([]);

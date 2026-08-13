@@ -50,9 +50,29 @@ const FinanceApi = {
     }
   },
 
-  getInstalmentDueList: async () => {
+  /** Register list — backend already existed and is branch-scoped. */
+  listOthersVouchers: async (params = {}) => {
     try {
-      const response = await apiClient.get(`${BASE}/instalment-plans/due`);
+      const response = await apiClient.get(`${BASE}/others-vouchers`, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to list others vouchers');
+    }
+  },
+
+  /** Register list — backend already existed and is branch-scoped. */
+  listVehiclePapers: async (params = {}) => {
+    try {
+      const response = await apiClient.get(`${BASE}/vehicle-papers`, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to list vehicle papers');
+    }
+  },
+
+  getInstalmentDueList: async (params = {}) => {
+    try {
+      const response = await apiClient.get(`${BASE}/instalment-plans/due`, { params });
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch instalment due list');

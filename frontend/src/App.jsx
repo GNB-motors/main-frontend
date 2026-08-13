@@ -97,6 +97,8 @@ import ErpPipelinePage from './pages/ErpPipeline/ErpPipelinePage.jsx';
 import ErpBillingPage from './pages/ErpBilling/ErpBillingPage.jsx';
 import ErpPayablesPage from './pages/ErpPayables/ErpPayablesPage.jsx';
 import ErpAccountsPage from './pages/ErpAccounts/ErpAccountsPage.jsx';
+import Account360Page from './pages/ErpAccounts/Account360Page.jsx';
+import DocumentDetailPage from './pages/ErpAccounts/DocumentDetailPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -176,6 +178,11 @@ function App() {
         <Route path="/erp/billing" element={<ErpBillingPage />} />
         <Route path="/erp/payables" element={<ErpPayablesPage />} />
         <Route path="/erp/accounts" element={<ErpAccountsPage />} />
+        {/* Voucher/document detail — MUST precede the Account 360 catch-all so
+            "voucher" is not matched as an accountType. */}
+        <Route path="/erp/accounts/voucher/:docId" element={<DocumentDetailPage segment="voucher" />} />
+        {/* Account 360 — per-party/vendor/supplier/driver financial detail. */}
+        <Route path="/erp/accounts/:accountType/:accountId" element={<Account360Page />} />
         <Route path="/erp/approvals" element={<ApprovalsPage />} />
         <Route path="/erp/call-tasks" element={<CallTasksPage />} />
         <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />
