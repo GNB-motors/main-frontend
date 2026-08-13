@@ -18,7 +18,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
 import DeliveryOrderService from './DeliveryOrderService';
 import RateMasterService from '../ErpMasters/RateMasterService';
@@ -319,7 +319,9 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
                 <tbody>
                   {orders.map((o) => (
                     <tr key={o._id}>
-                      <td className="erp-cell-strong">{o.doNumber}</td>
+                      <td className="erp-cell-strong">
+                        <Link to={`/erp/delivery-orders/${o._id}`}>{o.doNumber}</Link>
+                      </td>
                       <td>
                         <div className="ops-do-party">{o.partyId?.name || '—'}</div>
                         <div className="erp-cell-muted">

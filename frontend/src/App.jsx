@@ -99,6 +99,7 @@ import ErpPayablesPage from './pages/ErpPayables/ErpPayablesPage.jsx';
 import ErpAccountsPage from './pages/ErpAccounts/ErpAccountsPage.jsx';
 import Account360Page from './pages/ErpAccounts/Account360Page.jsx';
 import DocumentDetailPage from './pages/ErpAccounts/DocumentDetailPage.jsx';
+import DeliveryOrderDetailPage from './pages/ErpDeliveryOrders/DeliveryOrderDetailPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 
@@ -185,6 +186,8 @@ function App() {
             accountType="voucher" and render a broken account page. */}
         <Route path="/erp/accounts/voucher/:docId" element={<DocumentDetailPage segment="voucher" />} />
         <Route path="/erp/billing/bill/:docId" element={<DocumentDetailPage segment="bill" />} />
+        {/* Delivery Order 360 — placed before /erp/delivery-orders so the list route is untouched. */}
+        <Route path="/erp/delivery-orders/:doId" element={<DeliveryOrderDetailPage />} />
         <Route path="/erp/payables/purchase-bill/:docId" element={<DocumentDetailPage segment="purchase-bill" />} />
         <Route path="/erp/payables/supplier-invoice/:docId" element={<DocumentDetailPage segment="supplier-invoice" />} />
 
