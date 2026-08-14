@@ -33,6 +33,7 @@ const OrgFeatureFlagsPage = lazy(() => import('./pages/Superadmin/components/Org
 const OrgFeatureFlagsDetailPage = lazy(() => import('./pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx'));
 const OrgDetailPage = lazy(() => import('./pages/Superadmin/components/OrgDetailPage.jsx'));
 const LemuLogsPage = lazy(() => import('./pages/Superadmin/components/LemuLogsPage.jsx'));
+const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -94,6 +95,7 @@ function App() {
         <Route path="feature-flags/:orgId" element={<Suspense fallback={null}><OrgFeatureFlagsDetailPage /></Suspense>} />
         <Route path="organizations/:id" element={<Suspense fallback={null}><OrgDetailPage /></Suspense>} />
         <Route path="lemu" element={<Suspense fallback={null}><LemuLogsPage /></Suspense>} />
+        <Route path="warehouse" element={<Suspense fallback={null}><WarehousePage /></Suspense>} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}

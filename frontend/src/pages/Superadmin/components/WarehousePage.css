@@ -1,0 +1,341 @@
+/* ─────────────────────────────────────────────────────────
+   WarehousePage.css
+   Super-admin ClickHouse warehouse observability screen.
+   Namespaced with `wh-` to avoid collisions.
+   ───────────────────────────────────────────────────────── */
+
+.wh-page {
+  --wh-primary: var(--primary-color, #4f46e5);
+  --wh-ok: #16a34a;
+  --wh-ok-bg: #dcfce7;
+  --wh-fail: #dc2626;
+  --wh-fail-bg: #fee2e2;
+  --wh-warn: #d97706;
+  --wh-warn-bg: #fef3c7;
+  --wh-text: #111827;
+  --wh-text-secondary: #6b7280;
+  --wh-border: #e5e7eb;
+  --wh-bg: #f9fafb;
+
+  font-family: 'Inter', sans-serif;
+  padding: 32px 24px 64px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  color: var(--wh-text);
+  box-sizing: border-box;
+}
+
+.wh-page * {
+  box-sizing: border-box;
+}
+
+.wh-page .page-header-container {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* ── Toolbar ───────────────────────────────────────────── */
+.wh-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 4px 0 20px;
+}
+
+.wh-meta {
+  font-size: 13px;
+  color: var(--wh-text-secondary);
+  font-weight: 500;
+}
+
+.wh-meta strong {
+  color: var(--wh-text);
+  font-weight: 600;
+}
+
+.wh-meta-note {
+  font-style: italic;
+}
+
+.wh-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--wh-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--wh-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.wh-refresh-btn:hover:not(:disabled) {
+  background: var(--wh-bg);
+  border-color: var(--wh-primary);
+}
+
+.wh-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.wh-spin {
+  animation: wh-spin 1s linear infinite;
+}
+
+@keyframes wh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Banner ────────────────────────────────────────────── */
+.wh-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wh-banner-error {
+  background: var(--wh-fail-bg);
+  color: var(--wh-fail);
+  border: 1px solid #fecaca;
+}
+
+/* ── Health card ───────────────────────────────────────── */
+.wh-health-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 12px;
+  border: 1px solid var(--wh-border);
+  background: #fff;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.wh-health-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wh-health-ok .wh-health-icon {
+  background: var(--wh-ok-bg);
+  color: var(--wh-ok);
+}
+
+.wh-health-fail .wh-health-icon {
+  background: var(--wh-fail-bg);
+  color: var(--wh-fail);
+}
+
+.wh-health-error .wh-health-icon,
+.wh-health-disabled .wh-health-icon,
+.wh-health-empty .wh-health-icon {
+  background: var(--wh-warn-bg);
+  color: var(--wh-warn);
+}
+
+.wh-health-body h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.wh-health-body p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--wh-text-secondary);
+}
+
+/* ── Tables grid ───────────────────────────────────────── */
+.wh-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+}
+
+.wh-table-card {
+  background: #fff;
+  border: 1px solid var(--wh-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.wh-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--wh-border);
+  background: var(--wh-bg);
+}
+
+.wh-table-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wh-text);
+  word-break: break-all;
+}
+
+.wh-table-body {
+  padding: 8px;
+}
+
+/* ── Check rows ──────────────────────────────────────────── */
+.wh-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.wh-check-row:last-child {
+  margin-bottom: 0;
+}
+
+.wh-check-ok {
+  background: #f0fdf4;
+}
+
+.wh-check-fail {
+  background: #fef2f2;
+}
+
+.wh-check-error {
+  background: #fffbeb;
+}
+
+.wh-check-icon {
+  color: var(--wh-text-secondary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.wh-check-ok .wh-check-icon {
+  color: var(--wh-ok);
+}
+
+.wh-check-fail .wh-check-icon {
+  color: var(--wh-fail);
+}
+
+.wh-check-error .wh-check-icon {
+  color: var(--wh-warn);
+}
+
+.wh-check-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.wh-check-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.wh-check-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wh-text);
+}
+
+.wh-check-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 12px;
+  color: var(--wh-text-secondary);
+}
+
+.wh-check-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wh-check-error {
+  color: var(--wh-fail);
+  font-weight: 500;
+}
+
+/* ── Status badge ────────────────────────────────────────── */
+.wh-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+
+.wh-status-ok {
+  background: var(--wh-ok-bg);
+  color: var(--wh-ok);
+}
+
+.wh-status-fail {
+  background: var(--wh-fail-bg);
+  color: var(--wh-fail);
+}
+
+.wh-status-error {
+  background: var(--wh-warn-bg);
+  color: var(--wh-warn);
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.wh-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 24px;
+  color: var(--wh-text-secondary);
+  font-size: 14px;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .wh-tables-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wh-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
