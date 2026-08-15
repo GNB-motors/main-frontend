@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Truck, Building2 } from 'lucide-react';
+import NewButton from '@/components/ui/NewButton';
 import './VehiclesPage.css';
 
 const BACKEND_TO_UI = VEHICLE_DOC_TYPES.reduce((acc, d) => {
@@ -369,22 +370,22 @@ const AddVehiclePage = () => {
           </div>
 
           <DialogFooter>
-            <button
+            <NewButton
+              variant="secondary"
+              size="md"
               type="button"
-              className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+              text="Cancel"
               onClick={() => setImportCandidate(null)}
               disabled={importing}
-            >
-              Cancel
-            </button>
-            <button
+            />
+            <NewButton
+              variant="primary"
+              size="md"
               type="button"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              text="Import to this location"
               onClick={confirmImport}
-              disabled={importing}
-            >
-              {importing ? 'Importing…' : 'Import to this location'}
-            </button>
+              loading={importing}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

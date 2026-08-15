@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Search, Truck } from 'lucide-react';
 import { VehicleService } from './VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
+import NewButton from '@/components/ui/NewButton';
 import './VehiclesPage.css';
 
 // Document type → display label (must match backend Vehicle.DOCUMENT_TYPES).
@@ -221,24 +222,15 @@ const VehicleDashboardPage = () => {
       >
         {/* Left-aligned header (replaces PageHeader, which is centred + 920px) */}
         <div style={{ padding: '4px 24px 16px' }}>
-          <button
+          <NewButton
+            variant="link"
+            size="xs"
+            style={{ marginBottom: 8 }}
+            text="Vehicles"
+            prependIcon={<ArrowLeft size={14} />}
+            prependGap={6}
             onClick={() => navigate('/vehicles')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              fontSize: 13,
-              color: '#2563eb',
-              cursor: 'pointer',
-              marginBottom: 8,
-            }}
-          >
-            <ArrowLeft size={14} />
-            Vehicles
-          </button>
+          />
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
             Vehicle Dashboard
           </h1>
@@ -372,21 +364,12 @@ const VehicleDashboardPage = () => {
                         </td>
                       ))}
                       <td style={{ ...td, textAlign: 'right' }}>
-                        <button
+                        <NewButton
+                          variant="secondary"
+                          size="xs"
+                          text="Manage"
                           onClick={() => goEdit(row)}
-                          style={{
-                            background: '#fff',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: 8,
-                            padding: '6px 10px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#1e293b',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Manage
-                        </button>
+                        />
                       </td>
                     </tr>
                   ))}

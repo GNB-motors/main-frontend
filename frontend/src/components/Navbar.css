@@ -18,7 +18,7 @@
     box-sizing: border-box;
     position: fixed;
     top: 0;
-    left: 100px;
+    left: 64px; /* collapsed icon-rail width; the rail expands as an overlay */
     right: 0;
     z-index: 1001;
     box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 20px rgba(15,23,42,0.04);

@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
+import NewButton from '@/components/ui/NewButton';
 
 // Function to get initials from name
 const getInitials = (name) => {
@@ -180,12 +181,21 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) 
                     {error && <div className="drivers-error-message">{error}</div>}
 
                     <div className="drivers-modal-actions">
-                        <button type="button" className="drivers-btn drivers-btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="drivers-btn drivers-btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Adding...' : 'Add Employee'}
-                        </button>
+                        <NewButton
+                            variant="secondary"
+                            size="md"
+                            type="button"
+                            text="Cancel"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                        />
+                        <NewButton
+                            variant="primary"
+                            size="md"
+                            type="submit"
+                            text="Add Employee"
+                            loading={isSubmitting}
+                        />
                     </div>
                 </form>
             </div>
@@ -381,12 +391,21 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
                     {error && <div className="drivers-error-message">{error}</div>}
 
                     <div className="drivers-modal-actions">
-                        <button type="button" className="drivers-btn drivers-btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="drivers-btn drivers-btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Saving...' : 'Save Changes'}
-                        </button>
+                        <NewButton
+                            variant="secondary"
+                            size="md"
+                            type="button"
+                            text="Cancel"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                        />
+                        <NewButton
+                            variant="primary"
+                            size="md"
+                            type="submit"
+                            text="Save Changes"
+                            loading={isSubmitting}
+                        />
                     </div>
                 </form>
             </div>
@@ -474,20 +493,20 @@ const FilterDropdown = ({ isOpen, onClose, filters, tempFilters, onFilterChange,
             </div>
 
             <div className="drivers-filter-actions">
-                <button 
-                    className="drivers-btn drivers-btn-secondary" 
+                <NewButton
+                    variant="secondary"
+                    size="sm"
+                    text="Clear All"
                     onClick={onClearFilters}
                     disabled={isLoading}
-                >
-                    Clear All
-                </button>
-                <button 
-                    className="drivers-btn drivers-btn-primary" 
+                />
+                <NewButton
+                    variant="primary"
+                    size="sm"
+                    text="Apply Filters"
                     onClick={onApplyFilters}
                     disabled={isLoading}
-                >
-                    Apply Filters
-                </button>
+                />
             </div>
 
             {isLoading && (
@@ -530,22 +549,22 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
                 </div>
 
                 <div className="drivers-modal-actions">
-                    <button 
-                        type="button" 
-                        className="drivers-btn drivers-btn-secondary" 
-                        onClick={onClose} 
+                    <NewButton
+                        variant="secondary"
+                        size="md"
+                        type="button"
+                        text="Cancel"
+                        onClick={onClose}
                         disabled={isDeleting}
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        type="button" 
-                        className="drivers-btn drivers-btn-danger" 
-                        onClick={() => onConfirm(driver.id)} 
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? 'Deleting...' : 'Delete Employee'}
-                    </button>
+                    />
+                    <NewButton
+                        variant="danger"
+                        size="md"
+                        type="button"
+                        text="Delete Employee"
+                        onClick={() => onConfirm(driver.id)}
+                        loading={isDeleting}
+                    />
                 </div>
             </div>
         </div>
@@ -1041,8 +1060,12 @@ const DriversPage = () => {
                                     />
                                 </div>
                                 <div className="drivers-filter-container">
-                                    <button 
-                                        className={`drivers-filter-btn ${hasActiveFilters ? 'drivers-filter-btn-active' : ''}`} 
+                                    <NewButton
+                                        variant="secondary"
+                                        size="lg"
+                                        iconOnly
+                                        selected={hasActiveFilters}
+                                        aria-label="Filter employees"
                                         onClick={toggleFilterDropdown}
                                     >
                                         <Filter size={14} />
@@ -1051,7 +1074,7 @@ const DriversPage = () => {
                                                 {Object.values(filters).filter(value => value !== '').length}
                                             </span>
                                         )}
-                                    </button>
+                                    </NewButton>
                                     
                                     <FilterDropdown
                                         isOpen={isFilterDropdownOpen}
@@ -1066,17 +1089,18 @@ const DriversPage = () => {
                                     />
                                 </div>
                             </div>
-                            <button className="drivers-add-driver-btn" onClick={() => navigate('/drivers/add')}>
-                                <Plus size={16} />
-                                <span>Add employee</span>
-                            </button>
-                            <button 
-                                className="drivers-add-driver-btn" 
+                            <NewButton
+                                variant="primary"
+                                text="Add employee"
+                                prependIcon={<Plus size={16} />}
+                                onClick={() => navigate('/drivers/add')}
+                            />
+                            <NewButton
+                                variant="secondary"
+                                text="Bulk Upload"
+                                prependIcon={<Upload size={16} />}
                                 onClick={() => navigate('/drivers/bulk-upload')}
-                            >
-                                <Upload size={16} />
-                                <span>Bulk Upload</span>
-                            </button>
+                            />
                         </div>
                     </div>
 

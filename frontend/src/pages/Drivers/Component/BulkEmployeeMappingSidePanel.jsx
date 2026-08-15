@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Check } from "lucide-react";
 import ChevronIcon from "../../Trip/assets/ChevronIcon.jsx";
+import NewButton from "@/components/ui/NewButton";
 import "./BulkEmployeeMappingSidePanel.css";
 
 const FIELD_TARGETS = [
@@ -245,13 +246,21 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
         </div>
 
         <div className="bem-sidepanel-actions">
-          <button type="button" onClick={onClose} className="bem-btn-secondary">
-            Cancel
-          </button>
-          <button type="submit" onClick={handleSubmit} className="bem-btn-primary">
-            <Check size={16} />
-            Apply Mapping
-          </button>
+          <NewButton
+            variant="secondary"
+            size="md"
+            type="button"
+            text="Cancel"
+            onClick={onClose}
+          />
+          <NewButton
+            variant="primary"
+            size="md"
+            type="submit"
+            text="Apply Mapping"
+            prependIcon={<Check size={16} />}
+            onClick={handleSubmit}
+          />
         </div>
       </div>
     </div>

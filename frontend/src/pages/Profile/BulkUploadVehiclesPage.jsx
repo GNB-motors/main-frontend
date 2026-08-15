@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
 
 import "./BulkUploadVehiclesPage.css";
+import NewButton from "@/components/ui/NewButton";
 import { VehicleService } from "./VehicleService.jsx";
 import {
   normalizeVehicleDataset,
@@ -240,10 +241,15 @@ const BulkUploadVehiclesPage = () => {
     <div className="bulk-upload-vehicles-container" style={themeColors}>
       {/* 1. Header Section */}
       <div className="bulk-upload-header">
-        <button className="bulk-upload-back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
-          <span>Back</span>
-        </button>
+        <NewButton
+          variant="link"
+          size="sm"
+          style={{ marginBottom: 8 }}
+          text="Back"
+          prependIcon={<ArrowLeft size={20} />}
+          prependGap={6}
+          onClick={() => navigate(-1)}
+        />
         <h1>Bulk Upload Vehicles</h1>
         <p>Upload vehicle data via .xlsx to normalize and update the database.</p>
       </div>
@@ -312,14 +318,15 @@ const BulkUploadVehiclesPage = () => {
               <div className="bulk-upload-text-secondary">
                 Supports .xlsx files with headers: Vehicle No, Model No, Chassis No
               </div>
-              <button
+              <NewButton
+                variant="primary"
+                size="md"
                 type="button"
-                className="btn-primary"
+                text="Select File"
                 onClick={openFilePicker}
-                disabled={isParsing || isSubmitting}
-              >
-                Select File
-              </button>
+                loading={isParsing}
+                disabled={isSubmitting}
+              />
               <input
                 ref={fileInputRef}
                 type="file"
@@ -356,57 +363,33 @@ const BulkUploadVehiclesPage = () => {
                       gap: '12px',
                       flexWrap: 'wrap'
                     }}>
-                      <button
+                      <NewButton
+                        variant={filterStatus === 'all' ? 'primary' : 'secondary'}
+                        selected={filterStatus === 'all'}
+                        size="xs"
+                        fullRounded
                         type="button"
+                        text={`All (${rows.length})`}
                         onClick={() => setFilterStatus('all')}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          backgroundColor: filterStatus === 'all' ? '#6366f1' : '#f3f4f6',
-                          color: filterStatus === 'all' ? '#fff' : '#374151',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        All ({rows.length})
-                      </button>
-                      <button
+                      />
+                      <NewButton
+                        variant={filterStatus === 'valid' ? 'primary' : 'secondary'}
+                        selected={filterStatus === 'valid'}
+                        size="xs"
+                        fullRounded
                         type="button"
+                        text={`Valid (${validCount})`}
                         onClick={() => setFilterStatus('valid')}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          backgroundColor: filterStatus === 'valid' ? '#6366f1' : '#f3f4f6',
-                          color: filterStatus === 'valid' ? '#fff' : '#374151',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Valid ({validCount})
-                      </button>
-                      <button
+                      />
+                      <NewButton
+                        variant={filterStatus === 'error' ? 'danger' : 'secondary'}
+                        selected={filterStatus === 'error'}
+                        size="xs"
+                        fullRounded
                         type="button"
+                        text={`Issues (${errorCount})`}
                         onClick={() => setFilterStatus('error')}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          backgroundColor: filterStatus === 'error' ? '#6366f1' : '#fef2f2',
-                          color: filterStatus === 'error' ? '#fff' : '#991b1b',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Issues ({errorCount})
-                      </button>
+                      />
                     </div>
                   </div>
                 )}
@@ -485,22 +468,23 @@ const BulkUploadVehiclesPage = () => {
           {/* 5. Footer Actions */}
           {rows.length > 0 && (
             <div className="action-row">
-              <button
+              <NewButton
+                variant="secondary"
+                size="md"
                 type="button"
-                className="btn-secondary"
+                text="Cancel"
                 onClick={handleClearRows}
                 disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
+              />
+              <NewButton
+                variant="primary"
+                size="md"
                 type="submit"
-                className="btn-primary"
-                disabled={isSubmitting || errorCount > 0}
-              >
-                {isSubmitting ? "Processing..." : "Submit Upload"}
-                <Send size={16} />
-              </button>
+                text="Submit Upload"
+                appendIcon={<Send size={16} />}
+                loading={isSubmitting}
+                disabled={errorCount > 0}
+              />
             </div>
           )}
         </div>

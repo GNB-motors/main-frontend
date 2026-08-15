@@ -12,6 +12,7 @@ import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
+import NewButton from '@/components/ui/NewButton';
 import './DriversPage.css';
 
 const AddDriverPage = () => {
@@ -329,22 +330,22 @@ const AddDriverPage = () => {
           </div>
 
           <DialogFooter>
-            <button
+            <NewButton
+              variant="secondary"
+              size="md"
               type="button"
-              className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+              text="Cancel"
               onClick={() => setImportCandidate(null)}
               disabled={importing}
-            >
-              Cancel
-            </button>
-            <button
+            />
+            <NewButton
+              variant="primary"
+              size="md"
               type="button"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              text="Import to this location"
               onClick={confirmImport}
-              disabled={importing}
-            >
-              {importing ? 'Importing…' : 'Import to this location'}
-            </button>
+              loading={importing}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

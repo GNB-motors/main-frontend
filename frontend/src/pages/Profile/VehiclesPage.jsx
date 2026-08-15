@@ -9,6 +9,7 @@ import './VehiclesPage.css';
 
 // Import assets and icons
 import { Plus, Edit, Trash2, MoreHorizontal, Upload, ToggleRight } from 'lucide-react';
+import NewButton from '@/components/ui/NewButton';
 
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
@@ -43,22 +44,22 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
                 </div>
 
                 <div className="vehicle-delete-modal-actions">
-                    <button 
-                        type="button" 
-                        className="vehicle-delete-btn vehicle-delete-btn-secondary" 
-                        onClick={onClose} 
-                        disabled={isDeleting}
-                    >
-                        Cancel
-                    </button>
-                    <button
+                    <NewButton
+                        variant="secondary"
+                        size="md"
                         type="button"
-                        className="vehicle-delete-btn vehicle-delete-btn-danger"
-                        onClick={() => onConfirm(vehicle.id)}
+                        text="Cancel"
+                        onClick={onClose}
                         disabled={isDeleting}
-                    >
-                        {isDeleting ? 'Deleting...' : 'Delete Vehicle'}
-                    </button>
+                    />
+                    <NewButton
+                        variant="danger"
+                        size="md"
+                        type="button"
+                        text="Delete Vehicle"
+                        onClick={() => onConfirm(vehicle.id)}
+                        loading={isDeleting}
+                    />
                 </div>
             </div>
         </div>
@@ -576,28 +577,26 @@ const VehiclesPage = () => {
                                 )}
 
                                 {/* Action Buttons */}
-                                <button
+                                <NewButton
+                                    variant="secondary"
                                     type="button"
-                                    className="vehicles-add-btn"
+                                    text="Bulk Upload"
+                                    prependIcon={<Upload size={16} />}
                                     onClick={() => navigate('/vehicles/bulk-upload')}
                                     disabled={isSubmitting}
-                                >
-                                    <Upload size={16} />
-                                    <span>Bulk Upload</span>
-                                </button>
-                                <button
+                                />
+                                <NewButton
+                                    variant="primary"
                                     type="button"
-                                    className="vehicles-add-btn"
+                                    text="Add Vehicle"
+                                    prependIcon={<Plus size={16} />}
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         navigate('/vehicles/add');
                                     }}
                                     disabled={isSubmitting}
-                                >
-                                    <Plus size={16} />
-                                    <span>Add Vehicle</span>
-                                </button>
+                                />
                             </div>
                         </div>
                     </div>

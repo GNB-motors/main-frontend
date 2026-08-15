@@ -20,28 +20,6 @@
   border-radius: 0;
 }
 
-.bulk-upload-back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: #6b7280;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 8px;
-  transition: color 0.2s;
-  width: fit-content;
-  justify-content: flex-start;
-}
-
-.bulk-upload-back-btn:hover {
-  color: #111827;
-  text-decoration: none;
-}
-
 .bulk-upload-header h1 {
   margin: 0 0 8px 0;
   font-size: 24px;

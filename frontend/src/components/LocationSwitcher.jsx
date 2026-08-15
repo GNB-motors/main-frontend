@@ -1,44 +1,42 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { MapPin, ChevronDown, Check, Plus } from 'lucide-react';
+import { Check, Plus, Search } from 'lucide-react';
 import { useActiveBranch } from '../contexts/BranchContext.jsx';
-import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
+import { useFeatureFlags, useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchService } from '../services/branchService';
 import { getFirstNavPath } from '../utils/sideNavUtils.js';
+import NewEnterpriseIcon from './Icons/NewEnterpriseIcon.jsx';
+import BranchIcon from './Icons/BranchIcon.jsx';
+import Chevron from './Icons/Chevron.jsx';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from './ui/dialog';
 import './LocationSwitcher.css';
 
-/**
- * Header switcher for the active operating location (branch).
- *
- *   [ 📍 Chennai ▾ ]
- *
- * Selecting a location updates the global BranchContext (persisted to
- * localStorage `user_branchId`); the axios interceptor then sends `X-Branch-Id`
- * on every request and the DashboardLayout remounts the page so its data reloads.
- *
- * With no locations yet (just the enterprise), owners/managers still see the
- * control so they can add the first one. Adding opens a modal; the new location
- * is selected immediately. For non-managers the control hides until the business
- * has at least one location.
- */
-const ALL_LOCATIONS = '__ALL__';
+const MENU_WIDTH = 380;
 
+// Compose a one-line address from a branch's parts.
+const branchAddress = (b) => [b.address, b.city, b.state, b.pincode].filter(Boolean).join(', ');
+
+/**
+ * Enterprise / location switcher (top bar). Opens a searchable picker with the
+ * Enterprise (all locations) row plus each branch (address + launch status).
+ * The dropdown aligns left or right of the trigger based on available space so
+ * it never overflows. Shown only once the enterprise has at least one location;
+ * owners/managers can add more from here.
+ */
 const LocationSwitcher = () => {
   const { branchId, branches, activeBranch, loading, setBranch, refresh } = useActiveBranch();
   const { canAccess } = useFeatureFlags();
+  const { organization } = useOrganization();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [align, setAlign] = useState('left');
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const ref = useRef(null);
+  const triggerRef = useRef(null);
 
   const canManage = ['OWNER', 'MANAGER'].includes(localStorage.getItem('user_role'));
 
@@ -51,23 +49,27 @@ const LocationSwitcher = () => {
     return () => document.removeEventListener('mousedown', onOutside);
   }, [open]);
 
-  // The switcher only appears once the enterprise has at least one location. At
-  // startup (enterprise only, no locations) it stays hidden — the first location
-  // is added from Profile → Locations. Once a location exists, the switcher shows
-  // for everyone and owners/managers get the in-dropdown "Add location" modal.
+  // Decide left/right alignment from the space to the right of the trigger.
+  useEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setAlign(rect.left + MENU_WIDTH > window.innerWidth - 8 ? 'right' : 'left');
+    setQuery('');
+  }, [open]);
+
   if (loading) return null;
   const hasBranches = Array.isArray(branches) && branches.length >= 1;
-  if (!hasBranches) return null;
+  if (!hasBranches) return null; // hidden until the enterprise has a location
 
-  const currentLabel = activeBranch ? activeBranch.name : 'All locations';
-  const selectedValue = branchId || ALL_LOCATIONS;
+  const orgName = organization?.companyName || 'Enterprise';
+  const currentLabel = activeBranch ? activeBranch.name : orgName;
+  const isEnterprise = !branchId;
 
-  // Switching location resets scope-sensitive pages: the current route may not
-  // even be the right landing spot for the new location, so we send the user to
-  // the first page they have access to in the sidebar and do a full reload. The
-  // reload guarantees every cached, branch-scoped fetch starts clean.
-  // setBranch persists to localStorage synchronously, so the branchId survives
-  // the reload (axios interceptor reads it back for X-Branch-Id).
+  const q = query.trim().toLowerCase();
+  const visibleBranches = (branches || []).filter(
+    (b) => !q || b.name?.toLowerCase().includes(q) || branchAddress(b).toLowerCase().includes(q),
+  );
+
   const switchTo = (next) => {
     const changed = String(next || '') !== String(branchId || '');
     setBranch(next);
@@ -75,21 +77,8 @@ const LocationSwitcher = () => {
     if (changed) window.location.assign(getFirstNavPath(canAccess));
   };
 
-  const choose = (value) => {
-    switchTo(value === ALL_LOCATIONS ? null : value);
-  };
-
-  const openAddModal = () => {
-    setOpen(false);
-    setName('');
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    if (submitting) return;
-    setModalOpen(false);
-    setName('');
-  };
+  const openAddModal = () => { setOpen(false); setName(''); setModalOpen(true); };
+  const closeModal = () => { if (!submitting) { setModalOpen(false); setName(''); } };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -98,11 +87,11 @@ const LocationSwitcher = () => {
     setSubmitting(true);
     try {
       const created = await BranchService.createBranch({ name: trimmed });
-      await refresh(); // reload the list so the new location is present
+      await refresh();
       setName('');
       setModalOpen(false);
       toast.success(`Location "${trimmed}" added`);
-      if (created?._id) switchTo(String(created._id)); // select it → land on first page + reload
+      if (created?._id) switchTo(String(created._id));
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.detail || 'Could not add location');
     } finally {
@@ -113,65 +102,90 @@ const LocationSwitcher = () => {
   return (
     <div className="location-switcher" ref={ref}>
       <button
+        ref={triggerRef}
         type="button"
         className="location-switcher-trigger"
         onClick={() => setOpen((v) => !v)}
-        title="Switch location"
+        title="Switch enterprise / location"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <MapPin size={15} className="location-switcher-pin" />
+        <span className="location-switcher-pin">
+          {isEnterprise
+            ? <NewEnterpriseIcon width={18} height={18} />
+            : <BranchIcon width={18} height={18} />}
+        </span>
         <span className="location-switcher-label">{currentLabel}</span>
-        <ChevronDown size={15} className={`location-switcher-caret ${open ? 'open' : ''}`} />
+        <Chevron size={18} className={`location-switcher-caret ${open ? 'open' : ''}`} />
       </button>
 
       {open && (
-        <ul className="location-switcher-menu" role="listbox">
-          <li
-            role="option"
-            aria-selected={selectedValue === ALL_LOCATIONS}
-            className={`location-switcher-item ${selectedValue === ALL_LOCATIONS ? 'active' : ''}`}
-            onClick={() => choose(ALL_LOCATIONS)}
-          >
-            <span>All locations (Enterprise)</span>
-            {selectedValue === ALL_LOCATIONS && <Check size={15} />}
-          </li>
+        <div className={`ls-menu ls-menu--${align}`} role="listbox">
+          <div className="ls-search">
+            <Search size={16} className="ls-search__icon" />
+            <input
+              className="ls-search__input"
+              type="text"
+              value={query}
+              autoFocus
+              placeholder="Search here..."
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
 
-          {hasBranches && <li className="location-switcher-divider" role="separator" />}
-
-          {(branches || []).map((b) => (
-            <li
-              key={b._id}
-              role="option"
-              aria-selected={String(b._id) === String(branchId)}
-              className={`location-switcher-item ${String(b._id) === String(branchId) ? 'active' : ''}`}
-              onClick={() => choose(String(b._id))}
+          <div className="ls-list">
+            {/* Enterprise (all locations) */}
+            <button
+              type="button"
+              className={`ls-row ${isEnterprise ? 'ls-row--active' : ''}`}
+              onClick={() => switchTo(null)}
             >
-              <span>
-                {b.name}
-                {b.isDefault ? <span className="location-switcher-tag">default</span> : null}
+              <span className="ls-row__icon"><NewEnterpriseIcon width={22} height={22} /></span>
+              <span className="ls-row__body">
+                <span className="ls-row__title">{orgName}</span>
+                <span className="ls-row__sub">All locations · Enterprise</span>
               </span>
-              {String(b._id) === String(branchId) && <Check size={15} />}
-            </li>
-          ))}
+              {isEnterprise && <Check size={16} className="ls-row__check" />}
+            </button>
+
+            {visibleBranches.map((b) => {
+              const active = String(b._id) === String(branchId);
+              const addr = branchAddress(b);
+              return (
+                <button
+                  key={b._id}
+                  type="button"
+                  className={`ls-row ${active ? 'ls-row--active' : ''}`}
+                  onClick={() => switchTo(String(b._id))}
+                >
+                  <span className="ls-row__icon"><BranchIcon width={22} height={22} /></span>
+                  <span className="ls-row__body">
+                    <span className="ls-row__title">
+                      {b.name}
+                      {b.isDefault && <span className="ls-tag">default</span>}
+                    </span>
+                    {addr && <span className="ls-row__sub">{addr}</span>}
+                  </span>
+                  {!b.onboardingCompleted && <span className="ls-badge">Yet to launch</span>}
+                  {active && <Check size={16} className="ls-row__check" />}
+                </button>
+              );
+            })}
+
+            {visibleBranches.length === 0 && (
+              <div className="ls-empty">No locations match “{query}”.</div>
+            )}
+          </div>
 
           {canManage && (
-            <>
-              <li className="location-switcher-divider" role="separator" />
-              <li
-                className="location-switcher-item location-switcher-add"
-                onClick={(e) => { e.stopPropagation(); openAddModal(); }}
-              >
-                <span className="location-switcher-add-label">
-                  <Plus size={15} /> Add location
-                </span>
-              </li>
-            </>
+            <button type="button" className="ls-add" onClick={openAddModal}>
+              <Plus size={16} /> Add location
+            </button>
           )}
-        </ul>
+        </div>
       )}
 
-      {/* Add-location modal — opens from the switcher (or at zero locations). */}
+      {/* Add-location modal */}
       <Dialog open={modalOpen} onOpenChange={(isOpen) => { if (!isOpen) closeModal(); }}>
         <DialogContent className="max-w-md p-0">
           <form onSubmit={handleCreate}>
@@ -179,11 +193,8 @@ const LocationSwitcher = () => {
               <DialogTitle>Add location</DialogTitle>
               <DialogDescription>Create a new operating location for your enterprise.</DialogDescription>
             </DialogHeader>
-
             <div className="px-6 py-4">
-              <label htmlFor="new-location-name" className="mb-2 block text-sm font-medium">
-                Location name
-              </label>
+              <label htmlFor="new-location-name" className="mb-2 block text-sm font-medium">Location name</label>
               <input
                 id="new-location-name"
                 type="text"
@@ -196,21 +207,11 @@ const LocationSwitcher = () => {
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
-
             <DialogFooter>
-              <button
-                type="button"
-                className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
-                onClick={closeModal}
-                disabled={submitting}
-              >
+              <button type="button" className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50" onClick={closeModal} disabled={submitting}>
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-                disabled={submitting || !name.trim()}
-              >
+              <button type="submit" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50" disabled={submitting || !name.trim()}>
                 {submitting ? 'Adding…' : 'Add location'}
               </button>
             </DialogFooter>
