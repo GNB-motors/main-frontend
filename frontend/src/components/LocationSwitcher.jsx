@@ -166,7 +166,6 @@ const LocationSwitcher = () => {
                     </span>
                     {addr && <span className="ls-row__sub">{addr}</span>}
                   </span>
-                  {!b.onboardingCompleted && <span className="ls-badge">Yet to launch</span>}
                   {active && <Check size={16} className="ls-row__check" />}
                 </button>
               );
