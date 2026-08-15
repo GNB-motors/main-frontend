@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, TrendingDown, Scale, Inbox, AlertTriangle, ArrowRight, ArrowUpRight,
-  RefreshCw, Wallet, CalendarClock,
+  RefreshCw, Wallet, CalendarClock, Coins,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import AgeingBar from '../../components/Erp/AgeingBar';
@@ -366,6 +366,23 @@ const FinancialCommandCenterPage = () => {
             valueSuffix={net?.suffix || null}
             context="Receivables less payables"
             asOf={asOfLabel}
+            derived
+          />
+          <SnapshotCard
+            label="Net profit"
+            icon={Coins}
+            tone={summary && summary.profit.net < 0 ? 'payable' : 'receivable'}
+            loading={loading}
+            value={summary ? inr(summary.profit.net) : '—'}
+            context={summary && (
+              <>
+                {'Revenue '}
+                <strong>{compactInr(summary.profit.revenue)}</strong>
+                {' less cost '}
+                <strong>{compactInr(summary.profit.cost)}</strong>
+              </>
+            )}
+            asOf={periodLabel ? `for ${periodLabel}` : null}
             derived
           />
           <SnapshotCard
