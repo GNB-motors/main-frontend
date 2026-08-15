@@ -4,6 +4,10 @@ import { toast } from 'react-toastify';
 import { DriverService } from './DriverService.jsx';
 import AccessControlApi from '../AccessControl/accessControlService';
 import { getThemeCSS } from '../../utils/colorTheme';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import { UserPlus, Building2 } from 'lucide-react';
 import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import DocumentUpload from './Component/DocumentUpload.jsx';
@@ -22,6 +26,10 @@ const AddDriverPage = () => {
   // RBAC roles available to this enterprise — dynamic source for the role
   // selectors (Enterprise Role / Branch Role). New roles show up automatically.
   const [roles, setRoles] = useState([]);
+  // When the entered phone already belongs to an enterprise employee, we surface
+  // the Import Employee modal instead of creating a duplicate.
+  const [importCandidate, setImportCandidate] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [documents, setDocuments] = useState({
     driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
     panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
@@ -119,6 +127,22 @@ const AddDriverPage = () => {
   }, [location?.state?.editingDriver]);
 
   const handleSubmit = async (formData) => {
+    // Client-side required checks for creating an employee. The footer submits the
+    // form programmatically, which skips native HTML validation, so we validate
+    // here and show a clear toast instead of letting the user hit a raw 400.
+    if (!isEdit) {
+      const missing = [];
+      if (!formData.firstName?.trim()) missing.push('First name');
+      if (!formData.lastName?.trim()) missing.push('Last name');
+      if (!formData.mobileNumber?.trim()) missing.push('Mobile number');
+      if (!formData.password) missing.push('Password');
+      if (!formData.enterpriseRoleId && !formData.branchRoleId) missing.push('a Role (Enterprise or Branch)');
+      if (missing.length) {
+        toast.error(`To create an employee, please add: ${missing.join(', ')}.`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const docTypes = {
@@ -187,10 +211,31 @@ const AddDriverPage = () => {
       }
     } catch (err) {
       console.error('Add employee error', err);
+      // Phone already belongs to someone in the enterprise → offer Import instead
+      // of a generic "already exists" error.
+      if (err?.code === 'ALREADY_IN_ENTERPRISE' && err?.data?.employee) {
+        setImportCandidate(err.data.employee);
+        return;
+      }
       const msg = err?.message || err?.detail || 'Failed to create/update employee';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importCandidate?.id) return;
+    setImporting(true);
+    try {
+      await DriverService.importEmployee(importCandidate.id);
+      toast.success('Employee imported and activated in this location.');
+      setImportCandidate(null);
+      navigate('/drivers');
+    } catch (err) {
+      toast.error(err?.message || err?.detail || 'Failed to import employee');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -245,6 +290,64 @@ const AddDriverPage = () => {
         isSubmitting={isSubmitting}
         isEdit={isEdit}
       />
+
+      {/* Import Employee — shown when the phone already exists in the enterprise. */}
+      <Dialog open={!!importCandidate} onOpenChange={(o) => { if (!o && !importing) setImportCandidate(null); }}>
+        <DialogContent className="max-w-md p-0">
+          <DialogHeader>
+            <DialogTitle>Import existing employee</DialogTitle>
+            <DialogDescription>
+              This phone number already belongs to an employee in your enterprise. Import them into the
+              current location instead of creating a duplicate — they become active here and are
+              deactivated in their previous location.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-6 py-4">
+            {importCandidate && (
+              <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <UserPlus size={18} />
+                </div>
+                <div className="text-sm">
+                  <div className="font-semibold">
+                    {[importCandidate.firstName, importCandidate.lastName].filter(Boolean).join(' ') || 'Employee'}
+                  </div>
+                  <div className="text-muted-foreground">{importCandidate.mobileNumber}</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                    <Building2 size={13} />
+                    Home: {importCandidate.homeBranch?.name || 'Enterprise'}
+                  </div>
+                </div>
+              </div>
+            )}
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Their existing records stay with their previous location (history isn't moved). They become
+              <strong> active in this location</strong>, and <strong>deactivated</strong> in the previous one —
+              where they can no longer be assigned anything.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+              onClick={() => setImportCandidate(null)}
+              disabled={importing}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              onClick={confirmImport}
+              disabled={importing}
+            >
+              {importing ? 'Importing…' : 'Import to this location'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

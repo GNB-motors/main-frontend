@@ -146,6 +146,18 @@ export const DriverService = {
         }
     },
 
+    // --- Import an existing enterprise employee into the active branch ---
+    // The active branch travels via the X-Branch-Id header (apiClient interceptor).
+    importEmployee: async (employeeId) => {
+        try {
+            const response = await apiClient.post(`/api/employees/${employeeId}/import`);
+            return response.data?.data ?? response.data;
+        } catch (error) {
+            console.error("API Error importing employee:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable." };
+        }
+    },
+
     // --- Delete Driver ---
     deleteDriver: async (businessRefId, driverId) => {
         try {

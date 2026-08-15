@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
+import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload, ToggleRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
@@ -553,7 +553,7 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
 };
 
 // --- Action Menu Component (portal-based to escape table stacking context) ---
-const ActionMenu = ({ driver, onEdit, onDelete, position }) => {
+const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, position }) => {
     if (!position) return null;
 
     // Decide whether to open upward (if too close to the bottom of the viewport)
@@ -570,19 +570,35 @@ const ActionMenu = ({ driver, onEdit, onDelete, position }) => {
             : { top: position.bottom + 4 }),
     };
 
+    // Employees deactivated in this location (moved to another branch) can't be
+    // edited/assigned here — the only action is to activate them back here.
+    const isDeactivatedHere = driver.branchStatus === 'DEACTIVATED';
+
     return createPortal(
         <div className="drivers-action-menu" style={style}>
-            <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
-                <Edit size={16} />
-                <span>Edit</span>
-            </button>
-            {!driver.is_superadmin && ( // Prevent deleting superadmin
+            {isDeactivatedHere ? (
+                <button
+                    className="drivers-action-menu-item"
+                    onClick={(e) => { e.stopPropagation(); onActivateHere(driver); }}
+                >
+                    <ToggleRight size={16} />
+                    <span>Mark as active</span>
+                </button>
+            ) : (
                 <>
-                    <div className="drivers-action-menu-divider"></div>
-                    <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDelete(driver); }}>
-                        <Trash2 size={16} />
-                        <span>Delete</span>
+                    <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
+                        <Edit size={16} />
+                        <span>Edit</span>
                     </button>
+                    {!driver.is_superadmin && ( // Prevent deleting superadmin
+                        <>
+                            <div className="drivers-action-menu-divider"></div>
+                            <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDelete(driver); }}>
+                                <Trash2 size={16} />
+                                <span>Delete</span>
+                            </button>
+                        </>
+                    )}
                 </>
             )}
         </div>,
@@ -771,6 +787,20 @@ const DriversPage = () => {
         setDeletingDriver(driver);
         setIsDeleteModalOpen(true);
         setOpenMenuDriverId(null); // Close action menu
+    };
+
+    // Activate a deactivated employee in the current location. This moves them
+    // here (import) — they become active here and deactivated in their previous
+    // location. The active branch travels via X-Branch-Id (apiClient).
+    const handleActivateHere = async (driver) => {
+        setOpenMenuDriverId(null);
+        try {
+            await DriverService.importEmployee(driver.id);
+            toast.success('Employee activated in this location');
+            fetchDrivers();
+        } catch (err) {
+            toast.error(err?.message || err?.detail || 'Could not activate employee here');
+        }
     };
 
     const handleUpdateDriver = async (driverId, updateData) => {
@@ -1096,9 +1126,18 @@ const DriversPage = () => {
                                         <td>{driver.email || '-'}</td>
                                         <td>
                                             <div className="drivers-status-cell">
-                                                <div className={`drivers-status-badge drivers-status-${(driver.status || 'PENDING').toLowerCase()}`}>
-                                                    <span>{driver.status || 'PENDING'}</span>
-                                                </div>
+                                                {driver.branchStatus === 'DEACTIVATED' ? (
+                                                    <div
+                                                        className="drivers-status-badge drivers-status-suspended"
+                                                        title="This employee moved to another location and is deactivated here"
+                                                    >
+                                                        <span>Deactivated</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className={`drivers-status-badge drivers-status-${(driver.status || 'PENDING').toLowerCase()}`}>
+                                                        <span>{driver.status || 'PENDING'}</span>
+                                                    </div>
+                                                )}
                                                 <div className={`drivers-action-menu-container drivers-action-menu-container-${driver.id}`}>
                                                     <button
                                                         className="drivers-action-menu-btn"
@@ -1121,6 +1160,7 @@ const DriversPage = () => {
                                                             driver={driver}
                                                             onEdit={handleOpenEditModal}
                                                             onDelete={handleOpenDeleteModal}
+                                                            onActivateHere={handleActivateHere}
                                                             position={menuPosition}
                                                         />
                                                     )}

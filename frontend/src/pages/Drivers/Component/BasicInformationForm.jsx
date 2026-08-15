@@ -85,8 +85,8 @@ const BasicInformationForm = forwardRef(({
               </div>
               
               <div className="basic-info-form-field">
-                <label className="basic-info-label">Last Name</label>
-                <input 
+                <label className="basic-info-label">Last Name {!isEdit && '*'}</label>
+                <input
                   type="text"
                   className="basic-info-input"
                   value={formData.lastName}
@@ -110,8 +110,8 @@ const BasicInformationForm = forwardRef(({
               </div>
               
               <div className="basic-info-form-field">
-                <label className="basic-info-label">Mobile Number</label>
-                <input 
+                <label className="basic-info-label">Mobile Number {!isEdit && '*'}</label>
+                <input
                   type="tel"
                   className="basic-info-input"
                   value={formData.mobileNumber}
@@ -184,6 +184,12 @@ const BasicInformationForm = forwardRef(({
                 <span className="basic-info-hint">Applies to the currently active location.</span>
               </div>
             </div>
+
+            {!isEdit && (
+              <div className="basic-info-form-row">
+                <span className="basic-info-hint">* Select at least one role (Enterprise or Branch) to create the employee.</span>
+              </div>
+            )}
 
             {isEdit && (
               <div className="basic-info-form-row">
