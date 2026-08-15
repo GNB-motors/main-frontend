@@ -212,7 +212,7 @@ const BasicInformationForm = forwardRef(({
               <div className="basic-info-form-row">
                 <span className="basic-info-hint">
                   No roles are available to your enterprise yet. Ask your administrator to enable roles under
-                  Employee Management → User Management.
+                  Workforce → User Management.
                 </span>
               </div>
             )}

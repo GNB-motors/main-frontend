@@ -86,13 +86,13 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence/add-repair',
     ],
   },
-  // Employee Management mirrors the Vehicles group: the employee directory and
-  // the RBAC (User Management) screen live under one collapsible parent. Whole
-  // group is gated by the `drivers` feature flag (same as both children were).
+  // Workforce mirrors the Vehicles group: the employee directory and the RBAC
+  // (User Management) screen live under one collapsible parent. Whole group is
+  // gated by the `drivers` feature flag (same as both children were).
   {
     type: 'group',
     key: 'drivers',
-    label: 'Employee Management',
+    label: 'Workforce',
     icon: Users,
     children: [
       { to: '/drivers', label: 'Employee', end: true },
