@@ -606,7 +606,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  z-index: 1000;
+  z-index: 1050;
 }
 
 .erp-modal {
@@ -826,7 +826,7 @@
   bottom: 0;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(2px);
-  z-index: 1000;
+  z-index: 1050;
   display: flex;
   justify-content: flex-end;
   animation: fadeIn 0.2s ease-out forwards;
