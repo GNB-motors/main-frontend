@@ -119,6 +119,7 @@ export const SIDE_NAV_ITEMS = [
       { to: '/erp/material-compatibility', label: 'Material Compatibility', key: 'erpMasters' },
       { to: '/erp/advance-masters', label: 'Advance Masters', key: 'erpAdvances' },
       { to: '/erp/settings', label: 'ERP Settings', key: 'erpMasters' },
+      { to: '/erp/gst-settings', label: 'GST Settings', key: 'erpMasters' },
     ],
     matchRoutes: [
       '/erp/parties',
@@ -127,6 +128,7 @@ export const SIDE_NAV_ITEMS = [
       '/erp/material-compatibility',
       '/erp/advance-masters',
       '/erp/settings',
+      '/erp/gst-settings',
     ],
   },
 

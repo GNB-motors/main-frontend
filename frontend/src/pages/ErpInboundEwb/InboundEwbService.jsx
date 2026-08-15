@@ -22,6 +22,15 @@ const InboundEwbService = {
     }
   },
 
+  async sync() {
+    try {
+      const res = await apiClient.post(`${BASE}/sync`);
+      return res.data?.data;
+    } catch (error) {
+      throw unwrap(error, 'Failed to sync e-Way Bills from GST');
+    }
+  },
+
   async confirm(id, overrides = {}) {
     try {
       const res = await apiClient.post(`${BASE}/${id}/confirm`, overrides);

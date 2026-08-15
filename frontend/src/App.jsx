@@ -83,6 +83,7 @@ import AdvancesPage from './pages/ErpAdvances/AdvancesPage.jsx';
 import AdvanceMastersPage from './pages/ErpAdvances/AdvanceMastersPage.jsx';
 import ConsignmentsPage from './pages/ErpConsignments/ConsignmentsPage.jsx';
 import InboundEwbPage from './pages/ErpInboundEwb/InboundEwbPage.jsx';
+import GstSettingsPage from './pages/ErpGstSettings/GstSettingsPage.jsx';
 import TripClosePage from './pages/ErpTrips/TripClosePage.jsx';
 import PodsPage from './pages/ErpPods/PodsPage.jsx';
 import LedgerPage from './pages/ErpLedger/LedgerPage.jsx';
@@ -186,6 +187,7 @@ function App() {
         <Route path="/erp/accounts/:accountType/:accountId" element={<Account360Page />} />
         <Route path="/erp/approvals" element={<ApprovalsPage />} />
         <Route path="/erp/inbound-ewb" element={<InboundEwbPage />} />
+        <Route path="/erp/gst-settings" element={<GstSettingsPage />} />
         <Route path="/erp/call-tasks" element={<CallTasksPage />} />
         <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />
         <Route path="/erp/trips/:tripId" element={<ErpTripDetailPage />} />

@@ -6,7 +6,7 @@
  * one click confirms → creates the consignment via the normal save-CN flow.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Truck, CheckCircle2, X, FileText } from 'lucide-react';
+import { RefreshCw, Truck, CheckCircle2, X, FileText, DownloadCloud } from 'lucide-react';
 import { toast } from 'react-toastify';
 import InboundEwbService from './InboundEwbService';
 import '../../styles/erp.css';
@@ -30,6 +30,7 @@ const InboundEwbPage = () => {
   const [status, setStatus] = useState('SUGGESTED');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [busyId, setBusyId] = useState(null);
 
   const fetchRows = useCallback(async () => {
@@ -47,6 +48,20 @@ const InboundEwbPage = () => {
   useEffect(() => {
     fetchRows();
   }, [fetchRows]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const r = await InboundEwbService.sync();
+      toast.success(`Pulled ${r.pulled} e-Way Bill(s) from GST — ${r.new} new, ${r.suggested} matched`);
+      setStatus('SUGGESTED');
+      fetchRows();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleConfirm = async (row) => {
     setBusyId(row._id);
@@ -89,6 +104,9 @@ const InboundEwbPage = () => {
           </p>
         </div>
         <div className="erp-header-actions">
+          <button className="btn btn-primary" onClick={handleSync} disabled={syncing}>
+            <DownloadCloud size={16} /> {syncing ? 'Syncing…' : 'Sync from GST'}
+          </button>
           <button className="btn btn-secondary" onClick={fetchRows} disabled={loading}>
             <RefreshCw size={16} /> Refresh
           </button>
