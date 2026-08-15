@@ -15,6 +15,11 @@ const AccessControlApi = {
   // Enterprise roles + permission catalog
   getRolesAndCatalog: () => apiClient.get('/api/access-control/roles').then(unwrap),
 
+  // Enterprise-owned custom roles (platform roles are read-only here)
+  createRole: (body) => apiClient.post('/api/access-control/roles', body).then(unwrap),
+  updateRole: (roleId, body) => apiClient.patch(`/api/access-control/roles/${roleId}`, body).then(unwrap),
+  deleteRole: (roleId) => apiClient.delete(`/api/access-control/roles/${roleId}`).then(unwrap),
+
   // Assignments
   listAssignments: (userId) =>
     apiClient.get('/api/access-control/assignments', { params: userId ? { userId } : {} }).then(unwrap),
@@ -28,8 +33,9 @@ const AccessControlApi = {
   resetBranchRole: (branchId, roleId) =>
     apiClient.delete(`/api/access-control/branches/${branchId}/roles/${roleId}`).then(unwrap),
 
-  // Shared lookups
-  listEmployees: () => apiClient.get('/api/employees').then(asArray),
+  // Shared lookups. /api/employees paginates with a default of 10 — the role
+  // picker needs the whole team, so ask for the server's maximum page size.
+  listEmployees: () => apiClient.get('/api/employees', { params: { limit: 1000 } }).then(asArray),
   listBranches: () => apiClient.get('/api/branches').then(asArray),
 };
 
