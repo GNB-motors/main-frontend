@@ -1,0 +1,66 @@
+/* Enterprise Employee Access Control — tabs + inheritance chips.
+   Reuses ff-* (FeatureFlags.css) and rbac-* (Rbac.css) for the rest. */
+
+.ac-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid #e6e8ef;
+  margin: 4px 0 18px;
+}
+
+.ac-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #7b8194;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.ac-tab:hover {
+  color: #4f46e5;
+}
+
+.ac-tab--active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+/* Inheritance / override chips shown on permission leaves and role rows. */
+.ac-chip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.ac-chip--inherited {
+  background: #eef0f5;
+  color: #7b8194;
+}
+
+.ac-chip--override {
+  background: #eef0ff;
+  color: #4f46e5;
+}
+
+.ac-chip--branch {
+  background: #fff3e6;
+  color: #b7791f;
+}
+
+.ac-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}

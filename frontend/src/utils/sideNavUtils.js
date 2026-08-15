@@ -18,6 +18,7 @@ import {
   FileCheck,
   Gauge,
   ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -87,6 +88,7 @@ export const SIDE_NAV_ITEMS = [
     ],
   },
   { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
+  { type: 'link', key: 'drivers', to: '/access-control', label: 'Access Control', icon: ShieldCheck },
 
   // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
   { type: 'section', label: 'ERP & CRM', access: 'erp' },

@@ -36,6 +36,9 @@ import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
 import OrgFeatureFlagsPage from './pages/Superadmin/components/OrgFeatureFlagsPage.jsx';
 import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx';
 import OrgDetailPage from './pages/Superadmin/components/OrgDetailPage.jsx';
+import RbacPermissionsPage from './pages/Superadmin/components/RbacPermissionsPage.jsx';
+import RbacRolesPage from './pages/Superadmin/components/RbacRolesPage.jsx';
+import RbacEnterpriseAccessPage from './pages/Superadmin/components/RbacEnterpriseAccessPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -101,6 +104,7 @@ import Account360Page from './pages/ErpAccounts/Account360Page.jsx';
 import DocumentDetailPage from './pages/ErpAccounts/DocumentDetailPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
+import AccessControlPage from './pages/AccessControl/AccessControlPage.jsx';
 
 function App() {
   return (
@@ -119,6 +123,10 @@ function App() {
         <Route path="feature-flags" element={<OrgFeatureFlagsPage />} />
         <Route path="feature-flags/:orgId" element={<OrgFeatureFlagsDetailPage />} />
         <Route path="organizations/:id" element={<OrgDetailPage />} />
+        {/* RBAC management */}
+        <Route path="rbac/permissions" element={<RbacPermissionsPage />} />
+        <Route path="rbac/roles" element={<RbacRolesPage />} />
+        <Route path="rbac/enterprises" element={<RbacEnterpriseAccessPage />} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
@@ -143,6 +151,7 @@ function App() {
         <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
         <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
         <Route path="/drivers" element={<DriversPage />} />
+        <Route path="/access-control" element={<AccessControlPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />

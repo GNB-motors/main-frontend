@@ -1,0 +1,234 @@
+/* RBAC SuperAdmin screens — layered on top of FeatureFlags.css (reuses ff-*). */
+
+.rbac-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .rbac-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Master: role list ── */
+.rbac-master {
+  background: #fff;
+  border: 1px solid #e6e8ef;
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rbac-role {
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.rbac-role:hover {
+  background: #f5f6fb;
+}
+
+.rbac-role--active {
+  background: #eef0ff;
+  border-color: #c7ccff;
+}
+
+.rbac-role__name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2430;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rbac-role__meta {
+  font-size: 12px;
+  color: #7b8194;
+}
+
+.rbac-fab {
+  margin-top: 4px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed #b9bed6;
+  background: #fafbff;
+  color: #4f46e5;
+  border-radius: 10px;
+  padding: 11px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.rbac-fab:hover {
+  background: #eef0ff;
+  border-color: #8b93ff;
+}
+
+/* ── Detail: permission tree ── */
+.rbac-detail {
+  background: #fff;
+  border: 1px solid #e6e8ef;
+  border-radius: 14px;
+  padding: 18px 18px 92px;
+  position: relative;
+  min-height: 320px;
+}
+
+.rbac-detail__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2430;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rbac-detail__sub {
+  font-size: 13px;
+  color: #7b8194;
+  margin: 2px 0 16px;
+}
+
+.rbac-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f3f4ff;
+  border: 1px solid #d8dcff;
+  color: #3b3f66;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.rbac-group {
+  border: 1px solid #e9ebf2;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.rbac-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #f8f9fc;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rbac-group__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #262b39;
+}
+
+.rbac-group__count {
+  font-size: 12px;
+  color: #8a90a2;
+  font-weight: 500;
+}
+
+.rbac-perm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-top: 1px solid #eef0f5;
+}
+
+.rbac-perm__label {
+  font-weight: 500;
+  font-size: 14px;
+  color: #2a2f3c;
+}
+
+.rbac-perm__desc {
+  font-size: 12px;
+  color: #8a90a2;
+  margin-top: 2px;
+}
+
+.rbac-perm__key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #a2a8bd;
+}
+
+/* Group-level tri-state checkbox */
+.rbac-group__check {
+  width: 18px;
+  height: 18px;
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+/* Sticky Save/Cancel footer inside the detail card */
+.rbac-detail__footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px;
+  background: #fff;
+  border-top: 1px solid #eef0f5;
+  border-radius: 0 0 14px 14px;
+}
+
+.rbac-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 60px 20px;
+  color: #8a90a2;
+  text-align: center;
+}
+
+/* Org picker on the Enterprise Access screen */
+.rbac-orgbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.rbac-select {
+  min-width: 280px;
+  padding: 10px 12px;
+  border: 1px solid #d7dae6;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  color: #1f2430;
+}
