@@ -69,9 +69,13 @@ export const DriverService = {
                 mobileNumber: normaliseMobile(driverData.mobileNumber) || null,
                 location: driverData.location || null,
                 password: driverData.password || null,
-                role: driverData.role || driverData.role || 'DRIVER',
                 orgId: businessRefId || undefined,
             };
+            // Legacy enum role (optional) + the RBAC dual-role selection. Only
+            // send what's present so the backend can derive the enum role.
+            if (driverData.role) body.role = driverData.role;
+            if (driverData.enterpriseRoleId) body.enterpriseRoleId = driverData.enterpriseRoleId;
+            if (driverData.branchRoleId) body.branchRoleId = driverData.branchRoleId;
             // include vehicle assignment if provided
             if (driverData.vehicle_registration_no) {
                 body.vehicle_registration_no = driverData.vehicle_registration_no;

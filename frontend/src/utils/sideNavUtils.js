@@ -18,7 +18,6 @@ import {
   FileCheck,
   Gauge,
   ShieldAlert,
-  ShieldCheck,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -87,8 +86,20 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence/add-repair',
     ],
   },
-  { type: 'link', key: 'drivers', to: '/drivers', label: 'Employees', icon: Users },
-  { type: 'link', key: 'drivers', to: '/access-control', label: 'Access Control', icon: ShieldCheck },
+  // Employee Management mirrors the Vehicles group: the employee directory and
+  // the RBAC (User Management) screen live under one collapsible parent. Whole
+  // group is gated by the `drivers` feature flag (same as both children were).
+  {
+    type: 'group',
+    key: 'drivers',
+    label: 'Employee Management',
+    icon: Users,
+    children: [
+      { to: '/drivers', label: 'Employee', end: true },
+      { to: '/access-control', label: 'User Management' },
+    ],
+    matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
+  },
 
   // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
   { type: 'section', label: 'ERP & CRM', access: 'erp' },

@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { MapPin, ChevronDown, Check, Plus, X } from 'lucide-react';
+import { MapPin, ChevronDown, Check, Plus } from 'lucide-react';
 import { useActiveBranch } from '../contexts/BranchContext.jsx';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchService } from '../services/branchService';
 import { getFirstNavPath } from '../utils/sideNavUtils.js';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from './ui/dialog';
 import './LocationSwitcher.css';
 
 /**
@@ -16,19 +24,18 @@ import './LocationSwitcher.css';
  * localStorage `user_branchId`); the axios interceptor then sends `X-Branch-Id`
  * on every request and the DashboardLayout remounts the page so its data reloads.
  *
- * Owners/managers get a "＋ Add location" shortcut at the bottom of the dropdown,
- * so a location can be created without leaving the current screen; the new one is
- * selected immediately. The control is shown for owners/managers even with no
- * locations yet (so they can add the first); for everyone else it hides until the
- * business has at least one location.
+ * With no locations yet (just the enterprise), owners/managers still see the
+ * control so they can add the first one. Adding opens a modal; the new location
+ * is selected immediately. For non-managers the control hides until the business
+ * has at least one location.
  */
 const ALL_LOCATIONS = '__ALL__';
 
 const LocationSwitcher = () => {
   const { branchId, branches, activeBranch, loading, setBranch, refresh } = useActiveBranch();
-  const { isEnabled } = useFeatureFlags();
+  const { canAccess } = useFeatureFlags();
   const [open, setOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const ref = useRef(null);
@@ -38,20 +45,19 @@ const LocationSwitcher = () => {
   useEffect(() => {
     if (!open) return undefined;
     const onOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-        setAdding(false);
-      }
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
   }, [open]);
 
-  // Hide only for non-managers with no locations. Owners/managers keep the control
-  // (even at zero) so they can add the first location from here.
+  // The switcher only appears once the enterprise has at least one location. At
+  // startup (enterprise only, no locations) it stays hidden — the first location
+  // is added from Profile → Locations. Once a location exists, the switcher shows
+  // for everyone and owners/managers get the in-dropdown "Add location" modal.
   if (loading) return null;
   const hasBranches = Array.isArray(branches) && branches.length >= 1;
-  if (!hasBranches && !canManage) return null;
+  if (!hasBranches) return null;
 
   const currentLabel = activeBranch ? activeBranch.name : 'All locations';
   const selectedValue = branchId || ALL_LOCATIONS;
@@ -66,16 +72,27 @@ const LocationSwitcher = () => {
     const changed = String(next || '') !== String(branchId || '');
     setBranch(next);
     setOpen(false);
-    if (changed) window.location.assign(getFirstNavPath(isEnabled));
+    if (changed) window.location.assign(getFirstNavPath(canAccess));
   };
 
   const choose = (value) => {
     switchTo(value === ALL_LOCATIONS ? null : value);
   };
 
+  const openAddModal = () => {
+    setOpen(false);
+    setName('');
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (submitting) return;
+    setModalOpen(false);
+    setName('');
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
-    e.stopPropagation();
     const trimmed = name.trim();
     if (!trimmed) return;
     setSubmitting(true);
@@ -83,14 +100,9 @@ const LocationSwitcher = () => {
       const created = await BranchService.createBranch({ name: trimmed });
       await refresh(); // reload the list so the new location is present
       setName('');
-      setAdding(false);
-      if (created?._id) {
-        toast.success(`Location "${trimmed}" added`);
-        switchTo(String(created._id)); // switch to it → lands on first sidebar page + reload
-        return;
-      }
-      setOpen(false);
+      setModalOpen(false);
       toast.success(`Location "${trimmed}" added`);
+      if (created?._id) switchTo(String(created._id)); // select it → land on first page + reload
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.detail || 'Could not add location');
     } finally {
@@ -146,55 +158,65 @@ const LocationSwitcher = () => {
           {canManage && (
             <>
               <li className="location-switcher-divider" role="separator" />
-              {adding ? (
-                <li className="location-switcher-addrow" onClick={(e) => e.stopPropagation()}>
-                  <form className="location-switcher-addform" onSubmit={handleCreate}>
-                    <input
-                      className="location-switcher-input"
-                      type="text"
-                      value={name}
-                      autoFocus
-                      maxLength={80}
-                      placeholder="New location name"
-                      disabled={submitting}
-                      onChange={(e) => setName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') { setAdding(false); setName(''); }
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      className="location-switcher-iconbtn save"
-                      disabled={submitting || !name.trim()}
-                      title="Save location"
-                    >
-                      <Check size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="location-switcher-iconbtn"
-                      disabled={submitting}
-                      title="Cancel"
-                      onClick={() => { setAdding(false); setName(''); }}
-                    >
-                      <X size={15} />
-                    </button>
-                  </form>
-                </li>
-              ) : (
-                <li
-                  className="location-switcher-item location-switcher-add"
-                  onClick={(e) => { e.stopPropagation(); setAdding(true); }}
-                >
-                  <span className="location-switcher-add-label">
-                    <Plus size={15} /> Add location
-                  </span>
-                </li>
-              )}
+              <li
+                className="location-switcher-item location-switcher-add"
+                onClick={(e) => { e.stopPropagation(); openAddModal(); }}
+              >
+                <span className="location-switcher-add-label">
+                  <Plus size={15} /> Add location
+                </span>
+              </li>
             </>
           )}
         </ul>
       )}
+
+      {/* Add-location modal — opens from the switcher (or at zero locations). */}
+      <Dialog open={modalOpen} onOpenChange={(isOpen) => { if (!isOpen) closeModal(); }}>
+        <DialogContent className="max-w-md p-0">
+          <form onSubmit={handleCreate}>
+            <DialogHeader>
+              <DialogTitle>Add location</DialogTitle>
+              <DialogDescription>Create a new operating location for your enterprise.</DialogDescription>
+            </DialogHeader>
+
+            <div className="px-6 py-4">
+              <label htmlFor="new-location-name" className="mb-2 block text-sm font-medium">
+                Location name
+              </label>
+              <input
+                id="new-location-name"
+                type="text"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                value={name}
+                autoFocus
+                maxLength={80}
+                placeholder="e.g. Chennai"
+                disabled={submitting}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
+            <DialogFooter>
+              <button
+                type="button"
+                className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                onClick={closeModal}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                disabled={submitting || !name.trim()}
+              >
+                {submitting ? 'Adding…' : 'Add location'}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

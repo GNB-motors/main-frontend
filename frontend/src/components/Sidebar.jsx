@@ -20,7 +20,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     // A broken/expired logo URL must not leave an empty header, so a load error
     // falls back to the default mark exactly like "no logo uploaded" does.
     const [logoFailed, setLogoFailed] = useState(false);
-    const { isEnabled } = useFeatureFlags();
+    // `canAccess` = org-entitled (feature flag) AND role-permitted (RBAC). A
+    // module only appears when the user's assigned role grants it — so granting a
+    // role e.g. CRM/insurance makes it visible to that user automatically.
+    const { canAccess } = useFeatureFlags();
     const { organization } = useOrganization();
 
     const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
@@ -30,7 +33,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         setLogoFailed(false);
     }, [organization?.logoUrl]);
 
-    const navItems = useMemo(() => getVisibleNavItems(isEnabled), [isEnabled]);
+    const navItems = useMemo(() => getVisibleNavItems(canAccess), [canAccess]);
 
     useEffect(() => {
         const fetchApprovalsCount = async () => {
@@ -150,7 +153,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
 
         // type === 'group' (collapsible dropdown)
-        const visibleChildren = getVisibleNavChildren(item, isEnabled);
+        const visibleChildren = getVisibleNavChildren(item, canAccess);
         const groupId = getNavGroupId(item);
         const isOpen = openGroupId === groupId;
         return (

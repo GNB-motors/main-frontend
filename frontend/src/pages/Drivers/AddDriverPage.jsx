@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { DriverService } from './DriverService.jsx';
+import AccessControlApi from '../AccessControl/accessControlService';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
@@ -18,6 +19,9 @@ const AddDriverPage = () => {
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
+  // RBAC roles available to this enterprise — dynamic source for the role
+  // selectors (Enterprise Role / Branch Role). New roles show up automatically.
+  const [roles, setRoles] = useState([]);
   const [documents, setDocuments] = useState({
     driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
     panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
@@ -31,6 +35,13 @@ const AddDriverPage = () => {
     updateTheme();
     window.addEventListener('storage', updateTheme);
     return () => window.removeEventListener('storage', updateTheme);
+  }, []);
+
+  // Load the enterprise's available roles for the role selectors.
+  useEffect(() => {
+    AccessControlApi.getRolesAndCatalog()
+      .then((data) => setRoles(data?.roles || []))
+      .catch(() => setRoles([]));
   }, []);
 
   // If navigated here for editing, prefill form from location.state.editingDriver
@@ -159,7 +170,10 @@ const AddDriverPage = () => {
           mobileNumber: formData.mobileNumber || null,
           location: formData.location || null,
           password: formData.password || null,
-          role: formData.role || 'DRIVER',
+          // Independent Enterprise / Branch role assignments. Null = no access
+          // at that level; the backend derives the enum role from the selection.
+          enterpriseRoleId: formData.enterpriseRoleId || null,
+          branchRoleId: formData.branchRoleId || null,
         };
 
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
@@ -168,15 +182,7 @@ const AddDriverPage = () => {
         const empId = savedEmployee._id || savedEmployee.id || savedEmployee.user?._id;
         await uploadDocuments(empId);
 
-        if (formData.role === 'FIELD_AGENT') {
-          toast.success(
-            savedEmployee.isExistingAgent
-              ? 'Existing field agent linked to your organization'
-              : 'Field agent added successfully',
-          );
-        } else {
-          toast.success('Employee created successfully');
-        }
+        toast.success('Employee created successfully');
         navigate('/drivers');
       }
     } catch (err) {
@@ -222,6 +228,7 @@ const AddDriverPage = () => {
           onCancel={() => navigate(-1)}
           isSubmitting={isSubmitting}
           isEdit={isEdit}
+          roles={roles}
         />
 
         <DocumentUpload

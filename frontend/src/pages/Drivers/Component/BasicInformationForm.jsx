@@ -2,12 +2,15 @@ import React, { useState, useEffect, forwardRef } from 'react';
 import UserIcon from '../assets/UserIcon.jsx';
 import './BasicInformationForm.css';
 
-const BasicInformationForm = forwardRef(({ 
-  initialData = {}, 
-  onSubmit, 
+const BasicInformationForm = forwardRef(({
+  initialData = {},
+  onSubmit,
   onCancel,
   isSubmitting = false,
-  isEdit = false 
+  isEdit = false,
+  // Dynamic roles available to this enterprise (from the RBAC catalog). Drives
+  // both role selectors — new roles appear here automatically, no hardcoding.
+  roles = [],
 }, ref) => {
   const [formData, setFormData] = useState({
     firstName: initialData.firstName || '',
@@ -16,7 +19,9 @@ const BasicInformationForm = forwardRef(({
     mobileNumber: initialData.mobileNumber || '',
     location: initialData.location || '',
     password: initialData.password || '',
-    role: initialData.role || 'DRIVER',
+    // Two independent role selections. Empty = null = no access at that level.
+    enterpriseRoleId: initialData.enterpriseRoleId || '',
+    branchRoleId: initialData.branchRoleId || '',
     status: initialData.status || 'PENDING',
   });
 
@@ -30,7 +35,8 @@ const BasicInformationForm = forwardRef(({
         mobileNumber: initialData.mobileNumber || '',
         location: initialData.location || '',
         password: initialData.password || '',
-        role: initialData.role || 'DRIVER',
+        enterpriseRoleId: initialData.enterpriseRoleId || '',
+        branchRoleId: initialData.branchRoleId || '',
         status: initialData.status || 'PENDING',
       });
     }
@@ -144,26 +150,46 @@ const BasicInformationForm = forwardRef(({
               </div>
             </div>
 
-            {/* Row 4: Role, Status */}
+            {/* Row 4: Enterprise Role, Branch Role — independently assignable.
+                Populated dynamically from the RBAC roles available to this
+                enterprise (no hardcoded role list). */}
             <div className="basic-info-form-row">
               <div className="basic-info-form-field">
-                <label className="basic-info-label">Role</label>
-                <select 
+                <label className="basic-info-label">Enterprise Role</label>
+                <select
                   className="basic-info-input"
-                  value={formData.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
+                  value={formData.enterpriseRoleId}
+                  onChange={(e) => handleInputChange('enterpriseRoleId', e.target.value)}
                 >
-                  <option value="DRIVER">Driver</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="KAM">Key Account Manager</option>
-                  <option value="FIELD_AGENT">Field Agent</option>
+                  <option value="">None (no enterprise access)</option>
+                  {roles.map((r) => (
+                    <option key={r._id} value={r._id}>{r.name}</option>
+                  ))}
                 </select>
+                <span className="basic-info-hint">Grants access to enterprise-level functionality.</span>
               </div>
 
-              {isEdit && (
+              <div className="basic-info-form-field">
+                <label className="basic-info-label">Branch Role</label>
+                <select
+                  className="basic-info-input"
+                  value={formData.branchRoleId}
+                  onChange={(e) => handleInputChange('branchRoleId', e.target.value)}
+                >
+                  <option value="">None (no branch access)</option>
+                  {roles.map((r) => (
+                    <option key={r._id} value={r._id}>{r.name}</option>
+                  ))}
+                </select>
+                <span className="basic-info-hint">Applies to the currently active location.</span>
+              </div>
+            </div>
+
+            {isEdit && (
+              <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
                   <label className="basic-info-label">Status</label>
-                  <select 
+                  <select
                     className="basic-info-input"
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
@@ -173,8 +199,17 @@ const BasicInformationForm = forwardRef(({
                     <option value="SUSPENDED">Suspended</option>
                   </select>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {roles.length === 0 && (
+              <div className="basic-info-form-row">
+                <span className="basic-info-hint">
+                  No roles are available to your enterprise yet. Ask your administrator to enable roles under
+                  Employee Management → User Management.
+                </span>
+              </div>
+            )}
           </form>
         </div>
       </div>
