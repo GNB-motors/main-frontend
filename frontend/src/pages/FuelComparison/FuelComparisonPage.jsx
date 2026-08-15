@@ -6,7 +6,7 @@ import {
 import {
     Fuel, AlertTriangle, CheckCircle2, Clock, RefreshCw,
     Activity, XCircle, Flag, Search, ShieldAlert, Gauge, Eye,
-    Database, Wifi, WifiOff, Play, Loader2
+    Database, Wifi, WifiOff, Play, Loader2, ChevronDown, X
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -15,6 +15,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { ReportsService } from '../Reports/ReportsService.jsx';
 import { CsvIcon } from '../../components/Icons';
 import { getThemeCSS } from '../../utils/colorTheme';
+import apiClient from '../../utils/axiosConfig';
 import './FuelComparison.css';
 
 // Extend dayjs with timezone and relative time support
@@ -274,6 +275,13 @@ const FuelComparisonPage = () => {
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
 
+    // Vehicle filter
+    const [vehicleOptions, setVehicleOptions] = useState([]);
+    const [selectedVehicles, setSelectedVehicles] = useState([]);   // array of { id, label }
+    const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
+    const [vehicleSearch, setVehicleSearch] = useState('');
+    const vehicleDropdownRef = useRef(null);
+
     // Data
     const [comparisons, setComparisons] = useState([]);
     const [compTotal, setCompTotal] = useState(0);
@@ -326,6 +334,50 @@ const FuelComparisonPage = () => {
 
     useEffect(() => { fetchStatus(); fetchConnectivity(); fetchUserErrors(); }, [fetchStatus, fetchConnectivity, fetchUserErrors]);
 
+    // ── Fetch vehicle list for filter ────────────────────────────────────────
+    useEffect(() => {
+        const loadVehicles = async () => {
+            try {
+                const res = await apiClient.get('api/vehicles', { params: { limit: 500 } });
+                const list = res.data?.data || res.data || [];
+                setVehicleOptions(
+                    (Array.isArray(list) ? list : []).map(v => ({
+                        id: String(v._id || v.id),
+                        label: v.registrationNumber || v.vehicleNumber || '—',
+                    })).filter(v => v.id && v.id !== 'undefined')
+                );
+            } catch (err) {
+                console.error('Failed to load vehicle options:', err);
+            }
+        };
+        loadVehicles();
+    }, []);
+
+    // ── Close vehicle dropdown on outside click ──────────────────────────────
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (vehicleDropdownRef.current && !vehicleDropdownRef.current.contains(e.target)) {
+                setVehicleDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const toggleVehicle = (vehicle) => {
+        setSelectedVehicles(prev => {
+            const exists = prev.find(v => v.id === vehicle.id);
+            const next = exists ? prev.filter(v => v.id !== vehicle.id) : [...prev, vehicle];
+            return next;
+        });
+        setCompPage(1);
+    };
+
+    const removeVehicle = (id) => {
+        setSelectedVehicles(prev => prev.filter(v => v.id !== id));
+        setCompPage(1);
+    };
+
     const applyFilter = () => {
         setFromDate(inputFromDate);
         setToDate(inputToDate);
@@ -342,6 +394,9 @@ const FuelComparisonPage = () => {
                 if (searchQuery) params.search = searchQuery;
                 if (fromDate) params.fromDate = fromDate;
                 if (toDate) params.toDate = toDate;
+                if (selectedVehicles.length > 0) {
+                    params.vehicleIds = selectedVehicles.map(v => v.id).join(',');
+                }
                 const data = await ReportsService.getExtensionComparisons(params);
                 setComparisons(data.records || []);
                 setCompTotal(data.total || 0);
@@ -362,10 +417,10 @@ const FuelComparisonPage = () => {
         } finally {
             setIsLoadingComp(false);
         }
-    }, [activeTab, compPage, flaggedOnly, searchQuery, fromDate, toDate]);
+    }, [activeTab, compPage, flaggedOnly, searchQuery, fromDate, toDate, selectedVehicles]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
-    useEffect(() => { setCompPage(1); }, [activeTab, flaggedOnly, searchQuery, fromDate, toDate]);
+    useEffect(() => { setCompPage(1); }, [activeTab, flaggedOnly, searchQuery, fromDate, toDate, selectedVehicles]);
 
     const reauthCount = (connectivity?.accounts || []).filter(a => a.status === 'NEEDS_REAUTH').length;
 
@@ -473,6 +528,91 @@ const FuelComparisonPage = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
+
+                        {/* ── Vehicle multi-select filter ── */}
+                        <div className="fc-vehicle-filter" ref={vehicleDropdownRef}>
+                            <button
+                                className={`fc-vehicle-trigger ${vehicleDropdownOpen ? 'open' : ''} ${selectedVehicles.length > 0 ? 'has-selection' : ''}`}
+                                onClick={() => setVehicleDropdownOpen(o => !o)}
+                                title="Filter by vehicle"
+                            >
+                                <span className="fc-vehicle-trigger-label">
+                                    {selectedVehicles.length === 0
+                                        ? 'All Vehicles'
+                                        : selectedVehicles.length === 1
+                                        ? selectedVehicles[0].label
+                                        : `${selectedVehicles.length} vehicles`
+                                    }
+                                </span>
+                                {selectedVehicles.length > 0 && (
+                                    <span
+                                        className="fc-vehicle-clear"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedVehicles([]); setCompPage(1); }}
+                                        title="Clear vehicle filter"
+                                    >
+                                        <X size={12} />
+                                    </span>
+                                )}
+                                <ChevronDown size={14} className={`fc-vehicle-chevron ${vehicleDropdownOpen ? 'rotated' : ''}`} />
+                            </button>
+
+                            {vehicleDropdownOpen && (
+                                <div className="fc-vehicle-dropdown">
+                                    <div className="fc-vehicle-search">
+                                        <Search size={13} />
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            placeholder="Search vehicles…"
+                                            value={vehicleSearch}
+                                            onChange={e => setVehicleSearch(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="fc-vehicle-list">
+                                        {vehicleOptions
+                                            .filter(v => v.label.toLowerCase().includes(vehicleSearch.toLowerCase()))
+                                            .map(v => {
+                                                const isSelected = selectedVehicles.some(s => s.id === v.id);
+                                                return (
+                                                    <div
+                                                        key={v.id}
+                                                        className={`fc-vehicle-option ${isSelected ? 'selected' : ''}`}
+                                                        onClick={() => toggleVehicle(v)}
+                                                    >
+                                                        <span className="fc-vehicle-checkbox">
+                                                            {isSelected && <CheckCircle2 size={13} />}
+                                                        </span>
+                                                        <span className="fc-vehicle-reg">{v.label}</span>
+                                                    </div>
+                                                );
+                                            })
+                                        }
+                                        {vehicleOptions.filter(v => v.label.toLowerCase().includes(vehicleSearch.toLowerCase())).length === 0 && (
+                                            <div className="fc-vehicle-empty">No vehicles found</div>
+                                        )}
+                                    </div>
+                                    {selectedVehicles.length > 0 && (
+                                        <div className="fc-vehicle-footer">
+                                            <span>{selectedVehicles.length} selected</span>
+                                            <button onClick={() => { setSelectedVehicles([]); setCompPage(1); }}>Clear all</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Selected vehicle chips */}
+                        {selectedVehicles.length > 0 && selectedVehicles.length <= 3 && (
+                            <div className="fc-vehicle-chips">
+                                {selectedVehicles.map(v => (
+                                    <span key={v.id} className="fc-vehicle-chip">
+                                        {v.label}
+                                        <button onClick={() => removeVehicle(v.id)}><X size={11} /></button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
                         <input 
                             type="date" 
                             className="fc-date-input" 
