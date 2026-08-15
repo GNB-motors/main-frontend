@@ -16,8 +16,8 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    margin-left: 64px; /* Always account for the collapsed icon-rail width */
-    transition: margin-left 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    margin-left: 100px; /* Always account for collapsed sidebar width */
+    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     height: 100vh;
     padding-top: var(--navbar-height, 72px); /* Pad for fixed navbar */

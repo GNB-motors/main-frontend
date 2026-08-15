@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
-import Chevron from './Icons/Chevron.jsx';
+import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
@@ -167,7 +167,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <Icon size={20} />
                         <span>{item.label}</span>
                     </div>
-                    <Chevron
+                    <ChevronIcon
                         size={16}
                         className={`chevron-icon ${isOpen ? 'rotated' : ''}`}
                     />
@@ -179,7 +179,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                                 key={`${child.to}-${child.label}`}
                                 to={child.to}
                                 end={child.end}
-                                className="nav-child"
+                                className="nav-link nav-child"
                                 onClick={closeSidebarOnMobile}
                             >
                                 <span>{child.label}</span>
@@ -197,20 +197,22 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             onMouseEnter={() => setIsSidebarHovered(true)}
             onMouseLeave={() => setIsSidebarHovered(false)}
         >
-            <div className="sidebar-header">
-                <img
-                    src={logoSrc}
-                    alt={logoAlt}
-                    className="logo-img"
-                    onError={() => setLogoFailed(true)}
-                />
+            <div className="sidebar-content">
+                <div className="sidebar-header">
+                    <img
+                        src={logoSrc}
+                        alt={logoAlt}
+                        className="logo-img"
+                        onError={() => setLogoFailed(true)}
+                    />
+                </div>
+                <nav className="sidebar-nav">
+                    {navItems.map(renderNavItem)}
+                </nav>
             </div>
-            <nav className="sidebar-nav">
-                {navItems.map(renderNavItem)}
-            </nav>
 
             <div className="sidebar-footer">
-                <button className="logout-btn" onClick={handleLogout}>
+                <button className="nav-link logout-btn" onClick={handleLogout}>
                     <LogOut size={20} />
                     <span>Log Out</span>
                 </button>

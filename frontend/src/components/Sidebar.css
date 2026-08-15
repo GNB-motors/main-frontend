@@ -1,108 +1,294 @@
-/*
- * Collapsible icon-rail side navigation.
- * The scale is a coherent 4px-rhythm system — keep the values in step.
- * Expansion is hover-driven on desktop (CSS :hover); the rail overlays the page
- * (position: fixed) so growing it never reflows the content.
- */
 .sidebar {
-    /* ── the scale (single source of truth) ── */
-    --rail-collapsed: 64px;
-    --rail-expanded: 220px;
-    --nav-row-h: 40px;
-    --nav-sub-row-h: 32px;
-    --nav-sub-row-gap: 4px;
-    --nav-icon-size: 24px;
-    --nav-row-pad-x: 8px;
-    --nav-icon-gap: 11px;
-    --nav-radius: 10px;
-    --nav-sub-radius: 8px;
-    --nav-label-x: 43px; /* pad-x(8) + icon(24) + gap(11) */
-    --nav-ease: cubic-bezier(0.22, 1, 0.36, 1); /* easeOutQuint */
-    --nav-text: #2b2b2f;
-    --nav-muted: #6b6b73;
-    --nav-faint: #9a9aa2;
-    --nav-hover-bg: rgba(17, 17, 20, 0.045);
-
-    width: var(--rail-collapsed);
+    width: 120px;
+    background-color: var(--color-white);
+    padding: 8px !important;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-grey-200);
+    flex-shrink: 0;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                margin-left 0.3s ease;
     position: fixed;
-    top: 0;
-    left: 0;
     height: 100vh;
     height: 100dvh; /* survive mobile browser chrome collapsing */
-    z-index: 1004;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-white);
-    border-right: 1px solid var(--color-grey-200);
-    box-shadow: none;
+    top: 0;
+    left: 0;
+    z-index: 1004 !important;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
     overflow: hidden; /* the nav scrolls, the shell never does */
-    transition: width 340ms var(--nav-ease), box-shadow 340ms var(--nav-ease);
 }
 
-/* ── Band 1: brand header ─────────────────────────────────────── */
-.sidebar-header {
-    flex-shrink: 0;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 8px;
-    overflow: hidden;
-    transition: height 340ms var(--nav-ease);
-}
-
-.logo-img {
-    height: 44px;
-    width: auto;
-    max-width: 100%;
-    object-fit: contain;
-    transition: height 340ms var(--nav-ease);
-}
-
-/* ── Band 2: scrolling nav list ───────────────────────────────── */
-.sidebar-nav {
-    flex: 1;
-    min-height: 0;
+.sidebar-content {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 0 12px 20px;
-    margin-top: 12px;
+    flex-grow: 1; /* Pushes footer down */
+    /* Without min-height:0 a flex item refuses to shrink below its content
+       height, so overflow-y never engages and the tail of the nav is unreachable. */
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: hidden;
-    overflow-y: hidden;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
 }
 
-.sidebar-nav::-webkit-scrollbar { width: 6px; }
-.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-.sidebar-nav::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; transition: background 0.2s ease; }
-
-/* ── Band 3: footer ───────────────────────────────────────────── */
-.sidebar-footer {
-    flex-shrink: 0;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 12px;
-    border-top: 1px solid rgba(17, 17, 20, 0.06);
-    background-color: var(--color-white);
+.sidebar:hover .sidebar-content {
+    scrollbar-color: var(--color-grey-200) transparent;
 }
 
-/* ── Rows (links + group parents) ─────────────────────────────── */
-.nav-link,
-.nav-parent {
-    height: var(--nav-row-h);
-    padding: 0 var(--nav-row-pad-x);
-    border-radius: var(--nav-radius);
+.sidebar-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.sidebar:hover .sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--color-grey-200);
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    margin-top: 12px;
+    overflow: hidden;
+    height: auto;
+    min-height: 40px;
+    flex-shrink: 0;
+    transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-grey-800);
+    white-space: nowrap;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logo-img {
+    flex-shrink: 0;
+    height: 48px;
+    width: auto;
+    max-width: 100%;
+    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
+}
+
+.nav-link {
     display: flex;
     align-items: center;
-    gap: var(--nav-icon-gap);
-    color: var(--nav-muted);
+    padding: 10px 8px;
+    border-radius: var(--border-radius-md);
+    color: var(--color-grey-400);
     text-decoration: none;
-    font-size: 13.5px;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Gap only when sidebar is hovered */
+.sidebar:hover .nav-link {
+    gap: var(--spacing-md);
+}
+
+.nav-link span {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure Lucide React icons inherit the proper colors */
+.nav-link svg {
+    color: inherit;
+    transition: color 0.2s ease, 
+                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.nav-link.active {
+    /* Use the themed light primary background + primary text colour so the
+       active highlight follows the user's chosen primary color. */
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.sidebar-footer {
+    padding-top: 12px;
+    border-top: 1px solid var(--color-grey-200);
+    flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
+    background-color: var(--color-white); /* Match sidebar bg so it looks solid */
+}
+
+.logout-btn {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    /* The padding is inherited from .nav-link */
+    color: var(--color-grey-400);
+}
+
+.logout-btn:hover span, .logout-btn:hover {
+    color: var(--primary-color);
+}
+.logout-btn:hover {
+    background-color: var(--primary-light);
+}
+
+/* === Desktop Hover Styles === */
+@media (min-width: 993px) {
+    .sidebar {
+        width: 100px;
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+
+    .sidebar:hover {
+        width: 260px;
+        padding-left: var(--spacing-lg);
+        padding-right: var(--spacing-lg);
+    }
+
+    .sidebar .nav-link svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .sidebar .logo-img {
+        height: 70px;
+        width: 70px;
+        margin-left: 10px;
+    }
+
+    .sidebar .logo-text,
+    .sidebar .nav-link span {
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+    }
+
+    .sidebar:hover .logo-text,
+    .sidebar:hover .nav-link span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
+    }
+
+    .sidebar .sidebar-header {
+        justify-content: center;
+    }
+
+    .sidebar:hover .sidebar-header {
+        justify-content: flex-start;
+    }
+
+    .sidebar .nav-link {
+        justify-content: center;
+        gap: 0;
+    }
+
+    .sidebar:hover .nav-link {
+        justify-content: flex-start;
+    }
+}
+
+/* === Mobile Overlay Styles === */
+@media (max-width: 992px) {
+    .sidebar {
+        width: 260px;
+        margin-left: -260px;
+        box-shadow: 0 0 40px rgba(0,0,0,0.1);
+    }
+
+    .sidebar.open {
+        margin-left: 0;
+    }
+
+    .sidebar .logo-text,
+    .sidebar .nav-link span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
+    }
+
+    .sidebar .sidebar-header {
+        justify-content: flex-start;
+    }
+
+    .sidebar .nav-link {
+        justify-content: flex-start;
+        gap: var(--spacing-md);
+    }
+}
+
+/* === Section headings === */
+.nav-section-label {
+    padding: 14px 8px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-grey-400);
+    white-space: nowrap;
+    overflow: hidden;
+    user-select: none;
+}
+
+.nav-section-label:first-child {
+    padding-top: 4px;
+}
+
+.nav-section-label span {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === Vehicle Activity Collapsible Section === */
+.nav-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-parent {
+    display: flex;
+    align-items: center;
+    padding: 10px 8px;
+    border-radius: var(--border-radius-md);
+    color: var(--color-grey-400);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     background: none;
@@ -110,296 +296,224 @@
     cursor: pointer;
     width: 100%;
     text-align: left;
-    transition: background-color 140ms var(--nav-ease), color 140ms var(--nav-ease), transform 60ms var(--nav-ease);
-}
-
-.nav-parent {
+    position: relative;
     justify-content: space-between;
-    gap: 0;
+    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.2s ease,
+                color 0.2s ease;
 }
 
 .nav-parent-left {
     display: flex;
     align-items: center;
-    gap: var(--nav-icon-gap);
+    gap: var(--spacing-md);
     flex: 1;
-    min-width: 0;
 }
 
-/* Icon is a fixed column so labels align regardless of glyph. */
-.nav-link > svg,
-.nav-parent-left > svg {
-    flex: 0 0 var(--nav-icon-size);
-    width: var(--nav-icon-size);
-    height: var(--nav-icon-size);
-    display: block;
+.nav-parent-left svg {
+    flex-shrink: 0;
     color: inherit;
-    transition: transform 200ms var(--nav-ease);
+    transition: color 0.2s ease, 
+                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-link:hover,
 .nav-parent:hover {
-    background-color: var(--nav-hover-bg);
-    color: var(--nav-text);
-}
-
-.nav-link:hover > svg,
-.nav-parent:hover .nav-parent-left > svg {
-    transform: translateY(-1px);
-}
-
-.nav-link:active,
-.nav-parent:active {
-    transform: scale(0.985);
-    transition-duration: 60ms;
-}
-
-/* Keyboard focus. Inset offset so the rail's overflow:hidden can't clip the ring. */
-.nav-link:focus-visible,
-.nav-parent:focus-visible,
-.nav-child:focus-visible,
-.logout-btn:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: -2px;
-}
-
-/* Active row = tinted pill, not a flat swap. */
-.nav-link.active,
-.nav-parent.active-parent {
     background-color: var(--primary-light);
     color: var(--primary-color);
-    font-weight: 600;
 }
 
-/* Label reveal (only meaningful when expanded). */
-.nav-link span,
-.nav-parent span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.nav-parent.active-parent {
+    /* Active parent uses themed light primary background + primary text. */
+    background-color: var(--primary-light);
+    color: var(--primary-color);
 }
 
-@keyframes navLabelReveal {
-    from { opacity: 0; transform: translateX(-6px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* Badge (e.g. approvals count) pinned to the right of a link. */
-.nav-link .erp-badge { margin-left: auto; }
-
-/* ── Chevron: one glyph, rotated ──────────────────────────────── */
 .chevron-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
-    color: var(--nav-faint);
-    transform: rotate(0deg);
-    transition: transform 240ms var(--nav-ease);
+    margin-left: auto;
+    transform: rotate(0deg); /* closed: point right */
 }
-.chevron-icon.rotated { transform: rotate(180deg); }
 
-/* ── Group children (grid 0fr↔1fr avoids a JS height measure) ─── */
-.nav-section { display: flex; flex-direction: column; }
+.chevron-icon.rotated {
+    /* open: point down */
+    transform: rotate(-180deg);
+}
 
+/* Collapse/expand animates grid-template-rows 0fr <-> 1fr rather than
+   max-height. max-height needs a fixed "big enough" value, so a short group
+   spends most of the transition collapsing empty space — which reads as a stall
+   followed by a snap. 0fr/1fr resolves to the real content height, so open and
+   close take the same time regardless of how many children a group has. */
 .nav-children {
     display: grid;
     grid-template-rows: 0fr;
     overflow: hidden;
     opacity: 0;
-    transition: grid-template-rows 340ms var(--nav-ease), opacity 200ms var(--nav-ease);
+    padding-top: 0;
+    transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                padding-top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s ease;
 }
-.nav-children.open { grid-template-rows: 1fr; opacity: 1; padding-top: var(--nav-sub-list-pad, 2px); }
+
 .nav-children-inner {
     display: flex;
     flex-direction: column;
-    gap: var(--nav-sub-row-gap);
-    min-height: 0;
+    gap: 6px;
+    min-height: 0;   /* Required: lets the 0fr row actually clip its content */
     overflow: hidden;
+}
+
+.nav-children.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    padding-top: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-children {
+        transition-duration: 0.01ms;
+    }
 }
 
 .nav-child {
-    position: relative;
-    height: var(--nav-sub-row-h);
-    padding: 0 var(--nav-row-pad-x) 0 var(--nav-label-x);
-    border-radius: var(--nav-sub-radius);
-    display: flex;
-    align-items: center;
-    color: var(--nav-muted);
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: background-color 140ms var(--nav-ease), color 140ms var(--nav-ease);
+    padding: 11px 10px 11px 48px !important;
+    font-size: 14px;
+    line-height: 1.35;
 }
 
-.nav-child span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Child bullet, centered under the parent's icon column. */
-.nav-child::before {
-    content: '';
-    position: absolute;
-    left: calc(var(--nav-row-pad-x) + var(--nav-icon-size) / 2 - 2.5px); /* 17.5px */
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: currentColor;
-    opacity: 0.32;
-    transition: opacity 140ms var(--nav-ease), transform 140ms var(--nav-ease);
+.nav-child span {
+    margin-left: 0;
 }
-.nav-child:hover { background-color: var(--nav-hover-bg); color: var(--nav-text); }
-.nav-child:hover::before { opacity: 0.55; }
-.nav-child.active { color: var(--primary-color); font-weight: 600; }
-.nav-child.active::before { opacity: 1; transform: scale(1.15); }
 
-/* ── Section headers (grouping labels) ────────────────────────── */
-.nav-section-label {
-    margin: 18px 0 4px;
-    padding: 0 10px;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.11em;
-    line-height: 14px;
-    text-transform: uppercase;
-    color: var(--nav-faint);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    pointer-events: none;
-    user-select: none;
-}
-.nav-section-label:first-child { margin-top: 4px; }
-.nav-section-label span { animation: navLabelReveal 220ms var(--nav-ease); }
-
-/* ══ Collapsed rail (desktop, not hovered) ════════════════════════ */
+/* Desktop specific styles for collapsed sidebar */
 @media (min-width: 993px) {
-    /* Rows become square pucks. */
-    .sidebar .nav-link,
-    .sidebar .nav-parent { justify-content: center; padding: 0; gap: 0; }
-    .sidebar .nav-parent-left { justify-content: center; gap: 0; }
-    .sidebar .nav-link span,
-    .sidebar .nav-parent span { display: none; }
-    .sidebar .chevron-icon { display: none; }
-    .sidebar .nav-children { display: none; }
-    .sidebar .nav-link .erp-badge { display: none; }
-
-    /* Section header text → a short gradient rule. Height is driven by the
-       ::before divider + the (hidden) label text, never forced to 1px: a fixed
-       height that only a :hover rule undoes crams the text into a sliver if that
-       reset ever loses the cascade. Hiding the span collapses it to the 1px rule. */
+    /* Collapsed: the heading text can't fit, so show a short rule instead —
+       the sections stay visually separated without any label. */
     .sidebar .nav-section-label {
-        margin: 10px 8px;
-        padding: 0;
+        padding: 12px 8px 8px;
+        display: flex;
+        justify-content: center;
     }
-    .sidebar .nav-section-label span { display: none; }
+
+    .sidebar .nav-section-label span {
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+        height: 0;
+    }
+
     .sidebar .nav-section-label::before {
         content: '';
-        display: block;
         height: 1px;
-        width: 100%;
-        background: linear-gradient(90deg, transparent, rgba(17, 17, 20, 0.14), transparent);
+        width: 28px;
+        background-color: var(--color-grey-200);
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.2s ease;
     }
 
-    .sidebar-header { justify-content: flex-start; }
-    .logo-img { height: 44px; }
+    .sidebar:hover .nav-section-label {
+        display: block;
+    }
 
-    /* ── Expanded on hover ── */
-    :is(.sidebar:hover, .sidebar:focus-within) {
-        width: var(--rail-expanded);
-        box-shadow: 2px 0 16px 0 rgba(0, 0, 0, 0.04);
-    }
-    :is(.sidebar:hover, .sidebar:focus-within) .sidebar-header { height: 80px; justify-content: center; }
-    :is(.sidebar:hover, .sidebar:focus-within) .logo-img { height: 64px; }
-    :is(.sidebar:hover, .sidebar:focus-within) .sidebar-nav {
-        overflow-y: auto;
-        -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 16px), transparent 100%);
-        mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 16px), transparent 100%);
-    }
-    :is(.sidebar:hover, .sidebar:focus-within) .sidebar-nav::-webkit-scrollbar-thumb { background: var(--color-grey-200); }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-link { justify-content: flex-start; padding: 0 var(--nav-row-pad-x); gap: var(--nav-icon-gap); }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-parent { justify-content: space-between; padding: 0 var(--nav-row-pad-x); }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-parent-left { justify-content: flex-start; gap: var(--nav-icon-gap); }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-link span,
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-parent span { display: inline; animation: navLabelReveal 220ms var(--nav-ease); }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-link .erp-badge { display: inline-flex; }
-    :is(.sidebar:hover, .sidebar:focus-within) .chevron-icon { display: block; }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-children { display: grid; }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-section-label {
-        margin: 18px 0 4px;
-        padding: 0 10px;
+    .sidebar:hover .nav-section-label span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
         height: auto;
     }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-section-label:first-child { margin-top: 4px; }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-section-label span { display: inline; }
-    :is(.sidebar:hover, .sidebar:focus-within) .nav-section-label::before { display: none; }
+
+    .sidebar:hover .nav-section-label::before {
+        display: none;
+    }
+
+    /* When sidebar is collapsed (not hovered) */
+    .sidebar .nav-parent {
+        justify-content: center;
+        gap: 0;
+    }
+    
+    .sidebar .nav-parent-left {
+        gap: 0;
+        justify-content: center;
+    }
+    
+    .sidebar .nav-parent-left svg {
+        width: 24px;
+        height: 24px;
+        margin: 0px 0 0 24px;
+    }
+
+    .sidebar .chevron-icon {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+    }
+    
+    .sidebar .nav-children {
+        display: none;
+    }
+    
+    .sidebar .nav-parent span {
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+    }
+    
+    /* When sidebar is hovered/expanded */
+    .sidebar:hover .nav-parent {
+        justify-content: space-between;
+        gap: var(--spacing-md);
+    }
+
+    .sidebar:hover .nav-parent-left svg {
+        margin: 0; 
+    }
+    .sidebar:hover .nav-parent-left {
+        gap: var(--spacing-md);
+        justify-content: flex-start;
+    }
+    
+    .sidebar:hover .nav-parent span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
+    }
+    
+    .sidebar:hover .chevron-icon {
+        opacity: 1;
+        width: 16px;
+    }
+    
+    .sidebar:hover .nav-children {
+        display: grid;
+    }
+
+    .sidebar:hover .nav-children.open {
+        opacity: 1;
+        grid-template-rows: 1fr;
+    }
+    
+    .sidebar .nav-child {
+        justify-content: flex-start;
+    }
 }
 
-/* ══ Footer logout button ═════════════════════════════════════════ */
-.logout-btn {
-    width: 100%;
-    height: var(--nav-row-h);
-    padding: 0 var(--nav-row-pad-x);
-    display: flex;
-    align-items: center;
-    gap: var(--nav-icon-gap);
-    border-radius: var(--nav-radius);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--nav-muted);
-    font-size: 13.5px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    transition: background-color 140ms var(--nav-ease), color 140ms var(--nav-ease);
-}
-.logout-btn > svg { flex: 0 0 var(--nav-icon-size); width: var(--nav-icon-size); height: var(--nav-icon-size); }
-.logout-btn:hover { background-color: var(--primary-light); color: var(--primary-color); }
 
-@media (min-width: 993px) {
-    .sidebar .logout-btn { justify-content: center; padding: 0; gap: 0; }
-    .sidebar .logout-btn span { display: none; }
-    :is(.sidebar:hover, .sidebar:focus-within) .logout-btn { justify-content: flex-start; padding: 0 var(--nav-row-pad-x); gap: var(--nav-icon-gap); }
-    :is(.sidebar:hover, .sidebar:focus-within) .logout-btn span { display: inline; }
-}
-
-/* ══ Mobile overlay ═══════════════════════════════════════════════ */
+/* Mobile styles */
 @media (max-width: 992px) {
-    .sidebar {
-        width: var(--rail-expanded);
-        margin-left: calc(-1 * var(--rail-expanded));
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
-        transition: margin-left 0.3s var(--nav-ease);
+    .nav-parent {
+        justify-content: space-between;
     }
-    .sidebar.open { margin-left: 0; }
-    .sidebar-nav { overflow-y: auto; }
-    .sidebar .nav-link span,
-    .sidebar .nav-parent span,
-    .sidebar .logout-btn span { display: inline; }
-    .sidebar .nav-link { justify-content: flex-start; gap: var(--nav-icon-gap); }
-    .sidebar .nav-parent { justify-content: space-between; }
-    .sidebar .nav-parent-left { gap: var(--nav-icon-gap); }
-    .sidebar .chevron-icon { display: block; }
-}
-
-/* ══ Reduced motion ═══════════════════════════════════════════════ */
-@media (prefers-reduced-motion: reduce) {
-    .sidebar,
-    .sidebar-header,
-    .logo-img,
-    .nav-link,
-    .nav-parent,
-    .nav-child,
-    .chevron-icon,
-    .nav-children,
-    .nav-link > svg,
-    .nav-parent-left > svg {
-        transition: none;
+    
+    .nav-parent-left {
+        gap: var(--spacing-md);
     }
-    .nav-link span,
-    .nav-parent span,
-    .nav-section-label span { animation: none; }
-    .nav-link:active,
-    .nav-parent:active,
-    .nav-link:hover > svg,
-    .nav-parent:hover .nav-parent-left > svg { transform: none; }
+    
+    .chevron-icon {
+        opacity: 1;
+        width: 16px;
+    }
 }
