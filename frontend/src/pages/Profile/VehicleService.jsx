@@ -155,6 +155,28 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
   }
 };
 
+// Import (move) an existing enterprise vehicle into the active location. Raw
+// axios (no interceptor), so pass the active branch explicitly via header + body.
+const importVehicle = async (vehicleId, token) => {
+    try {
+        const branchId = localStorage.getItem('user_branchId') || undefined;
+        const response = await axios.post(
+            `${API_BASE_URL}/api/vehicles/${vehicleId}/import`,
+            { branchId },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...(branchId ? { 'X-Branch-Id': branchId } : {}),
+                },
+            }
+        );
+        return response.data?.data ?? response.data;
+    } catch (error) {
+        throw error.response?.data || { detail: error.message || 'Could not import vehicle.' };
+    }
+};
+
 const removeVehicle = async (businessRefId, vehicleId, token) => {
     try {
         const response = await axios.delete(
@@ -356,6 +378,7 @@ export const VehicleService = {
   getAllVehicles,
   addVehicle,
   addBulkVehicles,
+  importVehicle,
   removeVehicle,
   updateVehicle,
   getVehicleCorrectionLogs,

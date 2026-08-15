@@ -8,7 +8,7 @@ import './ProfilePage.css';
 import './VehiclesPage.css';
 
 // Import assets and icons
-import { Plus, Edit, Trash2, MoreHorizontal, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, MoreHorizontal, Upload, ToggleRight } from 'lucide-react';
 
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
@@ -74,8 +74,11 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
  * Stateless wrapper that owns the triggerRef for the PortalDropdown.
  * Keeps the portal trigger and its ref co-located.
  */
-function VehicleActionMenu({ vehicle, isOpen, onToggle, onClose, isSubmitting, onEdit, onDelete }) {
+function VehicleActionMenu({ vehicle, isOpen, onToggle, onClose, isSubmitting, onEdit, onDelete, onActivateHere }) {
     const btnRef = React.useRef(null);
+    // A vehicle deactivated here (moved to another location) can't be edited here —
+    // the only action is to activate it back into this location.
+    const isDeactivatedHere = vehicle?.branchStatus === 'DEACTIVATED';
 
     return (
         <div className="vehicle-action-menu-container">
@@ -89,30 +92,47 @@ function VehicleActionMenu({ vehicle, isOpen, onToggle, onClose, isSubmitting, o
                 <MoreHorizontal size={18} />
             </button>
             <PortalDropdown triggerRef={btnRef} isOpen={isOpen} onClose={onClose}>
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onClose();
-                        onEdit();
-                    }}
-                    disabled={isSubmitting}
-                >
-                    <Edit size={16} /> Edit
-                </button>
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onClose();
-                        onDelete();
-                    }}
-                    disabled={isSubmitting}
-                >
-                    <Trash2 size={16} /> Remove
-                </button>
+                {isDeactivatedHere ? (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onClose();
+                            onActivateHere();
+                        }}
+                        disabled={isSubmitting}
+                    >
+                        <ToggleRight size={16} /> Mark as active
+                    </button>
+                ) : (
+                    <>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onClose();
+                                onEdit();
+                            }}
+                            disabled={isSubmitting}
+                        >
+                            <Edit size={16} /> Edit
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onClose();
+                                onDelete();
+                            }}
+                            disabled={isSubmitting}
+                        >
+                            <Trash2 size={16} /> Remove
+                        </button>
+                    </>
+                )}
             </PortalDropdown>
         </div>
     );
@@ -198,6 +218,7 @@ const VehiclesPage = () => {
     const [vehicleError, setVehicleError] = useState(null);
     const [formError, setFormError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
     const [openMenuId, setOpenMenuId] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -274,6 +295,9 @@ const VehiclesPage = () => {
                     vehicleCategory: v.vehicleCategory || null,
                     classification: v.classification || null,
                     fleetEdgeAccountId: v.fleetEdgeAccountId || null,
+                    // Branch membership state (present only in a branch view).
+                    branchStatus: v.branchStatus,
+                    isImported: v.isImported,
                 }));
 
                 // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
@@ -292,7 +316,7 @@ const VehiclesPage = () => {
             }
         };
         fetchVehicles();
-    }, [businessRefId, currentPage, itemsPerPage]);
+    }, [businessRefId, currentPage, itemsPerPage, refreshKey]);
 
     // --- Add Vehicle ---
     const handleAddVehicle = async (vehicleData) => {
@@ -362,6 +386,19 @@ const VehiclesPage = () => {
     };
 
     // --- Edit Vehicle ---
+    // Activate a deactivated (moved-away) vehicle back into the current location.
+    // Re-import moves it here (active here, deactivated where it was).
+    const handleActivateHere = async (vehicle) => {
+        const token = localStorage.getItem('authToken');
+        try {
+            await VehicleService.importVehicle(vehicle.id, token);
+            toast.success('Vehicle activated in this location');
+            setRefreshKey((k) => k + 1);
+        } catch (err) {
+            toast.error(err?.detail || err?.message || 'Could not activate vehicle here');
+        }
+    };
+
     const handleEditVehicle = (vehicleToEdit) => {
         console.log("Attempting to edit vehicle:", vehicleToEdit);
         setOpenMenuId(null);
@@ -599,12 +636,27 @@ const VehiclesPage = () => {
                                             </thead>
                                             <tbody>
                                                 {displayVehicles.map(vehicle => (
-                                                    <tr 
+                                                    <tr
                                                         key={vehicle.id}
                                                         className={`vehicles-table-row ${openMenuId === vehicle.id ? 'menu-open' : ''}`}
-                                                        onClick={() => navigate('/vehicles/add', { state: { editingVehicle: vehicle } })}
+                                                        onClick={() => {
+                                                            // Deactivated (moved-away) vehicles are read-only here.
+                                                            if (vehicle.branchStatus === 'DEACTIVATED') return;
+                                                            navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
+                                                        }}
                                                     >
-                                                        <td style={{ fontWeight: 600 }}>{vehicle.registration_no}</td>
+                                                        <td style={{ fontWeight: 600 }}>
+                                                            {vehicle.registration_no}
+                                                            {vehicle.branchStatus === 'DEACTIVATED' && (
+                                                                <span
+                                                                    className="vehicle-badge"
+                                                                    title="Moved to another location — deactivated here"
+                                                                    style={{ marginLeft: 8, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
+                                                                >
+                                                                    Deactivated
+                                                                </span>
+                                                            )}
+                                                        </td>
                                                         <td>{vehicle.model || 'N/A'}</td>
                                                         <td>
                                                             {vehicle.manufacturer && vehicle.manufacturer !== 'UNKNOWN' ? (
@@ -671,6 +723,7 @@ const VehiclesPage = () => {
                                                                 onDelete={() => {
                                                                     handleOpenDeleteModal(vehicle);
                                                                 }}
+                                                                onActivateHere={() => handleActivateHere(vehicle)}
                                                             />
                                                         </td>
                                                     </tr>

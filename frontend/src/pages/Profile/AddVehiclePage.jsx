@@ -9,6 +9,10 @@ import PageHeader from '../Drivers/Component/PageHeader.jsx';
 import VehicleBasicInformationForm from './Component/VehicleBasicInformationForm.jsx';
 import VehicleDocumentUpload, { VEHICLE_DOC_TYPES, emptyDocsState } from './Component/VehicleDocumentUpload.jsx';
 import FormFooter from '../Drivers/Component/FormFooter.jsx';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import { Truck, Building2 } from 'lucide-react';
 import './VehiclesPage.css';
 
 const BACKEND_TO_UI = VEHICLE_DOC_TYPES.reduce((acc, d) => {
@@ -40,6 +44,10 @@ const AddVehiclePage = () => {
   // Owning location (branch) for the new vehicle. Defaults to the active location.
   const { branchId: activeBranchId, branches } = useActiveBranch();
   const [selectedBranchId, setSelectedBranchId] = useState('');
+  // When the entered registration number already belongs to an enterprise
+  // vehicle, we surface the Import Vehicle modal instead of creating a duplicate.
+  const [importCandidate, setImportCandidate] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   // Default the vehicle's location to the active location. '' means Enterprise
   // (no specific location) — a valid choice that creates an enterprise-level vehicle.
@@ -202,10 +210,30 @@ const AddVehiclePage = () => {
       }
     } catch (err) {
       console.error('Add/Edit vehicle error', err);
-      const msg = err?.detail || 'Failed to create/update vehicle';
+      // Registration already belongs to a vehicle in this enterprise → offer Import.
+      if (err?.code === 'ALREADY_IN_ENTERPRISE' && err?.data?.vehicle) {
+        setImportCandidate(err.data.vehicle);
+        return;
+      }
+      const msg = err?.detail || err?.message || 'Failed to create/update vehicle';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importCandidate?.id) return;
+    setImporting(true);
+    try {
+      await VehicleService.importVehicle(importCandidate.id, localStorage.getItem('authToken'));
+      toast.success('Vehicle imported and activated in this location.');
+      setImportCandidate(null);
+      navigate('/vehicles');
+    } catch (err) {
+      toast.error(err?.detail || err?.message || 'Failed to import vehicle');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -304,6 +332,62 @@ const AddVehiclePage = () => {
         isEdit={isEdit}
         submitText={isEdit ? 'Update Vehicle' : 'Add Vehicle'}
       />
+
+      {/* Import Vehicle — shown when the registration already exists in the enterprise. */}
+      <Dialog open={!!importCandidate} onOpenChange={(o) => { if (!o && !importing) setImportCandidate(null); }}>
+        <DialogContent className="max-w-md p-0">
+          <DialogHeader>
+            <DialogTitle>Import existing vehicle</DialogTitle>
+            <DialogDescription>
+              This registration number already belongs to a vehicle in your enterprise. Import it into the
+              current location instead of creating a duplicate — it becomes active here and is deactivated
+              in its previous location.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-6 py-4">
+            {importCandidate && (
+              <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Truck size={18} />
+                </div>
+                <div className="text-sm">
+                  <div className="font-semibold">{importCandidate.registrationNumber}</div>
+                  <div className="text-muted-foreground">
+                    {[importCandidate.manufacturer, importCandidate.model].filter(Boolean).join(' ') || importCandidate.vehicleType || '—'}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                    <Building2 size={13} />
+                    Currently in: {importCandidate.homeBranch?.name || 'Enterprise'}
+                  </div>
+                </div>
+              </div>
+            )}
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Its existing records stay with its previous location (history isn't moved).
+            </p>
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+              onClick={() => setImportCandidate(null)}
+              disabled={importing}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              onClick={confirmImport}
+              disabled={importing}
+            >
+              {importing ? 'Importing…' : 'Import to this location'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
