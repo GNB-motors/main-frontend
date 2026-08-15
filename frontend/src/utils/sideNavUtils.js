@@ -103,7 +103,9 @@ export const SIDE_NAV_ITEMS = [
 
   // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
-  { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard },
+  // `end` so ERP Home is active only on exactly /erp — without it the NavLink
+  // matches every /erp/* route and stays highlighted alongside the open group.
+  { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
   {
     type: 'group',
     groupId: 'erpPlanning',
