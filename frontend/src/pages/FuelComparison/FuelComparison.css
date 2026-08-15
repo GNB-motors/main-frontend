@@ -232,10 +232,20 @@
 
 .fc-table-toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 14px 24px;
   border-bottom: 1px solid #e2e8f0;
+}
+
+/* ── Filters bar (row below the tabs) ──────────────────────────────── */
+.fc-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+  flex-wrap: wrap;
 }
 
 .fc-tabs {
@@ -287,11 +297,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
+  background: white;
   border: 1px solid #e2e8f0;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: 8px;
-  width: 240px;
+  width: 210px;
+  height: 36px;
+  box-sizing: border-box;
 }
 .fc-search-box input {
   border: none;
@@ -317,12 +329,33 @@
   border-color: #cbd5e1;
 }
 
+.fc-date-range-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fc-date-sep {
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 0 2px;
+}
+
 .fc-filter-btn {
   height: 36px;
-  padding: 0 16px;
+  padding: 0 18px;
   background: #0f172a;
   color: white;
   border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 .fc-filter-btn:hover {
   background: #1e293b;

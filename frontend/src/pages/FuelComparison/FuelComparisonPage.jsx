@@ -395,7 +395,8 @@ const FuelComparisonPage = () => {
                 if (fromDate) params.fromDate = fromDate;
                 if (toDate) params.toDate = toDate;
                 if (selectedVehicles.length > 0) {
-                    params.vehicleIds = selectedVehicles.map(v => v.id).join(',');
+                    // Filter by registration number (vehicleNumber string field on task) — no ObjectId needed
+                    params.vehicleNumbers = selectedVehicles.map(v => v.label).join(',');
                 }
                 const data = await ReportsService.getExtensionComparisons(params);
                 setComparisons(data.records || []);
@@ -503,6 +504,7 @@ const FuelComparisonPage = () => {
             {/* Table Area */}
             <div className="fc-content-card">
                 <div className="fc-table-toolbar">
+                    {/* ── Row 1: Tabs ── */}
                     <div className="fc-tabs">
                         <button className={`fc-tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
                             All Comparisons
@@ -517,136 +519,130 @@ const FuelComparisonPage = () => {
                             {reviewTotal > 0 && <span className="fc-tab-badge fc-badge-review">{reviewTotal}</span>}
                         </button>
                     </div>
+                </div>
 
-                    <div className="fc-filters">
-                        <div className="fc-search-box">
-                            <Search size={16} />
-                            <input 
-                                type="text" 
-                                placeholder="Search vehicle or driver..." 
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
+                {/* ── Row 2: Filters ── */}
+                <div className="fc-filters-bar">
+                    {/* Search */}
+                    <div className="fc-search-box">
+                        <Search size={15} />
+                        <input
+                            type="text"
+                            placeholder="Search vehicle or driver..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
 
-                        {/* ── Vehicle multi-select filter ── */}
-                        <div className="fc-vehicle-filter" ref={vehicleDropdownRef}>
-                            <button
-                                className={`fc-vehicle-trigger ${vehicleDropdownOpen ? 'open' : ''} ${selectedVehicles.length > 0 ? 'has-selection' : ''}`}
-                                onClick={() => setVehicleDropdownOpen(o => !o)}
-                                title="Filter by vehicle"
-                            >
-                                <span className="fc-vehicle-trigger-label">
-                                    {selectedVehicles.length === 0
-                                        ? 'All Vehicles'
-                                        : selectedVehicles.length === 1
-                                        ? selectedVehicles[0].label
-                                        : `${selectedVehicles.length} vehicles`
-                                    }
+                    {/* Vehicle multi-select */}
+                    <div className="fc-vehicle-filter" ref={vehicleDropdownRef}>
+                        <button
+                            className={`fc-vehicle-trigger ${vehicleDropdownOpen ? 'open' : ''} ${selectedVehicles.length > 0 ? 'has-selection' : ''}`}
+                            onClick={() => setVehicleDropdownOpen(o => !o)}
+                            title="Filter by vehicle"
+                        >
+                            <span className="fc-vehicle-trigger-label">
+                                {selectedVehicles.length === 0
+                                    ? 'All Vehicles'
+                                    : selectedVehicles.length === 1
+                                    ? selectedVehicles[0].label
+                                    : `${selectedVehicles.length} vehicles`
+                                }
+                            </span>
+                            {selectedVehicles.length > 0 && (
+                                <span
+                                    className="fc-vehicle-clear"
+                                    onClick={(e) => { e.stopPropagation(); setSelectedVehicles([]); setCompPage(1); }}
+                                    title="Clear vehicle filter"
+                                >
+                                    <X size={12} />
                                 </span>
-                                {selectedVehicles.length > 0 && (
-                                    <span
-                                        className="fc-vehicle-clear"
-                                        onClick={(e) => { e.stopPropagation(); setSelectedVehicles([]); setCompPage(1); }}
-                                        title="Clear vehicle filter"
-                                    >
-                                        <X size={12} />
-                                    </span>
-                                )}
-                                <ChevronDown size={14} className={`fc-vehicle-chevron ${vehicleDropdownOpen ? 'rotated' : ''}`} />
-                            </button>
+                            )}
+                            <ChevronDown size={14} className={`fc-vehicle-chevron ${vehicleDropdownOpen ? 'rotated' : ''}`} />
+                        </button>
 
-                            {vehicleDropdownOpen && (
-                                <div className="fc-vehicle-dropdown">
-                                    <div className="fc-vehicle-search">
-                                        <Search size={13} />
-                                        <input
-                                            autoFocus
-                                            type="text"
-                                            placeholder="Search vehicles…"
-                                            value={vehicleSearch}
-                                            onChange={e => setVehicleSearch(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="fc-vehicle-list">
-                                        {vehicleOptions
-                                            .filter(v => v.label.toLowerCase().includes(vehicleSearch.toLowerCase()))
-                                            .map(v => {
-                                                const isSelected = selectedVehicles.some(s => s.id === v.id);
-                                                return (
-                                                    <div
-                                                        key={v.id}
-                                                        className={`fc-vehicle-option ${isSelected ? 'selected' : ''}`}
-                                                        onClick={() => toggleVehicle(v)}
-                                                    >
-                                                        <span className="fc-vehicle-checkbox">
-                                                            {isSelected && <CheckCircle2 size={13} />}
-                                                        </span>
-                                                        <span className="fc-vehicle-reg">{v.label}</span>
-                                                    </div>
-                                                );
-                                            })
-                                        }
-                                        {vehicleOptions.filter(v => v.label.toLowerCase().includes(vehicleSearch.toLowerCase())).length === 0 && (
-                                            <div className="fc-vehicle-empty">No vehicles found</div>
-                                        )}
-                                    </div>
-                                    {selectedVehicles.length > 0 && (
-                                        <div className="fc-vehicle-footer">
-                                            <span>{selectedVehicles.length} selected</span>
-                                            <button onClick={() => { setSelectedVehicles([]); setCompPage(1); }}>Clear all</button>
-                                        </div>
+                        {vehicleDropdownOpen && (
+                            <div className="fc-vehicle-dropdown">
+                                <div className="fc-vehicle-search">
+                                    <Search size={13} />
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="Search vehicles…"
+                                        value={vehicleSearch}
+                                        onChange={e => setVehicleSearch(e.target.value)}
+                                    />
+                                </div>
+                                <div className="fc-vehicle-list">
+                                    {vehicleOptions
+                                        .filter(v => v.label.toLowerCase().includes(vehicleSearch.toLowerCase()))
+                                        .map(v => {
+                                            const isSelected = selectedVehicles.some(s => s.id === v.id);
+                                            return (
+                                                <div
+                                                    key={v.id}
+                                                    className={`fc-vehicle-option ${isSelected ? 'selected' : ''}`}
+                                                    onClick={() => toggleVehicle(v)}
+                                                >
+                                                    <span className="fc-vehicle-checkbox">
+                                                        {isSelected && <CheckCircle2 size={13} />}
+                                                    </span>
+                                                    <span className="fc-vehicle-reg">{v.label}</span>
+                                                </div>
+                                            );
+                                        })
+                                    }
+                                    {vehicleOptions.filter(v => v.label.toLowerCase().includes(vehicleSearch.toLowerCase())).length === 0 && (
+                                        <div className="fc-vehicle-empty">No vehicles found</div>
                                     )}
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Selected vehicle chips */}
-                        {selectedVehicles.length > 0 && selectedVehicles.length <= 3 && (
-                            <div className="fc-vehicle-chips">
-                                {selectedVehicles.map(v => (
-                                    <span key={v.id} className="fc-vehicle-chip">
-                                        {v.label}
-                                        <button onClick={() => removeVehicle(v.id)}><X size={11} /></button>
-                                    </span>
-                                ))}
+                                {selectedVehicles.length > 0 && (
+                                    <div className="fc-vehicle-footer">
+                                        <span>{selectedVehicles.length} selected</span>
+                                        <button onClick={() => { setSelectedVehicles([]); setCompPage(1); }}>Clear all</button>
+                                    </div>
+                                )}
                             </div>
                         )}
+                    </div>
 
-                        <input 
-                            type="date" 
-                            className="fc-date-input" 
+                    {/* Date range */}
+                    <div className="fc-date-range-group">
+                        <input
+                            type="date"
+                            className="fc-date-input"
                             title="From Date"
                             value={inputFromDate}
                             onChange={(e) => setInputFromDate(e.target.value)}
                         />
-                        <span style={{color: '#94a3b8'}}>-</span>
-                        <input 
-                            type="date" 
-                            className="fc-date-input" 
+                        <span className="fc-date-sep">→</span>
+                        <input
+                            type="date"
+                            className="fc-date-input"
                             title="To Date"
                             value={inputToDate}
                             onChange={(e) => setInputToDate(e.target.value)}
                         />
-                        <button className="fc-btn fc-btn-primary fc-filter-btn" onClick={applyFilter}>
-                            Filter
-                        </button>
-                        {activeTab === 'all' && (
-                            <FormControl size="small" className="fc-select">
-                                <Select
-                                    value={flaggedOnly ? 'flagged' : 'all'}
-                                    onChange={(e) => setFlaggedOnly(e.target.value === 'flagged')}
-                                    displayEmpty
-                                    sx={{ minHeight: '36px', height: '36px', fontSize: '13px', borderRadius: '8px' }}
-                                >
-                                    <MenuItem value="all">All Status</MenuItem>
-                                    <MenuItem value="flagged">Flagged Only</MenuItem>
-                                </Select>
-                            </FormControl>
-                        )}
                     </div>
-                </div>
 
+                    <button className="fc-btn fc-filter-btn" onClick={applyFilter}>
+                        Filter
+                    </button>
+
+                    {activeTab === 'all' && (
+                        <FormControl size="small" className="fc-select">
+                            <Select
+                                value={flaggedOnly ? 'flagged' : 'all'}
+                                onChange={(e) => setFlaggedOnly(e.target.value === 'flagged')}
+                                displayEmpty
+                                sx={{ minHeight: '36px', height: '36px', fontSize: '13px', borderRadius: '8px' }}
+                            >
+                                <MenuItem value="all">All Status</MenuItem>
+                                <MenuItem value="flagged">Flagged Only</MenuItem>
+                            </Select>
+                        </FormControl>
+                    )}
+                </div>
                 <div className="fc-table-wrap">
                     {isLoadingComp ? (
                         <div className="fc-loading-state">
