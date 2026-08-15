@@ -282,11 +282,13 @@
     .sidebar .nav-children { display: none; }
     .sidebar .nav-link .erp-badge { display: none; }
 
-    /* Section header text → a short gradient rule. */
+    /* Section header text → a short gradient rule. Height is driven by the
+       ::before divider + the (hidden) label text, never forced to 1px: a fixed
+       height that only a :hover rule undoes crams the text into a sliver if that
+       reset ever loses the cascade. Hiding the span collapses it to the 1px rule. */
     .sidebar .nav-section-label {
         margin: 10px 8px;
         padding: 0;
-        height: 1px;
     }
     .sidebar .nav-section-label span { display: none; }
     .sidebar .nav-section-label::before {
