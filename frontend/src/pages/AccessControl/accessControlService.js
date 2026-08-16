@@ -28,6 +28,9 @@ const AccessControlApi = {
 
   // Branch access
   getBranchRoles: (branchId) => apiClient.get(`/api/access-control/branches/${branchId}/roles`).then(unwrap),
+  // Create a custom role scoped to a single branch.
+  createBranchRole: (branchId, body) =>
+    apiClient.post(`/api/access-control/branches/${branchId}/roles`, body).then(unwrap),
   setBranchRole: (branchId, roleId, body) =>
     apiClient.patch(`/api/access-control/branches/${branchId}/roles/${roleId}`, body).then(unwrap),
   resetBranchRole: (branchId, roleId) =>

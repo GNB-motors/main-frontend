@@ -27,9 +27,7 @@ const AccessControlPage = () => {
       <PageHeader
         currentLabel="Employee Access Control"
         title="Employee Access Control"
-        description={insideBranch
-          ? `Role access for ${activeBranch?.name || 'this location'}. Switch to “All locations” to manage enterprise roles.`
-          : 'Control the permissions accessible by different employee roles across your enterprise.'}
+        description=""
       />
 
       {/* The tab switcher only makes sense at the enterprise scope. Inside a

@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Shield, Save, RotateCcw, Building2, MapPin } from 'lucide-react';
+import { Shield, Save, RotateCcw, Building2, MapPin, Plus, Trash2 } from 'lucide-react';
 import AccessControlApi from './accessControlService';
 import PermissionTreeView from './PermissionTreeView';
+import RoleFormModal from './RoleFormModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 const setsEqual = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
 
@@ -38,6 +40,12 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Branch-scoped role creation + deletion (mirrors the enterprise tab).
+  const canManageRoles = localStorage.getItem('user_role') === 'OWNER';
+  const [roleFormOpen, setRoleFormOpen] = useState(false);
+  const [deletingRole, setDeletingRole] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   // Load branches + permission catalog once.
   useEffect(() => {
@@ -145,6 +153,23 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
     setEnabled(original.enabled);
   };
 
+  // Delete a branch-scoped custom role (only BRANCH roles are deletable here).
+  const confirmDeleteRole = async () => {
+    if (!deletingRole) return;
+    setDeleteBusy(true);
+    try {
+      await AccessControlApi.deleteRole(deletingRole._id);
+      toast.success(`Deleted "${deletingRole.name}"`);
+      setDeletingRole(null);
+      setSelectedRoleId(null);
+      await loadBranchRoles(branchId);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to delete role');
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   return (
     <div>
       <div className="rbac-orgbar">
@@ -189,6 +214,16 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
       {branchId && (
         <div className="rbac-layout">
           <div className="rbac-master">
+            {canManageRoles && (
+              <button
+                type="button"
+                className="ff-btn ff-btn--ghost"
+                style={{ width: '100%', justifyContent: 'center', marginBottom: 8 }}
+                onClick={() => setRoleFormOpen(true)}
+              >
+                <Plus size={16} /> Add branch role
+              </button>
+            )}
             {loading && <div className="ff-state"><div className="ff-spinner" /></div>}
             {!loading && rows.map((row) => (
               <button
@@ -212,9 +247,26 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
           <div className="rbac-detail">
             {selectedRow && (
               <>
-                <div className="rbac-detail__title"><Shield size={16} /> {selectedRow.role.name}</div>
-                <div className="rbac-detail__sub">
-                  Overrides here apply only to this branch. Untouched permissions stay inherited from the enterprise default.
+                <div className="ac-detail__head">
+                  <div>
+                    <div className="rbac-detail__title"><Shield size={16} /> {selectedRow.role.name}</div>
+                    <div className="rbac-detail__sub">
+                      Overrides here apply only to this branch. Untouched permissions stay inherited from the enterprise default.
+                    </div>
+                  </div>
+                  {/* Only branch-scoped custom roles can be deleted; enterprise
+                      defaults inherited here are managed at the enterprise level. */}
+                  {canManageRoles && selectedRow.role.scopeType === 'BRANCH' && (
+                    <div className="ac-detail__actions">
+                      <button
+                        type="button"
+                        className="ff-btn ff-btn--ghost"
+                        onClick={() => setDeletingRole(selectedRow.role)}
+                      >
+                        <Trash2 size={16} /> Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="rbac-perm" style={{ borderTop: 'none', paddingLeft: 0, paddingRight: 0 }}>
@@ -250,6 +302,28 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
           </div>
         </div>
       )}
+
+      <RoleFormModal
+        open={roleFormOpen}
+        onClose={() => setRoleFormOpen(false)}
+        catalog={catalog}
+        branchId={branchId}
+        onSaved={async (saved) => {
+          await loadBranchRoles(branchId);
+          if (saved?._id) setSelectedRoleId(saved._id);
+        }}
+      />
+
+      <ConfirmDeleteModal
+        open={!!deletingRole}
+        onClose={() => setDeletingRole(null)}
+        onConfirm={confirmDeleteRole}
+        title="Delete branch role"
+        message="This role exists only in this branch and will be removed. This cannot be undone."
+        itemName={deletingRole?.name}
+        confirmLabel="Delete role"
+        busy={deleteBusy}
+      />
     </div>
   );
 };

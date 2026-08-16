@@ -6,6 +6,7 @@ import AccessControlApi from './accessControlService';
 import PermissionTreeView from './PermissionTreeView';
 import AssignRoleDrawer from './AssignRoleDrawer';
 import RoleFormModal from './RoleFormModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 /**
  * Enterprise Roles tab — the roles this enterprise can assign, who holds them,
@@ -26,6 +27,9 @@ const EnterpriseRolesTab = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [roleFormOpen, setRoleFormOpen] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
+  // Role pending deletion (drives the confirm modal) + in-flight flag.
+  const [deletingRole, setDeletingRole] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   // Defining roles is Owner-only on the API; hide the affordances for everyone
   // else rather than letting them fail on submit.
@@ -80,20 +84,29 @@ const EnterpriseRolesTab = () => {
     if (saved?._id) setSelectedId(saved._id);
   };
 
-  const removeRole = async (role) => {
+  // Open the styled confirm modal. Guard first: a role still held by employees
+  // can't be deleted (the backend also blocks it) — surface that up front.
+  const removeRole = (role) => {
     const holders = holdersByRole.get(String(role._id)) || 0;
     if (holders > 0) {
       toast.error(`${holders} employee(s) still hold "${role.name}". Revoke those assignments first.`);
       return;
     }
-     
-    if (!window.confirm(`Delete the role "${role.name}"? This cannot be undone.`)) return;
+    setDeletingRole(role);
+  };
+
+  const confirmDeleteRole = async () => {
+    if (!deletingRole) return;
+    setDeleteBusy(true);
     try {
-      await AccessControlApi.deleteRole(role._id);
-      toast.success(`Deleted "${role.name}"`);
+      await AccessControlApi.deleteRole(deletingRole._id);
+      toast.success(`Deleted "${deletingRole.name}"`);
+      setDeletingRole(null);
       await load();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to delete role');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -239,6 +252,17 @@ const EnterpriseRolesTab = () => {
         catalog={catalog}
         role={editingRole}
         onSaved={onRoleSaved}
+      />
+
+      <ConfirmDeleteModal
+        open={!!deletingRole}
+        onClose={() => setDeletingRole(null)}
+        onConfirm={confirmDeleteRole}
+        title="Delete role"
+        message="This role will be removed. This cannot be undone."
+        itemName={deletingRole?.name}
+        confirmLabel="Delete role"
+        busy={deleteBusy}
       />
     </div>
   );

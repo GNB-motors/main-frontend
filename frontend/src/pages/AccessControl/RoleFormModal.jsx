@@ -17,8 +17,10 @@ const BASE_ROLE_OPTIONS = [
  * the same tree the rest of the screen uses. Platform roles never open here —
  * only their availability is the enterprise's to use, not their definition.
  */
-const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved }) => {
+const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, branchId = null }) => {
   const editing = Boolean(role);
+  // When branchId is set, a newly created role is scoped to that branch only.
+  const creatingBranchRole = !editing && !!branchId;
 
   const [name, setName] = useState('');
   const [baseRole, setBaseRole] = useState('MANAGER');
@@ -66,15 +68,24 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved }) =>
     }
     setSaving(true);
     try {
-      const body = {
-        name: name.trim(),
-        baseRole,
-        description: description.trim(),
-        permissionKeys: [...granted],
-      };
-      const saved = editing
-        ? await AccessControlApi.updateRole(role._id, body)
-        : await AccessControlApi.createRole(body);
+      let saved;
+      if (editing) {
+        // Editing configures everything: name, access tier, description, permissions.
+        const body = {
+          name: name.trim(),
+          baseRole,
+          description: description.trim(),
+          permissionKeys: [...granted],
+        };
+        saved = await AccessControlApi.updateRole(role._id, body);
+      } else {
+        // Creating is name-only (+ optional description). Access tier defaults on the
+        // backend; permissions are granted afterward via Edit.
+        const body = { name: name.trim(), description: description.trim() };
+        saved = creatingBranchRole
+          ? await AccessControlApi.createBranchRole(branchId, body)
+          : await AccessControlApi.createRole(body);
+      }
       toast.success(editing ? `Saved "${saved.name}"` : `Created "${saved.name}"`);
       onSaved && onSaved(saved);
       onClose();
@@ -90,11 +101,15 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved }) =>
       <div className="ff-modal ac-modal--wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="ff-modal__header">
           <div>
-            <h2 className="ff-modal__title">{editing ? 'Edit role' : 'Create a role'}</h2>
+            <h2 className="ff-modal__title">
+              {editing ? 'Edit role' : (creatingBranchRole ? 'Create a branch role' : 'Create a role')}
+            </h2>
             <p className="ff-modal__subtitle">
               {editing
                 ? 'Changes apply to every employee who holds this role.'
-                : 'A role for your enterprise. Pick what it can access, then assign it to employees.'}
+                : (creatingBranchRole
+                  ? 'Name a role for this location. You can grant its permissions after it is created.'
+                  : 'Name a role for your enterprise. You can grant its permissions after it is created.')}
             </p>
           </div>
           <button type="button" className="ff-icon-btn" onClick={onClose} disabled={saving} aria-label="Close">
@@ -119,21 +134,6 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved }) =>
           </div>
 
           <div className="ff-field">
-            <label className="ff-field__label" htmlFor="ac-role-base">Access tier</label>
-            <select
-              id="ac-role-base"
-              className="rbac-select"
-              value={baseRole}
-              onChange={(e) => setBaseRole(e.target.value)}
-            >
-              {BASE_ROLE_OPTIONS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-            </select>
-            <span className="ff-field__help">
-              Sets which part of the product the role belongs to. The permissions below decide what it can actually do.
-            </span>
-          </div>
-
-          <div className="ff-field">
             <label className="ff-field__label" htmlFor="ac-role-desc">
               Description <span className="ff-muted">(optional)</span>
             </label>
@@ -147,19 +147,41 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved }) =>
             />
           </div>
 
-          <div className="ff-field">
-            <label className="ff-field__label">
-              Permissions <span className="ff-muted">({grantedCount} of {catalog.length} granted)</span>
-            </label>
-            <div className="ac-modal__tree">
-              <PermissionTreeView
-                catalog={catalog}
-                granted={granted}
-                onToggleKey={toggleKey}
-                onToggleGroup={toggleGroup}
-              />
-            </div>
-          </div>
+          {/* Access tier and permissions are only configured when editing an
+              existing role — a role is created with just a name, then its
+              permissions are granted afterward via Edit. */}
+          {editing && (
+            <>
+              <div className="ff-field">
+                <label className="ff-field__label" htmlFor="ac-role-base">Access tier</label>
+                <select
+                  id="ac-role-base"
+                  className="rbac-select"
+                  value={baseRole}
+                  onChange={(e) => setBaseRole(e.target.value)}
+                >
+                  {BASE_ROLE_OPTIONS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+                <span className="ff-field__help">
+                  Sets which part of the product the role belongs to. The permissions below decide what it can actually do.
+                </span>
+              </div>
+
+              <div className="ff-field">
+                <label className="ff-field__label">
+                  Permissions <span className="ff-muted">({grantedCount} of {catalog.length} granted)</span>
+                </label>
+                <div className="ac-modal__tree">
+                  <PermissionTreeView
+                    catalog={catalog}
+                    granted={granted}
+                    onToggleKey={toggleKey}
+                    onToggleGroup={toggleGroup}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="ff-modal__footer">
