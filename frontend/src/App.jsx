@@ -38,7 +38,6 @@ import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureF
 import OrgDetailPage from './pages/Superadmin/components/OrgDetailPage.jsx';
 import RbacPermissionsPage from './pages/Superadmin/components/RbacPermissionsPage.jsx';
 import RbacRolesPage from './pages/Superadmin/components/RbacRolesPage.jsx';
-import RbacEnterpriseAccessPage from './pages/Superadmin/components/RbacEnterpriseAccessPage.jsx';
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -127,7 +126,6 @@ function App() {
         {/* RBAC management */}
         <Route path="rbac/permissions" element={<RbacPermissionsPage />} />
         <Route path="rbac/roles" element={<RbacRolesPage />} />
-        <Route path="rbac/enterprises" element={<RbacEnterpriseAccessPage />} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}

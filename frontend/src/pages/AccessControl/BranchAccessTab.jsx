@@ -19,9 +19,9 @@ const Toggle = ({ checked, onChange, label }) => (
  * back to the enterprise default. Never touches the enterprise role or other
  * branches.
  */
-const BranchAccessTab = () => {
+const BranchAccessTab = ({ initialBranchId = '' }) => {
   const [branches, setBranches] = useState([]);
-  const [branchId, setBranchId] = useState('');
+  const [branchId, setBranchId] = useState(initialBranchId);
   const [catalog, setCatalog] = useState([]);
   const [rows, setRows] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
@@ -70,6 +70,9 @@ const BranchAccessTab = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectRoleRow]);
+
+  // Follow the header location switcher when it changes while this tab is open.
+  useEffect(() => { setBranchId(initialBranchId); }, [initialBranchId]);
 
   useEffect(() => { if (branchId) loadBranchRoles(branchId); }, [branchId, loadBranchRoles]);
 
