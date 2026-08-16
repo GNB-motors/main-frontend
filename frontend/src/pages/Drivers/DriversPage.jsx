@@ -519,6 +519,30 @@ const FilterDropdown = ({ isOpen, onClose, filters, tempFilters, onFilterChange,
     );
 };
 
+// --- Table Skeleton (shimmer) shown while the list is (re)loading ---
+const DriversTableSkeleton = ({ rows = 8 }) => (
+    <>
+        {Array.from({ length: rows }).map((_, i) => (
+            <tr key={`skeleton-${i}`} className="drivers-table-row drivers-skeleton-row">
+                <td>
+                    <div className="drivers-driver-name-cell">
+                        <div className="drivers-skeleton drivers-skeleton-avatar"></div>
+                        <div className="drivers-driver-info">
+                            <span className="drivers-skeleton drivers-skeleton-text drivers-skeleton-text-lg"></span>
+                            <span className="drivers-skeleton drivers-skeleton-text drivers-skeleton-text-sm"></span>
+                        </div>
+                    </div>
+                </td>
+                <td><span className="drivers-skeleton drivers-skeleton-text"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-text"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-text"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-text drivers-skeleton-text-lg"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-pill"></span></td>
+            </tr>
+        ))}
+    </>
+);
+
 // --- Delete Driver Modal Component ---
 const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDeleting }) => {
     if (!isOpen || !driver) return null;
@@ -632,6 +656,9 @@ const DriversPage = () => {
     const [drivers, setDrivers] = useState([]);
     const [availableVehicles, setAvailableVehicles] = useState([]);
     const [isLoading, setIsLoading] = useState(true); // Loading state for drivers list
+    // True only until the first successful list load. Used to decide between the
+    // full-page loader (initial mount) and the in-table skeleton (search/filter/paging refetches).
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
     const [error, setError] = useState(null); // General page error
     const [actionError, setActionError] = useState(null); // Errors from Add/Edit/Delete actions
     const [themeColors, setThemeColors] = useState(getThemeCSS());
@@ -670,6 +697,9 @@ const DriversPage = () => {
     const itemsPerPage = 10;
 
     // Search & Filter State
+    // `searchInput` mirrors the text box (updates on every keystroke, no refetch).
+    // `searchTerm` is the debounced value that actually drives the server fetch.
+    const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
     const [filters, setFilters] = useState({
@@ -755,6 +785,7 @@ const DriversPage = () => {
             setError(apiError?.detail || "Could not load drivers list.");
         } finally {
             setIsLoading(false); // Finish loading drivers
+            setHasLoadedOnce(true);
         }
     };
 
@@ -790,6 +821,15 @@ const DriversPage = () => {
         fetchVehicles();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [businessRefId, currentPage, searchTerm, filters.role]);
+
+    // Debounce the search box into `searchTerm` so we fire one request after typing
+    // settles instead of one per keystroke (each of which would re-render the table).
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setSearchTerm(searchInput.trim());
+        }, 300);
+        return () => clearTimeout(handle);
+    }, [searchInput]);
 
     // --- Action Handlers ---
     // handleAddDriver removed -- Add Employee is now a separate page at /drivers/add
@@ -890,7 +930,7 @@ const DriversPage = () => {
     };
 
     const handleSearchChange = (event) => {
-        setSearchTerm(event.target.value);
+        setSearchInput(event.target.value);
     };
 
     // Filter handlers
@@ -1018,14 +1058,16 @@ const DriversPage = () => {
 
 
     // --- Render Logic ---
-    // Only show loading for drivers data, not profile (handled by DashboardLayout)
-    if (isLoading) {
+    // Full-page loader only on the very first mount. Subsequent refetches
+    // (search / filter / pagination) keep the page shell mounted and show an
+    // in-table shimmer skeleton instead, so the page no longer flickers.
+    if (isLoading && !hasLoadedOnce) {
          return (
              <div className="drivers-container" style={themeColors}>
-                 <LottieLoader 
-                     isLoading={true} 
-                     size="medium" 
-                     message="Loading drivers data..." 
+                 <LottieLoader
+                     isLoading={true}
+                     size="medium"
+                     message="Loading drivers data..."
                      overlay={false}
                  />
              </div>
@@ -1055,7 +1097,7 @@ const DriversPage = () => {
                                         type="text"
                                         placeholder="Employee name or Id"
                                         className="drivers-search-input"
-                                        value={searchTerm}
+                                        value={searchInput}
                                         onChange={handleSearchChange}
                                     />
                                 </div>
@@ -1121,7 +1163,9 @@ const DriversPage = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                            {paginatedDrivers.length === 0 ? (
+                            {isLoading ? (
+                                <DriversTableSkeleton rows={itemsPerPage} />
+                            ) : paginatedDrivers.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" style={{ textAlign: 'center', color: 'var(--color-grey-400)'}}>
                                         {searchTerm ? 'No drivers match your search.' : 'No drivers found for this business.'}
