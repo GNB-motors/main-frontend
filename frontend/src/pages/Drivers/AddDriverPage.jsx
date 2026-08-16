@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { DriverService } from './DriverService.jsx';
 import AccessControlApi from '../AccessControl/accessControlService';
+import { useActiveBranch } from '../../contexts/BranchContext';
 import { getThemeCSS } from '../../utils/colorTheme';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -19,6 +20,7 @@ const AddDriverPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const formRef = useRef(null);
+  const { branchId: activeBranchId } = useActiveBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [driverId, setDriverId] = useState(null);
@@ -160,7 +162,7 @@ const AddDriverPage = () => {
               // Delete old document if replacing
               const oldDocId = docData._previousDocumentId;
               if (oldDocId) {
-                try { await DriverService.deleteDocument(oldDocId); } catch (_) { /* best effort */ }
+                try { await DriverService.deleteDocument(oldDocId); } catch { /* best effort */ }
               }
               await DriverService.uploadDocument(entityId, docType, docData.file);
             } catch (docErr) {
@@ -188,6 +190,10 @@ const AddDriverPage = () => {
         toast.success('Employee updated successfully');
         navigate('/drivers');
       } else {
+        // The chosen role drives BOTH the assignment and the explicit enum role we
+        // send — the backend uses these directly (no server-side derivation).
+        const chosenRoleId = formData.branchRoleId || formData.enterpriseRoleId;
+        const chosenRole = roles.find((r) => r._id === chosenRoleId);
         const payload = {
           firstName: formData.firstName || null,
           lastName: formData.lastName || null,
@@ -195,8 +201,12 @@ const AddDriverPage = () => {
           mobileNumber: formData.mobileNumber || null,
           location: formData.location || null,
           password: formData.password || null,
-          // Independent Enterprise / Branch role assignments. Null = no access
-          // at that level; the backend derives the enum role from the selection.
+          // Explicit enum role (from the chosen RBAC role's baseRole).
+          role: chosenRole?.baseRole || undefined,
+          // Explicit owning location for this employee (the active branch).
+          branchId: activeBranchId || null,
+          // Independent Enterprise / Branch role assignments — used to create the
+          // EmployeeRoleAssignment. Null = no access at that level.
           enterpriseRoleId: formData.enterpriseRoleId || null,
           branchRoleId: formData.branchRoleId || null,
         };
