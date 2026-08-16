@@ -54,7 +54,7 @@ const AccessControlPage = () => {
       )}
 
       {insideBranch || tab === 'branch'
-        ? <BranchAccessTab initialBranchId={branchId || ''} />
+        ? <BranchAccessTab initialBranchId={branchId || ''} lockedBranchName={activeBranch?.name || ''} />
         : <EnterpriseRolesTab />}
     </div>
   );

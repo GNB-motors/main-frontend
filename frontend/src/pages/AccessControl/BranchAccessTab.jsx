@@ -19,7 +19,10 @@ const Toggle = ({ checked, onChange, label }) => (
  * back to the enterprise default. Never touches the enterprise role or other
  * branches.
  */
-const BranchAccessTab = ({ initialBranchId = '' }) => {
+const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
+  // When opened from inside a location, the branch is fixed to that location —
+  // no dropdown, no "select a branch" step.
+  const locked = !!initialBranchId;
   const [branches, setBranches] = useState([]);
   const [branchId, setBranchId] = useState(initialBranchId);
   const [catalog, setCatalog] = useState([]);
@@ -146,12 +149,23 @@ const BranchAccessTab = ({ initialBranchId = '' }) => {
     <div>
       <div className="rbac-orgbar">
         <span className="ff-search__icon"><MapPin size={18} /></span>
-        <select className="rbac-select" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-          <option value="">Select a branch…</option>
-          {branches.map((b) => (
-            <option key={b._id} value={b._id}>{b.name}</option>
-          ))}
-        </select>
+        {locked ? (
+          <span className="ff-meta">
+            Location:{' '}
+            <strong>
+              {lockedBranchName
+                || branches.find((b) => String(b._id) === String(branchId))?.name
+                || 'this location'}
+            </strong>
+          </span>
+        ) : (
+          <select className="rbac-select" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            <option value="">Select a branch…</option>
+            {branches.map((b) => (
+              <option key={b._id} value={b._id}>{b.name}</option>
+            ))}
+          </select>
+        )}
         {branchId && (
           <span className="ac-legend">
             <span className="ac-chip ac-chip--inherited">Inherited</span>
