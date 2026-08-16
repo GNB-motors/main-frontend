@@ -124,7 +124,10 @@ const BasicInformationForm = forwardRef(({
               </div>
             </div>
 
-            {/* Row 3: Location (hidden inside a location — it's implied), Password */}
+            {/* Row 3: Password paired with the scope's role selector.
+                - Enterprise ("All locations"): Location + Password (role on Row 4).
+                - Inside a location: Location is implied, so Password sits beside the
+                  Branch Role selector directly. */}
             <div className="basic-info-form-row">
               {!insideBranch && (
                 <div className="basic-info-form-field">
@@ -143,7 +146,7 @@ const BasicInformationForm = forwardRef(({
                 <label className="basic-info-label">
                   Password {!isEdit && '*'}
                 </label>
-                <input 
+                <input
                   type="password"
                   className={`basic-info-input ${isEdit ? 'basic-info-input-disabled' : ''}`}
                   value={formData.password}
@@ -153,28 +156,6 @@ const BasicInformationForm = forwardRef(({
                   placeholder={isEdit ? "Cannot be edited" : "Enter password"}
                 />
               </div>
-            </div>
-
-            {/* Row 4: Role. Inside a location only a Branch role can be assigned;
-                at the enterprise ("All locations") scope only an Enterprise role.
-                Roles are populated dynamically from the RBAC catalog. */}
-            <div className="basic-info-form-row">
-              {!insideBranch && (
-                <div className="basic-info-form-field">
-                  <label className="basic-info-label">Enterprise Role</label>
-                  <select
-                    className="basic-info-input"
-                    value={formData.enterpriseRoleId}
-                    onChange={(e) => handleInputChange('enterpriseRoleId', e.target.value)}
-                  >
-                    <option value="">None (no enterprise access)</option>
-                    {roles.map((r) => (
-                      <option key={r._id} value={r._id}>{r.name}</option>
-                    ))}
-                  </select>
-                  <span className="basic-info-hint">Grants access across all locations (enterprise).</span>
-                </div>
-              )}
 
               {insideBranch && (
                 <div className="basic-info-form-field">
@@ -193,6 +174,27 @@ const BasicInformationForm = forwardRef(({
                 </div>
               )}
             </div>
+
+            {/* Row 4: Enterprise role — only at the enterprise ("All locations")
+                scope. Inside a location the Branch Role above is the only choice. */}
+            {!insideBranch && (
+              <div className="basic-info-form-row">
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Enterprise Role</label>
+                  <select
+                    className="basic-info-input"
+                    value={formData.enterpriseRoleId}
+                    onChange={(e) => handleInputChange('enterpriseRoleId', e.target.value)}
+                  >
+                    <option value="">None (no enterprise access)</option>
+                    {roles.map((r) => (
+                      <option key={r._id} value={r._id}>{r.name}</option>
+                    ))}
+                  </select>
+                  <span className="basic-info-hint">Grants access across all locations (enterprise).</span>
+                </div>
+              </div>
+            )}
 
             {!isEdit && (
               <div className="basic-info-form-row">

@@ -962,7 +962,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    /* Above the portalled action menu (z-index: 99999) so the confirm modals
+       always sit on top when opened from that menu. */
+    z-index: 100000;
 }
 
 .drivers-modal-content {

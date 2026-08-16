@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload, ToggleRight } from 'lucide-react';
+import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload, ToggleRight, ToggleLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
@@ -595,12 +595,111 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
     );
 };
 
+// --- Deactivate Employee Modal ---
+// Confirms turning an active employee off in their current branch (no move).
+const DeactivateDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading }) => {
+    if (!isOpen || !driver) return null;
+
+    return (
+        <div className="drivers-modal-overlay" onClick={onClose}>
+            <div className="drivers-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="drivers-modal-header">
+                    <h4>Deactivate Employee</h4>
+                    <button onClick={onClose} className="drivers-close-btn">&times;</button>
+                </div>
+
+                <div className="drivers-delete-content">
+                    <div className="drivers-delete-warning">
+                        <div className="drivers-warning-icon">⚠️</div>
+                        <p>This employee will be deactivated and won't be able to log in or be assigned work until you reactivate them. You can turn them back on anytime with “Mark as active”.</p>
+                    </div>
+
+                    <div className="drivers-delete-employee-info">
+                        <div className="drivers-driver-name-cell">
+                            <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
+                            <div className="drivers-driver-info">
+                                <span className="drivers-driver-name">{driver.name}</span>
+                                <span className="drivers-driver-role">{driver.is_superadmin ? 'Super Admin' : driver.role || 'Employee'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="drivers-modal-actions">
+                    <NewButton variant="secondary" size="md" type="button" text="Cancel" onClick={onClose} disabled={isLoading} />
+                    <NewButton variant="danger" size="md" type="button" text="Deactivate" onClick={() => onConfirm(driver)} loading={isLoading} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Move (Activate elsewhere) Modal ---
+// Warns that activating an employee here will move them out of their current branch.
+const MoveEmployeeModal = ({ isOpen, onClose, onConfirm, driver, isLoading }) => {
+    if (!isOpen || !driver) return null;
+
+    const fromBranch = driver.currentBranchName || 'another location';
+
+    return (
+        <div className="drivers-modal-overlay" onClick={onClose}>
+            <div className="drivers-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="drivers-modal-header">
+                    <h4>Move Employee Here</h4>
+                    <button onClick={onClose} className="drivers-close-btn">&times;</button>
+                </div>
+
+                <div className="drivers-delete-content">
+                    <div className="drivers-delete-warning">
+                        <div className="drivers-warning-icon">⚠️</div>
+                        <p>
+                            This employee is currently active in <strong>{fromBranch}</strong>. Activating them here will
+                            move them to this location and deactivate them in <strong>{fromBranch}</strong>. Their history there stays intact.
+                        </p>
+                    </div>
+
+                    <div className="drivers-delete-employee-info">
+                        <div className="drivers-driver-name-cell">
+                            <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
+                            <div className="drivers-driver-info">
+                                <span className="drivers-driver-name">{driver.name}</span>
+                                <span className="drivers-driver-role">{driver.is_superadmin ? 'Super Admin' : driver.role || 'Employee'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="drivers-modal-actions">
+                    <NewButton variant="secondary" size="md" type="button" text="Cancel" onClick={onClose} disabled={isLoading} />
+                    <NewButton variant="primary" size="md" type="button" text="Move Here" onClick={() => onConfirm(driver)} loading={isLoading} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Action Menu Component (portal-based to escape table stacking context) ---
-const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, position }) => {
+const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, onDeactivate, position }) => {
     if (!position) return null;
 
-    // Decide whether to open upward (if too close to the bottom of the viewport)
-    const MENU_HEIGHT = driver.is_superadmin ? 60 : 110;
+    // Employees deactivated in this location (moved to another branch) can't be
+    // edited/assigned here — the only action is to activate them back here.
+    const isDeactivatedHere = driver.branchStatus === 'DEACTIVATED';
+    // Legacy cross-org field agents carry a per-org membershipStatus and are
+    // managed via membership, not branch-deactivated. New field agents are
+    // branch-scoped employees and deactivate like a Driver/Manager.
+    const isLegacyFieldAgent = driver.role === 'FIELD_AGENT' && driver.membershipStatus != null;
+    // Owner/Super Admin are enterprise-level and never branch-deactivated.
+    const canDeactivate =
+        !isDeactivatedHere &&
+        !driver.is_superadmin &&
+        !driver.isOwner &&
+        !isLegacyFieldAgent;
+
+    // Decide whether to open upward (if too close to the bottom of the viewport).
+    // Height grows with the number of items so the upward flip is accurate.
+    const itemCount = isDeactivatedHere ? 1 : (1 /* edit */ + (canDeactivate ? 1 : 0) + (!driver.is_superadmin ? 1 : 0));
+    const MENU_HEIGHT = 24 + itemCount * 34;
     const spaceBelow = window.innerHeight - position.bottom;
     const openUpward = spaceBelow < MENU_HEIGHT + 16;
 
@@ -612,10 +711,6 @@ const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, position }) => {
             ? { bottom: window.innerHeight - position.top + 4 }
             : { top: position.bottom + 4 }),
     };
-
-    // Employees deactivated in this location (moved to another branch) can't be
-    // edited/assigned here — the only action is to activate them back here.
-    const isDeactivatedHere = driver.branchStatus === 'DEACTIVATED';
 
     return createPortal(
         <div className="drivers-action-menu" style={style}>
@@ -633,6 +728,12 @@ const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, position }) => {
                         <Edit size={16} />
                         <span>Edit</span>
                     </button>
+                    {canDeactivate && (
+                        <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDeactivate(driver); }}>
+                            <ToggleLeft size={16} />
+                            <span>Deactivate</span>
+                        </button>
+                    )}
                     {!driver.is_superadmin && ( // Prevent deleting superadmin
                         <>
                             <div className="drivers-action-menu-divider"></div>
@@ -687,6 +788,11 @@ const DriversPage = () => {
     const [editingDriver, setEditingDriver] = useState(null); // Driver object to edit
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingDriver, setDeletingDriver] = useState(null); // Driver object to delete
+    // Employee about to be deactivated in their current branch (confirm modal).
+    const [deactivatingDriver, setDeactivatingDriver] = useState(null);
+    // Employee whose activation here would move them out of another branch (warn modal).
+    const [movingDriver, setMovingDriver] = useState(null);
+    const [isActionSubmitting, setIsActionSubmitting] = useState(false);
 
     // Action Menu State
     const [openMenuDriverId, setOpenMenuDriverId] = useState(null);
@@ -766,8 +872,9 @@ const DriversPage = () => {
                 // normalize contact fields used in UI
                 mobileNumber: d.mobileNumber || d.mobile_number || d.mobile || '',
                 email: d.email || d.email_address || '',
-                // FIELD_AGENT rows carry a per-org membership status; surface that as the
-                // displayed status (their account-level status stays PENDING and isn't meaningful here).
+                // Legacy cross-org field agents carry a per-org membershipStatus; show
+                // that. New branch-scoped field agents (and every other role) show their
+                // real account status — membershipStatus is absent so this falls through.
                 status: d.role === 'FIELD_AGENT' ? (d.membershipStatus || d.status) : d.status,
             }));
             setDrivers(normalizedDrivers);
@@ -845,17 +952,59 @@ const DriversPage = () => {
         setOpenMenuDriverId(null); // Close action menu
     };
 
-    // Activate a deactivated employee in the current location. This moves them
-    // here (import) — they become active here and deactivated in their previous
-    // location. The active branch travels via X-Branch-Id (apiClient).
-    const handleActivateHere = async (driver) => {
+    // Activate a deactivated employee in the current location. If they are still
+    // active in a DIFFERENT branch, activating here MOVES them (they get
+    // deactivated there) — warn with a modal first. If they were simply
+    // deactivated in this same branch, it's a plain re-enable, so run it directly.
+    const handleActivateHere = (driver) => {
         setOpenMenuDriverId(null);
+        const activeBranchId = localStorage.getItem('user_branchId');
+        const isCrossBranchMove =
+            driver.currentBranchId &&
+            activeBranchId &&
+            String(driver.currentBranchId) !== String(activeBranchId);
+        if (isCrossBranchMove) {
+            setMovingDriver(driver);
+        } else {
+            activateEmployee(driver);
+        }
+    };
+
+    // Perform the actual activate/import call (shared by the direct path and the
+    // "confirm move" modal). The active branch travels via X-Branch-Id (apiClient).
+    const activateEmployee = async (driver) => {
+        setIsActionSubmitting(true);
         try {
             await DriverService.importEmployee(driver.id);
             toast.success('Employee activated in this location');
+            setMovingDriver(null);
             fetchDrivers();
         } catch (err) {
             toast.error(err?.message || err?.detail || 'Could not activate employee here');
+        } finally {
+            setIsActionSubmitting(false);
+        }
+    };
+
+    // Open the confirm modal for deactivating an active employee in this branch.
+    const handleOpenDeactivate = (driver) => {
+        setOpenMenuDriverId(null);
+        setDeactivatingDriver(driver);
+    };
+
+    // Deactivate an active employee in their current branch (no move). Suspends
+    // their account and greys them out here until reactivated.
+    const handleConfirmDeactivate = async (driver) => {
+        setIsActionSubmitting(true);
+        try {
+            await DriverService.deactivateEmployee(driver.id);
+            toast.success('Employee deactivated');
+            setDeactivatingDriver(null);
+            fetchDrivers();
+        } catch (err) {
+            toast.error(err?.message || err?.detail || 'Could not deactivate employee');
+        } finally {
+            setIsActionSubmitting(false);
         }
     };
 
@@ -1237,6 +1386,7 @@ const DriversPage = () => {
                                                             onEdit={handleOpenEditModal}
                                                             onDelete={handleOpenDeleteModal}
                                                             onActivateHere={handleActivateHere}
+                                                            onDeactivate={handleOpenDeactivate}
                                                             position={menuPosition}
                                                         />
                                                     )}
@@ -1313,6 +1463,20 @@ const DriversPage = () => {
                 onConfirm={handleDeleteDriver}
                 driver={deletingDriver}
                 isLoading={isSubmitting}
+            />
+            <DeactivateDriverModal
+                isOpen={!!deactivatingDriver}
+                onClose={() => setDeactivatingDriver(null)}
+                onConfirm={handleConfirmDeactivate}
+                driver={deactivatingDriver}
+                isLoading={isActionSubmitting}
+            />
+            <MoveEmployeeModal
+                isOpen={!!movingDriver}
+                onClose={() => setMovingDriver(null)}
+                onConfirm={activateEmployee}
+                driver={movingDriver}
+                isLoading={isActionSubmitting}
             />
 
         </div>

@@ -67,10 +67,12 @@ export const DriverService = {
                 lastName: driverData.lastName || lastName || null,
                 email: driverData.email || null,
                 mobileNumber: normaliseMobile(driverData.mobileNumber) || null,
-                location: driverData.location || null,
                 password: driverData.password || null,
                 orgId: businessRefId || undefined,
             };
+            // Location is optional free-text (enterprise scope only). Omit it when
+            // empty — the create validator accepts a string or nothing, not null.
+            if (driverData.location) body.location = driverData.location;
             // Legacy enum role (optional) + the RBAC dual-role selection. Only
             // send what's present so the backend can derive the enum role.
             if (driverData.role) body.role = driverData.role;
@@ -154,6 +156,18 @@ export const DriverService = {
             return response.data?.data ?? response.data;
         } catch (error) {
             console.error("API Error importing employee:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable." };
+        }
+    },
+
+    // --- Deactivate an employee in their current branch (no move) ---
+    // Suspends the account and greys them out in this branch's list.
+    deactivateEmployee: async (employeeId) => {
+        try {
+            const response = await apiClient.post(`/api/employees/${employeeId}/deactivate`);
+            return response.data?.data ?? response.data;
+        } catch (error) {
+            console.error("API Error deactivating employee:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable." };
         }
     },

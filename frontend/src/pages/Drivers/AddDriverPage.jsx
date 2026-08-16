@@ -199,7 +199,10 @@ const AddDriverPage = () => {
           lastName: formData.lastName || null,
           email: formData.email || null,
           mobileNumber: formData.mobileNumber || null,
-          location: formData.location || null,
+          // Location is a free-text field only shown at the enterprise scope; inside
+          // a branch it's implied by the active location, so omit it when empty
+          // rather than sending null (the create validator wants a string or nothing).
+          ...(formData.location ? { location: formData.location } : {}),
           password: formData.password || null,
           // Explicit enum role (from the chosen RBAC role's baseRole).
           role: chosenRole?.baseRole || undefined,
@@ -212,8 +215,7 @@ const AddDriverPage = () => {
         };
 
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
-        // FIELD_AGENT responses are shaped { user, membership, isExistingAgent };
-        // DRIVER/MANAGER responses are { id, status }.
+        // All roles (including field agents, now branch-scoped) return { id, status }.
         const empId = savedEmployee._id || savedEmployee.id || savedEmployee.user?._id;
         await uploadDocuments(empId);
 
