@@ -43,7 +43,7 @@ const AddVehiclePage = () => {
   const [selectedAccountId, setSelectedAccountId] = useState('');
 
   // Owning location (branch) for the new vehicle. Defaults to the active location.
-  const { branchId: activeBranchId, branches } = useActiveBranch();
+  const { branchId: activeBranchId, branches, activeBranch } = useActiveBranch();
   const [selectedBranchId, setSelectedBranchId] = useState('');
   // When the entered registration number already belongs to an enterprise
   // vehicle, we surface the Import Vehicle modal instead of creating a duplicate.
@@ -203,7 +203,7 @@ const AddVehiclePage = () => {
           if (selectedAccountId) {
             try {
               await reassignVehicleAccount(token, newVehicleId, selectedAccountId);
-            } catch (_) { /* non-fatal — resolver will tag on next ingestion */ }
+            } catch { /* non-fatal — resolver will tag on next ingestion */ }
           }
         }
         toast.success(`Vehicle "${formData.registration_no}" created successfully`);
@@ -267,26 +267,44 @@ const AddVehiclePage = () => {
           onBack={() => navigate(-1)}
         />
 
-        {!isEdit && branches.length > 0 && (
+        {!isEdit && (activeBranchId || branches.length > 0) && (
           <div style={{ padding: '0 24px 16px', maxWidth: 480 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>
               Location
             </label>
-            <select
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, color: '#1e293b', background: '#fff', cursor: 'pointer' }}
-            >
-              <option value="">Enterprise (no specific location)</option>
-              {branches.map((b) => (
-                <option key={b._id} value={String(b._id)}>
-                  {b.name}{b.isDefault ? ' (default)' : ''}
-                </option>
-              ))}
-            </select>
-            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-              The operating location this vehicle belongs to. Enterprise-level vehicles show only in the all-locations view.
-            </p>
+            {activeBranchId ? (
+              // Inside a location the vehicle belongs to that location — lock it,
+              // no dropdown (mirrors the employee create flow).
+              <>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, color: '#1e293b', background: '#f8fafc' }}>
+                  <Building2 size={14} />
+                  {activeBranch?.name
+                    || branches.find((b) => String(b._id) === String(activeBranchId))?.name
+                    || 'Current location'}
+                </div>
+                <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  This vehicle will be added to the current location.
+                </p>
+              </>
+            ) : (
+              <>
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, color: '#1e293b', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="">Enterprise (no specific location)</option>
+                  {branches.map((b) => (
+                    <option key={b._id} value={String(b._id)}>
+                      {b.name}{b.isDefault ? ' (default)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  The operating location this vehicle belongs to. Enterprise-level vehicles show only in the all-locations view.
+                </p>
+              </>
+            )}
           </div>
         )}
 
