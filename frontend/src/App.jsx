@@ -105,6 +105,7 @@ import DocumentDetailPage from './pages/ErpAccounts/DocumentDetailPage.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 import AccessControlPage from './pages/AccessControl/AccessControlPage.jsx';
+import AssignedEmployeesPage from './pages/AccessControl/AssignedEmployeesPage.jsx';
 
 function App() {
   return (
@@ -152,6 +153,7 @@ function App() {
         <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/access-control" element={<AccessControlPage />} />
+        <Route path="/access-control/assigned-employees" element={<AssignedEmployeesPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
         <Route path="/trip-management" element={<TripManagementPage />} />

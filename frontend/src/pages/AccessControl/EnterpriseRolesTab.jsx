@@ -1,15 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import {
-  Building2, Pencil, Plus, Shield, Trash2, UserMinus, UserPlus, Users,
-} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Pencil, Plus, Shield, Trash2, UserPlus, Users } from 'lucide-react';
 import AccessControlApi from './accessControlService';
 import PermissionTreeView from './PermissionTreeView';
 import AssignRoleDrawer from './AssignRoleDrawer';
 import RoleFormModal from './RoleFormModal';
-
-const employeeName = (e) =>
-  `${e?.firstName || ''} ${e?.lastName || ''}`.trim() || e?.mobileNumber || e?.email || 'Employee';
 
 /**
  * Enterprise Roles tab — the roles this enterprise can assign, who holds them,
@@ -30,11 +26,11 @@ const EnterpriseRolesTab = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [roleFormOpen, setRoleFormOpen] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
-  const [revokingId, setRevokingId] = useState(null);
 
   // Defining roles is Owner-only on the API; hide the affordances for everyone
   // else rather than letting them fail on submit.
   const canManageRoles = localStorage.getItem('user_role') === 'OWNER';
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,10 +60,6 @@ const EnterpriseRolesTab = () => {
   const selectedRole = roles.find((r) => r._id === selectedId) || null;
   const granted = useMemo(() => new Set(selectedRole?.permissionKeys || []), [selectedRole]);
 
-  const employeeById = useMemo(
-    () => new Map(employees.map((e) => [String(e._id || e.id), e])),
-    [employees],
-  );
 
   // How many people hold each role — shown on the role rows and used to explain
   // why a delete is blocked.
@@ -105,21 +97,6 @@ const EnterpriseRolesTab = () => {
     }
   };
 
-  const revoke = async (assignment) => {
-    const who = employeeName(employeeById.get(String(assignment.userId)));
-     
-    if (!window.confirm(`Revoke "${assignment.roleId?.name}" from ${who}? They lose that access immediately.`)) return;
-    setRevokingId(assignment._id);
-    try {
-      await AccessControlApi.revokeAssignment(assignment._id);
-      toast.success('Assignment revoked');
-      await load();
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to revoke assignment');
-    } finally {
-      setRevokingId(null);
-    }
-  };
 
   return (
     <div>
@@ -138,6 +115,13 @@ const EnterpriseRolesTab = () => {
               <Plus size={16} /> New role
             </button>
           )}
+          <button
+            type="button"
+            className="ff-btn ff-btn--secondary"
+            onClick={() => navigate('/access-control/assigned-employees')}
+          >
+            <Users size={16} /> Assigned employees
+          </button>
           <button
             type="button"
             className="ff-btn ff-btn--primary"
@@ -238,64 +222,6 @@ const EnterpriseRolesTab = () => {
         </div>
       )}
 
-      {/* ── Who holds what ── */}
-      {roles.length > 0 && (
-        <div className="ff-card ac-assignments">
-          <div className="ac-assignments__head">
-            <div className="rbac-detail__title"><Users size={16} /> Assigned employees</div>
-            <span className="ff-meta">An employee holds one role for the enterprise and one per location.</span>
-          </div>
-
-          {assignments.length === 0 ? (
-            <div className="ff-state">
-              <div className="ff-state__icon"><UserPlus size={22} /></div>
-              <div className="ff-state__title">Nobody has been assigned a role yet</div>
-              <div>Assign a role to give an employee access to the parts of the product they need.</div>
-            </div>
-          ) : (
-            <div className="ac-table__wrap">
-              <table className="ac-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Role</th>
-                    <th>Applies to</th>
-                    <th aria-label="Actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignments.map((a) => (
-                    <tr key={a._id}>
-                      <td>{employeeName(employeeById.get(String(a.userId)))}</td>
-                      <td>
-                        <Shield size={14} /> {a.roleId?.name || 'Deleted role'}
-                        {a.roleId?.baseRole && <span className="ac-chip ac-chip--inherited">{a.roleId.baseRole}</span>}
-                      </td>
-                      <td>
-                        {a.scope === 'BRANCH' ? (
-                          <><Building2 size={14} /> {a.branchId?.name || 'Location'}</>
-                        ) : (
-                          'Enterprise (no location selected)'
-                        )}
-                      </td>
-                      <td className="ac-table__actions">
-                        <button
-                          type="button"
-                          className="ff-btn ff-btn--ghost"
-                          onClick={() => revoke(a)}
-                          disabled={revokingId === a._id}
-                        >
-                          <UserMinus size={16} /> {revokingId === a._id ? 'Revoking…' : 'Revoke'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
 
       <AssignRoleDrawer
         open={drawerOpen}
