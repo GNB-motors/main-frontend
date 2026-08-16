@@ -713,7 +713,6 @@ const DriversPage = () => {
 
     const [isSubmitting, setIsSubmitting] = useState(false); // Loading state for add/edit/delete actions
 
-    const [totalDrivers, setTotalDrivers] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
     // Profile context removed - drivers page should render independently
@@ -773,10 +772,8 @@ const DriversPage = () => {
             }));
             setDrivers(normalizedDrivers);
             if (meta) {
-                setTotalDrivers(meta.total);
                 setTotalPages(meta.totalPages);
             } else {
-                setTotalDrivers(normalizedDrivers.length);
                 setTotalPages(Math.ceil(normalizedDrivers.length / itemsPerPage));
             }
             console.log("Drivers fetched:", normalizedDrivers, 'meta=', meta);
@@ -980,8 +977,19 @@ const DriversPage = () => {
             }
         }
 
-        return filtered;
+        // Active employees first; deactivated ones sink to the bottom.
+        return filtered.slice().sort((a, b) => {
+            const ad = a.branchStatus === 'DEACTIVATED' ? 1 : 0;
+            const bd = b.branchStatus === 'DEACTIVATED' ? 1 : 0;
+            return ad - bd;
+        });
     }, [drivers, filters.vehicleAssignment]);
+
+    // The header count reflects only active employees (deactivated are excluded).
+    const activeCount = useMemo(
+        () => filteredDrivers.filter((d) => d.branchStatus !== 'DEACTIVATED').length,
+        [filteredDrivers],
+    );
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -1087,7 +1095,7 @@ const DriversPage = () => {
                         <div>
                             <h3>
                                 <span>Total employees </span>
-                                <span>({totalDrivers})</span>
+                                <span>({activeCount})</span>
                             </h3>
                             <div className="drivers-actions">
                             <div className="search-filter-container">
@@ -1173,9 +1181,9 @@ const DriversPage = () => {
                                 </tr>
                             ) : (
                                 paginatedDrivers.map((driver) => (
-                                    <tr 
-                                        key={driver.id} 
-                                        className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''}`}
+                                    <tr
+                                        key={driver.id}
+                                        className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''} ${driver.branchStatus === 'DEACTIVATED' ? 'drivers-table-row--deactivated' : ''}`}
                                         onClick={() => navigate('/drivers/add', { state: { editingDriver: driver } })}
                                         style={{ cursor: 'pointer' }}
                                     >

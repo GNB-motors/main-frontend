@@ -725,6 +725,24 @@
     outline: 1px solid #D3D3D5;
 }
 
+/* Deactivated employees: greyed-out row so it reads as inactive at a glance.
+   Scoped under .drivers-table tbody so it out-specifies the base white row
+   background (.drivers-table tbody tr) — otherwise the row stays white and only
+   the cells grey out, leaving the name cell reading as a white patch. */
+.drivers-table tbody tr.drivers-table-row--deactivated,
+.drivers-table tbody tr.drivers-table-row--deactivated td {
+    background-color: #f1f2f4;
+    color: #8a90a2;
+}
+.drivers-table tbody tr.drivers-table-row--deactivated:hover,
+.drivers-table tbody tr.drivers-table-row--deactivated:hover td {
+    background-color: #e9ebef;
+}
+.drivers-table-row--deactivated .drivers-driver-initials {
+    filter: grayscale(1);
+    opacity: 0.7;
+}
+
 .drivers-action-menu-container {
     position: relative;
 }
