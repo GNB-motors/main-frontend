@@ -10,7 +10,12 @@ import './FeatureFlags.css';
 import './Rbac.css';
 
 // Preferred order for permission groups; anything else sorts alphabetically after.
-const GROUP_ORDER = ['Overview', 'Reports', 'Fleet', 'Employees', 'Finance', 'CRM', 'ERP', 'General'];
+// Group order mirrors the sidebar (the catalog is one group per sidebar item).
+const GROUP_ORDER = [
+  'Overview', 'Vehicles', 'Workforce', 'ERP Home', 'Planning', 'Approvals', 'Pipeline',
+  'Billing & Receivables', 'Payables', 'Accounts & Ledger', 'Masters & Settings',
+  'Fleet Operations', 'Fuel Management', 'Locations', 'Geofence', 'Khata Ledger', 'Reports',
+];
 const BASE_ROLE_OPTIONS = ['MANAGER', 'DRIVER', 'FIELD_AGENT'];
 
 /* Binary pill toggle (reuses the FeatureFlags switch styling). */

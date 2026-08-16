@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
-// Preferred group order; unlisted groups sort alphabetically after these.
-const GROUP_ORDER = ['Overview', 'Reports', 'Fleet', 'Employees', 'Finance', 'CRM', 'ERP', 'General'];
+// Group order mirrors the sidebar (the catalog is one group per sidebar item).
+const GROUP_ORDER = [
+  'Overview', 'Vehicles', 'Workforce', 'ERP Home', 'Planning', 'Approvals', 'Pipeline',
+  'Billing & Receivables', 'Payables', 'Accounts & Ledger', 'Masters & Settings',
+  'Fleet Operations', 'Fuel Management', 'Locations', 'Geofence', 'Khata Ledger', 'Reports',
+];
 
 /* Binary pill toggle (reuses FeatureFlags switch styling). */
 const Toggle = ({ checked, onChange, disabled = false, label }) => (
