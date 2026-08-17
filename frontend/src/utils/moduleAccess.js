@@ -34,6 +34,8 @@ export const FLEET_FLAG_KEYS = [
   'vehicleActivity',
   'locations',
   'fuelComparison',
+  'fuelIntegrity',
+  'fleetIntelligence',
   'khataLedger',
   'dailyMileageReport',
   'geofence',

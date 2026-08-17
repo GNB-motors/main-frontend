@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
+import CommandPalette from './cluster/CommandPalette.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { ProfileService } from '../pages/Profile/ProfileService.jsx';
 import { storeProfileData } from '../utils/profileStorage.js';
@@ -59,6 +60,7 @@ const DashboardLayoutInner = () => {
                     <Outlet />
                 </div>
             </main>
+            <CommandPalette />
         </div>
     );
 };
