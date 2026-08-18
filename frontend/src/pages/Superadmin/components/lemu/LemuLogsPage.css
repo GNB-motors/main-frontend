@@ -1890,3 +1890,27 @@
   }
 }
 
+
+/* ── Route / findings filters (T6) ───────────────────────── */
+.lemu-search--compact {
+  flex: 0 1 240px;
+  min-width: 180px;
+}
+
+.lemu-search--compact input {
+  height: 34px;
+  font-size: 13px;
+}
+
+.lemu-system-map__no-match {
+  padding: 12px 4px;
+}
+
+.lemu-findings-panel__filter {
+  margin-bottom: 16px;
+  max-width: 420px;
+}
+
+.lemu-findings-group__no-match {
+  padding: 8px 4px;
+}

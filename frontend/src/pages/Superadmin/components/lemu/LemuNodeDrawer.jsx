@@ -5,7 +5,27 @@ import { X } from 'lucide-react';
 import LemuNodePulse from './LemuNodePulse';
 import LemuNodeStatus from './LemuNodeStatus';
 import LemuStatusChip from './LemuStatusChip';
-import { formatDuration, jobStatusToTrio, relativeTime } from './utils';
+import { formatDuration, fullRoutePath, jobStatusToTrio, relativeTime } from './utils';
+
+/* Inline arrow handlers/middleware have no fn.name, so the manifest records
+   them as "anonymous". Never render that bare word — attach the derived module
+   (or a count, for middleware) so the operator still learns something. */
+const namedOrNull = (name) => (name && name !== 'anonymous' ? name : null);
+
+const handlerLabel = (route, moduleName) => namedOrNull(route.handlerName)
+  || `anonymous · ${moduleName ? `${moduleName} module` : 'unattributed'}`;
+
+const middlewareLabels = (middlewares) => {
+  const labels = [];
+  let anon = 0;
+  (middlewares || []).forEach((m) => {
+    const named = namedOrNull(m);
+    if (named) labels.push(named);
+    else anon += 1;
+  });
+  if (anon > 0) labels.push(`anonymous ×${anon}`);
+  return labels;
+};
 
 const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onClose }) => {
   const drawerRef = useRef(null);
@@ -54,12 +74,12 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onCl
       <>
         <div className="lemu-drawer__head">
           <div className="lemu-drawer__kind">Route</div>
-          <h2 className="lemu-drawer__title">{route.method} {route.path}</h2>
+          <h2 className="lemu-drawer__title">{route.method} {fullRoutePath(route)}</h2>
           {hasFinding && <span className="lemu-drawer__badge lemu-drawer__badge--finding">▲ Finding</span>}
         </div>
         <dl className="lemu-drawer__grid">
           <dt>Mount</dt><dd>{route.mountPath || '/'}</dd>
-          <dt>Handler</dt><dd>{route.handlerName || '—'}</dd>
+          <dt>Handler</dt><dd>{handlerLabel(route, node._module)}</dd>
           <dt>Derived module</dt><dd>{node._module || 'unattributed'}</dd>
           <dt>Auth</dt><dd>{route.hasAuth ? 'yes' : 'no'}</dd>
           <dt>Tenant guard</dt><dd>{route.hasTenantGuard ? 'yes' : 'no'}</dd>
@@ -68,7 +88,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onCl
           <div className="lemu-drawer__section">
             <h4>Middleware</h4>
             <ul className="lemu-drawer__list">
-              {route.middlewares.map((m, i) => <li key={i}>{m}</li>)}
+              {middlewareLabels(route.middlewares).map((m, i) => <li key={i}>{m}</li>)}
             </ul>
           </div>
         )}
@@ -195,7 +215,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onCl
           <h4>Routes</h4>
           <ul className="lemu-drawer__list lemu-drawer__list--two">
             {routes.slice(0, 30).map((r, i) => (
-              <li key={i}>{r.method} {r.path}</li>
+              <li key={i}>{r.method} {fullRoutePath(r)}</li>
             ))}
           </ul>
         </div>

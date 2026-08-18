@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import LemuMapNode from './LemuMapNode';
-import { compactNumber, heatFromCount, nodeId, routePulseKey } from './utils';
+import { compactNumber, fullRoutePath, heatFromCount, nodeId, routePulseKey } from './utils';
 
 const SORTERS = {
   activity: (a, b) => (b.heat || 0) - (a.heat || 0) || a.label.localeCompare(b.label),
@@ -40,7 +40,7 @@ const LemuModulePlate = ({ module, routes, functions, pulse, findings, sort, onS
       return {
         id,
         route,
-        label: `${route.method} ${route.path}`,
+        label: `${route.method} ${fullRoutePath(route)}`,
         heat,
         state,
         stateRank: STATE_RANK[state] || 0,

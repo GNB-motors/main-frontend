@@ -21,7 +21,7 @@ import LemuFindingsRibbon from './lemu/LemuFindingsRibbon';
 import LemuSystemMap from './lemu/LemuSystemMap';
 import LemuNodeDrawer from './lemu/LemuNodeDrawer';
 import LemuChangeFeed from './lemu/LemuChangeFeed';
-import { deriveRouteModule, nodeId, relativeTime } from './lemu/utils';
+import { deriveRouteModule, nodeId, relativeTime, routePulseKey } from './lemu/utils';
 import './lemu/LemuLogsPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -128,7 +128,9 @@ const LemuLogsPage = () => {
     setDashboardError('');
     try {
       const data = await LemuService.getDashboard();
-      setDashboard(data);
+      // The controller responds { dashboard: {...} }; older deployments sent the
+      // rollup flat. Read both so the strip never silently renders all dashes.
+      setDashboard(data?.dashboard || data || null);
     } catch (e) {
       setDashboardError(e.detail || e.message || 'Failed to load dashboard stats');
     } finally {
@@ -238,7 +240,9 @@ const LemuLogsPage = () => {
       const params = {};
       if (resolvedFilter) params.resolved = resolvedFilter;
       const data = await LemuService.getErrorTrackers(params);
-      setTrackers(data.trackers || []);
+      // Controller responds { data: trackers, summary } — the list and the
+      // header counts come from this ONE response so they cannot disagree.
+      setTrackers(data.trackers || data.data || []);
       setErrorsSummary(data.summary || null);
     } catch (e) {
       setTrackersError(e.detail || e.message || 'Failed to load error trackers');
@@ -306,7 +310,7 @@ const LemuLogsPage = () => {
       const route = (manifest.routes || []).find((r) => nodeId.route(r) === selectedNodeId);
       if (!route) return null;
       const pulseSeries = (pulse?.buckets || []).map((b) => {
-        const r = (b.routes || []).find((x) => x.key === `${route.method} ${route.mountPath}${route.path}`);
+        const r = (b.routes || []).find((x) => x.key === routePulseKey(route));
         return r || { n: 0, err: 0 };
       });
       return { kind: 'route', node: { ...route, _id: selectedNodeId, _module: deriveRouteModule(route, functionsByName) }, pulseSeries };

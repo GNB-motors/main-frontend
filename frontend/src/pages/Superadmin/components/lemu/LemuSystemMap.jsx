@@ -1,11 +1,11 @@
-import React, { useCallback, useMemo, useRef } from 'react';
-import { Map, SlidersHorizontal } from 'lucide-react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Map, Search, SlidersHorizontal } from 'lucide-react';
 import LemuMapRegion from './LemuMapRegion';
 import LemuModulePlate from './LemuModulePlate';
 import LemuMapNode from './LemuMapNode';
 import LemuMapEmpty from './LemuMapEmpty';
 import LemuStatusChip from './LemuStatusChip';
-import { deriveRouteModule, heatFromCount, jobStatusToTrio, nodeId } from './utils';
+import { deriveRouteModule, fullRoutePath, heatFromCount, jobStatusToTrio, nodeId } from './utils';
 
 const SORT_OPTIONS = [
   { id: 'activity', label: 'Activity' },
@@ -16,6 +16,8 @@ const SORT_OPTIONS = [
 
 const LemuSystemMap = ({ manifest, pulse, status, sort, onSortChange, onSelectNode, selectedNodeId, jobHealth, onRebuild }) => {
   const boardRef = useRef(null);
+  /* Text filter across route plates — 40+ modules flat is not browsable. */
+  const [routeFilter, setRouteFilter] = useState('');
 
   const functionsByName = useMemo(() => {
     const map = {};
@@ -61,6 +63,21 @@ const LemuSystemMap = ({ manifest, pulse, status, sort, onSortChange, onSelectNo
 
     return modules.filter((m) => m.routes.length > 0).sort((a, b) => (b.totalLoc || 0) - (a.totalLoc || 0));
   }, [manifest, functionsByName]);
+
+  const visiblePlates = useMemo(() => {
+    const query = routeFilter.trim().toLowerCase();
+    if (!query) return plates;
+    return plates
+      .map((module) => {
+        // A module-name match keeps the whole plate; otherwise match routes.
+        if (module.name.toLowerCase().includes(query)) return module;
+        return {
+          ...module,
+          routes: module.routes.filter((r) => `${r.method} ${fullRoutePath(r)}`.toLowerCase().includes(query)),
+        };
+      })
+      .filter((module) => module.routes.length > 0);
+  }, [plates, routeFilter]);
 
   const models = useMemo(() => {
     return (manifest?.models || []).map((model) => {
@@ -132,6 +149,16 @@ const LemuSystemMap = ({ manifest, pulse, status, sort, onSortChange, onSelectNo
           System
         </div>
         <div className="lemu-system-map__controls">
+          <div className="lemu-search lemu-search--compact">
+            <span className="lemu-search__icon"><Search size={14} /></span>
+            <input
+              type="text"
+              placeholder="Filter routes or modules…"
+              value={routeFilter}
+              onChange={(e) => setRouteFilter(e.target.value)}
+              aria-label="Filter routes or modules"
+            />
+          </div>
           <label className="lemu-meta" htmlFor="lemu-sort">Sort</label>
           <select
             id="lemu-sort"
@@ -155,9 +182,12 @@ const LemuSystemMap = ({ manifest, pulse, status, sort, onSortChange, onSelectNo
       )}
 
       <div className="lemu-system-map__board" ref={boardRef} onKeyDown={handleKeyDown}>
-        <LemuMapRegion kind="code" count={plates.length}>
+        <LemuMapRegion kind="code" count={visiblePlates.length}>
+          {visiblePlates.length === 0 && (
+            <div className="lemu-meta lemu-system-map__no-match">No routes or modules match “{routeFilter}”.</div>
+          )}
           <div className="lemu-plates">
-            {plates.map((module) => (
+            {visiblePlates.map((module) => (
               <LemuModulePlate
                 key={module.name}
                 module={module}

@@ -12,11 +12,18 @@ const LemuFindingsRibbon = ({ findings, version, onOpenNode, expanded, onToggle,
   const summary = useMemo(() => {
     if (status === 'error') return 'Findings unavailable';
     if (total === 0) return 'No standing findings';
-    if (findings?.untenantedRoutes?.length > 0) return `${findings.untenantedRoutes.length} untenanted route${findings.untenantedRoutes.length === 1 ? '' : 's'}`;
-    if (findings?.uninstrumentedJobs?.length > 0) return `${findings.uninstrumentedJobs.length} uninstrumented job${findings.uninstrumentedJobs.length === 1 ? '' : 's'}`;
-    if (findings?.modelsWithoutCollection?.length > 0) return `${findings.modelsWithoutCollection.length} model${findings.modelsWithoutCollection.length === 1 ? '' : 's'} without collection`;
-    if (findings?.collectionsWithoutModel?.length > 0) return `${findings.collectionsWithoutModel.length} collection${findings.collectionsWithoutModel.length === 1 ? '' : 's'} without model`;
-    return 'Standing findings';
+    // Label every number: total findings first, then the per-type breakdown —
+    // two bare adjacent counts ("856 851") read as a typo, not information.
+    const parts = [];
+    const routes = findings?.untenantedRoutes?.length || 0;
+    const jobs = findings?.uninstrumentedJobs?.length || 0;
+    const models = findings?.modelsWithoutCollection?.length || 0;
+    const collections = findings?.collectionsWithoutModel?.length || 0;
+    if (routes > 0) parts.push(`${routes} untenanted route${routes === 1 ? '' : 's'}`);
+    if (jobs > 0) parts.push(`${jobs} uninstrumented job${jobs === 1 ? '' : 's'}`);
+    if (models > 0) parts.push(`${models} model${models === 1 ? '' : 's'} without collection`);
+    if (collections > 0) parts.push(`${collections} collection${collections === 1 ? '' : 's'} without model`);
+    return `finding${total === 1 ? '' : 's'}: ${parts.join(' · ')}`;
   }, [findings, total, status]);
 
   return (

@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { Check, Triangle } from 'lucide-react';
-import { nodeId } from './utils';
+import React, { useMemo, useState } from 'react';
+import { Check, Search, Triangle } from 'lucide-react';
+import { fullRoutePath, nodeId } from './utils';
 
 const GROUPS = [
   { key: 'untenantedRoutes', title: 'Untenanted routes', kind: 'route', idFor: (r) => nodeId.route(r) },
@@ -10,10 +10,21 @@ const GROUPS = [
 ];
 
 const LemuFindingsPanel = ({ findings, version, onOpenNode, status }) => {
+  /* Text filter — 800+ flat findings are not browsable without one. */
+  const [filter, setFilter] = useState('');
+
   const total = useMemo(() => {
     if (!findings) return 0;
     return GROUPS.reduce((sum, g) => sum + ((findings[g.key] || []).length), 0);
   }, [findings]);
+
+  const labelFor = (item, id) => (typeof item === 'string'
+    ? item
+    : item.method
+      ? `${item.method} ${fullRoutePath(item)}`
+      : item.name || item.modelName || id);
+
+  const query = filter.trim().toLowerCase();
 
   if (status === 'error') {
     return (
@@ -47,25 +58,43 @@ const LemuFindingsPanel = ({ findings, version, onOpenNode, status }) => {
         <h3>Standing findings — these clear when the structure changes, not when you click OK</h3>
         <span className="lemu-meta">v{version || '—'}</span>
       </div>
+      <div className="lemu-findings-panel__filter lemu-search">
+        <span className="lemu-search__icon"><Search size={14} /></span>
+        <input
+          type="text"
+          placeholder={`Filter ${total} findings…`}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          aria-label="Filter findings"
+        />
+      </div>
       <div className="lemu-findings-grid">
         {GROUPS.map((group) => {
-          const items = findings?.[group.key] || [];
+          const allItems = findings?.[group.key] || [];
+          const items = query
+            ? allItems.filter((item) => labelFor(item, group.idFor(item)).toLowerCase().includes(query))
+            : allItems;
           return (
-            <div key={group.key} className={`lemu-findings-group ${items.length === 0 ? 'lemu-findings-group--clean' : 'lemu-findings-group--alert'}`}>
+            <div key={group.key} className={`lemu-findings-group ${allItems.length === 0 ? 'lemu-findings-group--clean' : 'lemu-findings-group--alert'}`}>
               <h4 className="lemu-findings-group__title">
-                {items.length === 0 ? <Check size={14} /> : <Triangle size={14} />}
+                {allItems.length === 0 ? <Check size={14} /> : <Triangle size={14} />}
                 {group.title}
-                <span className="lemu-findings-group__count">{items.length === 0 ? '✓ verified' : items.length}</span>
+                <span className="lemu-findings-group__count">
+                  {allItems.length === 0
+                    ? '✓ verified'
+                    : query && items.length !== allItems.length
+                      ? `${items.length} of ${allItems.length}`
+                      : allItems.length}
+                </span>
               </h4>
+              {allItems.length > 0 && items.length === 0 && (
+                <div className="lemu-meta lemu-findings-group__no-match">No matches for “{filter}”.</div>
+              )}
               {items.length > 0 && (
                 <ul className="lemu-findings-group__list">
                   {items.map((item, i) => {
                     const id = group.idFor(item);
-                    const label = typeof item === 'string'
-                      ? item
-                      : item.method
-                        ? `${item.method} ${item.path}`
-                        : item.name || item.modelName || id;
+                    const label = labelFor(item, id);
                     return (
                       <li key={i}>
                         <button

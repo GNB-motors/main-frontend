@@ -32,17 +32,38 @@ const countBucket = (diff, key) => {
   return Array.isArray(arr) ? arr.length : 0;
 };
 
+/* Manifest list records carry full ARRAYS (routes, models, …), not counts.
+   Interpolating the array is what printed "[object Object],[object Object]…". */
+const countOf = (v) => {
+  if (Array.isArray(v)) return v.length;
+  if (typeof v === 'number' && !Number.isNaN(v)) return v;
+  return 0;
+};
+
 const LemuChangeSentence = ({ diff, isGenesis, meta }) => {
   const sentence = useMemo(() => {
-    if (isGenesis || !diff) {
-      const r = meta?.routes ?? 0;
-      const m = meta?.models ?? 0;
-      const j = meta?.jobs ?? 0;
-      const f = meta?.functions ?? 0;
-      const mod = meta?.modules ?? 0;
+    if (isGenesis) {
+      const r = countOf(meta?.routes);
+      const m = countOf(meta?.models);
+      const j = countOf(meta?.jobs);
+      const f = countOf(meta?.functions);
+      const mod = countOf(meta?.modules);
       const date = meta?.createdAt ? new Date(meta.createdAt).toLocaleDateString() : 'day one';
       return `v1 established ${date}: ${r} routes, ${m} models, ${j} jobs, ${f} functions across ${mod} modules. No comparison exists yet.`;
     }
+
+    /* Legacy versions stored a pre-rendered string. Ones already mangled to
+       "[object Object],…" in Mongo cannot be retro-fixed — show a compact
+       summary from this version's own snapshot counts instead of the garbage. */
+    if (typeof diff === 'string') {
+      if (diff.includes('[object Object]')) {
+        return `Manifest changed (legacy summary unreadable): snapshot holds ${countOf(meta?.routes)} routes, ${countOf(meta?.models)} models, ${countOf(meta?.jobs)} jobs at this version.`;
+      }
+      return diff;
+    }
+
+    if (diff === undefined) return 'Expand to load what changed in this version.';
+    if (diff === null) return 'No diff stored for this version — the change detail is unavailable.';
 
     // Find the largest non-zero bucket in the deterministic order.
     let largestKey = null;

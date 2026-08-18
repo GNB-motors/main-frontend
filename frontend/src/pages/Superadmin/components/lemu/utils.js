@@ -30,9 +30,26 @@ export const formatDuration = (ms) => {
 
 /* ── Layer 3 shared helpers ─────────────────────────────────────────────── */
 
+/**
+ * Full route path. Manifest builders differ: some bake mountPath into path,
+ * some keep them split, and some lose the sub-path entirely (path is just the
+ * mount root). Join whichever shape arrives without doubling or dropping
+ * segments, so the list never shows a dozen identical "GET /api/".
+ */
+export const fullRoutePath = (route) => {
+  const clean = (p) => (p && p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p || '');
+  const mount = clean(route.mountPath);
+  const path = clean(route.path);
+  if (!mount) return path || '/';
+  if (!path || path === '/') return mount; // sub-path lost at the source
+  if (path === mount || path.startsWith(`${mount}/`)) return path; // mount baked in
+  if (mount.startsWith(`${path}/`)) return mount; // path IS the mount root; mount knows more
+  return `${mount}${path.startsWith('/') ? '' : '/'}${path}`; // split fields
+};
+
 /** Build deep-linkable node IDs. */
 export const nodeId = {
-  route: (route) => `route:${route.method}:${route.path}`,
+  route: (route) => `route:${route.method}:${fullRoutePath(route)}`,
   model: (model) => `model:${model.modelName}`,
   job: (job) => `job:${job.name}`,
   module: (module) => `module:${module.name}`,
@@ -48,7 +65,7 @@ export const heatFromCount = (n) => {
 };
 
 /** Pulse key for a route: "GET /api/vehicles/:id". */
-export const routePulseKey = (route) => `${route.method} ${route.mountPath}${route.path}`;
+export const routePulseKey = (route) => `${route.method} ${fullRoutePath(route)}`;
 
 /** Map a job health status to the silence trio. */
 export const jobStatusToTrio = (status) => {

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { ChevronDown, ChevronUp, GitCommit } from 'lucide-react';
 import LemuChangeSentence from './LemuChangeSentence';
+import { fullRoutePath } from './utils';
 
 const ChangeList = ({ title, items }) => {
   if (!items || items.length === 0) return null;
@@ -10,7 +11,15 @@ const ChangeList = ({ title, items }) => {
       <ul>
         {items.map((item, i) => (
           <li key={i} className="lemu-change-list__item">
-            {typeof item === 'string' ? item : (item.method ? `${item.method} ${item.path}` : item.name || item.modelName || JSON.stringify(item))}
+            {typeof item === 'string'
+              ? item
+              : item.method
+                ? `${item.method} ${fullRoutePath(item)}`
+                : item.key
+                  ? `${item.key} (middleware changed)`
+                  : item.functionName
+                    ? `${item.functionName}${item.file ? ` — ${item.file}` : ''}`
+                    : item.name || item.modelName || JSON.stringify(item)}
           </li>
         ))}
       </ul>
@@ -25,7 +34,9 @@ const LemuChangeEntry = ({ version, diff, meta, expanded, onToggle, onLoadDiff }
     }
   }, [expanded, diff, version, onLoadDiff]);
 
-  const isGenesis = version === 1 || !diff;
+  // Genesis is v1 only. Any other version with an unloaded diff is "not loaded
+  // yet", not genesis — the sentence component renders those states distinctly.
+  const isGenesis = version === 1;
 
   return (
     <article className={`lemu-change-entry ${expanded ? 'lemu-change-entry--expanded' : ''}`}>
@@ -54,7 +65,14 @@ const LemuChangeEntry = ({ version, diff, meta, expanded, onToggle, onLoadDiff }
       {expanded && (
         <div className="lemu-change-entry__details">
           {diff === null && <div className="lemu-change-entry__empty">No diff available for this version.</div>}
-          {diff && (
+          {typeof diff === 'string' && (
+            <div className="lemu-change-entry__empty">
+              {diff.includes('[object Object]')
+                ? 'This version stored its summary as a pre-rendered string that was mangled before persistence (legacy format). Only the snapshot counts in the sentence above survive.'
+                : diff}
+            </div>
+          )}
+          {diff && typeof diff !== 'string' && (
             <div className="lemu-change-grid">
               <div className="lemu-change-group">
                 <h4>Routes</h4>

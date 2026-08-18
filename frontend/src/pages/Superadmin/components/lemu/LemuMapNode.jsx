@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import LemuStatusChip from './LemuStatusChip';
-import { compactNumber } from './utils';
+import { compactNumber, fullRoutePath } from './utils';
 
 const LemuMapNode = ({
   node,
@@ -22,7 +22,7 @@ const LemuMapNode = ({
   const hasFindingClass = hasFinding ? 'lemu-node--finding' : '';
 
   const label = useMemo(() => {
-    if (kind === 'route') return `${node.method} ${node.path}`;
+    if (kind === 'route') return `${node.method} ${fullRoutePath(node)}`;
     if (kind === 'model') return node.collectionName || node.modelName;
     if (kind === 'job') return node.name;
     if (kind === 'module') return node.name;
