@@ -61,7 +61,7 @@ export const SIDE_NAV_ITEMS = [
   // Cross-module landing page. Sirf tab dikhta hai jab dono module hain —
   // ek hi module wale org ke liye ye combined view ka koi matlab nahi, unke liye
   // unka apna module home (ERP Home / Fleet Operations) hi top item ban jaata hai.
-  { type: 'link', key: null, access: 'both', to: '/command-center', label: 'Overview', icon: Gauge, end: true },
+  { type: 'link', key: 'overview', access: 'both', to: '/command-center', label: 'Overview', icon: Gauge, end: true },
   // Fleet-wide daily digest (added by live-map-refresh branch).
   { type: 'link', key: 'fleetIntelligence', access: 'both', to: '/digest', label: 'Daily Digest', icon: CalendarClock },
 
@@ -108,7 +108,7 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
-  { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
+  { type: 'link', key: 'erpOperations', access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
   {
     type: 'group',
     groupId: 'erpPlanning',
@@ -225,7 +225,9 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },
-  // Always visible (no feature flag) — guaranteed fallback page.
+  // Always visible (no feature flag) — guaranteed fallback page. Profile must
+  // stay reachable for every authenticated user regardless of plan; gating it
+  // can lock users out with no recovery path, so `key` stays null on purpose.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
 ];
 
