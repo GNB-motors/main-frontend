@@ -2,7 +2,7 @@ import React from 'react';
 import { BookOpen, Inbox, ServerCrash } from 'lucide-react';
 import LemuChangeEntry from './LemuChangeEntry';
 
-const LemuChangeFeed = ({ manifests, diffsByVersion, status, onLoadDiff, expandedVersions, onToggleVersion }) => {
+const LemuChangeFeed = ({ manifests, diffsByVersion, diffStatusByVersion, status, onLoadDiff, expandedVersions, onToggleVersion }) => {
   if (status === 'loading') {
     return (
       <div className="lemu-change-feed lemu-change-feed--loading">
@@ -52,6 +52,7 @@ const LemuChangeFeed = ({ manifests, diffsByVersion, status, onLoadDiff, expande
             key={manifest.version}
             version={manifest.version}
             diff={diffsByVersion?.[manifest.version]}
+            diffStatus={diffStatusByVersion?.[manifest.version]}
             meta={manifest}
             expanded={expandedVersions.has(manifest.version)}
             onToggle={onToggleVersion}

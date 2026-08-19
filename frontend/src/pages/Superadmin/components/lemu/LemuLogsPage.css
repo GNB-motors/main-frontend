@@ -1778,6 +1778,25 @@
   color: var(--lemu-text-secondary);
 }
 
+.lemu-change-entry__empty--error {
+  color: var(--lemu-danger, #dc2626);
+}
+
+.lemu-change-entry__retry {
+  margin-left: 8px;
+  padding: 2px 10px;
+  font-size: 12px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lemu-change-entry__retry:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
 .lemu-change-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

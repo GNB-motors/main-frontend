@@ -65,6 +65,10 @@ const LemuLogsPage = () => {
   const [manifestsList, setManifestsList] = useState([]);
   const [manifestsStatus, setManifestsStatus] = useState('loading');
   const [diffsByVersion, setDiffsByVersion] = useState({});
+  // Per-version fetch lifecycle: undefined = idle, 'loading' | 'ready' | 'error'.
+  // Kept separate from the diff payload so a failed fetch can never render as
+  // "no changes" (and vice versa).
+  const [diffStatusByVersion, setDiffStatusByVersion] = useState({});
   const [sort, setSort] = useState('activity');
   const [findingsExpanded, setFindingsExpanded] = useState(() => searchParams.get('findings') === 'open');
   const [expandedVersions, setExpandedVersions] = useState(() => {
@@ -183,11 +187,14 @@ const LemuLogsPage = () => {
   }, []);
 
   const loadManifestDiff = useCallback(async (version) => {
+    setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'loading' }));
     try {
       const data = await LemuService.getManifestDiff(version);
       setDiffsByVersion((prev) => ({ ...prev, [version]: data.data || null }));
+      setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'ready' }));
     } catch {
-      setDiffsByVersion((prev) => ({ ...prev, [version]: null }));
+      // Leave the diff itself absent — status alone drives the error UI.
+      setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'error' }));
     }
   }, []);
 
@@ -564,6 +571,7 @@ const LemuLogsPage = () => {
           <LemuChangeFeed
             manifests={manifestsList}
             diffsByVersion={diffsByVersion}
+            diffStatusByVersion={diffStatusByVersion}
             status={manifestsStatus}
             onLoadDiff={loadManifestDiff}
             expandedVersions={expandedVersions}

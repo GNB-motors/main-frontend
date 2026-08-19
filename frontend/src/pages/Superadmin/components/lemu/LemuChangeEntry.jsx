@@ -27,12 +27,14 @@ const ChangeList = ({ title, items }) => {
   );
 };
 
-const LemuChangeEntry = ({ version, diff, meta, expanded, onToggle, onLoadDiff }) => {
+const LemuChangeEntry = ({ version, diff, diffStatus, meta, expanded, onToggle, onLoadDiff }) => {
   useEffect(() => {
-    if (expanded && diff === undefined) {
+    // Fetch once per expand. 'error' is terminal until the user hits Retry —
+    // auto-refetching here would loop against a hanging request.
+    if (expanded && diffStatus === undefined) {
       onLoadDiff(version);
     }
-  }, [expanded, diff, version, onLoadDiff]);
+  }, [expanded, diffStatus, version, onLoadDiff]);
 
   // Genesis is v1 only. Any other version with an unloaded diff is "not loaded
   // yet", not genesis — the sentence component renders those states distinctly.
@@ -64,7 +66,27 @@ const LemuChangeEntry = ({ version, diff, meta, expanded, onToggle, onLoadDiff }
       </button>
       {expanded && (
         <div className="lemu-change-entry__details">
-          {diff === null && <div className="lemu-change-entry__empty">No diff available for this version.</div>}
+          {diffStatus === 'loading' && (
+            <div className="lemu-change-entry__empty">
+              <span className="lemu-spinner" /> Loading diff for v{version}…
+            </div>
+          )}
+          {diffStatus === 'error' && (
+            <div className="lemu-change-entry__empty lemu-change-entry__empty--error">
+              /manifest/diff failed for v{version} — the version exists; this is a fetch error, not
+              an empty change set.
+              <button
+                type="button"
+                className="lemu-change-entry__retry"
+                onClick={() => onLoadDiff(version)}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {diffStatus === 'ready' && diff === null && (
+            <div className="lemu-change-entry__empty">No diff available for this version.</div>
+          )}
           {typeof diff === 'string' && (
             <div className="lemu-change-entry__empty">
               {diff.includes('[object Object]')
