@@ -27,7 +27,7 @@ const middlewareLabels = (middlewares) => {
   return labels;
 };
 
-const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onClose }) => {
+const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, onClose }) => {
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
 
@@ -66,6 +66,65 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onCl
 
   const hasFinding = findingIds?.has(node?._id);
 
+  /* The node's key in the knowledge graph. Route nodes connect through their
+     module — edges are stored against mounts/modules/models/jobs, not routes. */
+  const graphKey = !node ? null
+    : kind === 'route' ? (node._module ? `module:${node._module}` : null)
+      : kind === 'model' ? `model:${node.modelName}`
+        : kind === 'job' ? `job:${node.name}`
+          : kind === 'module' ? `module:${node.name}`
+            : null;
+
+  const outgoing = graphKey ? (edges || []).filter((e) => e.from === graphKey) : [];
+  const incoming = graphKey ? (edges || []).filter((e) => e.to === graphKey) : [];
+
+  const livenessLine = () => {
+    if (!liveness || !node) return null;
+    if (kind === 'route') {
+      const live = liveness.routes?.[`${node.method} ${fullRoutePath(node)}`];
+      return live?.lastSeen ? relativeTime(live.lastSeen) : 'no traffic in 24h';
+    }
+    if (kind === 'model') {
+      const live = liveness.collections?.[node.collectionName];
+      return live?.lastSeen ? relativeTime(live.lastSeen) : 'no traffic in 24h';
+    }
+    return null;
+  };
+  const lastTraffic = livenessLine();
+
+  const renderConnections = () => {
+    if (!graphKey) return null;
+    if (!outgoing.length && !incoming.length) {
+      return (
+        <div className="lemu-drawer__section">
+          <h4>Connections</h4>
+          <div className="lemu-muted">No graph edges recorded for this node.</div>
+        </div>
+      );
+    }
+    return (
+      <div className="lemu-drawer__section">
+        <h4>Connections</h4>
+        {outgoing.length > 0 && (
+          <>
+            <div className="lemu-muted">Depends on / owns</div>
+            <ul className="lemu-drawer__list">
+              {outgoing.map((e, i) => <li key={i}>{e.to} <span className="lemu-muted">({e.kind}, {e.confidence})</span></li>)}
+            </ul>
+          </>
+        )}
+        {incoming.length > 0 && (
+          <>
+            <div className="lemu-muted">Used by</div>
+            <ul className="lemu-drawer__list">
+              {incoming.map((e, i) => <li key={i}>{e.from} <span className="lemu-muted">({e.kind}, {e.confidence})</span></li>)}
+            </ul>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const renderRouteDetail = () => {
     const route = node;
     const latest = pulseSeries?.[0] || {};
@@ -83,6 +142,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onCl
           <dt>Derived module</dt><dd>{node._module || 'unattributed'}</dd>
           <dt>Auth</dt><dd>{route.hasAuth ? 'yes' : 'no'}</dd>
           <dt>Tenant guard</dt><dd>{route.hasTenantGuard ? 'yes' : 'no'}</dd>
+          {lastTraffic && <><dt>Last traffic</dt><dd>{lastTraffic}</dd></>}
         </dl>
         {route.middlewares?.length > 0 && (
           <div className="lemu-drawer__section">
@@ -126,6 +186,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onCl
           <dt>Tenant field</dt><dd>{model.hasTenantField ? 'yes' : 'no'}</dd>
           <dt>Estimated docs</dt>
           <dd>{model.estimatedDocs === null ? 'doc count unavailable' : model.estimatedDocs}</dd>
+          {lastTraffic && <><dt>Last traffic</dt><dd>{lastTraffic}</dd></>}
         </dl>
         {model.indexes?.length > 0 && (
           <div className="lemu-drawer__section">
@@ -239,19 +300,27 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, onCl
           {kind === 'model' && renderModelDetail()}
           {kind === 'job' && renderJobDetail()}
           {kind === 'module' && renderModuleDetail()}
+          {renderConnections()}
           <div className="lemu-alert lemu-alert--error" role="alert">
             Structure loaded; pulse unavailable (503). Structural fields still shown.
           </div>
         </>
       );
     }
-    switch (kind) {
-      case 'route': return renderRouteDetail();
-      case 'model': return renderModelDetail();
-      case 'job': return renderJobDetail();
-      case 'module': return renderModuleDetail();
-      default: return null;
-    }
+    return (
+      <>
+        {(() => {
+          switch (kind) {
+            case 'route': return renderRouteDetail();
+            case 'model': return renderModelDetail();
+            case 'job': return renderJobDetail();
+            case 'module': return renderModuleDetail();
+            default: return null;
+          }
+        })()}
+        {renderConnections()}
+      </>
+    );
   };
 
   return (

@@ -60,6 +60,10 @@ const LemuLogsPage = () => {
   const [manifestStatus, setManifestStatus] = useState('loading');
   const [pulse, setPulse] = useState(null);
   const [pulseStatus, setPulseStatus] = useState('loading');
+  // Wide-window last-seen per route/collection — distinguishes "quiet this
+  // hour" from "no signal all day". Null until loaded; the map degrades to
+  // pulse-only behaviour without it.
+  const [liveness, setLiveness] = useState(null);
   const [findings, setFindings] = useState(null);
   const [findingsStatus, setFindingsStatus] = useState('loading');
   const [manifestsList, setManifestsList] = useState([]);
@@ -164,6 +168,16 @@ const LemuLogsPage = () => {
     }
   }, []);
 
+  const loadLiveness = useCallback(async () => {
+    try {
+      const data = await LemuService.getLiveness({ windowHours: 24 });
+      setLiveness(data.data || null);
+    } catch {
+      // Liveness is an enhancement layer — pulse heat still renders without it.
+      setLiveness(null);
+    }
+  }, []);
+
   const loadFindings = useCallback(async (silent = false) => {
     if (!silent) setFindingsStatus('loading');
     try {
@@ -262,6 +276,11 @@ const LemuLogsPage = () => {
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
   useEffect(() => { loadManifest(); }, [loadManifest]);
   useEffect(() => { loadPulse(); }, [loadPulse]);
+  useEffect(() => {
+    loadLiveness();
+    const t = setInterval(() => loadLiveness(), 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [loadLiveness]);
   useEffect(() => { loadFindings(); }, [loadFindings]);
   useEffect(() => { loadManifests(); }, [loadManifests]);
   useEffect(() => { loadJobs(); }, [loadJobs]);
@@ -557,6 +576,7 @@ const LemuLogsPage = () => {
           <LemuSystemMap
             manifest={manifest}
             pulse={pulse}
+            liveness={liveness}
             status={derivedStatus}
             sort={sort}
             onSortChange={setSort}
@@ -628,6 +648,8 @@ const LemuLogsPage = () => {
           pulseSeries={selectedNode.pulseSeries}
           findingIds={findingIds}
           pulseStatus={pulseStatus}
+          edges={manifest?.edges || []}
+          liveness={liveness}
           onClose={closeDrawer}
         />
       )}
