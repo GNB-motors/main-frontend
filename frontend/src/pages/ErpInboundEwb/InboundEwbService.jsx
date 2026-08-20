@@ -24,7 +24,9 @@ const InboundEwbService = {
 
   async sync() {
     try {
-      const res = await apiClient.post(`${BASE}/sync`);
+      // The pull makes several live GST round-trips (auth + list + detail per
+      // branch), so override the default 10s axios timeout.
+      const res = await apiClient.post(`${BASE}/sync`, null, { timeout: 90000 });
       return res.data?.data;
     } catch (error) {
       throw unwrap(error, 'Failed to sync e-Way Bills from GST');
