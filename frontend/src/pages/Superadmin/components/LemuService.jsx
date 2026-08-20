@@ -116,6 +116,21 @@ export const LemuService = {
     },
 
     /**
+     * Per-node liveness (last-seen per route/collection over a wide window), so
+     * "quiet this hour" and "no signal all day" are distinguishable on the map.
+     * @param {object} params - { windowHours }
+     */
+    getLiveness: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/lemu/liveness`, { params });
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU liveness:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch LEMU liveness." };
+        }
+    },
+
+    /**
      * Standing structural findings.
      */
     getFindings: async () => {

@@ -14,7 +14,7 @@ const SORT_OPTIONS = [
   { id: 'state', label: 'State' },
 ];
 
-const LemuSystemMap = ({ manifest, pulse, status, sort, onSortChange, onSelectNode, selectedNodeId, jobHealth, onRebuild }) => {
+const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, onSelectNode, selectedNodeId, jobHealth, onRebuild }) => {
   const boardRef = useRef(null);
   /* Text filter across route plates — 40+ modules flat is not browsable. */
   const [routeFilter, setRouteFilter] = useState('');
@@ -84,16 +84,26 @@ const LemuSystemMap = ({ manifest, pulse, status, sort, onSortChange, onSelectNo
       const pulseColl = collectionPulseMap[model.collectionName] || {};
       const sum = (pulseColl.find || 0) + (pulseColl.insert || 0) + (pulseColl.update || 0) + (pulseColl.del || 0) + (pulseColl.agg || 0);
       const id = nodeId.model(model);
+      // Wide-window liveness: a collection with no traffic in 24h is not the
+      // same as one quiet this hour. Only condemn when liveness actually
+      // loaded — its absence means "unknown", never "dead".
+      const live = liveness?.collections?.[model.collectionName];
+      const noSignal = liveness ? !live : false;
       return {
         id,
         model,
         heat: heatFromCount(sum),
-        state: 'nothing',
+        state: noSignal ? 'off' : 'nothing',
         hasFinding: findingIds.has(id) || findingIds.has(`collection:${model.collectionName}`),
-        extra: pulseColl,
+        extra: {
+          ...pulseColl,
+          lastSeen: live?.lastSeen || null,
+          noSignal,
+          stateLabel: noSignal ? 'no traffic 24h' : undefined,
+        },
       };
     }).sort((a, b) => (b.model.estimatedDocs || 0) - (a.model.estimatedDocs || 0));
-  }, [manifest, collectionPulseMap, findingIds]);
+  }, [manifest, collectionPulseMap, findingIds, liveness]);
 
   const jobs = useMemo(() => {
     const healthMap = {};
@@ -194,6 +204,7 @@ const LemuSystemMap = ({ manifest, pulse, status, sort, onSortChange, onSelectNo
                 routes={module.routes}
                 functions={manifest?.functions || []}
                 pulse={pulse}
+                livenessRoutes={liveness?.routes || null}
                 findings={manifest?.findings}
                 sort={sort}
                 onSelectNode={onSelectNode}

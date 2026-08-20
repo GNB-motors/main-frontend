@@ -42,12 +42,15 @@ const countOf = (v) => {
 
 const LemuChangeSentence = ({ diff, isGenesis, meta }) => {
   const sentence = useMemo(() => {
+    // The manifests list endpoint now returns `counts` ($size projections)
+    // instead of the full arrays. Fall back to the arrays for older clients.
+    const cnt = (k) => meta?.counts?.[k] ?? countOf(meta?.[k]);
     if (isGenesis) {
-      const r = countOf(meta?.routes);
-      const m = countOf(meta?.models);
-      const j = countOf(meta?.jobs);
-      const f = countOf(meta?.functions);
-      const mod = countOf(meta?.modules);
+      const r = cnt('routes');
+      const m = cnt('models');
+      const j = cnt('jobs');
+      const f = cnt('functions');
+      const mod = cnt('modules');
       const date = meta?.createdAt ? new Date(meta.createdAt).toLocaleDateString() : 'day one';
       return `v1 established ${date}: ${r} routes, ${m} models, ${j} jobs, ${f} functions across ${mod} modules. No comparison exists yet.`;
     }
@@ -57,7 +60,7 @@ const LemuChangeSentence = ({ diff, isGenesis, meta }) => {
        summary from this version's own snapshot counts instead of the garbage. */
     if (typeof diff === 'string') {
       if (diff.includes('[object Object]')) {
-        return `Manifest changed (legacy summary unreadable): snapshot holds ${countOf(meta?.routes)} routes, ${countOf(meta?.models)} models, ${countOf(meta?.jobs)} jobs at this version.`;
+        return `Manifest changed (legacy summary unreadable): snapshot holds ${cnt('routes')} routes, ${cnt('models')} models, ${cnt('jobs')} jobs at this version.`;
       }
       return diff;
     }

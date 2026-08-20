@@ -16,7 +16,7 @@ const STATE_RANK = {
   nothing: 0,
 };
 
-const LemuModulePlate = ({ module, routes, functions, pulse, findings, sort, onSelectNode, selectedNodeId }) => {
+const LemuModulePlate = ({ module, routes, functions, pulse, livenessRoutes, findings, sort, onSelectNode, selectedNodeId }) => {
   const routePulseMap = useMemo(() => {
     const latestBucket = pulse?.buckets?.[0];
     const pulseRoutes = latestBucket?.routes || [];
@@ -35,6 +35,7 @@ const LemuModulePlate = ({ module, routes, functions, pulse, findings, sort, onS
     return (routes || []).map((route) => {
       const id = nodeId.route(route);
       const pulseRoute = routePulseMap[routePulseKey(route)] || {};
+      const live = livenessRoutes?.[routePulseKey(route)] || null;
       const heat = heatFromCount(pulseRoute.n);
       const state = pulseRoute.n > 0 ? 'nothing' : pulseRoute.err > 0 ? 'broken' : 'nothing';
       return {
@@ -45,11 +46,11 @@ const LemuModulePlate = ({ module, routes, functions, pulse, findings, sort, onS
         state,
         stateRank: STATE_RANK[state] || 0,
         hasFinding: findingIds.has(id),
-        extra: pulseRoute,
+        extra: { ...pulseRoute, lastSeen: live?.lastSeen || null },
         loc: route.path.length,
       };
     }).sort(SORTERS[sort] || SORTERS.activity);
-  }, [routes, routePulseMap, findingIds, sort]);
+  }, [routes, routePulseMap, livenessRoutes, findingIds, sort]);
 
   const dots = nodeItems.slice(0, 12).map((n) => n.heat);
   const gridSpan = Math.min(4, Math.max(1, Math.ceil((module.totalLoc || 0) / 600)));

@@ -13,8 +13,10 @@ const ChangeList = ({ title, items }) => {
           <li key={i} className="lemu-change-list__item">
             {typeof item === 'string'
               ? item
-              : item.method
-                ? `${item.method} ${fullRoutePath(item)}`
+              : item.from && item.to
+                ? `${item.from} → ${item.to}`
+                : item.method
+                  ? `${item.method} ${fullRoutePath(item)}`
                 : item.key
                   ? `${item.key} (middleware changed)`
                   : item.functionName
@@ -123,6 +125,11 @@ const LemuChangeEntry = ({ version, diff, diffStatus, meta, expanded, onToggle, 
                 <h4>Modules</h4>
                 <ChangeList title="added" items={diff.modules?.added} />
                 <ChangeList title="removed" items={diff.modules?.removed} />
+              </div>
+              <div className="lemu-change-group">
+                <h4>Connections</h4>
+                <ChangeList title="added" items={diff.edges?.added} />
+                <ChangeList title="removed" items={diff.edges?.removed} />
               </div>
             </div>
           )}
