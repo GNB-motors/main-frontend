@@ -11,6 +11,7 @@ import {
   PhoneCall,
   ClipboardList,
   Receipt,
+  ReceiptText,
   Banknote,
   Landmark,
   Settings,
@@ -188,6 +189,7 @@ export const SIDE_NAV_ITEMS = [
   // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
   { type: 'section', label: 'Insights' },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
+  { type: 'link', key: 'khataLedger', to: '/erp/bill-approvals', label: 'Bill Approvals', icon: ReceiptText, badgeKey: 'billApprovalsCount' },
   { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },

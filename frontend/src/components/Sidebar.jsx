@@ -17,6 +17,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [openGroupId, setOpenGroupId] = useState(null);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const [approvalsCount, setApprovalsCount] = useState(0);
+    const [billApprovalsCount, setBillApprovalsCount] = useState(0);
     // A broken/expired logo URL must not leave an empty header, so a load error
     // falls back to the default mark exactly like "no logo uploaded" does.
     const [logoFailed, setLogoFailed] = useState(false);
@@ -36,13 +37,20 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const navItems = useMemo(() => getVisibleNavItems(canAccess), [canAccess]);
 
     useEffect(() => {
+        const authHeaders = () => {
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+            if (!token) return null;
+            const headers = { Authorization: `Bearer ${token}` };
+            const orgId = localStorage.getItem('user_orgId');
+            if (orgId) headers['X-Org-Id'] = orgId;
+            return headers;
+        };
+
         const fetchApprovalsCount = async () => {
             try {
-                const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-                if (!token) return;
-                const res = await fetch('/api/erp/approvals/summary', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const headers = authHeaders();
+                if (!headers) return;
+                const res = await fetch('/api/erp/approvals/summary', { headers });
                 const data = await res.json();
                 if (data.success) {
                     setApprovalsCount(data.data?.pendingCount || 0);
@@ -52,8 +60,25 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             }
         };
 
+        // Pending driver-bill count for the "Bill Approvals" badge (same endpoint the app uses).
+        const fetchBillApprovalsCount = async () => {
+            try {
+                const headers = authHeaders();
+                if (!headers) return;
+                const res = await fetch('/api/app/v1/bills?status=PENDING&limit=1', { headers });
+                const data = await res.json();
+                setBillApprovalsCount(data?.data?.total || 0);
+            } catch {
+                // ignore network error silently
+            }
+        };
+
         fetchApprovalsCount();
-        const interval = setInterval(fetchApprovalsCount, 30000);
+        fetchBillApprovalsCount();
+        const interval = setInterval(() => {
+            fetchApprovalsCount();
+            fetchBillApprovalsCount();
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -146,6 +171,11 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     {item.badgeKey === 'approvalsCount' && approvalsCount > 0 && (
                       <span className="erp-badge warning" style={{ marginLeft: 'auto', fontSize: '11px', padding: '2px 7px' }}>
                         {approvalsCount}
+                      </span>
+                    )}
+                    {item.badgeKey === 'billApprovalsCount' && billApprovalsCount > 0 && (
+                      <span className="erp-badge warning" style={{ marginLeft: 'auto', fontSize: '11px', padding: '2px 7px' }}>
+                        {billApprovalsCount}
                       </span>
                     )}
                 </NavLink>

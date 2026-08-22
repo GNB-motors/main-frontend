@@ -74,6 +74,7 @@ import CallTasksPage from './pages/ErpCallPlanning/CallTasksPage.jsx';
 import CallSchedulesPage from './pages/ErpCallPlanning/CallSchedulesPage.jsx';
 import DeliveryOrdersPage from './pages/ErpDeliveryOrders/DeliveryOrdersPage.jsx';
 import ApprovalsPage from './pages/ErpApprovals/ApprovalsPage.jsx';
+import BillApprovalsPage from './pages/ErpBillApprovals/BillApprovalsPage.jsx';
 import PlacementBoardPage from './pages/ErpPlacement/PlacementBoardPage.jsx';
 import PlacementsPage from './pages/ErpPlacement/PlacementsPage.jsx';
 import VendorsPage from './pages/ErpMasters/VendorsPage.jsx';
@@ -193,6 +194,7 @@ function App() {
         {/* Account 360 — per-party/vendor/supplier/driver financial detail. */}
         <Route path="/erp/accounts/:accountType/:accountId" element={<Account360Page />} />
         <Route path="/erp/approvals" element={<ApprovalsPage />} />
+        <Route path="/erp/bill-approvals" element={<BillApprovalsPage />} />
         <Route path="/erp/call-tasks" element={<CallTasksPage />} />
         <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />
         <Route path="/erp/trips/:tripId" element={<ErpTripDetailPage />} />
