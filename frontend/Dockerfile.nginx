@@ -1,0 +1,36 @@
+# Multi-stage build: Vite static build → nginx serve
+# This replaces the Vercel-hosted frontend with a self-hosted nginx container
+# on the existing EC2 instance, dropping ~₹1,760/mo in Vercel fees.
+
+# ─── Stage 1: Build the React app ───
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Build-time env: all API calls should be relative so nginx can proxy /api
+# to the Node backend on the same host. Vite only exposes env vars prefixed
+# with VITE_ to the client bundle.
+ENV VITE_API_BASE_URL=/api
+
+COPY . .
+RUN npm run build
+
+# ─── Stage 2: Serve with nginx ───
+FROM nginx:alpine
+
+# Remove default nginx config and static files
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/
+
+# Copy built static assets
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
