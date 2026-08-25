@@ -123,6 +123,7 @@ export const SIDE_NAV_ITEMS = [
     matchRoutes: ['/erp/call-tasks', '/erp/call-schedules'],
   },
   { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/approvals', label: 'Approvals', icon: FileCheck, badgeKey: 'approvalsCount' },
+  { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/bill-approvals', label: 'Bill Approvals', icon: ReceiptText, badgeKey: 'billApprovalsCount' },
   { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp/pipeline', label: 'Pipeline', icon: ClipboardList },
   { type: 'link', key: 'erpBilling', access: 'erp', to: '/erp/billing', label: 'Billing & Receivables', icon: Receipt },
   { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/payables', label: 'Payables', icon: Banknote },
@@ -223,7 +224,6 @@ export const SIDE_NAV_ITEMS = [
   // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
   { type: 'section', label: 'Insights' },
   { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
-  { type: 'link', key: 'khataLedger', to: '/erp/bill-approvals', label: 'Bill Approvals', icon: ReceiptText, badgeKey: 'billApprovalsCount' },
   { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },
