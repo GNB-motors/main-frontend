@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 
 function RedirectWithState({ to }) {
   const location = useLocation();
   return <Navigate to={to} state={location.state} replace />;
 }
-
 
 import DashboardLayout from './components/DashboardLayout';
 // Removed ProfileProvider import - profile logic completely removed
@@ -30,14 +30,18 @@ import TripManagementPage from './pages/Trip/TripManagementPage.jsx';
 import TripCreationFlow from './pages/Trip/TripCreationFlow.jsx';
 import WeightSlipTripDetailPage from './pages/Trip/WeightSlipTripDetailPage.jsx';
 import TripDetailPage from './pages/Trip/TripDetailPage.jsx';
-import SuperAdminLayout from './pages/Superadmin/SuperAdminLayout.jsx';
-import SuperAdminPage from './pages/Superadmin/SuperAdminPage.jsx';
-import AddUserPage from './pages/Superadmin/components/AddUserPage.jsx';
-import OrgFeatureFlagsPage from './pages/Superadmin/components/OrgFeatureFlagsPage.jsx';
-import OrgFeatureFlagsDetailPage from './pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx';
-import OrgDetailPage from './pages/Superadmin/components/OrgDetailPage.jsx';
-import RbacPermissionsPage from './pages/Superadmin/components/RbacPermissionsPage.jsx';
-import RbacRolesPage from './pages/Superadmin/components/RbacRolesPage.jsx';
+// Superadmin pages are lazy-loaded: admin-only JSX (incl. the LEMU
+// observability page) must not ship in the customer bundle.
+const SuperAdminLayout = lazy(() => import('./pages/Superadmin/SuperAdminLayout.jsx'));
+const SuperAdminPage = lazy(() => import('./pages/Superadmin/SuperAdminPage.jsx'));
+const AddUserPage = lazy(() => import('./pages/Superadmin/components/AddUserPage.jsx'));
+const OrgFeatureFlagsPage = lazy(() => import('./pages/Superadmin/components/OrgFeatureFlagsPage.jsx'));
+const OrgFeatureFlagsDetailPage = lazy(() => import('./pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx'));
+const OrgDetailPage = lazy(() => import('./pages/Superadmin/components/OrgDetailPage.jsx'));
+const RbacPermissionsPage = lazy(() => import('./pages/Superadmin/components/RbacPermissionsPage.jsx'));
+const RbacRolesPage = lazy(() => import('./pages/Superadmin/components/RbacRolesPage.jsx'));
+const LemuLogsPage = lazy(() => import('./pages/Superadmin/components/LemuLogsPage.jsx'));
+const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -102,6 +106,14 @@ import ErpPayablesPage from './pages/ErpPayables/ErpPayablesPage.jsx';
 import ErpAccountsPage from './pages/ErpAccounts/ErpAccountsPage.jsx';
 import Account360Page from './pages/ErpAccounts/Account360Page.jsx';
 import DocumentDetailPage from './pages/ErpAccounts/DocumentDetailPage.jsx';
+import DailyDigestPage from './pages/DailyDigest/DailyDigestPage.jsx';
+import CompliancePage from './pages/Compliance/CompliancePage.jsx';
+import FleetAlertsPage from './pages/FleetAlerts/FleetAlertsPage.jsx';
+import FuelSpendPage from './pages/FuelSpend/FuelSpendPage.jsx';
+import DefLedgerPage from './pages/DefLedger/DefLedgerPage.jsx';
+import FleetCoveragePage from './pages/FleetCoverage/FleetCoveragePage.jsx';
+import AuditTrailPage from './pages/AuditTrail/AuditTrailPage.jsx';
+import Vehicle360Page from './pages/Vehicle360/Vehicle360Page.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
 import AccessControlPage from './pages/AccessControl/AccessControlPage.jsx';
@@ -118,15 +130,21 @@ function App() {
       <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Super Admin Routes */}
-      <Route path="/superadmin" element={<SuperAdminLayout />}>
-        <Route index element={<SuperAdminPage />} />
-        <Route path="add-user" element={<AddUserPage />} />
-        <Route path="feature-flags" element={<OrgFeatureFlagsPage />} />
-        <Route path="feature-flags/:orgId" element={<OrgFeatureFlagsDetailPage />} />
-        <Route path="organizations/:id" element={<OrgDetailPage />} />
+      <Route path="/superadmin" element={
+        <Suspense fallback={<div style={{ padding: 24 }}>Loading admin…</div>}>
+          <SuperAdminLayout />
+        </Suspense>
+      }>
+        <Route index element={<Suspense fallback={null}><SuperAdminPage /></Suspense>} />
+        <Route path="add-user" element={<Suspense fallback={null}><AddUserPage /></Suspense>} />
+        <Route path="feature-flags" element={<Suspense fallback={null}><OrgFeatureFlagsPage /></Suspense>} />
+        <Route path="feature-flags/:orgId" element={<Suspense fallback={null}><OrgFeatureFlagsDetailPage /></Suspense>} />
+        <Route path="organizations/:id" element={<Suspense fallback={null}><OrgDetailPage /></Suspense>} />
         {/* RBAC management */}
-        <Route path="rbac/permissions" element={<RbacPermissionsPage />} />
-        <Route path="rbac/roles" element={<RbacRolesPage />} />
+        <Route path="rbac/permissions" element={<Suspense fallback={null}><RbacPermissionsPage /></Suspense>} />
+        <Route path="rbac/roles" element={<Suspense fallback={null}><RbacRolesPage /></Suspense>} />
+        <Route path="lemu" element={<Suspense fallback={null}><LemuLogsPage /></Suspense>} />
+        <Route path="warehouse" element={<Suspense fallback={null}><WarehousePage /></Suspense>} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
@@ -139,6 +157,14 @@ function App() {
       >
         <Route path="/command-center" element={<CommandCenterPage />} />
         <Route path="/overview" element={<OverviewPage />} />
+        <Route path="/digest" element={<DailyDigestPage />} />
+        <Route path="/compliance" element={<CompliancePage />} />
+        <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
+        <Route path="/fuel-spend" element={<FuelSpendPage />} />
+        <Route path="/def-ledger" element={<DefLedgerPage />} />
+        <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
+        <Route path="/audit-trail" element={<AuditTrailPage />} />
+        <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />

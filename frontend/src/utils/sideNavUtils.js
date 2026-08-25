@@ -19,6 +19,7 @@ import {
   FileCheck,
   Gauge,
   ShieldAlert,
+  CalendarClock,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -61,7 +62,9 @@ export const SIDE_NAV_ITEMS = [
   // Cross-module landing page. Sirf tab dikhta hai jab dono module hain —
   // ek hi module wale org ke liye ye combined view ka koi matlab nahi, unke liye
   // unka apna module home (ERP Home / Fleet Operations) hi top item ban jaata hai.
-  { type: 'link', key: null, access: 'both', to: '/command-center', label: 'Overview', icon: Gauge, end: true },
+  { type: 'link', key: 'overview', access: 'both', to: '/command-center', label: 'Overview', icon: Gauge, end: true },
+  // Fleet-wide daily digest (added by live-map-refresh branch).
+  { type: 'link', key: 'fleetIntelligence', access: 'both', to: '/digest', label: 'Daily Digest', icon: CalendarClock },
 
   // ─── Shared master data ────────────────────────────────────────────────────
   // Vehicles aur Employees dono module use karte hain, isliye ye kisi ek section
@@ -106,7 +109,7 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
-  { type: 'link', key: null, access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
+  { type: 'link', key: 'erpOperations', access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
   {
     type: 'group',
     groupId: 'erpPlanning',
@@ -161,14 +164,45 @@ export const SIDE_NAV_ITEMS = [
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
       { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
-      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: null },
+      // Live-map-refresh / warehouse branch additions.
+      { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
+      { to: '/fuel-spend', label: 'Fuel Spend', key: 'fuelIntegrity' },
+      { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
+      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: 'fuelIntegrity' },
     ],
     matchRoutes: [
       '/mileage-tracking',
       '/adblue-tracking',
       '/fuel-comparison',
+      '/fuel-integrity',
+      '/fuel-spend',
+      '/def-ledger',
       '/field-agent-fuel',
       '/trip-management',
+    ],
+  },
+  // Fleet Intelligence surfaces added by the live-map-refresh / warehouse branch.
+  {
+    type: 'group',
+    groupId: 'fleetIntelligence',
+    access: 'fleet',
+    label: 'Fleet Intelligence',
+    icon: ShieldAlert,
+    children: [
+      { to: '/compliance', label: 'Compliance', key: 'fleetIntelligence' },
+      { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
+      { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
+      { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
+      { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
+      { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
+    ],
+    matchRoutes: [
+      '/compliance',
+      '/fleet-alerts',
+      '/fleet-coverage',
+      '/audit-trail',
+      '/route-deviation',
+      '/owner-alerts',
     ],
   },
   { type: 'link', key: 'locations', access: 'fleet', to: '/locations', label: 'Locations', icon: MapPin },
@@ -193,7 +227,9 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },
-  // Always visible (no feature flag) — guaranteed fallback page.
+  // Always visible (no feature flag) — guaranteed fallback page. Profile must
+  // stay reachable for every authenticated user regardless of plan; gating it
+  // can lock users out with no recovery path, so `key` stays null on purpose.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
 ];
 

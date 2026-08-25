@@ -9,6 +9,7 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { RouteDeviationService } from './RouteDeviationService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { formatINR } from '../../utils/formatters';
 import '../FuelComparison/FuelComparison.css';
 
 dayjs.extend(utc);
@@ -29,9 +30,6 @@ const formatRelativeIST = (utcStr) => {
     const d = toIST(utcStr);
     return d ? d.fromNow() : null;
 };
-
-const formatInr = (value) =>
-    `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}`;
 
 const KpiCard = ({ icon: Icon, label, value, sub, colorClass }) => (
     <div className={`fc-kpi-card fc-kpi-${colorClass}`}>
@@ -143,7 +141,7 @@ const RouteDeviationPage = () => {
                 <KpiCard icon={AlertTriangle} label="Open — please review" value={openCount} colorClass="warning" />
                 <KpiCard icon={Route} label="Events in window" value={total} colorClass="pending" />
                 <KpiCard icon={CheckCircle2} label="Reviewed" value={Math.max(0, total - openCount)} colorClass="success" />
-                <KpiCard icon={Eye} label="Est. detour cost (page)" value={formatInr(pageCostInr)} sub="estimate" colorClass="nodata" />
+                <KpiCard icon={Eye} label="Est. detour cost (page)" value={formatINR(pageCostInr)} sub="estimate" colorClass="nodata" />
             </div>
 
             {/* Table */}
@@ -213,7 +211,7 @@ const RouteDeviationPage = () => {
                                         <td className="num-col"><div className="fc-primary-text">{ev.extraKmEstimate ?? '—'}</div></td>
                                         <td className="num-col">
                                             <div className="fc-primary-text">
-                                                {ev.estimatedExtraCostInr != null ? formatInr(ev.estimatedExtraCostInr) : '—'}
+                                                {ev.estimatedExtraCostInr != null ? formatINR(ev.estimatedExtraCostInr) : '—'}
                                             </div>
                                         </td>
                                         <td>
