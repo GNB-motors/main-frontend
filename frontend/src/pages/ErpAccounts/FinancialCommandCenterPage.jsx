@@ -123,7 +123,7 @@ const FinancialCommandCenterPage = () => {
       setSummary(s.data);
       setAgeing(a.data);
     } catch (err) {
-      if (err.name === 'CanceledError') return;
+      if (err.code === 'ERR_CANCELED' || err.name === 'CanceledError') return;
       if (err.status === 404) {
         toast.error('Accounts module is not enabled for your organization');
       } else {
@@ -156,6 +156,7 @@ const FinancialCommandCenterPage = () => {
         setQueueRows(res.data || []);
       }
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       if (err.status !== 404) toast.error(err.message);
       setQueueRows([]);
     } finally {

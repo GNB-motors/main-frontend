@@ -61,6 +61,7 @@ const FinancePage = ({ embedded = false }) => {
       });
       toast.success('Fleet expense posted');
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       toast.error(err.message);
     } finally {
       setBusy(false);
@@ -81,6 +82,7 @@ const FinancePage = ({ embedded = false }) => {
       });
       toast.success('Others voucher posted');
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       toast.error(err.message);
     } finally {
       setBusy(false);

@@ -10,7 +10,10 @@ import FinancialCommandCenterPage from './FinancialCommandCenterPage';
 
 const ErpAccountsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState('overview');
+  // Seed from the URL so a deep link (?tab=ledger) mounts that tab directly.
+  // Defaulting to 'overview' first mounted the command center, whose in-flight
+  // fetch was then aborted on the tab switch — surfacing a spurious "canceled" toast.
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview');
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
