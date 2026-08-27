@@ -14,6 +14,7 @@ import {
   dedupeRows,
 } from "../../utils/bulkNormalization";
 import EditRowModal from "../BulkUpload/EditRowModal";
+import { useFeatureFlags } from "../../contexts/FeatureFlagsContext";
 
 const VEHICLE_COLUMNS = [
   {
@@ -37,6 +38,8 @@ const VEHICLE_COLUMNS = [
 ];
 
 const BulkUploadVehiclesPage = () => {
+  const { hasPermission } = useFeatureFlags();
+  const canEdit = hasPermission("vehicles.edit");
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [rowErrors, setRowErrors] = useState([]);
@@ -90,7 +93,7 @@ const BulkUploadVehiclesPage = () => {
   };
 
   const openFilePicker = () => {
-    if (isParsing || isSubmitting) return;
+    if (isParsing || isSubmitting || !canEdit) return;
     fileInputRef.current?.click();
   };
 
@@ -325,7 +328,7 @@ const BulkUploadVehiclesPage = () => {
                 text="Select File"
                 onClick={openFilePicker}
                 loading={isParsing}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !canEdit}
               />
               <input
                 ref={fileInputRef}
@@ -439,16 +442,19 @@ const BulkUploadVehiclesPage = () => {
                                 type="button"
                                 className="row-action-btn"
                                 onClick={() => handleEditRow(actualIndex)}
+                                disabled={!canEdit}
                               >
                                 <Eye size={16} />
                               </button>
-                              <button
-                                type="button"
-                                className="row-action-btn row-action-delete"
-                                onClick={() => handleDeleteRow(actualIndex)}
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  className="row-action-btn row-action-delete"
+                                  onClick={() => handleDeleteRow(actualIndex)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -483,7 +489,7 @@ const BulkUploadVehiclesPage = () => {
                 text="Submit Upload"
                 appendIcon={<Send size={16} />}
                 loading={isSubmitting}
-                disabled={errorCount > 0}
+                disabled={errorCount > 0 || !canEdit}
               />
             </div>
           )}
