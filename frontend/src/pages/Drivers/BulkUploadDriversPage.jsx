@@ -7,7 +7,6 @@ import { getThemeCSS } from "../../utils/colorTheme.js";
 import "../Profile/BulkUploadVehiclesPage.css";
 import { DriverService } from "./DriverService.jsx";
 import NewButton from "@/components/ui/NewButton";
-import { useFeatureFlags } from "../../contexts/FeatureFlagsContext";
 import BulkEmployeeMappingSidePanel from "./Component/BulkEmployeeMappingSidePanel.jsx";
 import BulkUploadResultsSidePanel from "./Component/BulkUploadResultsSidePanel.jsx";
 import {
@@ -23,8 +22,6 @@ import {
 const MAX_ROWS = 500;
 
 const BulkUploadDriversPage = () => {
-  const { hasPermission } = useFeatureFlags();
-  const canEdit = hasPermission("workforce.edit");
   const navigate = useNavigate();
   const [rawRows, setRawRows] = useState([]);
   const [fileColumns, setFileColumns] = useState([]);
@@ -339,7 +336,7 @@ const BulkUploadDriversPage = () => {
   const validCount = normalizedRows.length - errorCount;
 
   const openFilePicker = () => {
-    if (isParsing || isSubmitting || !canEdit) return;
+    if (isParsing || isSubmitting) return;
     fileInputRef.current?.click();
   };
 
@@ -396,7 +393,7 @@ const BulkUploadDriversPage = () => {
                 text="Select File"
                 onClick={openFilePicker}
                 loading={isParsing}
-                disabled={isSubmitting || !canEdit}
+                disabled={isSubmitting}
               />
               <input
                 ref={fileInputRef}
@@ -537,7 +534,7 @@ const BulkUploadDriversPage = () => {
                 text="Submit Upload"
                 appendIcon={<Send size={16} />}
                 loading={isSubmitting}
-                disabled={errorCount > 0 || !canEdit}
+                disabled={errorCount > 0}
               />
             </div>
           )}

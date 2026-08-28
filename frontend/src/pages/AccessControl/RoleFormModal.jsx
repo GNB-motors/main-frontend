@@ -79,13 +79,9 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, bran
         };
         saved = await AccessControlApi.updateRole(role._id, body);
       } else {
-        // Creating configures everything as well now
-        const body = { 
-          name: name.trim(), 
-          description: description.trim(),
-          baseRole,
-          permissionKeys: [...granted]
-        };
+        // Creating is name-only (+ optional description). Access tier defaults on the
+        // backend; permissions are granted afterward via Edit.
+        const body = { name: name.trim(), description: description.trim() };
         saved = creatingBranchRole
           ? await AccessControlApi.createBranchRole(branchId, body)
           : await AccessControlApi.createRole(body);
@@ -151,34 +147,41 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, bran
             />
           </div>
 
-          <div className="ff-field">
-            <label className="ff-field__label" htmlFor="ac-role-base">Access tier</label>
-            <select
-              id="ac-role-base"
-              className="rbac-select"
-              value={baseRole}
-              onChange={(e) => setBaseRole(e.target.value)}
-            >
-              {BASE_ROLE_OPTIONS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-            </select>
-            <span className="ff-field__help">
-              Sets which part of the product the role belongs to. The permissions below decide what it can actually do.
-            </span>
-          </div>
+          {/* Access tier and permissions are only configured when editing an
+              existing role — a role is created with just a name, then its
+              permissions are granted afterward via Edit. */}
+          {editing && (
+            <>
+              <div className="ff-field">
+                <label className="ff-field__label" htmlFor="ac-role-base">Access tier</label>
+                <select
+                  id="ac-role-base"
+                  className="rbac-select"
+                  value={baseRole}
+                  onChange={(e) => setBaseRole(e.target.value)}
+                >
+                  {BASE_ROLE_OPTIONS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+                <span className="ff-field__help">
+                  Sets which part of the product the role belongs to. The permissions below decide what it can actually do.
+                </span>
+              </div>
 
-          <div className="ff-field">
-            <label className="ff-field__label">
-              Permissions <span className="ff-muted">({grantedCount} of {catalog.length} granted)</span>
-            </label>
-            <div className="ac-modal__tree">
-              <PermissionTreeView
-                catalog={catalog}
-                granted={granted}
-                onToggleKey={toggleKey}
-                onToggleGroup={toggleGroup}
-              />
-            </div>
-          </div>
+              <div className="ff-field">
+                <label className="ff-field__label">
+                  Permissions <span className="ff-muted">({grantedCount} of {catalog.length} granted)</span>
+                </label>
+                <div className="ac-modal__tree">
+                  <PermissionTreeView
+                    catalog={catalog}
+                    granted={granted}
+                    onToggleKey={toggleKey}
+                    onToggleGroup={toggleGroup}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="ff-modal__footer">
