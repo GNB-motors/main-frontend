@@ -14,6 +14,7 @@ import NewButton from '@/components/ui/NewButton';
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
 import { listAccounts } from './FleetEdgeAccountService.jsx';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext.jsx';
 
 // --- Delete Vehicle Modal Component ---
 const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: isDeleting }) => {
@@ -75,8 +76,10 @@ const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: is
  * Stateless wrapper that owns the triggerRef for the PortalDropdown.
  * Keeps the portal trigger and its ref co-located.
  */
-function VehicleActionMenu({ vehicle, isOpen, onToggle, onClose, isSubmitting, onEdit, onDelete, onActivateHere }) {
+function VehicleActionMenu({ vehicle, isOpen, onToggle, onClose, isSubmitting, onEdit, onDelete, onActivateHere, canEdit }) {
     const btnRef = React.useRef(null);
+    if (!canEdit) return null;
+
     // A vehicle deactivated here (moved to another location) can't be edited here —
     // the only action is to activate it back into this location.
     const isDeactivatedHere = vehicle?.branchStatus === 'DEACTIVATED';
@@ -212,6 +215,9 @@ function PortalDropdown({ triggerRef, isOpen, onClose, children }) {
 
 const VehiclesPage = () => {
     const navigate = useNavigate();
+    const { hasPermission } = useFeatureFlags();
+    const userRole = localStorage.getItem('user_role');
+    const canEdit = userRole === 'OWNER' || userRole === 'SUPER_ADMIN' || hasPermission('vehicles.edit');
     // Try to read business ref id from localStorage as a fallback when profile context is absent
     const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
     const [vehicles, setVehicles] = useState([]);
@@ -577,26 +583,30 @@ const VehiclesPage = () => {
                                 )}
 
                                 {/* Action Buttons */}
-                                <NewButton
-                                    variant="secondary"
-                                    type="button"
-                                    text="Bulk Upload"
-                                    prependIcon={<Upload size={16} />}
-                                    onClick={() => navigate('/vehicles/bulk-upload')}
-                                    disabled={isSubmitting}
-                                />
-                                <NewButton
-                                    variant="primary"
-                                    type="button"
-                                    text="Add Vehicle"
-                                    prependIcon={<Plus size={16} />}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        navigate('/vehicles/add');
-                                    }}
-                                    disabled={isSubmitting}
-                                />
+                                {canEdit && (
+                                    <>
+                                        <NewButton
+                                            variant="secondary"
+                                            type="button"
+                                            text="Bulk Upload"
+                                            prependIcon={<Upload size={16} />}
+                                            onClick={() => navigate('/vehicles/bulk-upload')}
+                                            disabled={isSubmitting}
+                                        />
+                                        <NewButton
+                                            variant="primary"
+                                            type="button"
+                                            text="Add Vehicle"
+                                            prependIcon={<Plus size={16} />}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                navigate('/vehicles/add');
+                                            }}
+                                            disabled={isSubmitting}
+                                        />
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -639,6 +649,7 @@ const VehiclesPage = () => {
                                                         key={vehicle.id}
                                                         className={`vehicles-table-row ${openMenuId === vehicle.id ? 'menu-open' : ''}`}
                                                         onClick={() => {
+                                                            if (!canEdit) return;
                                                             // Deactivated (moved-away) vehicles are read-only here.
                                                             if (vehicle.branchStatus === 'DEACTIVATED') return;
                                                             navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
@@ -723,6 +734,7 @@ const VehiclesPage = () => {
                                                                     handleOpenDeleteModal(vehicle);
                                                                 }}
                                                                 onActivateHere={() => handleActivateHere(vehicle)}
+                                                                canEdit={canEdit}
                                                             />
                                                         </td>
                                                     </tr>

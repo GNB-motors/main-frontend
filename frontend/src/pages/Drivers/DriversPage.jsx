@@ -9,6 +9,7 @@ import { getThemeCSS } from '../../utils/colorTheme';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 import NewButton from '@/components/ui/NewButton';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 
 // Function to get initials from name
 const getInitials = (name) => {
@@ -20,8 +21,13 @@ const getInitials = (name) => {
 
 // Human-friendly labels for the role enum.
 const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', KAM: 'Key Account Manager', FIELD_AGENT: 'Field Agent', SUPER_ADMIN: 'Super Admin' };
-const formatRole = (role, isSuperadmin) => {
-    if (isSuperadmin) return 'Super Admin';
+// Show custom role name (e.g. "Driver Helper") when the employee has one;
+// fall back to the enum label ("Driver") for un-customised roles.
+const formatRole = (driver, isSuperadmin) => {
+    if (isSuperadmin || driver?.is_superadmin) return 'Super Admin';
+    // roleId is populated by the API as { name, baseRole } when a custom role exists.
+    if (driver?.roleId?.name) return driver.roleId.name;
+    const role = typeof driver === 'string' ? driver : driver?.role;
     return ROLE_LABELS[role] || role || 'Employee';
 };
 
@@ -566,7 +572,7 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
                             <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                             <div className="drivers-driver-info">
                                 <span className="drivers-driver-name">{driver.name}</span>
-                                <span className="drivers-driver-role">{driver.is_superadmin ? 'Super Admin' : driver.role || 'Employee'}</span>
+                                <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
                             </div>
                         </div>
                     </div>
@@ -619,7 +625,7 @@ const DeactivateDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading }
                             <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                             <div className="drivers-driver-info">
                                 <span className="drivers-driver-name">{driver.name}</span>
-                                <span className="drivers-driver-role">{driver.is_superadmin ? 'Super Admin' : driver.role || 'Employee'}</span>
+                                <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
                             </div>
                         </div>
                     </div>
@@ -663,7 +669,7 @@ const MoveEmployeeModal = ({ isOpen, onClose, onConfirm, driver, isLoading }) =>
                             <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                             <div className="drivers-driver-info">
                                 <span className="drivers-driver-name">{driver.name}</span>
-                                <span className="drivers-driver-role">{driver.is_superadmin ? 'Super Admin' : driver.role || 'Employee'}</span>
+                                <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
                             </div>
                         </div>
                     </div>
@@ -698,7 +704,7 @@ const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, onDeactivate, po
 
     // Decide whether to open upward (if too close to the bottom of the viewport).
     // Height grows with the number of items so the upward flip is accurate.
-    const itemCount = isDeactivatedHere ? 1 : (1 /* edit */ + (canDeactivate ? 1 : 0) + (!driver.is_superadmin ? 1 : 0));
+    const itemCount = isDeactivatedHere ? 1 : (0 /* no edit */ + (canDeactivate ? 1 : 0) + (!driver.is_superadmin ? 1 : 0));
     const MENU_HEIGHT = 24 + itemCount * 34;
     const spaceBelow = window.innerHeight - position.bottom;
     const openUpward = spaceBelow < MENU_HEIGHT + 16;
@@ -724,10 +730,6 @@ const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, onDeactivate, po
                 </button>
             ) : (
                 <>
-                    <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
-                        <Edit size={16} />
-                        <span>Edit</span>
-                    </button>
                     {canDeactivate && (
                         <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDeactivate(driver); }}>
                             <ToggleLeft size={16} />
@@ -753,6 +755,8 @@ const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, onDeactivate, po
 
 // --- Main DriversPage Component ---
 const DriversPage = () => {
+    const { hasPermission } = useFeatureFlags();
+    const canEdit = hasPermission('workforce.edit');
     const navigate = useNavigate();
     const [drivers, setDrivers] = useState([]);
     const [availableVehicles, setAvailableVehicles] = useState([]);
@@ -1288,18 +1292,22 @@ const DriversPage = () => {
                                     />
                                 </div>
                             </div>
-                            <NewButton
-                                variant="primary"
-                                text="Add employee"
-                                prependIcon={<Plus size={16} />}
-                                onClick={() => navigate('/drivers/add')}
-                            />
-                            <NewButton
-                                variant="secondary"
-                                text="Bulk Upload"
-                                prependIcon={<Upload size={16} />}
-                                onClick={() => navigate('/drivers/bulk-upload')}
-                            />
+                            {canEdit && (
+                                <>
+                                    <NewButton
+                                        variant="primary"
+                                        text="Add employee"
+                                        prependIcon={<Plus size={16} />}
+                                        onClick={() => navigate('/drivers/add')}
+                                    />
+                                    <NewButton
+                                        variant="secondary"
+                                        text="Bulk Upload"
+                                        prependIcon={<Upload size={16} />}
+                                        onClick={() => navigate('/drivers/bulk-upload')}
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -1333,21 +1341,21 @@ const DriversPage = () => {
                                     <tr
                                         key={driver.id}
                                         className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''} ${driver.branchStatus === 'DEACTIVATED' ? 'drivers-table-row--deactivated' : ''}`}
-                                        onClick={() => navigate('/drivers/add', { state: { editingDriver: driver } })}
-                                        style={{ cursor: 'pointer' }}
+                                        onClick={canEdit ? () => navigate('/drivers/add', { state: { editingDriver: driver } }) : undefined}
+                                        style={{ cursor: canEdit ? 'pointer' : 'default' }}
                                     >
                                         <td>
                                             <div className="drivers-driver-name-cell">
                                                 <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                                                 <div className="drivers-driver-info">
                                                     <span>{driver.name}</span>
-                                                    <span className="drivers-driver-role">{formatRole(driver.role, driver.is_superadmin)}</span>
+                                                    <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>{driver.id ? driver.id.substring(0, 8) + '...' : '-'}</td>
                                         <td>{driver.mobileNumber || driver.email || '-'}</td>
-                                        <td>{formatRole(driver.role, driver.is_superadmin)}</td>
+                                        <td>{formatRole(driver, driver.is_superadmin)}</td>
                                         <td>{driver.email || '-'}</td>
                                         <td>
                                             <div className="drivers-status-cell">
@@ -1363,6 +1371,7 @@ const DriversPage = () => {
                                                         <span>{driver.status || 'PENDING'}</span>
                                                     </div>
                                                 )}
+                                                {canEdit && (
                                                 <div className={`drivers-action-menu-container drivers-action-menu-container-${driver.id}`}>
                                                     <button
                                                         className="drivers-action-menu-btn"
@@ -1391,6 +1400,7 @@ const DriversPage = () => {
                                                         />
                                                     )}
                                                 </div>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -1446,14 +1456,7 @@ const DriversPage = () => {
 
              {/* Render Modals */}
             {/* AddDriverModal removed -- Add Employee is a separate page now at /drivers/add */}
-            <EditDriverModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                onSubmit={handleUpdateDriver}
-                driver={editingDriver}
-                isLoading={isSubmitting}
-                availableVehicles={availableVehicles}
-             />
+            {/* EditDriverModal removed -- editing is done via /drivers/add page */}
             <DeleteDriverModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => {

@@ -6,6 +6,7 @@ import { VehicleService } from './VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import NewButton from '@/components/ui/NewButton';
 import './VehiclesPage.css';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext.jsx';
 
 // Document type → display label (must match backend Vehicle.DOCUMENT_TYPES).
 const DOC_COLS = [
@@ -123,6 +124,9 @@ const StatCard = ({ title, value, subtext, icon, accent }) => (
 
 const VehicleDashboardPage = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useFeatureFlags();
+  const userRole = localStorage.getItem('user_role');
+  const canEdit = userRole === 'OWNER' || userRole === 'SUPER_ADMIN' || hasPermission('vehicles.edit');
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -364,12 +368,14 @@ const VehicleDashboardPage = () => {
                         </td>
                       ))}
                       <td style={{ ...td, textAlign: 'right' }}>
-                        <NewButton
-                          variant="secondary"
-                          size="xs"
-                          text="Manage"
-                          onClick={() => goEdit(row)}
-                        />
+                        {canEdit && (
+                          <NewButton
+                            variant="secondary"
+                            size="xs"
+                            text="Manage"
+                            onClick={() => goEdit(row)}
+                          />
+                        )}
                       </td>
                     </tr>
                   ))}

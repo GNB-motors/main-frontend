@@ -28,6 +28,7 @@ import { VehicleService } from '../Profile/VehicleService.jsx';
 import { DocumentService, TripService } from './services';
 import { getVehicleRegistration, getDriverName } from '../../utils/dataFormatters';
 import ImageCropper from '../../components/ImageCropper/ImageCropper.jsx';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 
 const TripFormPage = () => {
   const navigate = useNavigate();
@@ -38,6 +39,10 @@ const TripFormPage = () => {
   const [existingTrip, setExistingTrip] = useState(null);
   const [loadingTrip, setLoadingTrip] = useState(false);
   const isCompletedTrip = existingTrip && existingTrip.status === 'COMPLETED';
+  
+  const { hasPermission } = useFeatureFlags();
+  const canEdit = hasPermission('fleetOperations.edit');
+  const isViewOnly = isCompletedTrip || !canEdit;
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -1159,7 +1164,7 @@ const TripFormPage = () => {
                       type="checkbox"
                       checked={showManualOdometerEnd}
                       onChange={(e) => setShowManualOdometerEnd(e.target.checked)}
-                      disabled={isCompletedTrip}
+                      disabled={isViewOnly}
                     />
                     <span className="toggle-text">No Odometer Document (Enter Manually)</span>
                   </label>
@@ -1174,7 +1179,7 @@ const TripFormPage = () => {
                         value={manualOdometerEnd}
                         onChange={(e) => setManualOdometerEnd(e.target.value)}
                         placeholder="Enter end odometer reading"
-                        disabled={isCompletedTrip}
+                        disabled={isViewOnly}
                       />
                     </div>
                   </div>
@@ -1207,7 +1212,7 @@ const TripFormPage = () => {
         </div>
 
         {/* Footer */}
-        {!isCompletedTrip && (
+        {!isViewOnly && (
           <div className="modern-form-footer">
             <button 
               className="modern-footer-btn start-trip-btn" 
