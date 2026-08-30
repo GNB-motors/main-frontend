@@ -182,17 +182,22 @@ const VendorPaymentsPage = ({ embedded = false }) => {
           <section className="erp-card">
             <h3>Vendors</h3>
             {loading && <p>Loading…</p>}
-            <ul className="erp-list">
-              {groups.map((g) => (
-                <li key={g.vendorId}>
-                  <button type="button" className="erp-link-btn" onClick={() => openVendor(g)}>
-                    {g.vendorName} — {money(g.totalOutstanding)} ({g.billCount} bills)
-                    {g.onAccountAvailable > 0 && ` · On-a/c ${money(g.onAccountAvailable)}`}
-                    {g.podPendingCount > 0 && ` · POD pending ${g.podPendingCount}`}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {!loading && groups.length === 0 && (
+              <p className="erp-muted">No outstanding vendor bills.</p>
+            )}
+            {!loading && groups.length > 0 && (
+              <ul className="erp-list">
+                {groups.map((g) => (
+                  <li key={g.vendorId}>
+                    <button type="button" className="erp-link-btn" onClick={() => openVendor(g)}>
+                      {g.vendorName} — {money(g.totalOutstanding)} ({g.billCount} bills)
+                      {g.onAccountAvailable > 0 && ` · On-a/c ${money(g.onAccountAvailable)}`}
+                      {g.podPendingCount > 0 && ` · POD pending ${g.podPendingCount}`}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {selectedVendor && (
@@ -244,15 +249,20 @@ const VendorPaymentsPage = ({ embedded = false }) => {
         <section className="erp-card">
           <h3>Approved — awaiting release</h3>
           {loading && <p>Loading…</p>}
-          <ul className="erp-list">
-            {pending.map((p) => (
-              <li key={p._id}>
-                <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
-                  {p.paymentNumber} — {money(p.netPayable)} net ({p.billAllocations?.length} bills)
-                </button>
-              </li>
-            ))}
-          </ul>
+          {!loading && pending.length === 0 && (
+            <p className="erp-muted">No payments awaiting release.</p>
+          )}
+          {!loading && pending.length > 0 && (
+            <ul className="erp-list">
+              {pending.map((p) => (
+                <li key={p._id}>
+                  <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
+                    {p.paymentNumber} — {money(p.netPayable)} net ({p.billAllocations?.length} bills)
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

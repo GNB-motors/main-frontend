@@ -18,7 +18,7 @@
     box-sizing: border-box;
     position: fixed;
     top: 0;
-    left: 100px; /* must match the collapsed rail width (Sidebar.css .sidebar = 100px) so the title isn't clipped by the sidebar (z-index 1004 > navbar 1001) */
+    left: 100px; /* match the desktop sidebar rail (Sidebar.css @min-width:993px) and .main-content margin-left, so the title isn't clipped behind the rail */
     right: 0;
     z-index: 1001;
     box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 20px rgba(15,23,42,0.04);

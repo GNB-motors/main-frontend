@@ -348,6 +348,11 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                   </tr>
                 </thead>
                 <tbody>
+                  {!loading && invoices.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="erp-muted">No supplier invoices yet.</td>
+                    </tr>
+                  )}
                   {invoices.map((i) => (
                     <tr key={i._id}>
                       <td>{i.refNumber}</td>
@@ -368,16 +373,22 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
         <div className="erp-split">
           <section className="erp-card">
             <h3>Suppliers with outstanding</h3>
-            <ul className="erp-list">
-              {groups.map((g) => (
-                <li key={g.supplierId}>
-                  <button type="button" className="erp-link-btn" onClick={() => openSupplier(g)}>
-                    {g.supplierName} — {money(g.totalOutstanding)} ({g.invoiceCount} inv)
-                    {g.onAccountAvailable > 0 && ` · On-a/c ${money(g.onAccountAvailable)}`}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {loading && <p>Loading…</p>}
+            {!loading && groups.length === 0 && (
+              <p className="erp-muted">No outstanding supplier invoices.</p>
+            )}
+            {!loading && groups.length > 0 && (
+              <ul className="erp-list">
+                {groups.map((g) => (
+                  <li key={g.supplierId}>
+                    <button type="button" className="erp-link-btn" onClick={() => openSupplier(g)}>
+                      {g.supplierName} — {money(g.totalOutstanding)} ({g.invoiceCount} inv)
+                      {g.onAccountAvailable > 0 && ` · On-a/c ${money(g.onAccountAvailable)}`}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {selectedSupplier && (
@@ -428,15 +439,21 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
       {tab === 'release' && (
         <section className="erp-card">
           <h3>Approved supplier payments</h3>
-          <ul className="erp-list">
-            {pending.map((p) => (
-              <li key={p._id}>
-                <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
-                  {p.paymentNumber} — {money(p.netPayable)}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {loading && <p>Loading…</p>}
+          {!loading && pending.length === 0 && (
+            <p className="erp-muted">No approved supplier payments awaiting release.</p>
+          )}
+          {!loading && pending.length > 0 && (
+            <ul className="erp-list">
+              {pending.map((p) => (
+                <li key={p._id}>
+                  <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
+                    {p.paymentNumber} — {money(p.netPayable)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

@@ -53,6 +53,7 @@ const LedgerPage = ({ embedded = false }) => {
       });
       setStatement(res.data);
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       if (err.status === 404) {
         toast.error('Accounts / ledger is not enabled for your organization');
       } else {
@@ -70,6 +71,7 @@ const LedgerPage = ({ embedded = false }) => {
       const res = await LedgerApi.getVouchers({ limit: 50 });
       setVouchers(res.data || []);
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       toast.error(err.message);
       setVouchers([]);
     } finally {
@@ -100,6 +102,7 @@ const LedgerPage = ({ embedded = false }) => {
       loadVouchers();
       if (voucherForm.partyId === partyId) loadStatement();
     } catch (err) {
+      if (err.code === 'ERR_CANCELED') return;
       toast.error(err.message);
     } finally {
       setBusy(false);

@@ -13,6 +13,7 @@ const unwrapError = (error, fallback) => {
   const err = new Error(payload?.message || error.message || fallback);
   err.status = error.response?.status;
   err.payload = payload;
+  err.code = error.code; // preserve ERR_CANCELED so callers can ignore aborted requests
   return err;
 };
 
