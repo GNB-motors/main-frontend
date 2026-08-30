@@ -156,6 +156,7 @@ const TelematicsPanel = ({ telematics, plannedKm, onRecompute, recomputing }) =>
                       : '—',
                 },
                 { label: 'Laden / Approach / Return', value: `${km(a.ladenKm)} / ${km(a.approachKm)} / ${km(a.returnKm)}` },
+                a.fuelDetourKm ? { label: 'of which fuel detour', value: km(a.fuelDetourKm) } : null,
                 a.serviceKmExcluded ? { label: 'Service (excluded)', value: km(a.serviceKmExcluded) } : null,
                 a.fuelConsumedL != null ? { label: 'Fuel used', value: `${a.fuelConsumedL} L` } : null,
                 a.lastMovementAt ? { label: 'GPS arrival', value: stamp(a.lastMovementAt) } : null,
