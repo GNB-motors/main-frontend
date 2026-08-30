@@ -29,30 +29,15 @@
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
-}
-
-.sidebar:hover .sidebar-content {
-    scrollbar-color: var(--color-grey-200) transparent;
+    /* Scrollbar hidden in all browsers — the nav still scrolls (wheel/trackpad),
+       there is just no visible bar. */
+    scrollbar-width: none; /* Firefox */
 }
 
 .sidebar-content::-webkit-scrollbar {
-    width: 6px;
-}
-
-.sidebar-content::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.sidebar-content::-webkit-scrollbar-thumb {
-    background: transparent;
-    border-radius: 3px;
-    transition: background 0.2s ease;
-}
-
-.sidebar:hover .sidebar-content::-webkit-scrollbar-thumb {
-    background: var(--color-grey-200);
+    width: 0;
+    height: 0;
+    display: none; /* Chrome / Safari / Edge */
 }
 
 .sidebar-header {
@@ -178,6 +163,8 @@
         width: 260px;
         padding-left: var(--spacing-lg);
         padding-right: var(--spacing-lg);
+        /* Elevate the rail when expanded so it clearly reads as the focused overlay */
+        box-shadow: 0 12px 48px rgba(15, 23, 42, 0.32);
     }
 
     .sidebar .nav-link svg {

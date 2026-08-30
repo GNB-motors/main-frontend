@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { ChevronRight, Plus, FileText } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
-import { TripService, WeightSlipTripService } from './services';
+import { TripService } from './services';
 import { getVehicleRegistration, getDriverName } from '../../utils/dataFormatters';
 import {
   Table,
@@ -47,15 +47,13 @@ const TripManagementPage = () => {
   }, []);
 
   const fetchWeightSlipTrips = async () => {
+    // The weight-slip trip flow was removed; there is no data source until the
+    // ERP-trip migration (D1). Show an empty list rather than calling a dead API.
     setLoadingWeightSlipTrips(true);
     try {
-      const res = await WeightSlipTripService.getAll({ page: weightSlipPagination.page, limit: weightSlipPagination.limit });
-      setWeightSlipTrips(res.data || []);
-      // Handle various pagination formats from different backend versions
-      const total = res.pagination?.total ?? res.total ?? res.totalResults ?? res.meta?.total ?? 0;
-      setWeightSlipPagination(p => ({ ...p, total }));
-    } catch { toast.error('Failed to load trips'); }
-    finally { setLoadingWeightSlipTrips(false); }
+      setWeightSlipTrips([]);
+      setWeightSlipPagination(p => ({ ...p, total: 0 }));
+    } finally { setLoadingWeightSlipTrips(false); }
   };
 
   const fetchRefuelTrips = async () => {

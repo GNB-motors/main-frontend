@@ -60,6 +60,125 @@ const MoneyRow = ({ label, value, tone, total }) => (
   </div>
 );
 
+const km = (v) => (v == null ? '—' : `${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 1 })} km`);
+
+// Human labels for the telematics reconciliation flags surfaced from the backend.
+const TELEMATICS_FLAGS = {
+  EXTRA_KM: 'Extra km',
+  UNLOAD_DATE_MISMATCH: 'Unload date mismatch',
+  GHOST_KM_NEARBY: 'Unexplained km nearby',
+  RECONCILE_GAP: 'Odometer gap',
+  ROUTE_DEVIATION: 'Route deviation',
+  ARRIVAL_MISMATCH: 'Arrival mismatch',
+};
+
+const TELEMATICS_UNAVAILABLE = {
+  NO_TELEMATICS: 'No telematics for this vehicle',
+  NO_DATA: 'No GPS data in the trip window',
+  PENDING: 'Awaiting trip close',
+  FAILED: 'Telematics computation failed',
+};
+
+// Pillar 1 — human labels for the append-only stage event log (ErpTripEvent).
+const EVENT_LABELS = {
+  'trip.placed': 'Placed',
+  'advance.created': 'Advance created',
+  'advance.approved': 'Advance approved',
+  'advance.paid': 'Advance paid',
+  'cn.saved': 'CN saved → Dispatched',
+  'trip.closed': 'Trip closed',
+  'pod.recorded': 'POD received',
+  'unloading.saved': 'Unloaded',
+  'saleBill.approved': 'Billed',
+  'saleBill.cancelled': 'Bill cancelled',
+  'placement.deleted': 'Cancelled',
+};
+
+/** Pillar 1 — the precise, ordered stage history with real timestamps. */
+const TimelinePanel = ({ events }) => {
+  if (!Array.isArray(events) || events.length === 0) return null;
+  return (
+    <section className="trip360-panel">
+      <div className="trip360-panel-head">History</div>
+      <div className="trip360-panel-body">
+        <ol className="trip360-timeline">
+          {events.map((e) => (
+            <li key={e.seq ?? `${e.jobName}-${e.at}`} className="trip360-timeline-item">
+              <span className="trip360-timeline-label">{EVENT_LABELS[e.jobName] || e.toState || e.jobName}</span>
+              <span className="trip360-timeline-time">{stamp(e.at)}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+};
+
+/**
+ * Pillar 3 — actual-vs-planned reconciliation from FleetEdge, computed at trip close.
+ * Renders "unavailable + reason" (HIRE / unlinked / no data) rather than an error.
+ */
+const TelematicsPanel = ({ telematics, plannedKm, onRecompute, recomputing }) => {
+  const t = telematics;
+  const status = t?.status || 'PENDING';
+  const ready = status === 'COMPUTED';
+  const reason = t?.statusReason ? ` (${t.statusReason})` : '';
+  const a = t?.actual || {};
+  const v = t?.variance || {};
+
+  return (
+    <section className="trip360-panel">
+      <div className="trip360-panel-head trip360-panel-head--action">
+        <span>Telematics</span>
+        <button
+          type="button"
+          className="trip360-btn ghost trip360-btn--xs"
+          onClick={onRecompute}
+          disabled={recomputing}
+        >
+          {recomputing ? 'Recomputing…' : 'Recompute'}
+        </button>
+      </div>
+      <div className="trip360-panel-body">
+        {!ready ? (
+          <p className="trip360-muted">{(TELEMATICS_UNAVAILABLE[status] || 'Telematics unavailable') + reason}</p>
+        ) : (
+          <>
+            <Facts
+              items={[
+                { label: 'Actual distance', value: km(a.totalTripKm) },
+                { label: 'Planned distance', value: km(plannedKm) },
+                {
+                  label: 'Extra',
+                  value:
+                    v.extraKm != null
+                      ? `${km(v.extraKm)}${v.extraKmPct != null ? ` (${v.extraKmPct}%)` : ''}`
+                      : '—',
+                },
+                { label: 'Laden / Approach / Return', value: `${km(a.ladenKm)} / ${km(a.approachKm)} / ${km(a.returnKm)}` },
+                a.fuelDetourKm ? { label: 'of which fuel detour', value: km(a.fuelDetourKm) } : null,
+                a.serviceKmExcluded ? { label: 'Service (excluded)', value: km(a.serviceKmExcluded) } : null,
+                a.fuelConsumedL != null ? { label: 'Fuel used', value: `${a.fuelConsumedL} L` } : null,
+                a.lastMovementAt ? { label: 'GPS arrival', value: stamp(a.lastMovementAt) } : null,
+                t.confidence ? { label: 'Confidence', value: t.confidence } : null,
+              ]}
+            />
+            {Array.isArray(t.flags) && t.flags.length > 0 && (
+              <div className="trip360-flags">
+                {t.flags.map((f) => (
+                  <span key={f} className="trip360-chip trip360-chip--warn">
+                    {TELEMATICS_FLAGS[f] || f}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  );
+};
+
 const TripDetailPage = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
@@ -93,6 +212,20 @@ const TripDetailPage = () => {
   useEffect(() => {
     fetchTrip();
   }, [fetchTrip]);
+
+  const [recomputing, setRecomputing] = useState(false);
+  const handleRecomputeTelematics = useCallback(async () => {
+    setRecomputing(true);
+    try {
+      await TripDashboardService.recomputeTelematics(tripId);
+      toast.success('Telematics recomputed');
+      await fetchTrip();
+    } catch (error) {
+      toast.error(error.message || 'Failed to recompute telematics');
+    } finally {
+      setRecomputing(false);
+    }
+  }, [tripId, fetchTrip]);
 
   useEffect(() => {
     const drawerParam = searchParams.get('drawer');
@@ -424,6 +557,15 @@ const TripDetailPage = () => {
               />
             </div>
           </section>
+
+          <TelematicsPanel
+            telematics={data.telematics}
+            plannedKm={data.totalKm}
+            onRecompute={handleRecomputeTelematics}
+            recomputing={recomputing}
+          />
+
+          <TimelinePanel events={data.events} />
 
           <section className="trip360-panel">
             <div className="trip360-panel-head">Money</div>
