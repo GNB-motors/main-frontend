@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge live fleet map</title>
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
+<style>
+  html, body { margin:0; height:100%; background:transparent; overflow:hidden; font-family:Inter, system-ui, sans-serif; }
+  #wrap { position:relative; width:100%; height:100%;
+    background-image:linear-gradient(rgba(5,8,22,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(5,8,22,.045) 1px, transparent 1px);
+    background-size:38px 38px; }
+  svg { display:block; width:100%; height:100%; }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.25; } }
+</style>
+</head>
+<body>
+<div id="wrap"></div>
+<script>
+const HUBS = {
+  Delhi:[28.61,77.21], Jaipur:[26.91,75.79], Lucknow:[26.85,80.95], Ludhiana:[30.90,75.86],
+  Ahmedabad:[23.02,72.57], Indore:[22.72,75.86], Surat:[21.17,72.83], Mumbai:[19.08,72.88],
+  Pune:[18.52,73.86], Nagpur:[21.15,79.09], Hyderabad:[17.39,78.49], Bengaluru:[12.97,77.59],
+  Chennai:[13.08,80.27], Kochi:[9.93,76.27], Kolkata:[22.57,88.36], Bhubaneswar:[20.30,85.82],
+  Guwahati:[26.14,91.74], Raipur:[21.25,81.63], Coimbatore:[11.02,76.96], Visakhapatnam:[17.69,83.22]
+};
+
+const ROUTES = [
+  ["Delhi","Jaipur",-0.16], ["Delhi","Lucknow",0.14], ["Ludhiana","Delhi",-0.12],
+  ["Ahmedabad","Indore",0.16], ["Surat","Mumbai",-0.14], ["Mumbai","Pune",0.2],
+  ["Mumbai","Nagpur",-0.14], ["Nagpur","Hyderabad",0.16], ["Nagpur","Raipur",-0.16],
+  ["Hyderabad","Bengaluru",-0.14], ["Bengaluru","Chennai",0.16], ["Bengaluru","Kochi",-0.18],
+  ["Kolkata","Bhubaneswar",0.18], ["Kolkata","Guwahati",-0.16], ["Visakhapatnam","Bhubaneswar",0.16],
+  ["Chennai","Coimbatore",-0.16], ["Pune","Hyderabad",0.14]
+];
+
+// status: 0 moving · 1 halted · 2 idle
+const MARKERS = [
+  ["Delhi",0],["Jaipur",0],["Lucknow",2],["Ludhiana",0],["Ahmedabad",0],["Indore",1],
+  ["Surat",0],["Mumbai",0],["Pune",0],["Nagpur",0],["Hyderabad",0],["Bengaluru",0],
+  ["Chennai",0],["Kochi",2],["Kolkata",0],["Bhubaneswar",1],["Guwahati",2],["Raipur",0],
+  ["Coimbatore",0],["Visakhapatnam",0]
+];
+
+const LABELS = ["Delhi","Mumbai","Nagpur","Hyderabad","Kolkata","Bengaluru","Ahmedabad","Chennai"];
+const COLORS = ["#4469F0", "#E5686B", "#F9A061"];
+
+const SOURCES = [
+  "https://cdn.jsdelivr.net/gh/datameet/maps@master/Country/india-composite.geojson",
+  "https://cdn.jsdelivr.net/gh/datameet/maps@master/Country/india-osm.geojson"
+];
+
+function mainland(geo) {
+  const polys = [];
+  const walk = (g) => {
+    if (!g) return;
+    if (g.type === "FeatureCollection") return g.features.forEach((f) => walk(f.geometry));
+    if (g.type === "Feature") return walk(g.geometry);
+    if (g.type === "GeometryCollection") return g.geometries.forEach(walk);
+    if (g.type === "Polygon") return polys.push(g);
+    if (g.type === "MultiPolygon") return g.coordinates.forEach((c) => polys.push({ type: "Polygon", coordinates: c }));
+  };
+  walk(geo);
+  if (!polys.length) return geo;
+  let best = polys[0], bestSpan = -1;
+  polys.forEach((p) => {
+    const b = d3.geoBounds(p);
+    const span = (b[1][0] - b[0][0]) * (b[1][1] - b[0][1]);
+    if (span > bestSpan) { bestSpan = span; best = p; }
+  });
+  return best;
+}
+
+function draw(geo) {
+  const wrap = document.getElementById("wrap");
+  const W = wrap.clientWidth || 720;
+  const H = wrap.clientHeight || 560;
+
+  const svg = d3.select(wrap).append("svg")
+    .attr("viewBox", "0 0 " + W + " " + H)
+    .attr("preserveAspectRatio", "xMidYMid meet");
+
+  const projection = d3.geoMercator().fitExtent([[W * 0.1, H * 0.05], [W * 0.9, H * 0.95]], mainland(geo));
+  const geoPath = d3.geoPath(projection);
+  const at = (name) => { const c = HUBS[name]; return projection([c[1], c[0]]); };
+
+  svg.append("path").datum(geo).attr("d", geoPath)
+    .attr("fill", "#FFFFFF").attr("stroke", "rgba(33,62,167,.30)")
+    .attr("stroke-width", 1).attr("stroke-linejoin", "round");
+
+  const routeLayer = svg.append("g");
+  const paths = [];
+  ROUTES.forEach(([a, b, bend], i) => {
+    const p1 = at(a), p2 = at(b);
+    if (!p1 || !p2) return;
+    const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+    const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+    const cx = mx - dy * bend, cy = my + dx * bend;
+    const d = "M" + p1[0] + "," + p1[1] + " Q" + cx + "," + cy + " " + p2[0] + "," + p2[1];
+    routeLayer.append("path").attr("d", d).attr("fill", "none")
+      .attr("stroke", "rgba(68,105,240,.26)").attr("stroke-width", 1.3).attr("stroke-linecap", "round");
+    const live = routeLayer.append("path").attr("d", d).attr("fill", "none")
+      .attr("stroke", i % 3 === 0 ? "#4469F0" : "#6366F1").attr("stroke-width", 1.8)
+      .attr("stroke-linecap", "round").attr("opacity", .85);
+    paths.push({ node: live.node(), dot: null, t: Math.random(), speed: 0.00028 + Math.random() * 0.00035 });
+  });
+
+  const markerLayer = svg.append("g");
+  MARKERS.forEach(([name, status], i) => {
+    const p = at(name);
+    if (!p) return;
+    const g = markerLayer.append("g").attr("transform", "translate(" + p[0] + "," + p[1] + ")");
+    g.append("circle").attr("r", status === 1 ? 4.2 : 3.6).attr("fill", COLORS[status])
+      .attr("stroke", "#FFFFFF").attr("stroke-width", 1.4);
+    if (status === 1) g.select("circle:last-child").style("animation", "blink 1.8s ease-in-out infinite");
+    if (LABELS.includes(name)) {
+      g.append("text").attr("x", 9).attr("y", 3.5)
+        .attr("font-size", "9.5px").attr("font-weight", "500")
+        .attr("fill", "#5D5D5E").attr("letter-spacing", ".2px").text(name);
+    }
+  });
+
+  const dotLayer = svg.append("g");
+  paths.forEach((p) => {
+    p.dot = dotLayer.append("circle").attr("r", 3.1).attr("fill", "#213EA7")
+      .attr("stroke", "#FFFFFF").attr("stroke-width", 1.2).node();
+  });
+
+  const tick = () => {
+    paths.forEach((p) => {
+      p.t += p.speed;
+      if (p.t > 1) p.t -= 1;
+      const len = p.node.getTotalLength();
+      const pt = p.node.getPointAtLength(p.t * len);
+      p.dot.setAttribute("cx", pt.x);
+      p.dot.setAttribute("cy", pt.y);
+    });
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+async function boot() {
+  for (const url of SOURCES) {
+    try {
+      const geo = await d3.json(url);
+      if (geo && (geo.features || geo.type)) { draw(geo); return; }
+    } catch (e) { /* next source */ }
+  }
+}
+boot();
+</script>
+</body>
+</html>

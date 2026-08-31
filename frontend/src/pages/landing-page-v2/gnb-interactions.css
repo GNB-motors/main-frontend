@@ -1,0 +1,17 @@
+/* Shared runtime interactions for GNB Edge marketing pages.
+   Scroll-reveal: elements are only hidden once JS marks them pending (so content
+   is never hidden if JS is slow/off), and only below-the-fold elements get
+   marked — above-fold content shows immediately with no flash. */
+.gnb-edge-v2 [data-reveal-pending] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s cubic-bezier(.2,0,0,1), transform 0.7s cubic-bezier(.2,0,0,1);
+  will-change: opacity, transform;
+}
+.gnb-edge-v2 [data-reveal-pending][data-revealed] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gnb-edge-v2 [data-reveal-pending] { opacity: 1 !important; transform: none !important; transition: none !important; }
+}
