@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Vehicle Tracking</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes vt-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes vt-ping { 0% { transform:scale(.4); opacity:.9; } 100% { transform:scale(2.6); opacity:0; } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-scan { 0% { left:0%; opacity:0; } 6% { opacity:1; } 94% { opacity:1; } 100% { left:100%; opacity:0; } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section id="ai" data-screen-label="Tracking AI" style="position:relative; background:#F1F4FE; padding:112px 40px; overflow:hidden">
+    <div style="position:absolute; inset:0; background:radial-gradient(900px 420px at 78% 0%, rgba(68,105,240,.12), transparent 66%)"></div>
+    <div style="position:relative; max-width:1280px; margin:0 auto">
+      <div data-reveal="" style="display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:end; margin-bottom:56px">
+        <div>
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px">
+            <div style="font-family:var(--font-eyebrow); font-size:11px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">AI intelligence</div>
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.22); color:#4469F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--nova-rage-600)">AI native</span></span>
+          </div>
+          <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.5px; margin:0; text-wrap:pretty">AI watching the map <span style="color:var(--nova-rage-400)">so nobody has to.</span></h2>
+        </div>
+        <p style="font-size:18px; line-height:29px; color:#5D5D5E; margin:0; text-wrap:pretty">Tracking writes a ping every thirty seconds. AI turns that stream into deviations, dwell patterns and arrival times you can commit to in front of a client.</p>
+      </div>
+
+      <div data-reveal="" style="background:#FFFFFF; border:1px solid rgba(68,105,240,.18); border-radius:22px; padding:28px 30px 30px; box-shadow:var(--shadow-sm); margin-bottom:24px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px">
+          <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--nova-rage-600)">Anomaly timeline · one vehicle, one day</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:#93939A">MH-12-AB-4471 · 2,880 GPS pings</div>
+        </div>
+        <div style="padding-top:74px">
+          <div style="position:relative; height:46px; border-radius:8px; background:#F4F5FA; overflow:visible">
+            <div style="position:absolute; left:0%; width:26%; top:0; bottom:0; background:rgba(68,105,240,.45); border-radius:6px" title="Moving"></div>
+            <div style="position:absolute; left:26%; width:13%; top:0; bottom:0; background:rgba(229,104,107,.45); border-radius:6px" title="Unscheduled halt"></div>
+            <div style="position:absolute; left:39%; width:22%; top:0; bottom:0; background:rgba(68,105,240,.45); border-radius:6px" title="Moving"></div>
+            <div style="position:absolute; left:61%; width:9%; top:0; bottom:0; background:rgba(249,160,97,.5); border-radius:6px" title="Off corridor"></div>
+            <div style="position:absolute; left:70%; width:14%; top:0; bottom:0; background:rgba(68,105,240,.45); border-radius:6px" title="Moving"></div>
+            <div style="position:absolute; left:84%; right:0; top:0; bottom:0; border-radius:6px; border:1.5px dashed rgba(68,105,240,.4); background:rgba(68,105,240,.06)"></div>
+            <div style="position:absolute; top:-6px; bottom:-6px; width:2px; background:linear-gradient(180deg, transparent, #4469F0, transparent); animation:ai-scan 6s cubic-bezier(.2,0,0,1) infinite"></div>
+            <div style="position:absolute; left:32%; bottom:100%; transform:translateX(-50%); margin-bottom:14px; white-space:nowrap">
+            <div style="display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:999px; background:rgba(229,104,107,.12); border:1px solid rgba(229,104,107,.3); font-size:12px; font-weight:500; color:#C4494C">
+              <span style="width:6px; height:6px; border-radius:999px; background:#E5686B; animation:ai-blip 2.2s ease-in-out infinite"></span>47 min idle · ₹340 diesel
+            </div>
+            <div style="width:1px; height:14px; background:rgba(229,104,107,.4); margin:0 auto"></div>
+          </div>
+            <div style="position:absolute; left:65%; bottom:100%; transform:translateX(-50%); margin-bottom:14px; white-space:nowrap">
+            <div style="display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:999px; background:rgba(229,104,107,.12); border:1px solid rgba(229,104,107,.3); font-size:12px; font-weight:500; color:#C4494C">
+              <span style="width:6px; height:6px; border-radius:999px; background:#E5686B; animation:ai-blip 2.2s ease-in-out infinite"></span>Off corridor, 8 km
+            </div>
+            <div style="width:1px; height:14px; background:rgba(229,104,107,.4); margin:0 auto"></div>
+          </div>
+            <div style="position:absolute; left:92%; bottom:100%; transform:translateX(-50%); margin-bottom:14px; white-space:nowrap">
+            <div style="display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.26); font-size:12px; font-weight:500; color:var(--nova-rage-700)">
+              <span style="width:6px; height:6px; border-radius:999px; background:#4469F0; animation:ai-blip 2.2s ease-in-out infinite"></span>Predicted arrival 18:42
+            </div>
+            <div style="width:1px; height:14px; background:rgba(68,105,240,.34); margin:0 auto"></div>
+          </div>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:10px; font-family:var(--font-mono); font-size:10px; color:#93939A">
+            <span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span>
+          </div>
+          <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:24px; padding-top:20px; border-top:1px solid rgba(5,8,22,.07); font-size:12px; color:#5D5D5E">
+            <span style="display:inline-flex; align-items:center; gap:8px"><span style="width:12px; height:8px; border-radius:3px; background:rgba(68,105,240,.45)"></span>Moving as planned</span>
+            <span style="display:inline-flex; align-items:center; gap:8px"><span style="width:12px; height:8px; border-radius:3px; background:rgba(229,104,107,.45)"></span>Halt AI did not expect</span>
+            <span style="display:inline-flex; align-items:center; gap:8px"><span style="width:12px; height:8px; border-radius:3px; background:rgba(249,160,97,.5)"></span>Route deviation</span>
+            <span style="display:inline-flex; align-items:center; gap:8px"><span style="width:12px; height:8px; border-radius:3px; border:1.5px dashed rgba(68,105,240,.5)"></span>Predicted, not yet driven</span>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal="" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:56px; font-family:var(--font-mono); font-size:11px; color:#93939A">
+        <span>GPS ping every 30 s</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Route and halt history</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Deviation and idling models</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Where time is lost</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Daily movement summary</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Route and stop changes</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Dispatcher acts on it</span>
+      </div>
+
+      <div data-reveal-group="" style="background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); overflow:hidden">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 24px; border-bottom:1px solid rgba(5,8,22,.07)">
+          <div style="display:flex; align-items:center; gap:10px"><span style="width:7px; height:7px; border-radius:999px; background:#4469F0; animation:ai-blip 2s ease-in-out infinite"></span><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#050816">Live insight feed</span></div>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">today · 3 open</span>
+        </div>
+        <div style="display:grid; grid-template-columns:74px 148px 1fr 190px 62px; align-items:center; gap:20px; padding:20px 24px; border-bottom:1px solid rgba(5,8,22,.05)">
+          <span style="font-family:var(--font-mono); font-size:12px; color:#93939A">14:22</span>
+          <span style="display:inline-flex; align-items:center; gap:9px; font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:#5D5D5E"><span style="width:8px; height:8px; border-radius:999px; background:#E5686B; flex:0 0 auto"></span>Smart alert</span>
+          <span><span style="display:block; font-size:15.5px; font-weight:500; letter-spacing:-.15px; color:#050816">MH-12-AB-4471 idling 47 minutes at Bhiwandi</span><span style="display:block; font-size:13px; line-height:20px; color:#93939A; margin-top:3px">No scheduled stop, ₹340 of diesel burned</span></span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Call the driver →</a>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A; text-align:right">0.94</span>
+        </div>
+        <div style="display:grid; grid-template-columns:74px 148px 1fr 190px 62px; align-items:center; gap:20px; padding:20px 24px; border-bottom:1px solid rgba(5,8,22,.05)">
+          <span style="font-family:var(--font-mono); font-size:12px; color:#93939A">14:05</span>
+          <span style="display:inline-flex; align-items:center; gap:9px; font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:#5D5D5E"><span style="width:8px; height:8px; border-radius:999px; background:#4469F0; flex:0 0 auto"></span>Prediction</span>
+          <span><span style="display:block; font-size:15.5px; font-weight:500; letter-spacing:-.15px; color:#050816">Nagpur run arriving 18:42, 42 minutes past window</span><span style="display:block; font-size:13px; line-height:20px; color:#93939A; margin-top:3px">Live speed plus eleven past runs on this lane</span></span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Notify the client →</a>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A; text-align:right">0.88</span>
+        </div>
+        <div style="display:grid; grid-template-columns:74px 148px 1fr 190px 62px; align-items:center; gap:20px; padding:20px 24px; border-bottom:1px solid rgba(5,8,22,.05)">
+          <span style="font-family:var(--font-mono); font-size:12px; color:#93939A">09:40</span>
+          <span style="display:inline-flex; align-items:center; gap:9px; font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:#5D5D5E"><span style="width:8px; height:8px; border-radius:999px; background:#187A32; flex:0 0 auto"></span>Recommendation</span>
+          <span><span style="display:block; font-size:15.5px; font-weight:500; letter-spacing:-.15px; color:#050816">Route the Wardha leg via NH-44</span><span style="display:block; font-size:13px; line-height:20px; color:#93939A; margin-top:3px">Saves 38 minutes on twelve weekly runs at the same fuel cost</span></span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Apply to the lane →</a>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A; text-align:right">0.82</span>
+        </div>
+      </div>
+
+      <div data-reveal="" style="margin-top:44px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+        <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; margin-right:4px">Runs automatically</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Unscheduled halt detection</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Predicted ETA on every trip</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Geofence tuning from history</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Weekly movement report</span>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

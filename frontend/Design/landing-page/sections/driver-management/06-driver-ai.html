@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Driver Management</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes dm-fill { from { stroke-dashoffset: 314; } to { stroke-dashoffset: 88; } }
+  @keyframes dm-rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-arc { from { stroke-dashoffset:300; } to { stroke-dashoffset:96; } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section id="ai" data-screen-label="Driver AI" style="position:relative; background:#F1F4FE; padding:112px 40px; overflow:hidden">
+    <div style="position:absolute; inset:0; background:radial-gradient(900px 420px at 78% 0%, rgba(68,105,240,.12), transparent 66%)"></div>
+    <div style="position:relative; max-width:1280px; margin:0 auto">
+      <div data-reveal="" style="display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:end; margin-bottom:56px">
+        <div>
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px">
+            <div style="font-family:var(--font-eyebrow); font-size:11px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">AI intelligence</div>
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.22); color:#4469F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--nova-rage-600)">AI native</span></span>
+          </div>
+          <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.5px; margin:0; text-wrap:pretty">AI that knows which driver needs attention <span style="color:var(--nova-rage-400)">before the incident.</span></h2>
+        </div>
+        <p style="font-size:18px; line-height:29px; color:#5D5D5E; margin:0; text-wrap:pretty">Licences, duty hours, telemetry and incident history sit on one profile. AI scores risk, chases expiring documents and drafts the coaching note for the supervisor.</p>
+      </div>
+
+      <div data-reveal="" style="background:#FFFFFF; border:1px solid rgba(68,105,240,.18); border-radius:22px; padding:28px 30px 30px; box-shadow:var(--shadow-sm); margin-bottom:24px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px">
+          <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--nova-rage-600)">Driver risk model · signals in, score out</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:#93939A">R. Kumar · 90-day window</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 62px 1.05fr 62px 1fr; align-items:center; gap:0">
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Duty hours</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">58 / 60 h</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:92%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.20s"></div></div>
+          </div>
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Harsh braking</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">11 events</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:46%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.32s"></div></div>
+          </div>
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Night driving</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">38% of km</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:62%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.44s"></div></div>
+          </div>
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Documents</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">1 expiring</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:24%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.56s"></div></div>
+          </div>
+          </div>
+          <svg viewBox="0 0 60 200" preserveAspectRatio="none" style="width:100%; height:190px">
+            <path d="M2 30 C30 30 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 30 C30 30 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0s"></path>
+            <path d="M2 77 C30 77 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 77 C30 77 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.4s"></path>
+            <path d="M2 123 C30 123 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 123 C30 123 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.8s"></path>
+            <path d="M2 170 C30 170 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 170 C30 170 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 1.2s"></path>
+          </svg>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:14px; padding:22px 18px; border-radius:18px; background:rgba(68,105,240,.06); border:1px solid rgba(68,105,240,.2)">
+            <svg viewBox="0 0 200 112" style="width:190px; height:106px">
+              <path d="M18 100 A82 82 0 0 1 182 100" fill="none" stroke="rgba(5,8,22,.09)" stroke-width="13" stroke-linecap="round"></path>
+              <path d="M18 100 A82 82 0 0 1 182 100" fill="none" stroke="#4469F0" stroke-width="13" stroke-linecap="round" stroke-dasharray="300" style="animation:ai-arc 1.4s cubic-bezier(.2,0,0,1) both .3s"></path>
+              <text x="100" y="84" text-anchor="middle" style="font-family:var(--font-display); font-weight:700; font-size:40px; letter-spacing:-1.5px; fill:#050816">68</text>
+              <text x="100" y="104" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:#93939A">risk score</text>
+            </svg>
+            <div style="font-size:12.5px; line-height:19px; color:#5D5D5E; text-align:center">Above the 60 threshold. Fatigue is the largest single contributor this week.</div>
+          </div>
+          <svg viewBox="0 0 60 200" preserveAspectRatio="none" style="width:100%; height:190px">
+            <path d="M2 100 C26 100 30 40 58 40" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 100 C26 100 30 40 58 40" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.2s"></path>
+            <path d="M2 100 L58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 100 L58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.6s"></path>
+            <path d="M2 100 C26 100 30 160 58 160" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 100 C26 100 30 160 58 160" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 1s"></path>
+          </svg>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="padding:15px 17px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(229,104,107,.28); box-shadow:var(--shadow-xs)">
+            <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px; color:#050816">Fatigue alert</div>
+            <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:5px">Supervisor notified before the Friday night run.</div>
+          </div>
+            <div style="padding:15px 17px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); box-shadow:var(--shadow-xs)">
+            <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px; color:#050816">Coaching note</div>
+            <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:5px">Braking pattern on descents, drafted and assigned.</div>
+          </div>
+            <div style="padding:15px 17px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); box-shadow:var(--shadow-xs)">
+            <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px; color:#050816">Roster change</div>
+            <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:5px">Surat night run reassigned to S. Yadav.</div>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal="" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:56px; font-family:var(--font-mono); font-size:11px; color:#93939A">
+        <span>Duty hours, telemetry</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>One driver profile</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Risk and fatigue models</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Who is trending badly</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Monthly scorecards</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Coaching and rostering</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Supervisor follows up</span>
+      </div>
+
+      <div data-reveal="" style="background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); overflow:hidden">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 24px; border-bottom:1px solid rgba(5,8,22,.07)">
+          <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#050816">Driver watchlist · this week</span>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">ranked by risk</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; padding:13px 24px; background:#F4F5FA; font-family:var(--font-eyebrow); font-size:9.5px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:#93939A">
+          <span>Driver</span><span>Risk</span><span>What AI saw</span><span>Next action</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; align-items:center; padding:20px 24px; border-top:1px solid rgba(5,8,22,.05)">
+          <span><span style="display:block; font-size:15px; font-weight:600; letter-spacing:-.15px">A. Singh</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:3px">MH-04-JN-8834</span></span>
+          <span style="display:flex; align-items:center; gap:9px"><span style="font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.6px; color:#E5686B">74</span><span style="flex:1; height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><span style="display:block; height:100%; width:74%; border-radius:999px; background:#E5686B"></span></span></span>
+          <span style="font-size:14px; line-height:21px; color:#5D5D5E">Licence expires in 11 days, medical not booked</span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Reminder sent, escalate Friday →</a>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; align-items:center; padding:20px 24px; border-top:1px solid rgba(5,8,22,.05)">
+          <span><span style="display:block; font-size:15px; font-weight:600; letter-spacing:-.15px">R. Kumar</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:3px">MH-40-BX-2291</span></span>
+          <span style="display:flex; align-items:center; gap:9px"><span style="font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.6px; color:#E5686B">68</span><span style="flex:1; height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><span style="display:block; height:100%; width:68%; border-radius:999px; background:#E5686B"></span></span></span>
+          <span style="font-size:14px; line-height:21px; color:#5D5D5E">Projected 62 duty hours by Friday, above threshold</span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Rebalance the roster →</a>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; align-items:center; padding:20px 24px; border-top:1px solid rgba(5,8,22,.05)">
+          <span><span style="display:block; font-size:15px; font-weight:600; letter-spacing:-.15px">S. Yadav</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:3px">MH-46-C-8890</span></span>
+          <span style="display:flex; align-items:center; gap:9px"><span style="font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.6px; color:#187A32">22</span><span style="flex:1; height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><span style="display:block; height:100%; width:22%; border-radius:999px; background:#187A32"></span></span></span>
+          <span style="font-size:14px; line-height:21px; color:#5D5D5E">Lowest harsh-braking rate on night lanes, 90 days</span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Assign the Surat night run →</a>
+        </div>
+      </div>
+
+      <div data-reveal="" style="margin-top:44px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+        <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; margin-right:4px">Runs automatically</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Automatic document reminders</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Driver risk score</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Fatigue and hours alerts</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Monthly scorecard generated</span>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

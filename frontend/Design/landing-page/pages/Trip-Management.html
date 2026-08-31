@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Trip Management</title>
+<link rel="stylesheet" href="../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes tm-track { from { stroke-dashoffset: 300; } to { stroke-dashoffset: 96; } }
+  @keyframes tm-step { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes tm-pulse { 0%,100% { opacity:.45; transform:scale(1); } 50% { opacity:.95; transform:scale(1.3); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-run { 0% { left:2%; } 100% { left:98%; } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+
+
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+
+  <div style="position:fixed; top:0; left:0; right:0; height:3px; z-index:95; background:transparent; pointer-events:none">
+    <div data-progress style="height:100%; width:0%; background:linear-gradient(90deg, #4469F0, #213EA7); transition:width 120ms linear"></div>
+  </div>
+
+  <!-- ══ NAV ══ -->
+  <div style="position:sticky; top:0; z-index:80; padding:0 40px; background:rgba(255,255,255,.92); backdrop-filter:blur(20px); border-bottom:1px solid rgba(5,8,22,.08)">
+    <div style="max-width:1280px; margin:0 auto; display:flex; align-items:center; gap:26px; height:78px">
+      <a href="GNB Edge Landing.html" style="display:flex; align-items:center; gap:11px; color:#050816">
+        <span style="width:30px; height:30px; border-radius:9px; background:var(--nova-gradient-rage); display:grid; place-items:center; font-family:var(--font-display); font-weight:700; font-size:14px; color:#fff; letter-spacing:-.5px">G</span>
+        <span style="font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:-.3px; white-space:nowrap">GNB Edge</span>
+      </a>
+      <div style="display:flex; align-items:center; gap:10px; margin-left:14px; font-size:14px; color:#93939A">
+        <span>/</span>
+        <span style="color:#5D5D5E">Fleet</span>
+        <span>/</span>
+        <span style="color:#050816; font-weight:500">Trip management</span>
+      </div>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
+        <a href="GNB Edge Landing.html" style="font-family:var(--font-ui); font-size:15px; font-weight:600; color:#5D5D5E; padding:11px 18px; white-space:nowrap">← Back to overview</a>
+        <a href="#tm-demo" style="font-family:var(--font-ui); font-size:15px; font-weight:600; color:#FFFFFF; background:var(--nova-rage-400); border:1px solid var(--nova-rage-800); padding:12px 26px; border-radius:999px; white-space:nowrap; transition:background 200ms cubic-bezier(.2,0,0,1)">Reach us</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HERO ══ -->
+  <section data-screen-label="Trip hero" style="position:relative; background:#F4F5FA; padding:104px 40px 88px; overflow:hidden">
+    <div style="position:absolute; inset:0; background:radial-gradient(880px 500px at 82% 2%, rgba(68,105,240,.11), transparent 68%), radial-gradient(680px 440px at 4% 46%, rgba(68,105,240,.06), transparent 70%)"></div>
+    <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(5,8,22,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(5,8,22,.035) 1px, transparent 1px); background-size:72px 72px; mask-image:radial-gradient(circle at 60% 30%, #000, transparent 74%)"></div>
+
+    <div style="position:relative; max-width:1280px; margin:0 auto; display:grid; grid-template-columns:1fr .92fr; gap:64px; align-items:center">
+      <div data-reveal-group>
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:26px">
+          <span style="width:44px; height:2px; background:var(--nova-rage-400)"></span>
+          <span style="font-family:var(--font-eyebrow); font-size:12px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">Fleet · Trip management</span>
+          <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.22); color:#4469F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--nova-rage-600)">AI native</span></span>
+        </div>
+        <h1 style="font-family:var(--font-display); font-weight:700; font-size:58px; line-height:1.05; letter-spacing:-2px; margin:0; text-wrap:pretty">Plan it, cost it, close it. <span style="color:var(--nova-rage-400)">One trip record.</span></h1>
+        <p style="font-size:18px; line-height:30px; color:#5D5D5E; margin:28px 0 0; max-width:540px; text-wrap:pretty">From booking to POD to invoice, every consignment carries its own vehicle, driver, expenses and paperwork, so nothing is reconstructed from memory at month end.</p>
+        <div style="display:flex; gap:14px; margin-top:40px">
+          <a href="#tm-demo" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#FFFFFF; background:var(--nova-rage-400); border:1px solid var(--nova-rage-800); padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Book a demo</a>
+          <a href="GNB Edge Landing.html" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#050816; background:transparent; border:1px solid rgba(5,8,22,.16); padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">All modules</a>
+        </div>
+      </div>
+
+      <div data-reveal style="position:relative; border-radius:var(--radius-soft); background:#FFFFFF; border:1px solid rgba(5,8,22,.06); box-shadow:var(--shadow-lg); padding:34px; display:flex; flex-direction:column; gap:22px">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px">
+          <div>
+            <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.24em; text-transform:uppercase; color:#93939A">Trip · GNB/2026/04817</div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:24px; letter-spacing:-.9px; margin-top:8px">Mumbai → Nagpur</div>
+          </div>
+          <div style="flex:0 0 auto; font-size:11px; font-weight:600; padding:6px 12px; border-radius:999px; background:rgba(68,105,240,.10); color:var(--nova-rage-600)">In transit</div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:14px">
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">MH-40-BX-2291</span>
+          <span style="width:4px; height:4px; border-radius:999px; background:#C9C9CE"></span>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">R. Kumar</span>
+          <span style="width:4px; height:4px; border-radius:999px; background:#C9C9CE"></span>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">18.4 t</span>
+        </div>
+
+        <div style="position:relative; padding:4px 0 2px">
+          <svg viewBox="0 0 300 8" preserveAspectRatio="none" style="display:block; width:100%; height:8px">
+            <path d="M4 4 H296" stroke="rgba(68,105,240,.16)" stroke-width="4" stroke-linecap="round"></path>
+            <path d="M4 4 H296" stroke="#4469F0" stroke-width="4" stroke-linecap="round" stroke-dasharray="300" style="animation:tm-track 1.5s cubic-bezier(.2,0,0,1) both .35s"></path>
+          </svg>
+          <div style="position:absolute; left:68%; top:-4px; width:16px; height:16px; margin-left:-8px; border-radius:999px; background:rgba(68,105,240,.34); animation:tm-pulse 2.4s ease-in-out infinite"></div>
+          <div style="position:absolute; left:68%; top:0; width:8px; height:8px; margin-left:-4px; border-radius:999px; background:#2F58EE"></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:9px; min-height:0">
+          <div style="display:flex; align-items:center; gap:13px; padding:12px 15px; border-radius:12px; background:#F4F5FA; animation:tm-step 460ms cubic-bezier(.2,0,0,1) both .5s">
+            <span style="flex:0 0 auto; width:26px; height:26px; border-radius:999px; background:rgba(24,122,50,.12); display:grid; place-items:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#187A32" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </span>
+            <span style="flex:1; font-size:14px; font-weight:500">Booked and costed</span>
+            <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">08:10</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:13px; padding:12px 15px; border-radius:12px; background:#F4F5FA; animation:tm-step 460ms cubic-bezier(.2,0,0,1) both .62s">
+            <span style="flex:0 0 auto; width:26px; height:26px; border-radius:999px; background:rgba(24,122,50,.12); display:grid; place-items:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#187A32" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </span>
+            <span style="flex:1; font-size:14px; font-weight:500">E-way bill generated</span>
+            <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">08:26</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:13px; padding:12px 15px; border-radius:12px; background:rgba(68,105,240,.06); animation:tm-step 460ms cubic-bezier(.2,0,0,1) both .74s">
+            <span style="flex:0 0 auto; width:26px; height:26px; border-radius:999px; background:rgba(68,105,240,.16); display:grid; place-items:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>
+            </span>
+            <span style="flex:1; font-size:14px; font-weight:500; color:var(--nova-rage-700)">In transit · 68%</span>
+            <span style="font-family:var(--font-mono); font-size:11px; color:var(--nova-rage-600)">now</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:13px; padding:12px 15px; border-radius:12px; background:#F4F5FA; opacity:.62; animation:tm-step 460ms cubic-bezier(.2,0,0,1) both .86s">
+            <span style="flex:0 0 auto; width:26px; height:26px; border-radius:999px; border:1.5px dashed rgba(5,8,22,.22)"></span>
+            <span style="flex:1; font-size:14px; font-weight:500; color:#5D5D5E">POD and invoice</span>
+            <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">pending</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; padding-top:18px; border-top:1px solid rgba(5,8,22,.08)">
+          <div>
+            <div style="font-size:11px; color:#93939A">Costed</div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:-.5px">₹42,600</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:#93939A">Actual so far</div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:-.5px">₹39,180</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:#93939A">Margin</div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:-.5px; color:var(--nova-fern-700)">+8%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SPEC STRIP ══ -->
+  <section data-screen-label="Trip specs" style="background:#FFFFFF; padding:88px 40px 96px">
+    <div data-reveal-group style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:24px">
+      <div style="padding-left:22px; border-left:2px solid var(--nova-rage-400)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">1 rec</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Booking to invoice on one trip record</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">6 stage</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Booked, loaded, in transit, delivered, POD, billed</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">0 entry</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Re-typing between trip, e-way bill and invoice</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">live</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Costed against actual, while the trip runs</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CAPABILITIES ══ -->
+  <section data-screen-label="Trip capabilities" style="background:#F4F5FA; padding:104px 40px">
+    <div style="max-width:1280px; margin:0 auto">
+      <h2 data-reveal style="font-family:var(--font-display); font-weight:700; font-size:42px; line-height:1.1; letter-spacing:-1.4px; margin:0 0 56px; max-width:760px; text-wrap:pretty">What the trip module <span style="color:var(--nova-rage-400)">actually does.</span></h2>
+
+      <div data-reveal-group style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px">
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 4v16M4 10h16"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Booking and consignment</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Client, route, load and rate captured once, carried through every downstream document.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M8.5 18h5a4 4 0 0 0 4-4V8.5"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Vehicle and driver assignment</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Assign from live availability, with expired documents blocked at source.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 7h8a3 3 0 0 1 0 6H7M7 17h10"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Trip costing</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Freight, fuel, tolls, advances and detention costed against the booked rate.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h3"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Documents on the trip</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">LR, e-way bill and invoice generated from the trip, never re-keyed.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h13l3 4v6H4z"></path><circle cx="8" cy="17" r="2"></circle><circle cx="17" cy="17" r="2"></circle></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Market vehicles</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Hired vehicles and broker loads costed alongside your own fleet.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20V8"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Route profitability</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Margin per trip, route, client and vehicle, refreshed as trips close.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SCREEN ══ -->
+  <section data-screen-label="Trip console" style="background:#FFFFFF; padding:104px 40px">
+    <div style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:.85fr 1.15fr; gap:72px; align-items:center">
+      <div data-reveal-group>
+        <h2 style="font-family:var(--font-display); font-weight:700; font-size:38px; line-height:1.12; letter-spacing:-1.2px; margin:0; text-wrap:pretty">The dispatch board your operations room runs on.</h2>
+        <p style="font-size:17px; line-height:28px; color:#5D5D5E; margin:22px 0 32px">Open trips, unassigned loads and pending PODs on one screen, with every row opening into the full consignment record.</p>
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <div style="display:flex; gap:14px; align-items:flex-start">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto; margin-top:3px"><path d="M20 6 9 17l-5-5"></path></svg>
+            <div style="font-size:16px; line-height:25px; color:#050816">Costed against actual while the trip is still running</div>
+          </div>
+          <div style="display:flex; gap:14px; align-items:flex-start">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto; margin-top:3px"><path d="M20 6 9 17l-5-5"></path></svg>
+            <div style="font-size:16px; line-height:25px; color:#050816">PODs land from the driver app straight onto the trip</div>
+          </div>
+          <div style="display:flex; gap:14px; align-items:flex-start">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto; margin-top:3px"><path d="M20 6 9 17l-5-5"></path></svg>
+            <div style="font-size:16px; line-height:25px; color:#050816">Closing a trip raises the invoice and posts to the ledger</div>
+          </div>
+        </div>
+      </div>
+      <div data-reveal style="border-radius:var(--radius-xtra-soft); overflow:hidden; border:1px solid rgba(5,8,22,.08); box-shadow:var(--shadow-lg); aspect-ratio:16/10">
+        <image-slot id="tm-console" shape="rect" placeholder="Drop the dispatch board screenshot"></image-slot>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ AI LAYER ══ -->
+  <section id="ai" data-screen-label="Trip AI" style="position:relative; background:#F1F4FE; padding:112px 40px; overflow:hidden">
+    <div style="position:absolute; inset:0; background:radial-gradient(900px 420px at 78% 0%, rgba(68,105,240,.12), transparent 66%)"></div>
+    <div style="position:relative; max-width:1280px; margin:0 auto">
+      <div data-reveal style="display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:end; margin-bottom:56px">
+        <div>
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px">
+            <div style="font-family:var(--font-eyebrow); font-size:11px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">AI intelligence</div>
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.22); color:#4469F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--nova-rage-600)">AI native</span></span>
+          </div>
+          <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.5px; margin:0; text-wrap:pretty">AI that costs the trip <span style="color:var(--nova-rage-400)">before you commit to it.</span></h2>
+        </div>
+        <p style="font-size:18px; line-height:29px; color:#5D5D5E; margin:0; text-wrap:pretty">Every closed consignment is a data point. AI prices the next one, flags the lanes quietly losing money and matches the paperwork behind them.</p>
+      </div>
+
+      <div data-reveal style="background:#FFFFFF; border:1px solid rgba(68,105,240,.18); border-radius:22px; padding:28px 30px 30px; box-shadow:var(--shadow-sm); margin-bottom:24px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px">
+          <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--nova-rage-600)">Trip lifecycle · where AI acts</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:#93939A">GNB/2026/04817 · Mumbai → Nagpur</div>
+        </div>
+        <div style="padding-top:120px">
+          <div style="position:relative; height:60px">
+            <div style="position:absolute; left:2%; right:2%; top:7px; height:2px; background:rgba(68,105,240,.16)"></div>
+            <div style="position:absolute; left:2%; width:62%; top:7px; height:2px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 1.4s cubic-bezier(.2,0,0,1) both .3s"></div>
+            <div style="position:absolute; top:2px; width:12px; height:12px; margin-left:-6px; border-radius:999px; background:rgba(68,105,240,.3); animation:ai-run 5.5s cubic-bezier(.2,0,0,1) infinite"></div>
+            <div style="position:absolute; left:2%; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px">
+            <span style="width:15px; height:15px; border-radius:999px; background:#4469F0; border:2px solid #4469F0"></span>
+            <span style="font-size:12px; font-weight:500; color:#050816; white-space:nowrap">Booking</span>
+          </div><div style="position:absolute; left:21%; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px">
+            <span style="width:15px; height:15px; border-radius:999px; background:#4469F0; border:2px solid #4469F0"></span>
+            <span style="font-size:12px; font-weight:500; color:#050816; white-space:nowrap">Dispatch</span>
+          </div><div style="position:absolute; left:43%; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px">
+            <span style="width:15px; height:15px; border-radius:999px; background:#4469F0; border:2px solid #4469F0"></span>
+            <span style="font-size:12px; font-weight:500; color:#050816; white-space:nowrap">In transit</span>
+          </div><div style="position:absolute; left:64%; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px">
+            <span style="width:15px; height:15px; border-radius:999px; background:#FFFFFF; border:2px solid rgba(68,105,240,.35)"></span>
+            <span style="font-size:12px; font-weight:500; color:#93939A; white-space:nowrap">Delivery</span>
+          </div><div style="position:absolute; left:83%; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px">
+            <span style="width:15px; height:15px; border-radius:999px; background:#FFFFFF; border:2px solid rgba(68,105,240,.35)"></span>
+            <span style="font-size:12px; font-weight:500; color:#93939A; white-space:nowrap">POD</span>
+          </div><div style="position:absolute; left:98%; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px">
+            <span style="width:15px; height:15px; border-radius:999px; background:#FFFFFF; border:2px solid rgba(68,105,240,.35)"></span>
+            <span style="font-size:12px; font-weight:500; color:#93939A; white-space:nowrap">Invoice</span>
+          </div>
+            <div style="position:absolute; left:12%; bottom:100%; transform:translateX(-50%); margin-bottom:16px; width:210px">
+            <div style="padding:13px 15px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.26); box-shadow:var(--shadow-xs)">
+              <div style="display:flex; align-items:center; gap:7px; font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:var(--nova-rage-600); margin-bottom:7px"><span style="width:5px; height:5px; border-radius:999px; background:var(--nova-rage-400); animation:ai-blip 2.2s ease-in-out infinite"></span>AI</div>
+              <div style="font-size:13px; font-weight:600; letter-spacing:-.1px">Prices the trip</div>
+              <div style="font-size:11.5px; line-height:17px; color:#5D5D5E; margin-top:4px">Predicted landed cost ₹38,900 against ₹42,600 quoted.</div>
+            </div>
+            <div style="width:1px; height:16px; background:rgba(68,105,240,.3); margin:0 auto"></div>
+          </div>
+            <div style="position:absolute; left:50%; bottom:100%; transform:translateX(-50%); margin-bottom:16px; width:210px">
+            <div style="padding:13px 15px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.26); box-shadow:var(--shadow-xs)">
+              <div style="display:flex; align-items:center; gap:7px; font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:var(--nova-rage-600); margin-bottom:7px"><span style="width:5px; height:5px; border-radius:999px; background:var(--nova-rage-400); animation:ai-blip 2.2s ease-in-out infinite"></span>AI</div>
+              <div style="font-size:13px; font-weight:600; letter-spacing:-.1px">Predicts the delay</div>
+              <div style="font-size:11.5px; line-height:17px; color:#5D5D5E; margin-top:4px">Arrival slipping 42 min. Client notified automatically.</div>
+            </div>
+            <div style="width:1px; height:16px; background:rgba(68,105,240,.3); margin:0 auto"></div>
+          </div>
+            <div style="position:absolute; left:88%; bottom:100%; transform:translateX(-50%); margin-bottom:16px; width:210px">
+            <div style="padding:13px 15px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.26); box-shadow:var(--shadow-xs)">
+              <div style="display:flex; align-items:center; gap:7px; font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:var(--nova-rage-600); margin-bottom:7px"><span style="width:5px; height:5px; border-radius:999px; background:var(--nova-rage-400); animation:ai-blip 2.2s ease-in-out infinite"></span>AI</div>
+              <div style="font-size:13px; font-weight:600; letter-spacing:-.1px">Closes the paperwork</div>
+              <div style="font-size:11.5px; line-height:17px; color:#5D5D5E; margin-top:4px">POD matched to the trip, invoice drafted, ledger posted.</div>
+            </div>
+            <div style="width:1px; height:16px; background:rgba(68,105,240,.3); margin:0 auto"></div>
+          </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px; margin-top:26px; padding:16px 20px; border-radius:14px; background:rgba(68,105,240,.06); border:1px dashed rgba(68,105,240,.3)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 5v6h-6"></path></svg>
+            <span style="font-size:13.5px; line-height:21px; color:#5D5D5E">Every closed trip goes back into the model. The next quote on this lane is priced on 35 runs, not 34.</span>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:56px; font-family:var(--font-mono); font-size:11px; color:#93939A">
+        <span>Bookings, costs, PODs</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Full trip history</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Margin and delay models</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Which trips lose money</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Automatic trip P&L</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Pricing and assignment</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Dispatch decides</span>
+      </div>
+
+      <div data-reveal style="background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); padding:30px 32px 26px">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; padding-bottom:18px">
+          <div style="padding-right:28px">
+            <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A">The same trip without AI</div>
+          </div>
+          <div style="padding-left:28px; border-left:1px solid rgba(5,8,22,.06); display:flex; align-items:center; gap:11px">
+            <span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400); animation:ai-blip 2.2s ease-in-out infinite"></span>
+            <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--nova-rage-600)">With GNB Edge AI</span>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid rgba(5,8,22,.06)">
+          <div style="padding:22px 28px 22px 0; font-size:15px; line-height:24px; color:#93939A">Quoted from last year’s rate card and a feel for the lane.</div>
+          <div style="padding:22px 0 22px 28px; border-left:1px solid rgba(5,8,22,.06); font-size:15px; line-height:24px; color:#050816">Priced on 34 comparable runs. Predicted landed cost ₹38,900 against ₹42,600 quoted, at booking.</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid rgba(5,8,22,.06)">
+          <div style="padding:22px 28px 22px 0; font-size:15px; line-height:24px; color:#93939A">The delay is discovered when the client calls to ask.</div>
+          <div style="padding:22px 0 22px 28px; border-left:1px solid rgba(5,8,22,.06); font-size:15px; line-height:24px; color:#050816">Arrival slip of 42 minutes flagged at 14:20. Client notified before they noticed.</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid rgba(5,8,22,.06)">
+          <div style="padding:22px 28px 22px 0; font-size:15px; line-height:24px; color:#93939A">POD chased at month end, invoice raised a week late.</div>
+          <div style="padding:22px 0 22px 28px; border-left:1px solid rgba(5,8,22,.06); font-size:15px; line-height:24px; color:#050816">POD matched to the trip on upload, invoice drafted, ledger posted the same day.</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid rgba(5,8,22,.06)">
+          <div style="padding:22px 28px 22px 0; font-size:15px; line-height:24px; color:#93939A">Mumbai → Indore quietly loses margin for a quarter.</div>
+          <div style="padding:22px 0 22px 28px; border-left:1px solid rgba(5,8,22,.06); font-size:15px; line-height:24px; color:#050816">Lane flagged at 11% below costed margin after eight trips, with detention named as the cause.</div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; padding-top:22px; margin-top:6px; border-top:2px solid rgba(5,8,22,.1)">
+          <span style="font-size:15.5px; font-weight:600">Quote to hold on the Surat renewal</span>
+          <span style="display:flex; align-items:baseline; gap:14px"><span style="font-family:var(--font-display); font-weight:700; font-size:28px; letter-spacing:-1px; color:var(--nova-rage-600)">₹46,200</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">conf 0.83</span></span>
+        </div>
+      </div>
+
+      <div data-reveal style="margin-top:44px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+        <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; margin-right:4px">Runs automatically</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Predicted cost at booking</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Delay and detention alerts</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Automatic POD matching</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Monthly route P&L</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CTA ══ -->
+  <section id="tm-demo" data-screen-label="Trip CTA" style="background:#F4F5FA; padding:104px 40px 96px">
+    <div data-reveal style="max-width:1280px; margin:0 auto; border-radius:var(--radius-ultra-soft); background:linear-gradient(150deg, #2F58EE 0%, #213EA7 100%); padding:80px 72px; position:relative; overflow:hidden">
+      <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size:64px 64px; mask-image:radial-gradient(circle at 85% 30%, #000, transparent 70%)"></div>
+      <div style="position:relative; max-width:720px">
+        <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.6px; color:#FFFFFF; margin:0; text-wrap:pretty">Run one of your real trips through it.</h2>
+        <p style="font-size:18px; line-height:29px; color:rgba(255,255,255,.84); margin:22px 0 36px">Bring a live consignment to the demo and we will take it from booking to invoice on the call.</p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap">
+          <a href="#tm-demo" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#213EA7; background:#FFFFFF; border:1px solid #FFFFFF; padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Reach us</a>
+          <a href="GNB Edge Landing.html" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#FFFFFF; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.34); padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Back to platform</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="padding:0 40px 48px">
+    <div style="max-width:1280px; margin:0 auto; border-top:1px solid rgba(5,8,22,.10); padding-top:32px; display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap">
+      <div style="font-size:14px; color:#93939A">© 2026 GNB Edge. All rights reserved.</div>
+      <div style="display:flex; gap:26px">
+        <a href="Vehicle Tracking.html" style="font-size:14px; color:#93939A">Vehicle tracking</a>
+        <a href="Driver Management.html" style="font-size:14px; color:#93939A">Driver management</a>
+        <a href="Fuel and Mileage.html" style="font-size:14px; color:#93939A">Fuel and mileage</a>
+        <a href="About GNB Edge.html" style="font-size:14px; color:#93939A">About</a>
+        <a href="Contact us.html" style="font-size:14px; color:#93939A">Contact us</a>
+        <a href="GNB Edge Landing.html" style="font-size:14px; color:#93939A">← GNB Edge platform</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

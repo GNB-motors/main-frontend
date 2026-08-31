@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Contract Fleets</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes arch-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -200; } }
+  @keyframes step-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes arch-orb { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.14); opacity:.28; } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-bar { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section data-screen-label="Customer steps" style="background:#F4F5FA; padding:112px 40px">
+    <div style="max-width:1280px; margin:0 auto">
+      <h2 data-reveal="" style="font-family:var(--font-display); font-weight:700; font-size:42px; line-height:1.1; letter-spacing:-1.4px; margin:0 0 64px; max-width:760px; text-wrap:pretty">From contract signed to <span style="color:var(--nova-rage-400)">client reporting live.</span></h2>
+      <div style="position:relative">
+        <div data-reveal-group="" style="position:relative; display:grid; grid-template-columns:repeat(3,1fr); gap:32px">
+        <div style="position:relative">
+          <div style="position:absolute; left:52px; right:-32px; top:26px; height:1px; background:rgba(68,105,240,.22); transform-origin:left; animation:step-line 900ms cubic-bezier(.2,0,0,1) both 300ms"></div>
+          <div style="position:relative; z-index:1; width:52px; height:52px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.28); box-shadow:0 4px 14px rgba(68,105,240,.16); display:grid; place-items:center; font-family:var(--font-display); font-weight:700; font-size:19px; color:var(--nova-rage-600); margin-bottom:26px">1</div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px; margin-bottom:10px">Load your contract rates</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; max-width:300px">Agreed rates, lanes and escalation clauses per client.</div>
+        </div>
+        <div style="position:relative">
+          <div style="position:absolute; left:52px; right:-32px; top:26px; height:1px; background:rgba(68,105,240,.22); transform-origin:left; animation:step-line 900ms cubic-bezier(.2,0,0,1) both 800ms"></div>
+          <div style="position:relative; z-index:1; width:52px; height:52px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.28); box-shadow:0 4px 14px rgba(68,105,240,.16); display:grid; place-items:center; font-family:var(--font-display); font-weight:700; font-size:19px; color:var(--nova-rage-600); margin-bottom:26px">2</div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px; margin-bottom:10px">Map SLAs and vehicles</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; max-width:300px">Dedicated vehicles, turnaround targets and detention terms.</div>
+        </div>
+        <div style="position:relative">
+          <div style="position:relative; z-index:1; width:52px; height:52px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.28); box-shadow:0 4px 14px rgba(68,105,240,.16); display:grid; place-items:center; font-family:var(--font-display); font-weight:700; font-size:19px; color:var(--nova-rage-600); margin-bottom:26px">3</div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px; margin-bottom:10px">Share the client portal</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; max-width:300px">Live tracking, PODs and a service report that builds itself.</div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

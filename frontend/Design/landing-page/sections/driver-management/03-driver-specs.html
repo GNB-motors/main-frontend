@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Driver Management</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes dm-fill { from { stroke-dashoffset: 314; } to { stroke-dashoffset: 88; } }
+  @keyframes dm-rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-arc { from { stroke-dashoffset:300; } to { stroke-dashoffset:96; } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section data-screen-label="Driver specs" style="background:#FFFFFF; padding:88px 40px 96px">
+    <div data-reveal-group="" style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:24px">
+      <div style="padding-left:22px; border-left:2px solid var(--nova-rage-400)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">30 d</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Licence expiry warning window</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">9 doc</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Document types tracked per driver</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">1 tap</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">From trip close to driver settlement</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">24 mo</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Duty and settlement history retained</div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

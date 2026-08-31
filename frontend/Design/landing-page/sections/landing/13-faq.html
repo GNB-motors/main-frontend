@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · GNB Edge Landing</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes gnb-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -248; } }
+  @keyframes arch-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -200; } }
+  @keyframes arch-orb { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.14); opacity:.28; } }
+  @keyframes gnb-orb { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.14); opacity:.28; } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes cap-run { from { offset-distance:0%; } to { offset-distance:100%; } }
+  @keyframes cap-draw { 0% { stroke-dashoffset:520; } 45%, 78% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-520; } }
+  @keyframes cap-flow { from { stroke-dashoffset:0; } to { stroke-dashoffset:-170; } }
+  @keyframes cap-geo { 0% { transform:scale(.6); opacity:.9; } 100% { transform:scale(1.25); opacity:0; } }
+  @keyframes cap-ring { 0% { transform:scale(.82); opacity:.85; } 100% { transform:scale(1.28); opacity:0; } }
+  @keyframes cap-glow { 0%,100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.08); } }
+  @keyframes cap-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
+  @keyframes cap-blink { 0%,100% { opacity:1; } 50% { opacity:.32; } }
+  @keyframes cap-spine { 0% { top:56px; opacity:0; } 12% { opacity:1; } 88% { opacity:1; } 100% { top:calc(100% - 62px); opacity:0; } }
+  @keyframes cap-bar { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+  @keyframes cap-fade { from { opacity:0; } to { opacity:1; } }
+  @keyframes cap-doc { 0% { transform:translateY(6px); opacity:.55; } 18%, 82% { transform:none; opacity:1; } 100% { transform:translateY(-6px); opacity:.55; } }
+  @keyframes cap-scan { 0% { top:-80px; } 100% { top:100%; } }
+  @keyframes cap-insight { 0%, 6% { opacity:.28; transform:translateY(6px); } 14%, 34% { opacity:1; transform:none; } 46%, 100% { opacity:.28; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; } }
+  body { transition: background-color 420ms cubic-bezier(.2,0,0,1); }
+  body[data-theme="dark"] { background:#0B0F20; }
+  [data-navshell] { transition: background-color 420ms cubic-bezier(.2,0,0,1), border-color 420ms cubic-bezier(.2,0,0,1); }
+  [data-navshell] a, [data-navshell] button, [data-navshell] span { transition: color 420ms cubic-bezier(.2,0,0,1), border-color 420ms cubic-bezier(.2,0,0,1); }
+  body[data-theme="dark"] [data-navshell] { background:rgba(11,15,32,.86) !important; border-bottom-color:rgba(255,255,255,.10) !important; }
+  body[data-theme="dark"] [data-navshell] a, body[data-theme="dark"] [data-navshell] button { color:rgba(255,255,255,.86) !important; }
+  body[data-theme="dark"] [data-navshell] [data-navcta] { color:#FFFFFF !important; }
+  @keyframes cap-plane { 0%,100% { transform:perspective(700px) rotateX(24deg) translateY(0); } 50% { transform:perspective(700px) rotateX(24deg) translateY(-5px); } }
+  @keyframes cap-drop { 0% { transform:translateY(0); opacity:0; } 15% { opacity:1; } 85% { opacity:1; } 100% { transform:translateY(210px); opacity:0; } }
+  @keyframes cap-stamp { 0%, 42% { opacity:0; transform:scale(.7); } 52% { opacity:1; transform:scale(1.08); } 60%, 92% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(1); } }
+  [data-card], [data-card-body], [data-card-title], [data-card-desc], [data-dk-h], [data-dk-accent], [data-dk-p], [data-dk-eyebrow], [data-dk-mono], [data-dk-link], [data-dk-pill] { transition: background 700ms cubic-bezier(.2,0,0,1), border-color 700ms cubic-bezier(.2,0,0,1), color 700ms cubic-bezier(.2,0,0,1), box-shadow 700ms cubic-bezier(.2,0,0,1); }
+  body:not([data-theme="dark"]) [data-card] { background:#FFFFFF !important; border-color:rgba(5,8,22,.07) !important; box-shadow:0 10px 30px rgba(30,34,56,.10) !important; }
+  body:not([data-theme="dark"]) [data-card-body] { border-top-color:rgba(5,8,22,.07) !important; }
+  body:not([data-theme="dark"]) [data-card-title], body:not([data-theme="dark"]) [data-dk-h] { color:#050816 !important; }
+  body:not([data-theme="dark"]) [data-card-desc], body:not([data-theme="dark"]) [data-dk-p] { color:#5D5D5E !important; }
+  body:not([data-theme="dark"]) [data-dk-accent] { color:var(--nova-rage-400) !important; }
+  body:not([data-theme="dark"]) [data-dk-eyebrow], body:not([data-theme="dark"]) [data-dk-link] { color:var(--nova-rage-600) !important; }
+  body:not([data-theme="dark"]) [data-dk-pill] { background:rgba(68,105,240,.08) !important; border-color:rgba(68,105,240,.22) !important; }
+  body:not([data-theme="dark"]) [data-dk-mono] { color:#93939A !important; }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section data-screen-label="FAQ" style="background:#F4F5FA; padding:112px 40px">
+    <div style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:.8fr 1.2fr; gap:80px; align-items:start">
+      <div data-reveal="">
+        <div style="font-family:var(--font-eyebrow); font-size:11px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600); margin-bottom:20px">Questions</div>
+        <h2 style="font-family:var(--font-display); font-weight:700; font-size:42px; line-height:1.1; letter-spacing:-1.3px; margin:0; text-wrap:pretty">Frequently asked <span style="color:var(--nova-rage-400)">questions.</span></h2>
+        <p style="font-size:17px; line-height:28px; color:#5D5D5E; margin:22px 0 0">Still unsure whether GNB Edge fits your operation? Book a walkthrough and we will map your current stack module by module.</p>
+      </div>
+      <div data-reveal="" style="display:flex; flex-direction:column">
+        
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">What exactly is GNB Edge?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:#F4F5FA; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:0"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:1fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">GNB Edge is a unified fleet operating platform. It brings vehicle tracking, trip and dispatch management, ERP, CRM, GST and e-way bill compliance, ledgers, payments and reporting onto one system, replacing the disconnected stack most transport businesses run today.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">Who is GNB Edge built for?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">Three kinds of operation: single owners running one or two trucks, contract fleets serving dedicated clients, and enterprise networks with multiple depots, entities and GSTINs. The same platform scales across all three.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">Do you have a mobile app?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">Yes. There are two surfaces: a mobile app for owners and drivers, and the web platform for owners and office staff. In the app a driver sees his assigned vehicle and trip details and raises advances for fuel, tolls and food and sees his own earnings and trip payouts; the owner approves every request and tracks trips, fuel and mileage. Everything reads and writes the same record, and the public API covers the rest.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">Does it replace my existing software?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">In most cases, yes. GNB Edge consolidates tracking, dispatch, ERP, CRM, invoicing, ledgers, payments and reporting so your team stops logging into separate systems. Where you want to keep a tool, we integrate with it instead.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">How does GST and e-way bill filing work?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">Both are generated directly from the trip and consignment record. Invoices come out GSTR-ready with HSN, place of supply and reverse charge handled, and e-way bills can be generated, extended or cancelled without re-entering data.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">How does fuel theft detection work?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">For every trip, an odometer photo and a fuel bill photo are uploaded through the app, the web platform or the WhatsApp bot. GNB Edge calculates the vehicle’s actual mileage using the full-tank-to-full-tank method, then compares it against fuel consumption data from vehicle hardware and telematics and other available data points. Anything outside the expected range is flagged as unusual fuel usage or potential theft, with a fuel audit raised against the trip and vehicle.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">Is fleet data updated in real time?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">Yes. Telemetry refreshes across the live fleet map every 30 seconds, and trip, expense and ledger data updates as it happens rather than in overnight batches.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">How long does implementation take?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">A single-depot fleet is typically live within a week. Multi-depot networks average four days of rollout per region once master data is mapped, with a dedicated implementation team on Enterprise plans.</p>
+              </div>
+            </div>
+          </div>
+        
+
+          <div style="border-top:1px solid rgba(5,8,22,.10)">
+            <button type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:var(--font-ui)">
+              <span style="font-size:18px; font-weight:600; letter-spacing:-.2px; color:#050816">How do I get started?</span>
+              <span style="flex:0 0 auto; width:34px; height:34px; border-radius:999px; display:grid; place-items:center; border:1px solid rgba(5,8,22,.12); color:#050816; background:transparent; transition:background 200ms cubic-bezier(.2,0,0,1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14" style="transition:opacity 200ms cubic-bezier(.2,0,0,1); opacity:1"></path></svg>
+              </span>
+            </button>
+            <div style="display:grid; grid-template-rows:0fr; transition:grid-template-rows 320ms cubic-bezier(.2,0,0,1)">
+              <div style="overflow:hidden">
+                <p style="font-size:16px; line-height:26px; color:#5D5D5E; padding:0 60px 26px 0">Book a demo. We walk your current operation, map which of your systems consolidate onto GNB Edge, and show tracking, dispatch, compliance and finance working together on live data from your own routes.</p>
+              </div>
+            </div>
+          </div>
+        
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

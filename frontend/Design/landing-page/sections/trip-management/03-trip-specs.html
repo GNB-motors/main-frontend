@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Trip Management</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes tm-track { from { stroke-dashoffset: 300; } to { stroke-dashoffset: 96; } }
+  @keyframes tm-step { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes tm-pulse { 0%,100% { opacity:.45; transform:scale(1); } 50% { opacity:.95; transform:scale(1.3); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-run { 0% { left:2%; } 100% { left:98%; } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section data-screen-label="Trip specs" style="background:#FFFFFF; padding:88px 40px 96px">
+    <div data-reveal-group="" style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:24px">
+      <div style="padding-left:22px; border-left:2px solid var(--nova-rage-400)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">1 rec</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Booking to invoice on one trip record</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">6 stage</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Booked, loaded, in transit, delivered, POD, billed</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">0 entry</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Re-typing between trip, e-way bill and invoice</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">live</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Costed against actual, while the trip runs</div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

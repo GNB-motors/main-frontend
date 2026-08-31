@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Driver Management</title>
+<link rel="stylesheet" href="../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes dm-fill { from { stroke-dashoffset: 314; } to { stroke-dashoffset: 88; } }
+  @keyframes dm-rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-arc { from { stroke-dashoffset:300; } to { stroke-dashoffset:96; } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+
+
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+
+  <div style="position:fixed; top:0; left:0; right:0; height:3px; z-index:95; background:transparent; pointer-events:none">
+    <div data-progress style="height:100%; width:0%; background:linear-gradient(90deg, #4469F0, #213EA7); transition:width 120ms linear"></div>
+  </div>
+
+  <!-- ══ NAV ══ -->
+  <div style="position:sticky; top:0; z-index:80; padding:0 40px; background:rgba(255,255,255,.92); backdrop-filter:blur(20px); border-bottom:1px solid rgba(5,8,22,.08)">
+    <div style="max-width:1280px; margin:0 auto; display:flex; align-items:center; gap:26px; height:78px">
+      <a href="GNB Edge Landing.html" style="display:flex; align-items:center; gap:11px; color:#050816">
+        <span style="width:30px; height:30px; border-radius:9px; background:var(--nova-gradient-rage); display:grid; place-items:center; font-family:var(--font-display); font-weight:700; font-size:14px; color:#fff; letter-spacing:-.5px">G</span>
+        <span style="font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:-.3px; white-space:nowrap">GNB Edge</span>
+      </a>
+      <div style="display:flex; align-items:center; gap:10px; margin-left:14px; font-size:14px; color:#93939A">
+        <span>/</span>
+        <span style="color:#5D5D5E">Fleet</span>
+        <span>/</span>
+        <span style="color:#050816; font-weight:500">Driver management</span>
+      </div>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
+        <a href="GNB Edge Landing.html" style="font-family:var(--font-ui); font-size:15px; font-weight:600; color:#5D5D5E; padding:11px 18px; white-space:nowrap">← Back to overview</a>
+        <a href="#dm-demo" style="font-family:var(--font-ui); font-size:15px; font-weight:600; color:#FFFFFF; background:var(--nova-rage-400); border:1px solid var(--nova-rage-800); padding:12px 26px; border-radius:999px; white-space:nowrap; transition:background 200ms cubic-bezier(.2,0,0,1)">Reach us</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HERO ══ -->
+  <section data-screen-label="Driver hero" style="position:relative; background:#F4F5FA; padding:104px 40px 88px; overflow:hidden">
+    <div style="position:absolute; inset:0; background:radial-gradient(880px 500px at 82% 2%, rgba(68,105,240,.11), transparent 68%), radial-gradient(680px 440px at 4% 46%, rgba(68,105,240,.06), transparent 70%)"></div>
+    <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(5,8,22,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(5,8,22,.035) 1px, transparent 1px); background-size:72px 72px; mask-image:radial-gradient(circle at 60% 30%, #000, transparent 74%)"></div>
+
+    <div style="position:relative; max-width:1280px; margin:0 auto; display:grid; grid-template-columns:1fr .92fr; gap:64px; align-items:center">
+      <div data-reveal-group>
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:26px">
+          <span style="width:44px; height:2px; background:var(--nova-rage-400)"></span>
+          <span style="font-family:var(--font-eyebrow); font-size:12px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">Fleet · Driver management</span>
+          <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.22); color:#4469F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--nova-rage-600)">AI native</span></span>
+        </div>
+        <h1 style="font-family:var(--font-display); font-weight:700; font-size:58px; line-height:1.05; letter-spacing:-2px; margin:0; text-wrap:pretty">Every driver, every licence, <span style="color:var(--nova-rage-400)">every settlement.</span></h1>
+        <p style="font-size:18px; line-height:30px; color:#5D5D5E; margin:28px 0 0; max-width:540px; text-wrap:pretty">Licence expiry that warns you a month out, duty hours counted against the trip, and driver advances settled against the same ledger your accounts team already uses.</p>
+        <div style="display:flex; gap:14px; margin-top:40px">
+          <a href="#dm-demo" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#FFFFFF; background:var(--nova-rage-400); border:1px solid var(--nova-rage-800); padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Book a demo</a>
+          <a href="GNB Edge Landing.html" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#050816; background:transparent; border:1px solid rgba(5,8,22,.16); padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">All modules</a>
+        </div>
+      </div>
+
+      <div data-reveal style="position:relative; border-radius:var(--radius-soft); background:#FFFFFF; border:1px solid rgba(5,8,22,.06); box-shadow:var(--shadow-lg); padding:34px; display:flex; flex-direction:column; gap:20px">
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.24em; text-transform:uppercase; color:#93939A">Duty roster · today</div>
+          <div style="font-family:var(--font-mono); font-size:12px; color:var(--nova-rage-600)">18 on duty</div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:26px">
+          <div style="position:relative; width:104px; height:104px; flex:0 0 auto">
+            <svg viewBox="0 0 120 120" style="width:100%; height:100%; transform:rotate(-90deg)">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(68,105,240,.12)" stroke-width="11"></circle>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#4469F0" stroke-width="11" stroke-linecap="round" stroke-dasharray="314" style="animation:dm-fill 1.4s cubic-bezier(.2,0,0,1) both .3s"></circle>
+            </svg>
+            <div style="position:absolute; inset:0; display:grid; place-items:center">
+              <div style="text-align:center">
+                <div style="font-family:var(--font-display); font-weight:700; font-size:24px; letter-spacing:-1px; line-height:1">72%</div>
+                <div style="font-size:10px; color:#93939A; margin-top:2px">utilised</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; flex:1">
+            <div>
+              <div style="font-size:13px; color:#5D5D5E">Duty hours logged</div>
+              <div style="font-family:var(--font-display); font-weight:700; font-size:22px; letter-spacing:-.6px">148 h</div>
+            </div>
+            <div style="height:1px; background:rgba(5,8,22,.08)"></div>
+            <div>
+              <div style="font-size:13px; color:#5D5D5E">Licences expiring in 30 days</div>
+              <div style="font-family:var(--font-display); font-weight:700; font-size:22px; letter-spacing:-.6px; color:var(--nova-blaze-500)">3</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:9px; flex:1; min-height:0">
+          <div style="display:flex; align-items:center; gap:13px; padding:13px 15px; border-radius:12px; background:#F4F5FA; animation:dm-rise 460ms cubic-bezier(.2,0,0,1) both .5s">
+            <span style="flex:0 0 auto; width:32px; height:32px; border-radius:999px; background:rgba(68,105,240,.12); display:grid; place-items:center; font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--nova-rage-600)">RK</span>
+            <span style="flex:1; font-size:14px; font-weight:500">Ramesh Kumar</span>
+            <span style="font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; background:rgba(24,122,50,.10); color:var(--nova-fern-700)">On trip</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:13px; padding:13px 15px; border-radius:12px; background:#F4F5FA; animation:dm-rise 460ms cubic-bezier(.2,0,0,1) both .62s">
+            <span style="flex:0 0 auto; width:32px; height:32px; border-radius:999px; background:rgba(68,105,240,.12); display:grid; place-items:center; font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--nova-rage-600)">SP</span>
+            <span style="flex:1; font-size:14px; font-weight:500">Suresh Patil</span>
+            <span style="font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; background:rgba(68,105,240,.10); color:var(--nova-rage-600)">Available</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:13px; padding:13px 15px; border-radius:12px; background:#F4F5FA; animation:dm-rise 460ms cubic-bezier(.2,0,0,1) both .74s">
+            <span style="flex:0 0 auto; width:32px; height:32px; border-radius:999px; background:rgba(68,105,240,.12); display:grid; place-items:center; font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--nova-rage-600)">AY</span>
+            <span style="flex:1; font-size:14px; font-weight:500">Arun Yadav</span>
+            <span style="font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px; background:rgba(229,104,107,.12); color:var(--nova-blaze-700)">Licence due</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SPEC STRIP ══ -->
+  <section data-screen-label="Driver specs" style="background:#FFFFFF; padding:88px 40px 96px">
+    <div data-reveal-group style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:24px">
+      <div style="padding-left:22px; border-left:2px solid var(--nova-rage-400)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">30 d</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Licence expiry warning window</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">9 doc</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Document types tracked per driver</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">1 tap</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">From trip close to driver settlement</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">24 mo</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Duty and settlement history retained</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CAPABILITIES ══ -->
+  <section data-screen-label="Driver capabilities" style="background:#F4F5FA; padding:104px 40px">
+    <div style="max-width:1280px; margin:0 auto">
+      <h2 data-reveal style="font-family:var(--font-display); font-weight:700; font-size:42px; line-height:1.1; letter-spacing:-1.4px; margin:0 0 56px; max-width:760px; text-wrap:pretty">What the driver module <span style="color:var(--nova-rage-400)">actually does.</span></h2>
+
+      <div data-reveal-group style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px">
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Driver master</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">One record per driver with contact, bank, address and emergency details.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="8.5" cy="11" r="2"></circle><path d="M13 10h5M13 14h5M5.5 16a3.4 3.4 0 0 1 6 0"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Licence and documents</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Licence, badge, medical and police verification with expiry alerts 30 days out.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Duty hours</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Hours counted against the trip, so rest violations surface before dispatch.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"></path><path d="M8 3v18" opacity=".55"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Advances and settlements</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Trip advances, expenses and balances in one running ledger per driver.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"></rect><path d="M11 18.5h2"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Driver app</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">PODs, expenses and trip updates captured from the road, not re-typed later.</div>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid rgba(5,8,22,.06); border-radius:var(--radius-xl); padding:30px 28px 32px; box-shadow:var(--shadow-sm); transition:box-shadow 200ms cubic-bezier(.2,0,0,1)">
+          <div style="width:44px; height:44px; border-radius:999px; background:rgba(68,105,240,.10); display:grid; place-items:center; margin-bottom:22px">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18L9 8l5 6 6-10"></path></svg>
+          </div>
+          <div style="font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.4px">Performance</div>
+          <div style="font-size:15px; line-height:24px; color:#5D5D5E; margin-top:12px">Trips completed, on-time rate, fuel efficiency and incidents per driver.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SCREEN ══ -->
+  <section data-screen-label="Driver console" style="background:#FFFFFF; padding:104px 40px">
+    <div style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:.85fr 1.15fr; gap:72px; align-items:center">
+      <div data-reveal-group>
+        <h2 style="font-family:var(--font-display); font-weight:700; font-size:38px; line-height:1.12; letter-spacing:-1.2px; margin:0; text-wrap:pretty">The roster your dispatcher actually works from.</h2>
+        <p style="font-size:17px; line-height:28px; color:#5D5D5E; margin:22px 0 32px">Availability, duty hours and document status on one screen, so assignment takes a glance rather than three phone calls.</p>
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <div style="display:flex; gap:14px; align-items:flex-start">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto; margin-top:3px"><path d="M20 6 9 17l-5-5"></path></svg>
+            <div style="font-size:16px; line-height:25px; color:#050816">Drivers with expired documents cannot be assigned a trip</div>
+          </div>
+          <div style="display:flex; gap:14px; align-items:flex-start">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto; margin-top:3px"><path d="M20 6 9 17l-5-5"></path></svg>
+            <div style="font-size:16px; line-height:25px; color:#050816">Advances paid on the road show against the trip, not a side register</div>
+          </div>
+          <div style="display:flex; gap:14px; align-items:flex-start">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto; margin-top:3px"><path d="M20 6 9 17l-5-5"></path></svg>
+            <div style="font-size:16px; line-height:25px; color:#050816">Settlement closes with the trip, in the same ledger accounts already read</div>
+          </div>
+        </div>
+      </div>
+      <div data-reveal style="border-radius:var(--radius-xtra-soft); overflow:hidden; border:1px solid rgba(5,8,22,.08); box-shadow:var(--shadow-lg); aspect-ratio:16/10">
+        <image-slot id="dm-console" shape="rect" placeholder="Drop the driver roster screenshot"></image-slot>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ AI LAYER ══ -->
+  <section id="ai" data-screen-label="Driver AI" style="position:relative; background:#F1F4FE; padding:112px 40px; overflow:hidden">
+    <div style="position:absolute; inset:0; background:radial-gradient(900px 420px at 78% 0%, rgba(68,105,240,.12), transparent 66%)"></div>
+    <div style="position:relative; max-width:1280px; margin:0 auto">
+      <div data-reveal style="display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:end; margin-bottom:56px">
+        <div>
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px">
+            <div style="font-family:var(--font-eyebrow); font-size:11px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">AI intelligence</div>
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.22); color:#4469F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--nova-rage-600)">AI native</span></span>
+          </div>
+          <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.5px; margin:0; text-wrap:pretty">AI that knows which driver needs attention <span style="color:var(--nova-rage-400)">before the incident.</span></h2>
+        </div>
+        <p style="font-size:18px; line-height:29px; color:#5D5D5E; margin:0; text-wrap:pretty">Licences, duty hours, telemetry and incident history sit on one profile. AI scores risk, chases expiring documents and drafts the coaching note for the supervisor.</p>
+      </div>
+
+      <div data-reveal style="background:#FFFFFF; border:1px solid rgba(68,105,240,.18); border-radius:22px; padding:28px 30px 30px; box-shadow:var(--shadow-sm); margin-bottom:24px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px">
+          <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--nova-rage-600)">Driver risk model · signals in, score out</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:#93939A">R. Kumar · 90-day window</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 62px 1.05fr 62px 1fr; align-items:center; gap:0">
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Duty hours</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">58 / 60 h</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:92%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.20s"></div></div>
+          </div>
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Harsh braking</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">11 events</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:46%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.32s"></div></div>
+          </div>
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Night driving</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">38% of km</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:62%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.44s"></div></div>
+          </div>
+            <div style="display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:12px; background:#F4F5FA">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px"><span style="font-size:13px; font-weight:500; color:#050816">Documents</span><span style="font-family:var(--font-mono); font-size:11px; color:#93939A">1 expiring</span></div>
+            <div style="height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><div style="height:100%; width:24%; border-radius:999px; background:var(--nova-rage-400); transform-origin:left; animation:ai-bar 900ms cubic-bezier(.2,0,0,1) both 0.56s"></div></div>
+          </div>
+          </div>
+          <svg viewBox="0 0 60 200" preserveAspectRatio="none" style="width:100%; height:190px">
+            <path d="M2 30 C30 30 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 30 C30 30 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0s"></path>
+            <path d="M2 77 C30 77 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 77 C30 77 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.4s"></path>
+            <path d="M2 123 C30 123 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 123 C30 123 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.8s"></path>
+            <path d="M2 170 C30 170 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 170 C30 170 34 100 58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 1.2s"></path>
+          </svg>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:14px; padding:22px 18px; border-radius:18px; background:rgba(68,105,240,.06); border:1px solid rgba(68,105,240,.2)">
+            <svg viewBox="0 0 200 112" style="width:190px; height:106px">
+              <path d="M18 100 A82 82 0 0 1 182 100" fill="none" stroke="rgba(5,8,22,.09)" stroke-width="13" stroke-linecap="round"></path>
+              <path d="M18 100 A82 82 0 0 1 182 100" fill="none" stroke="#4469F0" stroke-width="13" stroke-linecap="round" stroke-dasharray="300" style="animation:ai-arc 1.4s cubic-bezier(.2,0,0,1) both .3s"></path>
+              <text x="100" y="84" text-anchor="middle" style="font-family:var(--font-display); font-weight:700; font-size:40px; letter-spacing:-1.5px; fill:#050816">68</text>
+              <text x="100" y="104" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:#93939A">risk score</text>
+            </svg>
+            <div style="font-size:12.5px; line-height:19px; color:#5D5D5E; text-align:center">Above the 60 threshold. Fatigue is the largest single contributor this week.</div>
+          </div>
+          <svg viewBox="0 0 60 200" preserveAspectRatio="none" style="width:100%; height:190px">
+            <path d="M2 100 C26 100 30 40 58 40" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 100 C26 100 30 40 58 40" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.2s"></path>
+            <path d="M2 100 L58 100" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 100 L58 100" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.6s"></path>
+            <path d="M2 100 C26 100 30 160 58 160" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M2 100 C26 100 30 160 58 160" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 1s"></path>
+          </svg>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="padding:15px 17px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(229,104,107,.28); box-shadow:var(--shadow-xs)">
+            <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px; color:#050816">Fatigue alert</div>
+            <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:5px">Supervisor notified before the Friday night run.</div>
+          </div>
+            <div style="padding:15px 17px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); box-shadow:var(--shadow-xs)">
+            <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px; color:#050816">Coaching note</div>
+            <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:5px">Braking pattern on descents, drafted and assigned.</div>
+          </div>
+            <div style="padding:15px 17px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); box-shadow:var(--shadow-xs)">
+            <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px; color:#050816">Roster change</div>
+            <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:5px">Surat night run reassigned to S. Yadav.</div>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:56px; font-family:var(--font-mono); font-size:11px; color:#93939A">
+        <span>Duty hours, telemetry</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>One driver profile</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Risk and fatigue models</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Who is trending badly</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Monthly scorecards</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Coaching and rostering</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Supervisor follows up</span>
+      </div>
+
+      <div data-reveal style="background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); overflow:hidden">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 24px; border-bottom:1px solid rgba(5,8,22,.07)">
+          <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#050816">Driver watchlist · this week</span>
+          <span style="font-family:var(--font-mono); font-size:11px; color:#93939A">ranked by risk</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; padding:13px 24px; background:#F4F5FA; font-family:var(--font-eyebrow); font-size:9.5px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:#93939A">
+          <span>Driver</span><span>Risk</span><span>What AI saw</span><span>Next action</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; align-items:center; padding:20px 24px; border-top:1px solid rgba(5,8,22,.05)">
+          <span><span style="display:block; font-size:15px; font-weight:600; letter-spacing:-.15px">A. Singh</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:3px">MH-04-JN-8834</span></span>
+          <span style="display:flex; align-items:center; gap:9px"><span style="font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.6px; color:#E5686B">74</span><span style="flex:1; height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><span style="display:block; height:100%; width:74%; border-radius:999px; background:#E5686B"></span></span></span>
+          <span style="font-size:14px; line-height:21px; color:#5D5D5E">Licence expires in 11 days, medical not booked</span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Reminder sent, escalate Friday →</a>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; align-items:center; padding:20px 24px; border-top:1px solid rgba(5,8,22,.05)">
+          <span><span style="display:block; font-size:15px; font-weight:600; letter-spacing:-.15px">R. Kumar</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:3px">MH-40-BX-2291</span></span>
+          <span style="display:flex; align-items:center; gap:9px"><span style="font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.6px; color:#E5686B">68</span><span style="flex:1; height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><span style="display:block; height:100%; width:68%; border-radius:999px; background:#E5686B"></span></span></span>
+          <span style="font-size:14px; line-height:21px; color:#5D5D5E">Projected 62 duty hours by Friday, above threshold</span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Rebalance the roster →</a>
+        </div>
+        <div style="display:grid; grid-template-columns:1.1fr 92px 1.6fr 1.1fr; gap:20px; align-items:center; padding:20px 24px; border-top:1px solid rgba(5,8,22,.05)">
+          <span><span style="display:block; font-size:15px; font-weight:600; letter-spacing:-.15px">S. Yadav</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:3px">MH-46-C-8890</span></span>
+          <span style="display:flex; align-items:center; gap:9px"><span style="font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:-.6px; color:#187A32">22</span><span style="flex:1; height:4px; border-radius:999px; background:rgba(5,8,22,.08)"><span style="display:block; height:100%; width:22%; border-radius:999px; background:#187A32"></span></span></span>
+          <span style="font-size:14px; line-height:21px; color:#5D5D5E">Lowest harsh-braking rate on night lanes, 90 days</span>
+          <a href="#ai" style="font-size:13.5px; font-weight:600">Assign the Surat night run →</a>
+        </div>
+      </div>
+
+      <div data-reveal style="margin-top:44px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+        <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; margin-right:4px">Runs automatically</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Automatic document reminders</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Driver risk score</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Fatigue and hours alerts</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Monthly scorecard generated</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CTA ══ -->
+  <section id="dm-demo" data-screen-label="Driver CTA" style="background:#F4F5FA; padding:104px 40px 96px">
+    <div data-reveal style="max-width:1280px; margin:0 auto; border-radius:var(--radius-ultra-soft); background:linear-gradient(150deg, #2F58EE 0%, #213EA7 100%); padding:80px 72px; position:relative; overflow:hidden">
+      <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size:64px 64px; mask-image:radial-gradient(circle at 85% 30%, #000, transparent 70%)"></div>
+      <div style="position:relative; max-width:720px">
+        <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.6px; color:#FFFFFF; margin:0; text-wrap:pretty">Bring your driver register to the demo.</h2>
+        <p style="font-size:18px; line-height:29px; color:rgba(255,255,255,.84); margin:22px 0 36px">We will map your existing licence, advance and settlement records onto GNB Edge on the call.</p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap">
+          <a href="#dm-demo" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#213EA7; background:#FFFFFF; border:1px solid #FFFFFF; padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Reach us</a>
+          <a href="GNB Edge Landing.html" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#FFFFFF; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.34); padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Back to platform</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="padding:0 40px 48px">
+    <div style="max-width:1280px; margin:0 auto; border-top:1px solid rgba(5,8,22,.10); padding-top:32px; display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap">
+      <div style="font-size:14px; color:#93939A">© 2026 GNB Edge. All rights reserved.</div>
+      <div style="display:flex; gap:26px">
+        <a href="Vehicle Tracking.html" style="font-size:14px; color:#93939A">Vehicle tracking</a>
+        <a href="Fuel and Mileage.html" style="font-size:14px; color:#93939A">Fuel and mileage</a>
+        <a href="Trip Management.html" style="font-size:14px; color:#93939A">Trip management</a>
+        <a href="About GNB Edge.html" style="font-size:14px; color:#93939A">About</a>
+        <a href="Contact us.html" style="font-size:14px; color:#93939A">Contact us</a>
+        <a href="GNB Edge Landing.html" style="font-size:14px; color:#93939A">← GNB Edge platform</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

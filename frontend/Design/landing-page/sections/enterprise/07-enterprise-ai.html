@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Enterprise</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes arch-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -200; } }
+  @keyframes step-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes arch-orb { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.14); opacity:.28; } }
+  @keyframes it-006 { 0%, 0.75% { opacity:0; transform:translateY(10px); } 8.25%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-017 { 0%, 2.13% { opacity:0; transform:translateY(10px); } 9.63%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-028 { 0%, 3.5% { opacity:0; transform:translateY(10px); } 11%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-039 { 0%, 4.88% { opacity:0; transform:translateY(10px); } 12.38%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-050 { 0%, 6.25% { opacity:0; transform:translateY(10px); } 13.75%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-061 { 0%, 7.63% { opacity:0; transform:translateY(10px); } 15.13%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes ly-000 { 0%, 0% { opacity:0; transform:translateY(20px); } 7.5%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-6px); } }
+  @keyframes cd-090 { 0%, 11.25% { opacity:0; transform:scaleY(0); } 13.13% { opacity:1; } 20.63%, 92% { opacity:1; transform:scaleY(1); } 97%, 100% { opacity:0; transform:scaleY(1); } }
+  @keyframes it-130 { 0%, 16.25% { opacity:0; transform:translateY(10px); } 23.75%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-140 { 0%, 17.5% { opacity:0; transform:translateY(10px); } 25%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-150 { 0%, 18.75% { opacity:0; transform:translateY(10px); } 26.25%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-160 { 0%, 20% { opacity:0; transform:translateY(10px); } 27.5%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-170 { 0%, 21.25% { opacity:0; transform:translateY(10px); } 28.75%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-180 { 0%, 22.5% { opacity:0; transform:translateY(10px); } 30%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes ly-115 { 0%, 14.37% { opacity:0; transform:translateY(20px); } 21.88%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-6px); } }
+  @keyframes cd-200 { 0%, 25% { opacity:0; transform:scaleY(0); } 26.88% { opacity:1; } 34.38%, 92% { opacity:1; transform:scaleY(1); } 97%, 100% { opacity:0; transform:scaleY(1); } }
+  @keyframes pg-295 { 0%, 36.88% { box-shadow:0 1px 2px rgba(30,34,56,.08); } 41.25% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 5px rgba(68,105,240,.14); } 50.63%, 100% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 2px rgba(68,105,240,.09); } }
+  @keyframes it-240 { 0%, 30% { opacity:0; transform:translateY(10px); } 37.5%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes tk-295 { 0%, 36.88% { background:rgba(5,8,22,.14); } 40.63%, 100% { background:var(--nova-rage-400); } }
+  @keyframes kb-295 { 0%, 36.88% { transform:translateX(0); } 40.63%, 100% { transform:translateX(11px); } }
+  @keyframes pg-308 { 0%, 38.5% { box-shadow:0 1px 2px rgba(30,34,56,.08); } 42.88% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 5px rgba(68,105,240,.14); } 52.25%, 100% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 2px rgba(68,105,240,.09); } }
+  @keyframes it-249 { 0%, 31.12% { opacity:0; transform:translateY(10px); } 38.63%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes tk-308 { 0%, 38.5% { background:rgba(5,8,22,.14); } 42.25%, 100% { background:var(--nova-rage-400); } }
+  @keyframes kb-308 { 0%, 38.5% { transform:translateX(0); } 42.25%, 100% { transform:translateX(11px); } }
+  @keyframes pg-321 { 0%, 40.13% { box-shadow:0 1px 2px rgba(30,34,56,.08); } 44.5% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 5px rgba(68,105,240,.14); } 53.88%, 100% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 2px rgba(68,105,240,.09); } }
+  @keyframes it-258 { 0%, 32.25% { opacity:0; transform:translateY(10px); } 39.75%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes tk-321 { 0%, 40.13% { background:rgba(5,8,22,.14); } 43.88%, 100% { background:var(--nova-rage-400); } }
+  @keyframes kb-321 { 0%, 40.13% { transform:translateX(0); } 43.88%, 100% { transform:translateX(11px); } }
+  @keyframes pg-334 { 0%, 41.75% { box-shadow:0 1px 2px rgba(30,34,56,.08); } 46.13% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 5px rgba(68,105,240,.14); } 55.5%, 100% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 2px rgba(68,105,240,.09); } }
+  @keyframes it-267 { 0%, 33.38% { opacity:0; transform:translateY(10px); } 40.88%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes tk-334 { 0%, 41.75% { background:rgba(5,8,22,.14); } 45.5%, 100% { background:var(--nova-rage-400); } }
+  @keyframes kb-334 { 0%, 41.75% { transform:translateX(0); } 45.5%, 100% { transform:translateX(11px); } }
+  @keyframes it-276 { 0%, 34.5% { opacity:0; transform:translateY(10px); } 42%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes it-285 { 0%, 35.62% { opacity:0; transform:translateY(10px); } 43.13%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes pg-347 { 0%, 43.38% { box-shadow:0 1px 2px rgba(30,34,56,.08); } 47.75% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 5px rgba(68,105,240,.14); } 57.13%, 100% { box-shadow:0 1px 2px rgba(30,34,56,.08), 0 0 0 2px rgba(68,105,240,.09); } }
+  @keyframes it-294 { 0%, 36.75% { opacity:0; transform:translateY(10px); } 44.25%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes tk-347 { 0%, 43.38% { background:rgba(5,8,22,.14); } 47.13%, 100% { background:var(--nova-rage-400); } }
+  @keyframes kb-347 { 0%, 43.38% { transform:translateX(0); } 47.13%, 100% { transform:translateX(11px); } }
+  @keyframes ly-225 { 0%, 28.13% { opacity:0; transform:translateY(20px); } 35.63%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-6px); } }
+  @keyframes cd-350 { 0%, 43.75% { opacity:0; transform:scaleY(0); } 45.63% { opacity:1; } 53.13%, 92% { opacity:1; transform:scaleY(1); } 97%, 100% { opacity:0; transform:scaleY(1); } }
+  @keyframes co-420 { 0%, 52.5% { opacity:0; transform:translateY(14px); } 60%, 92% { opacity:1; transform:none; } 97%, 100% { opacity:0; transform:translateY(-4px); } }
+  @keyframes cg-420 { 0%, 52.5% { box-shadow:0 8px 24px rgba(68,105,240,.14); } 58.75% { box-shadow:0 16px 44px rgba(68,105,240,.46), 0 0 0 10px rgba(68,105,240,.10); } 70%, 100% { box-shadow:0 16px 40px rgba(68,105,240,.34), 0 0 0 6px rgba(68,105,240,.07); } }
+  @keyframes ch-420 { 0%, 52.5% { opacity:0; transform:scale(.86); } 58.75% { opacity:1; transform:scale(1.06); } 68.75% { opacity:.6; transform:scale(1); } 85% { opacity:.92; transform:scale(1.04); } 101.25%, 100% { opacity:.62; transform:scale(1); } }
+  @keyframes dot-pulse { 0%, 100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.78); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-band { 0%,100% { box-shadow:0 0 0 0 rgba(68,105,240,.16); } 50% { box-shadow:0 0 0 8px rgba(68,105,240,.06); } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section id="ai" data-screen-label="Enterprise AI" style="position:relative; background:#F1F4FE; padding:112px 40px; overflow:hidden">
+    <div style="position:absolute; inset:0; background:radial-gradient(900px 420px at 78% 0%, rgba(68,105,240,.12), transparent 66%)"></div>
+    <div style="position:relative; max-width:1280px; margin:0 auto">
+      <div data-reveal="" style="display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:end; margin-bottom:56px">
+        <div>
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px">
+            <div style="font-family:var(--font-eyebrow); font-size:11px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">AI intelligence</div>
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:rgba(68,105,240,.10); border:1px solid rgba(68,105,240,.22); color:#4469F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg><span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--nova-rage-600)">AI native</span></span>
+          </div>
+          <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.5px; margin:0; text-wrap:pretty">AI across every entity, <span style="color:var(--nova-rage-400)">with the governance to match.</span></h2>
+        </div>
+        <p style="font-size:18px; line-height:29px; color:#5D5D5E; margin:0; text-wrap:pretty">One model layer over every depot and entity, configured to your rules. Insights roll up to the group, and the data never leaves the boundary your security team approved.</p>
+      </div>
+
+      <div data-reveal="" style="background:#FFFFFF; border:1px solid rgba(68,105,240,.18); border-radius:22px; padding:28px 30px 30px; box-shadow:var(--shadow-sm); margin-bottom:24px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px">
+          <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--nova-rage-600)">Governed model layer · group topology</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:#93939A">6 entities · 38 depots · 1,240 vehicles</div>
+        </div>
+        <div>
+          <div style="display:flex; gap:14px">
+            <div style="flex:1 1 0; padding:16px 16px 15px; border-radius:16px; background:#F4F5FA">
+              <div style="font-size:13px; font-weight:600; letter-spacing:-.1px; margin-bottom:11px">Entity A · North</div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px">
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 03</span>
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 07</span>
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 11</span>
+              </div>
+            </div>
+            <div style="flex:1 1 0; padding:16px 16px 15px; border-radius:16px; background:#F4F5FA">
+              <div style="font-size:13px; font-weight:600; letter-spacing:-.1px; margin-bottom:11px">Entity B · West</div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px">
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 12</span>
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 19</span>
+              </div>
+            </div>
+            <div style="flex:1 1 0; padding:16px 16px 15px; border-radius:16px; background:#F4F5FA">
+              <div style="font-size:13px; font-weight:600; letter-spacing:-.1px; margin-bottom:11px">Entity C · South</div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px">
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 22</span>
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 27</span>
+                <span style="padding:5px 10px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.16); font-family:var(--font-mono); font-size:10.5px; color:#5D5D5E">Depot 31</span>
+              </div>
+            </div>
+          </div>
+          <svg viewBox="0 0 300 46" preserveAspectRatio="none" style="width:100%; height:46px; display:block">
+            <path d="M50 2 C50 26 150 20 150 44" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M50 2 C50 26 150 20 150 44" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0s"></path>
+            <path d="M150 2 L150 44" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M150 2 L150 44" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.4s"></path>
+            <path d="M250 2 C250 26 150 20 150 44" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M250 2 C250 26 150 20 150 44" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.8s"></path>
+          </svg>
+          <div style="padding:22px 24px; border-radius:18px; background:linear-gradient(150deg, rgba(68,105,240,.1), rgba(68,105,240,.04)); border:1px solid rgba(68,105,240,.28); animation:ai-band 3.6s cubic-bezier(.2,0,0,1) infinite">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap">
+              <div style="display:flex; align-items:center; gap:13px">
+                <span style="width:40px; height:40px; border-radius:12px; background:linear-gradient(150deg,#4469F0,#213EA7); display:grid; place-items:center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M18 16.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"></path></svg>
+                </span>
+                <div>
+                  <div style="font-family:var(--font-display); font-weight:500; font-size:19px; letter-spacing:-.4px">Group model layer</div>
+                  <div style="font-size:12.5px; color:#5D5D5E; margin-top:3px">Trained on group data, scoped per entity</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:9px; flex-wrap:wrap">
+                <span style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); font-size:12px; font-weight:500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6z"></path></svg>Data residency</span>
+                <span style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); font-size:12px; font-weight:500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6z"></path></svg>Role-based access</span>
+                <span style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); font-size:12px; font-weight:500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6z"></path></svg>Full audit trail</span>
+                <span style="display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.2); font-size:12px; font-weight:500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6z"></path></svg>Model versioning</span>
+              </div>
+            </div>
+          </div>
+          <svg viewBox="0 0 300 46" preserveAspectRatio="none" style="width:100%; height:46px; display:block">
+            <path d="M150 2 C150 26 50 20 50 44" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M150 2 C150 26 50 20 50 44" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.2s"></path>
+            <path d="M150 2 L150 44" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M150 2 L150 44" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 0.6s"></path>
+            <path d="M150 2 C150 26 250 20 250 44" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(68,105,240,.24)" stroke-width="1.2"></path>
+          <path d="M150 2 C150 26 250 20 250 44" fill="none" vector-effect="non-scaling-stroke" stroke="#4469F0" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4 96" style="animation:ai-flow 2.6s linear infinite 1s"></path>
+          </svg>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px">
+            <div style="padding:17px 19px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); box-shadow:var(--shadow-xs)">
+              <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px">Cross-entity anomalies</div>
+              <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:6px">Three depots 14 points below group median utilisation</div>
+            </div>
+            <div style="padding:17px 19px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); box-shadow:var(--shadow-xs)">
+              <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px">Group forecast</div>
+              <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:6px">Cost per km trending to ₹31.40 in Q3, 4.6% above plan</div>
+            </div>
+            <div style="padding:17px 19px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); box-shadow:var(--shadow-xs)">
+              <div style="font-size:13.5px; font-weight:600; letter-spacing:-.1px">Board pack</div>
+              <div style="font-size:12px; line-height:18px; color:#5D5D5E; margin-top:6px">Generated on the 1st, same numbers finance signs off</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal="" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:56px; font-family:var(--font-mono); font-size:11px; color:#93939A">
+        <span>Every depot and entity</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Group data layer</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Governed models</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Cross-entity anomalies</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Board-ready packs</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Ranked by group impact</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Programme team acts</span>
+      </div>
+
+      <div data-reveal-group="" style="display:flex; flex-direction:column; gap:14px">
+        <div style="display:grid; grid-template-columns:56px 1fr 170px 190px; gap:28px; align-items:center; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); padding:26px 28px">
+          <span style="font-family:var(--font-mono); font-size:13px; color:var(--nova-rage-600)">01</span>
+          <span><span style="display:block; font-family:var(--font-display); font-weight:500; font-size:20px; letter-spacing:-.45px">Utilisation gap at three depots</span><span style="display:block; font-size:14.5px; line-height:23px; color:#5D5D5E; margin-top:7px">Depots 7, 12 and 19 are running 14 points below group median on comparable lane mix.</span></span>
+          <span><span style="display:block; font-family:var(--font-display); font-weight:700; font-size:26px; letter-spacing:-.9px; color:var(--nova-rage-600)">₹1.8Cr</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:4px">annualised</span></span>
+          <span><span style="display:block; font-family:var(--font-eyebrow); font-size:9.5px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:#93939A">Assigned to</span><span style="display:block; font-size:14.5px; font-weight:500; margin-top:6px">Regional COO</span></span>
+        </div>
+        <div style="display:grid; grid-template-columns:56px 1fr 170px 190px; gap:28px; align-items:center; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); padding:26px 28px">
+          <span style="font-family:var(--font-mono); font-size:13px; color:var(--nova-rage-600)">02</span>
+          <span><span style="display:block; font-family:var(--font-display); font-weight:500; font-size:20px; letter-spacing:-.45px">Cost per km drifting above plan</span><span style="display:block; font-size:14.5px; line-height:23px; color:#5D5D5E; margin-top:7px">Group trending to ₹31.40 in Q3, 4.6% above plan. Western region carries most of the variance.</span></span>
+          <span><span style="display:block; font-family:var(--font-display); font-weight:700; font-size:26px; letter-spacing:-.9px; color:var(--nova-rage-600)">₹94L</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:4px">against plan</span></span>
+          <span><span style="display:block; font-family:var(--font-eyebrow); font-size:9.5px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:#93939A">Assigned to</span><span style="display:block; font-size:14.5px; font-weight:500; margin-top:6px">Group finance</span></span>
+        </div>
+        <div style="display:grid; grid-template-columns:56px 1fr 170px 190px; gap:28px; align-items:center; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); padding:26px 28px">
+          <span style="font-family:var(--font-mono); font-size:13px; color:var(--nova-rage-600)">03</span>
+          <span><span style="display:block; font-family:var(--font-display); font-weight:500; font-size:20px; letter-spacing:-.45px">Rebalance 40 vehicles to Depot 7</span><span style="display:block; font-size:14.5px; line-height:23px; color:#5D5D5E; margin-top:7px">Contracted volume at Depot 7 exceeds capacity while Depot 12 sits idle three days a week.</span></span>
+          <span><span style="display:block; font-family:var(--font-display); font-weight:700; font-size:26px; letter-spacing:-.9px; color:var(--nova-rage-600)">₹2.4Cr</span><span style="display:block; font-family:var(--font-mono); font-size:11px; color:#93939A; margin-top:4px">contribution</span></span>
+          <span><span style="display:block; font-family:var(--font-eyebrow); font-size:9.5px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:#93939A">Assigned to</span><span style="display:block; font-size:14.5px; font-weight:500; margin-top:6px">Programme office</span></span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; padding:8px 4px 0; font-size:14.5px; color:#93939A">
+          <span>Ranked by group impact, refreshed weekly and carried into the board pack.</span>
+          <span style="font-family:var(--font-mono); font-size:11.5px">conf 0.78 – 0.92</span>
+        </div>
+      </div>
+
+      <div data-reveal="" style="margin-top:44px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+        <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; margin-right:4px">Runs automatically</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Cross-entity anomaly detection</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Utilisation forecasting</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Automatic board pack</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Access-controlled, in your region</span>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

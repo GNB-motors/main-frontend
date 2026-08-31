@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Live Fleet Map</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes fm-blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  @keyframes fm-sweep { 0% { transform:translateX(-100%); } 100% { transform:translateX(100%); } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section data-screen-label="Map specs" style="background:#F4F5FA; padding:88px 40px 92px">
+    <div data-reveal-group="" style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:24px">
+      <div style="padding-left:22px; border-left:2px solid var(--nova-rage-400)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:52px; line-height:1; letter-spacing:-2px; color:#050816"><span data-count="30" data-suffix=" s">0 s</span></div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Telemetry refresh on every vehicle</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:52px; line-height:1; letter-spacing:-2px; color:#050816"><span data-count="1240" data-suffix="">0</span></div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Vehicles on one map, one account</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:52px; line-height:1; letter-spacing:-2px; color:#050816"><span data-count="90" data-suffix=" days">0 days</span></div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Route history you can replay</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:52px; line-height:1; letter-spacing:-2px; color:#050816"><span data-count="8" data-suffix=" types">0 types</span></div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Alert types raised off the map</div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

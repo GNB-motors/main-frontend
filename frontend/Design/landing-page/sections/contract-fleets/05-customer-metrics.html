@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Contract Fleets</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes arch-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -200; } }
+  @keyframes step-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes arch-orb { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.14); opacity:.28; } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-bar { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section data-screen-label="Customer metrics" style="background:#FFFFFF; padding:96px 40px">
+    <div data-reveal-group="" style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:24px">
+        <div style="padding-left:22px; border-left:2px solid var(--nova-rage-400)">
+          <div style="font-family:var(--font-display); font-weight:700; font-size:46px; line-height:1; letter-spacing:-1.7px"><span data-count="98" data-prefix="" data-suffix="%">0%</span></div>
+          <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">On-time performance proven from telemetry</div>
+        </div>
+        <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+          <div style="font-family:var(--font-display); font-weight:700; font-size:46px; line-height:1; letter-spacing:-1.7px"><span data-count="4" data-prefix="" data-suffix=" way">0 way</span></div>
+          <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Margin cut by contract, route, vehicle, driver</div>
+        </div>
+        <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+          <div style="font-family:var(--font-display); font-weight:700; font-size:46px; line-height:1; letter-spacing:-1.7px"><span data-count="24" data-prefix="" data-suffix=" h">0 h</span></div>
+          <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Client reporting cycle, not monthly</div>
+        </div>
+        <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+          <div style="font-family:var(--font-display); font-weight:700; font-size:46px; line-height:1; letter-spacing:-1.7px"><span data-count="1" data-prefix="" data-suffix=" portal">0 portal</span></div>
+          <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Shared with clients, no login into your system</div>
+        </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

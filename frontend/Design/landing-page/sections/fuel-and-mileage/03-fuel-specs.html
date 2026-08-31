@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Fuel and Mileage</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes fm-draw { from { stroke-dashoffset: 620; } to { stroke-dashoffset: 0; } }
+  @keyframes fm-bar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes fm-flag { from { opacity:0; transform:translateY(8px) scale(.94); } to { opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-bar { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+  @keyframes ai-blip { 0%,100% { opacity:1; } 50% { opacity:.45; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<section data-screen-label="Fuel specs" style="background:#FFFFFF; padding:88px 40px 96px">
+    <div data-reveal-group="" style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:24px">
+      <div style="padding-left:22px; border-left:2px solid var(--nova-rage-400)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">±2 %</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Tank sensor reading tolerance</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">30 s</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Sampling interval, same as telemetry</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">4 way</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Variance cut by vehicle, route, driver, depot</div>
+      </div>
+      <div style="padding-left:22px; border-left:2px solid rgba(5,8,22,.10)">
+        <div style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; letter-spacing:-1.6px">90 d</div>
+        <div style="font-size:15px; line-height:23px; color:#5D5D5E; margin-top:14px">Consumption history retained by default</div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
