@@ -108,7 +108,12 @@ const LoginPage = () => {
                 if (user.orgId) {
                     localStorage.setItem('user_orgId', user.orgId);
                 }
-                
+
+                // Default view after login is Enterprise (all locations) — no active
+                // location is seeded, so the user sees all data exactly as before.
+                // The BranchContext loads the location list; the header switcher lets
+                // the user narrow to a specific location (persisted in user_branchId).
+
                 // Step 2: Role-based routing
                 if (user.role === 'SUPER_ADMIN') {
                     toast.success("Welcome Super Admin! Redirecting...");

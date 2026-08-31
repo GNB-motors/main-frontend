@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload } from 'lucide-react';
+import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, ChevronDown, X, Upload, ToggleRight, ToggleLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
+import NewButton from '@/components/ui/NewButton';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 
 // Function to get initials from name
 const getInitials = (name) => {
@@ -18,9 +20,14 @@ const getInitials = (name) => {
 };
 
 // Human-friendly labels for the role enum.
-const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', FIELD_AGENT: 'Field Agent', SUPER_ADMIN: 'Super Admin' };
-const formatRole = (role, isSuperadmin) => {
-    if (isSuperadmin) return 'Super Admin';
+const ROLE_LABELS = { DRIVER: 'Driver', MANAGER: 'Manager', KAM: 'Key Account Manager', FIELD_AGENT: 'Field Agent', SUPER_ADMIN: 'Super Admin' };
+// Show custom role name (e.g. "Driver Helper") when the employee has one;
+// fall back to the enum label ("Driver") for un-customised roles.
+const formatRole = (driver, isSuperadmin) => {
+    if (isSuperadmin || driver?.is_superadmin) return 'Super Admin';
+    // roleId is populated by the API as { name, baseRole } when a custom role exists.
+    if (driver?.roleId?.name) return driver.roleId.name;
+    const role = typeof driver === 'string' ? driver : driver?.role;
     return ROLE_LABELS[role] || role || 'Employee';
 };
 
@@ -180,12 +187,21 @@ const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitting }) 
                     {error && <div className="drivers-error-message">{error}</div>}
 
                     <div className="drivers-modal-actions">
-                        <button type="button" className="drivers-btn drivers-btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="drivers-btn drivers-btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Adding...' : 'Add Employee'}
-                        </button>
+                        <NewButton
+                            variant="secondary"
+                            size="md"
+                            type="button"
+                            text="Cancel"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                        />
+                        <NewButton
+                            variant="primary"
+                            size="md"
+                            type="submit"
+                            text="Add Employee"
+                            loading={isSubmitting}
+                        />
                     </div>
                 </form>
             </div>
@@ -381,12 +397,21 @@ const EditDriverModal = ({ isOpen, onClose, onSubmit, driver, isLoading: isSubmi
                     {error && <div className="drivers-error-message">{error}</div>}
 
                     <div className="drivers-modal-actions">
-                        <button type="button" className="drivers-btn drivers-btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="drivers-btn drivers-btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Saving...' : 'Save Changes'}
-                        </button>
+                        <NewButton
+                            variant="secondary"
+                            size="md"
+                            type="button"
+                            text="Cancel"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                        />
+                        <NewButton
+                            variant="primary"
+                            size="md"
+                            type="submit"
+                            text="Save Changes"
+                            loading={isSubmitting}
+                        />
                     </div>
                 </form>
             </div>
@@ -399,7 +424,7 @@ const FilterDropdown = ({ isOpen, onClose, filters, tempFilters, onFilterChange,
     // Canonical assignable roles are always offered (so FIELD_AGENT is selectable even
     // when none are loaded yet), plus any extra roles present in the fetched data.
     const getRoleOptions = () => {
-        const values = new Set(['DRIVER', 'MANAGER', 'FIELD_AGENT']);
+        const values = new Set(['DRIVER', 'MANAGER', 'KAM', 'FIELD_AGENT']);
         drivers.forEach(driver => {
             if (driver.is_superadmin) values.add('SUPER_ADMIN');
             else if (driver.role) values.add(driver.role);
@@ -474,20 +499,20 @@ const FilterDropdown = ({ isOpen, onClose, filters, tempFilters, onFilterChange,
             </div>
 
             <div className="drivers-filter-actions">
-                <button 
-                    className="drivers-btn drivers-btn-secondary" 
+                <NewButton
+                    variant="secondary"
+                    size="sm"
+                    text="Clear All"
                     onClick={onClearFilters}
                     disabled={isLoading}
-                >
-                    Clear All
-                </button>
-                <button 
-                    className="drivers-btn drivers-btn-primary" 
+                />
+                <NewButton
+                    variant="primary"
+                    size="sm"
+                    text="Apply Filters"
                     onClick={onApplyFilters}
                     disabled={isLoading}
-                >
-                    Apply Filters
-                </button>
+                />
             </div>
 
             {isLoading && (
@@ -499,6 +524,30 @@ const FilterDropdown = ({ isOpen, onClose, filters, tempFilters, onFilterChange,
         </div>
     );
 };
+
+// --- Table Skeleton (shimmer) shown while the list is (re)loading ---
+const DriversTableSkeleton = ({ rows = 8 }) => (
+    <>
+        {Array.from({ length: rows }).map((_, i) => (
+            <tr key={`skeleton-${i}`} className="drivers-table-row drivers-skeleton-row">
+                <td>
+                    <div className="drivers-driver-name-cell">
+                        <div className="drivers-skeleton drivers-skeleton-avatar"></div>
+                        <div className="drivers-driver-info">
+                            <span className="drivers-skeleton drivers-skeleton-text drivers-skeleton-text-lg"></span>
+                            <span className="drivers-skeleton drivers-skeleton-text drivers-skeleton-text-sm"></span>
+                        </div>
+                    </div>
+                </td>
+                <td><span className="drivers-skeleton drivers-skeleton-text"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-text"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-text"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-text drivers-skeleton-text-lg"></span></td>
+                <td><span className="drivers-skeleton drivers-skeleton-pill"></span></td>
+            </tr>
+        ))}
+    </>
+);
 
 // --- Delete Driver Modal Component ---
 const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDeleting }) => {
@@ -523,29 +572,112 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
                             <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                             <div className="drivers-driver-info">
                                 <span className="drivers-driver-name">{driver.name}</span>
-                                <span className="drivers-driver-role">{driver.is_superadmin ? 'Super Admin' : driver.role || 'Employee'}</span>
+                                <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="drivers-modal-actions">
-                    <button 
-                        type="button" 
-                        className="drivers-btn drivers-btn-secondary" 
-                        onClick={onClose} 
+                    <NewButton
+                        variant="secondary"
+                        size="md"
+                        type="button"
+                        text="Cancel"
+                        onClick={onClose}
                         disabled={isDeleting}
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        type="button" 
-                        className="drivers-btn drivers-btn-danger" 
-                        onClick={() => onConfirm(driver.id)} 
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? 'Deleting...' : 'Delete Employee'}
-                    </button>
+                    />
+                    <NewButton
+                        variant="danger"
+                        size="md"
+                        type="button"
+                        text="Delete Employee"
+                        onClick={() => onConfirm(driver.id)}
+                        loading={isDeleting}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Deactivate Employee Modal ---
+// Confirms turning an active employee off in their current branch (no move).
+const DeactivateDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading }) => {
+    if (!isOpen || !driver) return null;
+
+    return (
+        <div className="drivers-modal-overlay" onClick={onClose}>
+            <div className="drivers-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="drivers-modal-header">
+                    <h4>Deactivate Employee</h4>
+                    <button onClick={onClose} className="drivers-close-btn">&times;</button>
+                </div>
+
+                <div className="drivers-delete-content">
+                    <div className="drivers-delete-warning">
+                        <div className="drivers-warning-icon">⚠️</div>
+                        <p>This employee will be deactivated and won't be able to log in or be assigned work until you reactivate them. You can turn them back on anytime with “Mark as active”.</p>
+                    </div>
+
+                    <div className="drivers-delete-employee-info">
+                        <div className="drivers-driver-name-cell">
+                            <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
+                            <div className="drivers-driver-info">
+                                <span className="drivers-driver-name">{driver.name}</span>
+                                <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="drivers-modal-actions">
+                    <NewButton variant="secondary" size="md" type="button" text="Cancel" onClick={onClose} disabled={isLoading} />
+                    <NewButton variant="danger" size="md" type="button" text="Deactivate" onClick={() => onConfirm(driver)} loading={isLoading} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Move (Activate elsewhere) Modal ---
+// Warns that activating an employee here will move them out of their current branch.
+const MoveEmployeeModal = ({ isOpen, onClose, onConfirm, driver, isLoading }) => {
+    if (!isOpen || !driver) return null;
+
+    const fromBranch = driver.currentBranchName || 'another location';
+
+    return (
+        <div className="drivers-modal-overlay" onClick={onClose}>
+            <div className="drivers-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="drivers-modal-header">
+                    <h4>Move Employee Here</h4>
+                    <button onClick={onClose} className="drivers-close-btn">&times;</button>
+                </div>
+
+                <div className="drivers-delete-content">
+                    <div className="drivers-delete-warning">
+                        <div className="drivers-warning-icon">⚠️</div>
+                        <p>
+                            This employee is currently active in <strong>{fromBranch}</strong>. Activating them here will
+                            move them to this location and deactivate them in <strong>{fromBranch}</strong>. Their history there stays intact.
+                        </p>
+                    </div>
+
+                    <div className="drivers-delete-employee-info">
+                        <div className="drivers-driver-name-cell">
+                            <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
+                            <div className="drivers-driver-info">
+                                <span className="drivers-driver-name">{driver.name}</span>
+                                <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="drivers-modal-actions">
+                    <NewButton variant="secondary" size="md" type="button" text="Cancel" onClick={onClose} disabled={isLoading} />
+                    <NewButton variant="primary" size="md" type="button" text="Move Here" onClick={() => onConfirm(driver)} loading={isLoading} />
                 </div>
             </div>
         </div>
@@ -553,11 +685,27 @@ const DeleteDriverModal = ({ isOpen, onClose, onConfirm, driver, isLoading: isDe
 };
 
 // --- Action Menu Component (portal-based to escape table stacking context) ---
-const ActionMenu = ({ driver, onEdit, onDelete, position }) => {
+const ActionMenu = ({ driver, onEdit, onDelete, onActivateHere, onDeactivate, position }) => {
     if (!position) return null;
 
-    // Decide whether to open upward (if too close to the bottom of the viewport)
-    const MENU_HEIGHT = driver.is_superadmin ? 60 : 110;
+    // Employees deactivated in this location (moved to another branch) can't be
+    // edited/assigned here — the only action is to activate them back here.
+    const isDeactivatedHere = driver.branchStatus === 'DEACTIVATED';
+    // Legacy cross-org field agents carry a per-org membershipStatus and are
+    // managed via membership, not branch-deactivated. New field agents are
+    // branch-scoped employees and deactivate like a Driver/Manager.
+    const isLegacyFieldAgent = driver.role === 'FIELD_AGENT' && driver.membershipStatus != null;
+    // Owner/Super Admin are enterprise-level and never branch-deactivated.
+    const canDeactivate =
+        !isDeactivatedHere &&
+        !driver.is_superadmin &&
+        !driver.isOwner &&
+        !isLegacyFieldAgent;
+
+    // Decide whether to open upward (if too close to the bottom of the viewport).
+    // Height grows with the number of items so the upward flip is accurate.
+    const itemCount = isDeactivatedHere ? 1 : (0 /* no edit */ + (canDeactivate ? 1 : 0) + (!driver.is_superadmin ? 1 : 0));
+    const MENU_HEIGHT = 24 + itemCount * 34;
     const spaceBelow = window.innerHeight - position.bottom;
     const openUpward = spaceBelow < MENU_HEIGHT + 16;
 
@@ -572,17 +720,31 @@ const ActionMenu = ({ driver, onEdit, onDelete, position }) => {
 
     return createPortal(
         <div className="drivers-action-menu" style={style}>
-            <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
-                <Edit size={16} />
-                <span>Edit</span>
-            </button>
-            {!driver.is_superadmin && ( // Prevent deleting superadmin
+            {isDeactivatedHere ? (
+                <button
+                    className="drivers-action-menu-item"
+                    onClick={(e) => { e.stopPropagation(); onActivateHere(driver); }}
+                >
+                    <ToggleRight size={16} />
+                    <span>Mark as active</span>
+                </button>
+            ) : (
                 <>
-                    <div className="drivers-action-menu-divider"></div>
-                    <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDelete(driver); }}>
-                        <Trash2 size={16} />
-                        <span>Delete</span>
-                    </button>
+                    {canDeactivate && (
+                        <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDeactivate(driver); }}>
+                            <ToggleLeft size={16} />
+                            <span>Deactivate</span>
+                        </button>
+                    )}
+                    {!driver.is_superadmin && ( // Prevent deleting superadmin
+                        <>
+                            <div className="drivers-action-menu-divider"></div>
+                            <button className="drivers-action-menu-item" onClick={(e) => { e.stopPropagation(); onDelete(driver); }}>
+                                <Trash2 size={16} />
+                                <span>Delete</span>
+                            </button>
+                        </>
+                    )}
                 </>
             )}
         </div>,
@@ -593,10 +755,15 @@ const ActionMenu = ({ driver, onEdit, onDelete, position }) => {
 
 // --- Main DriversPage Component ---
 const DriversPage = () => {
+    const { hasPermission } = useFeatureFlags();
+    const canEdit = hasPermission('workforce.edit');
     const navigate = useNavigate();
     const [drivers, setDrivers] = useState([]);
     const [availableVehicles, setAvailableVehicles] = useState([]);
     const [isLoading, setIsLoading] = useState(true); // Loading state for drivers list
+    // True only until the first successful list load. Used to decide between the
+    // full-page loader (initial mount) and the in-table skeleton (search/filter/paging refetches).
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
     const [error, setError] = useState(null); // General page error
     const [actionError, setActionError] = useState(null); // Errors from Add/Edit/Delete actions
     const [themeColors, setThemeColors] = useState(getThemeCSS());
@@ -625,6 +792,11 @@ const DriversPage = () => {
     const [editingDriver, setEditingDriver] = useState(null); // Driver object to edit
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingDriver, setDeletingDriver] = useState(null); // Driver object to delete
+    // Employee about to be deactivated in their current branch (confirm modal).
+    const [deactivatingDriver, setDeactivatingDriver] = useState(null);
+    // Employee whose activation here would move them out of another branch (warn modal).
+    const [movingDriver, setMovingDriver] = useState(null);
+    const [isActionSubmitting, setIsActionSubmitting] = useState(false);
 
     // Action Menu State
     const [openMenuDriverId, setOpenMenuDriverId] = useState(null);
@@ -635,6 +807,9 @@ const DriversPage = () => {
     const itemsPerPage = 10;
 
     // Search & Filter State
+    // `searchInput` mirrors the text box (updates on every keystroke, no refetch).
+    // `searchTerm` is the debounced value that actually drives the server fetch.
+    const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
     const [filters, setFilters] = useState({
@@ -648,7 +823,6 @@ const DriversPage = () => {
 
     const [isSubmitting, setIsSubmitting] = useState(false); // Loading state for add/edit/delete actions
 
-    const [totalDrivers, setTotalDrivers] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
     // Profile context removed - drivers page should render independently
@@ -702,16 +876,15 @@ const DriversPage = () => {
                 // normalize contact fields used in UI
                 mobileNumber: d.mobileNumber || d.mobile_number || d.mobile || '',
                 email: d.email || d.email_address || '',
-                // FIELD_AGENT rows carry a per-org membership status; surface that as the
-                // displayed status (their account-level status stays PENDING and isn't meaningful here).
+                // Legacy cross-org field agents carry a per-org membershipStatus; show
+                // that. New branch-scoped field agents (and every other role) show their
+                // real account status — membershipStatus is absent so this falls through.
                 status: d.role === 'FIELD_AGENT' ? (d.membershipStatus || d.status) : d.status,
             }));
             setDrivers(normalizedDrivers);
             if (meta) {
-                setTotalDrivers(meta.total);
                 setTotalPages(meta.totalPages);
             } else {
-                setTotalDrivers(normalizedDrivers.length);
                 setTotalPages(Math.ceil(normalizedDrivers.length / itemsPerPage));
             }
             console.log("Drivers fetched:", normalizedDrivers, 'meta=', meta);
@@ -720,6 +893,7 @@ const DriversPage = () => {
             setError(apiError?.detail || "Could not load drivers list.");
         } finally {
             setIsLoading(false); // Finish loading drivers
+            setHasLoadedOnce(true);
         }
     };
 
@@ -756,6 +930,15 @@ const DriversPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [businessRefId, currentPage, searchTerm, filters.role]);
 
+    // Debounce the search box into `searchTerm` so we fire one request after typing
+    // settles instead of one per keystroke (each of which would re-render the table).
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setSearchTerm(searchInput.trim());
+        }, 300);
+        return () => clearTimeout(handle);
+    }, [searchInput]);
+
     // --- Action Handlers ---
     // handleAddDriver removed -- Add Employee is now a separate page at /drivers/add
 
@@ -771,6 +954,62 @@ const DriversPage = () => {
         setDeletingDriver(driver);
         setIsDeleteModalOpen(true);
         setOpenMenuDriverId(null); // Close action menu
+    };
+
+    // Activate a deactivated employee in the current location. If they are still
+    // active in a DIFFERENT branch, activating here MOVES them (they get
+    // deactivated there) — warn with a modal first. If they were simply
+    // deactivated in this same branch, it's a plain re-enable, so run it directly.
+    const handleActivateHere = (driver) => {
+        setOpenMenuDriverId(null);
+        const activeBranchId = localStorage.getItem('user_branchId');
+        const isCrossBranchMove =
+            driver.currentBranchId &&
+            activeBranchId &&
+            String(driver.currentBranchId) !== String(activeBranchId);
+        if (isCrossBranchMove) {
+            setMovingDriver(driver);
+        } else {
+            activateEmployee(driver);
+        }
+    };
+
+    // Perform the actual activate/import call (shared by the direct path and the
+    // "confirm move" modal). The active branch travels via X-Branch-Id (apiClient).
+    const activateEmployee = async (driver) => {
+        setIsActionSubmitting(true);
+        try {
+            await DriverService.importEmployee(driver.id);
+            toast.success('Employee activated in this location');
+            setMovingDriver(null);
+            fetchDrivers();
+        } catch (err) {
+            toast.error(err?.message || err?.detail || 'Could not activate employee here');
+        } finally {
+            setIsActionSubmitting(false);
+        }
+    };
+
+    // Open the confirm modal for deactivating an active employee in this branch.
+    const handleOpenDeactivate = (driver) => {
+        setOpenMenuDriverId(null);
+        setDeactivatingDriver(driver);
+    };
+
+    // Deactivate an active employee in their current branch (no move). Suspends
+    // their account and greys them out here until reactivated.
+    const handleConfirmDeactivate = async (driver) => {
+        setIsActionSubmitting(true);
+        try {
+            await DriverService.deactivateEmployee(driver.id);
+            toast.success('Employee deactivated');
+            setDeactivatingDriver(null);
+            fetchDrivers();
+        } catch (err) {
+            toast.error(err?.message || err?.detail || 'Could not deactivate employee');
+        } finally {
+            setIsActionSubmitting(false);
+        }
     };
 
     const handleUpdateDriver = async (driverId, updateData) => {
@@ -841,7 +1080,7 @@ const DriversPage = () => {
     };
 
     const handleSearchChange = (event) => {
-        setSearchTerm(event.target.value);
+        setSearchInput(event.target.value);
     };
 
     // Filter handlers
@@ -891,8 +1130,19 @@ const DriversPage = () => {
             }
         }
 
-        return filtered;
+        // Active employees first; deactivated ones sink to the bottom.
+        return filtered.slice().sort((a, b) => {
+            const ad = a.branchStatus === 'DEACTIVATED' ? 1 : 0;
+            const bd = b.branchStatus === 'DEACTIVATED' ? 1 : 0;
+            return ad - bd;
+        });
     }, [drivers, filters.vehicleAssignment]);
+
+    // The header count reflects only active employees (deactivated are excluded).
+    const activeCount = useMemo(
+        () => filteredDrivers.filter((d) => d.branchStatus !== 'DEACTIVATED').length,
+        [filteredDrivers],
+    );
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -969,14 +1219,16 @@ const DriversPage = () => {
 
 
     // --- Render Logic ---
-    // Only show loading for drivers data, not profile (handled by DashboardLayout)
-    if (isLoading) {
+    // Full-page loader only on the very first mount. Subsequent refetches
+    // (search / filter / pagination) keep the page shell mounted and show an
+    // in-table shimmer skeleton instead, so the page no longer flickers.
+    if (isLoading && !hasLoadedOnce) {
          return (
              <div className="drivers-container" style={themeColors}>
-                 <LottieLoader 
-                     isLoading={true} 
-                     size="medium" 
-                     message="Loading drivers data..." 
+                 <LottieLoader
+                     isLoading={true}
+                     size="medium"
+                     message="Loading drivers data..."
                      overlay={false}
                  />
              </div>
@@ -996,7 +1248,7 @@ const DriversPage = () => {
                         <div>
                             <h3>
                                 <span>Total employees </span>
-                                <span>({totalDrivers})</span>
+                                <span>({activeCount})</span>
                             </h3>
                             <div className="drivers-actions">
                             <div className="search-filter-container">
@@ -1006,13 +1258,17 @@ const DriversPage = () => {
                                         type="text"
                                         placeholder="Employee name or Id"
                                         className="drivers-search-input"
-                                        value={searchTerm}
+                                        value={searchInput}
                                         onChange={handleSearchChange}
                                     />
                                 </div>
                                 <div className="drivers-filter-container">
-                                    <button 
-                                        className={`drivers-filter-btn ${hasActiveFilters ? 'drivers-filter-btn-active' : ''}`} 
+                                    <NewButton
+                                        variant="secondary"
+                                        size="lg"
+                                        iconOnly
+                                        selected={hasActiveFilters}
+                                        aria-label="Filter employees"
                                         onClick={toggleFilterDropdown}
                                     >
                                         <Filter size={14} />
@@ -1021,7 +1277,7 @@ const DriversPage = () => {
                                                 {Object.values(filters).filter(value => value !== '').length}
                                             </span>
                                         )}
-                                    </button>
+                                    </NewButton>
                                     
                                     <FilterDropdown
                                         isOpen={isFilterDropdownOpen}
@@ -1036,17 +1292,22 @@ const DriversPage = () => {
                                     />
                                 </div>
                             </div>
-                            <button className="drivers-add-driver-btn" onClick={() => navigate('/drivers/add')}>
-                                <Plus size={16} />
-                                <span>Add employee</span>
-                            </button>
-                            <button 
-                                className="drivers-add-driver-btn" 
-                                onClick={() => navigate('/drivers/bulk-upload')}
-                            >
-                                <Upload size={16} />
-                                <span>Bulk Upload</span>
-                            </button>
+                            {canEdit && (
+                                <>
+                                    <NewButton
+                                        variant="primary"
+                                        text="Add employee"
+                                        prependIcon={<Plus size={16} />}
+                                        onClick={() => navigate('/drivers/add')}
+                                    />
+                                    <NewButton
+                                        variant="secondary"
+                                        text="Bulk Upload"
+                                        prependIcon={<Upload size={16} />}
+                                        onClick={() => navigate('/drivers/bulk-upload')}
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -1067,7 +1328,9 @@ const DriversPage = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                            {paginatedDrivers.length === 0 ? (
+                            {isLoading ? (
+                                <DriversTableSkeleton rows={itemsPerPage} />
+                            ) : paginatedDrivers.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" style={{ textAlign: 'center', color: 'var(--color-grey-400)'}}>
                                         {searchTerm ? 'No drivers match your search.' : 'No drivers found for this business.'}
@@ -1075,30 +1338,40 @@ const DriversPage = () => {
                                 </tr>
                             ) : (
                                 paginatedDrivers.map((driver) => (
-                                    <tr 
-                                        key={driver.id} 
-                                        className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''}`}
-                                        onClick={() => navigate('/drivers/add', { state: { editingDriver: driver } })}
-                                        style={{ cursor: 'pointer' }}
+                                    <tr
+                                        key={driver.id}
+                                        className={`drivers-table-row ${openMenuDriverId === driver.id ? 'menu-open' : ''} ${driver.branchStatus === 'DEACTIVATED' ? 'drivers-table-row--deactivated' : ''}`}
+                                        onClick={canEdit ? () => navigate('/drivers/add', { state: { editingDriver: driver } }) : undefined}
+                                        style={{ cursor: canEdit ? 'pointer' : 'default' }}
                                     >
                                         <td>
                                             <div className="drivers-driver-name-cell">
                                                 <div className="drivers-driver-initials">{getInitials(driver.name)}</div>
                                                 <div className="drivers-driver-info">
                                                     <span>{driver.name}</span>
-                                                    <span className="drivers-driver-role">{formatRole(driver.role, driver.is_superadmin)}</span>
+                                                    <span className="drivers-driver-role">{formatRole(driver, driver.is_superadmin)}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>{driver.id ? driver.id.substring(0, 8) + '...' : '-'}</td>
                                         <td>{driver.mobileNumber || driver.email || '-'}</td>
-                                        <td>{formatRole(driver.role, driver.is_superadmin)}</td>
+                                        <td>{formatRole(driver, driver.is_superadmin)}</td>
                                         <td>{driver.email || '-'}</td>
                                         <td>
                                             <div className="drivers-status-cell">
-                                                <div className={`drivers-status-badge drivers-status-${(driver.status || 'PENDING').toLowerCase()}`}>
-                                                    <span>{driver.status || 'PENDING'}</span>
-                                                </div>
+                                                {driver.branchStatus === 'DEACTIVATED' ? (
+                                                    <div
+                                                        className="drivers-status-badge drivers-status-suspended"
+                                                        title="This employee moved to another location and is deactivated here"
+                                                    >
+                                                        <span>Deactivated</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className={`drivers-status-badge drivers-status-${(driver.status || 'PENDING').toLowerCase()}`}>
+                                                        <span>{driver.status || 'PENDING'}</span>
+                                                    </div>
+                                                )}
+                                                {canEdit && (
                                                 <div className={`drivers-action-menu-container drivers-action-menu-container-${driver.id}`}>
                                                     <button
                                                         className="drivers-action-menu-btn"
@@ -1121,10 +1394,13 @@ const DriversPage = () => {
                                                             driver={driver}
                                                             onEdit={handleOpenEditModal}
                                                             onDelete={handleOpenDeleteModal}
+                                                            onActivateHere={handleActivateHere}
+                                                            onDeactivate={handleOpenDeactivate}
                                                             position={menuPosition}
                                                         />
                                                     )}
                                                 </div>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -1180,14 +1456,7 @@ const DriversPage = () => {
 
              {/* Render Modals */}
             {/* AddDriverModal removed -- Add Employee is a separate page now at /drivers/add */}
-            <EditDriverModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                onSubmit={handleUpdateDriver}
-                driver={editingDriver}
-                isLoading={isSubmitting}
-                availableVehicles={availableVehicles}
-             />
+            {/* EditDriverModal removed -- editing is done via /drivers/add page */}
             <DeleteDriverModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => {
@@ -1197,6 +1466,20 @@ const DriversPage = () => {
                 onConfirm={handleDeleteDriver}
                 driver={deletingDriver}
                 isLoading={isSubmitting}
+            />
+            <DeactivateDriverModal
+                isOpen={!!deactivatingDriver}
+                onClose={() => setDeactivatingDriver(null)}
+                onConfirm={handleConfirmDeactivate}
+                driver={deactivatingDriver}
+                isLoading={isActionSubmitting}
+            />
+            <MoveEmployeeModal
+                isOpen={!!movingDriver}
+                onClose={() => setMovingDriver(null)}
+                onConfirm={activateEmployee}
+                driver={movingDriver}
+                isLoading={isActionSubmitting}
             />
 
         </div>

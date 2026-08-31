@@ -11,29 +11,48 @@
                 margin-left 0.3s ease;
     position: fixed;
     height: 100vh;
+    height: 100dvh; /* survive mobile browser chrome collapsing */
     top: 0;
     left: 0;
     z-index: 1004 !important;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    /* Prevent the sidebar from ever growing taller than the viewport */
-    overflow: hidden;
+    overflow: hidden; /* the nav scrolls, the shell never does */
 }
 
 .sidebar-content {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;    /* Takes all remaining height, pushing footer to bottom */
-    min-height: 0;   /* Allows flex child to shrink and scroll instead of overflow */
-    overflow-y: auto;  /* Nav items scroll; logout button stays pinned below */
+    flex-grow: 1; /* Pushes footer down */
+    /* Without min-height:0 a flex item refuses to shrink below its content
+       height, so overflow-y never engages and the tail of the nav is unreachable. */
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: hidden;
-    /* Hide scrollbar visually but keep it functional */
-    scrollbar-width: none;       /* Firefox */
-    -ms-overflow-style: none;    /* IE/Edge */
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
 }
 
-/* Chrome / Safari — hide scrollbar track inside sidebar nav */
+.sidebar:hover .sidebar-content {
+    scrollbar-color: var(--color-grey-200) transparent;
+}
+
 .sidebar-content::-webkit-scrollbar {
-    display: none;
+    width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.sidebar:hover .sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--color-grey-200);
 }
 
 .sidebar-header {
@@ -46,6 +65,7 @@
     overflow: hidden;
     height: auto;
     min-height: 40px;
+    flex-shrink: 0;
     transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -74,6 +94,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
+    flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
 }
 
 .nav-link {
@@ -125,7 +146,7 @@
 .sidebar-footer {
     padding-top: 12px;
     border-top: 1px solid var(--color-grey-200);
-    flex-shrink: 0;  /* Never shrink — logout button always visible at bottom */
+    flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
     background-color: var(--color-white); /* Match sidebar bg so it looks solid */
 }
 
@@ -231,6 +252,28 @@
     }
 }
 
+/* === Section headings === */
+.nav-section-label {
+    padding: 14px 8px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-grey-400);
+    white-space: nowrap;
+    overflow: hidden;
+    user-select: none;
+}
+
+.nav-section-label:first-child {
+    padding-top: 4px;
+}
+
+.nav-section-label span {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* === Vehicle Activity Collapsible Section === */
 .nav-section {
     display: flex;
@@ -299,20 +342,40 @@
     transform: rotate(-180deg);
 }
 
+/* Collapse/expand animates grid-template-rows 0fr <-> 1fr rather than
+   max-height. max-height needs a fixed "big enough" value, so a short group
+   spends most of the transition collapsing empty space — which reads as a stall
+   followed by a snap. 0fr/1fr resolves to the real content height, so open and
+   close take the same time regardless of how many children a group has. */
 .nav-children {
+    display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    opacity: 0;
+    padding-top: 0;
+    transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                padding-top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s ease;
+}
+
+.nav-children-inner {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    max-height: 0;
-    opacity: 0;
     gap: 6px;
-    padding-top: 6px;
+    min-height: 0;   /* Required: lets the 0fr row actually clip its content */
+    overflow: hidden;
 }
 
 .nav-children.open {
-    max-height: 360px;
+    grid-template-rows: 1fr;
     opacity: 1;
+    padding-top: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-children {
+        transition-duration: 0.01ms;
+    }
 }
 
 .nav-child {
@@ -327,6 +390,45 @@
 
 /* Desktop specific styles for collapsed sidebar */
 @media (min-width: 993px) {
+    /* Collapsed: the heading text can't fit, so show a short rule instead —
+       the sections stay visually separated without any label. */
+    .sidebar .nav-section-label {
+        padding: 12px 8px 8px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .sidebar .nav-section-label span {
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+        height: 0;
+    }
+
+    .sidebar .nav-section-label::before {
+        content: '';
+        height: 1px;
+        width: 28px;
+        background-color: var(--color-grey-200);
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.2s ease;
+    }
+
+    .sidebar:hover .nav-section-label {
+        display: block;
+    }
+
+    .sidebar:hover .nav-section-label span {
+        opacity: 1;
+        visibility: visible;
+        width: auto;
+        height: auto;
+    }
+
+    .sidebar:hover .nav-section-label::before {
+        display: none;
+    }
+
     /* When sidebar is collapsed (not hovered) */
     .sidebar .nav-parent {
         justify-content: center;
@@ -386,12 +488,12 @@
     }
     
     .sidebar:hover .nav-children {
-        display: flex;
+        display: grid;
     }
-    
+
     .sidebar:hover .nav-children.open {
         opacity: 1;
-        max-height: 360px;
+        grid-template-rows: 1fr;
     }
     
     .sidebar .nav-child {

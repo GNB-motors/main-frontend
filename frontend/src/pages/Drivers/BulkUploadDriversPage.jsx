@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { getThemeCSS } from "../../utils/colorTheme.js";
 import "../Profile/BulkUploadVehiclesPage.css";
 import { DriverService } from "./DriverService.jsx";
+import NewButton from "@/components/ui/NewButton";
+import { useFeatureFlags } from "../../contexts/FeatureFlagsContext";
 import BulkEmployeeMappingSidePanel from "./Component/BulkEmployeeMappingSidePanel.jsx";
 import BulkUploadResultsSidePanel from "./Component/BulkUploadResultsSidePanel.jsx";
 import {
@@ -21,6 +23,8 @@ import {
 const MAX_ROWS = 500;
 
 const BulkUploadDriversPage = () => {
+  const { hasPermission } = useFeatureFlags();
+  const canEdit = hasPermission("workforce.edit");
   const navigate = useNavigate();
   const [rawRows, setRawRows] = useState([]);
   const [fileColumns, setFileColumns] = useState([]);
@@ -335,17 +339,22 @@ const BulkUploadDriversPage = () => {
   const validCount = normalizedRows.length - errorCount;
 
   const openFilePicker = () => {
-    if (isParsing || isSubmitting) return;
+    if (isParsing || isSubmitting || !canEdit) return;
     fileInputRef.current?.click();
   };
 
   return (
     <div className="bulk-upload-vehicles-container" style={themeColors}>
       <div className="bulk-upload-header">
-        <button className="bulk-upload-back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
-          <span>Back</span>
-        </button>
+        <NewButton
+          variant="link"
+          size="sm"
+          style={{ marginBottom: 8 }}
+          text="Back"
+          prependIcon={<ArrowLeft size={20} />}
+          prependGap={6}
+          onClick={() => navigate(-1)}
+        />
         <h1>Bulk Upload Employees</h1>
         <p>Upload employee data via .xlsx or .csv file. Map columns and preview before submitting.</p>
       </div>
@@ -380,14 +389,15 @@ const BulkUploadDriversPage = () => {
               <div className="bulk-upload-text-secondary">
                 Supports .xlsx, .xls, and .csv files
               </div>
-              <button
+              <NewButton
+                variant="primary"
+                size="md"
                 type="button"
-                className="btn-primary"
+                text="Select File"
                 onClick={openFilePicker}
-                disabled={isParsing || isSubmitting}
-              >
-                Select File
-              </button>
+                loading={isParsing}
+                disabled={isSubmitting || !canEdit}
+              />
               <input
                 ref={fileInputRef}
                 type="file"
@@ -421,54 +431,33 @@ const BulkUploadDriversPage = () => {
                     gap: '12px',
                     flexWrap: 'wrap'
                   }}>
-                    <button
+                    <NewButton
+                      variant={filterStatus === 'all' ? 'primary' : 'secondary'}
+                      selected={filterStatus === 'all'}
+                      size="xs"
+                      fullRounded
                       type="button"
+                      text={`All (${normalizedRows.length})`}
                       onClick={() => setFilterStatus('all')}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        border: 'none',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        backgroundColor: filterStatus === 'all' ? '#6366f1' : '#f3f4f6',
-                        color: filterStatus === 'all' ? '#fff' : '#374151',
-                      }}
-                    >
-                      All ({normalizedRows.length})
-                    </button>
-                    <button
+                    />
+                    <NewButton
+                      variant={filterStatus === 'valid' ? 'primary' : 'secondary'}
+                      selected={filterStatus === 'valid'}
+                      size="xs"
+                      fullRounded
                       type="button"
+                      text={`Valid (${validCount})`}
                       onClick={() => setFilterStatus('valid')}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        border: 'none',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        backgroundColor: filterStatus === 'valid' ? '#6366f1' : '#f3f4f6',
-                        color: filterStatus === 'valid' ? '#fff' : '#374151',
-                      }}
-                    >
-                      Valid ({validCount})
-                    </button>
-                    <button
+                    />
+                    <NewButton
+                      variant={filterStatus === 'error' ? 'danger' : 'secondary'}
+                      selected={filterStatus === 'error'}
+                      size="xs"
+                      fullRounded
                       type="button"
+                      text={`Issues (${errorCount})`}
                       onClick={() => setFilterStatus('error')}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        border: 'none',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        backgroundColor: filterStatus === 'error' ? '#6366f1' : '#fef2f2',
-                        color: filterStatus === 'error' ? '#fff' : '#991b1b',
-                      }}
-                    >
-                      Issues ({errorCount})
-                    </button>
+                    />
                   </div>
                 </div>
               )}
@@ -533,22 +522,23 @@ const BulkUploadDriversPage = () => {
 
           {normalizedRows.length > 0 && (
             <div className="action-row">
-              <button
+              <NewButton
+                variant="secondary"
+                size="md"
                 type="button"
-                className="btn-secondary"
+                text="Cancel"
                 onClick={handleClearRows}
                 disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
+              />
+              <NewButton
+                variant="primary"
+                size="md"
                 type="submit"
-                className="btn-primary"
-                disabled={isSubmitting || errorCount > 0}
-              >
-                {isSubmitting ? "Processing..." : "Submit Upload"}
-                <Send size={16} />
-              </button>
+                text="Submit Upload"
+                appendIcon={<Send size={16} />}
+                loading={isSubmitting}
+                disabled={errorCount > 0 || !canEdit}
+              />
             </div>
           )}
         </div>
@@ -666,13 +656,13 @@ const BulkUploadDriversPage = () => {
             </div>
 
             <div className="mapping-modal-actions">
-              <button
+              <NewButton
+                variant="secondary"
+                size="md"
                 type="button"
+                text="Close"
                 onClick={() => setSelectedRowForError(null)}
-                className="mapping-btn-primary"
-              >
-                Close
-              </button>
+              />
             </div>
           </div>
         </div>

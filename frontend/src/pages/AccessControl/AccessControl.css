@@ -1,0 +1,178 @@
+/* Enterprise Employee Access Control — tabs + inheritance chips.
+   Reuses ff-* (FeatureFlags.css) and rbac-* (Rbac.css) for the rest. */
+
+.ac-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid #e6e8ef;
+  margin: 4px 0 18px;
+}
+
+.ac-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #7b8194;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.ac-tab:hover {
+  color: #4f46e5;
+}
+
+.ac-tab--active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+/* Inheritance / override chips shown on permission leaves and role rows. */
+.ac-chip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.ac-chip--inherited {
+  background: #eef0f5;
+  color: #7b8194;
+}
+
+.ac-chip--override {
+  background: #eef0ff;
+  color: #4f46e5;
+}
+
+.ac-chip--branch {
+  background: #fff3e6;
+  color: #b7791f;
+}
+
+.ac-chip--owned {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.ac-chip--platform {
+  background: #eef0f5;
+  color: #7b8194;
+}
+
+.ac-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+/* Toolbar + role-detail header actions. */
+.ac-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ac-detail__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ac-detail__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Create/edit role modal — wider, with a scrollable permission tree. */
+.ac-modal--wide {
+  max-width: 720px;
+  width: 100%;
+}
+
+.ac-modal__tree {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #e6e8ef;
+  border-radius: 10px;
+  padding: 0 12px;
+}
+
+/* Warning callout — assigning a role that replaces an existing one. */
+.ac-alert--warn {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+/* ── Assigned employees table ───────────────────────────── */
+.ac-assignments {
+  margin-top: 20px;
+  padding: 18px 20px;
+}
+
+.ac-assignments__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ac-table__wrap {
+  overflow-x: auto;
+}
+
+.ac-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.ac-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #7b8194;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e6e8ef;
+  white-space: nowrap;
+}
+
+.ac-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f1f2f7;
+  vertical-align: middle;
+  color: #2c3040;
+}
+
+.ac-table td svg {
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: #7b8194;
+}
+
+.ac-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ac-table__actions {
+  text-align: right;
+  white-space: nowrap;
+}

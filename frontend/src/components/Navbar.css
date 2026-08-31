@@ -18,7 +18,7 @@
     box-sizing: border-box;
     position: fixed;
     top: 0;
-    left: 100px;
+    left: 64px; /* collapsed icon-rail width; the rail expands as an overlay */
     right: 0;
     z-index: 1001;
     box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 20px rgba(15,23,42,0.04);
@@ -59,6 +59,26 @@
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(226,232,240,0.8);
+    background: rgba(255,255,255,0.6);
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.theme-toggle:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
 }
 
 .navbar-right .btn {

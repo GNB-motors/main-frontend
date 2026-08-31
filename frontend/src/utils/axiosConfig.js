@@ -21,6 +21,12 @@ apiClient.interceptors.request.use(
         if (orgId && !config.headers['X-Org-Id'] && !config.headers['x-org-id']) {
             config.headers['X-Org-Id'] = orgId;
         }
+        // Active operational location (branch). Omitted when "All locations" is
+        // selected, which the backend reads as the enterprise (all-branches) scope.
+        const branchId = localStorage.getItem('user_branchId');
+        if (branchId && !config.headers['X-Branch-Id'] && !config.headers['x-branch-id']) {
+            config.headers['X-Branch-Id'] = branchId;
+        }
         return config;
     },
     (error) => {

@@ -93,7 +93,7 @@ const PageHeader = ({
       {/* Page Title & Description */}
       <div className="page-header-content">
         <h1 className="page-header-title">{title}</h1>
-        <p className="page-header-description">{description}</p>
+        {description ? <p className="page-header-description">{description}</p> : null}
       </div>
     </div>
   );

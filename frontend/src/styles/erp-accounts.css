@@ -1,0 +1,700 @@
+/**
+ * Accounts & Money — Overview (Financial Command Center) redesign.
+ *
+ * Everything is scoped under `.acc-redesign` (the Overview content) and
+ * `.erp-page:has(.acc-redesign)` (its header/tabs/panel chrome, which is shared
+ * with the other four Accounts tabs and so is only styled while THIS tab is
+ * mounted). The shared ERP components — AgeingBar, ErpTable, StatusBadge,
+ * DateRangeFilter — and shared classes (erp-card, erp-table, erp-tabs, erp-btn,
+ * erp-stat…) are only *overridden* here, never edited, so the sibling tabs and
+ * every other module stay untouched.
+ *
+ * UI + UX only. No amounts, dates, labels, buckets, counts, statuses, chart
+ * meaning or navigation are changed.
+ *
+ * Visual language: calm enterprise finance. Indigo (#4f46e5) is the primary
+ * accent to match the rest of the ERP; amber = attention/due-soon, red = overdue,
+ * receivable=indigo / payable=magenta echo the cash chart. Colour only ever
+ * carries meaning.
+ */
+
+.acc-redesign {
+  --acc-primary: #4f46e5;
+  --acc-primary-hover: #4338ca;
+  --acc-primary-tint: #eef2ff;
+
+  --acc-ink: #0f172a;
+  --acc-ink-2: #334155;
+  --acc-muted: #64748b;
+  --acc-faint: #94a3b8;
+
+  --acc-border: #e6e9ef;
+  --acc-border-soft: #eef1f5;
+  --acc-canvas: #f6f7f9;
+  --acc-surface: #ffffff;
+
+  --acc-danger: #b91c1c;
+  --acc-danger-line: #dc2626;
+  --acc-danger-tint: #fef2f2;
+  --acc-warn: #b45309;
+  --acc-warn-line: #f59e0b;
+  --acc-warn-tint: #fffbeb;
+  --acc-info: #0369a1;
+  --acc-info-tint: #e0f2fe;
+  --acc-success: #15803d;
+  --acc-payable: #b0479b;
+  --acc-payable-tint: #fbeef7;
+
+  --acc-radius: 12px;
+  --acc-radius-sm: 9px;
+  --acc-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --acc-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  color: var(--acc-ink);
+}
+
+/* ══ Chrome shared with sibling tabs — styled ONLY while Overview is mounted ══ */
+
+/* Neutralise the white hub card so the snapshot cards read against a canvas. */
+.erp-hub-panel:has(.acc-redesign) {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* Tighten header → tabs → content. Inline margins on the shared header/toolbar
+   force `!important`; both are reset only under the Overview's `:has` scope. */
+.erp-page:has(.acc-redesign) .erp-page-header {
+  margin-bottom: 14px !important;
+}
+
+.erp-page:has(.acc-redesign) .erp-page-header h1 {
+  font-size: 29px;
+  letter-spacing: -0.01em;
+}
+
+.erp-page:has(.acc-redesign) .erp-page-header p {
+  font-size: 14.5px;
+  margin-top: 5px;
+  max-width: 62ch;
+}
+
+.erp-page:has(.acc-redesign) .erp-toolbar {
+  margin-bottom: 18px !important;
+}
+
+/* Primary nav: refined segmented control. */
+.erp-page:has(.acc-redesign) .erp-tabs {
+  padding: 3px;
+  gap: 2px;
+  background: #eef1f5;
+  border: 1px solid var(--acc-border);
+  border-radius: 10px;
+}
+
+.erp-page:has(.acc-redesign) .erp-tab {
+  padding: 7px 15px;
+  font-size: 13px;
+  color: var(--acc-muted);
+  border-radius: 7px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.erp-page:has(.acc-redesign) .erp-tab:hover:not(.active) {
+  color: var(--acc-ink-2);
+}
+
+.erp-page:has(.acc-redesign) .erp-tab.active {
+  background: #fff;
+  color: var(--acc-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+/* ══ Section rhythm ══════════════════════════════════════════════════════════ */
+.acc-redesign {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.acc-section {
+  margin: 0;
+}
+
+/* ══ Period toolbar ══════════════════════════════════════════════════════════ */
+.acc-periodbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--acc-surface);
+  border: 1px solid var(--acc-border);
+  border-radius: var(--acc-radius-sm);
+  box-shadow: var(--acc-shadow);
+}
+
+.acc-periodbar-controls {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* DateRangeFilter internals — compact, consistent heights, calm borders. */
+.acc-periodbar .erp-filter {
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  border-color: var(--acc-border);
+  border-radius: 8px;
+  color: var(--acc-ink-2);
+  background: #fff;
+}
+
+.acc-periodbar .erp-filter:focus {
+  outline: none;
+  border-color: var(--acc-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.acc-periodbar input.erp-filter[type='date'] {
+  color-scheme: light;
+  font-variant-numeric: tabular-nums;
+}
+
+.acc-periodbar input.erp-filter[type='date']::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+/* The "Cash period" label the shared filter renders. */
+.acc-periodbar-controls > div > span:first-child {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--acc-muted) !important;
+}
+
+.acc-refresh.erp-btn {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 8px;
+  border-color: var(--acc-border);
+  color: var(--acc-ink-2);
+}
+
+.acc-refresh.erp-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.acc-spin { animation: accSpin 0.9s linear infinite; }
+@keyframes accSpin { to { transform: rotate(360deg); } }
+
+/* ══ Level 1 · Financial snapshot ════════════════════════════════════════════ */
+.acc-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.acc-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 148px;
+  padding: 18px 18px 14px;
+  background: var(--acc-surface);
+  border: 1px solid var(--acc-border);
+  border-radius: var(--acc-radius);
+  box-shadow: var(--acc-shadow);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.acc-card.clickable { cursor: pointer; }
+
+.acc-card.clickable:hover {
+  transform: translateY(-2px);
+  border-color: #d5d9e2;
+  box-shadow: var(--acc-shadow-hover);
+}
+
+/* Attention cards carry a subtle inset accent — never a fully coloured card. */
+.acc-card--warn { box-shadow: var(--acc-shadow), inset 3px 0 0 var(--acc-warn-line); }
+.acc-card--warn.clickable:hover { box-shadow: var(--acc-shadow-hover), inset 3px 0 0 var(--acc-warn-line); }
+.acc-card--info { box-shadow: var(--acc-shadow), inset 3px 0 0 var(--acc-info); }
+.acc-card--info.clickable:hover { box-shadow: var(--acc-shadow-hover), inset 3px 0 0 var(--acc-info); }
+
+.acc-card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.acc-card-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.acc-card-ic--neutral    { background: #f1f5f9; color: #475569; }
+.acc-card-ic--receivable { background: var(--acc-primary-tint); color: var(--acc-primary); }
+.acc-card-ic--payable    { background: var(--acc-payable-tint); color: var(--acc-payable); }
+.acc-card-ic--warn       { background: var(--acc-warn-tint); color: var(--acc-warn); }
+.acc-card-ic--info       { background: var(--acc-info-tint); color: var(--acc-info); }
+
+.acc-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  color: var(--acc-muted);
+}
+
+.acc-card-value {
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--acc-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.acc-card-suffix {
+  margin-left: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--acc-muted);
+}
+
+.acc-card-context {
+  margin-top: 7px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--acc-muted);
+}
+
+.acc-card-context strong { color: var(--acc-ink-2); font-weight: 600; }
+.acc-card-context .acc-ctx-danger { color: var(--acc-danger); font-weight: 700; }
+
+.acc-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.acc-card-asof {
+  font-size: 11px;
+  color: var(--acc-faint);
+  white-space: nowrap;
+}
+
+.acc-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--acc-primary);
+  white-space: nowrap;
+}
+
+.acc-card.clickable:hover .acc-card-cta { color: var(--acc-primary-hover); }
+
+.acc-card-cta svg { transition: transform 0.12s ease; }
+.acc-card.clickable:hover .acc-card-cta svg { transform: translateX(2px); }
+
+.acc-card-derived {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--acc-faint);
+}
+
+.acc-skel {
+  border-radius: 5px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: erpShimmer 1.5s infinite;
+}
+
+.acc-skel--value { height: 28px; width: 62%; }
+
+/* ══ Level 2 · Ageing (two mirrored AgeingBar cards) ═════════════════════════ */
+.acc-ageing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.acc-ageing-grid .erp-card {
+  margin-bottom: 0;
+  border-color: var(--acc-border);
+  border-radius: var(--acc-radius);
+  box-shadow: var(--acc-shadow);
+}
+
+/* Make the coloured bar a quiet summary strip above the numbers, not the hero. */
+.acc-ageing-grid .erp-ageing-track {
+  height: 12px;
+  border-radius: 6px;
+  gap: 2px;
+  background: var(--acc-border-soft);
+}
+
+.acc-ageing-grid .erp-ageing-seg { border-radius: 2px; }
+.acc-ageing-grid .erp-ageing-seg:first-child { border-radius: 6px 2px 2px 6px; }
+.acc-ageing-grid .erp-ageing-seg:last-child { border-radius: 2px 6px 6px 2px; }
+
+/* Compact numeric table beneath the strip. */
+.acc-ageing-grid .erp-table.compact {
+  min-width: 0;
+  width: 100%;
+}
+
+.acc-ageing-grid .erp-table.compact thead th {
+  background: transparent;
+  padding: 8px 8px 7px;
+  border-bottom: 1px solid var(--acc-border);
+  font-size: 10.5px;
+  color: var(--acc-faint);
+}
+
+.acc-ageing-grid .erp-table.compact tbody td {
+  padding: 9px 8px;
+  border-top: 1px solid var(--acc-border-soft);
+  font-size: 12.5px;
+}
+
+.acc-ageing-grid .erp-table.compact tbody tr:first-child td { border-top: none; }
+
+.acc-ageing-grid .erp-table.compact tbody tr.clickable:hover {
+  background: #f8fafc;
+}
+
+.acc-ageing-grid .erp-ageing-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+/* ══ Level 3 · Cash movement + Next 7 days ══════════════════════════════════ */
+.acc-flow-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.acc-card-panel {
+  background: var(--acc-surface);
+  border: 1px solid var(--acc-border);
+  border-radius: var(--acc-radius);
+  box-shadow: var(--acc-shadow);
+  padding: 18px 20px;
+}
+
+.acc-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.acc-panel-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.acc-panel-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.acc-panel-ic--cash { background: var(--acc-primary-tint); color: var(--acc-primary); }
+.acc-panel-ic--next { background: #ecfdf5; color: #047857; }
+.acc-panel-ic--attn { background: var(--acc-warn-tint); color: var(--acc-warn); }
+
+.acc-panel-title h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--acc-ink);
+  line-height: 1.3;
+}
+
+.acc-panel-sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--acc-faint);
+}
+
+.acc-panel-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--acc-ink);
+  white-space: nowrap;
+}
+
+.acc-chart {
+  height: 196px;
+  width: 100%;
+}
+
+.acc-cash-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--acc-border-soft);
+  flex-wrap: wrap;
+}
+
+.acc-cash-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--acc-border-soft);
+  border-radius: 9px;
+}
+
+.acc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.acc-dot--in { background: var(--acc-primary); }
+.acc-dot--out { background: var(--acc-payable); }
+
+.acc-cash-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--acc-muted);
+}
+
+.acc-cash-stat strong {
+  font-size: 14px;
+  color: var(--acc-ink);
+}
+
+.acc-cash-stat-meta {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--acc-faint);
+  white-space: nowrap;
+}
+
+/* Next 7 days — an obligations list, not a metric card. */
+.acc-next7 {
+  display: flex;
+  flex-direction: column;
+}
+
+.acc-next7-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.acc-next7-list li + li { border-top: 1px solid var(--acc-border-soft); }
+
+.acc-next7-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 8px 13px 4px;
+  margin: 0 -8px 0 -4px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.12s ease;
+}
+
+.acc-next7-row:hover { background: #f8fafc; }
+
+.acc-next7-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--acc-ink-2);
+}
+
+.acc-next7-tick {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.acc-next7-tick--in { background: var(--acc-primary); }
+.acc-next7-tick--out { background: var(--acc-payable); }
+.acc-next7-tick--muted { background: #cbd5e1; }
+
+.acc-next7-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acc-next7-amount strong {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--acc-ink);
+}
+
+.acc-next7-amount svg { color: var(--acc-faint); }
+.acc-next7-row:hover .acc-next7-amount svg { color: var(--acc-primary); }
+
+/* ══ Level 4 · Needs attention ══════════════════════════════════════════════ */
+.acc-attention { padding: 18px 20px 20px; }
+
+.acc-attention-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.acc-viewall {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--acc-primary);
+  text-decoration: none;
+  padding: 5px 2px;
+  white-space: nowrap;
+}
+
+.acc-viewall:hover { color: var(--acc-primary-hover); }
+.acc-viewall svg { transition: transform 0.12s ease; }
+.acc-viewall:hover svg { transform: translateX(2px); }
+
+.acc-attention-tabs { margin-bottom: 4px; }
+
+.acc-subtabs.erp-tabs {
+  padding: 3px;
+  gap: 2px;
+  background: #eef1f5;
+  border: 1px solid var(--acc-border);
+  border-radius: 9px;
+  margin: 0;
+}
+
+.acc-subtabs .erp-tab {
+  padding: 7px 14px;
+  font-size: 12.5px;
+  color: var(--acc-muted);
+  border-radius: 7px;
+}
+
+.acc-subtabs .erp-tab.active {
+  background: #fff;
+  color: var(--acc-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+/* ErpTable inside the attention card — flush, quiet, part of the card. */
+.acc-attention .erp-table-container { margin-top: 0; }
+
+.acc-attention .erp-table-wrap {
+  margin-top: 14px;
+  border: 1px solid var(--acc-border-soft);
+  border-radius: 10px;
+}
+
+.acc-attention .erp-table thead th {
+  background: #f8fafc;
+  padding: 11px 16px;
+  font-size: 11px;
+  color: var(--acc-muted);
+  border-bottom: 1px solid var(--acc-border-soft);
+}
+
+.acc-attention .erp-table tbody td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--acc-border-soft);
+  font-size: 13px;
+}
+
+.acc-attention .erp-table tbody tr:hover { background: #fafbfc; }
+
+.acc-attention .acc-doc-link {
+  font-weight: 600;
+  color: var(--acc-primary);
+  text-decoration: none;
+}
+
+.acc-attention .acc-doc-link:hover { text-decoration: underline; }
+
+.acc-attention .acc-party-link {
+  font-weight: 600;
+  color: var(--acc-ink);
+  text-decoration: none;
+}
+
+.acc-attention .acc-party-link:hover { color: var(--acc-primary); }
+
+.acc-attention .acc-cell-muted { color: var(--acc-faint); }
+
+.acc-attention .acc-amount {
+  font-weight: 600;
+  color: var(--acc-ink);
+}
+
+/* ══ Responsive ═════════════════════════════════════════════════════════════ */
+@media (max-width: 1200px) {
+  .acc-snapshot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 980px) {
+  .acc-flow-grid { grid-template-columns: 1fr; }
+  .acc-ageing-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .acc-snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .acc-periodbar { align-items: stretch; }
+  .acc-refresh.erp-btn { justify-content: center; }
+}
+
+@media (max-width: 460px) {
+  .acc-snapshot-grid { grid-template-columns: 1fr; }
+}

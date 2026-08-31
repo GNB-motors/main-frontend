@@ -1,14 +1,20 @@
 import React, { useState, useEffect, forwardRef } from 'react';
 import UserIcon from '../assets/UserIcon.jsx';
+import { useActiveBranch } from '../../../contexts/BranchContext';
 import './BasicInformationForm.css';
 
-const BasicInformationForm = forwardRef(({ 
-  initialData = {}, 
-  onSubmit, 
-  onCancel,
-  isSubmitting = false,
-  isEdit = false 
+const BasicInformationForm = forwardRef(({
+  initialData = {},
+  onSubmit,
+  isEdit = false,
+  // Dynamic roles available to this enterprise (from the RBAC catalog). Drives
+  // both role selectors — new roles appear here automatically, no hardcoding.
+  roles = [],
 }, ref) => {
+  // Inside a location the employee's location is implied by the active branch,
+  // so the free-text Location field is redundant and hidden.
+  const { branchId } = useActiveBranch();
+  const insideBranch = !!branchId;
   const [formData, setFormData] = useState({
     firstName: initialData.firstName || '',
     lastName: initialData.lastName || '',
@@ -16,7 +22,9 @@ const BasicInformationForm = forwardRef(({
     mobileNumber: initialData.mobileNumber || '',
     location: initialData.location || '',
     password: initialData.password || '',
-    role: initialData.role || 'DRIVER',
+    // Two independent role selections. Empty = null = no access at that level.
+    enterpriseRoleId: initialData.enterpriseRoleId || '',
+    branchRoleId: initialData.branchRoleId || '',
     status: initialData.status || 'PENDING',
   });
 
@@ -30,7 +38,8 @@ const BasicInformationForm = forwardRef(({
         mobileNumber: initialData.mobileNumber || '',
         location: initialData.location || '',
         password: initialData.password || '',
-        role: initialData.role || 'DRIVER',
+        enterpriseRoleId: initialData.enterpriseRoleId || '',
+        branchRoleId: initialData.branchRoleId || '',
         status: initialData.status || 'PENDING',
       });
     }
@@ -79,8 +88,8 @@ const BasicInformationForm = forwardRef(({
               </div>
               
               <div className="basic-info-form-field">
-                <label className="basic-info-label">Last Name</label>
-                <input 
+                <label className="basic-info-label">Last Name {!isEdit && '*'}</label>
+                <input
                   type="text"
                   className="basic-info-input"
                   value={formData.lastName}
@@ -104,8 +113,8 @@ const BasicInformationForm = forwardRef(({
               </div>
               
               <div className="basic-info-form-field">
-                <label className="basic-info-label">Mobile Number</label>
-                <input 
+                <label className="basic-info-label">Mobile Number {!isEdit && '*'}</label>
+                <input
                   type="tel"
                   className="basic-info-input"
                   value={formData.mobileNumber}
@@ -115,24 +124,29 @@ const BasicInformationForm = forwardRef(({
               </div>
             </div>
 
-            {/* Row 3: Location, Password */}
+            {/* Row 3: Password paired with the scope's role selector.
+                - Enterprise ("All locations"): Location + Password (role on Row 4).
+                - Inside a location: Location is implied, so Password sits beside the
+                  Branch Role selector directly. */}
             <div className="basic-info-form-row">
-              <div className="basic-info-form-field">
-                <label className="basic-info-label">Location</label>
-                <input 
-                  type="text"
-                  className="basic-info-input"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  placeholder="Enter location"
-                />
-              </div>
-              
+              {!insideBranch && (
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Location</label>
+                  <input
+                    type="text"
+                    className="basic-info-input"
+                    value={formData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    placeholder="Enter location"
+                  />
+                </div>
+              )}
+
               <div className="basic-info-form-field">
                 <label className="basic-info-label">
                   Password {!isEdit && '*'}
                 </label>
-                <input 
+                <input
                   type="password"
                   className={`basic-info-input ${isEdit ? 'basic-info-input-disabled' : ''}`}
                   value={formData.password}
@@ -142,27 +156,57 @@ const BasicInformationForm = forwardRef(({
                   placeholder={isEdit ? "Cannot be edited" : "Enter password"}
                 />
               </div>
+
+              {insideBranch && (
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Branch Role</label>
+                  <select
+                    className="basic-info-input"
+                    value={formData.branchRoleId}
+                    onChange={(e) => handleInputChange('branchRoleId', e.target.value)}
+                  >
+                    <option value="">None (no branch access)</option>
+                    {roles.map((r) => (
+                      <option key={r._id} value={r._id}>{r.name}</option>
+                    ))}
+                  </select>
+                  <span className="basic-info-hint">Applies to this location.</span>
+                </div>
+              )}
             </div>
 
-            {/* Row 4: Role, Status */}
-            <div className="basic-info-form-row">
-              <div className="basic-info-form-field">
-                <label className="basic-info-label">Role</label>
-                <select 
-                  className="basic-info-input"
-                  value={formData.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                >
-                  <option value="DRIVER">Driver</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="FIELD_AGENT">Field Agent</option>
-                </select>
+            {/* Row 4: Enterprise role — only at the enterprise ("All locations")
+                scope. Inside a location the Branch Role above is the only choice. */}
+            {!insideBranch && (
+              <div className="basic-info-form-row">
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Enterprise Role</label>
+                  <select
+                    className="basic-info-input"
+                    value={formData.enterpriseRoleId}
+                    onChange={(e) => handleInputChange('enterpriseRoleId', e.target.value)}
+                  >
+                    <option value="">None (no enterprise access)</option>
+                    {roles.map((r) => (
+                      <option key={r._id} value={r._id}>{r.name}</option>
+                    ))}
+                  </select>
+                  <span className="basic-info-hint">Grants access across all locations (enterprise).</span>
+                </div>
               </div>
+            )}
 
-              {isEdit && (
+            {!isEdit && (
+              <div className="basic-info-form-row">
+                <span className="basic-info-hint">* Select at least one role (Enterprise or Branch) to create the employee.</span>
+              </div>
+            )}
+
+            {isEdit && (
+              <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
                   <label className="basic-info-label">Status</label>
-                  <select 
+                  <select
                     className="basic-info-input"
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
@@ -172,8 +216,17 @@ const BasicInformationForm = forwardRef(({
                     <option value="SUSPENDED">Suspended</option>
                   </select>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {roles.length === 0 && (
+              <div className="basic-info-form-row">
+                <span className="basic-info-hint">
+                  No roles are available to your enterprise yet. Ask your administrator to enable roles under
+                  Workforce → User Management.
+                </span>
+              </div>
+            )}
           </form>
         </div>
       </div>

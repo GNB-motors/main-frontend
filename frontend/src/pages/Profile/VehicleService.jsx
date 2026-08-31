@@ -4,12 +4,43 @@ import apiClient from '../../utils/axiosConfig';
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-const getAllVehicles = async (businessRefId, token, page = 1, limit = 10) => {
+/**
+ * Shape the form's expected-mileage input for the API. Returns undefined for an
+ * empty/absent value so the key is dropped from the payload entirely — the API
+ * rejects `expectedMileage` when the org lacks the Mileage Integrity feature.
+ */
+const toExpectedMileage = (value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  const kmPerL = Number(value);
+  if (!Number.isFinite(kmPerL) || kmPerL <= 0) return undefined;
+  return { kmPerL, source: 'MANUAL' };
+};
+
+/**
+ * Decide which location a vehicle create should carry.
+ *  - explicit non-empty branchId (form picked a location) → that id
+ *  - explicit empty branchId (form picked "Enterprise")   → null (overrides header)
+ *  - no branchId key at all (other callers)               → active location, or null
+ */
+const resolveVehicleBranchId = (vehicleData) => {
+  if (vehicleData.branchId) return vehicleData.branchId;
+  if (Object.prototype.hasOwnProperty.call(vehicleData, 'branchId')) return null;
+  return localStorage.getItem('user_branchId') || null;
+};
+
+const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branchId) => {
   try {
     // New API: GET /vehicles with optional orgId query param and pagination
     let url = `${API_BASE_URL}/api/vehicles?page=${page}&limit=${limit}`;
     if (businessRefId) {
       url += `&orgId=${businessRefId}`;
+    }
+    // Scope to the active location. These calls use raw axios (not the shared
+    // apiClient), so the X-Branch-Id interceptor doesn't apply — pass it explicitly.
+    // Omit for the enterprise "All locations" view (branch not selected).
+    const activeBranchId = branchId !== undefined ? branchId : localStorage.getItem('user_branchId');
+    if (activeBranchId) {
+      url += `&branchId=${activeBranchId}`;
     }
     const response = await axios.get(url, {
       headers: {
@@ -43,9 +74,16 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
       inventory: vehicleData.inventory || [],
       // include orgId in body for servers that expect org context in payload
       orgId: businessRefId || undefined,
+      // Owning location. The form's explicit choice wins: a real id, or null for
+      // "Enterprise (no location)" — which must override the active-location header.
+      // If a caller doesn't specify branchId at all, use the active location.
+      branchId: resolveVehicleBranchId(vehicleData),
       // Include manufacturer and vehicleCategory if provided (for manual override)
       manufacturer: vehicleData.manufacturer || undefined,
       vehicleCategory: vehicleData.vehicleCategory || undefined,
+      // Omitted entirely unless the org has Mileage Integrity on — the API
+      // rejects this key when the feature is off.
+      expectedMileage: toExpectedMileage(vehicleData.expected_mileage),
     };
 
     const response = await axios.post(
@@ -91,6 +129,9 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
       ...(options.dry_run !== undefined ? { dry_run: !!options.dry_run } : {}),
       ...(options.upsert !== undefined ? { upsert: !!options.upsert } : {}),
       orgId: businessRefId || undefined,
+      // Location applied to the whole batch: explicit option, else the active
+      // location, else the org default (resolved server-side).
+      branchId: options.branchId || localStorage.getItem('user_branchId') || undefined,
     };
 
     const response = await axios.post(
@@ -112,6 +153,28 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
   } catch (error) {
     throw error.response?.data || { detail: error.message || 'Could not bulk add vehicles.' };
   }
+};
+
+// Import (move) an existing enterprise vehicle into the active location. Raw
+// axios (no interceptor), so pass the active branch explicitly via header + body.
+const importVehicle = async (vehicleId, token) => {
+    try {
+        const branchId = localStorage.getItem('user_branchId') || undefined;
+        const response = await axios.post(
+            `${API_BASE_URL}/api/vehicles/${vehicleId}/import`,
+            { branchId },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...(branchId ? { 'X-Branch-Id': branchId } : {}),
+                },
+            }
+        );
+        return response.data?.data ?? response.data;
+    } catch (error) {
+        throw error.response?.data || { detail: error.message || 'Could not import vehicle.' };
+    }
 };
 
 const removeVehicle = async (businessRefId, vehicleId, token) => {
@@ -147,6 +210,9 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
      // Include manufacturer and vehicleCategory for manual override
      if (vehicleData.manufacturer !== undefined) body.manufacturer = vehicleData.manufacturer;
      if (vehicleData.vehicleCategory !== undefined) body.vehicleCategory = vehicleData.vehicleCategory;
+     if (vehicleData.expected_mileage !== undefined) {
+       body.expectedMileage = toExpectedMileage(vehicleData.expected_mileage) || { kmPerL: null };
+     }
      // Include orgId when provided by caller (some servers expect it)
      if (businessRefId) body.orgId = businessRefId;
 
@@ -312,6 +378,7 @@ export const VehicleService = {
   getAllVehicles,
   addVehicle,
   addBulkVehicles,
+  importVehicle,
   removeVehicle,
   updateVehicle,
   getVehicleCorrectionLogs,

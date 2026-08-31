@@ -67,11 +67,17 @@ export const DriverService = {
                 lastName: driverData.lastName || lastName || null,
                 email: driverData.email || null,
                 mobileNumber: normaliseMobile(driverData.mobileNumber) || null,
-                location: driverData.location || null,
                 password: driverData.password || null,
-                role: driverData.role || driverData.role || 'DRIVER',
                 orgId: businessRefId || undefined,
             };
+            // Location is optional free-text (enterprise scope only). Omit it when
+            // empty — the create validator accepts a string or nothing, not null.
+            if (driverData.location) body.location = driverData.location;
+            // Legacy enum role (optional) + the RBAC dual-role selection. Only
+            // send what's present so the backend can derive the enum role.
+            if (driverData.role) body.role = driverData.role;
+            if (driverData.enterpriseRoleId) body.enterpriseRoleId = driverData.enterpriseRoleId;
+            if (driverData.branchRoleId) body.branchRoleId = driverData.branchRoleId;
             // include vehicle assignment if provided
             if (driverData.vehicle_registration_no) {
                 body.vehicle_registration_no = driverData.vehicle_registration_no;
@@ -138,6 +144,30 @@ export const DriverService = {
             return response.data;
         } catch (error) {
             console.error("API Error updating driver:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable." };
+        }
+    },
+
+    // --- Import an existing enterprise employee into the active branch ---
+    // The active branch travels via the X-Branch-Id header (apiClient interceptor).
+    importEmployee: async (employeeId) => {
+        try {
+            const response = await apiClient.post(`/api/employees/${employeeId}/import`);
+            return response.data?.data ?? response.data;
+        } catch (error) {
+            console.error("API Error importing employee:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Network error or server unavailable." };
+        }
+    },
+
+    // --- Deactivate an employee in their current branch (no move) ---
+    // Suspends the account and greys them out in this branch's list.
+    deactivateEmployee: async (employeeId) => {
+        try {
+            const response = await apiClient.post(`/api/employees/${employeeId}/deactivate`);
+            return response.data?.data ?? response.data;
+        } catch (error) {
+            console.error("API Error deactivating employee:", error.response?.data || error.message);
             throw error.response?.data || { detail: "Network error or server unavailable." };
         }
     },

@@ -16,6 +16,8 @@
 /* Dashboard "operations console" faces: technical display + tabular mono for data/plates */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* Fleet instrument cluster display face — expanded grotesk, vehicle-signage feel */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -73,7 +75,7 @@
     --font-mono:     'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
     /* Layout */
-    --navbar-height: 72px;
+    --navbar-height: 64px;
 
     /* Shadows */
     --shadow-card: 0 1px 3px rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.05);
@@ -428,4 +430,732 @@ body {
   border-color: var(--primary-color, #4f46e5);
   background-color: color-mix(in srgb, var(--primary-color, #4f46e5) 10%, transparent);
   color: var(--primary-color, #4f46e5);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Fleet Instrument Cluster — token layer (new screens)
+   ─────────────────────────────────────────────────────────
+   "A GNB screen is the instrument cluster for a fleet the
+   owner can't see." Glass panels are the automotive HUD
+   metaphor; signal colours use vehicle warning-lamp
+   semantics (green/amber/red mean what drivers already
+   think they mean).
+
+   Light mode is the default and is REQUIRED (owners read
+   phones in daylight); .dark is the full night cluster.
+   New screens consume ONLY these tokens so both themes flip
+   cleanly. Legacy pages keep their own styles.
+   ───────────────────────────────────────────────────────── */
+:root {
+    /* Brand — from the GNB mark */
+    --gnb-500: #1B4D8F;
+    --gnb-400: #2E6FC0;
+    --gnb-300: #5B9BE5;
+
+    /* Signal — warning-lamp semantics, non-negotiable meanings.
+       Darkened ~8% here for contrast on light surfaces. */
+    --ok:       #25855A;
+    --caution:  #D98E13;
+    --critical: #D13A40;
+    --inert:    #7C8AA0;
+
+    /* Cluster surfaces — light "paper" cluster */
+    --paper-50:  #F7F9FC;
+    --paper-100: #EDF1F7;
+    --cluster-bg:      var(--paper-50);
+    --cluster-panel:   #FFFFFF;
+    --cluster-raised:  #F2F5FA;
+    --cluster-text:    #0B1220;
+    --cluster-text-dim:#55627A;
+    --glass:     rgba(11, 18, 32, 0.04);
+    --glass-hi:  rgba(11, 18, 32, 0.07);
+    --hairline:  rgba(11, 18, 32, 0.10);
+    --cluster-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 8px 32px rgba(11,18,32,.08);
+
+    --font-cluster-display: 'Archivo', 'Space Grotesk', 'DM Sans', sans-serif;
+}
+
+.dark {
+    /* Cluster surfaces — night instrument cluster, blue-black */
+    --ink-900: #070C16;
+    --ink-800: #0B1220;
+    --ink-700: #131C2E;
+    --cluster-bg:      var(--ink-900);
+    --cluster-panel:   var(--ink-800);
+    --cluster-raised:  var(--ink-700);
+    --cluster-text:    #E8EEF7;
+    --cluster-text-dim:#8FA0B8;
+    --glass:     rgba(255, 255, 255, 0.06);
+    --glass-hi:  rgba(255, 255, 255, 0.10);
+    --hairline:  rgba(255, 255, 255, 0.12);
+    --cluster-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 8px 32px rgba(0,0,0,.35);
+
+    /* Signal hues restored to full brightness on dark */
+    --ok:       #2FA36B;
+    --caution:  #F5A524;
+    --critical: #E5484D;
+    --inert:    #7C8AA0;
+}
+
+/* Glass panel — panels only, never nested (backdrop-filter is
+   expensive; cap ≈6 concurrent per viewport). */
+.cluster-panel {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: var(--cluster-shadow);
+    color: var(--cluster-text);
+}
+
+/* Flat variant for inner rows — no blur, so nesting stays cheap */
+.cluster-inset {
+    background: var(--glass);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+}
+
+.cluster-page {
+    background: var(--cluster-bg);
+    color: var(--cluster-text);
+    border-radius: 20px;
+    padding: 24px;
+    min-height: 100%;
+}
+
+.cluster-eyebrow {
+    font-family: var(--font-cluster-display);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cluster-text-dim);
+}
+
+.cluster-title {
+    font-family: var(--font-cluster-display);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--cluster-text);
+}
+
+.text-dim { color: var(--cluster-text-dim); }
+
+/* Signal utilities */
+.signal-ok       { color: var(--ok); }
+.signal-caution  { color: var(--caution); }
+.signal-critical { color: var(--critical); }
+.signal-inert    { color: var(--inert); }
+.signal-bg-ok       { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.signal-bg-caution  { background: color-mix(in srgb, var(--caution) 16%, transparent); }
+.signal-bg-critical { background: color-mix(in srgb, var(--critical) 14%, transparent); }
+.signal-bg-inert    { background: color-mix(in srgb, var(--inert) 14%, transparent); }
+
+/* Warning lamp — the cluster's atomic signal element.
+   Dark when clean; illuminated when the component carries penalty. */
+.lamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--cluster-text-dim);
+}
+.lamp::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 99px;
+    background: var(--inert);
+    opacity: 0.35;
+    flex: 0 0 auto;
+}
+.lamp--ok::before       { background: var(--ok); opacity: 1; }
+.lamp--caution::before  { background: var(--caution); opacity: 1; box-shadow: 0 0 8px color-mix(in srgb, var(--caution) 65%, transparent); }
+.lamp--critical::before { background: var(--critical); opacity: 1; box-shadow: 0 0 8px color-mix(in srgb, var(--critical) 65%, transparent); }
+.lamp--ok       { color: var(--ok); }
+.lamp--caution  { color: var(--caution); }
+.lamp--critical { color: var(--critical); }
+
+/* Freshness badge — system-wide data-staleness contract */
+.freshness {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--cluster-text-dim);
+}
+.freshness::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--ok);
+}
+.freshness--stale { color: var(--caution); }
+.freshness--stale::before { background: var(--caution); }
+.freshness--dead { color: var(--critical); }
+.freshness--dead::before { background: var(--critical); }
+
+/* Keyboard focus — visible ring on both themes (4.5:1) */
+.cluster-page :focus-visible,
+.cluster-panel :focus-visible {
+    outline: 2px solid var(--gnb-300);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Cluster self-test + every transition respects reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .cluster-panel,
+    .cluster-inset {
+        transition: none;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────
+   Data-confidence primitives
+   ───────────────────────────────────────────────────────── */
+.data-state {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+.data-state--no-data {
+    color: var(--cluster-text-dim);
+    opacity: 0.7;
+}
+.data-state--stale {
+    color: var(--cluster-text-dim);
+    opacity: 0.85;
+}
+.data-state--measured-zero,
+.data-state--measured {
+    color: var(--cluster-text);
+}
+.data-state--measured {
+    font-weight: 600;
+}
+
+.data-state-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    border: 1px dashed var(--hairline);
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+}
+.data-state-block-title {
+    font-family: var(--font-cluster-display);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--cluster-text);
+}
+.data-state-block-hint {
+    color: var(--cluster-text-dim);
+    max-width: 28rem;
+    font-size: 0.75rem;
+    line-height: 1.625;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Overview control-center — redesign primitives (PR: overview-v3)
+   Built entirely on the cluster tokens above so both themes flip
+   cleanly. No new colours — only compositions of existing signal
+   + brand tokens.
+   ───────────────────────────────────────────────────────── */
+
+/* Solid card surface — white in light mode, solid ink in dark. Replaces the
+   translucent .cluster-panel glass on this dense screen so cards read as clean
+   white cards, not tinted glass. */
+.ov-panel {
+    background: var(--cluster-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(11, 18, 32, 0.04), 0 1px 3px rgba(11, 18, 32, 0.05);
+    color: var(--cluster-text);
+}
+.dark .ov-panel {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+/* Inner inset on a white card — a hair off-white so it separates without glass */
+.ov-inset {
+    background: var(--cluster-raised);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+}
+
+/* Full-bleed white page surface — escapes the .page-content gray padding so
+   the entire scroll area reads as one clean white sheet. Theme-aware: white in
+   light, solid ink in dark. Used by Daily Digest and Fuel Integrity. */
+.page-white {
+    background: var(--cluster-panel);
+    margin: calc(-1 * var(--spacing-lg));
+    padding: var(--spacing-lg) var(--spacing-lg) 48px;
+    min-height: calc(100% + 2 * var(--spacing-lg));
+}
+
+/* Section divider label — replaces the separator+centred title pattern */
+.ov-section {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 4px 2px 0;
+}
+.ov-section-title {
+    font-family: var(--font-cluster-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--cluster-text);
+}
+.ov-section-q {
+    font-size: 12px;
+    color: var(--cluster-text-dim);
+}
+
+/* KPI tile — compact, scannable, one number does the talking */
+.ov-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    min-width: 0;
+}
+a.ov-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--cluster-shadow);
+    border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--hairline));
+}
+.ov-kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cluster-text-dim);
+}
+.ov-kpi-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--cluster-text);
+}
+.ov-kpi-sub {
+    font-size: 12px;
+    color: var(--cluster-text-dim);
+    line-height: 1.35;
+}
+/* Emphasised primary tile — the single most important KPI */
+.ov-kpi--primary {
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--gnb-400) 8%, var(--cluster-panel)),
+            var(--cluster-panel));
+    border-color: color-mix(in srgb, var(--gnb-400) 30%, var(--hairline));
+}
+.ov-kpi--primary .ov-kpi-value { font-size: 34px; }
+
+/* Status pill — reserved state semantics, always paired with a word */
+.ov-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.ov-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+.ov-pill--critical { color: var(--critical); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+.ov-pill--caution  { color: var(--caution);  background: color-mix(in srgb, var(--caution) 14%, transparent); }
+.ov-pill--ok       { color: var(--ok);       background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.ov-pill--inert    { color: var(--inert);    background: color-mix(in srgb, var(--inert) 12%, transparent); }
+.ov-pill--brand    { color: var(--gnb-400);  background: color-mix(in srgb, var(--gnb-400) 12%, transparent); }
+
+/* Stacked magnitude bar — 2px surface gaps between fills (dataviz spec) */
+.ov-stack {
+    display: flex;
+    width: 100%;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--hairline);
+    gap: 2px;
+}
+.ov-stack > span { height: 100%; min-width: 2px; }
+.ov-stack > span:first-child { border-top-left-radius: 7px; border-bottom-left-radius: 7px; }
+.ov-stack > span:last-child { border-top-right-radius: 7px; border-bottom-right-radius: 7px; }
+
+/* Two-tone track (loaded vs empty) */
+.ov-track {
+    position: relative;
+    height: 28px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--hairline);
+    display: flex;
+    gap: 2px;
+}
+.ov-track > span {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Action-center row */
+.ov-action {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--hairline)); }
+.ov-action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    flex: 0 0 auto;
+}
+
+/* Simple data table shell for the risk lists */
+.ov-table { width: 100%; border-collapse: collapse; }
+.ov-table thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cluster-text-dim);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--hairline);
+    white-space: nowrap;
+}
+/* A header tagged text-right must align right so it sits over its
+   right-aligned numeric column (beats the base th left-align). */
+.ov-table thead th.text-right { text-align: right; }
+.ov-table tbody td.text-right { text-align: right; }
+.ov-table tbody td {
+    padding: 11px 10px;
+    border-bottom: 1px solid var(--hairline);
+    font-size: 13px;
+    color: var(--cluster-text);
+    vertical-align: middle;
+}
+.ov-table tbody tr:last-child td { border-bottom: 0; }
+.ov-table tbody tr { transition: background 0.12s ease; }
+.ov-table tbody tr:hover { background: var(--glass); }
+
+/* Segmented control (sort / toggle) */
+.ov-seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 9px;
+    border: 1px solid var(--hairline);
+    background: var(--glass);
+}
+.ov-seg button {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: var(--cluster-text-dim);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.ov-seg button:hover { color: var(--cluster-text); }
+.ov-seg button[aria-pressed="true"] {
+    color: var(--gnb-400);
+    background: var(--cluster-panel);
+    box-shadow: 0 1px 2px rgba(11,18,32,.08);
+}
+
+/* Header action buttons */
+.ov-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    color: var(--cluster-text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.ov-btn:hover { border-color: color-mix(in srgb, var(--gnb-400) 45%, var(--hairline)); color: var(--gnb-400); }
+.ov-btn--primary {
+    background: var(--gnb-400);
+    border-color: var(--gnb-400);
+    color: #fff;
+}
+.ov-btn--primary:hover { background: var(--gnb-500); border-color: var(--gnb-500); color: #fff; }
+
+/* ─────────────────────────────────────────────────────────
+   Fuel Integrity — investigation console (PR: fuel-integrity-v2)
+   Reuses the ov-* card / pill / table / button primitives above;
+   only adds the pieces unique to this screen.
+   ───────────────────────────────────────────────────────── */
+
+/* Status banner — dynamic fleet integrity state */
+.fi-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    border-left-width: 4px;
+}
+.fi-banner-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    flex: 0 0 auto;
+}
+.fi-banner--ok   { border-left-color: var(--ok); }
+.fi-banner--warn { border-left-color: var(--caution); }
+.fi-banner--crit { border-left-color: var(--critical); }
+.fi-banner-title {
+    font-family: var(--font-cluster-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+.fi-banner--ok .fi-banner-title   { color: var(--ok); }
+.fi-banner--warn .fi-banner-title { color: var(--caution); }
+.fi-banner--crit .fi-banner-title { color: var(--critical); }
+
+/* Quick-filter chips */
+.fi-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    color: var(--cluster-text-dim);
+    cursor: pointer;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+}
+.fi-chip:hover { color: var(--cluster-text); border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--hairline)); }
+.fi-chip[aria-pressed="true"] {
+    color: var(--gnb-400);
+    background: color-mix(in srgb, var(--gnb-400) 10%, transparent);
+    border-color: color-mix(in srgb, var(--gnb-400) 45%, var(--hairline));
+}
+.fi-chip .fi-chip-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--glass-hi);
+}
+
+/* Sticky investigation toolbar */
+.fi-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--cluster-bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 12px 14px;
+}
+
+/* Form controls (search / date / select) */
+.fi-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    color: var(--cluster-text);
+    font-size: 13px;
+}
+.fi-field:focus-within { border-color: color-mix(in srgb, var(--gnb-400) 50%, var(--hairline)); }
+.fi-field input,
+.fi-field select {
+    border: 0;
+    background: transparent;
+    outline: none;
+    color: var(--cluster-text);
+    font-size: 13px;
+    min-width: 0;
+}
+.fi-field select { cursor: pointer; font-weight: 600; }
+.fi-field--grow { flex: 1 1 220px; }
+
+/* Anomaly affected-vehicle bar */
+.fi-affected {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+}
+.fi-affected-track {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--hairline);
+    overflow: hidden;
+}
+.fi-affected-fill {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    border-radius: 999px;
+}
+
+/* Investigation drawer detail rows */
+.fi-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--hairline);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.fi-detail-cell {
+    background: var(--cluster-panel);
+    padding: 11px 13px;
+}
+.fi-detail-cell--full { grid-column: 1 / -1; }
+.fi-detail-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cluster-text-dim);
+}
+.fi-detail-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 3px;
+    color: var(--cluster-text);
+}
+
+/* Event table: flagged rows stand out with a coloured left edge */
+.ov-table tbody tr.fi-row-flag td:first-child { box-shadow: inset 3px 0 0 var(--caution); }
+.ov-table tbody tr.fi-row-crit td:first-child { box-shadow: inset 3px 0 0 var(--critical); }
+.ov-table tbody tr.fi-row-click { cursor: pointer; }
+
+/* ─────────────────────────────────────────────────────────
+   Owner Alerts — triage center (PR: owner-alerts-v2)
+   Builds on ov-* / fi-* primitives; adds only triage-specific bits.
+   ───────────────────────────────────────────────────────── */
+.oa-torev {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: var(--caution);
+    background: color-mix(in srgb, var(--caution) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--caution) 30%, transparent);
+    white-space: nowrap;
+}
+
+/* Contextual bulk-action bar */
+.oa-bulkbar {
+    position: sticky;
+    bottom: 18px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 10px 10px 16px;
+    border-radius: 12px;
+    background: var(--cluster-panel);
+    border: 1px solid var(--hairline);
+    box-shadow: 0 10px 30px rgba(11, 18, 32, 0.18);
+}
+
+/* Acknowledged rows read as done — muted, not hidden */
+.ov-table tbody tr.oa-row--acked td { opacity: 0.55; }
+.ov-table tbody tr.oa-row--acked:hover td { opacity: 0.8; }
+
+/* Severity left edge on the row */
+.ov-table tbody tr.oa-row-crit td:first-child { box-shadow: inset 3px 0 0 var(--critical); }
+.ov-table tbody tr.oa-row-warn td:first-child { box-shadow: inset 3px 0 0 var(--caution); }
+.ov-table tbody tr.oa-row-info td:first-child { box-shadow: inset 3px 0 0 var(--gnb-400); }
+
+/* One-line clamp for the secondary alert message */
+.oa-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }

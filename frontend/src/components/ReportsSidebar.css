@@ -6,7 +6,7 @@
     border-right: 1px solid #DFDFE2;
     height: calc(100vh - var(--navbar-height, 72px));
     position: fixed;
-    left: 100px; /* Position after collapsed main sidebar */
+    left: 64px; /* Position after the collapsed icon-rail (64px) */
     top: var(--navbar-height, 72px); /* Start exactly where fixed navbar ends (72px from top) */
     z-index: 999; /* Below navbar (1001) and main sidebar (1002) */
     display: flex;

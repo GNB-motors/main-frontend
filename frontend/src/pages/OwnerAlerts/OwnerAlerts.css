@@ -1,0 +1,108 @@
+/* Owner Alerts page — extras on top of the shared FuelComparison.css (fc-*) styles */
+
+.oa-unacked-badge {
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #fde68a;
+}
+
+.oa-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.oa-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oa-alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #f59e0b;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.oa-alert-card.oa-acked {
+  border-left-color: #cbd5e1;
+  opacity: 0.75;
+}
+
+.oa-alert-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.oa-alert-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.oa-alert-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oa-alert-inr {
+  font-size: 16px;
+  font-weight: 700;
+  color: #b45309;
+  white-space: nowrap;
+}
+
+.oa-alert-message {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.oa-alert-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.oa-alert-vehicle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.oa-ack-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+}

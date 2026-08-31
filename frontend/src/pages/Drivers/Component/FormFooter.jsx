@@ -1,4 +1,5 @@
 import React from 'react';
+import NewButton from '@/components/ui/NewButton';
 import './FormFooter.css';
 
 const FormFooter = ({ 
@@ -9,30 +10,27 @@ const FormFooter = ({
   cancelText = 'Cancel',
   submitText = null
 }) => {
-  const defaultSubmitText = isSubmitting 
-    ? (isEdit ? 'Saving...' : 'Adding...') 
-    : (isEdit ? 'Save Changes' : 'Add Employee');
+  // The spinner carries the in-flight state now, so the label stays put.
+  const defaultSubmitText = isEdit ? 'Save Changes' : 'Add Employee';
 
   return (
     <div className="form-footer">
       <div className="form-footer-content">
         <div className="form-footer-actions">
-          <button 
-            type="button" 
-            className="form-footer-btn form-footer-btn-secondary" 
+          <NewButton
+            variant="secondary"
+            type="button"
+            text={cancelText}
             onClick={onCancel}
             disabled={isSubmitting}
-          >
-            {cancelText}
-          </button>
-          <button 
-            type="submit" 
-            className="form-footer-btn form-footer-btn-primary"
+          />
+          <NewButton
+            variant="primary"
+            type="submit"
+            text={submitText || defaultSubmitText}
             onClick={onSubmit}
-            disabled={isSubmitting}
-          >
-            {submitText || defaultSubmitText}
-          </button>
+            loading={isSubmitting}
+          />
         </div>
       </div>
     </div>

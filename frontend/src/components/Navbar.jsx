@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Menu, Search } from 'lucide-react';
+import { Plus, Menu, Search, Sun, Moon } from 'lucide-react';
 import { applyThemeToRoot } from '../utils/colorTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTripCreationContext } from '../contexts/TripCreationContext';
+import LocationSwitcher from './LocationSwitcher.jsx';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -89,17 +91,38 @@ const Navbar = ({ toggleSidebar }) => {
             return 'AdBlue';
         }
 
+        // Without this the slug fallback renders "Command center", which
+        // contradicts the sidebar label and the page's own heading.
+        if (location.pathname.startsWith('/command-center')) {
+            return 'Overview';
+        }
+        if (location.pathname.match(/^\/erp\/trips\/[a-f0-9]{24}$/)) {
+            return 'Trip Details';
+        }
+
+        // The fallback below is a URL slug, so any route ending in a raw
+        // ObjectId would render the id as the page title. Fall back to the
+        // section name instead of showing a 24-char hex string.
+        const segments = location.pathname.split('/').filter(Boolean);
+        const last = segments[segments.length - 1] || '';
+        if (/^[a-f0-9]{24}$/i.test(last)) {
+            const parent = segments[segments.length - 2] || '';
+            if (!parent) return 'Details';
+            const label = parent.replace(/-/g, ' ');
+            return label.charAt(0).toUpperCase() + label.slice(1);
+        }
+
         const path = location.pathname.split('/').pop().replace('-', ' ');
         if (!path) return 'Overview'; // Default title for base path
         return path.charAt(0).toUpperCase() + path.slice(1);
     };
 
     const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
-    const isRefuelLogsPage = location.pathname.includes('/refuel-logs');
     const isMileagePage = location.pathname.startsWith('/mileage-tracking');
     const isMileageListPage = location.pathname === '/mileage-tracking';
     const isAdBlueListPage = location.pathname === '/adblue-tracking';
     const isTripListPage = location.pathname === '/trip-management';
+    const { isDark, toggleTheme } = useTheme();
 
     return (
         <header className="navbar">
@@ -111,6 +134,18 @@ const Navbar = ({ toggleSidebar }) => {
                 )}
             </div>
             <div className="navbar-right">
+                {/* Active location switcher — always first in the action bar.
+                    Renders only when the business has more than one location. */}
+                <LocationSwitcher />
+                <button
+                    type="button"
+                    className="theme-toggle"
+                    onClick={toggleTheme}
+                    title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
                 {isMileageListPage && (
                     <div className="navbar-search">
                         <Search size={16} color="#94a3b8" />

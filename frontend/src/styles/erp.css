@@ -1,0 +1,1118 @@
+/**
+ * Shared styling for the ISOCL ERP pages (masters, call planning).
+ * One stylesheet so every ERP stage looks like the same product.
+ */
+
+.erp-page {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  background: #f8fafc;
+  min-height: 100vh;
+  margin: -24px;
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+.erp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.erp-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.erp-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+.erp-header-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+.erp-page .btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.erp-page .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.erp-page .btn-primary {
+  background: #00c896;
+  color: #fff;
+}
+
+.erp-page .btn-primary:hover:not(:disabled) {
+  background: #00b876;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.2);
+}
+
+.erp-page .btn-secondary {
+  background: #e2e8f0;
+  color: #1a202c;
+}
+
+.erp-page .btn-secondary:hover:not(:disabled) {
+  background: #cbd5e0;
+}
+
+.erp-page .btn-danger {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.erp-page .btn-danger:hover:not(:disabled) {
+  background: #c0392b;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+
+.btn-icon:hover {
+  background: #e2e8f0;
+  color: #1a202c;
+}
+
+.btn-icon.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ─── Toolbar ─────────────────────────────────────────────────────────────── */
+.erp-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.erp-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.erp-tabs button,
+.erp-tab {
+  border: none;
+  background: transparent;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.erp-tabs button.active,
+.erp-tab.active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* ─── Page header (Stage 8+ pages) ─────────────────────────────────────────── */
+.erp-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.erp-page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.erp-page-header p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.erp-page-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+/* ─── Card ────────────────────────────────────────────────────────────────── */
+.erp-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+.erp-card h3,
+.erp-card h4 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-card h4 {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.erp-card > p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ─── Buttons (erp-btn alias for Stage 8+ pages) ──────────────────────────── */
+.erp-btn {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #1a202c;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.erp-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e0;
+}
+
+.erp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.erp-btn.primary,
+.erp-btn-primary {
+  background: #00c896;
+  border-color: #00c896;
+  color: #fff;
+}
+
+.erp-btn.primary:hover:not(:disabled),
+.erp-btn-primary:hover:not(:disabled) {
+  background: #00b876;
+  border-color: #00b876;
+  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.2);
+}
+
+.erp-btn.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* ─── Split layout ────────────────────────────────────────────────────────── */
+.erp-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .erp-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Lists ───────────────────────────────────────────────────────────────── */
+.erp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.erp-link-btn {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1a202c;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.erp-link-btn:hover {
+  background: #f0fdfa;
+  border-color: #00c896;
+  color: #0f766e;
+}
+
+/* ─── Form actions ────────────────────────────────────────────────────────── */
+.erp-form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+/* Labels used directly inside erp-form-grid (Receipts, Finance, etc.) */
+.erp-form-grid > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.erp-form-grid > label input,
+.erp-form-grid > label select,
+.erp-form-grid > label textarea {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 400;
+  background: #fff;
+  color: #1a202c;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.erp-form-grid > label input:focus,
+.erp-form-grid > label select:focus,
+.erp-form-grid > label textarea:focus {
+  outline: none;
+  border-color: #00c896;
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.12);
+}
+
+.erp-form-grid.erp-card {
+  margin-top: 0;
+}
+
+.erp-table.compact thead th,
+.erp-table.compact tbody td {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.erp-table.compact input {
+  width: 100%;
+  min-width: 64px;
+  padding: 6px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.erp-table.compact input:focus {
+  outline: none;
+  border-color: #00c896;
+}
+
+.erp-table-wrap {
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: auto;
+}
+
+.erp-muted {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.erp-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.erp-icon-btn {
+  border: none;
+  background: transparent;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex;
+}
+
+.erp-icon-btn:hover {
+  background: #e2e8f0;
+  color: #1a202c;
+}
+
+.erp-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.erp-form {
+  padding: 0 20px 20px;
+}
+
+.erp-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 280px;
+}
+
+.erp-search .search-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.erp-search input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: #1a202c;
+}
+
+.erp-search input:focus {
+  outline: none;
+  border-color: #00c896;
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.12);
+}
+
+.erp-filter {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: #1a202c;
+  cursor: pointer;
+}
+
+/* ─── Table ───────────────────────────────────────────────────────────────── */
+.erp-container {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.erp-table-scroll {
+  overflow-x: auto;
+}
+
+.erp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 720px;
+}
+
+.erp-table thead th {
+  text-align: left;
+  padding: 14px 16px;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.erp-table tbody td {
+  padding: 14px 16px;
+  border-top: 1px solid #f1f5f9;
+  color: #1a202c;
+  vertical-align: middle;
+}
+
+.erp-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.erp-cell-strong {
+  font-weight: 600;
+}
+
+.erp-cell-muted {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.erp-numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.erp-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* ─── Badges ──────────────────────────────────────────────────────────────── */
+.erp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.erp-badge.active,
+.erp-badge.success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.erp-badge.inactive,
+.erp-badge.neutral {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.erp-badge.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.erp-badge.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.erp-badge.open,
+.erp-badge.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.erp-badge.purple {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+/* ─── States ──────────────────────────────────────────────────────────────── */
+.erp-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 24px;
+  color: #64748b;
+  text-align: center;
+}
+
+.erp-state svg {
+  color: #cbd5e0;
+}
+
+.erp-state p {
+  margin: 0;
+  font-size: 15px;
+}
+
+/* ─── Pagination ──────────────────────────────────────────────────────────── */
+.erp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.erp-pagination span {
+  font-size: 14px;
+  color: #475569;
+}
+
+/* ─── Modal ───────────────────────────────────────────────────────────────── */
+.erp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.erp-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+}
+
+.erp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.erp-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-modal-body {
+  padding: 24px;
+}
+
+.erp-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* ─── Forms ───────────────────────────────────────────────────────────────── */
+.erp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.erp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.erp-field.full {
+  grid-column: 1 / -1;
+}
+
+.erp-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.erp-field .required {
+  color: #dc2626;
+}
+
+.erp-field input,
+.erp-field select,
+.erp-field textarea {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: #1a202c;
+}
+
+.erp-field input:focus,
+.erp-field select:focus,
+.erp-field textarea:focus {
+  outline: none;
+  border-color: #00c896;
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.12);
+}
+
+.erp-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.erp-field-hint {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ─── Weekday picker ──────────────────────────────────────────────────────── */
+.erp-weekdays {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.erp-weekday {
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.erp-weekday.selected {
+  background: #00c896;
+  border-color: #00c896;
+  color: #fff;
+}
+
+/* ─── Outcome picker ──────────────────────────────────────────────────────── */
+.erp-outcomes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.erp-outcome {
+  padding: 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a202c;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.erp-outcome:hover {
+  border-color: #cbd5e0;
+}
+
+.erp-outcome.selected {
+  border-color: #00c896;
+  background: #f0fdfa;
+}
+
+.erp-outcome small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 500;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* ─── Callout ─────────────────────────────────────────────────────────────── */
+.erp-callout {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.erp-callout.info {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.erp-callout.success {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.erp-callout.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.erp-callout.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.erp-callout svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .erp-page {
+    padding: 20px 16px;
+  }
+
+  .erp-form-grid,
+  .erp-outcomes {
+    grid-template-columns: 1fr;
+  }
+
+  .erp-header h1 {
+    font-size: 22px;
+  }
+}
+
+/* ─── Slide-over Drawers ─────────────────────────────────────────────────── */
+.erp-drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.erp-drawer {
+  width: 100%;
+  max-width: 600px;
+  background: #fff;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+  transform: translateX(100%);
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.erp-drawer.closing {
+  animation: slideOutRight 0.2s ease-in forwards;
+}
+
+.erp-drawer-backdrop.closing {
+  animation: fadeOut 0.2s ease-in forwards;
+}
+
+.erp-drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.erp-drawer-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.erp-drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+  background: #f8fafc;
+}
+
+/* ─── Pipeline Stepper ───────────────────────────────────────────────────── */
+.erp-pipeline-stepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.erp-pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex: 1;
+}
+
+.erp-pipeline-step::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: calc(50% + 20px);
+  right: calc(-50% + 20px);
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.erp-pipeline-step:last-child::after {
+  display: none;
+}
+
+.erp-pipeline-step.completed::after {
+  background: #00c896;
+}
+
+.erp-pipeline-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  border: 2px solid #fff;
+}
+
+.erp-pipeline-step.completed .erp-pipeline-icon {
+  background: #00c896;
+  color: #fff;
+}
+
+.erp-pipeline-step.active .erp-pipeline-icon {
+  background: #eff6ff;
+  color: #3b82f6;
+  border-color: #bfdbfe;
+}
+
+.erp-pipeline-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.erp-pipeline-step.active .erp-pipeline-label {
+  color: #1a202c;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Drives the ErpTable loading skeleton. Referenced by ErpTable.jsx since it was
+   written; without this rule the shimmer bars render as frozen grey blocks. */
+@keyframes erpShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Stat tiles ──────────────────────────────────────────────────────────── */
+.erp-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.erp-stat {
+  display: block;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.erp-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.erp-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a202c;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.erp-stat-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.erp-stat-sub.danger { color: #b91c1c; }
+.erp-stat-sub.warning { color: #b45309; }
+.erp-stat-sub.success { color: #15803d; }
+
+.erp-stat-asof {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.erp-stat.clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.erp-stat.clickable:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.erp-stat-cta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #00c896;
+}
+
+/* ─── Hub panel ───────────────────────────────────────────────────────────── */
+.erp-hub-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ─── Table interaction ───────────────────────────────────────────────────── */
+.erp-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.erp-money-link {
+  color: #1a202c;
+  text-decoration: none;
+  border-bottom: 1px dashed #cbd5e0;
+}
+
+.erp-money-link:hover {
+  color: #00b876;
+  border-bottom-color: #00b876;
+}
+
+/* ─── Ageing bar ──────────────────────────────────────────────────────────── */
+.erp-ageing-track {
+  display: flex;
+  width: 100%;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+  background: #f1f5f9;
+}
+
+.erp-ageing-seg {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+
+.erp-ageing-seg:hover {
+  opacity: 0.82;
+}
+
+.erp-ageing-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}

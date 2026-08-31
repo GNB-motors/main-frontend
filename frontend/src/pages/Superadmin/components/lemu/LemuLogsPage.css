@@ -1,0 +1,1935 @@
+/* ─────────────────────────────────────────────────────────
+   LemuLogsPage.css
+   Styling for the super-admin LEMU observability page.
+
+   Follows the same design language as the other super-admin
+   pages (cf. FeatureFlags.css): indigo brand, Inter
+   typography, soft card shadows. Every selector is
+   namespaced with `lemu-` so nothing leaks.
+   ───────────────────────────────────────────────────────── */
+
+.lemu-page {
+  --lemu-primary: var(--primary-color, #4f46e5);
+  --lemu-primary-dark: var(--primary-dark, #4338ca);
+  --lemu-primary-light: var(--primary-light, #eef2ff);
+  --lemu-border: #e5e7eb;
+  --lemu-text: #111827;
+  --lemu-text-secondary: #6b7280;
+  --lemu-bg-subtle: #f9fafb;
+
+  font-family: 'Inter', sans-serif;
+  padding: 32px 24px 64px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  color: var(--lemu-text);
+  box-sizing: border-box;
+}
+
+.lemu-page * {
+  box-sizing: border-box;
+}
+
+/* Keep the shared PageHeader aligned to the page (it self-centres) */
+.lemu-page .page-header-container {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────── */
+.lemu-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 4px 0 20px;
+}
+
+.lemu-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lemu-meta {
+  font-size: 13px;
+  color: var(--lemu-text-secondary);
+  font-weight: 500;
+}
+
+.lemu-meta strong {
+  color: var(--lemu-text);
+  font-weight: 600;
+}
+
+/* ── Stats strip ─────────────────────────────────────────── */
+.lemu-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.lemu-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-stat__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lemu-stat__icon--brand {
+  background: var(--lemu-primary-light);
+  color: var(--lemu-primary);
+}
+
+.lemu-stat__icon--warn {
+  background: #fff7ed;
+  color: #d97706;
+}
+
+.lemu-stat__icon--danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.lemu-stat__icon--neutral {
+  background: #f1f2f4;
+  color: #6b7280;
+}
+
+.lemu-stat__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lemu-stat__value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--lemu-text);
+}
+
+.lemu-stat__label {
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Sections ────────────────────────────────────────────── */
+.lemu-section {
+  margin-bottom: 32px;
+}
+
+.lemu-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.lemu-section__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+/* ── Card + table ────────────────────────────────────────── */
+.lemu-card {
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.lemu-table-wrap {
+  overflow-x: auto;
+}
+
+.lemu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.lemu-table thead th {
+  text-align: left;
+  padding: 14px 20px;
+  background: var(--lemu-bg-subtle);
+  border-bottom: 1px solid var(--lemu-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--lemu-text-secondary);
+  white-space: nowrap;
+}
+
+.lemu-table thead th.lemu-right { text-align: right; }
+
+.lemu-table tbody td {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f2f4;
+  color: var(--lemu-text);
+  vertical-align: middle;
+}
+
+.lemu-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lemu-table td.lemu-right { text-align: right; }
+
+.lemu-table tbody tr.lemu-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.lemu-table tbody tr.lemu-clickable:hover {
+  background: var(--lemu-primary-light);
+}
+
+/* Jobs rows needing attention */
+.lemu-table tbody tr.lemu-row--alert {
+  background: #fffbeb;
+}
+
+.lemu-table tbody tr.lemu-row--alert:hover {
+  background: #fef3c7;
+}
+
+/* Events table: keep message column flexible but truncated */
+.lemu-table--events {
+  table-layout: fixed;
+}
+
+.lemu-table--events thead th,
+.lemu-table--events tbody td {
+  padding-left: 14px;
+  padding-right: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemu-table--events th:nth-child(1) { width: 130px; }
+.lemu-table--events th:nth-child(2) { width: 100px; }
+.lemu-table--events th:nth-child(3) { width: 110px; }
+.lemu-table--events th:nth-child(4) { width: 150px; }
+.lemu-table--events th[aria-label="Expand"],
+.lemu-table--events th[aria-label="Resolve"] { width: 110px; }
+
+.lemu-nowrap { white-space: nowrap; }
+
+.lemu-muted {
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-mono {
+  font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  font-size: 12.5px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-inline-icon {
+  vertical-align: -2px;
+  margin-right: 5px;
+  color: #c4c7cf;
+}
+
+/* ── Job cell ────────────────────────────────────────────── */
+.lemu-job__name {
+  font-weight: 600;
+  color: var(--lemu-text);
+}
+
+.lemu-job__error {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #b91c1c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+/* ── Pills (job status) ──────────────────────────────────── */
+.lemu-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.lemu-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.lemu-pill--ok {
+  background: #e7f8f0;
+  color: #0f9d58;
+}
+
+.lemu-pill--late {
+  background: #fff7ed;
+  color: #d97706;
+}
+
+.lemu-pill--stalled {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.lemu-pill--silent,
+.lemu-pill--never-ran,
+.lemu-pill--unmonitored {
+  background: #f1f2f4;
+  color: #6b7280;
+}
+
+/* ── Severity badges ─────────────────────────────────────── */
+.lemu-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.lemu-badge--sev-debug {
+  background: #f1f2f4;
+  color: #6b7280;
+}
+
+.lemu-badge--sev-info {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.lemu-badge--sev-warn {
+  background: #fff7ed;
+  color: #d97706;
+}
+
+.lemu-badge--sev-error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.lemu-badge--sev-fatal {
+  background: #7f1d1d;
+  color: #fff;
+}
+
+/* ── Filters ─────────────────────────────────────────────── */
+.lemu-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.lemu-select,
+.lemu-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--lemu-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--lemu-text);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.lemu-select:focus,
+.lemu-input:focus {
+  outline: none;
+  border-color: var(--lemu-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lemu-primary) 14%, transparent);
+}
+
+.lemu-input {
+  width: 220px;
+}
+
+.lemu-input::placeholder {
+  color: #9ca3af;
+}
+
+.lemu-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+}
+
+.lemu-search__icon {
+  position: absolute;
+  left: 12px;
+  color: #9ca3af;
+  pointer-events: none;
+  display: flex;
+}
+
+.lemu-search input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 38px;
+  border: 1px solid var(--lemu-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--lemu-text);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.lemu-search input::placeholder {
+  color: #9ca3af;
+}
+
+.lemu-search input:focus {
+  outline: none;
+  border-color: var(--lemu-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lemu-primary) 14%, transparent);
+}
+
+/* ── Message cell ────────────────────────────────────────── */
+.lemu-msg {
+  display: block;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemu-msg__user {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemu-fp {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.lemu-chevron {
+  color: #c4c7cf;
+  display: inline-flex;
+}
+
+.lemu-clickable:hover .lemu-chevron {
+  color: var(--lemu-primary);
+}
+
+/* ── Expanded event detail ───────────────────────────────── */
+.lemu-detail-row td {
+  background: var(--lemu-bg-subtle);
+  padding: 0 !important;
+}
+
+.lemu-detail {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lemu-detail__grid {
+  display: grid;
+  grid-template-columns: 130px 1fr 130px 1fr;
+  gap: 6px 12px;
+  font-size: 13px;
+  align-items: baseline;
+}
+
+.lemu-detail__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-detail__message {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--lemu-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.lemu-detail__error-name {
+  font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.lemu-detail__stack {
+  margin: 0;
+  padding: 12px 14px;
+  background: #111827;
+  color: #d1d5db;
+  border-radius: 10px;
+  font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* ── Pagination ──────────────────────────────────────────── */
+.lemu-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-top: 1px solid var(--lemu-border);
+  background: var(--lemu-bg-subtle);
+}
+
+.lemu-pagination__buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.lemu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease, color 0.18s ease;
+  white-space: nowrap;
+}
+
+.lemu-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.lemu-btn--secondary {
+  background: #fff;
+  color: var(--lemu-text);
+  border-color: var(--lemu-border);
+}
+
+.lemu-btn--secondary:not(:disabled):hover {
+  background: #f9fafb;
+  border-color: #cbd0d8;
+}
+
+.lemu-btn--outline {
+  background: #fff;
+  color: var(--lemu-primary);
+  border-color: color-mix(in srgb, var(--lemu-primary) 40%, #fff);
+}
+
+.lemu-btn--outline:not(:disabled):hover {
+  background: var(--lemu-primary-light);
+  border-color: var(--lemu-primary);
+}
+
+.lemu-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--lemu-primary) 25%, transparent);
+  border-top-color: var(--lemu-primary);
+  animation: lemu-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+/* ── Switch (auto-refresh toggle) ────────────────────────── */
+.lemu-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: #d1d5db;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+  vertical-align: middle;
+}
+
+.lemu-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lemu-switch--on,
+.lemu-switch[aria-checked='true'] {
+  background: var(--lemu-primary);
+}
+
+.lemu-switch--on .lemu-switch__thumb,
+.lemu-switch[aria-checked='true'] .lemu-switch__thumb {
+  transform: translateX(18px);
+}
+
+.lemu-switch:focus-visible {
+  outline: 2px solid var(--lemu-primary);
+  outline-offset: 2px;
+}
+
+/* ── States: alert, empty, loading ───────────────────────── */
+.lemu-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.lemu-alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.lemu-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--lemu-text-secondary);
+  text-align: center;
+}
+
+.lemu-state__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--lemu-bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c4c7cf;
+}
+
+.lemu-state__title {
+  font-weight: 600;
+  color: var(--lemu-text);
+  font-size: 15px;
+}
+
+.lemu-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid #e5e7eb;
+  border-top-color: var(--lemu-primary);
+  animation: lemu-spin 0.7s linear infinite;
+}
+
+@keyframes lemu-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Tab bar ─────────────────────────────────────────────── */
+.lemu-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--lemu-border);
+  overflow-x: auto;
+}
+
+.lemu-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lemu-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.lemu-tab:hover {
+  color: var(--lemu-text);
+}
+
+.lemu-tab--active,
+.lemu-tab[aria-selected='true'] {
+  color: var(--lemu-primary);
+  border-bottom-color: var(--lemu-primary);
+}
+
+.lemu-tab:focus-visible {
+  outline: 2px solid var(--lemu-primary);
+  outline-offset: -2px;
+  border-radius: 6px 6px 0 0;
+}
+
+/* ── Info alert (flags tab note) ─────────────────────────── */
+.lemu-alert--info {
+  background: var(--lemu-primary-light);
+  border: 1px solid color-mix(in srgb, var(--lemu-primary) 25%, #fff);
+  color: var(--lemu-primary-dark);
+}
+
+/* ── Flags tab ───────────────────────────────────────────── */
+.lemu-center { text-align: center; }
+
+.lemu-org {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lemu-org__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--lemu-primary-light);
+  color: var(--lemu-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lemu-org__name {
+  font-weight: 600;
+  color: var(--lemu-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemu-flag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lemu-table--flags th:nth-child(1) { width: 240px; }
+.lemu-table--flags th:nth-child(4) { width: 110px; }
+.lemu-table--flags th[aria-label="Open"] { width: 60px; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .lemu-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .lemu-page {
+    padding: 20px 14px 48px;
+  }
+
+  .lemu-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .lemu-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lemu-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lemu-input,
+  .lemu-select,
+  .lemu-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .lemu-detail__grid {
+    grid-template-columns: 110px 1fr;
+  }
+
+  .lemu-table thead th,
+  .lemu-table tbody td {
+    padding: 12px 14px;
+  }
+}
+
+/* ── Layer 3: custom properties ────────────────────────────── */
+.lemu-page {
+  --lemu-status-live: var(--lemu-primary);
+  --lemu-status-idle: #6b7280;
+  --lemu-status-idle-bg: #f1f2f4;
+  --lemu-status-off: #6b7280;
+  --lemu-status-off-border: #b8bcc4;
+  --lemu-status-degraded: #d97706;
+  --lemu-status-degraded-bg: #fff7ed;
+  --lemu-status-broken: #dc2626;
+  --lemu-status-broken-bg: #fef2f2;
+  --lemu-heat-0: transparent;
+  --lemu-heat-1: #eef2ff;
+  --lemu-heat-2: #c7d2fe;
+  --lemu-heat-3: #a5b4fc;
+  --lemu-heat-4: #818cf8;
+  --lemu-plate-min: 200px;
+  --lemu-plate-gap: 12px;
+  --lemu-node-h: 28px;
+  --lemu-region-rule: var(--lemu-border);
+  --lemu-drawer-w: 420px;
+  --lemu-drawer-w-sm: 380px;
+  --lemu-scrim: rgba(17, 24, 39, 0.35);
+  --lemu-ribbon-h: 40px;
+  --lemu-ribbon-alert-bg: var(--lemu-status-broken-bg);
+  --lemu-ribbon-clean-bg: #f0fdf4;
+}
+
+/* ── Findings ribbon ───────────────────────────────────────── */
+.lemu-findings-ribbon {
+  margin-bottom: 20px;
+}
+
+.lemu-findings-ribbon__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--lemu-ribbon-h);
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--lemu-border);
+  background: #fff;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lemu-text);
+  transition: background-color 0.15s ease;
+}
+
+.lemu-findings-ribbon__bar--clean {
+  background: var(--lemu-ribbon-clean-bg);
+  border-color: #bbf7d0;
+}
+
+.lemu-findings-ribbon__bar--alert {
+  background: var(--lemu-ribbon-alert-bg);
+  border-color: #fecaca;
+}
+
+.lemu-findings-ribbon__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  font-size: 12px;
+}
+
+.lemu-findings-ribbon__summary {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemu-findings-ribbon__more {
+  margin-left: auto;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-findings-ribbon__panel {
+  margin-top: 8px;
+  animation: lemu-fade-in 0.18s ease;
+}
+
+@keyframes lemu-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Findings panel ────────────────────────────────────────── */
+.lemu-findings-panel {
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-findings-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.lemu-findings-panel__header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-findings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.lemu-findings-group {
+  border: 1px solid var(--lemu-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.lemu-findings-group--clean {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.lemu-findings-group--alert {
+  background: var(--lemu-status-broken-bg);
+  border-color: #fecaca;
+}
+
+.lemu-findings-group__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lemu-findings-group--clean .lemu-findings-group__title {
+  color: #15803d;
+}
+
+.lemu-findings-group--alert .lemu-findings-group__title {
+  color: var(--lemu-status-broken);
+}
+
+.lemu-findings-group__count {
+  margin-left: auto;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.lemu-findings-group__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lemu-findings-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--lemu-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemu-findings-item:hover {
+  background: #fff;
+}
+
+.lemu-findings-panel--clean,
+.lemu-findings-panel--error,
+.lemu-findings-panel--stale {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.lemu-findings-panel--clean {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.lemu-findings-panel--error {
+  background: var(--lemu-status-broken-bg);
+  color: var(--lemu-status-broken);
+  border-color: #fecaca;
+}
+
+.lemu-findings-panel--stale {
+  background: #fff7ed;
+  color: var(--lemu-status-degraded);
+  border-color: #fed7aa;
+}
+
+/* ── Status chip (silence trio) ────────────────────────────── */
+.lemu-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  background: var(--lemu-status-bg, var(--lemu-status-idle-bg));
+  color: var(--lemu-status-color, var(--lemu-status-idle));
+  border: 1px solid transparent;
+}
+
+.lemu-status-chip--nothing {
+  border-color: var(--lemu-status-idle-bg);
+}
+
+.lemu-status-chip--off {
+  border-style: dashed;
+  border-color: var(--lemu-status-off-border);
+}
+
+.lemu-status-chip--degraded {
+  border-color: #fed7aa;
+}
+
+.lemu-status-chip--broken {
+  border-color: #fecaca;
+}
+
+/* ── System map ────────────────────────────────────────────── */
+.lemu-system-map {
+  position: relative;
+}
+
+.lemu-system-map__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.lemu-system-map__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--lemu-text);
+}
+
+.lemu-system-map__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lemu-select--small {
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.lemu-system-map__board {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr auto;
+  gap: var(--lemu-plate-gap);
+  min-height: 400px;
+}
+
+.lemu-region {
+  background: #fff;
+  border: 1px solid var(--lemu-region-rule);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lemu-region--schedule {
+  grid-column: 1 / -1;
+}
+
+.lemu-region__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--lemu-border);
+}
+
+.lemu-region__icon {
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-region__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-region__count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-region__body {
+  flex: 1;
+}
+
+/* ── Plates ────────────────────────────────────────────────── */
+.lemu-plates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--lemu-plate-min), 1fr));
+  gap: var(--lemu-plate-gap);
+  align-items: start;
+}
+
+.lemu-plate {
+  background: var(--lemu-bg-subtle);
+  border: 1px solid var(--lemu-border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lemu-plate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.lemu-plate__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lemu-plate__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-plate__loc {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-plate__meta {
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-plate__heat {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 8px;
+}
+
+.lemu-plate__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--lemu-heat-0);
+}
+
+.lemu-plate__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Nodes (routes, models, jobs) ──────────────────────────── */
+.lemu-node {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--lemu-node-h);
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+  outline: none;
+}
+
+.lemu-node:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+.lemu-node:focus-visible {
+  outline: 2px solid var(--lemu-primary);
+  outline-offset: 1px;
+}
+
+.lemu-node--selected {
+  outline: 2px solid var(--lemu-primary);
+  outline-offset: 1px;
+}
+
+.lemu-node__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lemu-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemu-node__meta {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-node__alert {
+  display: inline-flex;
+  color: var(--lemu-status-broken);
+}
+
+.lemu-node__state {
+  flex-shrink: 0;
+}
+
+.lemu-node__tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: #111827;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.lemu-node__tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -4px;
+  border: 4px solid transparent;
+  border-top-color: #111827;
+}
+
+.lemu-node--nothing {
+  border-color: var(--lemu-status-idle-bg);
+}
+
+.lemu-node--off {
+  border-style: dashed;
+  border-color: var(--lemu-status-off-border);
+}
+
+.lemu-node--degraded {
+  border-color: #fed7aa;
+}
+
+.lemu-node--broken {
+  background: var(--lemu-status-broken-bg);
+  border-color: #fecaca;
+}
+
+.lemu-node--broken .lemu-node__label {
+  color: var(--lemu-status-broken);
+}
+
+.lemu-heat--0 { background: var(--lemu-heat-0); }
+.lemu-heat--1 { background: var(--lemu-heat-1); }
+.lemu-heat--2 { background: var(--lemu-heat-2); }
+.lemu-heat--3 { background: var(--lemu-heat-3); }
+.lemu-heat--4 { background: var(--lemu-heat-4); }
+
+/* ── Data surface (models) ─────────────────────────────────── */
+.lemu-models {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Schedule surface (jobs) ───────────────────────────────── */
+.lemu-jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lemu-job-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+/* ── Map empty/error states ────────────────────────────────── */
+.lemu-map-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--lemu-text-secondary);
+  background: #fff;
+  border: 1px dashed var(--lemu-border);
+  border-radius: 16px;
+}
+
+.lemu-map-empty--error {
+  color: var(--lemu-status-broken);
+  background: var(--lemu-status-broken-bg);
+  border-style: solid;
+  border-color: #fecaca;
+}
+
+.lemu-map-empty__title {
+  font-weight: 600;
+  color: var(--lemu-text);
+  max-width: 520px;
+}
+
+.lemu-map-empty--error .lemu-map-empty__title {
+  color: var(--lemu-status-broken);
+}
+
+/* ── Drawer ────────────────────────────────────────────────── */
+.lemu-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--lemu-scrim);
+  z-index: 40;
+}
+
+.lemu-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--lemu-drawer-w);
+  height: 100%;
+  background: #fff;
+  z-index: 50;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.lemu-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--lemu-border);
+}
+
+.lemu-drawer__heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-drawer__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--lemu-border);
+  background: #fff;
+  color: var(--lemu-text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.lemu-drawer__close:hover {
+  background: var(--lemu-bg-subtle);
+}
+
+.lemu-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.lemu-drawer__head {
+  margin-bottom: 16px;
+}
+
+.lemu-drawer__kind {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--lemu-text-secondary);
+  margin-bottom: 4px;
+}
+
+.lemu-drawer__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--lemu-text);
+  word-break: break-word;
+}
+
+.lemu-drawer__badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lemu-drawer__badge--finding {
+  background: var(--lemu-status-broken-bg);
+  color: var(--lemu-status-broken);
+}
+
+.lemu-drawer__grid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.lemu-drawer__grid dt {
+  color: var(--lemu-text-secondary);
+  font-weight: 600;
+}
+
+.lemu-drawer__grid dd {
+  margin: 0;
+  color: var(--lemu-text);
+  word-break: break-word;
+}
+
+.lemu-drawer__section {
+  margin-bottom: 20px;
+}
+
+.lemu-drawer__section h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-drawer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.lemu-drawer__list--two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 12px;
+}
+
+.lemu-drawer__metrics {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.lemu-drawer__metrics--wide {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.lemu-metric {
+  background: var(--lemu-bg-subtle);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+
+.lemu-metric span {
+  display: block;
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.lemu-metric strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-node-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.lemu-node-status__reason,
+.lemu-node-status__stale {
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+}
+
+/* ── Pulse sparkline ───────────────────────────────────────── */
+.lemu-pulse {
+  background: var(--lemu-bg-subtle);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.lemu-pulse__bar {
+  fill: var(--lemu-primary);
+  transition: height 0.3s ease;
+}
+
+.lemu-pulse__bar--err {
+  fill: var(--lemu-status-broken);
+}
+
+.lemu-pulse__empty {
+  font-size: 13px;
+  color: var(--lemu-text-secondary);
+  padding: 8px 0;
+}
+
+.lemu-pulse__sparse {
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+  margin-top: 8px;
+}
+
+/* ── Change feed ───────────────────────────────────────────── */
+.lemu-change-feed__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.lemu-change-feed__day-one {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--lemu-primary-light);
+  border: 1px solid color-mix(in srgb, var(--lemu-primary) 20%, #fff);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--lemu-primary-dark);
+}
+
+.lemu-change-feed__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.lemu-change-feed__footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-change-feed--loading,
+.lemu-change-feed--error,
+.lemu-change-feed--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-change-feed--error {
+  color: var(--lemu-status-broken);
+}
+
+.lemu-change-feed__title {
+  font-weight: 600;
+  color: var(--lemu-text);
+}
+
+.lemu-change-entry {
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-change-entry__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.lemu-change-entry__version {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lemu-primary);
+}
+
+.lemu-change-entry__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-change-entry__hash {
+  font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+}
+
+.lemu-change-sentence {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--lemu-text);
+}
+
+.lemu-change-entry__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--lemu-border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lemu-text-secondary);
+  cursor: pointer;
+}
+
+.lemu-change-entry__toggle:hover {
+  background: var(--lemu-bg-subtle);
+}
+
+.lemu-change-entry__details {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--lemu-border);
+}
+
+.lemu-change-entry__empty {
+  font-size: 13px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-change-entry__empty--error {
+  color: var(--lemu-danger, #dc2626);
+}
+
+.lemu-change-entry__retry {
+  margin-left: 8px;
+  padding: 2px 10px;
+  font-size: 12px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lemu-change-entry__retry:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.lemu-change-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.lemu-change-group h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-change-list + .lemu-change-list {
+  margin-top: 10px;
+}
+
+.lemu-change-list__title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--lemu-text-secondary);
+  margin: 0 0 6px;
+}
+
+.lemu-change-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lemu-change-list__item {
+  font-size: 12px;
+  color: var(--lemu-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Tab grouping separator ────────────────────────────────── */
+.lemu-tab__sep {
+  color: var(--lemu-border);
+  font-weight: 700;
+  padding: 0 2px;
+  user-select: none;
+}
+
+/* ── Job status wrapper in table ───────────────────────────── */
+.lemu-job-status {
+  display: inline-flex;
+}
+
+/* ── Drawer open body dim ──────────────────────────────────── */
+.lemu-tab-body--drawer-open {
+  padding-right: calc(var(--lemu-drawer-w) + 24px);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1535px) {
+  .lemu-system-map__board {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .lemu-region--schedule {
+    grid-column: auto;
+  }
+
+  .lemu-tab-body--drawer-open {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 1280px) {
+  .lemu-drawer {
+    width: var(--lemu-drawer-w-sm);
+  }
+
+  .lemu-plates {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .lemu-findings-ribbon__summary {
+    max-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .lemu-drawer {
+    width: 100%;
+  }
+
+  .lemu-plates {
+    grid-template-columns: 1fr;
+  }
+
+  .lemu-findings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lemu-drawer__metrics,
+  .lemu-drawer__metrics--wide {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+
+/* ── Route / findings filters (T6) ───────────────────────── */
+.lemu-search--compact {
+  flex: 0 1 240px;
+  min-width: 180px;
+}
+
+.lemu-search--compact input {
+  height: 34px;
+  font-size: 13px;
+}
+
+.lemu-system-map__no-match {
+  padding: 12px 4px;
+}
+
+.lemu-findings-panel__filter {
+  margin-bottom: 16px;
+  max-width: 420px;
+}
+
+.lemu-findings-group__no-match {
+  padding: 8px 4px;
+}
