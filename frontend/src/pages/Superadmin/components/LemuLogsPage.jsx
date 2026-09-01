@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   BookOpen,
   Flag,
+  Fuel,
   Map,
   RefreshCw,
   ScrollText,
@@ -21,6 +22,7 @@ import LemuFindingsRibbon from './lemu/LemuFindingsRibbon';
 import LemuSystemMap from './lemu/LemuSystemMap';
 import LemuNodeDrawer from './lemu/LemuNodeDrawer';
 import LemuChangeFeed from './lemu/LemuChangeFeed';
+import FuelIntegrityLineagePanel from './lemu/FuelIntegrityLineagePanel';
 import { deriveRouteModule, nodeId, relativeTime, routePulseKey } from './lemu/utils';
 import './lemu/LemuLogsPage.css';
 
@@ -41,6 +43,7 @@ const TABS = [
   { id: 'jobs', label: 'Jobs', group: 'activity', icon: <Server size={15} /> },
   { id: 'errors', label: 'Errors', group: 'activity', icon: <AlertTriangle size={15} /> },
   { id: 'flags', label: 'Flags', group: 'config', icon: <Flag size={15} /> },
+  { id: 'lineage', label: 'Lineage', group: 'config', icon: <Fuel size={15} /> },
 ];
 
 const LemuLogsPage = () => {
@@ -639,6 +642,8 @@ const LemuLogsPage = () => {
         )}
 
         {activeTab === 'flags' && <LemuFlagsTab />}
+
+        {activeTab === 'lineage' && <FuelIntegrityLineagePanel />}
       </div>
 
       {drawerOpen && selectedNode && (

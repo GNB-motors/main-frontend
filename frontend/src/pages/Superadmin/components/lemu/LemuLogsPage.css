@@ -667,6 +667,12 @@
   color: #b91c1c;
 }
 
+.lemu-alert--warn {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #b45309;
+}
+
 .lemu-state {
   display: flex;
   flex-direction: column;
@@ -1932,4 +1938,314 @@
 
 .lemu-findings-group__no-match {
   padding: 8px 4px;
+}
+
+/* ── Warehouse freshness panel ─────────────────────────────── */
+.lemu-warehouse-panel {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-warehouse-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--lemu-text);
+}
+
+.lemu-warehouse-panel__head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.lemu-warehouse-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lemu-warehouse-panel__checked {
+  margin-bottom: 4px;
+}
+
+.lemu-warehouse-panel__table {
+  font-size: 13px;
+}
+
+.lemu-warehouse-panel__table th,
+.lemu-warehouse-panel__table td {
+  padding: 10px 12px;
+}
+
+/* ── Fuel-integrity lineage panel ──────────────────────────── */
+.lemu-lineage {
+  max-width: 900px;
+}
+
+.lemu-lineage__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.lemu-lineage__search .lemu-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.lemu-lineage__search .lemu-input {
+  width: 100%;
+}
+
+.lemu-lineage__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.lemu-lineage__meta > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lemu-lineage__label {
+  color: var(--lemu-text-secondary);
+  font-weight: 600;
+}
+
+.lemu-lineage-verdict {
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-lineage-verdict__title {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-bottom: 10px;
+}
+
+.lemu-lineage-verdict--ok .lemu-lineage-verdict__title {
+  color: #15803d;
+}
+
+.lemu-lineage-verdict--warning .lemu-lineage-verdict__title,
+.lemu-lineage-verdict--suspect .lemu-lineage-verdict__title {
+  color: #d97706;
+}
+
+.lemu-lineage-verdict--fail .lemu-lineage-verdict__title,
+.lemu-lineage-verdict--error .lemu-lineage-verdict__title {
+  color: #dc2626;
+}
+
+.lemu-lineage-verdict__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lemu-lineage-metric {
+  background: var(--lemu-bg-subtle);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 140px;
+}
+
+.lemu-lineage-metric span {
+  display: block;
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lemu-lineage-metric strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-lineage-path {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-lineage-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 140px;
+  padding: 14px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--lemu-border);
+  background: var(--lemu-bg-subtle);
+  text-align: center;
+}
+
+.lemu-lineage-node__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-lineage-node--ok .lemu-lineage-node__icon {
+  color: #0f9d58;
+}
+
+.lemu-lineage-node--stale .lemu-lineage-node__icon {
+  color: #d97706;
+}
+
+.lemu-lineage-node--missing .lemu-lineage-node__icon {
+  color: #dc2626;
+}
+
+.lemu-lineage-node__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.lemu-lineage-node__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-lineage-node__meta {
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+  font-weight: 600;
+}
+
+.lemu-lineage-node__freshness {
+  display: flex;
+  justify-content: center;
+}
+
+.lemu-lineage-node__note {
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+  line-height: 1.35;
+}
+
+.lemu-lineage-connector {
+  width: 24px;
+  height: 2px;
+  background: var(--lemu-border);
+  flex-shrink: 0;
+}
+
+.lemu-lineage-verdict-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--lemu-border);
+  background: #fff;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.lemu-lineage-verdict-dot__title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-lineage-verdict-dot__status {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--lemu-text);
+}
+
+.lemu-lineage-verdict-dot--ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.lemu-lineage-verdict-dot--warning,
+.lemu-lineage-verdict-dot--suspect {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.lemu-lineage-verdict-dot--fail,
+.lemu-lineage-verdict-dot--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* ── Lineage responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .lemu-lineage-path {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lemu-lineage-connector {
+    width: 2px;
+    height: 16px;
+    margin: 0 auto;
+  }
+
+  .lemu-lineage-node {
+    width: 100%;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .lemu-lineage-node__body {
+    align-items: flex-start;
+  }
+
+  .lemu-lineage-node__freshness {
+    justify-content: flex-start;
+  }
+
+  .lemu-lineage-verdict-dot {
+    align-self: center;
+  }
 }

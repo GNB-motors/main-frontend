@@ -112,6 +112,7 @@ import FuelSpendPage from './pages/FuelSpend/FuelSpendPage.jsx';
 import DefLedgerPage from './pages/DefLedger/DefLedgerPage.jsx';
 import FleetCoveragePage from './pages/FleetCoverage/FleetCoveragePage.jsx';
 import AuditTrailPage from './pages/AuditTrail/AuditTrailPage.jsx';
+import RouteIntelligencePage from './pages/RouteIntelligence/RouteIntelligencePage.jsx';
 import Vehicle360Page from './pages/Vehicle360/Vehicle360Page.jsx';
 
 import LandingPage from './pages/Landing/LandingPage.jsx';
@@ -163,6 +164,7 @@ function App() {
         <Route path="/def-ledger" element={<DefLedgerPage />} />
         <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
         <Route path="/audit-trail" element={<AuditTrailPage />} />
+        <Route path="/route-intelligence" element={<RouteIntelligencePage />} />
         <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />

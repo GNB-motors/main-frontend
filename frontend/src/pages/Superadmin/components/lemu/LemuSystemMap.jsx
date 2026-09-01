@@ -1,11 +1,12 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Map, Search, SlidersHorizontal } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Map, Search, SlidersHorizontal, Database } from 'lucide-react';
 import LemuMapRegion from './LemuMapRegion';
 import LemuModulePlate from './LemuModulePlate';
 import LemuMapNode from './LemuMapNode';
 import LemuMapEmpty from './LemuMapEmpty';
 import LemuStatusChip from './LemuStatusChip';
-import { deriveRouteModule, fullRoutePath, heatFromCount, jobStatusToTrio, nodeId } from './utils';
+import { LemuService } from '../LemuService';
+import { deriveRouteModule, fullRoutePath, heatFromCount, jobStatusToTrio, nodeId, relativeTime } from './utils';
 
 const SORT_OPTIONS = [
   { id: 'activity', label: 'Activity' },
@@ -18,6 +19,27 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
   const boardRef = useRef(null);
   /* Text filter across route plates — 40+ modules flat is not browsable. */
   const [routeFilter, setRouteFilter] = useState('');
+  /* Warehouse freshness panel. */
+  const [warehouse, setWarehouse] = useState(null);
+  const [warehouseStatus, setWarehouseStatus] = useState('loading');
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadWarehouse = async () => {
+      setWarehouseStatus('loading');
+      try {
+        const data = await LemuService.getWarehouseFreshness();
+        if (!cancelled) {
+          setWarehouse(data.data || null);
+          setWarehouseStatus('live');
+        }
+      } catch {
+        if (!cancelled) setWarehouseStatus('error');
+      }
+    };
+    loadWarehouse();
+    return () => { cancelled = true; };
+  }, []);
 
   const functionsByName = useMemo(() => {
     const map = {};
@@ -251,6 +273,77 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
             ))}
           </div>
         </LemuMapRegion>
+      </div>
+
+      <div className="lemu-warehouse-panel">
+        <div className="lemu-warehouse-panel__head">
+          <Database size={16} />
+          <h3>Warehouse Freshness</h3>
+          {!warehouse?.enabled && (
+            <span className="lemu-status-chip lemu-status-chip--off">disabled</span>
+          )}
+        </div>
+
+        {warehouseStatus === 'loading' && (
+          <div className="lemu-meta">Loading warehouse freshness…</div>
+        )}
+
+        {warehouseStatus === 'error' && (
+          <div className="lemu-alert lemu-alert--error" role="alert">
+            Could not load warehouse freshness.
+          </div>
+        )}
+
+        {warehouseStatus === 'live' && warehouse && (
+          <>
+            {!warehouse.enabled ? (
+              <div className="lemu-alert lemu-alert--info" role="status">
+                ClickHouse warehouse mirroring is currently disabled.
+              </div>
+            ) : (
+              <div className="lemu-warehouse-panel__body">
+                {warehouse.checkedAt && (
+                  <div className="lemu-meta lemu-warehouse-panel__checked">
+                    Checked <strong>{relativeTime(warehouse.checkedAt)}</strong>
+                  </div>
+                )}
+                <table className="lemu-table lemu-warehouse-panel__table">
+                  <thead>
+                    <tr>
+                      <th>Collection</th>
+                      <th className="lemu-right">Liveness</th>
+                      <th className="lemu-right">Completeness</th>
+                      <th className="lemu-right">Correctness</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(warehouse.tables || {}).map(([name, metrics]) => (
+                      <tr key={name}>
+                        <td className="lemu-mono">{name}</td>
+                        <td className="lemu-right">
+                          {metrics.liveness != null ? `${metrics.liveness}m` : '—'}
+                        </td>
+                        <td className="lemu-right">
+                          <span className={`lemu-pill ${metrics.completeness ? 'lemu-pill--ok' : 'lemu-pill--stalled'}`}>
+                            {metrics.completeness ? 'ok' : 'fail'}
+                          </span>
+                        </td>
+                        <td className="lemu-right">
+                          <span className={`lemu-pill ${metrics.correctness ? 'lemu-pill--ok' : 'lemu-pill--stalled'}`}>
+                            {metrics.correctness ? 'ok' : 'fail'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {Object.keys(warehouse.tables || {}).length === 0 && (
+                  <div className="lemu-meta">No mirrored collections reported.</div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
