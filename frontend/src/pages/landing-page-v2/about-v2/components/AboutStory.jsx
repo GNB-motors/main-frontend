@@ -1,4 +1,4 @@
-import ImageSlot from './ImageSlot.jsx';
+import oneRecord from '../assets/gnb-about-one-record.png';
 
 export default function AboutStory() {
   return (
@@ -17,7 +17,7 @@ export default function AboutStory() {
           </div>
         </div>
         <div data-reveal style={{ borderRadius: "var(--radius-xtra-soft)", overflow: "hidden", boxShadow: "var(--shadow-lg)", aspectRatio: "4/3" }}>
-          <ImageSlot placeholder="Depot or operations room photo" />
+          <img src={oneRecord} alt="Six disconnected systems, replaced by one GNB Edge trip record" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         </div>
       </div>
     </section>

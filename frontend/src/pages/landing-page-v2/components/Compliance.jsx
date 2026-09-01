@@ -1,11 +1,11 @@
-import ImageSlot from './ImageSlot.jsx';
+import complianceConsole from '../assets/gnb-compliance-console.png';
 
 export default function Compliance() {
   return (
     <section data-screen-label="Compliance" style={{ background: "#F4F5FA", padding: "112px 40px" }}>
       <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", alignItems: "center" }}>
         <div data-reveal style={{ borderRadius: "var(--radius-xtra-soft)", overflow: "hidden", boxShadow: "var(--shadow-lg)", aspectRatio: "4/3", order: "-1" }}>
-          <ImageSlot placeholder="Drop a GST / e-way bill screen" />
+          <img src={complianceConsole} alt="GNB Edge compliance and finance console" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         </div>
         <div data-reveal-group>
           <div style={{ fontFamily: "var(--font-eyebrow)", fontSize: "11px", fontWeight: "500", letterSpacing: ".44em", textTransform: "uppercase", color: "var(--nova-rage-600)", marginBottom: "20px" }}>Compliance and finance</div>

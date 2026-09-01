@@ -127,7 +127,37 @@ async function boot() {
     } catch (e) { /* try next source */ }
   }
 }
-boot();
+
+let booted = false;
+let wasVisible = false;
+
+// Toggling the class (rather than the "animation" shorthand) restarts the
+// gnb-pin-drop keyframes without clobbering each pin's inline
+// animation-delay, so the staggered drop still replays in order.
+function replayPins() {
+  const pins = [...document.querySelectorAll('.pin')];
+  pins.forEach((el) => el.classList.remove('pin'));
+  void document.body.offsetHeight; // reflow: forces the browser to treat the re-add below as a fresh start
+  pins.forEach((el) => el.classList.add('pin'));
+}
+
+// Intersection here is computed against the top-level viewport, not this
+// iframe's own bounding box, so this waits for the user to scroll the map
+// into view on the parent page — and replays the pin-drop every time the
+// map re-enters view, instead of only once at first load.
+function watchVisibility() {
+  if (!('IntersectionObserver' in window)) { boot(); return; }
+  const io = new IntersectionObserver((entries) => {
+    const visible = entries.some((e) => e.isIntersecting);
+    if (visible && !wasVisible) {
+      if (!booted) { booted = true; boot(); }
+      else { replayPins(); }
+    }
+    wasVisible = visible;
+  }, { threshold: 0.1 });
+  io.observe(document.body);
+}
+watchVisibility();
 </script>
 </body>
 </html>

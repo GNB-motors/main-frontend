@@ -1,4 +1,4 @@
-import ImageSlot from './ImageSlot.jsx';
+import driverRoster from '../assets/gnb-driver-roster.png';
 
 export default function DriverConsole() {
   return (
@@ -29,7 +29,7 @@ export default function DriverConsole() {
           </div>
         </div>
         <div data-reveal style={{ borderRadius: "var(--radius-xtra-soft)", overflow: "hidden", border: "1px solid rgba(5,8,22,.08)", boxShadow: "var(--shadow-lg)", aspectRatio: "16/10" }}>
-          <ImageSlot placeholder="Drop the driver roster screenshot" />
+          <img src={driverRoster} alt="GNB Edge driver roster console" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         </div>
       </div>
     </section>
