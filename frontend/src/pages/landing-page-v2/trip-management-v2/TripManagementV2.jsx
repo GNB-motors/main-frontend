@@ -3,7 +3,6 @@ import GnbPage from '../GnbPage.jsx';
 import ProgressBar from './components/ProgressBar.jsx';
 import MegaNav from '../components/MegaNav.jsx';
 import TripHero from './components/TripHero.jsx';
-import TripSpecs from './components/TripSpecs.jsx';
 import TripCapabilities from './components/TripCapabilities.jsx';
 import TripConsole from './components/TripConsole.jsx';
 import TripAi from './components/TripAi.jsx';
@@ -18,7 +17,6 @@ const TripManagementV2 = () => {
       <ProgressBar />
       <MegaNav />
       <TripHero />
-      <TripSpecs />
       <TripCapabilities />
       <TripConsole />
       <TripAi />

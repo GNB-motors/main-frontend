@@ -1,7 +1,11 @@
 /* Shared runtime interactions for GNB Edge marketing pages.
    Scroll-reveal: elements are only hidden once JS marks them pending (so content
-   is never hidden if JS is slow/off), and only below-the-fold elements get
-   marked — above-fold content shows immediately with no flash. */
+   is never hidden if JS is slow/off). Every target is marked, and above-fold
+   ones are marked revealed in the same pass — that avoids a first-paint flash
+   while still leaving them a transition for later passes.
+
+   The reveal replays: GnbPage re-arms a target once it is fully out of view, so
+   scrolling back up and down animates it again. */
 .gnb-edge-v2 [data-reveal-pending] {
   opacity: 0;
   transform: translateY(22px);
@@ -12,6 +16,19 @@
   opacity: 1;
   transform: none;
 }
+
+/* Stagger applies on the way IN only. Grouped children carry --gnb-reveal-i
+   from GnbPage; ungrouped targets default to 0 and are unaffected.
+   Order matters: the no-delay rule is the less specific one and comes FIRST,
+   so the [data-revealed] rule below wins on entry. Re-arming therefore has no
+   delay and a section does not unwind slowly as it leaves the viewport. */
+.gnb-edge-v2 [data-reveal-pending] {
+  transition-delay: 0ms;
+}
+.gnb-edge-v2 [data-reveal-pending][data-revealed] {
+  transition-delay: calc(var(--gnb-reveal-i, 0) * 110ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gnb-edge-v2 [data-reveal-pending] { opacity: 1 !important; transform: none !important; transition: none !important; }
 }

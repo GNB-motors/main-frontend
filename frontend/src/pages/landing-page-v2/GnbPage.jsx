@@ -10,6 +10,11 @@ import './gnb-interactions.css';
 //
 // Reveal + count-up are driven by a scroll handler with an immediate initial
 // pass, so content is revealed deterministically and can never stay hidden.
+//
+// Reveal REPLAYS: every target keeps its pending marker for the life of the
+// page and is re-armed once it leaves the viewport, so scrolling back up and
+// down animates it again. Count-up stays one-shot on purpose — a number that
+// re-counts every pass reads as a glitch, not an effect.
 
 function animateCount(el, reduce) {
   const target = parseFloat(el.getAttribute('data-count')) || 0;
@@ -64,15 +69,21 @@ export default function GnbPage({ children }) {
         [...g.children].forEach((c, i) => {
           if (!c.hasAttribute('data-reveal')) {
             c.setAttribute('data-reveal', '');
-            c.style.transitionDelay = `${i * 70}ms`;
+            // Stagger index only — the CSS applies it on the way IN, so
+            // re-arming on exit is uniform and does not unwind slowly.
+            c.style.setProperty('--gnb-reveal-i', i);
             revealTargets.push(c);
           }
         });
       });
-      // Hide only below-the-fold targets, so above-fold content never flashes.
+      // Every target gets the pending marker: it carries the transition, so an
+      // element without it snaps in with no animation at all. Above-fold items
+      // are additionally marked revealed right away, which is what prevents the
+      // first-paint flash without costing them their transition on later passes.
       const vh0 = window.innerHeight || 800;
       revealTargets.forEach((t) => {
-        if (t.getBoundingClientRect().top > vh0 * 0.9) t.setAttribute('data-reveal-pending', '');
+        t.setAttribute('data-reveal-pending', '');
+        if (t.getBoundingClientRect().top <= vh0 * 0.9) t.setAttribute('data-revealed', '');
       });
     }
 
@@ -86,13 +97,17 @@ export default function GnbPage({ children }) {
         }
       });
       if (!reduce) {
-        for (let i = revealTargets.length - 1; i >= 0; i--) {
-          const el = revealTargets[i];
-          if (el.getBoundingClientRect().top < vh * 0.92) {
+        // Targets are never removed from the list — that is what makes the
+        // reveal repeatable. Re-arm only once an element is fully clear of the
+        // viewport, so a section straddling the fold cannot flicker mid-scroll.
+        revealTargets.forEach((el) => {
+          const r = el.getBoundingClientRect();
+          if (r.top < vh * 0.92 && r.bottom > 0) {
             el.setAttribute('data-revealed', '');
-            revealTargets.splice(i, 1);
+          } else if (r.top >= vh || r.bottom <= 0) {
+            el.removeAttribute('data-revealed');
           }
-        }
+        });
       }
     };
 

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Trip Management</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<script src="../../assets/image-slot.js"></script>
+<style>
+
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes tm-track { from { stroke-dashoffset: 300; } to { stroke-dashoffset: 96; } }
+  @keyframes tm-step { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes tm-pulse { 0%,100% { opacity:.45; transform:scale(1); } 50% { opacity:.95; transform:scale(1.3); } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes ai-run { 0% { left:2%; } 100% { left:98%; } }
+  @keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }
+
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+<!-- ══ CTA ══ -->
+  <section id="tm-demo" data-screen-label="Trip CTA" style="background:#F4F5FA; padding:104px 40px 96px">
+    <div data-reveal style="max-width:1280px; margin:0 auto; border-radius:var(--radius-ultra-soft); background:linear-gradient(150deg, #2F58EE 0%, #213EA7 100%); padding:80px 72px; position:relative; overflow:hidden">
+      <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size:64px 64px; mask-image:radial-gradient(circle at 85% 30%, #000, transparent 70%)"></div>
+      <div style="position:relative; max-width:720px">
+        <h2 style="font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1.08; letter-spacing:-1.6px; color:#FFFFFF; margin:0; text-wrap:pretty">Run one of your real trips through it.</h2>
+        <p style="font-size:18px; line-height:29px; color:rgba(255,255,255,.84); margin:22px 0 36px">Bring a live consignment to the demo and we will take it from booking to invoice on the call.</p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap">
+          <a href="#tm-demo" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#213EA7; background:#FFFFFF; border:1px solid #FFFFFF; padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Reach us</a>
+          <a href="GNB-Edge-Landing.html" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#FFFFFF; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.34); padding:18px 40px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)">Back to platform</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -10,9 +10,12 @@ export default function MultiLocation() {
           <div data-reveal style={{ borderRadius: "var(--radius-soft)", background: "linear-gradient(155deg, #2F58EE 0%, #213EA7 100%)", aspectRatio: "1/.92", overflow: "hidden", boxShadow: "var(--shadow-lg)" }}>
             <iframe src="/landing-v2/india-map.html" title="GNB Edge network across India" style={{ width: "100%", height: "100%", border: "0", display: "block" }} />
           </div>
-          <div data-reveal-group>
-            <p style={{ fontSize: "18px", lineHeight: "29px", color: "#5D5D5E", margin: "0 0 40px", textWrap: "pretty" }}>From a single owner with one truck to contract fleets and enterprise networks, GNB Edge gives operations teams the centralised control, security and support they need to grow.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
+          <div>
+            <p data-reveal style={{ fontSize: "18px", lineHeight: "29px", color: "#5D5D5E", margin: "0 0 40px", textWrap: "pretty" }}>From a single owner with one truck to contract fleets and enterprise networks, GNB Edge gives operations teams the centralised control, security and support they need to grow.</p>
+            {/* The group must sit on the element whose DIRECT children are the
+                icon rows — GnbPage staggers g.children, so wrapping them one
+                level higher would animate the whole list as a single block. */}
+            <div data-reveal-group style={{ display: "flex", flexDirection: "column", gap: "26px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
                 <span style={{ flex: "0 0 auto", width: "46px", height: "46px", borderRadius: "999px", background: "rgba(68,105,240,.10)", display: "grid", placeItems: "center" }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4469F0" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

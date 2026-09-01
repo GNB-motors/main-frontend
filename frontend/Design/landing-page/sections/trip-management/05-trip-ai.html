@@ -24,10 +24,11 @@
 </head>
 <body>
 <div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
-<section id="ai" data-screen-label="Trip AI" style="position:relative; background:#F1F4FE; padding:112px 40px; overflow:hidden">
+<!-- ══ AI LAYER ══ -->
+  <section id="ai" data-screen-label="Trip AI" style="position:relative; background:#F1F4FE; padding:112px 40px; overflow:hidden">
     <div style="position:absolute; inset:0; background:radial-gradient(900px 420px at 78% 0%, rgba(68,105,240,.12), transparent 66%)"></div>
     <div style="position:relative; max-width:1280px; margin:0 auto">
-      <div data-reveal="" style="display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:end; margin-bottom:56px">
+      <div data-reveal style="display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:end; margin-bottom:56px">
         <div>
           <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px">
             <div style="font-family:var(--font-eyebrow); font-size:11px; font-weight:500; letter-spacing:.44em; text-transform:uppercase; color:var(--nova-rage-600)">AI intelligence</div>
@@ -38,7 +39,7 @@
         <p style="font-size:18px; line-height:29px; color:#5D5D5E; margin:0; text-wrap:pretty">Every closed consignment is a data point. AI prices the next one, flags the lanes quietly losing money and matches the paperwork behind them.</p>
       </div>
 
-      <div data-reveal="" style="background:#FFFFFF; border:1px solid rgba(68,105,240,.18); border-radius:22px; padding:28px 30px 30px; box-shadow:var(--shadow-sm); margin-bottom:24px">
+      <div data-reveal style="background:#FFFFFF; border:1px solid rgba(68,105,240,.18); border-radius:22px; padding:28px 30px 30px; box-shadow:var(--shadow-sm); margin-bottom:24px">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:26px">
           <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--nova-rage-600)">Trip lifecycle · where AI acts</div>
           <div style="font-family:var(--font-mono); font-size:11px; color:#93939A">GNB/2026/04817 · Mumbai → Nagpur</div>
@@ -99,17 +100,17 @@
         </div>
       </div>
 
-      <div data-reveal="" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:56px; font-family:var(--font-mono); font-size:11px; color:#93939A">
+      <div data-reveal style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:56px; font-family:var(--font-mono); font-size:11px; color:#93939A">
         <span>Bookings, costs, PODs</span><span style="color:var(--nova-rage-400)">→</span>
         <span>Full trip history</span><span style="color:var(--nova-rage-400)">→</span>
         <span>Margin and delay models</span><span style="color:var(--nova-rage-400)">→</span>
         <span>Which trips lose money</span><span style="color:var(--nova-rage-400)">→</span>
-        <span>Automatic trip P&amp;L</span><span style="color:var(--nova-rage-400)">→</span>
+        <span>Automatic trip P&L</span><span style="color:var(--nova-rage-400)">→</span>
         <span>Pricing and assignment</span><span style="color:var(--nova-rage-400)">→</span>
         <span>Dispatch decides</span>
       </div>
 
-      <div data-reveal="" style="background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); padding:30px 32px 26px">
+      <div data-reveal style="background:#FFFFFF; border:1px solid rgba(5,8,22,.07); border-radius:var(--radius-xl); box-shadow:var(--shadow-sm); padding:30px 32px 26px">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; padding-bottom:18px">
           <div style="padding-right:28px">
             <div style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A">The same trip without AI</div>
@@ -141,12 +142,12 @@
         </div>
       </div>
 
-      <div data-reveal="" style="margin-top:44px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+      <div data-reveal style="margin-top:44px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
         <span style="font-family:var(--font-eyebrow); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; margin-right:4px">Runs automatically</span>
         <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Predicted cost at booking</span>
         <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Delay and detention alerts</span>
         <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Automatic POD matching</span>
-        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Monthly route P&amp;L</span>
+        <span style="display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:#FFFFFF; border:1px solid rgba(68,105,240,.18); font-size:13px; font-weight:500; letter-spacing:-.1px; color:#050816"><span style="width:6px; height:6px; border-radius:999px; background:var(--nova-rage-400)"></span>Monthly route P&L</span>
       </div>
     </div>
   </section>
