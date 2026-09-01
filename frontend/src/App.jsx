@@ -1,9 +1,22 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useLayoutEffect } from 'react';
 
 function RedirectWithState({ to }) {
   const location = useLocation();
   return <Navigate to={to} state={location.state} replace />;
+}
+
+// React Router doesn't reset scroll on navigation. The marketing pages scroll
+// the window, but the authenticated dashboard scrolls an inner `.page-content`
+// div (DashboardLayout.jsx) that persists across routes via <Outlet />, so
+// both need resetting on every path change, not just window.scrollTo.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelector('.page-content')?.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
 }
 
 import DashboardLayout from './components/DashboardLayout';
@@ -130,7 +143,9 @@ import AssignedEmployeesPage from './pages/AccessControl/AssignedEmployeesPage.j
 
 function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPageV2 />} />
       <Route path="/live-fleet-map" element={<LiveFleetMapV2 />} />
@@ -277,7 +292,8 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/fleetedge-accounts" element={<FleetEdgeAccountsPage />} />
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 }
 

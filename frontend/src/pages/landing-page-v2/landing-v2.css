@@ -307,12 +307,28 @@
 @keyframes cap-plane { 0%,100% { transform:perspective(700px) rotateX(24deg) translateY(0); } 50% { transform:perspective(700px) rotateX(24deg) translateY(-5px); } }
 @keyframes cap-drop { 0% { transform:translateY(0); opacity:0; } 15% { opacity:1; } 85% { opacity:1; } 100% { transform:translateY(210px); opacity:0; } }
 @keyframes cap-stamp { 0%, 42% { opacity:0; transform:scale(.7); } 52% { opacity:1; transform:scale(1.08); } 60%, 92% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(1); } }
+@keyframes hero-swap { 0% { opacity:0; transform:translateY(18px) scale(.968); } 6% { opacity:1; transform:translateY(0) scale(1); } 50% { opacity:1; transform:translateY(0) scale(1); } 56% { opacity:0; transform:translateY(-18px) scale(.968); } 100% { opacity:0; transform:translateY(-18px) scale(.968); } }
+@keyframes tile-draw { 0%, 7% { stroke-dashoffset:var(--d); } 34% { stroke-dashoffset:0; } 100% { stroke-dashoffset:0; } }
+@keyframes tile-bar { 0%, 7% { transform:scaleX(0); } 32% { transform:scaleX(1); } 100% { transform:scaleX(1); } }
+@keyframes tile-rise { 0%, 7% { opacity:0; transform:translateY(9px); } 24% { opacity:1; transform:translateY(0); } 100% { opacity:1; transform:translateY(0); } }
+@keyframes tile-pop { 0%, 10% { opacity:0; transform:scale(.55); } 26% { opacity:1; transform:scale(1); } 100% { opacity:1; transform:scale(1); } }
+@keyframes tile-ping { 0%, 100% { transform:scale(.7); opacity:.7; } 55% { transform:scale(2); opacity:0; } }
+
+/* ---- hero mosaic (Hero.jsx): responsive collapse + accessible static fallback ---- */
+@media (max-width:1140px) {
+  .gnb-edge-v2 [data-hero-grid] { grid-template-columns:minmax(0,1fr) !important; gap:56px !important; }
+  .gnb-edge-v2 [data-hero-mosaic] { justify-self:start; }
+}
 
 /* ---- reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   .gnb-edge-v2 *, .gnb-edge-v2 *::before, .gnb-edge-v2 *::after {
     animation: none !important; transition-duration:.001ms !important;
   }
+  /* The mosaic's own reduced-motion rule above kills every tile's opacity
+     animation, which would leave the whole thing blank (base opacity:0) —
+     force the first tile of each slot visible as a static fallback. */
+  .gnb-edge-v2 [data-swapslot] > [data-swaptile]:first-child { opacity:1 !important; }
 }
 
 /* ---- base + links ---- */
