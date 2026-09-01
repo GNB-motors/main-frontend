@@ -102,6 +102,10 @@ export default function MegaNav() {
     </Link>
   );
 
+  const Login = (
+    <Link to="/login" onClick={() => setDrawer(false)} style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: '#050816', padding: '10px 14px', borderRadius: 999, whiteSpace: 'nowrap', textDecoration: 'none' }}>Login</Link>
+  );
+
   const Cta = (
     <Link to="/contact-us" data-navcta onClick={() => setDrawer(false)} style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: '#FFFFFF', background: 'var(--nova-rage-400)', border: '1px solid var(--nova-rage-800)', padding: '12px 26px', borderRadius: 999, whiteSpace: 'nowrap', textDecoration: 'none' }}>Reach us</Link>
   );
@@ -143,6 +147,7 @@ export default function MegaNav() {
                   : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>}
               </button>
             )}
+            {Login}
             {Cta}
           </div>
         </div>

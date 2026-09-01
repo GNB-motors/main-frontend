@@ -72,7 +72,7 @@ export default function ContactForm() {
             </div>
             <div style={{ fontSize: "15px", lineHeight: "24px", color: "#5D5D5E" }}>New deployments, pricing and demos.</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "16px" }}>
-              <a href="#contact-form" style={{ fontFamily: "var(--font-mono)", fontSize: "13px" }}>sales@gnbedge.com</a>
+              <a href="mailto:gnbmotors60@gmail.com" style={{ fontFamily: "var(--font-mono)", fontSize: "13px" }}>gnbmotors60@gmail.com</a>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "13px", color: "#5D5D5E" }}>+91 00000 00000</span>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function ContactForm() {
             </div>
             <div style={{ fontSize: "15px", lineHeight: "24px", color: "#5D5D5E" }}>For fleets already live on GNB Edge.</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "16px" }}>
-              <a href="#contact-form" style={{ fontFamily: "var(--font-mono)", fontSize: "13px" }}>support@gnbedge.com</a>
+              <a href="mailto:gnbmotors60@gmail.com" style={{ fontFamily: "var(--font-mono)", fontSize: "13px" }}>gnbmotors60@gmail.com</a>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "13px", color: "#5D5D5E" }}>Mon–Sat · 08:00–21:00</span>
             </div>
           </div>
