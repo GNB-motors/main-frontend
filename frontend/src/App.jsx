@@ -1,9 +1,22 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useLayoutEffect } from 'react';
 
 function RedirectWithState({ to }) {
   const location = useLocation();
   return <Navigate to={to} state={location.state} replace />;
+}
+
+// React Router doesn't reset scroll on navigation. The marketing pages scroll
+// the window, but the authenticated dashboard scrolls an inner `.page-content`
+// div (DashboardLayout.jsx) that persists across routes via <Outlet />, so
+// both need resetting on every path change, not just window.scrollTo.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelector('.page-content')?.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
 }
 
 import DashboardLayout from './components/DashboardLayout';
@@ -114,15 +127,37 @@ import FleetCoveragePage from './pages/FleetCoverage/FleetCoveragePage.jsx';
 import AuditTrailPage from './pages/AuditTrail/AuditTrailPage.jsx';
 import Vehicle360Page from './pages/Vehicle360/Vehicle360Page.jsx';
 
-import LandingPage from './pages/Landing/LandingPage.jsx';
+import LandingPageV2 from './pages/landing-page-v2/LandingPageV2.jsx';
+import LiveFleetMapV2 from './pages/landing-page-v2/live-fleet-map-v2/LiveFleetMapV2.jsx';
+import VehicleTrackingV2 from './pages/landing-page-v2/vehicle-tracking-v2/VehicleTrackingV2.jsx';
+import TripManagementV2 from './pages/landing-page-v2/trip-management-v2/TripManagementV2.jsx';
+import DriverManagementV2 from './pages/landing-page-v2/driver-management-v2/DriverManagementV2.jsx';
+import FuelAndMileageV2 from './pages/landing-page-v2/fuel-and-mileage-v2/FuelAndMileageV2.jsx';
+import SingleOwnersV2 from './pages/landing-page-v2/single-owners-v2/SingleOwnersV2.jsx';
+import ContractFleetsV2 from './pages/landing-page-v2/contract-fleets-v2/ContractFleetsV2.jsx';
+import EnterpriseV2 from './pages/landing-page-v2/enterprise-v2/EnterpriseV2.jsx';
+import AboutV2 from './pages/landing-page-v2/about-v2/AboutV2.jsx';
+import ContactV2 from './pages/landing-page-v2/contact-v2/ContactV2.jsx';
 import AccessControlPage from './pages/AccessControl/AccessControlPage.jsx';
 import AssignedEmployeesPage from './pages/AccessControl/AssignedEmployeesPage.jsx';
 
 function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<LandingPageV2 />} />
+      <Route path="/live-fleet-map" element={<LiveFleetMapV2 />} />
+      <Route path="/vehicle-tracking" element={<VehicleTrackingV2 />} />
+      <Route path="/trips" element={<TripManagementV2 />} />
+      <Route path="/driver-management" element={<DriverManagementV2 />} />
+      <Route path="/fuel-and-mileage" element={<FuelAndMileageV2 />} />
+      <Route path="/single-owners" element={<SingleOwnersV2 />} />
+      <Route path="/contract-fleets" element={<ContractFleetsV2 />} />
+      <Route path="/enterprise" element={<EnterpriseV2 />} />
+      <Route path="/about" element={<AboutV2 />} />
+      <Route path="/contact-us" element={<ContactV2 />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/admin/new-user" element={<SignUpPage />} />
@@ -257,7 +292,8 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/fleetedge-accounts" element={<FleetEdgeAccountsPage />} />
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 }
 
