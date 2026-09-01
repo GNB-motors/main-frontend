@@ -322,7 +322,7 @@ const RequestFormPage = () => {
         // Fetch Vehicles without profile dependency
         try {
           // Note: Adjust this endpoint if it's different in your API
-          const vehiclesResponse = await apiClient.get("api/v1/vehicles");
+          const vehiclesResponse = await apiClient.get("/api/vehicles");
           setVehicles(vehiclesResponse.data);
           setVehicleError(null);
         } catch (vehErr) {
@@ -384,7 +384,7 @@ const RequestFormPage = () => {
     try {
       // Use apiClient to call your unified backend
       const response = await apiClient.post(
-        "api/v1/ocr/process-receipt",
+        "/api/ocr/scan/receipt",
         uploadFormData,
       );
       const extractedReceiptData = response.data.data;
