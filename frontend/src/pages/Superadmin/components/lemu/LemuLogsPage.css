@@ -1201,6 +1201,51 @@
   flex: 1;
 }
 
+/* The region head is a button so the whole strip toggles the surface. Reset the
+   UA button chrome but keep the divider the original div carried. */
+.lemu-region__head--toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--lemu-border);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.lemu-region__head--toggle:hover .lemu-region__title,
+.lemu-region__head--toggle:hover .lemu-region__chevron {
+  color: var(--lemu-text-primary);
+}
+
+.lemu-region__head--toggle:focus-visible {
+  outline: 2px solid var(--lemu-accent, #4f46e5);
+  outline-offset: 2px;
+}
+
+.lemu-region__chevron {
+  margin-left: auto;
+  color: var(--lemu-text-secondary);
+  transition: transform 140ms ease;
+}
+
+.lemu-region--collapsed .lemu-region__chevron {
+  transform: rotate(-90deg);
+}
+
+/* A collapsed region should not keep stretching to fill the board. */
+.lemu-region--collapsed {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lemu-region__chevron { transition: none; }
+}
+
 /* ── Plates ────────────────────────────────────────────────── */
 .lemu-plates {
   display: grid;
@@ -2247,5 +2292,121 @@
 
   .lemu-lineage-verdict-dot {
     align-self: center;
+  }
+}
+
+/* ── 3D knowledge graph ────────────────────────────────────── */
+.lemu-graph3d {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lemu-graph3d__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lemu-graph3d__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lemu-graph3d__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lemu-graph3d__legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-graph3d__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lemu-graph3d__legend-item i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.lemu-graph3d__legend-item b {
+  color: var(--lemu-text-primary);
+  font-weight: 600;
+}
+
+/* The canvas is absolutely sized from JS, so this box only needs to establish
+   the area to measure and clip the WebGL surface to the card radius. */
+.lemu-graph3d__canvas {
+  position: relative;
+  min-height: 560px;
+  height: 62vh;
+  border: 1px solid var(--lemu-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(99, 102, 241, 0.07), transparent 60%),
+    var(--lemu-surface, #0b1020);
+}
+
+.lemu-graph3d__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.lemu-graph3d__hint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+  font-size: 12px;
+  pointer-events: none;
+  max-width: 60%;
+}
+
+.lemu-graph3d__hint strong {
+  word-break: break-all;
+}
+
+.lemu-graph3d__hint .lemu-meta {
+  color: #94a3b8;
+}
+
+.lemu-graph3d__foot {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .lemu-graph3d__canvas {
+    min-height: 420px;
+    height: 52vh;
   }
 }

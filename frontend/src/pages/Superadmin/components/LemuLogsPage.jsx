@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   BookOpen,
+  Boxes,
   Flag,
   Fuel,
   Map,
@@ -20,6 +21,7 @@ import LemuErrorsInbox from './lemu/LemuErrorsInbox';
 import LemuFlagsTab from './lemu/LemuFlagsTab';
 import LemuFindingsRibbon from './lemu/LemuFindingsRibbon';
 import LemuSystemMap from './lemu/LemuSystemMap';
+import LemuGraph3D from './lemu/LemuGraph3D';
 import LemuNodeDrawer from './lemu/LemuNodeDrawer';
 import LemuChangeFeed from './lemu/LemuChangeFeed';
 import FuelIntegrityLineagePanel from './lemu/FuelIntegrityLineagePanel';
@@ -38,6 +40,7 @@ const PAGE_SIZE = 25;
 
 const TABS = [
   { id: 'system', label: 'System', group: 'structure', icon: <Map size={15} /> },
+  { id: 'graph', label: 'Graph', group: 'structure', icon: <Boxes size={15} /> },
   { id: 'changes', label: 'Changes', group: 'structure', icon: <BookOpen size={15} /> },
   { id: 'logs', label: 'Logs', group: 'activity', icon: <ScrollText size={15} /> },
   { id: 'jobs', label: 'Jobs', group: 'activity', icon: <Server size={15} /> },
@@ -304,7 +307,7 @@ const LemuLogsPage = () => {
       loadDashboard(true);
       loadJobs(true);
       loadEvents(true);
-      if (activeTab === 'system' || activeTab === 'changes') {
+      if (activeTab === 'system' || activeTab === 'graph' || activeTab === 'changes') {
         loadManifest(true);
         loadPulse(true);
         loadFindings(true);
@@ -386,7 +389,9 @@ const LemuLogsPage = () => {
     setSelectedNodeId(nodeIdValue);
     setDrawerOpen(true);
     setActiveTab((current) => {
-      if (current !== 'system') {
+      // The graph shows node context too, so selecting there must not yank
+      // the user back to the flat map.
+      if (current !== 'system' && current !== 'graph') {
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
           next.set('tab', 'system');
@@ -587,6 +592,16 @@ const LemuLogsPage = () => {
             selectedNodeId={selectedNodeId}
             jobHealth={jobs}
             onRebuild={rebuildManifest}
+          />
+        )}
+
+        {activeTab === 'graph' && (
+          <LemuGraph3D
+            manifest={manifest}
+            liveness={liveness}
+            jobHealth={jobs}
+            onSelectNode={openNode}
+            selectedNodeId={selectedNodeId}
           />
         )}
 
