@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Boxes, Crosshair, Search } from 'lucide-react';
 import { relativeTime } from './utils';
+import { buildActivity } from './graph/buildActivity';
 
 /* 3D knowledge graph for the LEMU manifest.
 
@@ -86,20 +87,10 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
      through modelName -> collectionName. Until the DB pulse is recording, every
      collection reads as idle and the graph is structurally correct but static —
      that is a data problem upstream, not a rendering one. */
-  const activity = useMemo(() => {
-    const byNode = new Map();
-    const collections = liveness?.collections || {};
-    (manifest?.models || []).forEach((m) => {
-      const live = collections[m.collectionName];
-      if (live?.ops) byNode.set(`model:${m.modelName}`, { ops: live.ops, lastSeen: live.lastSeen });
-    });
-    (jobHealth || []).forEach((j) => {
-      if (j?.name && (j.status === 'ok' || j.status === 'healthy')) {
-        byNode.set(`job:${j.name}`, { ops: 1, lastSeen: j.lastRunAt || j.lastSuccessAt || null });
-      }
-    });
-    return byNode;
-  }, [manifest, liveness, jobHealth]);
+  const activity = useMemo(
+    () => buildActivity({ manifest, liveness, jobHealth }),
+    [manifest, liveness, jobHealth],
+  );
 
   const graph = useMemo(() => {
     if (!manifest) return { nodes: [], links: [] };
