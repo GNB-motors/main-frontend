@@ -2597,6 +2597,47 @@ button.lemu-graph3d__legend-item {
 .lemu-graph3d__state[data-state="declared"] { color: #94a3b8; }
 .lemu-graph3d__state[data-state="unreachable"] { color: #fb7185; }
 
+/* ── Evidence block (drawer, P2) ───────────────────────────── */
+.lemu-evidence {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: var(--lg-radius, 8px);
+  border: 1px solid var(--lg-panel-border);
+  background: rgba(7, 11, 24, 0.35);
+}
+.lemu-evidence__state {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.lemu-evidence__state[data-state="measured"] { color: var(--lg-accent, #22d3ee); }
+.lemu-evidence__state[data-state="declared"] { color: #94a3b8; }
+.lemu-evidence__state[data-state="unreachable"] { color: #fb7185; }
+.lemu-evidence__list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+.lemu-evidence__list dt { color: var(--lg-text-dim); }
+.lemu-evidence__list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+.lemu-evidence__list pre {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(7, 11, 24, 0.55);
+  border: 1px solid var(--lg-panel-border);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 .lemu-graph3d__foot {
   margin: 0;
   font-size: 12px;

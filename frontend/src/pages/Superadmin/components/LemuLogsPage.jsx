@@ -371,9 +371,21 @@ const LemuLogsPage = () => {
     return map;
   }, [manifest]);
 
+  /* INFRA kinds resolve from the topology payload — those nodes carry
+     state/evidence/metrics, which is what the drawer's evidence block
+     renders. `job:` stays on the manifest branch but picks up the topology
+     row (`_topo`) so its state is visible there too. */
+  const INFRA_KINDS = ['host', 'store', 'collection', 'table', 'pipe', 'source', 'surface'];
+
   const selectedNode = useMemo(() => {
     if (!selectedNodeId || !manifest) return null;
     const kind = selectedNodeId.split(':')[0];
+
+    if (INFRA_KINDS.includes(kind)) {
+      const topoNode = (topology?.nodes || []).find((n) => n.id === selectedNodeId);
+      if (!topoNode) return null;
+      return { kind, node: { ...topoNode, _id: selectedNodeId }, pulseSeries: null };
+    }
 
     if (kind === 'route') {
       const route = (manifest.routes || []).find((r) => nodeId.route(r) === selectedNodeId);
@@ -399,7 +411,8 @@ const LemuLogsPage = () => {
       const job = (manifest.jobs || []).find((j) => nodeId.job(j) === selectedNodeId);
       if (!job) return null;
       const health = (jobs || []).find((j) => j.job === job.name) || {};
-      return { kind: 'job', node: { ...job, _id: selectedNodeId }, pulseSeries: { _health: health } };
+      const topoJob = (topology?.nodes || []).find((n) => n.id === selectedNodeId);
+      return { kind: 'job', node: { ...job, _id: selectedNodeId, _topo: topoJob }, pulseSeries: { _health: health } };
     }
 
     if (kind === 'module') {
@@ -411,7 +424,7 @@ const LemuLogsPage = () => {
     }
 
     return null;
-  }, [selectedNodeId, manifest, pulse, jobs, functionsByName]);
+  }, [selectedNodeId, manifest, pulse, jobs, functionsByName, topology]);
 
   const findingIds = useMemo(() => {
     const ids = new Set();
@@ -709,6 +722,7 @@ const LemuLogsPage = () => {
           pulseStatus={pulseStatus}
           edges={manifest?.edges || []}
           liveness={liveness}
+          topology={topology}
           onClose={closeDrawer}
         />
       )}

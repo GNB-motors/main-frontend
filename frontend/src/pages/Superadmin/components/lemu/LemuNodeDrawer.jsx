@@ -5,12 +5,26 @@ import { X } from 'lucide-react';
 import LemuNodePulse from './LemuNodePulse';
 import LemuNodeStatus from './LemuNodeStatus';
 import LemuStatusChip from './LemuStatusChip';
+import LemuGraphEvidence from './graph/LemuGraphEvidence';
 import { formatDuration, fullRoutePath, jobStatusToTrio, relativeTime } from './utils';
 
 /* Inline arrow handlers/middleware have no fn.name, so the manifest records
    them as "anonymous". Never render that bare word — attach the derived module
    (or a count, for middleware) so the operator still learns something. */
 const namedOrNull = (name) => (name && name !== 'anonymous' ? name : null);
+
+/* INFRA kinds: the drawer resolves them from the topology payload (the page
+   passes it through), and the metrics block picks a few key facts per kind. */
+const INFRA_KINDS = ['host', 'store', 'collection', 'table', 'pipe', 'source', 'surface'];
+
+const INFRA_METRICS = {
+  host: [['rssMb', 'RSS (MB)'], ['eventLoopLagMs', 'Event-loop lag (ms)'], ['uptimeSec', 'Uptime (s)']],
+  store: [['collectionCount', 'Collections'], ['tableCount', 'Tables']],
+  collection: [['ops', 'Ops (24h)'], ['fail', 'Failed (24h)']],
+  pipe: [['lagSeconds', 'CDC lag (s)'], ['watermarks', 'Watermarks']],
+  source: [['calls', 'Calls (24h)'], ['failures', 'Failures (24h)']],
+  surface: [['n', 'Requests (24h)'], ['err', 'Errors (24h)']],
+};
 
 const handlerLabel = (route, moduleName) => namedOrNull(route.handlerName)
   || `anonymous · ${moduleName ? `${moduleName} module` : 'unattributed'}`;
@@ -27,7 +41,7 @@ const middlewareLabels = (middlewares) => {
   return labels;
 };
 
-const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, onClose }) => {
+const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, topology, onClose }) => {
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
 
@@ -284,6 +298,68 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
     );
   };
 
+  const renderInfraDetail = () => {
+    const metrics = node.metrics || {};
+    const facts = INFRA_METRICS[node.kind] || [];
+    const topoEdges = topology?.edges || [];
+    const outgoing = topoEdges.filter((e) => e.from === node.id);
+    const incoming = topoEdges.filter((e) => e.to === node.id);
+    const live = metrics.liveness || {};
+    return (
+      <>
+        <div className="lemu-drawer__head">
+          <div className="lemu-drawer__kind">{kind}</div>
+          <h2 className="lemu-drawer__title">{node.label}</h2>
+        </div>
+        {node.hostId && (
+          <dl className="lemu-drawer__grid">
+            <dt>Host</dt><dd>{node.hostId.replace(/^host:/, '')}</dd>
+          </dl>
+        )}
+        {(facts.length > 0 || node.kind === 'table') && (
+          <div className="lemu-drawer__section">
+            <h4>Key facts</h4>
+            <div className="lemu-drawer__metrics lemu-drawer__metrics--wide">
+              {facts.map(([key, label]) => (
+                <div className="lemu-metric" key={key}>
+                  <span>{label}</span>
+                  <strong>{metrics[key] ?? '—'}</strong>
+                </div>
+              ))}
+              {node.kind === 'table' && (
+                <>
+                  <div className="lemu-metric"><span>Liveness ok</span><strong>{live.ok == null ? '—' : live.ok ? 'yes' : 'no'}</strong></div>
+                  <div className="lemu-metric"><span>Checked</span><strong>{live.checkedAt ? relativeTime(live.checkedAt) : '—'}</strong></div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {(outgoing.length > 0 || incoming.length > 0) && (
+          <div className="lemu-drawer__section">
+            <h4>Connections</h4>
+            {outgoing.length > 0 && (
+              <>
+                <div className="lemu-muted">Flows to</div>
+                <ul className="lemu-drawer__list">
+                  {outgoing.map((e, i) => <li key={i}>{e.to} <span className="lemu-muted">({e.kind})</span></li>)}
+                </ul>
+              </>
+            )}
+            {incoming.length > 0 && (
+              <>
+                <div className="lemu-muted">Fed by</div>
+                <ul className="lemu-drawer__list">
+                  {incoming.map((e, i) => <li key={i}>{e.from} <span className="lemu-muted">({e.kind})</span></li>)}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
+
   const renderContent = () => {
     if (!node) {
       return (
@@ -293,13 +369,20 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
         </div>
       );
     }
+    /* P2: any node carrying a `state` (INFRA nodes directly; code-layer jobs
+       enriched with `_topo` from the topology payload) names the row behind
+       its colour at the very top of the drawer. */
+    const evidenceNode = node.state ? node : node._topo;
+    const evidenceBlock = evidenceNode ? <LemuGraphEvidence node={evidenceNode} /> : null;
     if (pulseStatus === 'error') {
       return (
         <>
+          {evidenceBlock}
           {kind === 'route' && renderRouteDetail()}
           {kind === 'model' && renderModelDetail()}
           {kind === 'job' && renderJobDetail()}
           {kind === 'module' && renderModuleDetail()}
+          {INFRA_KINDS.includes(kind) && renderInfraDetail()}
           {renderConnections()}
           <div className="lemu-alert lemu-alert--error" role="alert">
             Structure loaded; pulse unavailable (503). Structural fields still shown.
@@ -309,13 +392,14 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
     }
     return (
       <>
+        {evidenceBlock}
         {(() => {
           switch (kind) {
             case 'route': return renderRouteDetail();
             case 'model': return renderModelDetail();
             case 'job': return renderJobDetail();
             case 'module': return renderModuleDetail();
-            default: return null;
+            default: return INFRA_KINDS.includes(kind) ? renderInfraDetail() : null;
           }
         })()}
         {renderConnections()}
