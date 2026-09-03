@@ -73,6 +73,10 @@ const LemuLogsPage = () => {
   // INFRA topology payload ({nodes, edges, degraded, summary}) — the graph
   // tab's Infra layer. Null until the first successful fetch.
   const [topology, setTopology] = useState(null);
+  // Error attribution (Phase 4): error groups joined to manifest functions,
+  // with byNode rollups for the graph pips. Loaded by the same batch/poll as
+  // topology; null until the first successful fetch (or on failure).
+  const [errorAttribution, setErrorAttribution] = useState(null);
   // Stamp of the last successful liveness fetch — drives the graph tab's
   // freshness dot. Unset until the first success; a failed poll never moves it.
   const [dataUpdatedAt, setDataUpdatedAt] = useState(null);
@@ -203,6 +207,19 @@ const LemuLogsPage = () => {
     }
   }, []);
 
+  /* Error attribution — the drawer's error rows and the graph's pips read
+     this ONE payload, loaded here (v2-F1) rather than in the tab, so the
+     page resolves the selected node independently of the tab's merged node
+     objects. Failure degrades to "no attribution", never a page error. */
+  const loadErrorAttribution = useCallback(async () => {
+    try {
+      const data = await LemuService.getErrorAttribution();
+      setErrorAttribution(data.data || null);
+    } catch {
+      setErrorAttribution(null);
+    }
+  }, []);
+
   const loadFindings = useCallback(async (silent = false) => {
     if (!silent) setFindingsStatus('loading');
     try {
@@ -304,10 +321,11 @@ const LemuLogsPage = () => {
   useEffect(() => {
     loadLiveness();
     loadTopology();
-    /* Live poll: liveness + job health + topology every 30s so the graph's
-       numbers stay honest. Paused while the document is hidden — no
-       catch-up ticks. Jobs load silently so the poll never fires a spinner
-       storm. */
+    loadErrorAttribution();
+    /* Live poll: liveness + job health + topology + error attribution every
+       30s so the graph's numbers stay honest. Paused while the document is
+       hidden — no catch-up ticks. Jobs load silently so the poll never fires
+       a spinner storm. */
     const visibleRef = { current: document.visibilityState === 'visible' };
     const onVisibility = () => {
       visibleRef.current = document.visibilityState === 'visible';
@@ -318,12 +336,13 @@ const LemuLogsPage = () => {
       loadLiveness();
       loadJobs(true);
       loadTopology();
+      loadErrorAttribution();
     }, 30 * 1000);
     return () => {
       clearInterval(t);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [loadLiveness, loadJobs, loadTopology]);
+  }, [loadLiveness, loadJobs, loadTopology, loadErrorAttribution]);
   useEffect(() => { loadFindings(); }, [loadFindings]);
   useEffect(() => { loadManifests(); }, [loadManifests]);
   useEffect(() => { loadJobs(); }, [loadJobs]);
@@ -651,7 +670,9 @@ const LemuLogsPage = () => {
             liveness={liveness}
             jobHealth={jobs}
             topology={topology}
+            errorAttribution={errorAttribution}
             onSelectNode={openNode}
+            onOpenErrors={() => setTab('errors')}
             selectedNodeId={selectedNodeId}
             dataUpdatedAt={dataUpdatedAt}
           />
@@ -723,6 +744,7 @@ const LemuLogsPage = () => {
           edges={manifest?.edges || []}
           liveness={liveness}
           topology={topology}
+          errorAttribution={errorAttribution}
           onClose={closeDrawer}
         />
       )}
