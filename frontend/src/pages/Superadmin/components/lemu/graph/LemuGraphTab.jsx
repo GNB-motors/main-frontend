@@ -67,10 +67,26 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
   });
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
-  /* Write-on-change URL sync. Nothing here reads the params back (init is the
-     lazy initializers above), so this effect cannot loop. Defaults are
-     deleted to keep shared URLs short. */
+  /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
+
+     The mount run is SKIPPED, and that skip is load-bearing. Every value this
+     effect writes (view/hopDepth/query/mode) was initialised FROM the URL by
+     the lazy initializers above, so writing them back on mount is by
+     construction either a no-op or a corruption — never useful.
+
+     The corruption: setSearchParams copies `prev`, which is React Router's
+     closed-over snapshot, and echoes back EVERY param including `tab`, which
+     this component does not own. On mount that snapshot can still predate the
+     `tab=graph` write that just mounted us, so the effect rewrote `tab` to the
+     previous tab. LemuLogsPage:516-522 treats the URL as the source of truth
+     for activeTab, so the page followed it straight back and the Graph tab
+     could not be opened at all. */
+  const firstSync = useRef(true);
   useEffect(() => {
+    if (firstSync.current) {
+      firstSync.current = false;
+      return;
+    }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (view === 'graph') next.delete('gview');
