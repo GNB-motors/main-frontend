@@ -1,5 +1,4 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import * as THREE from 'three';
 import { relativeTime } from '../utils';
 import { KIND_LABEL, LINK_COLOR, nodeAppearance } from './graphTheme';
 
@@ -38,6 +37,29 @@ const LemuGraphCanvas = ({
   const fgRef = useRef(null);
   const [dims, setDims] = useState({ width: 0, height: 0 });
   const [hovered, setHovered] = useState(null);
+
+  /* three.js is loaded DYNAMICALLY, and that is not an optimisation.
+
+     A static `import * as THREE from 'three'` put a second, tree-shaken copy
+     of three into this page's eager chunk while react-force-graph-3d kept its
+     own copy in the lazy chunk — two module instances. Custom node meshes were
+     then built with instance A and rendered by instance B's WebGLRenderer. It
+     survives today only because three duck-types (`isObject3D`, `isMaterial`)
+     instead of using instanceof, so it is a latent failure waiting for any
+     richer node treatment, and it charged the eager bundle for a renderer the
+     page may never open.
+
+     Importing it dynamically puts three in the same chunk group as the
+     renderer that consumes it: one instance, and nothing is paid until the
+     3D view is actually opened. Until it resolves, nodeThreeObject returns
+     undefined and the renderer draws its own default spheres — so the graph
+     is correct at every moment, just briefly without custom rings. */
+  const [three, setThree] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    import('three').then((m) => { if (alive) setThree(m); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   // Motion budget: read once — reduced motion means no particles and no
   // camera flights (cameraPosition with duration 0 sets instantly).
@@ -188,25 +210,27 @@ const LemuGraphCanvas = ({
      keep the cheap built-in sphere path (nodeThreeObjectExtend=false). The
      radius formula mirrors the renderer default: cbrt(val) * nodeRelSize. */
   const nodeThreeObject = useCallback((n) => {
+    // Before three resolves, fall through to the renderer's own spheres.
+    if (!three) return undefined;
     const { color, opacity, ring, outline } = nodeAppearance(n, { selectedNodeId, matches });
     const radius = Math.cbrt(Math.max(0, n.val || 1)) * 4;
-    const group = new THREE.Group();
+    const group = new three.Group();
     if (outline) {
-      group.add(new THREE.Mesh(
-        new THREE.SphereGeometry(radius * 1.25, 12, 12),
-        new THREE.MeshBasicMaterial({
+      group.add(new three.Mesh(
+        new three.SphereGeometry(radius * 1.25, 12, 12),
+        new three.MeshBasicMaterial({
           color: outline === 'selected' ? '#ffffff' : '#cbd5e1',
           transparent: true,
           opacity: 0.35,
-          side: THREE.BackSide,
+          side: three.BackSide,
           depthWrite: false,
         }),
       ));
     }
     if (ring === 'hollow' || ring === 'fault') {
-      group.add(new THREE.Mesh(
-        new THREE.SphereGeometry(ring === 'fault' ? radius * 1.15 : radius, 10, 10),
-        new THREE.MeshBasicMaterial({
+      group.add(new three.Mesh(
+        new three.SphereGeometry(ring === 'fault' ? radius * 1.15 : radius, 10, 10),
+        new three.MeshBasicMaterial({
           wireframe: true,
           color: ring === 'fault' ? '#fb7185' : color,
         }),
@@ -214,13 +238,13 @@ const LemuGraphCanvas = ({
     } else if (outline) {
       // The custom object replaces the default sphere, so an outlined solid
       // node needs its sphere recreated or it would render as halo only.
-      group.add(new THREE.Mesh(
-        new THREE.SphereGeometry(radius, 12, 12),
-        new THREE.MeshLambertMaterial({ color, transparent: true, opacity: opacity * 0.92 }),
+      group.add(new three.Mesh(
+        new three.SphereGeometry(radius, 12, 12),
+        new three.MeshLambertMaterial({ color, transparent: true, opacity: opacity * 0.92 }),
       ));
     }
     return group.children.length ? group : undefined;
-  }, [selectedNodeId, matches]);
+  }, [three, selectedNodeId, matches]);
 
   /* 2D equivalent of nodeThreeObject. The renderer default is a filled
      circle of radius sqrt(val) * nodeRelSize, painted after any custom paint
