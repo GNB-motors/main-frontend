@@ -39,6 +39,8 @@ const LemuGraphCanvas = ({
   const fgRef = useRef(null);
   const [dims, setDims] = useState({ width: 0, height: 0 });
   const [hovered, setHovered] = useState(null);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
 
   /* three.js is loaded DYNAMICALLY, and that is not an optimisation.
 
@@ -176,6 +178,18 @@ const LemuGraphCanvas = ({
     },
     [onNodeHover],
   );
+
+  /* Hover tooltip position + drag suppression. The tooltip follows the
+     cursor (tracked on the wrapper, not per-node, so it also works on the
+     first hover tick) and hides while a node is being dragged — a tooltip
+     glued to a node under the pointer is noise mid-drag. */
+  const handleMouseMove = useCallback((e) => {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setMouse({ x: e.clientX - r.left, y: e.clientY - r.top });
+  }, []);
+  const handleDragStart = useCallback(() => setDragging(true), []);
+  const handleDragEnd = useCallback(() => setDragging(false), []);
 
   /* 3D per-node alpha rides on the COLOUR, not on nodeOpacity.
      `nodeOpacity` is a static number in this library, never an accessor
@@ -338,6 +352,7 @@ const LemuGraphCanvas = ({
       ref={wrapRef}
       role="img"
       tabIndex={0}
+      onMouseMove={handleMouseMove}
       aria-label={`Knowledge graph: ${graph.nodes.length} nodes, ${graph.links.length} edges. Switch to table view for a keyboard-accessible list.`}
     >
       <Suspense fallback={<div className="lemu-meta lemu-graph3d__loading">Loading {effectiveMode === '3d' ? '3D' : '2D'} renderer…</div>}>
@@ -368,6 +383,8 @@ const LemuGraphCanvas = ({
             linkDirectionalParticleWidth={1.6}
             onNodeClick={handleClick}
             onNodeHover={handleHover}
+            onNodeDragStart={handleDragStart}
+            onNodeDragEnd={handleDragEnd}
             onEngineStop={handleEngineStop}
             cooldownTicks={120}
             enableNodeDrag
@@ -397,6 +414,8 @@ const LemuGraphCanvas = ({
             linkDirectionalParticleWidth={1.6}
             onNodeClick={handleClick}
             onNodeHover={handleHover}
+            onNodeDragStart={handleDragStart}
+            onNodeDragEnd={handleDragEnd}
             onEngineStop={handleEngineStop}
             cooldownTicks={120}
             enableNodeDrag
@@ -410,10 +429,29 @@ const LemuGraphCanvas = ({
         </div>
       )}
 
-      {hovered && (
-        <div className="lemu-graph3d__hint" role="status">
+      {hovered && !dragging && (
+        <div
+          className="lemu-graph3d__hint"
+          role="status"
+          style={{
+            left: Math.min(mouse.x + 14, Math.max(0, dims.width - 240)),
+            top: Math.min(mouse.y + 14, Math.max(0, dims.height - 120)),
+          }}
+        >
           <strong>{hovered.label}</strong>
           <span className="lemu-meta">{KIND_LABEL[hovered.kind] || hovered.kind}</span>
+          {hovered.state && (
+            <>
+              <span className="lemu-graph3d__state" data-state={hovered.state}>{hovered.state}</span>
+              <span className="lemu-meta">
+                {hovered.state === 'measured' && hovered.evidence?.at
+                  ? `measured ${relativeTime(hovered.evidence.at)}`
+                  : hovered.state === 'unreachable'
+                    ? 'probe failed'
+                    : 'no measurement in 24h'}
+              </span>
+            </>
+          )}
           {hovered.live && (
             <span className="lemu-meta">
               {hovered.ops} ops
