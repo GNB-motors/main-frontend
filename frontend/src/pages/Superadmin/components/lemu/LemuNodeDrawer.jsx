@@ -301,7 +301,15 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
   const renderModuleDetail = () => {
     const module = node;
     const routes = node._routes || [];
-    const funcs = node._functions || [];
+    // Source order, NOT loc — loc is the FILE's line count, identical for
+    // every function in the file (plan §0), so sorting by it sorts by a
+    // constant. startLine is where the declaration actually starts.
+    const funcs = [...(node._functions || [])]
+      .sort((a, b) => (a.startLine ?? 0) - (b.startLine ?? 0));
+    // Function names an attributed error group resolved to for this node —
+    // those rows carry the same amber marker as the graph pips, which is the
+    // whole point of the phase: node -> function -> reason.
+    const errorFnNames = new Set(errorGroups.map((g) => g.functionName).filter(Boolean));
     return (
       <>
         <div className="lemu-drawer__head">
@@ -317,10 +325,19 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
         <div className="lemu-drawer__section">
           <h4>Functions</h4>
           <ul className="lemu-drawer__list lemu-drawer__list--two">
-            {funcs.slice(0, 30).map((fn, i) => (
-              <li key={i}>{fn.functionName} <span className="lemu-muted">({fn.loc} loc)</span></li>
+            {funcs.slice(0, 50).map((fn, i) => (
+              <li key={i}>
+                {errorFnNames.has(fn.functionName) && (
+                  <span className="lemu-err__pip" title="An attributed error resolves to this function" aria-label="has attributed error">⚠</span>
+                )}
+                {fn.functionName}{' '}
+                <code>{fn.file}{Number.isInteger(fn.startLine) ? `:${fn.startLine}` : ''}</code>
+              </li>
             ))}
           </ul>
+          {funcs.length > 50 && (
+            <div className="lemu-meta">showing 50 of {funcs.length}</div>
+          )}
         </div>
         <div className="lemu-drawer__section">
           <h4>Routes</h4>
