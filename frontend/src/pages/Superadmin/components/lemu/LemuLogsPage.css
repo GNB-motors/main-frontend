@@ -1624,6 +1624,47 @@
   gap: 6px 12px;
 }
 
+/* ── Attributed errors in the drawer (Phase 4) ─────────────── */
+/* Match quality is a first-class citizen of the row: amber for a confident
+   exact match, muted for a best-effort file-only one. Hiding that difference
+   is how a guess becomes a fact. */
+.lemu-err {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lemu-err__row {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--lemu-bg-subtle);
+  border: 1px solid var(--lemu-border, transparent);
+}
+.lemu-err__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lemu-text, inherit);
+  word-break: break-word;
+}
+.lemu-err__row .lemu-meta {
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+}
+.lemu-err__row code {
+  font-family: var(--lg-mono, monospace);
+  font-size: 11px;
+  word-break: break-all;
+}
+.lemu-err [data-quality='exact'] { color: #f59e0b; }
+.lemu-err [data-quality='file'] { color: var(--lemu-text-secondary); }
+.lemu-err__pip {
+  color: #f59e0b;
+  margin-right: 4px;
+  cursor: help;
+}
+
 .lemu-drawer__metrics {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

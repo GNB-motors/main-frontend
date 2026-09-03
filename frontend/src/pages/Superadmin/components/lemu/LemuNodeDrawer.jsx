@@ -41,7 +41,7 @@ const middlewareLabels = (middlewares) => {
   return labels;
 };
 
-const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, topology, onClose }) => {
+const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, topology, errorAttribution, onClose }) => {
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
 
@@ -91,6 +91,42 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
 
   const outgoing = graphKey ? (edges || []).filter((e) => e.from === graphKey) : [];
   const incoming = graphKey ? (edges || []).filter((e) => e.to === graphKey) : [];
+
+  /* Attributed error groups for THIS node (Phase 4). graphKey is the same id
+     the attribution service emits (`module:<name>` for modules), so the join
+     is an equality match — no fuzzy guessing. Sorted by occurrences desc and
+     capped: the drawer is a detail view, not the inbox. */
+  const errorGroups = (errorAttribution?.groups || [])
+    .filter((g) => g.nodeId === graphKey)
+    .sort((a, b) => (b.occurrences || 0) - (a.occurrences || 0));
+
+  const renderErrors = () => {
+    if (!errorGroups.length) return null;
+    return (
+      <div className="lemu-drawer__section">
+        <h4>Attributed errors</h4>
+        <ul className="lemu-err">
+          {errorGroups.slice(0, 10).map((g) => (
+            <li key={g.fingerprint} className="lemu-err__row">
+              <div className="lemu-err__name">{g.errorName}: {g.sampleMessage}</div>
+              <div className="lemu-meta">
+                {g.occurrences}× · {g.functionName ? `${g.functionName}()` : 'file only'} ·{' '}
+                <code>{g.file}{g.line ? `:${g.line}` : ''}</code> ·{' '}
+                {/* Match quality stays visible: a hidden guess becoming a fact
+                    is exactly how this project got burned before. */}
+                <span data-quality={g.matchQuality}>
+                  {g.matchQuality === 'exact' ? '✓ exact' : '~ file-only'}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {errorGroups.length > 10 && (
+          <div className="lemu-meta">showing 10 of {errorGroups.length} — see the Errors tab</div>
+        )}
+      </div>
+    );
+  };
 
   const livenessLine = () => {
     if (!liveness || !node) return null;
@@ -383,6 +419,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
           {kind === 'job' && renderJobDetail()}
           {kind === 'module' && renderModuleDetail()}
           {INFRA_KINDS.includes(kind) && renderInfraDetail()}
+          {renderErrors()}
           {renderConnections()}
           <div className="lemu-alert lemu-alert--error" role="alert">
             Structure loaded; pulse unavailable (503). Structural fields still shown.
@@ -402,6 +439,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
             default: return INFRA_KINDS.includes(kind) ? renderInfraDetail() : null;
           }
         })()}
+        {renderErrors()}
         {renderConnections()}
       </>
     );
