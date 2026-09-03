@@ -6,12 +6,14 @@ import { buildCodeGraph } from './buildCodeGraph';
 import { buildTopologyGraph } from './useTopologyGraph';
 import { downstreamOf, upstreamOf } from './blastRadius';
 import { shortestPath } from './shortestPath';
+import { findDeadSurfaces } from './deadSurfaces';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
 import { KIND_HUE, KIND_LABEL, LINK_COLOR, LINK_LABEL } from './graphTheme';
 import LemuGraphCanvas from './LemuGraphCanvas';
 import LemuGraphControls from './LemuGraphControls';
+import LemuDeadSurfaces from './LemuDeadSurfaces';
 import LemuGraphTable from './LemuGraphTable';
 import GraphErrorBoundary from './GraphErrorBoundary';
 
@@ -256,6 +258,14 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   useEffect(() => {
     onBlastChange?.(blast ? { down: [...blast.down], up: [...blast.up] } : null);
   }, [blast, onBlastChange]);
+
+  /* Dead-surface detection (Phase 5): computed over the full layer graph,
+     like the legend counts. `flags` is {} on purpose — see the v2-C3 note
+     in deadSurfaces.js: no honest supplier exists yet. */
+  const deadSurfaces = useMemo(
+    () => findDeadSurfaces({ nodes: graph.nodes, links: graph.links, jobHealth, flags: {} }),
+    [graph.nodes, graph.links, jobHealth],
+  );
 
   /* Filters compose in a fixed order inside this memo: hidden kinds drop out
      first, then focus-match search (when on), then the hop-depth collapse.
@@ -732,6 +742,13 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
             />
           </GraphErrorBoundary>
         </div>
+      )}
+
+      {/* Standing dead-surface panel, docked under the graph (right side).
+          Rows click through to the node via the same selection mechanism
+          as a sphere click. */}
+      {view === 'graph' && (
+        <LemuDeadSurfaces surfaces={deadSurfaces} onSelectNode={(id) => onSelectNode?.(id)} />
       )}
 
       <p className="lemu-meta lemu-graph3d__foot lemu-graph3d__rail">
