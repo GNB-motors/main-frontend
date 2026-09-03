@@ -21,7 +21,7 @@ import LemuErrorsInbox from './lemu/LemuErrorsInbox';
 import LemuFlagsTab from './lemu/LemuFlagsTab';
 import LemuFindingsRibbon from './lemu/LemuFindingsRibbon';
 import LemuSystemMap from './lemu/LemuSystemMap';
-import LemuGraph3D from './lemu/LemuGraph3D';
+import LemuGraphTab from './lemu/graph/LemuGraphTab';
 import LemuNodeDrawer from './lemu/LemuNodeDrawer';
 import LemuChangeFeed from './lemu/LemuChangeFeed';
 import FuelIntegrityLineagePanel from './lemu/FuelIntegrityLineagePanel';
@@ -596,7 +596,7 @@ const LemuLogsPage = () => {
         )}
 
         {activeTab === 'graph' && (
-          <LemuGraph3D
+          <LemuGraphTab
             manifest={manifest}
             liveness={liveness}
             jobHealth={jobs}
