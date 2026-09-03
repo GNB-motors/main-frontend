@@ -3,6 +3,7 @@ import { Boxes, Crosshair, Search } from 'lucide-react';
 import { relativeTime } from './utils';
 import { buildActivity } from './graph/buildActivity';
 import { createFitLatch } from './graph/cameraLatch';
+import { KIND_HUE, KIND_LABEL, LINK_COLOR, nodeAppearance } from './graph/graphTheme';
 
 /* 3D knowledge graph for the LEMU manifest.
 
@@ -20,32 +21,6 @@ import { createFitLatch } from './graph/cameraLatch';
    imported lazily again here — opening LEMU should not pay for the graph unless
    you open this tab. */
 const ForceGraph3D = lazy(() => import('react-force-graph-3d'));
-
-const KIND_COLOR = {
-  module: '#6366f1',
-  model: '#14b8a6',
-  job: '#f59e0b',
-  mount: '#64748b',
-  route: '#94a3b8',
-};
-
-const KIND_LABEL = {
-  module: 'Modules',
-  model: 'Models',
-  job: 'Jobs',
-  mount: 'Route mounts',
-  route: 'Routes',
-};
-
-const LINK_COLOR = {
-  require: 'rgba(99,102,241,0.35)',
-  model: 'rgba(20,184,166,0.45)',
-  mount: 'rgba(100,116,139,0.40)',
-  job: 'rgba(245,158,11,0.45)',
-  route: 'rgba(148,163,184,0.25)',
-};
-
-const ACTIVE_COLOR = '#22d3ee';
 
 const kindOf = (id) => String(id).split(':')[0];
 
@@ -152,16 +127,6 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
 
   useEffect(() => { latch.current.reset(); }, [showRoutes]);
 
-  const nodeColor = useCallback(
-    (node) => {
-      if (matches && !matches.has(node.id)) return 'rgba(148,163,184,0.15)';
-      if (node.id === selectedNodeId) return '#f43f5e';
-      if (node.live) return ACTIVE_COLOR;
-      return KIND_COLOR[node.kind] || '#94a3b8';
-    },
-    [matches, selectedNodeId],
-  );
-
   const handleClick = useCallback(
     (node) => {
       if (!node) return;
@@ -192,8 +157,6 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
     graph.nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; });
     return c;
   }, [graph.nodes]);
-
-  const liveCount = useMemo(() => graph.nodes.filter((n) => n.live).length, [graph.nodes]);
 
   if (!manifest) {
     return (
@@ -245,14 +208,10 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
           .filter((k) => counts[k])
           .map((k) => (
             <span key={k} className="lemu-graph3d__legend-item">
-              <i style={{ background: KIND_COLOR[k] }} aria-hidden="true" />
+              <i style={{ background: KIND_HUE[k] }} aria-hidden="true" />
               {KIND_LABEL[k]} <b>{counts[k]}</b>
             </span>
           ))}
-        <span className="lemu-graph3d__legend-item">
-          <i style={{ background: ACTIVE_COLOR }} aria-hidden="true" />
-          Live <b>{liveCount}</b>
-        </span>
         <span className="lemu-meta">{graph.links.length} edges</span>
       </div>
 
@@ -268,7 +227,7 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
               showNavInfo={false}
               nodeId="id"
               nodeVal="val"
-              nodeColor={nodeColor}
+              nodeColor={(n) => nodeAppearance(n, { selectedNodeId, matches }).color}
               nodeOpacity={0.92}
               nodeResolution={12}
               nodeLabel={(n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}`}
@@ -309,7 +268,8 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
 
       <p className="lemu-meta lemu-graph3d__foot">
         Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs
-        also open in the node drawer. Cyan nodes have traffic in the liveness window.
+        also open in the node drawer. Colour encodes kind; particles along an edge mean
+        recent traffic.
       </p>
     </div>
   );
