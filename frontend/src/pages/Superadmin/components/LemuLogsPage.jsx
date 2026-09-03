@@ -70,6 +70,9 @@ const LemuLogsPage = () => {
   // hour" from "no signal all day". Null until loaded; the map degrades to
   // pulse-only behaviour without it.
   const [liveness, setLiveness] = useState(null);
+  // Stamp of the last successful liveness fetch — drives the graph tab's
+  // freshness dot. Unset until the first success; a failed poll never moves it.
+  const [dataUpdatedAt, setDataUpdatedAt] = useState(null);
   const [findings, setFindings] = useState(null);
   const [findingsStatus, setFindingsStatus] = useState('loading');
   const [manifestsList, setManifestsList] = useState([]);
@@ -178,6 +181,7 @@ const LemuLogsPage = () => {
     try {
       const data = await LemuService.getLiveness({ windowHours: 24 });
       setLiveness(data.data || null);
+      setDataUpdatedAt(Date.now());
     } catch {
       // Liveness is an enhancement layer — pulse heat still renders without it.
       setLiveness(null);
@@ -284,9 +288,24 @@ const LemuLogsPage = () => {
   useEffect(() => { loadPulse(); }, [loadPulse]);
   useEffect(() => {
     loadLiveness();
-    const t = setInterval(() => loadLiveness(), 5 * 60 * 1000);
-    return () => clearInterval(t);
-  }, [loadLiveness]);
+    /* Live poll: liveness + job health every 30s so the graph's numbers stay
+       honest. Paused while the document is hidden — no catch-up ticks. Jobs
+       load silently so the poll never fires a spinner storm. */
+    const visibleRef = { current: document.visibilityState === 'visible' };
+    const onVisibility = () => {
+      visibleRef.current = document.visibilityState === 'visible';
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    const t = setInterval(() => {
+      if (!visibleRef.current) return;
+      loadLiveness();
+      loadJobs(true);
+    }, 30 * 1000);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [loadLiveness, loadJobs]);
   useEffect(() => { loadFindings(); }, [loadFindings]);
   useEffect(() => { loadManifests(); }, [loadManifests]);
   useEffect(() => { loadJobs(); }, [loadJobs]);
@@ -602,6 +621,7 @@ const LemuLogsPage = () => {
             jobHealth={jobs}
             onSelectNode={openNode}
             selectedNodeId={selectedNodeId}
+            dataUpdatedAt={dataUpdatedAt}
           />
         )}
 

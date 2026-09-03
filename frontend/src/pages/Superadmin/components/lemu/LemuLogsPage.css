@@ -2365,6 +2365,30 @@
 }
 .lemu-graph3d__rail b { font-family: var(--lg-mono); font-variant-numeric: tabular-nums; }
 
+/* Rail freshness: 7px dot + mono age label. Dot colour is the honest
+   liveness signal — accent while the data is under a minute old, amber
+   through two minutes, danger past that. */
+.lemu-graph3d__fresh {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--lg-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-text-dim);
+  white-space: nowrap;
+}
+.lemu-graph3d__fresh-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lg-accent);
+}
+.lemu-graph3d__fresh--ok .lemu-graph3d__fresh-dot { background: var(--lg-accent); }
+.lemu-graph3d__fresh--warn .lemu-graph3d__fresh-dot { background: #f59e0b; }
+.lemu-graph3d__fresh--stale .lemu-graph3d__fresh-dot { background: var(--lg-danger); }
+
 /* ── Controls (top-left panel) ─────────────────────────────── */
 .lemu-graph3d__bar {
   display: flex;

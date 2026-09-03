@@ -23,19 +23,13 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNodeId }) => {
-  const [, setSearchParams] = useSearchParams();
+const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNodeId, dataUpdatedAt }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
   const focusRef = useRef(null);
   const snapshotRef = useRef(null);
   const searchRef = useRef(null);
-  const [view, setView] = useState('graph');
-  const [query, setQuery] = useState('');
-  const [showRoutes, setShowRoutes] = useState(false);
-  const [hopDepth, setHopDepth] = useState(2);
-  const [focusMatches, setFocusMatches] = useState(false);
-  const [hiddenKinds, setHiddenKinds] = useState(() => new Set());
 
   /* Same WebGL probe the canvas runs: it decides the initial render mode so
      machines without a GL context (RDP, VMs, stripped Chromium) open in 2D
@@ -49,8 +43,47 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
       return false;
     }
   }, []);
-  const [mode, setMode] = useState(webglOk ? '3d' : '2d');
+
+  /* View state reads the URL exactly once at mount (read-once init below) and
+     is written back on change by the sync effect. hiddenKinds and
+     focusMatches are ephemeral and stay out of the URL deliberately. */
+  const [view, setView] = useState(() => {
+    const v = searchParams.get('gview');
+    return v === 'graph' || v === 'table' ? v : 'graph';
+  });
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [hopDepth, setHopDepth] = useState(() => {
+    const h = searchParams.get('hops');
+    if (h === 'all') return 'all';
+    return ['1', '2', '3', '4'].includes(h) ? Number(h) : 2;
+  });
+  const [focusMatches, setFocusMatches] = useState(false);
+  const [hiddenKinds, setHiddenKinds] = useState(() => new Set());
+  const [mode, setMode] = useState(() => {
+    const m = searchParams.get('mode');
+    if (m === '2d' || m === '3d') return m;
+    return webglOk ? '3d' : '2d';
+  });
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
+
+  /* Write-on-change URL sync. Nothing here reads the params back (init is the
+     lazy initializers above), so this effect cannot loop. Defaults are
+     deleted to keep shared URLs short. */
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (view === 'graph') next.delete('gview');
+      else next.set('gview', view);
+      if (hopDepth === 2) next.delete('hops');
+      else next.set('hops', String(hopDepth));
+      if (!query.trim()) next.delete('q');
+      else next.set('q', query);
+      if (mode === '3d') next.delete('mode');
+      else next.set('mode', mode);
+      return next;
+    }, { replace: true });
+  }, [view, hopDepth, query, mode, setSearchParams]);
 
   /* Liveness keys collections by collection name, so model nodes are matched
      through modelName -> collectionName. Until the DB pulse is recording, every
@@ -225,6 +258,17 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     [nodeById, selectedNodeId, handleNodeClick, setSearchParams, moveSelection],
   );
 
+  /* Rail freshness: the page stamps dataUpdatedAt after every successful
+     liveness fetch; this tick recomputes the age label every 5s and drives
+     the dot (accent <60s, amber 60-120s, danger beyond). */
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const freshAgeSec = dataUpdatedAt ? Math.max(0, Math.floor((now - dataUpdatedAt) / 1000)) : 0;
+  const freshState = freshAgeSec < 60 ? 'ok' : freshAgeSec <= 120 ? 'warn' : 'stale';
+
   const counts = useMemo(() => {
     const c = {};
     graph.nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; });
@@ -317,6 +361,16 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
         Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs
         also open in the node drawer. Colour encodes kind; particles along an edge mean
         recent traffic.
+        {dataUpdatedAt && (
+          <span
+            className={`lemu-graph3d__fresh lemu-graph3d__fresh--${freshState}`}
+            aria-live="off"
+            title={`Data updated ${new Date(dataUpdatedAt).toLocaleString()}`}
+          >
+            <i className="lemu-graph3d__fresh-dot" aria-hidden="true" />
+            updated {freshAgeSec}s ago
+          </span>
+        )}
       </p>
     </div>
   );
