@@ -5,6 +5,7 @@ import { buildActivity } from './buildActivity';
 import { buildCodeGraph } from './buildCodeGraph';
 import { buildTopologyGraph } from './useTopologyGraph';
 import { downstreamOf, upstreamOf } from './blastRadius';
+import { shortestPath } from './shortestPath';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
@@ -82,6 +83,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      through the SAME outline channel hop-filter highlighting already uses —
      P3, no new colour meaning. */
   const [blastOn, setBlastOn] = useState(false);
+  /* Path finding (Phase 5): shift-click sets the second endpoint; Esc
+     clears it. */
+  const [pathTarget, setPathTarget] = useState(null);
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
@@ -224,15 +228,28 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     };
   }, [blastOn, selectedNodeId, graph.links]);
 
-  /* The closure feeds the canvas through the neighbour-outline channel. */
+  /* Path finding over the FULL layer edge set (like blast). Empty array is
+     a real result — "no path in this layer" — and stays distinguishable
+     from "no target set" (null). */
+  const pathInfo = useMemo(() => {
+    if (!pathTarget || !selectedNodeId || pathTarget === selectedNodeId) return null;
+    return shortestPath(graph.links, selectedNodeId, pathTarget);
+  }, [pathTarget, selectedNodeId, graph.links]);
+
+  /* A new selection invalidates the old target. */
+  useEffect(() => { setPathTarget(null); }, [selectedNodeId, layer]);
+
+  /* Blast/path highlights feed the canvas through the neighbour-outline
+     channel — the SAME treatment hop highlighting already uses (P3). */
   const analysisNeighbours = useMemo(() => {
     const s = new Set();
     if (blast) {
       blast.down.forEach((id) => s.add(id));
       blast.up.forEach((id) => s.add(id));
     }
+    (pathInfo || []).forEach((id) => { if (id !== selectedNodeId) s.add(id); });
     return s.size ? s : null;
-  }, [blast]);
+  }, [blast, pathInfo, selectedNodeId]);
 
   /* Publish the closure upward so the node drawer can list it (the tab owns
      the links; the page owns the drawer). */
@@ -307,7 +324,15 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      this fires). */
   const DRAWER_KINDS = ['module', 'model', 'job', 'host', 'store', 'collection', 'table', 'pipe', 'source', 'surface'];
   const handleNodeClick = useCallback(
-    (node) => {
+    (node, event) => {
+      /* Shift-click sets the path-finding target instead of moving the
+         selection — the two endpoints stay independently visible. Any node
+         kind can be a target (mounts and routes included): the question is
+         about connection, not drawer eligibility. */
+      if (event?.shiftKey) {
+        setPathTarget(node.id);
+        return;
+      }
       if (DRAWER_KINDS.includes(node.kind)) onSelectNode?.(node.id);
     },
     [onSelectNode],
@@ -387,10 +412,13 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           break;
         }
         case 'Escape': {
-          /* No onClearSelection prop exists above this tab, but the page
+          /* Path finding clears first (it is the ephemeral analysis); when
+             nothing else is selected the Escape ends there. No
+             onClearSelection prop exists above this tab, but the page
              already syncs selection FROM the URL (LemuLogsPage effect on the
              `node` param, same mechanism closeDrawer uses) — deleting the
              param clears selection and closes the drawer. */
+          setPathTarget(null);
           if (!selectedNodeId) break;
           e.preventDefault();
           setSearchParams((prev) => {
@@ -593,11 +621,24 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       {/* Analysis rail (Phase 5): one chip per active analysis, stacked under
           the attribution rail — readouts, not alarms, reusing statechip
           styling. */}
-      {view === 'graph' && blast && (
+      {view === 'graph' && (blast || pathInfo) && (
         <div className="lemu-graph3d__analysisrail lemu-graph3d__panel" role="group" aria-label="Analysis readouts">
-          <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="blast">
-            <i aria-hidden="true">◉</i> blast: <b>{blast.down.size}</b> downstream · <b>{blast.up.size}</b> upstream
-          </span>
+          {blast && (
+            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="blast">
+              <i aria-hidden="true">◉</i> blast: <b>{blast.down.size}</b> downstream · <b>{blast.up.size}</b> upstream
+            </span>
+          )}
+          {pathInfo && (pathInfo.length > 0 ? (
+            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="path">
+              <i aria-hidden="true">→</i> path: <b>{pathInfo.length - 1}</b> hop{pathInfo.length - 1 === 1 ? '' : 's'}
+            </span>
+          ) : (
+            /* [] is a real answer: the layers have different edge sets, so
+               the copy names the layer rather than claiming disconnection. */
+            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="path">
+              <i aria-hidden="true">∅</i> no path in this layer
+            </span>
+          ))}
         </div>
       )}
 
