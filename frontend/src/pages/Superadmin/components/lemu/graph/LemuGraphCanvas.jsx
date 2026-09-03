@@ -26,6 +26,8 @@ const LemuGraphCanvas = ({
   selectedNodeId,
   matches,
   mode,
+  dagMode,
+  dagLevelDistance,
   onNodeClick,
   onNodeHover,
   latchRef,
@@ -343,6 +345,8 @@ const LemuGraphCanvas = ({
             linkColor={linkColor}
             linkWidth={linkWidth}
             linkOpacity={0.45}
+            dagMode={dagMode || null}
+            dagLevelDistance={dagLevelDistance ?? 140}
             linkDirectionalParticles={linkParticles}
             linkDirectionalParticleSpeed={0.006}
             linkDirectionalParticleWidth={1.6}
@@ -369,6 +373,8 @@ const LemuGraphCanvas = ({
             linkColor={linkColor}
             linkWidth={linkWidth2D}
             linkOpacity={0.45}
+            dagMode={dagMode || null}
+            dagLevelDistance={dagLevelDistance ?? 140}
             linkDirectionalParticles={linkParticles}
             linkDirectionalParticleSpeed={0.006}
             linkDirectionalParticleWidth={1.6}

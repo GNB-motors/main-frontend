@@ -16,6 +16,8 @@ const LemuGraphControls = ({
   onFocusMatches,
   mode,
   onMode,
+  layer,
+  onLayer,
   view,
   onView,
   showSnapshot,
@@ -71,6 +73,19 @@ const LemuGraphControls = ({
         </select>
         {!hasSelection && <span className="lemu-graph3d__hop-hint lemu-meta">select a node to filter</span>}
       </label>
+      <div className="lemu-graph3d__seg" role="group" aria-label="Graph layer">
+        {[['code', 'Code'], ['infra', 'Infra']].map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={layer === v}
+            className={layer === v ? 'lemu-graph3d__seg-item lemu-graph3d__seg-item--on' : 'lemu-graph3d__seg-item'}
+            onClick={() => onLayer(v)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="lemu-graph3d__seg" role="group" aria-label="Graph view">
         {[['graph', 'Graph'], ['table', 'Table']].map(([v, label]) => (
           <button

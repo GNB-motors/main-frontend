@@ -70,6 +70,9 @@ const LemuLogsPage = () => {
   // hour" from "no signal all day". Null until loaded; the map degrades to
   // pulse-only behaviour without it.
   const [liveness, setLiveness] = useState(null);
+  // INFRA topology payload ({nodes, edges, degraded, summary}) — the graph
+  // tab's Infra layer. Null until the first successful fetch.
+  const [topology, setTopology] = useState(null);
   // Stamp of the last successful liveness fetch — drives the graph tab's
   // freshness dot. Unset until the first success; a failed poll never moves it.
   const [dataUpdatedAt, setDataUpdatedAt] = useState(null);
@@ -188,6 +191,18 @@ const LemuLogsPage = () => {
     }
   }, []);
 
+  /* INFRA topology for the graph tab's Infra layer. Refreshed by the same
+     30s poll as liveness; a failure degrades the layer to "no board" rather
+     than failing the page. */
+  const loadTopology = useCallback(async () => {
+    try {
+      const data = await LemuService.getTopology();
+      setTopology(data.data || null);
+    } catch {
+      setTopology(null);
+    }
+  }, []);
+
   const loadFindings = useCallback(async (silent = false) => {
     if (!silent) setFindingsStatus('loading');
     try {
@@ -288,9 +303,11 @@ const LemuLogsPage = () => {
   useEffect(() => { loadPulse(); }, [loadPulse]);
   useEffect(() => {
     loadLiveness();
-    /* Live poll: liveness + job health every 30s so the graph's numbers stay
-       honest. Paused while the document is hidden — no catch-up ticks. Jobs
-       load silently so the poll never fires a spinner storm. */
+    loadTopology();
+    /* Live poll: liveness + job health + topology every 30s so the graph's
+       numbers stay honest. Paused while the document is hidden — no
+       catch-up ticks. Jobs load silently so the poll never fires a spinner
+       storm. */
     const visibleRef = { current: document.visibilityState === 'visible' };
     const onVisibility = () => {
       visibleRef.current = document.visibilityState === 'visible';
@@ -300,12 +317,13 @@ const LemuLogsPage = () => {
       if (!visibleRef.current) return;
       loadLiveness();
       loadJobs(true);
+      loadTopology();
     }, 30 * 1000);
     return () => {
       clearInterval(t);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [loadLiveness, loadJobs]);
+  }, [loadLiveness, loadJobs, loadTopology]);
   useEffect(() => { loadFindings(); }, [loadFindings]);
   useEffect(() => { loadManifests(); }, [loadManifests]);
   useEffect(() => { loadJobs(); }, [loadJobs]);
@@ -619,6 +637,7 @@ const LemuLogsPage = () => {
             manifest={manifest}
             liveness={liveness}
             jobHealth={jobs}
+            topology={topology}
             onSelectNode={openNode}
             selectedNodeId={selectedNodeId}
             dataUpdatedAt={dataUpdatedAt}

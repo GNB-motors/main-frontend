@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Boxes } from 'lucide-react';
 import { buildActivity } from './buildActivity';
 import { buildCodeGraph } from './buildCodeGraph';
+import { buildTopologyGraph } from './useTopologyGraph';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
@@ -23,7 +24,7 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNodeId, dataUpdatedAt }) => {
+const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, selectedNodeId, dataUpdatedAt }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
@@ -65,6 +66,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     if (m === '2d' || m === '3d') return m;
     return webglOk ? '3d' : '2d';
   });
+  /* The layer switch: CODE is the manifest dependency graph, INFRA is the
+     topology board (hosts -> stores -> collections -> CDC -> tables). Read
+     once at mount like the other view params; the default is deleted from
+     the URL by the sync effect below. */
+  const [layer, setLayer] = useState(() => (searchParams.get('layer') === 'infra' ? 'infra' : 'code'));
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
@@ -97,9 +103,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
       else next.set('q', query);
       if (mode === '3d') next.delete('mode');
       else next.set('mode', mode);
+      if (layer === 'code') next.delete('layer');
+      else next.set('layer', layer);
       return next;
     }, { replace: true });
-  }, [view, hopDepth, query, mode, setSearchParams]);
+  }, [view, hopDepth, query, mode, layer, setSearchParams]);
 
   /* Liveness keys collections by collection name, so model nodes are matched
      through modelName -> collectionName. Until the DB pulse is recording, every
@@ -120,17 +128,26 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
      scatter. Re-using the previous object for an id keeps the coordinates
      d3 wrote, so a poll updates ops/live in place and the layout barely
      moves. Object.assign is safe here precisely because the freshly built
-     node carries no x/y/z of its own to clobber with. */
+     node carries no x/y/z of its own to clobber with.
+
+     The same pass runs over whichever layer is active, so the INFRA board
+     also survives the 30s topology poll, and `job:` ids shared by both
+     layers keep their coordinates when switching. */
+  const codeGraph = useMemo(
+    () => buildCodeGraph({ manifest, activity, showRoutes }),
+    [manifest, activity, showRoutes],
+  );
+  const infraGraph = useMemo(() => buildTopologyGraph(topology), [topology]);
+  const built = layer === 'infra' ? infraGraph : codeGraph;
   const nodeCache = useRef(new Map());
   const graph = useMemo(() => {
-    const built = buildCodeGraph({ manifest, activity, showRoutes });
     const nodes = built.nodes.map((n) => {
       const prev = nodeCache.current.get(n.id);
       return prev ? Object.assign(prev, n) : n;
     });
     nodeCache.current = new Map(nodes.map((n) => [n.id, n]));
     return { nodes, links: built.links };
-  }, [manifest, activity, showRoutes]);
+  }, [built]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -160,6 +177,34 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     };
   }, [graph, hiddenKinds, focusMatches, matches, selectedNodeId, hopDepth]);
 
+  /* dagMode throws on a cyclic graph. INFRA is acyclic by construction
+     (edges follow data flow), but the data is server-derived, so fail soft:
+     a cycle anywhere in the VISIBLE graph drops the DAG layout rather than
+     crashing the tab. Endpoints go through endId because the renderer may
+     already have swapped link source/target for node objects. */
+  const dagSafe = useMemo(() => {
+    if (layer !== 'infra') return null;
+    const adj = new Map();
+    visible.links.forEach((l) => {
+      const s = endId(l.source);
+      const t = endId(l.target);
+      if (!adj.has(s)) adj.set(s, []);
+      adj.get(s).push(t);
+    });
+    const seen = new Set();
+    const stack = new Set();
+    const walk = (id) => {
+      if (stack.has(id)) return true;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      stack.add(id);
+      const cyc = (adj.get(id) || []).some(walk);
+      stack.delete(id);
+      return cyc;
+    };
+    return [...adj.keys()].some(walk) ? null : 'lr';
+  }, [layer, visible.links]);
+
   const toggleKind = useCallback((kind) => {
     setHiddenKinds((prev) => {
       const next = new Set(prev);
@@ -169,14 +214,16 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     });
   }, []);
 
-  useEffect(() => { latch.current.reset(); }, [hopDepth, selectedNodeId, showRoutes]);
+  useEffect(() => { latch.current.reset(); }, [hopDepth, selectedNodeId, showRoutes, layer]);
 
-  // The drawer resolves module/model/job ids. Mounts and routes have no
-  // drawer view, so the canvas focuses the camera instead of opening an
-  // empty panel (its handleClick does the camera work after this fires).
+  /* The drawer resolves module/model/job ids plus every INFRA kind. Mounts
+     and routes have no drawer view, so the canvas focuses the camera instead
+     of opening an empty panel (its handleClick does the camera work after
+     this fires). */
+  const DRAWER_KINDS = ['module', 'model', 'job', 'host', 'store', 'collection', 'table', 'pipe', 'source', 'surface'];
   const handleNodeClick = useCallback(
     (node) => {
-      if (['module', 'model', 'job'].includes(node.kind)) onSelectNode?.(node.id);
+      if (DRAWER_KINDS.includes(node.kind)) onSelectNode?.(node.id);
     },
     [onSelectNode],
   );
@@ -343,6 +390,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
           onFocusMatches={setFocusMatches}
           mode={mode}
           onMode={setMode}
+          layer={layer}
+          onLayer={setLayer}
           view={view}
           onView={setView}
           showSnapshot={effectiveMode === '2d' && view === 'graph'}
@@ -380,6 +429,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
               selectedNodeId={selectedNodeId}
               matches={matches}
               mode={mode}
+              dagMode={dagSafe}
+              dagLevelDistance={140}
               onNodeClick={handleNodeClick}
               latchRef={latch}
               fitRef={fitRef}
