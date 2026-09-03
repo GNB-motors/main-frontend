@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Boxes } from 'lucide-react';
-import { buildActivity } from './buildActivity';
+import { LemuService } from '../../LemuService';
+import { activityAtBucket, buildActivity } from './buildActivity';
 import { buildCodeGraph } from './buildCodeGraph';
 import { buildTopologyGraph } from './useTopologyGraph';
 import { downstreamOf, upstreamOf } from './blastRadius';
@@ -14,6 +15,7 @@ import { KIND_HUE, KIND_LABEL, LINK_COLOR, LINK_LABEL } from './graphTheme';
 import LemuGraphCanvas from './LemuGraphCanvas';
 import LemuGraphControls from './LemuGraphControls';
 import LemuDeadSurfaces from './LemuDeadSurfaces';
+import LemuTimeScrubber from './LemuTimeScrubber';
 import LemuGraphTable from './LemuGraphTable';
 import GraphErrorBoundary from './GraphErrorBoundary';
 
@@ -88,6 +90,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   /* Path finding (Phase 5): shift-click sets the second endpoint; Esc
      clears it. */
   const [pathTarget, setPathTarget] = useState(null);
+  /* Time scrubber (Phase 5): index into the fetched pulse history, or null
+     for live. */
+  const [pulseBuckets, setPulseBuckets] = useState([]);
+  const [scrubIndex, setScrubIndex] = useState(null);
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
@@ -126,13 +132,40 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     }, { replace: true });
   }, [view, hopDepth, query, mode, layer, setSearchParams]);
 
+  /* Pulse history for the scrubber. v2-C4: /pulse passes `limit` straight
+     into the query (telemetryAdmin.routes.js -> getPulseSummary), so 1440
+     one-minute buckets really are a full 24h; no server cap to honour. One
+     real bucket doc is ~1.9KB, so 1440 is a ~2.7MB on-demand fetch for a
+     SUPER_ADMIN screen — accepted here; downsample server-side if that
+     measurement ever hurts. Failure simply leaves the scrubber unloaded. */
+  useEffect(() => {
+    let alive = true;
+    LemuService.getPulse({ limit: 1440 })
+      .then((d) => {
+        if (!alive) return;
+        const buckets = [...(d?.data?.buckets || [])]
+          .sort((a, b) => new Date(a.bucketStart) - new Date(b.bucketStart));
+        setPulseBuckets(buckets);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const scrubbedBucket = scrubIndex == null ? null : pulseBuckets[scrubIndex] || null;
+
   /* Liveness keys collections by collection name, so model nodes are matched
      through modelName -> collectionName. Until the DB pulse is recording, every
      collection reads as idle and the graph is structurally correct but static —
-     that is a data problem upstream, not a rendering one. */
+     that is a data problem upstream, not a rendering one.
+
+     While scrubbing, the single bucket at the scrub position REPLACES the
+     24h rollup — same Map shape, so the code graph and its identity cache
+     consume it unchanged. */
   const activity = useMemo(
-    () => buildActivity({ manifest, liveness, jobHealth }),
-    [manifest, liveness, jobHealth],
+    () => (scrubbedBucket
+      ? activityAtBucket(scrubbedBucket, manifest)
+      : buildActivity({ manifest, liveness, jobHealth })),
+    [manifest, liveness, jobHealth, scrubbedBucket],
   );
 
   /* Node object identity is preserved across rebuilds, and that is what stops
@@ -195,6 +228,31 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       }),
     };
   }, [graphBase, errorAttribution]);
+
+  /* Scrub stability: rebuilding the graph for a new scrub position must NOT
+     re-scatter the layout. The identity cache already merges live/ops into
+     the SAME node objects, so when the node/link shape is unchanged (the
+     only diff is activity), hand the renderer the PREVIOUS graph object
+     back — force-graph then sees no data change, does not reheat, and the
+     canvas repaints colours/particles via the changed accessors alone. */
+  const graphStableRef = useRef(null);
+  const graphStable = useMemo(() => {
+    const prev = graphStableRef.current;
+    let next = graph;
+    if (scrubbedBucket && prev) {
+      const nextById = new Map(graph.nodes.map((n) => [n.id, n]));
+      const sameShape = prev.nodes.length === graph.nodes.length
+        && prev.links.length === graph.links.length
+        && prev.nodes.every((n) => nextById.has(n.id));
+      /* the ref must hold the object we RETURNED last time — that is the
+         object the renderer still holds; handing back a never-rendered
+         sibling with the same shape still reads as a data swap to
+         force-graph and reheats the layout */
+      if (sameShape) next = prev;
+    }
+    graphStableRef.current = next;
+    return next;
+  }, [graph, scrubbedBucket]);
 
   /* Search matches and state-rail dimming share the one opacity channel
      (nodeAppearance `matches`): a node stays bright only if it satisfies
@@ -271,7 +329,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      first, then focus-match search (when on), then the hop-depth collapse.
      Legend counts and the footer below still describe the FULL graph. */
   const visible = useMemo(() => {
-    const kinded = applyKindFilter(graph, hiddenKinds);
+    const kinded = applyKindFilter(graphStable, hiddenKinds);
     let g = kinded;
     if (focusMatches && matches) {
       const nodes = kinded.nodes.filter((n) => matches.has(n.id));
@@ -287,7 +345,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       nodes: g.nodes.filter((n) => keep.has(n.id)),
       links: g.links.filter((l) => keep.has(endId(l.source)) && keep.has(endId(l.target))),
     };
-  }, [graph, hiddenKinds, focusMatches, matches, selectedNodeId, hopDepth]);
+  }, [graphStable, hiddenKinds, focusMatches, matches, selectedNodeId, hopDepth]);
 
   /* dagMode throws on a cyclic graph. INFRA is acyclic by construction
      (edges follow data flow), but the data is server-derived, so fail soft:
@@ -730,6 +788,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               selectedNodeId={selectedNodeId}
               matches={matches}
               neighbours={analysisNeighbours}
+              activityStamp={scrubbedBucket ? scrubbedBucket.bucketStart : 'live'}
               mode={mode}
               dagMode={dagSafe}
               dagLevelDistance={140}
@@ -744,6 +803,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
         </div>
       )}
 
+      {/* Time scrubber, docked bottom-centre above the footer rail. */}
+      {view === 'graph' && pulseBuckets.length > 0 && (
+        <LemuTimeScrubber buckets={pulseBuckets} value={scrubIndex} onChange={setScrubIndex} />
+      )}
+
       {/* Standing dead-surface panel, docked under the graph (right side).
           Rows click through to the node via the same selection mechanism
           as a sphere click. */}
@@ -755,7 +819,19 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
         {layer === 'infra'
           ? 'Colour encodes kind; rings encode state (solid measured, hollow declared, fault unreachable); particles mark the CDC spine.'
           : 'Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs also open in the node drawer. Colour encodes kind; particles along an edge mean recent traffic.'}
-        {dataUpdatedAt && (
+        {scrubbedBucket ? (
+          /* Scrubbed into the past is a user choice, not staleness — the
+             dot reads neutral grey and the label names the shown moment
+             instead of an age. */
+          <span
+            className="lemu-graph3d__fresh lemu-graph3d__fresh--showing"
+            aria-live="off"
+            title={`Showing activity at ${new Date(scrubbedBucket.bucketStart).toLocaleString()}`}
+          >
+            <i className="lemu-graph3d__fresh-dot" aria-hidden="true" />
+            showing {new Date(scrubbedBucket.bucketStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+          </span>
+        ) : dataUpdatedAt && (
           <span
             className={`lemu-graph3d__fresh lemu-graph3d__fresh--${freshState}`}
             aria-live="off"

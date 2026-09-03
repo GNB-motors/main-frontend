@@ -92,3 +92,20 @@ export const buildActivity = ({ manifest, liveness, jobHealth }) => {
 
   return byNode;
 };
+
+/* Scrubbing replaces the 24h liveness rollup with ONE minute bucket, so the
+   graph shows what was live at that moment. Node identity is preserved by
+   the existing cache, so scrubbing animates the colour/motion of a stable
+   layout rather than re-scattering it — the same fix that stopped the 30s
+   poll exploding the graph. Collection entries are matched to model nodes
+   through manifest.models collectionName; jobs and mounts carry no per-bucket
+   signal here, so they simply read unlit while scrubbed. */
+export const activityAtBucket = (bucket, manifest) => {
+  const byNode = new Map();
+  for (const c of (bucket && bucket.collections) || []) {
+    const model = (manifest.models || []).find((m) => m.collectionName === c.name);
+    const ops = (c.find || 0) + (c.insert || 0) + (c.update || 0) + (c.del || 0) + (c.agg || 0);
+    if (model && ops) byNode.set(`model:${model.modelName}`, { ops, lastSeen: bucket.bucketStart });
+  }
+  return byNode;
+};

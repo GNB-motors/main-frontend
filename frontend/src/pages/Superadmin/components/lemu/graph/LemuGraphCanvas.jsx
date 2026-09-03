@@ -26,6 +26,13 @@ const LemuGraphCanvas = ({
   selectedNodeId,
   matches,
   neighbours,
+  /* Changes whenever the scrubbed bucket changes (or on return to live).
+     The values it guards are merged into the node objects IN PLACE, so the
+     graph data itself stays reference-stable; this stamp only forces the
+     paint accessors below to be re-applied, which triggers the renderer's
+     needsRedraw and repaints colours/particles without reheating the
+     simulation. */
+  activityStamp,
   mode,
   dagMode,
   dagLevelDistance,
@@ -231,7 +238,7 @@ const LemuGraphCanvas = ({
       const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
       return hexToRgba(color, opacity * 0.92);
     },
-    [selectedNodeId, matches, neighbours],
+    [selectedNodeId, matches, neighbours, activityStamp],
   );
   const nodeLabel = useCallback(
     (n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}${n.errorCount ? ` · ⚠ ${n.errorCount}` : ''}`,
@@ -246,7 +253,7 @@ const LemuGraphCanvas = ({
       const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
       return hexToRgba(color, opacity * 0.92);
     },
-    [selectedNodeId, matches, neighbours],
+    [selectedNodeId, matches, neighbours, activityStamp],
   );
 
   /* P3 state treatment — one channel per meaning (graphTheme):
@@ -308,7 +315,7 @@ const LemuGraphCanvas = ({
       group.add(pipMesh);
     }
     return group.children.length ? group : undefined;
-  }, [three, selectedNodeId, matches, neighbours]);
+  }, [three, selectedNodeId, matches, neighbours, activityStamp]);
 
   /* 2D equivalent of nodeThreeObject. The renderer default is a filled
      circle of radius sqrt(val) * nodeRelSize, painted after any custom paint
@@ -323,7 +330,7 @@ const LemuGraphCanvas = ({
       const { ring, outline } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
       return ring !== 'solid' || outline ? 'replace' : 'before';
     },
-    [selectedNodeId, matches, neighbours],
+    [selectedNodeId, matches, neighbours, activityStamp],
   );
   const nodeCanvasObject = useCallback(
     (n, ctx) => {
@@ -364,7 +371,7 @@ const LemuGraphCanvas = ({
         paint(r + 3, OUTLINE_COLOR[outline] || '#cbd5e1', 1.5);
       }
     },
-    [selectedNodeId, matches, neighbours],
+    [selectedNodeId, matches, neighbours, activityStamp],
   );
 
   /* Particles are the "throb": they only flow along edges touching a
