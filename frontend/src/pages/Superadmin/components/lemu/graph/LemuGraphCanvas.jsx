@@ -82,6 +82,10 @@ const LemuGraphCanvas = ({
     (n) => nodeAppearance(n, { selectedNodeId, matches }).color,
     [selectedNodeId, matches],
   );
+  const nodeOpacity = useCallback(
+    (n) => nodeAppearance(n, { selectedNodeId, matches }).opacity * 0.92,
+    [selectedNodeId, matches],
+  );
   const nodeLabel = useCallback((n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}`, []);
   const linkColor = useCallback((l) => LINK_COLOR[l.kind] || 'rgba(148,163,184,0.3)', []);
   const linkWidth = useCallback((l) => (l.kind === 'require' ? 0.4 : 0.7), []);
@@ -110,7 +114,7 @@ const LemuGraphCanvas = ({
             nodeId="id"
             nodeVal="val"
             nodeColor={nodeColor}
-            nodeOpacity={0.92}
+            nodeOpacity={nodeOpacity}
             nodeResolution={12}
             nodeLabel={nodeLabel}
             linkColor={linkColor}

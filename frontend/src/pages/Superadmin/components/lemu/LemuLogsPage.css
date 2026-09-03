@@ -2354,6 +2354,21 @@
   font-weight: 600;
 }
 
+/* Legend chips are toggle buttons: strip the UA button chrome so they keep
+   the legend-item look, and mark hidden kinds. */
+button.lemu-graph3d__legend-item {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.lemu-graph3d__legend-item--off {
+  text-decoration: line-through;
+  opacity: .45;
+}
+
 /* The canvas is absolutely sized from JS, so this box only needs to establish
    the area to measure and clip the WebGL surface to the card radius. */
 .lemu-graph3d__canvas {

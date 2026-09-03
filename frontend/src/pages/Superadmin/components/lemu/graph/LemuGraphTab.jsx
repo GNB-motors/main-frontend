@@ -4,6 +4,7 @@ import { buildActivity } from './buildActivity';
 import { buildCodeGraph } from './buildCodeGraph';
 import { createFitLatch } from './cameraLatch';
 import { endId, nodesWithinHops } from './hopFilter';
+import { applyKindFilter } from './kindFilter';
 import { KIND_HUE, KIND_LABEL } from './graphTheme';
 import LemuGraphCanvas from './LemuGraphCanvas';
 import LemuGraphControls from './LemuGraphControls';
@@ -26,6 +27,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
   const [query, setQuery] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
   const [hopDepth, setHopDepth] = useState(2);
+  const [focusMatches, setFocusMatches] = useState(false);
+  const [hiddenKinds, setHiddenKinds] = useState(() => new Set());
 
   /* Liveness keys collections by collection name, so model nodes are matched
      through modelName -> collectionName. Until the DB pulse is recording, every
@@ -47,17 +50,36 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     return new Set(graph.nodes.filter((n) => n.id.toLowerCase().includes(q)).map((n) => n.id));
   }, [query, graph.nodes]);
 
-  /* Hop-depth filter: collapse the board to the neighbourhood of the selected
-     node. 'all' (or no selection) restores the full graph. Legend counts and
-     the footer below still describe the FULL graph. */
+  /* Filters compose in a fixed order inside this memo: hidden kinds drop out
+     first, then focus-match search (when on), then the hop-depth collapse.
+     Legend counts and the footer below still describe the FULL graph. */
   const visible = useMemo(() => {
-    if (!selectedNodeId || hopDepth === 'all') return graph;
-    const keep = nodesWithinHops(graph.links, selectedNodeId, Number(hopDepth));
+    const kinded = applyKindFilter(graph, hiddenKinds);
+    let g = kinded;
+    if (focusMatches && matches) {
+      const nodes = kinded.nodes.filter((n) => matches.has(n.id));
+      const present = new Set(nodes.map((n) => n.id));
+      g = {
+        nodes,
+        links: kinded.links.filter((l) => present.has(endId(l.source)) && present.has(endId(l.target))),
+      };
+    }
+    if (!selectedNodeId || hopDepth === 'all') return g;
+    const keep = nodesWithinHops(g.links, selectedNodeId, Number(hopDepth));
     return {
-      nodes: graph.nodes.filter((n) => keep.has(n.id)),
-      links: graph.links.filter((l) => keep.has(endId(l.source)) && keep.has(endId(l.target))),
+      nodes: g.nodes.filter((n) => keep.has(n.id)),
+      links: g.links.filter((l) => keep.has(endId(l.source)) && keep.has(endId(l.target))),
     };
-  }, [graph, selectedNodeId, hopDepth]);
+  }, [graph, hiddenKinds, focusMatches, matches, selectedNodeId, hopDepth]);
+
+  const toggleKind = useCallback((kind) => {
+    setHiddenKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      return next;
+    });
+  }, []);
 
   useEffect(() => { latch.current.reset(); }, [hopDepth, selectedNodeId, showRoutes]);
 
@@ -102,16 +124,24 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
         onHopDepth={setHopDepth}
         hasSelection={!!selectedNodeId}
         onFit={() => fitRef.current?.()}
+        focusMatches={focusMatches}
+        onFocusMatches={setFocusMatches}
       />
 
       <div className="lemu-graph3d__legend">
         {Object.keys(KIND_LABEL)
           .filter((k) => counts[k])
           .map((k) => (
-            <span key={k} className="lemu-graph3d__legend-item">
+            <button
+              key={k}
+              type="button"
+              className={`lemu-graph3d__legend-item${hiddenKinds.has(k) ? ' lemu-graph3d__legend-item--off' : ''}`}
+              aria-pressed={!hiddenKinds.has(k)}
+              onClick={() => toggleKind(k)}
+            >
               <i style={{ background: KIND_HUE[k] }} aria-hidden="true" />
               {KIND_LABEL[k]} <b>{counts[k]}</b>
-            </span>
+            </button>
           ))}
         <span className="lemu-meta">{graph.links.length} edges</span>
       </div>

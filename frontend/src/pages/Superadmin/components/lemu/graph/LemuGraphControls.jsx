@@ -11,6 +11,8 @@ const LemuGraphControls = ({
   onHopDepth,
   hasSelection,
   onFit,
+  focusMatches,
+  onFocusMatches,
 }) => (
   <div className="lemu-graph3d__bar">
     <div className="lemu-system-map__title">
@@ -28,6 +30,16 @@ const LemuGraphControls = ({
           aria-label="Highlight nodes in the graph"
         />
       </div>
+      <label className="lemu-graph3d__toggle">
+        <input
+          type="checkbox"
+          checked={focusMatches}
+          onChange={(e) => onFocusMatches(e.target.checked)}
+          disabled={!query.trim()}
+          aria-label="Filter the graph to nodes matching the search query"
+        />
+        <span>Focus matches</span>
+      </label>
       <label className="lemu-graph3d__toggle">
         <input
           type="checkbox"
