@@ -24,11 +24,27 @@ import GraphErrorBoundary from './GraphErrorBoundary';
 const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNodeId }) => {
   const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
+  const snapshotRef = useRef(null);
   const [query, setQuery] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
   const [hopDepth, setHopDepth] = useState(2);
   const [focusMatches, setFocusMatches] = useState(false);
   const [hiddenKinds, setHiddenKinds] = useState(() => new Set());
+
+  /* Same WebGL probe the canvas runs: it decides the initial render mode so
+     machines without a GL context (RDP, VMs, stripped Chromium) open in 2D
+     instead of flashing a black rectangle first. The canvas re-checks and
+     shows an info chip if 3D is picked where WebGL is missing. */
+  const webglOk = useMemo(() => {
+    try {
+      const c = document.createElement('canvas');
+      return Boolean(c.getContext('webgl2') || c.getContext('webgl'));
+    } catch {
+      return false;
+    }
+  }, []);
+  const [mode, setMode] = useState(webglOk ? '3d' : '2d');
+  const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Liveness keys collections by collection name, so model nodes are matched
      through modelName -> collectionName. Until the DB pulse is recording, every
@@ -99,6 +115,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     return c;
   }, [graph.nodes]);
 
+  // Snapshot is a 2D-only control (spec §4.3-4: incident-report capture of
+  // the canvas); the canvas publishes the actual handler through snapshotRef.
+  const handleSnapshot = useCallback(() => snapshotRef.current?.(), []);
+
   if (!manifest) {
     return (
       <div className="lemu-graph3d">
@@ -127,6 +147,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
           onFit={() => fitRef.current?.()}
           focusMatches={focusMatches}
           onFocusMatches={setFocusMatches}
+          mode={mode}
+          onMode={setMode}
+          showSnapshot={effectiveMode === '2d'}
+          onSnapshot={handleSnapshot}
         />
       </div>
 
@@ -153,9 +177,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
           graph={visible}
           selectedNodeId={selectedNodeId}
           matches={matches}
+          mode={mode}
           onNodeClick={handleNodeClick}
           latchRef={latch}
           fitRef={fitRef}
+          snapshotRef={snapshotRef}
         />
       </GraphErrorBoundary>
 

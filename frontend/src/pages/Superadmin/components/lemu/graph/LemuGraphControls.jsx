@@ -1,5 +1,5 @@
 import React from 'react';
-import { Boxes, Crosshair, Search } from 'lucide-react';
+import { Boxes, Camera, Crosshair, Search } from 'lucide-react';
 
 const LemuGraphControls = ({
   query,
@@ -13,6 +13,10 @@ const LemuGraphControls = ({
   onFit,
   focusMatches,
   onFocusMatches,
+  mode,
+  onMode,
+  showSnapshot,
+  onSnapshot,
 }) => (
   <div className="lemu-graph3d__bar">
     <div className="lemu-system-map__title">
@@ -63,9 +67,27 @@ const LemuGraphControls = ({
         </select>
         {!hasSelection && <span className="lemu-graph3d__hop-hint lemu-meta">select a node to filter</span>}
       </label>
+      <div className="lemu-graph3d__seg" role="group" aria-label="Graph render mode">
+        {['3d', '2d'].map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={mode === m}
+            className={mode === m ? 'lemu-graph3d__seg-item lemu-graph3d__seg-item--on' : 'lemu-graph3d__seg-item'}
+            onClick={() => onMode(m)}
+          >
+            {m === '3d' ? '3D' : '2D'}
+          </button>
+        ))}
+      </div>
       <button type="button" className="lemu-btn lemu-btn--outline" onClick={onFit}>
         <Crosshair size={14} /> Fit
       </button>
+      {showSnapshot && (
+        <button type="button" className="lemu-btn lemu-btn--outline" onClick={onSnapshot}>
+          <Camera size={14} /> Snapshot
+        </button>
+      )}
     </div>
   </div>
 );
