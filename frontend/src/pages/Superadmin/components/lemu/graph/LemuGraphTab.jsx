@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Boxes } from 'lucide-react';
 import { buildActivity } from './buildActivity';
 import { buildCodeGraph } from './buildCodeGraph';
 import { createFitLatch } from './cameraLatch';
-import { endId, nodesWithinHops } from './hopFilter';
+import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
 import { KIND_HUE, KIND_LABEL } from './graphTheme';
 import LemuGraphCanvas from './LemuGraphCanvas';
 import LemuGraphControls from './LemuGraphControls';
+import LemuGraphTable from './LemuGraphTable';
 import GraphErrorBoundary from './GraphErrorBoundary';
 
 /* 3D knowledge graph tab for the LEMU manifest.
@@ -22,9 +24,13 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
 const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNodeId }) => {
+  const [, setSearchParams] = useSearchParams();
   const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
+  const focusRef = useRef(null);
   const snapshotRef = useRef(null);
+  const searchRef = useRef(null);
+  const [view, setView] = useState('graph');
   const [query, setQuery] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
   const [hopDepth, setHopDepth] = useState(2);
@@ -109,6 +115,116 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     [onSelectNode],
   );
 
+  const nodeById = useMemo(
+    () => new Map(visible.nodes.map((n) => [n.id, n])),
+    [visible.nodes],
+  );
+
+  /* Table rows address nodes by id (spec: the Name button calls
+     onSelectNode(node.id)); resolve back to the node object and run the SAME
+     handler a sphere click uses, so drawer gating is identical in both views. */
+  const handleTableSelect = useCallback(
+    (id) => {
+      const node = nodeById.get(id);
+      if (node) handleNodeClick(node);
+    },
+    [nodeById, handleNodeClick],
+  );
+
+  /* Arrow-key selection (plan Task 10): moves through the selected node's
+     neighbours (hopFilter.neighboursOf), Right/Down next, Left/Up previous,
+     wrapping. The cursor ref keeps "next" stable across repeated presses —
+     without it, recomputing neighboursOf after every jump would ping-pong
+     between two nodes. Any selection change from another control (click,
+     table, hop filter) resets the cursor on the next press. With nothing
+     selected, the first visible node is selected. */
+  const navCursor = useRef({ anchor: null, ids: [], index: -1 });
+  const selectViaKeyboard = useCallback(
+    (node) => {
+      if (!node) return;
+      handleNodeClick(node);
+      focusRef.current?.(node); // camera follows, same flight as a node click
+    },
+    [handleNodeClick],
+  );
+  const moveSelection = useCallback(
+    (dir) => {
+      if (!visible.nodes.length) return;
+      if (!selectedNodeId) {
+        navCursor.current = { anchor: null, ids: [], index: -1 };
+        selectViaKeyboard(visible.nodes[0]);
+        return;
+      }
+      const cursor = navCursor.current;
+      if (cursor.anchor !== selectedNodeId) {
+        const ids = [...neighboursOf(visible.links, selectedNodeId)];
+        if (!ids.length) return;
+        const index = dir > 0 ? 0 : ids.length - 1;
+        navCursor.current = { anchor: selectedNodeId, ids, index };
+        selectViaKeyboard(nodeById.get(ids[index]));
+        return;
+      }
+      const index = (cursor.index + dir + cursor.ids.length) % cursor.ids.length;
+      navCursor.current = { ...cursor, index };
+      selectViaKeyboard(nodeById.get(cursor.ids[index]));
+    },
+    [visible, selectedNodeId, nodeById, selectViaKeyboard],
+  );
+
+  /* Canvas keyboard shortcuts, implemented here (the tab owns selection
+     state and the visible links) on a wrapper around the canvas — the canvas
+     itself stays renderer-only. Events bubble up from the focusable canvas
+     wrapper; anything typed into an input/select/textarea is left alone. */
+  const handleCanvasKeyDown = useCallback(
+    (e) => {
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      switch (e.key) {
+        case 'Enter': {
+          const node = nodeById.get(selectedNodeId);
+          if (node) {
+            e.preventDefault();
+            handleNodeClick(node);
+          }
+          break;
+        }
+        case 'Escape': {
+          /* No onClearSelection prop exists above this tab, but the page
+             already syncs selection FROM the URL (LemuLogsPage effect on the
+             `node` param, same mechanism closeDrawer uses) — deleting the
+             param clears selection and closes the drawer. */
+          if (!selectedNodeId) break;
+          e.preventDefault();
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('node');
+            return next;
+          }, { replace: true });
+          break;
+        }
+        case 'f':
+          e.preventDefault();
+          fitRef.current?.();
+          break;
+        case '/':
+          e.preventDefault();
+          searchRef.current?.focus();
+          break;
+        case 'ArrowRight':
+        case 'ArrowDown':
+        case 'ArrowLeft':
+        case 'ArrowUp': {
+          e.preventDefault();
+          moveSelection(e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1);
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [nodeById, selectedNodeId, handleNodeClick, setSearchParams, moveSelection],
+  );
+
   const counts = useMemo(() => {
     const c = {};
     graph.nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; });
@@ -138,6 +254,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
         <LemuGraphControls
           query={query}
           onQuery={setQuery}
+          searchRef={searchRef}
           showRoutes={showRoutes}
           onShowRoutes={setShowRoutes}
           routeCount={(manifest.routes || []).length}
@@ -149,7 +266,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
           onFocusMatches={setFocusMatches}
           mode={mode}
           onMode={setMode}
-          showSnapshot={effectiveMode === '2d'}
+          view={view}
+          onView={setView}
+          showSnapshot={effectiveMode === '2d' && view === 'graph'}
           onSnapshot={handleSnapshot}
         />
       </div>
@@ -172,18 +291,27 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
         <span className="lemu-meta">{graph.links.length} edges</span>
       </div>
 
-      <GraphErrorBoundary>
-        <LemuGraphCanvas
-          graph={visible}
-          selectedNodeId={selectedNodeId}
-          matches={matches}
-          mode={mode}
-          onNodeClick={handleNodeClick}
-          latchRef={latch}
-          fitRef={fitRef}
-          snapshotRef={snapshotRef}
-        />
-      </GraphErrorBoundary>
+      {view === 'table' ? (
+        /* The table and the canvas never mount at the same time (perf): the
+           ForceGraph simulation is thrown away on every switch, by design. */
+        <LemuGraphTable graph={visible} onSelectNode={handleTableSelect} />
+      ) : (
+        <div onKeyDown={handleCanvasKeyDown}>
+          <GraphErrorBoundary>
+            <LemuGraphCanvas
+              graph={visible}
+              selectedNodeId={selectedNodeId}
+              matches={matches}
+              mode={mode}
+              onNodeClick={handleNodeClick}
+              latchRef={latch}
+              fitRef={fitRef}
+              focusRef={focusRef}
+              snapshotRef={snapshotRef}
+            />
+          </GraphErrorBoundary>
+        </div>
+      )}
 
       <p className="lemu-meta lemu-graph3d__foot lemu-graph3d__rail">
         Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs

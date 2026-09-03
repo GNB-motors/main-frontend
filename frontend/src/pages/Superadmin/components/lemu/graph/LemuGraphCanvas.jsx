@@ -31,6 +31,7 @@ const LemuGraphCanvas = ({
   onNodeHover,
   latchRef,
   fitRef,
+  focusRef,
   snapshotRef,
 }) => {
   const wrapRef = useRef(null);
@@ -103,10 +104,12 @@ const LemuGraphCanvas = ({
     if (snapshotRef) snapshotRef.current = takeSnapshot;
   }, [snapshotRef, takeSnapshot]);
 
-  const handleClick = useCallback(
+  /* The camera flight, split out of handleClick so the tab's keyboard
+     navigation (plan Task 10) can fly to a node without replaying the click:
+     handleClick = select (onNodeClick) + flyTo. Same latch discipline either
+     way — beginFocus keeps onEngineStop from fitting over the animation. */
+  const flyTo = useCallback(
     (node) => {
-      if (!node) return;
-      onNodeClick?.(node);
       const fg = fgRef.current;
       if (!fg) return;
       const duration = reducedMotion ? 0 : 900;
@@ -126,7 +129,19 @@ const LemuGraphCanvas = ({
       }
       setTimeout(() => latchRef.current.endFocus(), duration + 50); // just past the animation (0 when instant)
     },
-    [onNodeClick, latchRef, reducedMotion, effectiveMode],
+    [latchRef, reducedMotion, effectiveMode],
+  );
+  useEffect(() => {
+    if (focusRef) focusRef.current = flyTo;
+  }, [focusRef, flyTo]);
+
+  const handleClick = useCallback(
+    (node) => {
+      if (!node) return;
+      onNodeClick?.(node);
+      flyTo(node);
+    },
+    [onNodeClick, flyTo],
   );
 
   // §6.2 checked 2026-09-03: hover state re-renders the canvas wrapper; engine reheat on hover unverified without a browser — see plan Task 5 Step 7.
@@ -266,7 +281,17 @@ const LemuGraphCanvas = ({
   }, [latchRef]);
 
   return (
-    <div className="lemu-graph3d__canvas" ref={wrapRef}>
+    /* role=img + the counts label: the WebGL canvas is a black box to AT, so
+       it announces what it is and points at the table view (plan Task 10,
+       spec §4.6). Keyboard shortcuts live one level up in the tab, which owns
+       selection state; keydown bubbles here from the focused wrapper. */
+    <div
+      className="lemu-graph3d__canvas"
+      ref={wrapRef}
+      role="img"
+      tabIndex={0}
+      aria-label={`Knowledge graph: ${graph.nodes.length} nodes, ${graph.links.length} edges. Switch to table view for a keyboard-accessible list.`}
+    >
       <Suspense fallback={<div className="lemu-meta lemu-graph3d__loading">Loading {effectiveMode === '3d' ? '3D' : '2D'} renderer…</div>}>
         {dims.width > 0 && effectiveMode === '3d' && (
           <ForceGraph3D

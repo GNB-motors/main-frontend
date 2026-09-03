@@ -4,6 +4,7 @@ import { Boxes, Camera, Crosshair, Search } from 'lucide-react';
 const LemuGraphControls = ({
   query,
   onQuery,
+  searchRef,
   showRoutes,
   onShowRoutes,
   routeCount,
@@ -15,6 +16,8 @@ const LemuGraphControls = ({
   onFocusMatches,
   mode,
   onMode,
+  view,
+  onView,
   showSnapshot,
   onSnapshot,
 }) => (
@@ -27,6 +30,7 @@ const LemuGraphControls = ({
       <div className="lemu-search lemu-search--compact">
         <span className="lemu-search__icon"><Search size={14} /></span>
         <input
+          ref={searchRef}
           type="search"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
@@ -67,6 +71,19 @@ const LemuGraphControls = ({
         </select>
         {!hasSelection && <span className="lemu-graph3d__hop-hint lemu-meta">select a node to filter</span>}
       </label>
+      <div className="lemu-graph3d__seg" role="group" aria-label="Graph view">
+        {[['graph', 'Graph'], ['table', 'Table']].map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={view === v}
+            className={view === v ? 'lemu-graph3d__seg-item lemu-graph3d__seg-item--on' : 'lemu-graph3d__seg-item'}
+            onClick={() => onView(v)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="lemu-graph3d__seg" role="group" aria-label="Graph render mode">
         {['3d', '2d'].map((m) => (
           <button
