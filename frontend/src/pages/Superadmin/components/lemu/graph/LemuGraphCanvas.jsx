@@ -206,7 +206,10 @@ const LemuGraphCanvas = ({
     },
     [selectedNodeId, matches],
   );
-  const nodeLabel = useCallback((n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}`, []);
+  const nodeLabel = useCallback(
+    (n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}${n.errorCount ? ` · ⚠ ${n.errorCount}` : ''}`,
+    [],
+  );
   const linkColor = useCallback((l) => LINK_COLOR[l.kind] || 'rgba(148,163,184,0.3)', []);
   const linkWidth = useCallback((l) => (l.kind === 'require' ? 0.4 : 0.7), []);
   // 2D linkWidth is canvas pixels, so the same weights doubled stay readable.
@@ -221,15 +224,19 @@ const LemuGraphCanvas = ({
 
   /* P3 state treatment — one channel per meaning (graphTheme):
      ring drives the geometry (solid sphere / wireframe / fault wireframe),
-     outline adds a back-side halo for the selection and its neighbours.
-     Solid, unselected nodes return undefined from nodeThreeObject, so they
-     keep the cheap built-in sphere path (nodeThreeObjectExtend=false). The
-     radius formula mirrors the renderer default: cbrt(val) * nodeRelSize. */
+     outline adds a back-side halo for the selection and its neighbours,
+     pip adds the amber error dot (and forces the node off the cheap default
+     path, since a custom object replaces the built-in sphere).
+     Solid, unselected, pip-less nodes return undefined from nodeThreeObject,
+     so they keep the cheap built-in sphere path (nodeThreeObjectExtend=false).
+     The radius formula mirrors the renderer default: cbrt(val) * nodeRelSize. */
+  const PIP_COLOR = '#f59e0b';
   const nodeThreeObject = useCallback((n) => {
     // Before three resolves, fall through to the renderer's own spheres.
     if (!three) return undefined;
-    const { color, opacity, ring, outline } = nodeAppearance(n, { selectedNodeId, matches });
+    const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches });
     const radius = Math.cbrt(Math.max(0, n.val || 1)) * 4;
+    if (ring === 'solid' && !outline && !pip) return undefined;
     const group = new three.Group();
     if (outline) {
       group.add(new three.Mesh(
@@ -251,13 +258,27 @@ const LemuGraphCanvas = ({
           color: ring === 'fault' ? '#fb7185' : color,
         }),
       ));
-    } else if (outline) {
-      // The custom object replaces the default sphere, so an outlined solid
-      // node needs its sphere recreated or it would render as halo only.
+    } else if (outline || pip) {
+      // The custom object replaces the default sphere, so a solid node that
+      // carries an outline or a pip needs its sphere recreated or it would
+      // render as halo/pip only.
       group.add(new three.Mesh(
         new three.SphereGeometry(radius, 12, 12),
         new three.MeshLambertMaterial({ color, transparent: true, opacity: opacity * 0.92 }),
       ));
+    }
+    if (pip === 'errors') {
+      // Small amber sphere at the node's upper-right. Unlit (MeshBasicMaterial)
+      // so it reads as a marker, not geometry; alpha rides the search-dim
+      // opacity channel like every other node paint.
+      const pipRadius = Math.max(1.2, radius * 0.3);
+      const d = (radius + pipRadius) / Math.SQRT2;
+      const pipMesh = new three.Mesh(
+        new three.SphereGeometry(pipRadius, 8, 8),
+        new three.MeshBasicMaterial({ color: PIP_COLOR, transparent: true, opacity }),
+      );
+      pipMesh.position.set(d, d, 0);
+      group.add(pipMesh);
     }
     return group.children.length ? group : undefined;
   }, [three, selectedNodeId, matches]);
@@ -279,10 +300,23 @@ const LemuGraphCanvas = ({
   );
   const nodeCanvasObject = useCallback(
     (n, ctx) => {
-      const { color, opacity, ring, outline } = nodeAppearance(n, { selectedNodeId, matches });
+      const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches });
+      const r = Math.sqrt(Math.max(0, n.val || 1)) * 4;
+      // Error pip rides its own channel: drawn for EVERY node that owns
+      // errors, including plain solid ones whose base circle the renderer's
+      // default fill paints after this callback in 'before' mode. The dot
+      // sits fully outside the node circle so that later fill can never
+      // cover it, and its alpha rides the search-dim opacity channel.
+      if (pip === 'errors') {
+        const pipRadius = Math.max(2, r * 0.28);
+        const d = (r + pipRadius) / Math.SQRT2;
+        ctx.beginPath();
+        ctx.arc(n.x + d, n.y - d, pipRadius, 0, 2 * Math.PI, false);
+        ctx.fillStyle = hexToRgba(PIP_COLOR, opacity);
+        ctx.fill();
+      }
       // 'before' mode: the default fill paints plain solid nodes.
       if (ring === 'solid' && !outline) return;
-      const r = Math.sqrt(Math.max(0, n.val || 1)) * 4;
       const paint = (radius, style, width, fill) => {
         ctx.beginPath();
         ctx.arc(n.x, n.y, radius, 0, 2 * Math.PI, false);

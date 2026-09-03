@@ -24,7 +24,7 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, selectedNodeId, dataUpdatedAt }) => {
+const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
@@ -146,7 +146,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, s
   const infraGraph = useMemo(() => buildTopologyGraph(topology), [topology]);
   const built = layer === 'infra' ? infraGraph : codeGraph;
   const nodeCache = useRef(new Map());
-  const graph = useMemo(() => {
+  const graphBase = useMemo(() => {
     const nodes = built.nodes.map((n) => {
       const prev = nodeCache.current.get(n.id);
       return prev ? Object.assign(prev, n) : n;
@@ -154,6 +154,36 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, s
     nodeCache.current = new Map(nodes.map((n) => [n.id, n]));
     return { nodes, links: built.links };
   }, [built]);
+
+  /* Error counts merge onto the identity-cached node objects IN PLACE, after
+     the cache pass above: the cached objects carry the x/y/z d3 wrote, and
+     in-place mutation (rather than a spread that would swap in a
+     coordinate-less fresh object) is what lets a 30s poll update counts
+     without re-scattering the layout. A node absent from the new rollup has
+     its count deleted in place too — a resolved error must lose its pip on
+     the next poll, not keep a stale one. */
+  const graph = useMemo(() => {
+    const byNode = errorAttribution?.byNode || {};
+    const keys = Object.keys(byNode);
+    if (!keys.length) {
+      graphBase.nodes.forEach((n) => { delete n.errorCount; delete n.errorOccurrences; });
+      return graphBase;
+    }
+    return {
+      ...graphBase,
+      nodes: graphBase.nodes.map((n) => {
+        const e = byNode[n.id];
+        if (!e) {
+          delete n.errorCount;
+          delete n.errorOccurrences;
+          return n;
+        }
+        n.errorCount = e.count;
+        n.errorOccurrences = e.occurrences;
+        return n;
+      }),
+    };
+  }, [graphBase, errorAttribution]);
 
   /* Search matches and state-rail dimming share the one opacity channel
      (nodeAppearance `matches`): a node stays bright only if it satisfies

@@ -5,6 +5,7 @@
      ring       -> state       (whether anything has measured it)
      outline    -> selection
      opacity    -> search match
+     pip        -> errors      (a node owns attributed errors)
 
    The v1 nodeColor() returned a dim grey for search misses, rose for the
    selection, cyan for "live" and otherwise a kind colour — four meanings
@@ -68,9 +69,10 @@ export const LINK_LABEL = {
 const RING_BY_STATE = { measured: 'solid', declared: 'hollow', unreachable: 'fault' };
 
 /**
- * @param {object} node  { id, kind, state? }
+ * @param {object} node  { id, kind, state?, errorCount? }
  * @param {object} ctx   { selectedNodeId?, matches?: Set<string>, neighbours?: Set<string> }
- * @returns { color, opacity, ring: 'solid'|'hollow'|'fault', outline: null|'selected'|'neighbour' }
+ * @returns { color, opacity, ring: 'solid'|'hollow'|'fault', outline: null|'selected'|'neighbour',
+ *           pip: null|'errors' }
  */
 export const nodeAppearance = (node, ctx = {}) => {
   const { selectedNodeId, matches, neighbours } = ctx;
@@ -88,5 +90,9 @@ export const nodeAppearance = (node, ctx = {}) => {
   // with the INFRA layer + Task 8's ring treatment.
   const ring = node.state ? RING_BY_STATE[node.state] || 'hollow' : 'solid';
 
-  return { color, opacity, ring, outline };
+  // Errors get their own channel, never a hue override (P3): a pip, drawn by
+  // the canvas on top of whatever the ring/outline treatment produced.
+  const pip = node.errorCount ? 'errors' : null;
+
+  return { color, opacity, ring, outline, pip };
 };
