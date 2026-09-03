@@ -296,18 +296,33 @@ const LemuGraphCanvas = ({
      node with recent traffic, so motion means live data, not decoration.
      The motion budget caps them at the 200 busiest live edges by ops —
      endpoints are resolved by id because the renderer may not have swapped
-     link source/target for node objects yet on the first pass. */
+     link source/target for node objects yet on the first pass.
+
+     INFRA layer: its nodes carry no `live` flag — the CDC spine (mirrors)
+     IS the flow, so particles ride every mirrors edge, under the SAME 200
+     edge cap (not a second budget). CODE layer edges are static require/
+     mount facts and stay particle-free. */
   const particleEdges = useMemo(() => {
+    if (dagMode) {
+      return new Set(graph.links.filter((l) => l.kind === 'mirrors').slice(0, 200));
+    }
     const byId = new Map(graph.nodes.map((n) => [n.id, n]));
     const end = (e) => (typeof e === 'object' ? e : byId.get(e));
     const ops = (l) => Math.max(end(l.source)?.ops || 0, end(l.target)?.ops || 0);
     const live = graph.links.filter((l) => end(l.source)?.live || end(l.target)?.live);
     live.sort((a, b) => ops(b) - ops(a));
     return new Set(live.slice(0, 200));
-  }, [graph.links, graph.nodes]);
+  }, [graph.links, graph.nodes, dagMode]);
   const linkParticles = useCallback(
     (l) => (reducedMotion || !particleEdges.has(l) ? 0 : 3),
     [reducedMotion, particleEdges],
+  );
+  /* Directional arrows where data has a defined direction: the CDC spine
+     (mirrors) and external reads. Off (0) on the CODE layer, whose edges
+     are static facts. */
+  const linkArrowLength = useCallback(
+    (l) => (dagMode && (l.kind === 'mirrors' || l.kind === 'reads') ? 4 : 0),
+    [dagMode],
   );
   const handleEngineStop = useCallback(() => {
     if (latchRef.current.shouldFit()) fgRef.current?.zoomToFit(500, 60);
@@ -347,6 +362,7 @@ const LemuGraphCanvas = ({
             linkOpacity={0.45}
             dagMode={dagMode || null}
             dagLevelDistance={dagLevelDistance ?? 140}
+            linkDirectionalArrowLength={linkArrowLength}
             linkDirectionalParticles={linkParticles}
             linkDirectionalParticleSpeed={0.006}
             linkDirectionalParticleWidth={1.6}
@@ -375,6 +391,7 @@ const LemuGraphCanvas = ({
             linkOpacity={0.45}
             dagMode={dagMode || null}
             dagLevelDistance={dagLevelDistance ?? 140}
+            linkDirectionalArrowLength={linkArrowLength}
             linkDirectionalParticles={linkParticles}
             linkDirectionalParticleSpeed={0.006}
             linkDirectionalParticleWidth={1.6}
