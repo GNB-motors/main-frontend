@@ -114,21 +114,23 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
 
   return (
     <div className="lemu-graph3d">
-      <LemuGraphControls
-        query={query}
-        onQuery={setQuery}
-        showRoutes={showRoutes}
-        onShowRoutes={setShowRoutes}
-        routeCount={(manifest.routes || []).length}
-        hopDepth={hopDepth}
-        onHopDepth={setHopDepth}
-        hasSelection={!!selectedNodeId}
-        onFit={() => fitRef.current?.()}
-        focusMatches={focusMatches}
-        onFocusMatches={setFocusMatches}
-      />
+      <div className="lemu-graph3d__panel lemu-graph3d__panel--tl">
+        <LemuGraphControls
+          query={query}
+          onQuery={setQuery}
+          showRoutes={showRoutes}
+          onShowRoutes={setShowRoutes}
+          routeCount={(manifest.routes || []).length}
+          hopDepth={hopDepth}
+          onHopDepth={setHopDepth}
+          hasSelection={!!selectedNodeId}
+          onFit={() => fitRef.current?.()}
+          focusMatches={focusMatches}
+          onFocusMatches={setFocusMatches}
+        />
+      </div>
 
-      <div className="lemu-graph3d__legend">
+      <div className="lemu-graph3d__legend lemu-graph3d__panel lemu-graph3d__panel--tr">
         {Object.keys(KIND_LABEL)
           .filter((k) => counts[k])
           .map((k) => (
@@ -157,7 +159,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
         />
       </GraphErrorBoundary>
 
-      <p className="lemu-meta lemu-graph3d__foot">
+      <p className="lemu-meta lemu-graph3d__foot lemu-graph3d__rail">
         Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs
         also open in the node drawer. Colour encodes kind; particles along an edge mean
         recent traffic.

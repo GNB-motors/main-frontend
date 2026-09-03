@@ -2295,26 +2295,118 @@
   }
 }
 
-/* ── 3D knowledge graph ────────────────────────────────────── */
+/* ── 3D knowledge graph: full-bleed instrument surface ───────
+   An air-traffic instrument, not a card in a page — deep space
+   background, floating frosted-glass chrome, tabular numerals, one
+   accent family. Every value is a token; nothing hardcodes a colour
+   outside this block. */
 .lemu-graph3d {
+  /* ── tokens ─────────────────────────────────────────────── */
+  --lg-bg:            #070b18;
+  --lg-panel:         rgba(13, 18, 34, 0.66);
+  --lg-panel-border:  rgba(148, 163, 184, 0.16);
+  --lg-text:          #e2e8f0;
+  --lg-text-dim:      #8b96ab;
+  --lg-accent:        #818cf8;
+  --lg-danger:        #fb7185;
+  --lg-radius:        12px;
+  --lg-mono:          ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  position: relative;
+  height: calc(100dvh - var(--lemu-header-h, 180px));
+  margin-inline: calc(-1 * var(--lemu-page-pad, 24px));
+  border-radius: 0;
+  border-inline: 0;
+  color: var(--lg-text);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Aurora glow at the top + faint instrument grid */
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
+    radial-gradient(circle, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    var(--lg-bg);
+  background-size: auto, 26px 26px, auto;
+}
+
+/* The negative inline margin reaches the .lemu-page padding; that padding is
+   a hardcoded 24px there, so the token always resolves to its fallback. */
+.lemu-graph3d > .lemu-state {
+  color: var(--lg-text-dim);
+}
+
+/* ── Floating glass chrome ─────────────────────────────────── */
+.lemu-graph3d__panel {
+  position: absolute; z-index: 2;
+  padding: 10px 12px;
+  border-radius: var(--lg-radius);
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),   /* top hairline light */
+    0 12px 32px rgba(2, 6, 23, 0.45);
+}
+.lemu-graph3d__panel--tl { top: 12px; left: 12px; max-width: calc(100% - 24px); }
+.lemu-graph3d__panel--tr { top: 12px; right: 12px; max-height: calc(100% - 24px); overflow-y: auto; }
+
+.lemu-graph3d__rail {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2;
+  display: flex; align-items: center; gap: 16px;
+  padding: 8px 14px;
+  border-radius: var(--lg-radius);
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+}
+.lemu-graph3d__rail b { font-family: var(--lg-mono); font-variant-numeric: tabular-nums; }
+
+/* ── Controls (top-left panel) ─────────────────────────────── */
+.lemu-graph3d__bar {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.lemu-graph3d__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+.lemu-graph3d__panel .lemu-system-map__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--lg-text);
 }
 
 .lemu-graph3d__controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+}
+
+/* Shared chrome overrides: the search box and outline button come from the
+   page's light-surface styles; on the glass panel they go dark. */
+.lemu-graph3d__panel .lemu-search__icon { color: var(--lg-text-dim); }
+.lemu-graph3d__panel .lemu-search input {
+  background: rgba(7, 11, 24, 0.55);
+  border-color: var(--lg-panel-border);
+  color: var(--lg-text);
+}
+.lemu-graph3d__panel .lemu-search input::placeholder { color: var(--lg-text-dim); }
+
+.lemu-graph3d__panel .lemu-btn--outline {
+  background: transparent;
+  color: var(--lg-text);
+  border-color: var(--lg-panel-border);
+}
+.lemu-graph3d__panel .lemu-btn--outline:not(:disabled):hover {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: var(--lg-accent);
 }
 
 .lemu-graph3d__toggle {
@@ -2322,117 +2414,30 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--lemu-text-secondary);
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
   cursor: pointer;
   white-space: nowrap;
 }
-
-.lemu-graph3d__legend {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  font-size: 11.5px;
-  color: var(--lemu-text-secondary);
-}
-
-.lemu-graph3d__legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.lemu-graph3d__legend-item i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.lemu-graph3d__legend-item b {
-  color: var(--lemu-text-primary);
-  font-weight: 600;
-}
-
-/* Legend chips are toggle buttons: strip the UA button chrome so they keep
-   the legend-item look, and mark hidden kinds. */
-button.lemu-graph3d__legend-item {
-  background: none;
-  border: 0;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-.lemu-graph3d__legend-item--off {
-  text-decoration: line-through;
-  opacity: .45;
-}
-
-/* The canvas is absolutely sized from JS, so this box only needs to establish
-   the area to measure and clip the WebGL surface to the card radius. */
-.lemu-graph3d__canvas {
-  position: relative;
-  min-height: 560px;
-  height: 62vh;
-  border: 1px solid var(--lemu-border);
-  border-radius: 12px;
-  overflow: hidden;
-  background:
-    radial-gradient(120% 100% at 50% 0%, rgba(99, 102, 241, 0.07), transparent 60%),
-    var(--lemu-surface, #0b1020);
-}
-
-.lemu-graph3d__loading {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-}
-
-.lemu-graph3d__hint {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.82);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  color: #e2e8f0;
-  font-size: 12px;
-  pointer-events: none;
-  max-width: 60%;
-}
-
-.lemu-graph3d__hint strong {
-  word-break: break-all;
-}
-
-.lemu-graph3d__hint .lemu-meta {
-  color: #94a3b8;
-}
-
-.lemu-graph3d__foot {
-  margin: 0;
-}
+.lemu-graph3d__toggle input { accent-color: var(--lg-accent); }
 
 .lemu-graph3d__hop {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--lemu-text-secondary);
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
   white-space: nowrap;
 }
 
 .lemu-graph3d__hop select {
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 1px solid var(--lemu-border);
+  font-family: var(--lg-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--lg-text);
+  background: rgba(7, 11, 24, 0.55);
+  border: 1px solid var(--lg-panel-border);
   border-radius: 6px;
   padding: 3px 6px;
   cursor: pointer;
@@ -2447,9 +2452,122 @@ button.lemu-graph3d__legend-item {
   font-size: 11px;
 }
 
+/* Every interactive element gets the accent focus ring. */
+.lemu-graph3d__legend-item:focus-visible,
+.lemu-graph3d__toggle input:focus-visible,
+.lemu-graph3d__hop select:focus-visible,
+.lemu-graph3d__panel .lemu-search input:focus-visible,
+.lemu-graph3d__panel .lemu-btn:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+.lemu-graph3d__panel .lemu-search input:focus-visible {
+  border-color: var(--lg-panel-border);
+  box-shadow: none;
+}
+
+/* ── Legend (top-right panel): chips double as kind filters ── */
+.lemu-graph3d__legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+}
+
+.lemu-graph3d__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lemu-graph3d__legend-item i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.lemu-graph3d__legend-item b {
+  font-family: var(--lg-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-text);
+  font-weight: 600;
+}
+
+/* Legend chips are toggle buttons: strip the UA button chrome so they keep
+   the legend-item look, and mark hidden kinds. */
+button.lemu-graph3d__legend-item {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.lemu-graph3d__legend-item[aria-pressed="true"] {
+  text-decoration: underline;
+  text-decoration-color: var(--lg-accent);
+  text-underline-offset: 3px;
+}
+.lemu-graph3d__legend-item--off {
+  text-decoration: line-through;
+  opacity: .45;
+}
+
+/* ── Canvas: the WebGL surface owns the whole tab ──────────── */
+.lemu-graph3d__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.lemu-graph3d__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--lg-text-dim);
+}
+
+/* Hover hint floats above the rail so they never overlap. */
+.lemu-graph3d__hint {
+  position: absolute;
+  left: 12px;
+  bottom: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+  color: var(--lg-text);
+  font-size: 12px;
+  pointer-events: none;
+  max-width: 60%;
+}
+
+.lemu-graph3d__hint strong {
+  word-break: break-all;
+}
+
+.lemu-graph3d__hint .lemu-meta {
+  color: var(--lg-text-dim);
+}
+
+.lemu-graph3d__foot {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+}
+
 @media (max-width: 720px) {
-  .lemu-graph3d__canvas {
-    min-height: 420px;
-    height: 52vh;
-  }
+  .lemu-graph3d__panel--tl { right: 8px; left: 8px; max-width: none; }
+  .lemu-graph3d__panel--tr { top: auto; bottom: 56px; right: 8px; left: 8px; max-height: 40%; }
+  .lemu-graph3d__rail { flex-wrap: wrap; gap: 8px; }
 }
