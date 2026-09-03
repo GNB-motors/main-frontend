@@ -97,6 +97,9 @@ const LemuLogsPage = () => {
   });
   const [selectedNodeId, setSelectedNodeId] = useState(() => searchParams.get('node') || null);
   const [drawerOpen, setDrawerOpen] = useState(() => !!searchParams.get('node'));
+  // Blast-radius closure published by the graph tab (Phase 5) — the drawer
+  // lists it while a selection's blast radius is active.
+  const [blastClosure, setBlastClosure] = useState(null);
 
   /* ── Jobs panel ── */
   const [jobs, setJobs] = useState([]);
@@ -675,6 +678,7 @@ const LemuLogsPage = () => {
             onOpenErrors={() => setTab('errors')}
             selectedNodeId={selectedNodeId}
             dataUpdatedAt={dataUpdatedAt}
+            onBlastChange={setBlastClosure}
           />
         )}
 
@@ -745,6 +749,8 @@ const LemuLogsPage = () => {
           liveness={liveness}
           topology={topology}
           errorAttribution={errorAttribution}
+          closure={blastClosure}
+          onSelectNode={openNode}
           onClose={closeDrawer}
         />
       )}

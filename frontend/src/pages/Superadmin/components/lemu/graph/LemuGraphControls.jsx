@@ -14,6 +14,8 @@ const LemuGraphControls = ({
   onFit,
   focusMatches,
   onFocusMatches,
+  blastOn,
+  onBlast,
   mode,
   onMode,
   layer,
@@ -49,6 +51,15 @@ const LemuGraphControls = ({
           aria-label="Filter the graph to nodes matching the search query"
         />
         <span>Focus matches</span>
+      </label>
+      <label className="lemu-graph3d__toggle" title="Highlight everything that depends on the selected node, and everything it depends on">
+        <input
+          type="checkbox"
+          checked={blastOn}
+          onChange={(e) => onBlast(e.target.checked)}
+          aria-label="Highlight the blast radius of the selected node"
+        />
+        <span>Blast radius</span>
       </label>
       <label className="lemu-graph3d__toggle">
         <input

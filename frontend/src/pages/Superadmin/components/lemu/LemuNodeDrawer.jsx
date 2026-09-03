@@ -41,7 +41,7 @@ const middlewareLabels = (middlewares) => {
   return labels;
 };
 
-const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, topology, errorAttribution, onClose }) => {
+const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, topology, errorAttribution, closure, onSelectNode, onClose }) => {
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
 
@@ -169,6 +169,40 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
             <ul className="lemu-drawer__list">
               {incoming.map((e, i) => <li key={i}>{e.from} <span className="lemu-muted">({e.kind}, {e.confidence})</span></li>)}
             </ul>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  /* Blast-radius closure (Phase 5): while the graph tab's blast toggle is
+     active for this selection, the drawer lists what the node touches —
+     downstream first ("depends on it" is the damage direction), then
+     upstream. Rows reuse the existing selection mechanism. */
+  const renderClosure = () => {
+    if (!closure) return null;
+    const { down = [], up = [] } = closure;
+    if (!down.length && !up.length) return null;
+    const row = (id) => (
+      <li key={id}>
+        {onSelectNode ? (
+          <button type="button" className="lemu-drawer__link" onClick={() => onSelectNode(id)}>{id}</button>
+        ) : id}
+      </li>
+    );
+    return (
+      <div className="lemu-drawer__section">
+        <h4>Blast radius</h4>
+        {down.length > 0 && (
+          <>
+            <div className="lemu-muted">Depends on it ({down.length})</div>
+            <ul className="lemu-drawer__list">{down.map(row)}</ul>
+          </>
+        )}
+        {up.length > 0 && (
+          <>
+            <div className="lemu-muted">It depends on ({up.length})</div>
+            <ul className="lemu-drawer__list">{up.map(row)}</ul>
           </>
         )}
       </div>
@@ -438,6 +472,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
           {INFRA_KINDS.includes(kind) && renderInfraDetail()}
           {renderErrors()}
           {renderConnections()}
+          {renderClosure()}
           <div className="lemu-alert lemu-alert--error" role="alert">
             Structure loaded; pulse unavailable (503). Structural fields still shown.
           </div>
@@ -458,6 +493,7 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
         })()}
         {renderErrors()}
         {renderConnections()}
+        {renderClosure()}
       </>
     );
   };

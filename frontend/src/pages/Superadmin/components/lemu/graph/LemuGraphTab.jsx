@@ -4,6 +4,7 @@ import { Boxes } from 'lucide-react';
 import { buildActivity } from './buildActivity';
 import { buildCodeGraph } from './buildCodeGraph';
 import { buildTopologyGraph } from './useTopologyGraph';
+import { downstreamOf, upstreamOf } from './blastRadius';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
@@ -24,7 +25,7 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt }) => {
+const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
@@ -77,6 +78,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   const [dimmedStates, setDimmedStates] = useState(() => new Set());
   const [legendOpen, setLegendOpen] = useState(false);
   const [degradedDismissed, setDegradedDismissed] = useState(false);
+  /* Blast radius (Phase 5): with a selection, light the transitive closure
+     through the SAME outline channel hop-filter highlighting already uses —
+     P3, no new colour meaning. */
+  const [blastOn, setBlastOn] = useState(false);
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
@@ -206,6 +211,34 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       return next;
     });
   }, []);
+
+  /* Blast radius: the closure is computed over the FULL layer graph (not the
+     hop-filtered view), so the rail counts stay true even where the view is
+     collapsed — the same discipline as the legend footer, which also counts
+     the full graph. */
+  const blast = useMemo(() => {
+    if (!blastOn || !selectedNodeId) return null;
+    return {
+      down: downstreamOf(graph.links, selectedNodeId),
+      up: upstreamOf(graph.links, selectedNodeId),
+    };
+  }, [blastOn, selectedNodeId, graph.links]);
+
+  /* The closure feeds the canvas through the neighbour-outline channel. */
+  const analysisNeighbours = useMemo(() => {
+    const s = new Set();
+    if (blast) {
+      blast.down.forEach((id) => s.add(id));
+      blast.up.forEach((id) => s.add(id));
+    }
+    return s.size ? s : null;
+  }, [blast]);
+
+  /* Publish the closure upward so the node drawer can list it (the tab owns
+     the links; the page owns the drawer). */
+  useEffect(() => {
+    onBlastChange?.(blast ? { down: [...blast.down], up: [...blast.up] } : null);
+  }, [blast, onBlastChange]);
 
   /* Filters compose in a fixed order inside this memo: hidden kinds drop out
      first, then focus-match search (when on), then the hop-depth collapse.
@@ -472,6 +505,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           onFit={() => fitRef.current?.()}
           focusMatches={focusMatches}
           onFocusMatches={setFocusMatches}
+          blastOn={blastOn}
+          onBlast={setBlastOn}
           mode={mode}
           onMode={setMode}
           layer={layer}
@@ -555,6 +590,17 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
         </div>
       )}
 
+      {/* Analysis rail (Phase 5): one chip per active analysis, stacked under
+          the attribution rail — readouts, not alarms, reusing statechip
+          styling. */}
+      {view === 'graph' && blast && (
+        <div className="lemu-graph3d__analysisrail lemu-graph3d__panel" role="group" aria-label="Analysis readouts">
+          <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="blast">
+            <i aria-hidden="true">◉</i> blast: <b>{blast.down.size}</b> downstream · <b>{blast.up.size}</b> upstream
+          </span>
+        </div>
+      )}
+
       {/* Degraded strip: every measurement the backend could not complete is
           named here instead of failing silently (spec §3.3). Dismissible,
           re-armed by the next payload. */}
@@ -632,6 +678,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               graph={visible}
               selectedNodeId={selectedNodeId}
               matches={matches}
+              neighbours={analysisNeighbours}
               mode={mode}
               dagMode={dagSafe}
               dagLevelDistance={140}
@@ -640,6 +687,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               fitRef={fitRef}
               focusRef={focusRef}
               snapshotRef={snapshotRef}
+              instanceRef={instanceRef}
             />
           </GraphErrorBoundary>
         </div>

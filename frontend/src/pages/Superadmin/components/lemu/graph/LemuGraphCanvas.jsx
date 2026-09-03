@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { relativeTime } from '../utils';
-import { KIND_LABEL, LINK_COLOR, nodeAppearance } from './graphTheme';
+import { KIND_LABEL, LINK_COLOR, OUTLINE_COLOR, nodeAppearance } from './graphTheme';
 
 /* The renderers themselves. three.js is ~600KB, so both renderers are imported
    lazily — opening LEMU should not pay for the graph unless you open this tab,
@@ -25,6 +25,7 @@ const LemuGraphCanvas = ({
   graph,
   selectedNodeId,
   matches,
+  neighbours,
   mode,
   dagMode,
   dagLevelDistance,
@@ -34,6 +35,7 @@ const LemuGraphCanvas = ({
   fitRef,
   focusRef,
   snapshotRef,
+  instanceRef,
 }) => {
   const wrapRef = useRef(null);
   const fgRef = useRef(null);
@@ -112,6 +114,31 @@ const LemuGraphCanvas = ({
     if (fitRef) fitRef.current = resetView;
   }, [fitRef, resetView]);
 
+  /* The force-graph instance itself, published the same way as fit/focus:
+     through the ref callback, so it lands once the LAZY renderer actually
+     mounts — an effect would run while Suspense still holds fgRef at null.
+     Parents (and the headless probe) can reach graphData()/
+     graph2ScreenCoords() without the canvas growing a prop per query. */
+  const graphRef = useRef(graph);
+  useEffect(() => { graphRef.current = graph; }, [graph]);
+
+  const publishFg = useCallback(
+    (el) => {
+      fgRef.current = el;
+      if (!instanceRef) return;
+      if (el) {
+        /* graphData is a component PROP, not a react-kapsule method, so the
+           instance does not expose it. Attach a reader that returns the
+           latest graph — the simulation writes x/y onto the node objects it
+           contains, which is how parents (and the headless probe) resolve
+           node coordinates for graph2ScreenCoords(). */
+        el.graphData = () => graphRef.current;
+      }
+      instanceRef.current = el;
+    },
+    [instanceRef],
+  );
+
   /* The 2D canvas is untainted (no cross-origin content), so toDataURL works
      and a snapshot is one <a download> away. Published through a ref, same as
      the Fit button, because the wrapper div and its canvas live here. */
@@ -162,9 +189,9 @@ const LemuGraphCanvas = ({
   }, [focusRef, flyTo]);
 
   const handleClick = useCallback(
-    (node) => {
+    (node, event) => {
       if (!node) return;
-      onNodeClick?.(node);
+      onNodeClick?.(node, event);
       flyTo(node);
     },
     [onNodeClick, flyTo],
@@ -201,10 +228,10 @@ const LemuGraphCanvas = ({
      as the 2D path already does. */
   const nodeColor3D = useCallback(
     (n) => {
-      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches });
+      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
       return hexToRgba(color, opacity * 0.92);
     },
-    [selectedNodeId, matches],
+    [selectedNodeId, matches, neighbours],
   );
   const nodeLabel = useCallback(
     (n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}${n.errorCount ? ` · ⚠ ${n.errorCount}` : ''}`,
@@ -216,10 +243,10 @@ const LemuGraphCanvas = ({
   const linkWidth2D = useCallback((l) => (l.kind === 'require' ? 0.8 : 1.4), []);
   const nodeColor2D = useCallback(
     (n) => {
-      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches });
+      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
       return hexToRgba(color, opacity * 0.92);
     },
-    [selectedNodeId, matches],
+    [selectedNodeId, matches, neighbours],
   );
 
   /* P3 state treatment — one channel per meaning (graphTheme):
@@ -234,7 +261,7 @@ const LemuGraphCanvas = ({
   const nodeThreeObject = useCallback((n) => {
     // Before three resolves, fall through to the renderer's own spheres.
     if (!three) return undefined;
-    const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches });
+    const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
     const radius = Math.cbrt(Math.max(0, n.val || 1)) * 4;
     if (ring === 'solid' && !outline && !pip) return undefined;
     const group = new three.Group();
@@ -242,7 +269,7 @@ const LemuGraphCanvas = ({
       group.add(new three.Mesh(
         new three.SphereGeometry(radius * 1.25, 12, 12),
         new three.MeshBasicMaterial({
-          color: outline === 'selected' ? '#ffffff' : '#cbd5e1',
+          color: OUTLINE_COLOR[outline] || '#cbd5e1',
           transparent: true,
           opacity: 0.35,
           side: three.BackSide,
@@ -281,7 +308,7 @@ const LemuGraphCanvas = ({
       group.add(pipMesh);
     }
     return group.children.length ? group : undefined;
-  }, [three, selectedNodeId, matches]);
+  }, [three, selectedNodeId, matches, neighbours]);
 
   /* 2D equivalent of nodeThreeObject. The renderer default is a filled
      circle of radius sqrt(val) * nodeRelSize, painted after any custom paint
@@ -293,14 +320,14 @@ const LemuGraphCanvas = ({
      paint and is unaffected by any of this. */
   const nodeCanvasObjectMode = useCallback(
     (n) => {
-      const { ring, outline } = nodeAppearance(n, { selectedNodeId, matches });
+      const { ring, outline } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
       return ring !== 'solid' || outline ? 'replace' : 'before';
     },
-    [selectedNodeId, matches],
+    [selectedNodeId, matches, neighbours],
   );
   const nodeCanvasObject = useCallback(
     (n, ctx) => {
-      const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches });
+      const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
       const r = Math.sqrt(Math.max(0, n.val || 1)) * 4;
       // Error pip rides its own channel: drawn for EVERY node that owns
       // errors, including plain solid ones whose base circle the renderer's
@@ -334,10 +361,10 @@ const LemuGraphCanvas = ({
         paint(r, ring === 'fault' ? '#fb7185' : color, 1.5);
       }
       if (outline) {
-        paint(r + 3, outline === 'selected' ? '#ffffff' : '#cbd5e1', 1.5);
+        paint(r + 3, OUTLINE_COLOR[outline] || '#cbd5e1', 1.5);
       }
     },
-    [selectedNodeId, matches],
+    [selectedNodeId, matches, neighbours],
   );
 
   /* Particles are the "throb": they only flow along edges touching a
@@ -392,7 +419,7 @@ const LemuGraphCanvas = ({
       <Suspense fallback={<div className="lemu-meta lemu-graph3d__loading">Loading {effectiveMode === '3d' ? '3D' : '2D'} renderer…</div>}>
         {dims.width > 0 && effectiveMode === '3d' && (
           <ForceGraph3D
-            ref={fgRef}
+            ref={publishFg}
             width={dims.width}
             height={dims.height}
             graphData={graph}
@@ -426,7 +453,7 @@ const LemuGraphCanvas = ({
         )}
         {dims.width > 0 && effectiveMode === '2d' && (
           <ForceGraph2D
-            ref={fgRef}
+            ref={publishFg}
             width={dims.width}
             height={dims.height}
             graphData={graph}

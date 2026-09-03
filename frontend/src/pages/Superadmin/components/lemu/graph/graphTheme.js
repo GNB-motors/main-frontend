@@ -66,23 +66,40 @@ export const LINK_LABEL = {
   serves: 'Serves',
 };
 
-const RING_BY_STATE = { measured: 'solid', declared: 'hollow', unreachable: 'fault' };
+const RING_BY_STATE = { measured: 'solid', declared: 'hollow', unreachable: 'fault', removed: 'ghost' };
+
+/* Outline halo colours, one per outline meaning. 'selected'/'neighbour' are
+   selection; 'added'/'changed'/'removed' are the manifest-diff overlay
+   (Phase 5). The overlay owns the channel while it is on — selection
+   highlighting is suppressed rather than stacking two meanings (P3). */
+export const OUTLINE_COLOR = {
+  selected: '#ffffff',
+  neighbour: '#cbd5e1',
+  added: '#34d399',
+  changed: '#fbbf24',
+  removed: '#94a3b8',
+};
 
 /**
  * @param {object} node  { id, kind, state?, errorCount? }
- * @param {object} ctx   { selectedNodeId?, matches?: Set<string>, neighbours?: Set<string> }
- * @returns { color, opacity, ring: 'solid'|'hollow'|'fault', outline: null|'selected'|'neighbour',
- *           pip: null|'errors' }
+ * @param {object} ctx   { selectedNodeId?, matches?: Set<string>, neighbours?: Set<string>,
+ *                         overlay?: Map<nodeId, 'added'|'removed'|'changed'> }
+ * @returns { color, opacity, ring: 'solid'|'hollow'|'fault'|'ghost',
+ *            outline: null|'selected'|'neighbour'|'added'|'changed'|'removed',
+ *            pip: null|'errors' }
  */
 export const nodeAppearance = (node, ctx = {}) => {
-  const { selectedNodeId, matches, neighbours } = ctx;
+  const { selectedNodeId, matches, neighbours, overlay } = ctx;
   const color = KIND_HUE[node.kind] || '#94a3b8';
 
   let opacity = 1;
   if (matches && matches.size && !matches.has(node.id)) opacity = 0.15;
 
   let outline = null;
-  if (selectedNodeId && node.id === selectedNodeId) outline = 'selected';
+  if (overlay && overlay.size) {
+    const mark = overlay.get(node.id);
+    if (mark === 'added' || mark === 'changed' || mark === 'removed') outline = mark;
+  } else if (selectedNodeId && node.id === selectedNodeId) outline = 'selected';
   else if (neighbours && neighbours.has(node.id)) outline = 'neighbour';
 
   // A code-layer node has no `state` field: nothing measures it yet, so it is

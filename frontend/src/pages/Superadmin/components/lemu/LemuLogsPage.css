@@ -1624,6 +1624,19 @@
   gap: 6px 12px;
 }
 
+/* Blast-radius closure rows in the drawer: bare id buttons, same text
+   styling as the static list but clickable through to the node. */
+.lemu-drawer__link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.lemu-drawer__link:hover { color: var(--lemu-accent, #4f46e5); text-decoration: underline; }
+
 /* ── Attributed errors in the drawer (Phase 4) ─────────────── */
 /* Match quality is a first-class citizen of the row: amber for a confident
    exact match, muted for a best-effort file-only one. Hiding that difference
@@ -3023,6 +3036,27 @@ button.lemu-graph3d__legend-item {
   color: var(--lg-text-dim);
   opacity: 0.8;
 }
+
+/* ── Analysis rail (Phase 5) ───────────────────────────────── */
+/* One chip per active analysis (blast radius, path finding, live path, diff
+   overlay), stacked under the attribution rail. Same glass panel + statechip
+   styling — these are readouts, not alarms. */
+.lemu-graph3d__analysisrail {
+  position: absolute;
+  top: 132px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  max-width: calc(100% - 48px);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lemu-graph3d__analysisrail .lemu-graph3d__statechip { cursor: default; }
+.lemu-graph3d__analysisrail .lemu-graph3d__statechip i { color: var(--lg-accent); font-style: normal; }
 
 /* The canvas wrapper is focusable (keyboard shortcuts) — same accent ring. */
 .lemu-graph3d__canvas:focus-visible {
