@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useStat
 import { Boxes, Crosshair, Search } from 'lucide-react';
 import { relativeTime } from './utils';
 import { buildActivity } from './graph/buildActivity';
+import { createFitLatch } from './graph/cameraLatch';
 
 /* 3D knowledge graph for the LEMU manifest.
 
@@ -60,6 +61,7 @@ const sizeFor = (kind, meta) => {
 const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNodeId }) => {
   const wrapRef = useRef(null);
   const fgRef = useRef(null);
+  const latch = useRef(createFitLatch());
   const [dims, setDims] = useState({ width: 0, height: 0 });
   const [query, setQuery] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
@@ -148,6 +150,8 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
     return new Set(graph.nodes.filter((n) => n.id.toLowerCase().includes(q)).map((n) => n.id));
   }, [query, graph.nodes]);
 
+  useEffect(() => { latch.current.reset(); }, [showRoutes]);
+
   const nodeColor = useCallback(
     (node) => {
       if (matches && !matches.has(node.id)) return 'rgba(148,163,184,0.15)';
@@ -168,11 +172,13 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
       if (!fg) return;
       const dist = 90;
       const ratio = 1 + dist / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+      latch.current.beginFocus();
       fg.cameraPosition(
         { x: (node.x || 0) * ratio, y: (node.y || 0) * ratio, z: (node.z || 0) * ratio },
         node,
         900,
       );
+      setTimeout(() => latch.current.endFocus(), 950); // just past the 900ms animation
     },
     [onSelectNode],
   );
@@ -280,7 +286,7 @@ const LemuGraph3D = ({ manifest, liveness, jobHealth, onSelectNode, selectedNode
               linkDirectionalParticleWidth={1.6}
               onNodeClick={handleClick}
               onNodeHover={setHovered}
-              onEngineStop={() => fgRef.current?.zoomToFit(500, 60)}
+              onEngineStop={() => { if (latch.current.shouldFit()) fgRef.current?.zoomToFit(500, 60); }}
               cooldownTicks={120}
               enableNodeDrag
             />
