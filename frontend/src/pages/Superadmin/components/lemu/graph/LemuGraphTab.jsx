@@ -7,7 +7,7 @@ import { buildTopologyGraph } from './useTopologyGraph';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
-import { KIND_HUE, KIND_LABEL } from './graphTheme';
+import { KIND_HUE, KIND_LABEL, LINK_COLOR, LINK_LABEL } from './graphTheme';
 import LemuGraphCanvas from './LemuGraphCanvas';
 import LemuGraphControls from './LemuGraphControls';
 import LemuGraphTable from './LemuGraphTable';
@@ -71,6 +71,12 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, s
      once at mount like the other view params; the default is deleted from
      the URL by the sync effect below. */
   const [layer, setLayer] = useState(() => (searchParams.get('layer') === 'infra' ? 'infra' : 'code'));
+  /* State-rail dimming (INFRA layer): clicking a summary chip dims every
+     OTHER state through the SAME opacity channel as search — P3, no new
+     colour meaning. */
+  const [dimmedStates, setDimmedStates] = useState(() => new Set());
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [degradedDismissed, setDegradedDismissed] = useState(false);
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
@@ -149,11 +155,27 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, s
     return { nodes, links: built.links };
   }, [built]);
 
+  /* Search matches and state-rail dimming share the one opacity channel
+     (nodeAppearance `matches`): a node stays bright only if it satisfies
+     the query AND its state is not dimmed. Dimming is INFRA-only — code
+     nodes carry no state to dim. */
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return null;
-    return new Set(graph.nodes.filter((n) => n.id.toLowerCase().includes(q)).map((n) => n.id));
-  }, [query, graph.nodes]);
+    const dim = layer === 'infra' ? dimmedStates : null;
+    if (!q && (!dim || !dim.size)) return null;
+    return new Set(graph.nodes
+      .filter((n) => (!q || n.id.toLowerCase().includes(q)) && (!dim || !dim.size || !dim.has(n.state)))
+      .map((n) => n.id));
+  }, [query, graph.nodes, dimmedStates, layer]);
+
+  const toggleStateDim = useCallback((state) => {
+    setDimmedStates((prev) => {
+      if (prev.has(state)) return new Set();
+      const next = new Set();
+      ['measured', 'declared', 'unreachable'].forEach((s) => { if (s !== state) next.add(s); });
+      return next;
+    });
+  }, []);
 
   /* Filters compose in a fixed order inside this memo: hidden kinds drop out
      first, then focus-match search (when on), then the hop-depth collapse.
@@ -355,6 +377,21 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, s
     return c;
   }, [graph.nodes]);
 
+  /* Legend + status rail content, derived from the ACTIVE graph so the
+     CODE layer shows code kinds/edges and INFRA shows infra — one source of
+     truth (KIND_HUE/KIND_LABEL/LINK_COLOR), never a hand-written list. */
+  const linkCounts = useMemo(() => {
+    const c = {};
+    graph.links.forEach((l) => { c[l.kind] = (c[l.kind] || 0) + 1; });
+    return c;
+  }, [graph.links]);
+  const summary = layer === 'infra' ? topology?.summary : null;
+  const degraded = layer === 'infra' ? (topology?.degraded || []) : [];
+
+  /* A fresh topology payload re-arms the degraded strip even after the
+     operator dismissed an earlier one. */
+  useEffect(() => { setDegradedDismissed(false); }, [topology?.generatedAt]);
+
   // Snapshot is a 2D-only control (spec §4.3-4: incident-report capture of
   // the canvas); the canvas publishes the actual handler through snapshotRef.
   const handleSnapshot = useCallback(() => snapshotRef.current?.(), []);
@@ -417,6 +454,96 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, s
         <span className="lemu-meta">{graph.links.length} edges</span>
       </div>
 
+      {/* INFRA status rail: payload summary as chips. Clicking one dims the
+          other states through the search-opacity channel (see `matches`). */}
+      {view === 'graph' && summary && (
+        <div className="lemu-graph3d__statusrail lemu-graph3d__panel" role="group" aria-label="Node states">
+          {[
+            ['measured', '●'],
+            ['declared', '○'],
+            ['unreachable', '⊘'],
+          ].map(([state, mark]) => (
+            <button
+              key={state}
+              type="button"
+              data-state={state}
+              className={`lemu-graph3d__statechip${dimmedStates.has(state) ? '' : ' lemu-graph3d__statechip--on'}`}
+              aria-pressed={!dimmedStates.has(state)}
+              title={`Dim the other states (${state} stays bright)`}
+              onClick={() => toggleStateDim(state)}
+            >
+              <i aria-hidden="true">{mark}</i> {state} <b>{summary[state] ?? 0}</b>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Degraded strip: every measurement the backend could not complete is
+          named here instead of failing silently (spec §3.3). Dismissible,
+          re-armed by the next payload. */}
+      {view === 'graph' && degraded.length > 0 && !degradedDismissed && (
+        <div className="lemu-graph3d__degraded lemu-graph3d__panel" role="alert">
+          {degraded.map((d, i) => (
+            <span key={i}>
+              <code>{d.step}</code> — {d.reason}
+              {d.affects?.length ? ` (affects ${d.affects.length})` : ''}
+            </span>
+          ))}
+          <button
+            type="button"
+            className="lemu-graph3d__degraded-x"
+            onClick={() => setDegradedDismissed(true)}
+            aria-label="Dismiss degraded report"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Collapsible key, bottom-left: node kinds, edge kinds and ring
+          meanings, all read from graphTheme — the same tables the canvas
+          paints from. */}
+      {view === 'graph' && (
+        <div className="lemu-graph3d__key lemu-graph3d__panel">
+          <button
+            type="button"
+            className="lemu-graph3d__key-toggle"
+            aria-expanded={legendOpen}
+            onClick={() => setLegendOpen((v) => !v)}
+          >
+            Legend
+          </button>
+          {legendOpen && (
+            <div className="lemu-graph3d__key-body">
+              <div className="lemu-meta">Nodes</div>
+              {Object.keys(KIND_LABEL).filter((k) => counts[k]).map((k) => (
+                <span className="lemu-graph3d__key-item" key={k}>
+                  <i style={{ background: KIND_HUE[k] }} aria-hidden="true" />
+                  {KIND_LABEL[k]} <b>{counts[k]}</b>
+                </span>
+              ))}
+              <div className="lemu-meta">Edges</div>
+              {Object.keys(LINK_LABEL).filter((k) => linkCounts[k]).map((k) => (
+                <span className="lemu-graph3d__key-item" key={k}>
+                  <em style={{ background: LINK_COLOR[k] }} aria-hidden="true" />
+                  {LINK_LABEL[k]} <b>{linkCounts[k]}</b>
+                </span>
+              ))}
+              <div className="lemu-meta">Rings</div>
+              <span className="lemu-graph3d__key-item">
+                <u className="lemu-graph3d__key-ring lemu-graph3d__key-ring--solid" aria-hidden="true" />measured
+              </span>
+              <span className="lemu-graph3d__key-item">
+                <u className="lemu-graph3d__key-ring lemu-graph3d__key-ring--hollow" aria-hidden="true" />declared
+              </span>
+              <span className="lemu-graph3d__key-item">
+                <u className="lemu-graph3d__key-ring lemu-graph3d__key-ring--fault" aria-hidden="true" />unreachable
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {view === 'table' ? (
         /* The table and the canvas never mount at the same time (perf): the
            ForceGraph simulation is thrown away on every switch, by design. */
@@ -442,9 +569,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, onSelectNode, s
       )}
 
       <p className="lemu-meta lemu-graph3d__foot lemu-graph3d__rail">
-        Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs
-        also open in the node drawer. Colour encodes kind; particles along an edge mean
-        recent traffic.
+        {layer === 'infra'
+          ? 'Colour encodes kind; rings encode state (solid measured, hollow declared, fault unreachable); particles mark the CDC spine.'
+          : 'Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs also open in the node drawer. Colour encodes kind; particles along an edge mean recent traffic.'}
         {dataUpdatedAt && (
           <span
             className={`lemu-graph3d__fresh lemu-graph3d__fresh--${freshState}`}

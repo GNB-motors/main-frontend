@@ -49,6 +49,22 @@ export const LINK_COLOR = {
   serves: 'rgba(251,113,133,0.45)',
 };
 
+/* Human labels for edge kinds, for the legend. Kept beside LINK_COLOR so
+   the colour and its label can never drift apart. */
+export const LINK_LABEL = {
+  require: 'Requires',
+  model: 'Uses model',
+  mount: 'Mounts',
+  job: 'Runs job',
+  route: 'Routes',
+  reads: 'Reads',
+  writes: 'Writes',
+  hosts: 'Hosts',
+  contains: 'Contains',
+  mirrors: 'Mirrors (CDC)',
+  serves: 'Serves',
+};
+
 const RING_BY_STATE = { measured: 'solid', declared: 'hollow', unreachable: 'fault' };
 
 /**
