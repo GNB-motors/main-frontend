@@ -153,12 +153,19 @@ const LemuGraphCanvas = ({
     [onNodeHover],
   );
 
-  const nodeColor = useCallback(
-    (n) => nodeAppearance(n, { selectedNodeId, matches }).color,
-    [selectedNodeId, matches],
-  );
-  const nodeOpacity = useCallback(
-    (n) => nodeAppearance(n, { selectedNodeId, matches }).opacity * 0.92,
+  /* 3D per-node alpha rides on the COLOUR, not on nodeOpacity.
+     `nodeOpacity` is a static number in this library, never an accessor
+     (react-force-graph-3d.d.ts: `nodeOpacity?: number`), and
+     three-forcegraph computes `state.nodeOpacity * colorAlpha(color)` — so a
+     function there makes the product NaN and every sphere renders invisible
+     while the links still draw. That `colorAlpha(color)` term is the
+     supported per-node channel, so search-dimming goes through rgba exactly
+     as the 2D path already does. */
+  const nodeColor3D = useCallback(
+    (n) => {
+      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches });
+      return hexToRgba(color, opacity * 0.92);
+    },
     [selectedNodeId, matches],
   );
   const nodeLabel = useCallback((n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}`, []);
@@ -303,8 +310,8 @@ const LemuGraphCanvas = ({
             showNavInfo={false}
             nodeId="id"
             nodeVal="val"
-            nodeColor={nodeColor}
-            nodeOpacity={nodeOpacity}
+            nodeColor={nodeColor3D}
+            nodeOpacity={1}
             nodeResolution={12}
             nodeThreeObject={nodeThreeObject}
             nodeThreeObjectExtend={false}

@@ -110,10 +110,27 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     [manifest, liveness, jobHealth],
   );
 
-  const graph = useMemo(
-    () => buildCodeGraph({ manifest, activity, showRoutes }),
-    [manifest, activity, showRoutes],
-  );
+  /* Node object identity is preserved across rebuilds, and that is what stops
+     the graph exploding every 30 seconds.
+
+     force-graph hands its node objects to d3-force, which MUTATES them with
+     x/y/z and velocities. The liveness poll changes `activity` every 30s,
+     which rebuilt every node as a fresh object — so d3 got nodes with no
+     coordinates, discarded the settled layout and re-simulated from a random
+     scatter. Re-using the previous object for an id keeps the coordinates
+     d3 wrote, so a poll updates ops/live in place and the layout barely
+     moves. Object.assign is safe here precisely because the freshly built
+     node carries no x/y/z of its own to clobber with. */
+  const nodeCache = useRef(new Map());
+  const graph = useMemo(() => {
+    const built = buildCodeGraph({ manifest, activity, showRoutes });
+    const nodes = built.nodes.map((n) => {
+      const prev = nodeCache.current.get(n.id);
+      return prev ? Object.assign(prev, n) : n;
+    });
+    nodeCache.current = new Map(nodes.map((n) => [n.id, n]));
+    return { nodes, links: built.links };
+  }, [manifest, activity, showRoutes]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();

@@ -69,5 +69,26 @@ export const buildActivity = ({ manifest, liveness, jobHealth }) => {
     }
   });
 
+  /* Modules inherit the traffic of what they own.
+
+     Nothing measures a module directly — the pulse records collections,
+     routes and jobs, never "module X". Without this rollup every one of the
+     87 module nodes read "no traffic in 24h" forever, which is both wrong and
+     the single most misleading thing on the board: modules are the largest
+     spheres, so the graph looked overwhelmingly dead while the system was
+     busy. A module is live when something it owns is live, so walk the
+     manifest's own edges (module -> model / job / mount) and sum. Only
+     first-order ownership counts; `require` edges are deliberately excluded,
+     or one busy leaf would light up half the graph through the import tree. */
+  const OWNS = new Set(['model', 'job', 'mount']);
+  (manifest.edges || []).forEach((e) => {
+    if (!e || !OWNS.has(e.kind)) return;
+    const from = String(e.from || '');
+    if (!from.startsWith('module:')) return;
+    const child = byNode.get(e.to);
+    if (!child || !child.ops) return;
+    roll(from, child.ops, child.lastSeen);
+  });
+
   return byNode;
 };
