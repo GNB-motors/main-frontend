@@ -199,6 +199,22 @@ export const LemuService = {
     },
 
     /**
+     * Errors joined to the functions that raised them. Each group carries an
+     * explicit matchQuality ('exact' | 'file' | 'none'); 'none' groups attach
+     * to no node and are listed under `unattributed`.
+     * @param {object} params - { windowHours }
+     */
+    getErrorAttribution: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/lemu/error-attribution`, { params });
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU error attribution:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch error attribution." };
+        }
+    },
+
+    /**
      * ClickHouse warehouse freshness for mirrored collections.
      */
     getWarehouseFreshness: async () => {
