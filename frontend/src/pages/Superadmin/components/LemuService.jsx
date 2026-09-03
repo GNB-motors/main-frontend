@@ -185,6 +185,20 @@ export const LemuService = {
     },
 
     /**
+     * INFRA topology: hosts, stores, collections, tables, pipes, jobs —
+     * structure from config, state from timestamped measurements.
+     */
+    getTopology: async () => {
+        try {
+            const response = await apiClient.get(`/api/lemu/topology`);
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU topology:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch LEMU topology." };
+        }
+    },
+
+    /**
      * ClickHouse warehouse freshness for mirrored collections.
      */
     getWarehouseFreshness: async () => {
