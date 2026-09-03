@@ -1,7 +1,17 @@
 import React from 'react';
 import { Boxes, Crosshair, Search } from 'lucide-react';
 
-const LemuGraphControls = ({ query, onQuery, showRoutes, onShowRoutes, routeCount, onFit }) => (
+const LemuGraphControls = ({
+  query,
+  onQuery,
+  showRoutes,
+  onShowRoutes,
+  routeCount,
+  hopDepth,
+  onHopDepth,
+  hasSelection,
+  onFit,
+}) => (
   <div className="lemu-graph3d__bar">
     <div className="lemu-system-map__title">
       <Boxes size={16} />
@@ -25,6 +35,21 @@ const LemuGraphControls = ({ query, onQuery, showRoutes, onShowRoutes, routeCoun
           onChange={(e) => onShowRoutes(e.target.checked)}
         />
         <span>Include routes ({routeCount})</span>
+      </label>
+      <label className="lemu-graph3d__hop">
+        <span>Hop depth</span>
+        <select
+          value={hopDepth}
+          onChange={(e) => onHopDepth(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          disabled={!hasSelection}
+          aria-label="Filter graph to nodes within this many hops of the selected node"
+        >
+          {[1, 2, 3, 4].map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+          <option value="all">All</option>
+        </select>
+        {!hasSelection && <span className="lemu-graph3d__hop-hint lemu-meta">select a node to filter</span>}
       </label>
       <button type="button" className="lemu-btn lemu-btn--outline" onClick={onFit}>
         <Crosshair size={14} /> Fit

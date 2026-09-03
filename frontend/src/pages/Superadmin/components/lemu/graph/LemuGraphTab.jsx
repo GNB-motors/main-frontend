@@ -3,6 +3,7 @@ import { Boxes } from 'lucide-react';
 import { buildActivity } from './buildActivity';
 import { buildCodeGraph } from './buildCodeGraph';
 import { createFitLatch } from './cameraLatch';
+import { endId, nodesWithinHops } from './hopFilter';
 import { KIND_HUE, KIND_LABEL } from './graphTheme';
 import LemuGraphCanvas from './LemuGraphCanvas';
 import LemuGraphControls from './LemuGraphControls';
@@ -24,6 +25,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
   const fitRef = useRef(null);
   const [query, setQuery] = useState('');
   const [showRoutes, setShowRoutes] = useState(false);
+  const [hopDepth, setHopDepth] = useState(2);
 
   /* Liveness keys collections by collection name, so model nodes are matched
      through modelName -> collectionName. Until the DB pulse is recording, every
@@ -45,7 +47,19 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
     return new Set(graph.nodes.filter((n) => n.id.toLowerCase().includes(q)).map((n) => n.id));
   }, [query, graph.nodes]);
 
-  useEffect(() => { latch.current.reset(); }, [showRoutes]);
+  /* Hop-depth filter: collapse the board to the neighbourhood of the selected
+     node. 'all' (or no selection) restores the full graph. Legend counts and
+     the footer below still describe the FULL graph. */
+  const visible = useMemo(() => {
+    if (!selectedNodeId || hopDepth === 'all') return graph;
+    const keep = nodesWithinHops(graph.links, selectedNodeId, Number(hopDepth));
+    return {
+      nodes: graph.nodes.filter((n) => keep.has(n.id)),
+      links: graph.links.filter((l) => keep.has(endId(l.source)) && keep.has(endId(l.target))),
+    };
+  }, [graph, selectedNodeId, hopDepth]);
+
+  useEffect(() => { latch.current.reset(); }, [hopDepth, selectedNodeId, showRoutes]);
 
   // The drawer resolves module/model/job ids. Mounts and routes have no
   // drawer view, so the canvas focuses the camera instead of opening an
@@ -84,6 +98,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
         showRoutes={showRoutes}
         onShowRoutes={setShowRoutes}
         routeCount={(manifest.routes || []).length}
+        hopDepth={hopDepth}
+        onHopDepth={setHopDepth}
+        hasSelection={!!selectedNodeId}
         onFit={() => fitRef.current?.()}
       />
 
@@ -101,7 +118,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, onSelectNode, selectedNod
 
       <GraphErrorBoundary>
         <LemuGraphCanvas
-          graph={graph}
+          graph={visible}
           selectedNodeId={selectedNodeId}
           matches={matches}
           onNodeClick={handleNodeClick}

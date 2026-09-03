@@ -2404,6 +2404,34 @@
   margin: 0;
 }
 
+.lemu-graph3d__hop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+  white-space: nowrap;
+}
+
+.lemu-graph3d__hop select {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--lemu-border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.lemu-graph3d__hop select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lemu-graph3d__hop-hint {
+  font-size: 11px;
+}
+
 @media (max-width: 720px) {
   .lemu-graph3d__canvas {
     min-height: 420px;
