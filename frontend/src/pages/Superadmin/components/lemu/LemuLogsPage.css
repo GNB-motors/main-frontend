@@ -2720,6 +2720,26 @@ button.lemu-graph3d__legend-item {
   outline-offset: 2px;
 }
 
+/* ── Attribution quality rail (Phase 4, v2-F3) ─────────────── */
+/* Sits under the state rail / degraded strip, same chip styling — no new
+   colour semantics: the counts are text, the ⚠ mark is the existing amber
+   the pips and drawer already use for errors. */
+.lemu-graph3d__attribrail {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  max-width: calc(100% - 48px);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lemu-graph3d__attribrail .lemu-graph3d__statechip i { color: #f59e0b; font-style: normal; }
+
 /* ── Degraded strip (under the status rail) ────────────────── */
 .lemu-graph3d__degraded {
   position: absolute;

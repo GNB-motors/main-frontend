@@ -422,6 +422,23 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      operator dismissed an earlier one. */
   useEffect(() => { setDegradedDismissed(false); }, [topology?.generatedAt]);
 
+  /* Attribution quality headline (v2-F3): the Phase-4 acceptance metric,
+     visible at all times rather than buried in a one-off measurement.
+     Counted from the groups themselves — not byNode, which has no quality
+     dimension. Clicking the chip (or the unattributed line beside it)
+     switches to the Errors tab. */
+  const attributionQuality = useMemo(() => {
+    const q = { exact: 0, file: 0, none: 0 };
+    (errorAttribution?.groups || []).forEach((g) => {
+      if (g.matchQuality === 'exact') q.exact += 1;
+      else if (g.matchQuality === 'file') q.file += 1;
+      else q.none += 1;
+    });
+    return q;
+  }, [errorAttribution]);
+  const unattributedCount = errorAttribution?.unattributed?.length || 0;
+  const openErrors = useCallback(() => onOpenErrors?.(), [onOpenErrors]);
+
   // Snapshot is a 2D-only control (spec §4.3-4: incident-report capture of
   // the canvas); the canvas publishes the actual handler through snapshotRef.
   const handleSnapshot = useCallback(() => snapshotRef.current?.(), []);
@@ -505,6 +522,36 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               <i aria-hidden="true">{mark}</i> {state} <b>{summary[state] ?? 0}</b>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Attribution quality rail: the honest headline of Phase 4 — how many
+          errors resolve to a function (exact), to a file only (file), or to
+          nothing (none). Same chip styling as the state rail above; clicking
+          switches to the Errors tab. The unattributed line shares the click
+          target: an error shown as unattributable beats one silently dropped. */}
+      {view === 'graph' && (errorAttribution?.groups?.length > 0) && (
+        <div className="lemu-graph3d__attribrail lemu-graph3d__panel" role="group" aria-label="Error attribution quality">
+          <button
+            type="button"
+            className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
+            title="Open the Errors tab"
+            onClick={openErrors}
+          >
+            <i aria-hidden="true">⚠</i> exact <b>{attributionQuality.exact}</b>
+            {' · '}file <b>{attributionQuality.file}</b>
+            {' · '}none <b>{attributionQuality.none}</b>
+          </button>
+          {unattributedCount > 0 && (
+            <button
+              type="button"
+              className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
+              title="Open the Errors tab"
+              onClick={openErrors}
+            >
+              {unattributedCount} error{unattributedCount === 1 ? '' : 's'} could not be attributed
+            </button>
+          )}
         </div>
       )}
 
