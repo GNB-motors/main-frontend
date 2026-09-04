@@ -9,7 +9,7 @@ import { relativeTime } from '../utils';
    than leaving the reader to assume it is fine. */
 const LemuGraphEvidence = ({ node }) => {
   if (!node || !node.state) return null;
-  const { state, evidence, declaredBy } = node;
+  const { state, evidence, declaredBy, self } = node;
   return (
     <div className="lemu-evidence">
       <div className="lemu-evidence__state" data-state={state}>{state}</div>
@@ -30,6 +30,12 @@ const LemuGraphEvidence = ({ node }) => {
                 ? 'a probe ran and failed'
                 : 'nothing — no measurement in the last 24h'}
             </dd>
+          </>
+        )}
+        {self && (
+          <>
+            <dt>Traffic</dt>
+            <dd>self-measured — LEMUI polls its own endpoints; shown, not counted as proof</dd>
           </>
         )}
       </dl>
