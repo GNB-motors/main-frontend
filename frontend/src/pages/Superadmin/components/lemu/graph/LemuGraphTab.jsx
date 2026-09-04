@@ -9,6 +9,7 @@ import { downstreamOf, upstreamOf } from './blastRadius';
 import { shortestPath } from './shortestPath';
 import { findDeadSurfaces } from './deadSurfaces';
 import { overlayFromDiff, ghostNode } from './diffOverlay';
+import { healthyPathSet } from './healthyPath';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
@@ -99,6 +100,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      against, or null for no overlay. Ephemeral like blastOn — not URL
      state. */
   const [diffVersion, setDiffVersion] = useState(null);
+  /* Healthy-path highlight (Phase 5): light measured nodes on the
+     source→table data path, dim everything else through the existing
+     matches opacity channel. INFRA only — code edges are static facts,
+     not data flow. */
+  const [livePathOn, setLivePathOn] = useState(false);
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
@@ -280,6 +286,15 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
 
   const effectiveGraph = diffOverlay ? diffOverlay.graph : graph;
 
+  /* Healthy path (Phase 5): measured nodes on a source→table data path over
+     reads|mirrors edges. Computed over the FULL layer graph (like blast), so
+     the rail count stays true when the view is collapsed. See healthyPath.js
+     for why this is a union rather than a literal directed path. */
+  const livePath = useMemo(
+    () => (livePathOn && layer === 'infra' ? healthyPathSet(graph.nodes, graph.links) : null),
+    [livePathOn, layer, graph.nodes, graph.links],
+  );
+
   /* Scrub stability: rebuilding the graph for a new scrub position must NOT
      re-scatter the layout. The identity cache already merges live/ops into
      the SAME node objects, so when the node/link shape is unchanged (the
@@ -305,18 +320,21 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     return next;
   }, [effectiveGraph, scrubbedBucket, diffOverlay]);
 
-  /* Search matches and state-rail dimming share the one opacity channel
-     (nodeAppearance `matches`): a node stays bright only if it satisfies
-     the query AND its state is not dimmed. Dimming is INFRA-only — code
+  /* Search matches, state-rail dimming and the healthy-path highlight share
+     the one opacity channel (nodeAppearance `matches`): a node stays bright
+     only if it satisfies the query AND its state is not dimmed AND (when the
+     live path is on) it sits on the path. Dimming is INFRA-only — code
      nodes carry no state to dim. */
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     const dim = layer === 'infra' ? dimmedStates : null;
-    if (!q && (!dim || !dim.size)) return null;
+    if (!q && (!dim || !dim.size) && !livePath) return null;
     return new Set(graph.nodes
-      .filter((n) => (!q || n.id.toLowerCase().includes(q)) && (!dim || !dim.size || !dim.has(n.state)))
+      .filter((n) => (!q || n.id.toLowerCase().includes(q))
+        && (!dim || !dim.size || !dim.has(n.state))
+        && (!livePath || livePath.has(n.id)))
       .map((n) => n.id));
-  }, [query, graph.nodes, dimmedStates, layer]);
+  }, [query, graph.nodes, dimmedStates, layer, livePath]);
 
   const toggleStateDim = useCallback((state) => {
     setDimmedStates((prev) => {
@@ -665,6 +683,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           versions={(manifests || []).filter((m) => m.version !== manifest?.version)}
           diffVersion={diffVersion}
           onDiffVersion={setDiffVersion}
+          livePathOn={livePathOn}
+          onLivePath={setLivePathOn}
         />
       </div>
 
@@ -743,8 +763,13 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       {/* Analysis rail (Phase 5): one chip per active analysis, stacked under
           the attribution rail — readouts, not alarms, reusing statechip
           styling. */}
-      {view === 'graph' && (blast || pathInfo || diffOverlay) && (
+      {view === 'graph' && (blast || pathInfo || diffOverlay || livePath) && (
         <div className="lemu-graph3d__analysisrail lemu-graph3d__panel" role="group" aria-label="Analysis readouts">
+          {livePath && (
+            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="livepath">
+              <i aria-hidden="true">⌁</i> live path: <b>{livePath.size}</b> measured nodes lit
+            </span>
+          )}
           {diffOverlay && (
             <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="diff">
               <i aria-hidden="true">±</i> diff (v{diffVersion}): <b>{diffOverlay.counts.added}</b> added · <b>{diffOverlay.counts.changed}</b> changed · <b>{diffOverlay.counts.removed}</b> removed

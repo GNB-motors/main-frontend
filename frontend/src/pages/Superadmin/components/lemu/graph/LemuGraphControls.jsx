@@ -27,6 +27,8 @@ const LemuGraphControls = ({
   versions,
   diffVersion,
   onDiffVersion,
+  livePathOn,
+  onLivePath,
 }) => (
   <div className="lemu-graph3d__bar">
     <div className="lemu-system-map__title">
@@ -63,6 +65,16 @@ const LemuGraphControls = ({
           aria-label="Highlight the blast radius of the selected node"
         />
         <span>Blast radius</span>
+      </label>
+      <label className="lemu-graph3d__toggle" title="Light measured nodes on the source→table data path (reads/mirrors edges); everything else dims">
+        <input
+          type="checkbox"
+          checked={livePathOn}
+          onChange={(e) => onLivePath(e.target.checked)}
+          disabled={layer !== 'infra'}
+          aria-label="Highlight the healthy data path from sources to tables"
+        />
+        <span>Live path</span>
       </label>
       <label className="lemu-graph3d__toggle">
         <input
