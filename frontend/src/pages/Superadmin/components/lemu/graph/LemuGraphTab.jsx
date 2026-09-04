@@ -13,7 +13,7 @@ import { healthyPathSet } from './healthyPath';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
-import { KIND_HUE, KIND_LABEL, LINK_COLOR, LINK_LABEL } from './graphTheme';
+import { KIND_HUE, KIND_LABEL, LINK_LABEL } from './graphTheme';
 import LemuGraphCanvas from './LemuGraphCanvas';
 import LemuGraphControls from './LemuGraphControls';
 import LemuDeadSurfaces from './LemuDeadSurfaces';
@@ -841,7 +841,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               <div className="lemu-meta">Edges</div>
               {Object.keys(LINK_LABEL).filter((k) => linkCounts[k]).map((k) => (
                 <span className="lemu-graph3d__key-item" key={k}>
-                  <em style={{ background: LINK_COLOR[k] }} aria-hidden="true" />
+                  <em style={{ background: 'rgba(148,163,184,0.4)' }} aria-hidden="true" />
                   {LINK_LABEL[k]} <b>{linkCounts[k]}</b>
                 </span>
               ))}

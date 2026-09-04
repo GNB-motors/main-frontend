@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { relativeTime } from '../utils';
-import { KIND_LABEL, LINK_COLOR, OUTLINE_COLOR, nodeAppearance } from './graphTheme';
+import { KIND_LABEL, OUTLINE_COLOR, nodeAppearance } from './graphTheme';
 
 /* The renderers themselves. three.js is ~600KB, so both renderers are imported
    lazily — opening LEMU should not pay for the graph unless you open this tab,
@@ -248,7 +248,7 @@ const LemuGraphCanvas = ({
     (n) => `${n.kind} · ${n.label}${n.ghost ? ' · removed in compared version' : ''}${n.live ? ' · live' : ''}${n.errorCount ? ` · ⚠ ${n.errorCount}` : ''}`,
     [],
   );
-  const linkColor = useCallback((l) => LINK_COLOR[l.kind] || 'rgba(148,163,184,0.3)', []);
+  const linkColor = useCallback((l) => 'rgba(148,163,184,0.3)', []);
   const linkWidth = useCallback((l) => (l.kind === 'require' ? 0.4 : 0.7), []);
   // 2D linkWidth is canvas pixels, so the same weights doubled stay readable.
   const linkWidth2D = useCallback((l) => (l.kind === 'require' ? 0.8 : 1.4), []);
