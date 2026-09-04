@@ -10,11 +10,10 @@ import { shortestPath } from './shortestPath';
 import { findDeadSurfaces } from './deadSurfaces';
 import { overlayFromDiff, ghostNode } from './diffOverlay';
 import { healthyPathSet } from './healthyPath';
-import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
 import { KIND_HUE, KIND_LABEL, LINK_LABEL } from './graphTheme';
-import LemuGraphCanvas from './LemuGraphCanvas';
+import KgCanvas from './KgCanvas';
 import LemuGraphControls from './LemuGraphControls';
 import LemuDeadSurfaces from './LemuDeadSurfaces';
 import LemuTimeScrubber from './LemuTimeScrubber';
@@ -34,24 +33,10 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    to show. The toggle is there for when you actually want the full surface. */
 const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef, manifests, diffsByVersion, diffStatusByVersion, onLoadDiff }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
   const focusRef = useRef(null);
   const snapshotRef = useRef(null);
   const searchRef = useRef(null);
-
-  /* Same WebGL probe the canvas runs: it decides the initial render mode so
-     machines without a GL context (RDP, VMs, stripped Chromium) open in 2D
-     instead of flashing a black rectangle first. The canvas re-checks and
-     shows an info chip if 3D is picked where WebGL is missing. */
-  const webglOk = useMemo(() => {
-    try {
-      const c = document.createElement('canvas');
-      return Boolean(c.getContext('webgl2') || c.getContext('webgl'));
-    } catch {
-      return false;
-    }
-  }, []);
 
   /* View state reads the URL exactly once at mount (read-once init below) and
      is written back on change by the sync effect. hiddenKinds and
@@ -72,7 +57,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   const [mode, setMode] = useState(() => {
     const m = searchParams.get('mode');
     if (m === '2d' || m === '3d') return m;
-    return webglOk ? '3d' : '2d';
+    /* The raw-canvas renderer draws even its 3D projection on one 2D canvas
+       (plan §0 C8) — no WebGL probe, and 2D is the design's default board. */
+    return '2d';
   });
   /* The layer switch: CODE is the manifest dependency graph, INFRA is the
      topology board (hosts -> stores -> collections -> CDC -> tables). Read
@@ -105,7 +92,6 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      matches opacity channel. INFRA only — code edges are static facts,
      not data flow. */
   const [livePathOn, setLivePathOn] = useState(false);
-  const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
 
@@ -416,33 +402,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     };
   }, [graphStable, hiddenKinds, focusMatches, matches, selectedNodeId, hopDepth]);
 
-  /* dagMode throws on a cyclic graph. INFRA is acyclic by construction
-     (edges follow data flow), but the data is server-derived, so fail soft:
-     a cycle anywhere in the VISIBLE graph drops the DAG layout rather than
-     crashing the tab. Endpoints go through endId because the renderer may
-     already have swapped link source/target for node objects. */
-  const dagSafe = useMemo(() => {
-    if (layer !== 'infra') return null;
-    const adj = new Map();
-    visible.links.forEach((l) => {
-      const s = endId(l.source);
-      const t = endId(l.target);
-      if (!adj.has(s)) adj.set(s, []);
-      adj.get(s).push(t);
-    });
-    const seen = new Set();
-    const stack = new Set();
-    const walk = (id) => {
-      if (stack.has(id)) return true;
-      if (seen.has(id)) return false;
-      seen.add(id);
-      stack.add(id);
-      const cyc = (adj.get(id) || []).some(walk);
-      stack.delete(id);
-      return cyc;
-    };
-    return [...adj.keys()].some(walk) ? null : 'lr';
-  }, [layer, visible.links]);
+  /* dagSafe existed for the force-graph DAG layout, which threw on cycles.
+     The raw-canvas renderer pins the infra layer to columns in its own sim
+     (kgLayout) and never builds a DAG, so the cycle probe is gone with it. */
 
   const toggleKind = useCallback((kind) => {
     setHiddenKinds((prev) => {
@@ -453,7 +415,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     });
   }, []);
 
-  useEffect(() => { latch.current.reset(); }, [hopDepth, selectedNodeId, showRoutes, layer]);
+  /* KgCanvas fits explicitly — first graph load and layer switch, both
+     internal to the shell — so the old force-graph fit latch (auto-fit on
+     engine stop) has no consumer left and is gone. */
 
   /* The drawer resolves module/model/job ids plus every INFRA kind. Mounts
      and routes have no drawer view, so the canvas focuses the camera instead
@@ -531,10 +495,13 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     [visible, selectedNodeId, nodeById, selectViaKeyboard],
   );
 
-  /* Canvas keyboard shortcuts, implemented here (the tab owns selection
-     state and the visible links) on a wrapper around the canvas — the canvas
-     itself stays renderer-only. Events bubble up from the focusable canvas
-     wrapper; anything typed into an input/select/textarea is left alone. */
+  /* Canvas keyboard shortcuts, split between owner and shell. KgCanvas
+     handles '/', Escape, 1–4/0 hops and 'f' fit (they are canvas-local: it
+     calls back through onFocusSearch/onClearSelection/onHopDepth). The tab
+     keeps Enter and arrow-key navigation, which move the SELECTION through
+     the visible graph and need tab state. Events bubble up from the
+     focusable canvas container; anything typed into an input/select/
+     textarea is left alone by both handlers. */
   const handleCanvasKeyDown = useCallback(
     (e) => {
       const tag = e.target?.tagName;
@@ -548,31 +515,6 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           }
           break;
         }
-        case 'Escape': {
-          /* Path finding clears first (it is the ephemeral analysis); when
-             nothing else is selected the Escape ends there. No
-             onClearSelection prop exists above this tab, but the page
-             already syncs selection FROM the URL (LemuLogsPage effect on the
-             `node` param, same mechanism closeDrawer uses) — deleting the
-             param clears selection and closes the drawer. */
-          setPathTarget(null);
-          if (!selectedNodeId) break;
-          e.preventDefault();
-          setSearchParams((prev) => {
-            const next = new URLSearchParams(prev);
-            next.delete('node');
-            return next;
-          }, { replace: true });
-          break;
-        }
-        case 'f':
-          e.preventDefault();
-          fitRef.current?.();
-          break;
-        case '/':
-          e.preventDefault();
-          searchRef.current?.focus();
-          break;
         case 'ArrowRight':
         case 'ArrowDown':
         case 'ArrowLeft':
@@ -585,8 +527,35 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           break;
       }
     },
-    [nodeById, selectedNodeId, handleNodeClick, setSearchParams, moveSelection],
+    [nodeById, selectedNodeId, handleNodeClick, moveSelection],
   );
+
+  /* Esc / click-empty-space, reported by the canvas shell: path finding
+     clears first (it is the ephemeral analysis); the selection itself is
+     URL state — deleting the `node` param clears it and closes the drawer
+     (LemuLogsPage syncs selection FROM the URL, same mechanism closeDrawer
+     uses). */
+  const handleClearSelection = useCallback(() => {
+    setPathTarget(null);
+    if (!selectedNodeId) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('node');
+      return next;
+    }, { replace: true });
+  }, [selectedNodeId, setSearchParams]);
+
+  /* The hairball cure (design select()): KgCanvas reports that a node was
+   * selected while hop was 'all'; the tab owns hop state and collapses it. */
+  const handleAutoHop = useCallback((h) => setHopDepth(h), []);
+
+  const handleFocusSearch = useCallback(() => searchRef.current?.focus(), []);
+
+  /* Hover tooltip content comes from the canvas as data ({ show, x, y,
+     color, name, meta }); the tab renders it so styling stays with the
+     page chrome. */
+  const [tip, setTip] = useState({ show: false, x: 0, y: 0, color: '#fff', name: '', meta: '' });
+  const handleHover = useCallback((next) => setTip(next), []);
 
   /* Rail freshness: the page stamps dataUpdatedAt after every successful
      liveness fetch; this tick recomputes the age label every 5s and drives
@@ -678,7 +647,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           onLayer={setLayer}
           view={view}
           onView={setView}
-          showSnapshot={effectiveMode === '2d' && view === 'graph'}
+          showSnapshot={view === 'graph'}
           onSnapshot={handleSnapshot}
           versions={(manifests || []).filter((m) => m.version !== manifest?.version)}
           diffVersion={diffVersion}
@@ -861,30 +830,53 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       )}
 
       {view === 'table' ? (
-        /* The table and the canvas never mount at the same time (perf): the
-           ForceGraph simulation is thrown away on every switch, by design. */
+        /* The table and the canvas never mount at the same time (perf). */
         <LemuGraphTable graph={visible} onSelectNode={handleTableSelect} />
       ) : (
         <div onKeyDown={handleCanvasKeyDown}>
           <GraphErrorBoundary>
-            <LemuGraphCanvas
+            <KgCanvas
               graph={visible}
+              layer={layer}
+              mode={mode}
               selectedNodeId={selectedNodeId}
+              hopDepth={hopDepth}
               matches={matches}
               neighbours={analysisNeighbours}
-              overlay={overlayMarks}
-              activityStamp={scrubbedBucket ? scrubbedBucket.bucketStart : 'live'}
-              mode={mode}
-              dagMode={dagSafe}
-              dagLevelDistance={140}
-              onNodeClick={handleNodeClick}
-              latchRef={latch}
+              query={query}
+              focusMatches={focusMatches}
+              drawerOpen={!!selectedNodeId}
+              motion
+              onSelect={handleNodeClick}
+              onAutoHop={handleAutoHop}
+              onHover={handleHover}
+              onClearSelection={handleClearSelection}
+              onHopDepth={setHopDepth}
+              onFocusSearch={handleFocusSearch}
               fitRef={fitRef}
               focusRef={focusRef}
               snapshotRef={snapshotRef}
               instanceRef={instanceRef}
             />
           </GraphErrorBoundary>
+          {tip.show && (
+            /* Canvas-local coords from the shell (design: mx+52, my+44);
+               the overlay spans the canvas region and ignores the pointer. */
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+              <div
+                className="lemu-graph3d__hint"
+                role="status"
+                style={{
+                  left: tip.x,
+                  top: tip.y,
+                  borderLeft: `3px solid ${tip.color}`,
+                }}
+              >
+                <strong>{tip.name}</strong>
+                <span className="lemu-meta">{tip.meta}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

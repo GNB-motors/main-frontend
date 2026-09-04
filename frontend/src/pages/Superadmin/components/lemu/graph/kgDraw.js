@@ -37,6 +37,8 @@ const TAU = 6.2832;
  *                            s is the projection scale (default 1), d the depth
  *   links                    [{ s, t, w?, traffic? }]
  * @param {object} [C]         canvas tokens; defaults to canvasTokens(model.theme)
+ * @returns {Array}            host label chips from drawHosts ([]) — the shell
+ *                             hit-tests them before node picking
  */
 export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
   const W = model.width, H = model.height, d = model.dpr || 1;
@@ -53,7 +55,8 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
   const nb = model.neighbours || null;
   const isNb = (id) => (nb ? (nb.has ? nb.has(id) : !!nb[id]) : false);
 
-  if (model.layer !== 'code') drawHosts(ctx, model, C);
+  let hostChips = [];
+  if (model.layer !== 'code') hostChips = drawHosts(ctx, model, C) || [];
 
   const byId = {};
   model.nodes.forEach((n) => { byId[n.id] = n; });
@@ -94,7 +97,7 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
     }
   }
 
-  const order = model.nodes.slice();
+  const order = model.nodes.filter((n) => (n.r || 0) > 0);
   if (model.mode3d) order.sort((x, y) => (byId[y.id].d || 0) - (byId[x.id].d || 0));
   const q = (model.query || '').trim();
   for (const n of order) {
@@ -160,6 +163,7 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
     }
   }
   ctx.globalAlpha = 1;
+  return hostChips;
 };
 
 /**
