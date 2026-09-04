@@ -20,6 +20,7 @@ import {
   Gauge,
   ShieldAlert,
   CalendarClock,
+  FileCheck2,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -125,6 +126,7 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/approvals', label: 'Approvals', icon: FileCheck, badgeKey: 'approvalsCount' },
   { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/bill-approvals', label: 'Bill Approvals', icon: ReceiptText, badgeKey: 'billApprovalsCount' },
   { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp/pipeline', label: 'Pipeline', icon: ClipboardList },
+  { type: 'link', key: 'erpCnUpdation', access: 'erp', to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', icon: FileCheck2 },
   { type: 'link', key: 'erpBilling', access: 'erp', to: '/erp/billing', label: 'Billing & Receivables', icon: Receipt },
   { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/payables', label: 'Payables', icon: Banknote },
   { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/accounts', label: 'Accounts & Ledger', icon: Landmark },

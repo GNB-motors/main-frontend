@@ -606,7 +606,9 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  z-index: 1000;
+  /* Above the app chrome: navbar 1001, sidebar-hover scrim 1002, mobile navbar
+     1003, sidebar rail 1004 (DashboardLayout.css / Navbar.css / Sidebar.css). */
+  z-index: 1100;
 }
 
 .erp-modal {
@@ -801,6 +803,22 @@
   margin-top: 1px;
 }
 
+/* Inline text button inside a sentence (e.g. "… — override manually"). Not
+   .btn-icon: three other page stylesheets redefine that class globally as a
+   36x36 display:flex box, which breaks the label onto its own line. */
+.erp-inline-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .erp-page {
@@ -826,7 +844,8 @@
   bottom: 0;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(2px);
-  z-index: 1000;
+  /* Above the app chrome, same as .erp-modal-backdrop — see note there. */
+  z-index: 1100;
   display: flex;
   justify-content: flex-end;
   animation: fadeIn 0.2s ease-out forwards;

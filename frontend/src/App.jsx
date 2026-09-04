@@ -101,6 +101,7 @@ import ErpTripDetailPage from './pages/ErpTrips/TripDetailPage.jsx';
 import AdvancesPage from './pages/ErpAdvances/AdvancesPage.jsx';
 import AdvanceMastersPage from './pages/ErpAdvances/AdvanceMastersPage.jsx';
 import ConsignmentsPage from './pages/ErpConsignments/ConsignmentsPage.jsx';
+import InboundEwbPage from './pages/ErpInboundEwb/InboundEwbPage.jsx';
 import TripClosePage from './pages/ErpTrips/TripClosePage.jsx';
 import PodsPage from './pages/ErpPods/PodsPage.jsx';
 import LedgerPage from './pages/ErpLedger/LedgerPage.jsx';
@@ -244,6 +245,7 @@ function App() {
         {/* ISOCL ERP — Hub & Spoke Architecture */}
         <Route path="/erp" element={<ErpHomePage />} />
         <Route path="/erp/pipeline" element={<ErpPipelinePage />} />
+        <Route path="/erp/inbound-ewb" element={<InboundEwbPage />} />
         <Route path="/erp/billing" element={<ErpBillingPage />} />
         <Route path="/erp/payables" element={<ErpPayablesPage />} />
         <Route path="/erp/accounts" element={<ErpAccountsPage />} />

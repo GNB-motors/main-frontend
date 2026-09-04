@@ -542,8 +542,7 @@ const DeliveryOrdersPage = () => {
                         {' — '}
                         <button
                           type="button"
-                          className="btn-icon"
-                          style={{ textDecoration: 'underline', padding: 0 }}
+                          className="erp-inline-link"
                           onClick={() => setField('useManualRate', true)}
                         >
                           override manually
