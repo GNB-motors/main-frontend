@@ -8,6 +8,7 @@ import { buildTopologyGraph } from './useTopologyGraph';
 import { downstreamOf, upstreamOf } from './blastRadius';
 import { shortestPath } from './shortestPath';
 import { findDeadSurfaces } from './deadSurfaces';
+import { overlayFromDiff, ghostNode } from './diffOverlay';
 import { createFitLatch } from './cameraLatch';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
@@ -30,7 +31,7 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef }) => {
+const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef, manifests, diffsByVersion, diffStatusByVersion, onLoadDiff }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const latch = useRef(createFitLatch());
   const fitRef = useRef(null);
@@ -94,6 +95,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      for live. */
   const [pulseBuckets, setPulseBuckets] = useState([]);
   const [scrubIndex, setScrubIndex] = useState(null);
+  /* Manifest-diff overlay (Phase 5): the manifest version to compare
+     against, or null for no overlay. Ephemeral like blastOn — not URL
+     state. */
+  const [diffVersion, setDiffVersion] = useState(null);
   const effectiveMode = mode === '3d' && webglOk ? '3d' : '2d';
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
@@ -152,6 +157,16 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   }, []);
 
   const scrubbedBucket = scrubIndex == null ? null : pulseBuckets[scrubIndex] || null;
+
+  /* Diff overlay: fetch the chosen version's diff on demand. The page owns
+     the cache (diffsByVersion/diffStatusByVersion — the same objects the
+     Changes tab renders from, so the two views can never disagree); this
+     effect only asks for a version that has no status yet. */
+  useEffect(() => {
+    if (diffVersion == null) return;
+    if (diffStatusByVersion?.[diffVersion]) return;
+    onLoadDiff?.(diffVersion);
+  }, [diffVersion, diffStatusByVersion, onLoadDiff]);
 
   /* Liveness keys collections by collection name, so model nodes are matched
      through modelName -> collectionName. Until the DB pulse is recording, every
@@ -229,6 +244,42 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     };
   }, [graphBase, errorAttribution]);
 
+  /* Manifest-diff overlay (Phase 5, code layer only — the diff is manifest
+     semantics). Marks whose ids resolve in the current graph become outline
+     marks; 'removed' marks that do NOT resolve are injected as ghost
+     placeholders (metric-free by construction — see diffOverlay.ghostNode).
+     Counts describe only RESOLVED marks: ids the graph cannot place are
+     dropped, not guessed, and never reach the rail. Declared BEFORE
+     graphStable below, which consumes effectiveGraph. */
+  const overlayMarks = useMemo(() => {
+    if (layer !== 'code' || diffVersion == null) return null;
+    const diff = diffsByVersion?.[diffVersion];
+    if (!diff) return null;
+    const marks = overlayFromDiff(diff);
+    return marks.size ? marks : null;
+  }, [layer, diffVersion, diffsByVersion]);
+
+  const diffOverlay = useMemo(() => {
+    if (!overlayMarks) return null;
+    const present = new Set(graph.nodes.map((n) => n.id));
+    const ghosts = [];
+    const counts = { added: 0, changed: 0, removed: 0 };
+    overlayMarks.forEach((mark, id) => {
+      if (mark === 'removed') {
+        counts.removed += 1;
+        if (!present.has(id)) ghosts.push(ghostNode(id));
+      } else if (present.has(id)) {
+        counts[mark] += 1;
+      }
+    });
+    return {
+      counts,
+      graph: ghosts.length ? { ...graph, nodes: [...graph.nodes, ...ghosts] } : graph,
+    };
+  }, [overlayMarks, graph]);
+
+  const effectiveGraph = diffOverlay ? diffOverlay.graph : graph;
+
   /* Scrub stability: rebuilding the graph for a new scrub position must NOT
      re-scatter the layout. The identity cache already merges live/ops into
      the SAME node objects, so when the node/link shape is unchanged (the
@@ -238,11 +289,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   const graphStableRef = useRef(null);
   const graphStable = useMemo(() => {
     const prev = graphStableRef.current;
-    let next = graph;
-    if (scrubbedBucket && prev) {
-      const nextById = new Map(graph.nodes.map((n) => [n.id, n]));
-      const sameShape = prev.nodes.length === graph.nodes.length
-        && prev.links.length === graph.links.length
+    let next = effectiveGraph;
+    if ((scrubbedBucket || diffOverlay) && prev) {
+      const nextById = new Map(effectiveGraph.nodes.map((n) => [n.id, n]));
+      const sameShape = prev.nodes.length === effectiveGraph.nodes.length
+        && prev.links.length === effectiveGraph.links.length
         && prev.nodes.every((n) => nextById.has(n.id));
       /* the ref must hold the object we RETURNED last time — that is the
          object the renderer still holds; handing back a never-rendered
@@ -252,7 +303,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     }
     graphStableRef.current = next;
     return next;
-  }, [graph, scrubbedBucket]);
+  }, [effectiveGraph, scrubbedBucket, diffOverlay]);
 
   /* Search matches and state-rail dimming share the one opacity channel
      (nodeAppearance `matches`): a node stays bright only if it satisfies
@@ -611,6 +662,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           onView={setView}
           showSnapshot={effectiveMode === '2d' && view === 'graph'}
           onSnapshot={handleSnapshot}
+          versions={(manifests || []).filter((m) => m.version !== manifest?.version)}
+          diffVersion={diffVersion}
+          onDiffVersion={setDiffVersion}
         />
       </div>
 
@@ -689,8 +743,13 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       {/* Analysis rail (Phase 5): one chip per active analysis, stacked under
           the attribution rail — readouts, not alarms, reusing statechip
           styling. */}
-      {view === 'graph' && (blast || pathInfo) && (
+      {view === 'graph' && (blast || pathInfo || diffOverlay) && (
         <div className="lemu-graph3d__analysisrail lemu-graph3d__panel" role="group" aria-label="Analysis readouts">
+          {diffOverlay && (
+            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="diff">
+              <i aria-hidden="true">±</i> diff (v{diffVersion}): <b>{diffOverlay.counts.added}</b> added · <b>{diffOverlay.counts.changed}</b> changed · <b>{diffOverlay.counts.removed}</b> removed
+            </span>
+          )}
           {blast && (
             <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="blast">
               <i aria-hidden="true">◉</i> blast: <b>{blast.down.size}</b> downstream · <b>{blast.up.size}</b> upstream
@@ -788,6 +847,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               selectedNodeId={selectedNodeId}
               matches={matches}
               neighbours={analysisNeighbours}
+              overlay={overlayMarks}
               activityStamp={scrubbedBucket ? scrubbedBucket.bucketStart : 'live'}
               mode={mode}
               dagMode={dagSafe}

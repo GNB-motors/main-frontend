@@ -411,38 +411,51 @@ const LemuLogsPage = () => {
 
     if (kind === 'route') {
       const route = (manifest.routes || []).find((r) => nodeId.route(r) === selectedNodeId);
-      if (!route) return null;
-      const pulseSeries = (pulse?.buckets || []).map((b) => {
-        const r = (b.routes || []).find((x) => x.key === routePulseKey(route));
-        return r || { n: 0, err: 0 };
-      });
-      return { kind: 'route', node: { ...route, _id: selectedNodeId, _module: deriveRouteModule(route, functionsByName) }, pulseSeries };
+      if (route) {
+        const pulseSeries = (pulse?.buckets || []).map((b) => {
+          const r = (b.routes || []).find((x) => x.key === routePulseKey(route));
+          return r || { n: 0, err: 0 };
+        });
+        return { kind: 'route', node: { ...route, _id: selectedNodeId, _module: deriveRouteModule(route, functionsByName) }, pulseSeries };
+      }
     }
 
     if (kind === 'model') {
       const model = (manifest.models || []).find((m) => nodeId.model(m) === selectedNodeId);
-      if (!model) return null;
-      const pulseSeries = (pulse?.buckets || []).map((b) => {
-        const c = (b.collections || []).find((x) => x.name === model.collectionName);
-        return c || { find: 0, insert: 0, update: 0, del: 0, agg: 0 };
-      });
-      return { kind: 'model', node: { ...model, _id: selectedNodeId }, pulseSeries };
+      if (model) {
+        const pulseSeries = (pulse?.buckets || []).map((b) => {
+          const c = (b.collections || []).find((x) => x.name === model.collectionName);
+          return c || { find: 0, insert: 0, update: 0, del: 0, agg: 0 };
+        });
+        return { kind: 'model', node: { ...model, _id: selectedNodeId }, pulseSeries };
+      }
     }
 
     if (kind === 'job') {
       const job = (manifest.jobs || []).find((j) => nodeId.job(j) === selectedNodeId);
-      if (!job) return null;
-      const health = (jobs || []).find((j) => j.job === job.name) || {};
-      const topoJob = (topology?.nodes || []).find((n) => n.id === selectedNodeId);
-      return { kind: 'job', node: { ...job, _id: selectedNodeId, _topo: topoJob }, pulseSeries: { _health: health } };
+      if (job) {
+        const health = (jobs || []).find((j) => j.job === job.name) || {};
+        const topoJob = (topology?.nodes || []).find((n) => n.id === selectedNodeId);
+        return { kind: 'job', node: { ...job, _id: selectedNodeId, _topo: topoJob }, pulseSeries: { _health: health } };
+      }
     }
 
     if (kind === 'module') {
       const module = (manifest.modules || []).find((m) => nodeId.module(m) === selectedNodeId);
-      if (!module) return null;
-      const routes = (manifest.routes || []).filter((r) => deriveRouteModule(r, functionsByName) === module.name);
-      const funcs = (manifest.functions || []).filter((f) => f.module === module.name);
-      return { kind: 'module', node: { ...module, _id: selectedNodeId, _routes: routes, _functions: funcs }, pulseSeries: [] };
+      if (module) {
+        const routes = (manifest.routes || []).filter((r) => deriveRouteModule(r, functionsByName) === module.name);
+        const funcs = (manifest.functions || []).filter((f) => f.module === module.name);
+        return { kind: 'module', node: { ...module, _id: selectedNodeId, _routes: routes, _functions: funcs }, pulseSeries: [] };
+      }
+    }
+
+    /* Phase 5 (diff overlay): a well-formed id that resolves to nothing in
+       the current manifest still gets an honest name-only drawer — diff
+       ghosts and stale deep links land here. INFRA kinds keep the null
+       above: their absence means the topology has no such node, and the
+       graph tab never invents INFRA ids. */
+    if (['model', 'job', 'module', 'route'].includes(kind)) {
+      return { kind, node: { _id: selectedNodeId, label: selectedNodeId.slice(kind.length + 1), _unresolved: true }, pulseSeries: null };
     }
 
     return null;
@@ -679,6 +692,10 @@ const LemuLogsPage = () => {
             selectedNodeId={selectedNodeId}
             dataUpdatedAt={dataUpdatedAt}
             onBlastChange={setBlastClosure}
+            manifests={manifestsList}
+            diffsByVersion={diffsByVersion}
+            diffStatusByVersion={diffStatusByVersion}
+            onLoadDiff={loadManifestDiff}
           />
         )}
 

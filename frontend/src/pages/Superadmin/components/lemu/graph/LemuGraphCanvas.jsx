@@ -26,6 +26,10 @@ const LemuGraphCanvas = ({
   selectedNodeId,
   matches,
   neighbours,
+  /* Manifest-diff overlay (Phase 5): Map<nodeId, 'added'|'removed'|'changed'>.
+     While it is non-empty it OWNS the outline channel — nodeAppearance
+     suppresses the selection outline rather than stacking two meanings. */
+  overlay,
   /* Changes whenever the scrubbed bucket changes (or on return to live).
      The values it guards are merged into the node objects IN PLACE, so the
      graph data itself stays reference-stable; this stamp only forces the
@@ -235,13 +239,13 @@ const LemuGraphCanvas = ({
      as the 2D path already does. */
   const nodeColor3D = useCallback(
     (n) => {
-      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
+      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours, overlay });
       return hexToRgba(color, opacity * 0.92);
     },
-    [selectedNodeId, matches, neighbours, activityStamp],
+    [selectedNodeId, matches, neighbours, overlay, activityStamp],
   );
   const nodeLabel = useCallback(
-    (n) => `${n.kind} · ${n.label}${n.live ? ' · live' : ''}${n.errorCount ? ` · ⚠ ${n.errorCount}` : ''}`,
+    (n) => `${n.kind} · ${n.label}${n.ghost ? ' · removed in compared version' : ''}${n.live ? ' · live' : ''}${n.errorCount ? ` · ⚠ ${n.errorCount}` : ''}`,
     [],
   );
   const linkColor = useCallback((l) => LINK_COLOR[l.kind] || 'rgba(148,163,184,0.3)', []);
@@ -250,10 +254,10 @@ const LemuGraphCanvas = ({
   const linkWidth2D = useCallback((l) => (l.kind === 'require' ? 0.8 : 1.4), []);
   const nodeColor2D = useCallback(
     (n) => {
-      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
+      const { color, opacity } = nodeAppearance(n, { selectedNodeId, matches, neighbours, overlay });
       return hexToRgba(color, opacity * 0.92);
     },
-    [selectedNodeId, matches, neighbours, activityStamp],
+    [selectedNodeId, matches, neighbours, overlay, activityStamp],
   );
 
   /* P3 state treatment — one channel per meaning (graphTheme):
@@ -268,7 +272,7 @@ const LemuGraphCanvas = ({
   const nodeThreeObject = useCallback((n) => {
     // Before three resolves, fall through to the renderer's own spheres.
     if (!three) return undefined;
-    const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
+    const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches, neighbours, overlay });
     const radius = Math.cbrt(Math.max(0, n.val || 1)) * 4;
     if (ring === 'solid' && !outline && !pip) return undefined;
     const group = new three.Group();
@@ -284,7 +288,19 @@ const LemuGraphCanvas = ({
         }),
       ));
     }
-    if (ring === 'hollow' || ring === 'fault') {
+    if (ring === 'ghost') {
+      /* Diff-overlay ghost (a node the compared version removed): a faint
+         translucent grey fill under a grey wireframe — present enough to
+         click, translucent enough to never read as a measured node. */
+      group.add(new three.Mesh(
+        new three.SphereGeometry(radius, 12, 12),
+        new three.MeshLambertMaterial({ color: '#94a3b8', transparent: true, opacity: 0.22 }),
+      ));
+      group.add(new three.Mesh(
+        new three.SphereGeometry(radius * 1.05, 10, 10),
+        new three.MeshBasicMaterial({ wireframe: true, color: '#94a3b8' }),
+      ));
+    } else if (ring === 'hollow' || ring === 'fault') {
       group.add(new three.Mesh(
         new three.SphereGeometry(ring === 'fault' ? radius * 1.15 : radius, 10, 10),
         new three.MeshBasicMaterial({
@@ -315,7 +331,7 @@ const LemuGraphCanvas = ({
       group.add(pipMesh);
     }
     return group.children.length ? group : undefined;
-  }, [three, selectedNodeId, matches, neighbours, activityStamp]);
+  }, [three, selectedNodeId, matches, neighbours, overlay, activityStamp]);
 
   /* 2D equivalent of nodeThreeObject. The renderer default is a filled
      circle of radius sqrt(val) * nodeRelSize, painted after any custom paint
@@ -327,14 +343,14 @@ const LemuGraphCanvas = ({
      paint and is unaffected by any of this. */
   const nodeCanvasObjectMode = useCallback(
     (n) => {
-      const { ring, outline } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
+      const { ring, outline } = nodeAppearance(n, { selectedNodeId, matches, neighbours, overlay });
       return ring !== 'solid' || outline ? 'replace' : 'before';
     },
-    [selectedNodeId, matches, neighbours, activityStamp],
+    [selectedNodeId, matches, neighbours, overlay, activityStamp],
   );
   const nodeCanvasObject = useCallback(
     (n, ctx) => {
-      const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches, neighbours });
+      const { color, opacity, ring, outline, pip } = nodeAppearance(n, { selectedNodeId, matches, neighbours, overlay });
       const r = Math.sqrt(Math.max(0, n.val || 1)) * 4;
       // Error pip rides its own channel: drawn for EVERY node that owns
       // errors, including plain solid ones whose base circle the renderer's
@@ -362,7 +378,13 @@ const LemuGraphCanvas = ({
         ctx.lineWidth = width;
         ctx.stroke();
       };
-      if (ring === 'solid') {
+      if (ring === 'ghost') {
+        /* Diff-overlay ghost: dashed grey stroke over a faint grey wash —
+           deliberately not the kind hue, so it never reads as a live node. */
+        ctx.setLineDash([4, 3]);
+        paint(r, '#94a3b8', 1.5, hexToRgba('#94a3b8', 0.16 * opacity));
+        ctx.setLineDash([]);
+      } else if (ring === 'solid') {
         paint(r, color, 1, hexToRgba(color, opacity * 0.92));
       } else {
         paint(r, ring === 'fault' ? '#fb7185' : color, 1.5);
@@ -371,7 +393,7 @@ const LemuGraphCanvas = ({
         paint(r + 3, OUTLINE_COLOR[outline] || '#cbd5e1', 1.5);
       }
     },
-    [selectedNodeId, matches, neighbours, activityStamp],
+    [selectedNodeId, matches, neighbours, overlay, activityStamp],
   );
 
   /* Particles are the "throb": they only flow along edges touching a

@@ -456,6 +456,18 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
         </div>
       );
     }
+    /* Phase 5 (diff overlay): a node id with no row in the current manifest
+       (a removed-version ghost, a stale deep link) gets a name-only view —
+       never the full detail sections, which would render empty sections as
+       if the node were real. */
+    if (node._unresolved) {
+      return (
+        <div className="lemu-drawer__section">
+          <h2 className="lemu-drawer__title">{node.label}</h2>
+          <p className="lemu-meta">Not present in the current manifest — shown from a version comparison or an outdated link.</p>
+        </div>
+      );
+    }
     /* P2: any node carrying a `state` (INFRA nodes directly; code-layer jobs
        enriched with `_topo` from the topology payload) names the row behind
        its colour at the very top of the drawer. */

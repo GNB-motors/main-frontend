@@ -24,6 +24,9 @@ const LemuGraphControls = ({
   onView,
   showSnapshot,
   onSnapshot,
+  versions,
+  diffVersion,
+  onDiffVersion,
 }) => (
   <div className="lemu-graph3d__bar">
     <div className="lemu-system-map__title">
@@ -84,6 +87,25 @@ const LemuGraphControls = ({
         </select>
         {!hasSelection && <span className="lemu-graph3d__hop-hint lemu-meta">select a node to filter</span>}
       </label>
+      {versions.length > 0 && (
+        /* Manifest-diff overlay (Phase 5): comparing against a version shows
+           its changes as outlines on the code graph. The list is versions
+           older than the current manifest — the current version has no diff
+           to compare against itself. */
+        <label className="lemu-graph3d__hop">
+          <span>Diff</span>
+          <select
+            value={diffVersion ?? ''}
+            onChange={(e) => onDiffVersion(e.target.value === '' ? null : Number(e.target.value))}
+            aria-label="Compare with an older manifest version"
+          >
+            <option value="">Off</option>
+            {versions.map((v) => (
+              <option key={v.version} value={v.version}>v{v.version}</option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="lemu-graph3d__seg" role="group" aria-label="Graph layer">
         {[['code', 'Code'], ['infra', 'Infra']].map(([v, label]) => (
           <button
