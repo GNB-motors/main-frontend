@@ -176,6 +176,18 @@ const DocumentDetailPage = ({ segment }) => {
             </div>
           )}
         </div>
+        {Array.isArray(data.trips) && data.trips.length > 0 && (
+          <div className="erp-stat">
+            <div className="erp-stat-label">{data.trips.length > 1 ? 'Trips' : 'Trip'}</div>
+            <div className="erp-stat-sub" style={{ marginTop: 6 }}>
+              {data.trips.map((t) => (
+                <div key={t.tripId}>
+                  <Link to={`/erp/trips/${t.tripId}`}>{t.tripNumber || 'View trip'} →</Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="erp-split" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>

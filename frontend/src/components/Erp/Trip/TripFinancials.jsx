@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import StatusBadge from '../StatusBadge';
+import { documentPathFor } from '../../../pages/ErpAccounts/documentRoutes';
 import { money, RECEIVABLE_STATES, PAYABLE_STATES } from './tripFinance';
 
 const day = (d) => (d
@@ -94,7 +95,10 @@ const TripFinancials = ({ finance, unloadingDone, onRecordReceipt }) => {
                 : <AccountsOnly />
             )}
             {sb && (
-              <Link className="trip360-fin-link" to="/erp/billing?tab=outstanding">
+              <Link
+                className="trip360-fin-link"
+                to={documentPathFor('SALE_BILL', sb.billId) || '/erp/billing?tab=outstanding'}
+              >
                 Open receivable
                 <ArrowUpRight size={13} />
               </Link>
@@ -140,7 +144,10 @@ const TripFinancials = ({ finance, unloadingDone, onRecordReceipt }) => {
                   : <AccountsOnly />
               )}
               {pb && (
-                <Link className="trip360-fin-link" to="/erp/payables?tab=vendor">
+                <Link
+                  className="trip360-fin-link"
+                  to={documentPathFor('PURCHASE_BILL', pb.billId) || '/erp/payables?tab=vendor'}
+                >
                   Open payable
                   <ArrowUpRight size={13} />
                 </Link>
