@@ -4,8 +4,11 @@
    Pure over a 2D canvas context: no React, no globals, no
    performance.now()/Date.now() — time arrives as `model.now`. Every colour
    comes from graphTheme's CANVAS tokens and kindHue(); the concrete
-   numbers (radii, widths, dashes, alphas) are the design's and must not
-   be rounded or "improved".
+   numbers (radii, widths, dashes, alphas) are the design's, with one
+   deliberate deviation since the port: the selection-dim alphas are 0.25
+   (non-neighbour nodes) and 0.10/0.12 (non-focus edges) — the design's
+   near-zero values, combined with the scrim's backdrop blur, made the
+   board unreadable whenever a node was selected.
 
    The three node treatments are the heart of the design:
      measured    — solid kind-hue disc; glow (dark) or 1px rim (light); specular arc
@@ -86,7 +89,10 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
     const hi = sel && (l.s === sel || l.t === sel);
     const dim = sel && !hi;
     const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-    const al = hi ? (C.glow ? 0.6 : 0.72) : dim ? (C.glow ? 0.05 : 0.07) : (C.glow ? 0.14 : 0.26);
+    /* Dimmed edges sit below the dimmed-node alpha (0.25) but stay faintly
+       visible — a hard zero made the board read as disconnected the moment
+       a node was selected. */
+    const al = hi ? (C.glow ? 0.6 : 0.72) : dim ? (C.glow ? 0.1 : 0.12) : (C.glow ? 0.14 : 0.26);
     g.addColorStop(0, hexa(kc(a.kind), al)); g.addColorStop(1, hexa(kc(b.kind), al));
     ctx.strokeStyle = g; ctx.lineWidth = hi ? 1.5 : 0.7;
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
@@ -126,7 +132,7 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
     if (sState !== 'measured') r = Math.max(r, 4.6);
     let alpha = 1;
     if (q) alpha = model.matches && model.matches.has(n.id) ? 1 : 0.11;
-    if (sel && !model.focus) { if (n.id === sel) alpha = 1; else if (isNb(n.id)) alpha = Math.max(alpha, 0.9); else alpha = Math.min(alpha, 0.22); }
+    if (sel && !model.focus) { if (n.id === sel) alpha = 1; else if (isNb(n.id)) alpha = Math.max(alpha, 0.9); else alpha = Math.min(alpha, 0.25); }
     if (model.mode3d) alpha *= 0.55 + 0.45 * Math.min(1, p.s == null ? 1 : p.s);
     if (ghost) alpha *= GHOST_DIM;
     ctx.globalAlpha = alpha;

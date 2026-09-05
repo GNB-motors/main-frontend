@@ -90,7 +90,7 @@ describe('draw — links', () => {
     expect(linkStroke).toBeTruthy();
   });
 
-  it('uses the plan alpha table: highlighted 0.6/0.72, dimmed 0.05/0.07, normal 0.14/0.26', () => {
+  it('uses the plan alpha table: highlighted 0.6/0.72, dimmed 0.1/0.12, normal 0.14/0.26', () => {
     const mk = (theme, selectedId) => {
       const ctx = makeCtx();
       draw(ctx, baseModel({
@@ -108,8 +108,8 @@ describe('draw — links', () => {
     };
     expect(mk('dark', 'a')).toContain(hexa(kindHue('module', 'dark'), 0.6));
     expect(mk('light', 'a')).toContain(hexa(kindHue('module', 'light'), 0.72));
-    expect(mk('dark', 'a')).toContain(hexa(kindHue('job', 'dark'), 0.05));
-    expect(mk('light', 'a')).toContain(hexa(kindHue('job', 'light'), 0.07));
+    expect(mk('dark', 'a')).toContain(hexa(kindHue('job', 'dark'), 0.1));
+    expect(mk('light', 'a')).toContain(hexa(kindHue('job', 'light'), 0.12));
     expect(mk('dark', null)).toContain(hexa(kindHue('module', 'dark'), 0.14));
     expect(mk('light', null)).toContain(hexa(kindHue('module', 'light'), 0.26));
   });
@@ -258,6 +258,28 @@ describe('draw — the three node treatments', () => {
     expect(ctx.calls.some((c) => c.m === 'arc' && c.args[2] === 14 && c.strokeStyle === CANVAS.dark.hoverRing)).toBe(true);
   });
 
+  it('selection keeps the branch crisp and dims non-neighbours only to 0.25 (no blanket dim)', () => {
+    const ctx = makeCtx();
+    draw(ctx, baseModel({
+      nodes: [
+        measuredNode({ id: 'a' }),
+        measuredNode({ id: 'b', kind: 'store', x: 200, y: 100 }),
+        measuredNode({ id: 'c', kind: 'table', x: 100, y: 300 }),
+      ],
+      links: [{ s: 'a', t: 'b' }],
+      selectedId: 'a',
+      neighbours: new Set(['b']),
+    }));
+    const fillAt = (x, y) => ctx.calls.find((c) => {
+      if (c.m !== 'fill') return false;
+      const prev = ctx.calls[ctx.calls.indexOf(c) - 1];
+      return prev && prev.m === 'arc' && prev.args[0] === x && prev.args[1] === y;
+    });
+    expect(fillAt(100, 100).globalAlpha).toBe(1); // selected
+    expect(fillAt(200, 100).globalAlpha).toBe(1); // neighbour stays crisp
+    expect(fillAt(100, 300).globalAlpha).toBeCloseTo(0.25, 5); // non-neighbour, still visible
+  });
+
   it('a ghost (removed) node renders hollow + dimmed + the removed outline — NOT the fault treatment', () => {
     const ctx = makeCtx();
     draw(ctx, baseModel({ nodes: [measuredNode({ state: 'removed', ghost: true, r: 10 })] }));
@@ -339,8 +361,8 @@ describe('draw — the three node treatments', () => {
       neighbours: new Set(['c']),
     }));
     const voidFill = ctx.calls.find((c) => c.m === 'fill' && c.fillStyle === CANVAS.dark.void);
-    // selection dimming floors alpha at 0.22 first, then the ghost dim applies
-    expect(voidFill.globalAlpha).toBeCloseTo(0.22 * 0.45, 5);
+    // selection dimming floors alpha at 0.25 first, then the ghost dim applies
+    expect(voidFill.globalAlpha).toBeCloseTo(0.25 * 0.45, 5);
   });
 
   it('3D sorts painter-style by d descending and scales alpha by depth', () => {

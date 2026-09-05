@@ -62,7 +62,8 @@ const LemuNodeDrawer = ({
   }, [node, kind]);
 
   /* Focus trap + Escape (unchanged behaviour from the pre-redesign
-     drawer; the design adds no scrim — the board stays interactive). */
+     drawer). The r2 scrim below the drawer is pointer-transparent — the
+     board stays interactive while the drawer is open. */
   useEffect(() => {
     const drawer = drawerRef.current;
     if (!drawer) return undefined;
@@ -238,6 +239,28 @@ const LemuNodeDrawer = ({
   return (
     <>
       <style>{KGDRAWER_CSS}</style>
+      {/* The scrim is a TINT layer only — deliberately NO backdrop-filter:
+          the old blur(8px) turned the board into a blurry white blanket
+          behind the drawer. The selection-focus dimming lives in the canvas
+          paint itself (kgDraw), so a theme-appropriate tint (dark ≈ 32%
+          black, light ≈ 28% white) is enough for the drawer to read as
+          foreground while the graph stays sharp underneath. It sits one
+          z-step BELOW the drawer (45 vs 46) so the drawer stays fully
+          crisp, and it never intercepts the pointer — clicking the board
+          still selects/switches nodes. `contained` mirrors the drawer's
+          own positioning: absolute inside the graph page's relative
+          wrapper, fixed over the viewport on the embedded LEMU page. The
+          shared class (.lemu-drawer-scrim, LemuLogsPage.css) carries no
+          filter; the tint arrives as the --lemu-scrim var so both render
+          sites stay theme-correct. */}
+      <div
+        className="lemu-drawer-scrim"
+        aria-hidden="true"
+        style={{
+          '--lemu-scrim': theme === 'light' ? 'rgba(255,255,255,0.28)' : 'rgba(6,7,10,0.32)',
+          position: contained ? 'absolute' : 'fixed',
+        }}
+      />
       <aside
         ref={drawerRef}
         className="lemu-drawer lemu-kgdrawer"
@@ -368,6 +391,9 @@ const LemuNodeDrawer = ({
                     {fnRows.slice(0, 50).map((f, i) => (
                       <div key={`${f.ref}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderBottom: `1px solid ${T.l2}` }}>
                         <span style={{ flex: 1, fontFamily: MONO, fontSize: 11, color: T.t3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                        {f.count > 1 && (
+                          <span style={{ fontFamily: MONO, fontSize: 9.5, fontVariantNumeric: 'tabular-nums', padding: '1px 6px', borderRadius: 4, background: T.f4, color: T.t5, whiteSpace: 'nowrap' }}>×{f.count}</span>
+                        )}
                         <span style={{ fontFamily: MONO, fontSize: 10, fontVariantNumeric: 'tabular-nums', color: T.t5, whiteSpace: 'nowrap' }}>{f.loc}</span>
                         <span style={{ fontFamily: MONO, fontSize: 10, color: T.link, whiteSpace: 'nowrap' }}>{f.ref}</span>
                       </div>

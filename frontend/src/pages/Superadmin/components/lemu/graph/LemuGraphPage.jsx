@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import LemuGraphTab from './LemuGraphTab';
 import LemuNodeDrawer from '../LemuNodeDrawer';
 import { useLemuGraphData, useLemuSelectedNode } from './useLemuGraphData';
+import { readStoredTheme } from './graphTheme';
 /* The graph chrome styles (.lemu-graph3d*, .lemu-kgrail*, .lemu-kgfilt, the
    drawer-adjacent tokens) live in LemuLogsPage.css — historically loaded as a
    side effect of mounting the graph inside LemuLogsPage. Import it here so
@@ -37,6 +38,10 @@ const LemuGraphPage = () => {
      as on the LEMU page): the drawer's ISOLATE 1 HOP collapses the board to
      the selected node's 1-hop neighbourhood. */
   const isolateRef = useRef(null);
+  /* The drawer renders at page level (outside the tab), but the tab owns the
+     theme switch — it publishes the current theme here so the drawer (and
+     its scrim tint) follow the board instead of staying on the dark default. */
+  const [theme, setTheme] = useState(readStoredTheme);
 
   useEffect(() => {
     if (getUserRole() !== 'SUPER_ADMIN') {
@@ -99,6 +104,7 @@ const LemuGraphPage = () => {
         diffsByVersion={data.diffsByVersion}
         diffStatusByVersion={data.diffStatusByVersion}
         onLoadDiff={data.loadManifestDiff}
+        onThemeChange={setTheme}
       />
 
       {drawerOpen && selectedNode && (
@@ -116,6 +122,7 @@ const LemuGraphPage = () => {
           onSelectNode={openNode}
           onClose={closeDrawer}
           onIsolate={() => isolateRef.current?.(selectedNodeId)}
+          theme={theme}
           contained
         />
       )}

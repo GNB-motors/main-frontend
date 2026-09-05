@@ -262,16 +262,42 @@ export const metricsRows = (node, kind, codeEdges = [], opts = {}) => {
 
 /* OWNED FUNCTIONS — source order (startLine), row shape per Task 10:
    name · loc · file:line. `loc` is shown because the design's row carries
-   it; it is the FILE's line count (§0 C5) and is never used as a size. */
-export const ownedFunctionRows = (functions) => [...(functions || [])]
-  /* Functions with no recorded startLine cannot be placed in source
-     order — they go last, not first. */
-  .sort((a, b) => (a.startLine ?? Number.POSITIVE_INFINITY) - (b.startLine ?? Number.POSITIVE_INFINITY))
-  .map((f) => ({
-    name: f.functionName || 'anonymous',
-    loc: nf(f.loc),
-    ref: `${f.file || '—'}${Number.isInteger(f.startLine) ? `:${f.startLine}` : ''}`,
-  }));
+   it; it is the FILE's line count (§0 C5) and is never used as a size.
+
+   The manifest records unnamed functions under their enclosing statement,
+   so a row can come back literally named 'if', 'catch', 'for', … — those
+   and empty names display as '<anonymous>' (the raw keyword would read as
+   a real function name, and dozens of same-named rows were the "anonymous
+   functions" report). Consecutive rows with the same display name AND the
+   same file:line collapse into one row carrying `count` — the manifest
+   emits one record per anonymous closure at the same statement — so the
+   drawer renders a ×N badge instead of N identical lines. The sort is
+   applied BEFORE collapsing so the source order is preserved. */
+const CONTROL_FLOW_NAMES = new Set(['if', 'else', 'for', 'while', 'switch', 'catch', 'try', 'do']);
+
+const functionDisplayName = (f) => {
+  const n = (f.functionName || '').trim();
+  return n && !CONTROL_FLOW_NAMES.has(n) ? n : '<anonymous>';
+};
+
+export const ownedFunctionRows = (functions) => {
+  const rows = [...(functions || [])]
+    /* Functions with no recorded startLine cannot be placed in source
+       order — they go last, not first. */
+    .sort((a, b) => (a.startLine ?? Number.POSITIVE_INFINITY) - (b.startLine ?? Number.POSITIVE_INFINITY))
+    .map((f) => ({
+      name: functionDisplayName(f),
+      loc: nf(f.loc),
+      ref: `${f.file || '—'}${Number.isInteger(f.startLine) ? `:${f.startLine}` : ''}`,
+    }));
+  const out = [];
+  for (const r of rows) {
+    const prev = out[out.length - 1];
+    if (prev && prev.name === r.name && prev.ref === r.ref) prev.count = (prev.count || 1) + 1;
+    else out.push(r);
+  }
+  return out;
+};
 
 /* P4 — the attribution window stated explicitly. The page asks the
    endpoint without params, so the backend default (30 days) is what the

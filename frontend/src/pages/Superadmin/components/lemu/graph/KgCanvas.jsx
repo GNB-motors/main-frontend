@@ -18,6 +18,7 @@ import { placeLabels, LABEL_FONT } from './kgLabels';
 import { kindHue, canvasTokens } from './graphTheme';
 import { endId } from './hopFilter';
 import { pickNode, pickHostChip } from './kgPick';
+import { shouldCaptureSpace, isSpaceKey, SPACE_PAN_CURSORS } from './spacePan';
 
 /* Particle budget, carried over from the old renderer: at most this many
    edges carry particles, the busiest first. */
@@ -100,6 +101,7 @@ const HIDE_TIP = { show: false, x: 0, y: 0, color: '#fff', name: '', meta: '' };
  *   onClearSelection()         — Esc / click empty space
  *   onHopDepth(n | 'all')      — 1–4 / 0 keys
  *   onFocusSearch()            — '/' key
+ *   Space (window-level)       — hold to pan on any drag; node-drag suspended
  *   fitRef/focusRef/snapshotRef/instanceRef — published handlers, same
  *                contract as the old canvas wrapper
  */
@@ -544,6 +546,51 @@ const KgCanvas = ({
     return () => ro.disconnect();
   }, [maybeFit]);
 
+  /* ---------- Space+drag panning (design-tool convention) ----------
+     While Space is held, ANY pointer drag pans the camera — node-drag is
+     suspended (space-pan wins) — and the canvas shows grab/grabbing. The
+     window listeners ignore Space when the event target is interactive
+     (inputs, buttons, links, contentEditable) so typing and button
+     activation keep working; preventDefault on capture stops the page from
+     scrolling on Space. Released (or window blur) restores normal mode. */
+  const spaceRef = useRef(false);
+
+  const updateCursor = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.style.cursor = spaceRef.current
+      ? (dragRef.current ? SPACE_PAN_CURSORS.dragging : SPACE_PAN_CURSORS.ready)
+      : '';
+  }, []);
+
+  useEffect(() => {
+    const down = (e) => {
+      if (!isSpaceKey(e.key) || !shouldCaptureSpace(e.target)) return;
+      e.preventDefault(); // Space must not scroll the page
+      if (e.repeat) return;
+      spaceRef.current = true;
+      updateCursor();
+    };
+    const up = (e) => {
+      if (!isSpaceKey(e.key)) return;
+      if (spaceRef.current) e.preventDefault();
+      spaceRef.current = false;
+      updateCursor();
+    };
+    const blur = () => {
+      spaceRef.current = false;
+      updateCursor();
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    window.addEventListener('blur', blur);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', blur);
+    };
+  }, [updateCursor]);
+
   /* ---------- pointer ---------- */
   const toLocal = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
@@ -561,6 +608,19 @@ const KgCanvas = ({
     if (e.button !== 0) return;
     const [mx, my] = toLocal(e);
     const cam = camRef.current;
+    if (spaceRef.current) {
+      /* Space-pan wins over node-drag: an empty pan drag, never a click. */
+      dragRef.current = {
+        space: true, n: null, hostId: null,
+        mx, my,
+        moved: true,
+        shift: e.shiftKey,
+        ox: cam.tx, oy: cam.ty, yaw: cam.yaw, pitch: cam.pitch,
+      };
+      canvasRef.current.setPointerCapture(e.pointerId);
+      updateCursor();
+      return;
+    }
     const { node } = pickAt(mx, my);
     dragRef.current = {
       n: node && node.kind !== 'host' ? node : null,
@@ -584,6 +644,14 @@ const KgCanvas = ({
     if (d) {
       const dx = mx - d.mx, dy = my - d.my;
       if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
+      if (d.space) {
+        /* Space-pan: translate the camera in BOTH 2D and 3D (a pan of the
+           projected view — never an orbit). */
+        const cam = camRef.current;
+        cam.tx = d.ox + dx;
+        cam.ty = d.oy + dy;
+        return;
+      }
       if (d.n) {
         const cam = camRef.current;
         if (!pr.is3d) {
@@ -640,6 +708,7 @@ const KgCanvas = ({
     const pr = propsRef.current;
     const d = dragRef.current;
     dragRef.current = null;
+    updateCursor();
     if (!d) return;
     if (d.n) d.n.fixed = false;
     if (d.moved) return;
