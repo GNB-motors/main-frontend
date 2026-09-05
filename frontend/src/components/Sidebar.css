@@ -1,332 +1,342 @@
 .sidebar {
-    width: 120px;
-    background-color: var(--color-white);
-    padding: 8px !important;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--color-grey-200);
-    flex-shrink: 0;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                margin-left 0.3s ease;
-    position: fixed;
-    height: 100vh;
-    height: 100dvh; /* survive mobile browser chrome collapsing */
-    top: 0;
-    left: 0;
-    z-index: 1004 !important;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    overflow: hidden; /* the nav scrolls, the shell never does */
+  width: 120px;
+  background-color: var(--color-white);
+  padding: 8px !important;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-grey-200);
+  flex-shrink: 0;
+  transition:
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.3s ease;
+  position: fixed;
+  height: 100vh;
+  height: 100dvh; /* survive mobile browser chrome collapsing */
+  top: 0;
+  left: 0;
+  z-index: 1004 !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* the nav scrolls, the shell never does */
 }
 
 .sidebar-content {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1; /* Pushes footer down */
-    /* Without min-height:0 a flex item refuses to shrink below its content
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Pushes footer down */
+  /* Without min-height:0 a flex item refuses to shrink below its content
        height, so overflow-y never engages and the tail of the nav is unreachable. */
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-    /* Scrollbar hidden in all browsers — the nav still scrolls (wheel/trackpad),
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  /* Scrollbar hidden in all browsers — the nav still scrolls (wheel/trackpad),
        there is just no visible bar. */
-    scrollbar-width: none; /* Firefox */
+  scrollbar-width: none; /* Firefox */
 }
 
 .sidebar-content::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none; /* Chrome / Safari / Edge */
+  width: 0;
+  height: 0;
+  display: none; /* Chrome / Safari / Edge */
 }
 
 .sidebar-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-    margin-top: 12px;
-    overflow: hidden;
-    height: auto;
-    min-height: 40px;
-    flex-shrink: 0;
-    transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  margin-top: 12px;
+  overflow: hidden;
+  height: auto;
+  min-height: 40px;
+  flex-shrink: 0;
+  transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logo-text {
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--color-grey-800);
-    white-space: nowrap;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-grey-800);
+  white-space: nowrap;
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logo-img {
-    flex-shrink: 0;
-    height: 48px;
-    width: auto;
-    max-width: 100%;
-    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  height: 48px;
+  width: auto;
+  max-width: 100%;
+  transition:
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
 }
 
 .nav-link {
-    display: flex;
-    align-items: center;
-    padding: 10px 8px;
-    border-radius: var(--border-radius-md);
-    color: var(--color-grey-400);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: var(--border-radius-md);
+  color: var(--color-grey-400);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Gap only when sidebar is hovered */
 .sidebar:hover .nav-link {
-    gap: var(--spacing-md);
+  gap: var(--spacing-md);
 }
 
 .nav-link span {
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Ensure Lucide React icons inherit the proper colors */
 .nav-link svg {
-    color: inherit;
-    transition: color 0.2s ease, 
-                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  color: inherit;
+  transition:
+    color 0.2s ease,
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-link:hover {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .nav-link.active {
-    /* Use the themed light primary background + primary text colour so the
+  /* Use the themed light primary background + primary text colour so the
        active highlight follows the user's chosen primary color. */
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .sidebar-footer {
-    padding-top: 12px;
-    border-top: 1px solid var(--color-grey-200);
-    flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
-    background-color: var(--color-white); /* Match sidebar bg so it looks solid */
+  padding-top: 12px;
+  border-top: 1px solid var(--color-grey-200);
+  flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
+  background-color: var(--color-white); /* Match sidebar bg so it looks solid */
 }
 
 .logout-btn {
-    width: 100%;
-    background: none;
-    border: none;
-    cursor: pointer;
-    /* The padding is inherited from .nav-link */
-    color: var(--color-grey-400);
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  /* The padding is inherited from .nav-link */
+  color: var(--color-grey-400);
 }
 
-.logout-btn:hover span, .logout-btn:hover {
-    color: var(--primary-color);
+.logout-btn:hover span,
+.logout-btn:hover {
+  color: var(--primary-color);
 }
 .logout-btn:hover {
-    background-color: var(--primary-light);
+  background-color: var(--primary-light);
 }
 
 /* === Desktop Hover Styles === */
 @media (min-width: 993px) {
-    .sidebar {
-        width: 100px;
-        padding-left: var(--spacing-md);
-        padding-right: var(--spacing-md);
-    }
+  .sidebar {
+    width: 100px;
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
 
-    .sidebar:hover {
-        width: 260px;
-        padding-left: var(--spacing-lg);
-        padding-right: var(--spacing-lg);
-        /* Elevate the rail when expanded so it clearly reads as the focused overlay */
-        box-shadow: 0 12px 48px rgba(15, 23, 42, 0.32);
-    }
+  .sidebar:hover {
+    width: 260px;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+    /* Elevate the rail when expanded so it clearly reads as the focused overlay */
+    box-shadow: 0 12px 48px rgba(15, 23, 42, 0.32);
+  }
 
-    .sidebar .nav-link svg {
-        width: 24px;
-        height: 24px;
-    }
-    
-    .sidebar .logo-img {
-        height: 70px;
-        width: 70px;
-        margin-left: 10px;
-    }
+  .sidebar .nav-link svg {
+    width: 24px;
+    height: 24px;
+  }
 
-    .sidebar .logo-text,
-    .sidebar .nav-link span {
-        opacity: 0;
-        visibility: hidden;
-        width: 0;
-    }
+  .sidebar .logo-img {
+    height: 70px;
+    width: 70px;
+    margin-left: 10px;
+  }
 
-    .sidebar:hover .logo-text,
-    .sidebar:hover .nav-link span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-    }
+  .sidebar .logo-text,
+  .sidebar .nav-link span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+  }
 
-    .sidebar .sidebar-header {
-        justify-content: center;
-    }
+  .sidebar:hover .logo-text,
+  .sidebar:hover .nav-link span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+  }
 
-    .sidebar:hover .sidebar-header {
-        justify-content: flex-start;
-    }
+  .sidebar .sidebar-header {
+    justify-content: center;
+  }
 
-    .sidebar .nav-link {
-        justify-content: center;
-        gap: 0;
-    }
+  .sidebar:hover .sidebar-header {
+    justify-content: flex-start;
+  }
 
-    .sidebar:hover .nav-link {
-        justify-content: flex-start;
-    }
+  .sidebar .nav-link {
+    justify-content: center;
+    gap: 0;
+  }
+
+  .sidebar:hover .nav-link {
+    justify-content: flex-start;
+  }
 }
 
 /* === Mobile Overlay Styles === */
 @media (max-width: 992px) {
-    .sidebar {
-        width: 260px;
-        margin-left: -260px;
-        box-shadow: 0 0 40px rgba(0,0,0,0.1);
-    }
+  .sidebar {
+    width: 260px;
+    margin-left: -260px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
 
-    .sidebar.open {
-        margin-left: 0;
-    }
+  .sidebar.open {
+    margin-left: 0;
+  }
 
-    .sidebar .logo-text,
-    .sidebar .nav-link span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-    }
+  .sidebar .logo-text,
+  .sidebar .nav-link span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+  }
 
-    .sidebar .sidebar-header {
-        justify-content: flex-start;
-    }
+  .sidebar .sidebar-header {
+    justify-content: flex-start;
+  }
 
-    .sidebar .nav-link {
-        justify-content: flex-start;
-        gap: var(--spacing-md);
-    }
+  .sidebar .nav-link {
+    justify-content: flex-start;
+    gap: var(--spacing-md);
+  }
 }
 
 /* === Section headings === */
 .nav-section-label {
-    padding: 14px 8px 4px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-grey-400);
-    white-space: nowrap;
-    overflow: hidden;
-    user-select: none;
+  padding: 14px 8px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-grey-400);
+  white-space: nowrap;
+  overflow: hidden;
+  user-select: none;
 }
 
 .nav-section-label:first-child {
-    padding-top: 4px;
+  padding-top: 4px;
 }
 
 .nav-section-label span {
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* === Vehicle Activity Collapsible Section === */
 .nav-section {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .nav-parent {
-    display: flex;
-    align-items: center;
-    padding: 10px 8px;
-    border-radius: var(--border-radius-md);
-    color: var(--color-grey-400);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    position: relative;
-    justify-content: space-between;
-    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 0.2s ease,
-                color 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: var(--border-radius-md);
+  color: var(--color-grey-400);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  position: relative;
+  justify-content: space-between;
+  transition:
+    gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .nav-parent-left {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
 }
 
 .nav-parent-left svg {
-    flex-shrink: 0;
-    color: inherit;
-    transition: color 0.2s ease, 
-                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  color: inherit;
+  transition:
+    color 0.2s ease,
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-parent:hover {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .nav-parent.active-parent {
-    /* Active parent uses themed light primary background + primary text. */
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  /* Active parent uses themed light primary background + primary text. */
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .chevron-icon {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
-    margin-left: auto;
-    transform: rotate(0deg); /* closed: point right */
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  margin-left: auto;
+  transform: rotate(0deg); /* closed: point right */
 }
 
 .chevron-icon.rotated {
-    /* open: point down */
-    transform: rotate(-180deg);
+  /* open: point down */
+  transform: rotate(-180deg);
 }
 
 /* Collapse/expand animates grid-template-rows 0fr <-> 1fr rather than
@@ -335,172 +345,188 @@
    followed by a snap. 0fr/1fr resolves to the real content height, so open and
    close take the same time regardless of how many children a group has. */
 .nav-children {
-    display: grid;
-    grid-template-rows: 0fr;
-    overflow: hidden;
-    opacity: 0;
-    padding-top: 0;
-    transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                padding-top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.2s ease;
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  padding-top: 0;
+  transition:
+    grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    padding-top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s ease;
 }
 
 .nav-children-inner {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-height: 0;   /* Required: lets the 0fr row actually clip its content */
-    overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0; /* Required: lets the 0fr row actually clip its content */
+  overflow: hidden;
 }
 
 .nav-children.open {
-    grid-template-rows: 1fr;
-    opacity: 1;
-    padding-top: 6px;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  padding-top: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .nav-children {
-        transition-duration: 0.01ms;
-    }
+  .nav-children {
+    transition-duration: 0.01ms;
+  }
 }
 
 .nav-child {
-    padding: 11px 10px 11px 48px !important;
-    font-size: 14px;
-    line-height: 1.35;
+  padding: 11px 10px 11px 48px !important;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .nav-child span {
-    margin-left: 0;
+  margin-left: 0;
 }
 
 /* Desktop specific styles for collapsed sidebar */
 @media (min-width: 993px) {
-    /* Collapsed: the heading text can't fit, so show a short rule instead —
+  /* Collapsed: the heading text can't fit, so show a short rule instead —
        the sections stay visually separated without any label. */
-    .sidebar .nav-section-label {
-        padding: 12px 8px 8px;
-        display: flex;
-        justify-content: center;
-    }
+  .sidebar .nav-section-label {
+    padding: 12px 8px 8px;
+    display: flex;
+    justify-content: center;
+  }
 
-    .sidebar .nav-section-label span {
-        opacity: 0;
-        visibility: hidden;
-        width: 0;
-        height: 0;
-    }
+  .sidebar .nav-section-label span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    height: 0;
+  }
 
-    .sidebar .nav-section-label::before {
-        content: '';
-        height: 1px;
-        width: 28px;
-        background-color: var(--color-grey-200);
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                    opacity 0.2s ease;
-    }
+  .sidebar .nav-section-label::before {
+    content: '';
+    height: 1px;
+    width: 28px;
+    background-color: var(--color-grey-200);
+    transition:
+      width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease;
+  }
 
-    .sidebar:hover .nav-section-label {
-        display: block;
-    }
+  .sidebar:hover .nav-section-label {
+    display: block;
+  }
 
-    .sidebar:hover .nav-section-label span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-        height: auto;
-    }
+  .sidebar:hover .nav-section-label span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+    height: auto;
+  }
 
-    .sidebar:hover .nav-section-label::before {
-        display: none;
-    }
+  .sidebar:hover .nav-section-label::before {
+    display: none;
+  }
 
-    /* When sidebar is collapsed (not hovered) */
-    .sidebar .nav-parent {
-        justify-content: center;
-        gap: 0;
-    }
-    
-    .sidebar .nav-parent-left {
-        gap: 0;
-        justify-content: center;
-    }
-    
-    .sidebar .nav-parent-left svg {
-        width: 24px;
-        height: 24px;
-        margin: 0px 0 0 24px;
-    }
+  /* When sidebar is collapsed (not hovered) */
+  .sidebar .nav-parent {
+    justify-content: center;
+    gap: 0;
+  }
 
-    .sidebar .chevron-icon {
-        opacity: 0;
-        width: 0;
-        overflow: hidden;
-    }
-    
-    .sidebar .nav-children {
-        display: none;
-    }
-    
-    .sidebar .nav-parent span {
-        opacity: 0;
-        visibility: hidden;
-        width: 0;
-    }
-    
-    /* When sidebar is hovered/expanded */
-    .sidebar:hover .nav-parent {
-        justify-content: space-between;
-        gap: var(--spacing-md);
-    }
+  .sidebar .nav-parent-left {
+    gap: 0;
+    justify-content: center;
+  }
 
-    .sidebar:hover .nav-parent-left svg {
-        margin: 0; 
-    }
-    .sidebar:hover .nav-parent-left {
-        gap: var(--spacing-md);
-        justify-content: flex-start;
-    }
-    
-    .sidebar:hover .nav-parent span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-    }
-    
-    .sidebar:hover .chevron-icon {
-        opacity: 1;
-        width: 16px;
-    }
-    
-    .sidebar:hover .nav-children {
-        display: grid;
-    }
+  .sidebar .nav-parent-left svg {
+    width: 24px;
+    height: 24px;
+    margin: 0px 0 0 24px;
+  }
 
-    .sidebar:hover .nav-children.open {
-        opacity: 1;
-        grid-template-rows: 1fr;
-    }
-    
-    .sidebar .nav-child {
-        justify-content: flex-start;
-    }
+  .sidebar .chevron-icon {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+  }
+
+  .sidebar .nav-children {
+    display: none;
+  }
+
+  .sidebar .nav-parent span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+  }
+
+  /* When sidebar is hovered/expanded */
+  .sidebar:hover .nav-parent {
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+
+  .sidebar:hover .nav-parent-left svg {
+    margin: 0;
+  }
+  .sidebar:hover .nav-parent-left {
+    gap: var(--spacing-md);
+    justify-content: flex-start;
+  }
+
+  .sidebar:hover .nav-parent span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+  }
+
+  .sidebar:hover .chevron-icon {
+    opacity: 1;
+    width: 16px;
+  }
+
+  .sidebar:hover .nav-children {
+    display: grid;
+  }
+
+  .sidebar:hover .nav-children.open {
+    opacity: 1;
+    grid-template-rows: 1fr;
+  }
+
+  .sidebar .nav-child {
+    justify-content: flex-start;
+  }
 }
-
 
 /* Mobile styles */
 @media (max-width: 992px) {
-    .nav-parent {
-        justify-content: space-between;
-    }
-    
-    .nav-parent-left {
-        gap: var(--spacing-md);
-    }
-    
-    .chevron-icon {
-        opacity: 1;
-        width: 16px;
-    }
+  .nav-parent {
+    justify-content: space-between;
+  }
+
+  .nav-parent-left {
+    gap: var(--spacing-md);
+  }
+
+  .chevron-icon {
+    opacity: 1;
+    width: 16px;
+  }
+}
+/* ── Dark-mode active highlight ───────────────────────────────────────────
+   `--primary-light` is derived once as rgba(primary, 0.12) in colorTheme.js
+   (getLightColor). That alpha was chosen against a WHITE sidebar, where it
+   reads as a pale wash. Composited over the dark sidebar it collapses into
+   mud — orange at 12% over near-black is brown.
+
+   Dark needs its own alpha, and color-mix composites in a perceptual space
+   so the result stays a tint rather than going muddy. Do not "fix" this by
+   changing getLightColor — that would wreck the light theme, which is
+   correct as it stands. */
+.dark .nav-link.active,
+.dark .nav-parent.active-parent {
+  background-color: color-mix(in oklab, var(--primary-color) 22%, transparent);
+  color: var(--primary-color);
 }
