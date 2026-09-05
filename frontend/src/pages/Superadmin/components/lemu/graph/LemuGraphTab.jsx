@@ -34,7 +34,7 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef, manifests, diffsByVersion, diffStatusByVersion, onLoadDiff }) => {
+const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef, manifests, diffsByVersion, diffStatusByVersion, onLoadDiff, isolateRef }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fitRef = useRef(null);
   const focusRef = useRef(null);
@@ -609,6 +609,17 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   /* The hairball cure (design select()): KgCanvas reports that a node was
    * selected while hop was 'all'; the tab owns hop state and collapses it. */
   const handleAutoHop = useCallback((h) => setHopDepth(h), []);
+
+  /* ISOLATE 1 HOP (drawer action): the page reaches the tab's hop state
+     through this ref — isolating IS the hop collapse, depth 1 around the
+     already-selected node (the pre-redesign drawer's behaviour). */
+  useEffect(() => {
+    if (!isolateRef) return undefined;
+    isolateRef.current = (id) => {
+      if (id) setHopDepth(1);
+    };
+    return () => { isolateRef.current = null; };
+  }, [isolateRef]);
 
   const handleFocusSearch = useCallback(() => searchRef.current?.focus(), []);
 

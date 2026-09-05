@@ -291,7 +291,14 @@ const KgCanvas = ({
         n.r = n.kind === 'host' ? 0 : infraRadius(n.metrics && n.metrics.rows);
         n.tx = columnTarget(n.kind === 'host' ? hostColumn(n) : nodeColumn(n));
       } else {
-        n.r = codeRadius(n.meta && n.meta.totalLoc);
+        /* §0 C5 sizes MODULES by totalLoc. Models/jobs/mounts/routes carry
+           no loc on the real payload; they take the design formula at a
+           representative size (~350 loc — the middle of the design's
+           non-module band) so every radius stays finite. A NaN radius here
+           is not cosmetic: collide()'s rr goes NaN, the separation push
+           poisons x/y for the whole board, and the next frame's
+           createLinearGradient throws. */
+        n.r = n.kind === 'module' ? codeRadius(n.meta && n.meta.totalLoc) : codeRadius(350);
         delete n.tx;
       }
       if (!Number.isFinite(n.x) || !Number.isFinite(n.y)) {

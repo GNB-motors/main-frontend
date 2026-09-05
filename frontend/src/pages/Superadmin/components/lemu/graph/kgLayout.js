@@ -36,13 +36,53 @@ export const columnTarget = (col) => (col - 3.0) * 178;
 export const infraRadius = (rows) => Math.max(7, Math.min(17, 7 + Math.pow(rows || 1, 0.16) * 1.55));
 
 /** Code-layer node radius: max(3.2, min(13, 3 + pow(size, 0.34) * 0.62)).
-    `size` is modules[].totalLoc per plan §0 C5 — never functions[].loc. */
-export const codeRadius = (size) => Math.max(3.2, Math.min(13, 3 + Math.pow(size, 0.34) * 0.62));
+    `size` is modules[].totalLoc per plan §0 C5 — never functions[].loc.
+    An absent size behaves as 1 (the same `|| 1` discipline as infraRadius):
+    models/jobs/mounts carry no totalLoc on the real payload, and a NaN
+    radius poisons collide()'s separation pass — absence must never NaN
+    the layout. */
+export const codeRadius = (size) => Math.max(3.2, Math.min(13, 3 + Math.pow(size || 1, 0.34) * 0.62));
 
 const byId = (nodes) => {
   const m = new Map();
   for (const n of nodes) m.set(n.id, n);
   return m;
+};
+
+/* Deterministic spread for a node that arrives without a usable position
+   (a fresh object the identity cache has never seen, or coordinates a
+   previous run corrupted). Same string-hash discipline as the canvas
+   shell's first-paint seed. NaN is contagious — one non-finite coordinate
+   corrupts every force pass it touches — so step() self-seeds before it
+   integrates and the invariant "after one step every position is finite"
+   holds for any caller. */
+const hashOf = (id) => {
+  let h = 0;
+  const s = String(id);
+  for (let i = 0; i < s.length; i++) h = ((h * 31) + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+const ensurePositions = (nodes, infra, is3) => {
+  for (let i = 0; i < nodes.length; i++) {
+    const p = nodes[i];
+    const h = hashOf(p.id);
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+      if (infra) {
+        p.x = Number.isFinite(p.tx) ? p.tx : 0;
+        p.y = ((h % 1000) / 1000 - 0.5) * 520;
+      } else {
+        const a = (h % 6283) / 1000;
+        const rr = 120 + (h % 380);
+        p.x = Math.cos(a) * rr;
+        p.y = Math.sin(a) * rr * 0.75;
+      }
+    }
+    if (!Number.isFinite(p.z)) p.z = (((h >> 10) % 1000) / 1000 - 0.5) * (infra ? 160 : 420);
+    if (!Number.isFinite(p.vx)) p.vx = 0;
+    if (!Number.isFinite(p.vy)) p.vy = 0;
+    if (!Number.isFinite(p.vz)) p.vz = 0;
+  }
 };
 
 /** One force-simulation step, ported from physics(). Mutates node x/y/z and
@@ -56,6 +96,7 @@ const byId = (nodes) => {
 export const step = (nodes, links, opts) => {
   const infra = opts.layer === 'infra';
   const is3 = !!opts.is3d;
+  ensurePositions(nodes, infra, is3);
   const a = opts.alpha;
   if (a < 0.004) return a;
   const n0 = nodes.length;
@@ -120,6 +161,10 @@ export const collide = (nodes, opts) => {
   if (nodes.length < 2) return;
   const infra = opts.layer === 'infra';
   const pad = infra ? 11 : 2.2;
+  /* A non-finite radius excludes itself from maxR (NaN comparisons are
+     false) but would still NaN the per-pair rr below — treat it as 0 for
+     the separation math so one bad radius cannot poison the grid. */
+  const rOf = (n) => (Number.isFinite(n.r) ? n.r : 0);
   let maxR = 0; for (let i = 0; i < nodes.length; i++) if (nodes[i].r > maxR) maxR = nodes[i].r;
   const cs = (maxR + pad) * 2.2, grid = new Map();
   for (const n of nodes) {
@@ -133,7 +178,7 @@ export const collide = (nodes, opts) => {
       for (const m of a) {
         if (m === n || m.id < n.id) continue;
         let dx = m.x - n.x, dy = m.y - n.y;
-        const rr = n.r + m.r + pad;
+        const rr = rOf(n) + rOf(m) + pad;
         if (infra) {
           if (Math.abs(dx) > rr * 0.8) continue;
           if (dy === 0) dy = (n.id < m.id ? 0.4 : -0.4);

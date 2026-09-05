@@ -100,6 +100,11 @@ const LemuLogsPage = () => {
   // Blast-radius closure published by the graph tab (Phase 5) — the drawer
   // lists it while a selection's blast radius is active.
   const [blastClosure, setBlastClosure] = useState(null);
+  /* The graph tab owns hop state and publishes its setter here (same
+     pattern as onBlastChange, but downward-invoked): the drawer's
+     ISOLATE 1 HOP collapses the board to the selected node's 1-hop
+     neighbourhood. */
+  const isolateRef = useRef(null);
 
   /* ── Jobs panel ── */
   const [jobs, setJobs] = useState([]);
@@ -692,6 +697,7 @@ const LemuLogsPage = () => {
             selectedNodeId={selectedNodeId}
             dataUpdatedAt={dataUpdatedAt}
             onBlastChange={setBlastClosure}
+            isolateRef={isolateRef}
             manifests={manifestsList}
             diffsByVersion={diffsByVersion}
             diffStatusByVersion={diffStatusByVersion}
@@ -769,6 +775,7 @@ const LemuLogsPage = () => {
           closure={blastClosure}
           onSelectNode={openNode}
           onClose={closeDrawer}
+          onIsolate={() => isolateRef.current?.(selectedNodeId)}
         />
       )}
     </div>

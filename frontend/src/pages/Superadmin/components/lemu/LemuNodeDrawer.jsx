@@ -99,7 +99,10 @@ const LemuNodeDrawer = ({
   const name = kind === 'route' ? `${node.method} ${fullRoutePath(node)}`
     : kind === 'model' ? node.modelName
       : kind === 'job' ? node.name
-        : kind === 'module' ? node.name
+        /* An unresolved module (diff ghost, stale deep link) carries label
+           + _id but no name — fall through so the header shows SOMETHING
+           truthful rather than a blank. */
+        : kind === 'module' ? (node.name || node.label || node._id)
           : node.label || node._id;
   const path = kind === 'module' ? (node._functions?.[0]?.file || '—')
     : kind === 'model' ? (node.collectionName || '—')
@@ -236,7 +239,14 @@ const LemuNodeDrawer = ({
         aria-label={name}
         style={{
           position: 'fixed',
-          top: 12, right: 12, bottom: 44,
+          /* The app header (SuperAdminNavbar) is a fixed 72px bar at
+             z-index 1001 — top:12 would slide the drawer (and its close
+             button) underneath it. --lemu-header-h is the measured value
+             (LemuLogsPage.css); the geometry is otherwise the plan's:
+             404px wide, right 12, bottom 44. */
+          top: 'calc(var(--lemu-header-h, 72px) + 12px)',
+          right: 12,
+          bottom: 44,
           width: 404,
           maxWidth: 'calc(100vw - 24px)',
           zIndex: 46,

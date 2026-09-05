@@ -410,3 +410,45 @@ describe('drawHosts — host boxes', () => {
     expect(ctx.calls.some((c) => c.m === 'stroke' && c.strokeStyle === CANVAS.dark.hostStrokeSel)).toBe(true);
   });
 });
+
+describe('draw — non-finite resilience', () => {
+  /* Chromium's real createLinearGradient THROWS on non-finite arguments
+     ("The provided double value is non-finite") — a stub that silently
+     accepts them would hide the regression this guards. */
+  const strictCtx = () => {
+    const ctx = makeCtx();
+    ctx.createLinearGradient = (...a) => {
+      if (!a.every(Number.isFinite)) throw new TypeError("Failed to execute 'createLinearGradient': The provided double value is non-finite");
+      return { addColorStop: () => {} };
+    };
+    return ctx;
+  };
+
+  it('skips a link with a NaN endpoint instead of throwing — and still draws the healthy link', () => {
+    const ctx = strictCtx();
+    expect(() => draw(ctx, baseModel({
+      nodes: [
+        measuredNode({ id: 'a' }),
+        measuredNode({ id: 'bad', kind: 'store', x: NaN, y: 100 }),
+        measuredNode({ id: 'b', kind: 'job', x: 300, y: 100 }),
+      ],
+      links: [{ s: 'a', t: 'bad' }, { s: 'a', t: 'b' }],
+    }))).not.toThrow();
+    // the healthy link still painted its gradient + stroke
+    expect(ctx.calls.some((c) => c.m === 'moveTo' && c.args[0] === 100 && c.args[1] === 100)).toBe(true);
+    expect(ctx.calls.some((c) => c.m === 'lineTo' && c.args[0] === 300 && c.args[1] === 100)).toBe(true);
+  });
+
+  it('skips particles on a traffic link with a NaN endpoint', () => {
+    const ctx = strictCtx();
+    expect(() => draw(ctx, baseModel({
+      now: 50000,
+      nodes: [
+        measuredNode({ id: 'a' }),
+        measuredNode({ id: 'bad', kind: 'store', x: NaN, y: 100 }),
+      ],
+      links: [{ s: 'a', t: 'bad', w: 0.8, traffic: true }],
+    }))).not.toThrow();
+    expect(ctx.calls.filter((c) => c.m === 'arc' && c.args[2] === 1.35).length).toBe(0);
+  });
+});

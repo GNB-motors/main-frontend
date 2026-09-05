@@ -50,6 +50,12 @@ describe('columnTarget / radius helpers', () => {
     expect(codeRadius(1)).toBeCloseTo(3.62);
     expect(codeRadius(1e9)).toBe(13);
   });
+
+  it('code radius is finite for an absent size (models/jobs/mounts carry no totalLoc)', () => {
+    expect(Number.isFinite(codeRadius(undefined))).toBe(true);
+    expect(Number.isFinite(codeRadius(null))).toBe(true);
+    expect(codeRadius(undefined)).toBeCloseTo(3.62); // same `|| 1` floor as size 1
+  });
 });
 
 describe('infra layer (pinned to columns)', () => {
@@ -191,5 +197,41 @@ describe('code layer (free)', () => {
   it('ignores links whose endpoints are missing', () => {
     const { nodes } = buildCodeGraph(4);
     expect(() => step(nodes, [{ s: 'nope', t: 'alsonope' }], { layer: 'code', alpha: 1 })).not.toThrow();
+  });
+
+  it('seeds a position-less node with finite coordinates in one step', () => {
+    const { nodes } = buildCodeGraph(4);
+    const orphan = { id: 'fresh:arrival', kind: 'model', r: codeRadius(undefined) };
+    nodes.push(orphan);
+    step(nodes, [{ s: 'fresh:arrival', t: 'm0' }], { layer: 'code', alpha: 1 });
+    expect(Number.isFinite(orphan.x)).toBe(true);
+    expect(Number.isFinite(orphan.y)).toBe(true);
+    expect(Number.isFinite(orphan.z)).toBe(true);
+    expect(Number.isFinite(orphan.vx)).toBe(true);
+    expect(Number.isFinite(orphan.vy)).toBe(true);
+  });
+
+  it('heals NaN coordinates a poisoned run left behind', () => {
+    const { nodes } = buildCodeGraph(4);
+    nodes[1].x = NaN;
+    nodes[1].vy = NaN;
+    step(nodes, [], { layer: 'code', alpha: 1 });
+    for (const n of nodes) {
+      expect(Number.isFinite(n.x)).toBe(true);
+      expect(Number.isFinite(n.y)).toBe(true);
+      expect(Number.isFinite(n.vx)).toBe(true);
+      expect(Number.isFinite(n.vy)).toBe(true);
+    }
+  });
+
+  it('collide tolerates a NaN radius without poisoning positions', () => {
+    const { nodes } = buildCodeGraph(4);
+    nodes[0].x = 0; nodes[0].y = 0;
+    nodes[1].x = 1; nodes[1].y = 1;
+    nodes[0].r = NaN;
+    expect(() => collide(nodes, { layer: 'code' })).not.toThrow();
+    expect(Number.isFinite(nodes[0].x)).toBe(true);
+    expect(Number.isFinite(nodes[1].x)).toBe(true);
+    expect(Number.isFinite(nodes[1].y)).toBe(true);
   });
 });

@@ -79,6 +79,10 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
   for (const l of model.links) {
     const a = byId[l.s], b = byId[l.t];
     if (!a || !b) continue;
+    /* A link whose endpoint projects to a non-finite screen coordinate
+       (missing position, broken camera) is skipped — a single bad link
+       must not take the whole frame down with createLinearGradient. */
+    if (!Number.isFinite(a.x) || !Number.isFinite(a.y) || !Number.isFinite(b.x) || !Number.isFinite(b.y)) continue;
     const hi = sel && (l.s === sel || l.t === sel);
     const dim = sel && !hi;
     const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
@@ -97,6 +101,7 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
       if (!l.traffic) continue;
       const a = byId[l.s], b = byId[l.t];
       if (!a || !b) continue;
+      if (!Number.isFinite(a.x) || !Number.isFinite(a.y) || !Number.isFinite(b.x) || !Number.isFinite(b.y)) continue;
       const hi = sel && (l.s === sel || l.t === sel), dim = sel && !hi;
       if (dim) continue;
       const w = l.w || 0;

@@ -850,6 +850,11 @@
 
 /* ── Layer 3: custom properties ────────────────────────────── */
 .lemu-page {
+  /* Same MEASURED value as .lemu-graph3d's --lemu-header-h (see the note at
+     the .lemu-graph3d block): the fixed SuperAdminNavbar is 72px tall and
+     z-index 1001. Defined here too so page-level overlays (the node
+     drawer's top offset) resolve it; the drawer keeps its 72px fallback. */
+  --lemu-header-h: 72px;
   --lemu-status-live: var(--lemu-primary);
   --lemu-status-idle: #6b7280;
   --lemu-status-idle-bg: #f1f2f4;
