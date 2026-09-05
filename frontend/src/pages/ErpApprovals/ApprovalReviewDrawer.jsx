@@ -38,6 +38,9 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
   const [decision, setDecision] = useState('');
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // The full record (incl. the requestPayload snapshot, which the list no longer
+  // ships) is lazy-loaded when a row is opened.
+  const [full, setFull] = useState(null);
   // Trip is a link only for users who can work operations; others see it as text.
   const { canAccess } = useFeatureFlags();
   const canOpenTrip = canAccess('erpOperations');
@@ -45,6 +48,14 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
   useEffect(() => {
     setDecision('');
     setRemarks('');
+    setFull(null);
+    if (!approval?._id) return undefined;
+    let active = true;
+    ApprovalService.getById(approval._id)
+      .then((res) => { if (active) setFull(res?.data || null); })
+      // The snapshot is optional context; the list row already has the essentials.
+      .catch(() => {});
+    return () => { active = false; };
   }, [approval]);
 
   if (!approval) return null;
@@ -54,7 +65,8 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
   const ctx = approval.context || {};
   const hasContext = Boolean(ctx.trip || ctx.partyName || ctx.doNumber || ctx.amount != null);
   const reasonRows = formatReason(approval.reason);
-  const snapshotRows = formatReason(approval.requestPayload);
+  // requestPayload comes from the lazy-loaded full record (stripped from the list).
+  const snapshotRows = formatReason((full || approval).requestPayload);
 
   const valid = Boolean(
     decision && (decision !== 'REJECTED' || remarks.trim().length >= 3),

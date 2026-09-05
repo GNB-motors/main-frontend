@@ -93,10 +93,16 @@ const ApprovalsPage = () => {
     }
   }, []);
 
+  // The bucket-count summary is filter-independent — fetch it once on mount
+  // (and after a decision, via handleDecided), not on every filter change.
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
+
+  // The queue reacts to the status + type filters.
   useEffect(() => {
     fetchApprovals(statusFilter, typeFilter);
-    fetchSummary();
-  }, [fetchApprovals, fetchSummary, statusFilter, typeFilter]);
+  }, [fetchApprovals, statusFilter, typeFilter]);
 
   const handleDecided = useCallback(() => {
     fetchApprovals(statusFilter, typeFilter, meta.page);

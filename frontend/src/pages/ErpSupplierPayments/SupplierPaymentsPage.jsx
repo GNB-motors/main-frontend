@@ -155,6 +155,13 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
       toast.error('Select at least one invoice');
       return;
     }
+    // The supplier row already carries onAccountAvailable — only fetch the
+    // voucher list when there is a balance to apply. The shared createPayment
+    // re-validates selected vouchers server-side either way.
+    if (!(selectedSupplier.onAccountAvailable > 0)) {
+      await submitPayment([]);
+      return;
+    }
     try {
       const res = await SupplierPaymentApi.checkOnAccount(selectedSupplier.supplierId);
       setOnAccount(res.data);

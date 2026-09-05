@@ -106,6 +106,13 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       toast.error('Select at least one bill');
       return;
     }
+    // The vendor row (from getOutstanding) already carries onAccountAvailable, so
+    // only fetch the voucher list when there is a balance to apply. createPayment
+    // re-validates any selected vouchers server-side regardless.
+    if (!(selectedVendor.onAccountAvailable > 0)) {
+      await submitPayment([]);
+      return;
+    }
     try {
       const res = await VendorPaymentApi.checkOnAccount(selectedVendor.vendorId);
       setOnAccount(res.data);

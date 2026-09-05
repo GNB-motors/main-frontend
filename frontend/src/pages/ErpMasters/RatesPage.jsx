@@ -81,10 +81,15 @@ const RatesPage = () => {
     }
   }, []);
 
+  // Party + route pickers are filter-independent — load once on mount.
+  useEffect(() => {
+    fetchOptions();
+  }, [fetchOptions]);
+
+  // Rates react to the party filter.
   useEffect(() => {
     fetchRates(partyFilter);
-    fetchOptions();
-  }, [fetchRates, fetchOptions, partyFilter]);
+  }, [fetchRates, partyFilter]);
 
   const openCreate = () => {
     setForm(EMPTY_FORM);

@@ -26,6 +26,7 @@ import ErpCallService from '../ErpCallPlanning/ErpCallService';
 import DeliveryOrderDrawer from './DeliveryOrderDrawer';
 import DeliveryOrderDetailDrawer from './DeliveryOrderDetailDrawer';
 import { EMPTY_FORM, formFromCall, money, stageOf } from './deliveryOrder.constants';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import '../../styles/erp.css';
 
 const EMPTY_COUNTS = { ready: 0, inProgress: 0, awaitingApproval: 0 };
@@ -47,6 +48,9 @@ const DeliveryOrdersPage = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [sourceTask, setSourceTask] = useState(null);
   const [detail, setDetail] = useState(null);
+
+  // Search hits the server only once the user pauses, not on every keystroke.
+  const debouncedSearch = useDebouncedValue(searchTerm, 350);
 
   const fetchOrders = useCallback(async (status = '', search = '', page = 1) => {
     setLoading(true);
@@ -122,13 +126,18 @@ const DeliveryOrdersPage = () => {
     }
   }, []);
 
+  // Master data, tile counts and the pending-call queue are filter-independent —
+  // load them once on mount, not on every status-filter change.
   useEffect(() => {
-    fetchOrders(statusFilter, searchTerm);
     fetchOptions();
     fetchPendingCalls();
     fetchCounts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchOrders, fetchOptions, fetchPendingCalls, fetchCounts, statusFilter]);
+  }, [fetchOptions, fetchPendingCalls, fetchCounts]);
+
+  // The register reacts to the status filter and the debounced search only.
+  useEffect(() => {
+    fetchOrders(statusFilter, debouncedSearch);
+  }, [fetchOrders, statusFilter, debouncedSearch]);
 
   const openManual = () => {
     setSourceTask(null);
@@ -155,11 +164,8 @@ const DeliveryOrdersPage = () => {
     if (next === 'placement') navigate('/erp/pipeline?tab=placement');
   };
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    fetchOrders(statusFilter, value);
-  };
+  // Just update state — the debounced effect above drives the fetch.
+  const handleSearch = (e) => setSearchTerm(e.target.value);
 
   /** Whole days a sure order has been waiting for its delivery order. */
   const waitingDays = (task) => {
