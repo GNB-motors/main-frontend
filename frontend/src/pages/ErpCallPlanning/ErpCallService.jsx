@@ -27,6 +27,16 @@ const ErpCallService = {
     }
   },
 
+  /** Counts for one day, scoped the same way getTasks is. */
+  getTaskStats: async (params = {}) => {
+    try {
+      const response = await apiClient.get(`${BASE}/tasks/stats`, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to fetch call task stats');
+    }
+  },
+
   getTaskById: async (taskId) => {
     try {
       const response = await apiClient.get(`${BASE}/tasks/${taskId}`);
@@ -70,6 +80,34 @@ const ErpCallService = {
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch call schedules');
+    }
+  },
+
+  /** Headline counts for the schedule page. */
+  getScheduleStats: async () => {
+    try {
+      const response = await apiClient.get(`${BASE}/schedules/stats`);
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to fetch schedule stats');
+    }
+  },
+
+  /**
+   * Pause / resume only.
+   *
+   * Separate from saveSchedule on purpose: that one rewrites the KAM on the
+   * party master, so routing a pause through it would silently reassign the
+   * account. Never swap these two.
+   */
+  setScheduleStatus: async (scheduleId, { status, pausedUntil } = {}) => {
+    try {
+      const body = { status };
+      if (status === 'PAUSED' && pausedUntil) body.pausedUntil = pausedUntil;
+      const response = await apiClient.patch(`${BASE}/schedules/${scheduleId}/status`, body);
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to update schedule status');
     }
   },
 

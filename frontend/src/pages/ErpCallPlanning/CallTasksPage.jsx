@@ -1,17 +1,28 @@
 /**
  * Call Tasks (ISOCL ERP Stage 1)
  *
- * The KAM's daily worklist. Tasks are opened overnight from the call schedule;
- * recording an outcome closes the task and, for FOLLOW_UP / NO_RESPONSE, chains
- * a fresh one onto a later date. SURE_ORDER hands off to the Stage 2 DO form.
+ * The KAM's daily work queue, not a table of task records. It answers one
+ * question — "who do I have to call today, and what happened when I did" — so
+ * the page is organised around that: progress at the top, open calls by default,
+ * one primary action per row, completed calls behind a tab.
+ *
+ * Tasks are opened overnight from the calling schedule. Recording an outcome
+ * closes the task and, for FOLLOW_UP / NO_RESPONSE, chains a fresh one onto a
+ * later date. SURE_ORDER hands off to the delivery-order form.
+ *
+ * Column sets differ per tab on purpose: an open task has no outcome and no
+ * remarks yet, so showing those columns on the Open tab is four inches of
+ * dashes between the account and the button the KAM came here to press.
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { PhoneCall, RefreshCw, Info, CheckCircle2, X, CalendarClock } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { PhoneCall, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import RowMenu from '../../components/Erp/RowMenu';
 import ErpCallService from './ErpCallService';
-import { CALL_OUTCOMES, OUTCOME_LABELS, OUTCOME_TONE } from './erpCall.constants';
+import RecordCallDrawer from './RecordCallDrawer';
+import { kamName, relativeDate, shortDate, taskState } from './callSchedule.utils';
 import '../../styles/erp.css';
 
 /** YYYY-MM-DD for <input type="date">, in the browser's local zone. */
@@ -21,41 +32,30 @@ const toDateInput = (d) => {
   return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
 };
 
-/** Only these roles may run the generate job — mirrors the route's authorize(). */
+/** Mirrors the route's authorize() on POST /admin/generate. */
 const CAN_GENERATE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
+
+const EMPTY_STATS = { total: 0, open: 0, closed: 0, completed: 0, notCalled: 0, overdue: 0 };
 
 const CallTasksPage = () => {
   const navigate = useNavigate();
   const canGenerate = CAN_GENERATE.includes(localStorage.getItem('user_role'));
+
   const [tasks, setTasks] = useState([]);
+  const [stats, setStats] = useState(EMPTY_STATS);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+
   const [date, setDate] = useState(toDateInput(new Date()));
-  const [statusFilter, setStatusFilter] = useState('OPEN');
-  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 50, totalPages: 0 });
-
+  const [tab, setTab] = useState('OPEN');
+  const [search, setSearch] = useState('');
   const [activeTask, setActiveTask] = useState(null);
-  const [outcome, setOutcome] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [nextDate, setNextDate] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
-  const selectedOutcome = useMemo(
-    () => CALL_OUTCOMES.find((o) => o.value === outcome) || null,
-    [outcome],
-  );
-
-  const fetchTasks = useCallback(async (forDate, status, page = 1) => {
+  const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await ErpCallService.getTasks({
-        date: forDate,
-        ...(status ? { status } : {}),
-        page,
-        limit: 50,
-      });
+      const res = await ErpCallService.getTasks({ date, status: tab, limit: 200 });
       setTasks(res.data || []);
-      setMeta(res.meta || { total: 0, page: 1, limit: 50, totalPages: 0 });
     } catch (err) {
       if (err.status === 404) {
         toast.error('Call Planning is not enabled for your organization');
@@ -66,13 +66,27 @@ const CallTasksPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [date, tab]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await ErpCallService.getTaskStats({ date });
+      setStats(res.data || EMPTY_STATS);
+    } catch {
+      setStats(EMPTY_STATS);
+    }
+  }, [date]);
+
+  const refresh = useCallback(() => {
+    fetchTasks();
+    fetchStats();
+  }, [fetchTasks, fetchStats]);
 
   useEffect(() => {
-    fetchTasks(date, statusFilter);
-  }, [fetchTasks, date, statusFilter]);
+    refresh();
+  }, [refresh]);
 
-  /** Manual run of the nightly job — safe to press twice, it is idempotent. */
+  /** Same close + generate the 00:05 IST job runs. Idempotent. */
   const handleGenerate = async () => {
     setGenerating(true);
     try {
@@ -81,11 +95,10 @@ const CallTasksPage = () => {
       const closed = res.data?.closed?.closed ?? 0;
       toast.success(
         created > 0
-          ? `${created} task${created === 1 ? '' : 's'} created` +
-              (closed ? `, ${closed} auto-closed` : '')
-          : 'No new tasks — today is already generated',
+          ? `${created} task${created === 1 ? '' : 's'} created${closed ? `, ${closed} auto-closed` : ''}`
+          : 'Nothing to create — today is already generated',
       );
-      fetchTasks(date, statusFilter);
+      refresh();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -93,77 +106,31 @@ const CallTasksPage = () => {
     }
   };
 
-  const openOutcomeModal = (task) => {
-    setActiveTask(task);
-    setOutcome('');
-    setRemarks('');
-    // Default the follow-up to tomorrow so the common case is one click.
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setNextDate(toDateInput(tomorrow));
-  };
+  // Client-side because a day's list is bounded by the number of accounts with a
+  // schedule and already fully loaded; a request per keystroke would add latency
+  // and nothing else.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return tasks;
+    return tasks.filter(
+      (t) =>
+        (t.partyId?.name || '').toLowerCase().includes(q)
+        || (t.partyId?.code || '').toLowerCase().includes(q)
+        || kamName(t.kamId).toLowerCase().includes(q),
+    );
+  }, [tasks, search]);
 
-  const closeOutcomeModal = () => {
-    setActiveTask(null);
-    setOutcome('');
-    setRemarks('');
-  };
-
-  const handleSubmitOutcome = async (e) => {
-    e.preventDefault();
-    if (!selectedOutcome) {
-      toast.error('Select an outcome');
+  const handleSaved = (doDraft) => {
+    if (doDraft) {
+      setActiveTask(null);
+      navigate('/erp/pipeline?tab=dos', { state: { doDraft } });
       return;
     }
-    if (selectedOutcome.needsRemark && remarks.trim().length < 3) {
-      toast.error('Remarks are required for this outcome');
-      return;
-    }
-    if (selectedOutcome.needsNextDate && !nextDate) {
-      toast.error('Pick a follow-up date');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const res = await ErpCallService.recordOutcome(activeTask._id, {
-        outcome,
-        remarks: remarks.trim() || undefined,
-        // Send midday so an IST-vs-UTC shift cannot roll the date backwards.
-        nextFollowUpDate: selectedOutcome.needsNextDate
-          ? new Date(`${nextDate}T12:00:00`).toISOString()
-          : undefined,
-      });
-
-      const draft = res.data?.doDraft;
-      if (draft) {
-        toast.success(`Sure order from ${draft.partyName} — opening the delivery order form`);
-        closeOutcomeModal();
-        // Hand off to Stage 2 with the party pre-selected.
-        navigate('/erp/pipeline?tab=dos', { state: { doDraft: draft } });
-        return;
-      }
-      if (res.data?.childTask) {
-        toast.success('Outcome saved — follow-up task created');
-      } else {
-        toast.success('Outcome saved');
-      }
-
-      closeOutcomeModal();
-      fetchTasks(date, statusFilter);
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setSubmitting(false);
-    }
+    refresh();
   };
 
-  const partyName = (task) => task.partyId?.name || '—';
-  const partyCode = (task) => task.partyId?.code || '';
-  const kamLabel = (task) =>
-    task.kamId ? `${task.kamId.firstName || ''} ${task.kamId.lastName || ''}`.trim() : '—';
-
-  const openCount = tasks.filter((t) => t.status === 'OPEN').length;
+  const isToday = date === toDateInput(new Date());
+  const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
     <div className="erp-page">
@@ -171,135 +138,234 @@ const CallTasksPage = () => {
         <div>
           <h1>Call Tasks</h1>
           <p className="erp-subtitle">
-            Daily call list generated from each party&apos;s call schedule
+            {isToday
+              ? "Today's customer calls. Record what happened on each one."
+              : `Calls for ${shortDate(date)}.`}
           </p>
         </div>
         {canGenerate && (
           <div className="erp-header-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={handleGenerate}
-              disabled={generating}
-              title="Runs the same close + generate as the 00:05 IST job. Safe to press repeatedly."
-            >
-              <RefreshCw size={18} />
-              {generating ? 'Generating...' : "Run Today's Job"}
-            </button>
+            {/* Behind a menu, not a header button: this is the nightly job run by
+                hand. A KAM has no reason to press it, and one that looks like a
+                primary action invites pressing it when tasks appear to be
+                missing — which is a support question, not a KAM's job. */}
+            <RowMenu
+              label="Admin actions"
+              items={[
+                {
+                  key: 'generate',
+                  label: generating ? 'Generating…' : "Generate today's tasks",
+                  icon: RefreshCw,
+                  onSelect: handleGenerate,
+                },
+              ]}
+            />
           </div>
         )}
       </div>
 
+      {stats.overdue > 0 && (
+        <div className="erp-callout warning" style={{ marginTop: 16 }}>
+          <AlertTriangle size={16} />
+          <div>
+            <strong>
+              {stats.overdue} call{stats.overdue === 1 ? '' : 's'} from an earlier day
+              {stats.overdue === 1 ? ' is' : ' are'} still open.
+            </strong>
+            <div style={{ marginTop: 4 }}>
+              These should have been closed overnight, so the nightly job has probably not run.
+              {canGenerate && ' Run it from the menu above.'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="erp-progress-card">
+        <div className="erp-progress-head">
+          <div>
+            <span className="erp-progress-title">
+              {isToday ? "Today's progress" : 'Progress'}
+            </span>
+            <span className="erp-progress-count">
+              {stats.completed} / {stats.total} calls recorded
+            </span>
+          </div>
+          <div className="erp-progress-legend">
+            <span><b>{stats.open}</b> open</span>
+            <span><b>{stats.completed}</b> completed</span>
+            {stats.notCalled > 0 && (
+              <span className="erp-progress-missed"><b>{stats.notCalled}</b> not called</span>
+            )}
+          </div>
+        </div>
+        <div
+          className="erp-progress-track"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <span className="erp-progress-fill" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
       <div className="erp-toolbar">
-        <div className="erp-field" style={{ minWidth: 180 }}>
+        <div className="erp-tabs" style={{ margin: 0 }}>
+          <button
+            type="button"
+            className={`erp-tab ${tab === 'OPEN' ? 'active' : ''}`}
+            onClick={() => setTab('OPEN')}
+          >
+            Open <span className="erp-tab-count">{stats.open}</span>
+          </button>
+          <button
+            type="button"
+            className={`erp-tab ${tab === 'CLOSED' ? 'active' : ''}`}
+            onClick={() => setTab('CLOSED')}
+          >
+            Completed <span className="erp-tab-count">{stats.closed}</span>
+          </button>
+        </div>
+
+        <div className="erp-search">
+          <Search size={16} className="search-icon" />
           <input
-            type="date"
-            className="erp-filter"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            aria-label="Task date"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search account, code or KAM…"
           />
         </div>
-        <select
+
+        <input
+          type="date"
           className="erp-filter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">All tasks</option>
-          <option value="OPEN">Open only</option>
-          <option value="CLOSED">Closed only</option>
-        </select>
-        {!loading && tasks.length > 0 && (
-          <span className="erp-cell-muted">
-            {openCount} open · {meta.total} total
-          </span>
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          aria-label="Call date"
+        />
+        {!isToday && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setDate(toDateInput(new Date()))}
+          >
+            Today
+          </button>
         )}
       </div>
 
       <div className="erp-container">
         {loading ? (
           <div className="erp-state">
-            <p>Loading call tasks...</p>
+            <p>Loading calls…</p>
           </div>
-        ) : tasks.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="erp-state">
             <PhoneCall size={48} />
-            <p>No call tasks for this day</p>
+            <p>
+              {search
+                ? 'No calls match that search'
+                : tab === 'OPEN'
+                  ? stats.total > 0
+                    ? 'Every call is done'
+                    : 'No calls for this day'
+                  : 'Nothing recorded yet'}
+            </p>
             <span className="erp-cell-muted">
-              Tasks appear from the party call schedule, or use Generate above.
+              {search
+                ? 'Clear the search to see the rest.'
+                : tab === 'OPEN' && stats.total > 0
+                  ? `All ${stats.total} recorded. Check the Completed tab for the results.`
+                  : 'Calls come from each account’s calling schedule.'}
             </span>
           </div>
         ) : (
           <div className="erp-table-scroll">
             <table className="erp-table">
               <thead>
-                <tr>
-                  <th>Party</th>
-                  <th>KAM</th>
-                  <th>Source</th>
-                  <th>Status</th>
-                  <th>Outcome</th>
-                  <th>Remarks</th>
-                  <th aria-label="Actions" />
-                </tr>
+                {tab === 'OPEN' ? (
+                  <tr>
+                    <th>Account</th>
+                    <th>KAM</th>
+                    <th>Due</th>
+                    <th aria-label="Actions" />
+                  </tr>
+                ) : (
+                  <tr>
+                    <th>Account</th>
+                    <th>KAM</th>
+                    <th>Outcome</th>
+                    <th>Remarks</th>
+                    <th>Next call</th>
+                  </tr>
+                )}
               </thead>
               <tbody>
-                {tasks.map((task) => (
-                  <tr key={task._id}>
-                    <td>
-                      <div className="erp-cell-strong">{partyName(task)}</div>
-                      {partyCode(task) && (
-                        <div className="erp-cell-muted">{partyCode(task)}</div>
-                      )}
-                    </td>
-                    <td>{kamLabel(task)}</td>
-                    <td className="erp-cell-muted">{task.source}</td>
-                    <td>
-                      <span
-                        className={`erp-badge ${task.status === 'OPEN' ? 'open' : 'neutral'}`}
-                      >
-                        {task.status}
-                      </span>
-                    </td>
-                    <td>
-                      {task.outcome ? (
-                        <span className={`erp-badge ${OUTCOME_TONE[task.outcome] || 'neutral'}`}>
-                          {OUTCOME_LABELS[task.outcome] || task.outcome}
-                        </span>
-                      ) : (
-                        <span className="erp-cell-muted">—</span>
-                      )}
-                    </td>
-                    <td className="erp-cell-muted">
-                      {task.remarks || '—'}
-                      {task.nextFollowUpDate && (
-                        <div
-                          className="erp-cell-muted"
-                          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <CalendarClock size={12} />
-                          {new Date(task.nextFollowUpDate).toLocaleDateString('en-IN')}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <div className="erp-actions">
-                        {task.status === 'OPEN' ? (
-                          <button
-                            className="btn btn-primary"
-                            onClick={() => openOutcomeModal(task)}
-                          >
-                            <PhoneCall size={16} />
-                            Record Call
-                          </button>
-                        ) : (
-                          <span className="erp-cell-muted">
-                            {task.autoClosed ? 'Auto-closed' : 'Done'}
-                          </span>
+                {filtered.map((task) => {
+                  const state = taskState(task);
+                  const overdue = task.status === 'OPEN'
+                    && new Date(task.scheduledDate) < new Date(new Date().setHours(0, 0, 0, 0));
+                  return (
+                    <tr
+                      key={task._id}
+                      className="clickable"
+                      onClick={() => setActiveTask(task)}
+                    >
+                      <td>
+                        <div className="erp-cell-strong">{task.partyId?.name || '—'}</div>
+                        {task.partyId?.code && (
+                          <div className="erp-cell-muted">{task.partyId.code}</div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>{kamName(task.kamId)}</td>
+
+                      {tab === 'OPEN' ? (
+                        <>
+                          <td>
+                            <span className={`erp-badge ${overdue ? 'danger' : 'warning'}`}>
+                              {overdue ? 'Overdue' : 'Due today'}
+                            </span>
+                            {task.source === 'FOLLOW_UP' && (
+                              <div className="erp-cell-muted" style={{ marginTop: 2 }}>
+                                follow-up
+                              </div>
+                            )}
+                          </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => setActiveTask(task)}
+                            >
+                              <PhoneCall size={16} />
+                              Record Call
+                            </button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td>
+                            <span className={`erp-badge ${state.tone}`}>{state.label}</span>
+                            {task.autoClosed && (
+                              <div className="erp-cell-muted" style={{ marginTop: 2 }}>
+                                not worked
+                              </div>
+                            )}
+                          </td>
+                          <td className="erp-cell-muted">{task.remarks || '—'}</td>
+                          <td>
+                            {task.nextFollowUpDate ? (
+                              relativeDate(task.nextFollowUpDate)
+                            ) : (
+                              <span className="erp-cell-muted">—</span>
+                            )}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -307,113 +373,11 @@ const CallTasksPage = () => {
       </div>
 
       {activeTask && (
-        <div className="erp-modal-backdrop" onClick={closeOutcomeModal}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="erp-modal-header">
-              <h2>Record Call — {partyName(activeTask)}</h2>
-              <button className="btn-icon" onClick={closeOutcomeModal}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitOutcome}>
-              <div className="erp-modal-body">
-                <div className="erp-callout info">
-                  <Info size={16} />
-                  <span>
-                    Follow Up and No Response need a reason and a next date — a new task is
-                    created automatically. Sure Order opens a delivery order.
-                  </span>
-                </div>
-
-                <div className="erp-field full" style={{ marginBottom: 16 }}>
-                  <label>Outcome <span className="required">*</span></label>
-                  <div className="erp-outcomes">
-                    {CALL_OUTCOMES.map((o) => (
-                      <button
-                        type="button"
-                        key={o.value}
-                        className={`erp-outcome ${outcome === o.value ? 'selected' : ''}`}
-                        onClick={() => setOutcome(o.value)}
-                      >
-                        {o.label}
-                        <small>
-                          {o.needsNextDate
-                            ? 'Reason + next date'
-                            : o.needsRemark
-                              ? 'Reason required'
-                              : 'Opens delivery order'}
-                        </small>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedOutcome?.needsNextDate && (
-                  <div className="erp-field full" style={{ marginBottom: 16 }}>
-                    <label htmlFor="next-date">
-                      Next Follow-up Date <span className="required">*</span>
-                    </label>
-                    <input
-                      id="next-date"
-                      type="date"
-                      value={nextDate}
-                      min={toDateInput(new Date(Date.now() + 86400000))}
-                      onChange={(e) => setNextDate(e.target.value)}
-                      required
-                    />
-                    <span className="erp-field-hint">
-                      Must be after today. A new task is created on this date.
-                    </span>
-                  </div>
-                )}
-
-                {selectedOutcome && (
-                  <div className="erp-field full">
-                    <label htmlFor="remarks">
-                      Remarks
-                      {selectedOutcome.needsRemark && <span className="required"> *</span>}
-                    </label>
-                    <textarea
-                      id="remarks"
-                      value={remarks}
-                      onChange={(e) => setRemarks(e.target.value)}
-                      placeholder={
-                        selectedOutcome.needsRemark
-                          ? 'Why? (required)'
-                          : 'Optional notes'
-                      }
-                      required={selectedOutcome.needsRemark}
-                    />
-                  </div>
-                )}
-
-                {outcome === 'SURE_ORDER' && (
-                  <div className="erp-callout success">
-                    <CheckCircle2 size={16} />
-                    <span>
-                      Saving will return the party&apos;s credit limit and terms, ready for the
-                      delivery order form.
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="erp-modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeOutcomeModal}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={submitting || !outcome}
-                >
-                  {submitting ? 'Saving...' : 'Save Outcome'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <RecordCallDrawer
+          task={activeTask}
+          onClose={() => setActiveTask(null)}
+          onSaved={handleSaved}
+        />
       )}
     </div>
   );

@@ -10,9 +10,6 @@ import {
   Navigation,
   PhoneCall,
   ClipboardList,
-  Receipt,
-  ReceiptText,
-  Banknote,
   Landmark,
   Settings,
   LayoutDashboard,
@@ -20,7 +17,6 @@ import {
   Gauge,
   ShieldAlert,
   CalendarClock,
-  FileCheck2,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -106,7 +102,13 @@ export const SIDE_NAV_ITEMS = [
     matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
   },
 
-  // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
+  // ─── ISOCL ERP / CRM — five workspaces ─────────────────────────────────────
+  // Ye list ab role ke hisaab se bani hai, feature ke hisaab se nahi: ERP ko
+  // chaar log chalate hain (planning, operations, accounts, approve karne wala
+  // owner) aur unme se har ek sirf apne workspace me rehta hai. Pehle yahan 11
+  // top-level entries thi, jinme se har user ke liye 8 shor thi.
+  //
+  // Ye sirf navigation ka regroup hai — na koi route badla hai, na koi page.
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
@@ -120,21 +122,49 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/erp/call-tasks', label: 'Call Tasks', key: 'erpCallPlanning' },
       { to: '/erp/call-schedules', label: 'Call Schedules', key: 'erpCallPlanning' },
+      { to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', key: 'erpCnUpdation' },
     ],
-    matchRoutes: ['/erp/call-tasks', '/erp/call-schedules'],
+    matchRoutes: ['/erp/call-tasks', '/erp/call-schedules', '/erp/inbound-ewb'],
   },
-  { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/approvals', label: 'Approvals', icon: FileCheck, badgeKey: 'approvalsCount' },
-  { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/bill-approvals', label: 'Bill Approvals', icon: ReceiptText, badgeKey: 'billApprovalsCount' },
-  { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp/pipeline', label: 'Pipeline', icon: ClipboardList },
-  { type: 'link', key: 'erpCnUpdation', access: 'erp', to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', icon: FileCheck2 },
-  { type: 'link', key: 'erpBilling', access: 'erp', to: '/erp/billing', label: 'Billing & Receivables', icon: Receipt },
-  { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/payables', label: 'Payables', icon: Banknote },
-  { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/accounts', label: 'Accounts & Ledger', icon: Landmark },
+  // Ek hi link, kyunki Delivery Orders / Placement / Trips teeno ek hi Pipeline
+  // page ke tabs hain. Delivery Orders asal me Planning ka kaam hai — usko idhar
+  // se nikaalne ke liye Pipeline page ko todna padega, jo alag change hai.
+  { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp/pipeline', label: 'Operations', icon: ClipboardList },
+  {
+    type: 'group',
+    groupId: 'erpAccounts',
+    access: 'erp',
+    label: 'Accounts',
+    icon: Landmark,
+    children: [
+      { to: '/erp/billing', label: 'Billing & Receivables', key: 'erpBilling' },
+      { to: '/erp/payables', label: 'Payables', key: 'erpAccounts' },
+      { to: '/erp/accounts', label: 'Accounts & Ledger', key: 'erpAccounts' },
+    ],
+    // `/erp/accounts` bina slash ke Account 360 aur voucher detail dono ko cover
+    // kar leta hai (isGroupActive prefix match karta hai).
+    matchRoutes: ['/erp/billing', '/erp/payables', '/erp/accounts'],
+  },
+  {
+    type: 'group',
+    groupId: 'erpApprovals',
+    access: 'erp',
+    label: 'Approval',
+    icon: FileCheck,
+    // Group parent par combined badge — pehle dono queues alag links thi aur
+    // dono apna count dikhati thi; collapse hone par wo count gayab na ho.
+    badgeKey: 'approvalsTotal',
+    children: [
+      { to: '/erp/approvals', label: 'Approvals', key: 'erpApprovals' },
+      { to: '/erp/bill-approvals', label: 'Bill Approvals', key: 'erpApprovals' },
+    ],
+    matchRoutes: ['/erp/approvals', '/erp/bill-approvals'],
+  },
   {
     type: 'group',
     groupId: 'erpMasters',
     access: 'erp',
-    label: 'Masters & Settings',
+    label: 'Master Setting',
     icon: Settings,
     children: [
       { to: '/erp/parties', label: 'Party Master', key: 'erpMasters' },
