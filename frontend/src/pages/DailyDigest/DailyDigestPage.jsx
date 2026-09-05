@@ -164,7 +164,7 @@ function SectionEmpty({ icon = CheckCircle2, title, hint }) {
  * and what to do next." Composed entirely from existing endpoints; every item
  * links to its evidence. Priority: Action required → Overview → Activity → Upcoming.
  */
-export default function DailyDigestPage() {
+export default function DailyDigestPage({ embedded = false }) {
   const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const from = startOfTodayIST();
 
@@ -286,14 +286,15 @@ export default function DailyDigestPage() {
   const nextSvcLabel = nextSvc == null ? '—' : nextSvc < 0 ? 'Overdue' : `${formatNum(nextSvc)} days`;
 
   return (
-    <div className="page-white">
-    <div className="mx-auto space-y-8" style={{ maxWidth: 1160 }}>
-      {/* Header */}
+    <div className={embedded ? 'fleet-embedded' : 'page-white'}>
+    <div className={embedded ? 'space-y-8' : 'mx-auto space-y-8'} style={embedded ? undefined : { maxWidth: 1160 }}>
+      {/* Header — embedded, the hub owns the title, but the date still matters
+          here because the digest is specifically about TODAY. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className="cluster-eyebrow flex items-center gap-1.5"><CalendarClock size={12} /> Daily digest</span>
-          <h1 className="cluster-title mt-1 text-2xl">{formatDateLongIST(todayIST)}</h1>
-          <p className="text-dim mt-1 text-sm">Your fleet at a glance</p>
+          {!embedded && <span className="cluster-eyebrow flex items-center gap-1.5"><CalendarClock size={12} /> Daily digest</span>}
+          <h1 className={embedded ? 'cluster-title text-lg' : 'cluster-title mt-1 text-2xl'}>{formatDateLongIST(todayIST)}</h1>
+          {!embedded && <p className="text-dim mt-1 text-sm">Your fleet at a glance</p>}
         </div>
         <button className="ov-btn self-start sm:self-auto" onClick={handleRefresh} disabled={loading}>
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh

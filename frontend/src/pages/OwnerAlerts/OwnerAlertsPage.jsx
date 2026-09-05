@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bell, AlertTriangle, RefreshCw, Search, Check, Loader2, X,
-  ShieldAlert, Info, Truck, CheckCircle2,
+  ShieldAlert, Info, Truck, CheckCircle2, ArrowRight,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -11,6 +12,8 @@ import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.jsx'
 import AlertDetailsDrawer from './AlertDetailsDrawer.jsx';
 import { Panel, StatusPill } from '../Overview/components/overview.primitives.jsx';
 import { formatINR, formatNum } from '../../utils/formatters';
+import { alertAction } from '../Fleet/alertActions.js';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -91,7 +94,7 @@ const SORTS = [
   { key: 'vehicle', label: 'Vehicle' },
 ];
 
-const OwnerAlertsPage = () => {
+const OwnerAlertsPage = ({ embedded = false }) => {
   // Filters
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [vehicle, setVehicle] = useState('');
@@ -232,19 +235,22 @@ const OwnerAlertsPage = () => {
   });
 
   return (
-    <div className="mx-auto space-y-5 p-1" style={{ maxWidth: 1500 }}>
+    <div className={embedded ? 'fleet-embedded space-y-5' : 'mx-auto space-y-5 p-1'} style={embedded ? undefined : { maxWidth: 1500 }}>
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--caution) 12%, transparent)', color: 'var(--caution)' }}>
-            <Bell size={22} />
-          </span>
-          <div>
-            <h1 className="cluster-title text-2xl">Owner Alerts</h1>
-            <p className="text-dim text-sm">In-app alerts across your fleet</p>
-            <p className="text-dim text-[11px]">Everything here means please review — nothing is an accusation.</p>
+        {/* Embedded: AlertsHub owns the title; the counts and Refresh stay. */}
+        {!embedded && (
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--caution) 12%, transparent)', color: 'var(--caution)' }}>
+              <Bell size={22} />
+            </span>
+            <div>
+              <h1 className="cluster-title text-2xl">Owner Alerts</h1>
+              <p className="text-dim text-sm">In-app alerts across your fleet</p>
+              <p className="text-dim text-[11px]">Everything here means please review — nothing is an accusation.</p>
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex items-center gap-2">
           {unacknowledgedCount > 0 && <span className="oa-torev"><AlertTriangle size={13} /> {formatNum(unacknowledgedCount)} to review</span>}
           <button className="ov-btn" onClick={fetchData} disabled={isLoading}>
@@ -341,6 +347,7 @@ const OwnerAlertsPage = () => {
                 {view.map((a) => {
                   const Icon = SEV_ICON[a.severity] || AlertTriangle;
                   const color = a.severity === 'CRITICAL' ? 'var(--critical)' : a.severity === 'INFO' ? 'var(--gnb-400)' : 'var(--caution)';
+                  const action = alertAction(a);
                   return (
                     <tr key={a.id} className={`fi-row-click ${a.acknowledged ? 'oa-row--acked' : SEV_ROWCLASS[a.severity]}`} onClick={() => setDetail(a)}>
                       <td onClick={(e) => e.stopPropagation()}>
@@ -359,17 +366,33 @@ const OwnerAlertsPage = () => {
                           </div>
                         </div>
                       </td>
-                      <td>{a.vehicleNumber ? <span className="reg-plate">{a.vehicleNumber}</span> : <span className="text-dim text-xs">Fleet-wide</span>}</td>
+                      <td>{a.vehicleNumber ? <VehicleLink reg={a.vehicleNumber} /> : <span className="text-dim text-xs">Fleet-wide</span>}</td>
                       <td className="num text-dim" title={a.detectedAbs}>{a.detectedRel || '—'}</td>
                       <td>{a.acknowledged ? <StatusPill tone="ok">Acknowledged</StatusPill> : <StatusPill tone="caution">To review</StatusPill>}</td>
                       <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                        {a.acknowledged ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-dim"><Check size={13} /> Done</span>
-                        ) : (
-                          <button className="ov-btn" style={{ padding: '5px 10px', fontSize: 12 }} disabled={ackingId === a.id} onClick={() => handleAck(a.id)}>
-                            {ackingId === a.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Acknowledge
-                          </button>
-                        )}
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          {/* The fix, not just the notification. Without this an
+                              alert states a problem and offers no way to act —
+                              worst of all for FleetEdge re-auth, which halts
+                              telemetry and whose repair page was unreachable. */}
+                          {action && (
+                            <Link
+                              to={action.to}
+                              className="ov-btn"
+                              style={{ padding: '5px 10px', fontSize: 12 }}
+                              title={`${action.label} — ${a.title}`}
+                            >
+                              {action.label} <ArrowRight size={13} />
+                            </Link>
+                          )}
+                          {a.acknowledged ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-dim"><Check size={13} /> Done</span>
+                          ) : (
+                            <button className="ov-btn" style={{ padding: '5px 10px', fontSize: 12 }} disabled={ackingId === a.id} onClick={() => handleAck(a.id)}>
+                              {ackingId === a.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Acknowledge
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

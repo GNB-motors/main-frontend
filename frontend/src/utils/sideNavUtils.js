@@ -1,5 +1,4 @@
 import {
-  Grid,
   FileText,
   Users,
   User,
@@ -7,7 +6,9 @@ import {
   MapPin,
   Fuel,
   BookOpen,
-  Navigation,
+  Radio,
+  Route as RouteIcon,
+  Bell,
   PhoneCall,
   ClipboardList,
   Receipt,
@@ -18,8 +19,6 @@ import {
   LayoutDashboard,
   FileCheck,
   Gauge,
-  ShieldAlert,
-  CalendarClock,
   FileCheck2,
 } from 'lucide-react';
 
@@ -51,66 +50,31 @@ import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js
  * `access`   -> module gate: 'erp' | 'fleet' | 'both'. Item's apna feature-flag
  *               `key` iske upar bhi lagta hai. moduleAccess.js dekho.
  *
- * `hoistWhenSole` -> 'erp' | 'fleet'. Agar org ke paas sirf yahi ek module hai,
- *               to ye item apne section se nikal kar sabse upar chala jaata hai
- *               (shared Vehicles/Employees ke bhi upar) — kyunki tab wahi is
- *               org ka landing page hai. Dono module hone par ye hilta nahi;
- *               top slot combined Overview le leta hai.
+ * `hoistWhenSole` -> 'erp' | 'fleet'. DEPRECATED, ab koi item ise use nahi karta.
+ *               Zarurat isliye thi ki shared Vehicles/Workforce sabse upar float
+ *               karte the, to single-module org ka home unke neeche dab jaata tha.
+ *               Ab shared items "Manage" section me neeche hain, so ERP-only org
+ *               ka "ERP & CRM" aur Fleet-only org ka "Operate" section apne aap
+ *               top par aa jaata hai. Ise dobara na lagayein: hoist item ko index
+ *               0 par le jaata hai, jisse woh apne section heading ke UPAR chala
+ *               jaata hai aur heading orphan ho jaati hai. Mechanism (getVisibleNavItems)
+ *               abhi jaan-boojh kar rakha gaya hai — koi match na ho to no-op hai.
  *
- * Order matters: ERP/CRM sabse upar hai kyunki wahi ab primary workflow hai.
+ * Order: sections user ke kaam ke hisaab se hain, module ke hisaab se nahi —
+ * Operate (aaj kya ho raha hai) -> Manage (jo cheezein aapki hain) -> Review
+ * (kya hua tha) -> Account. ERP block apne section me alag rehta hai.
  */
 export const SIDE_NAV_ITEMS = [
-  // Cross-module landing page. Sirf tab dikhta hai jab dono module hain —
-  // ek hi module wale org ke liye ye combined view ka koi matlab nahi, unke liye
-  // unka apna module home (ERP Home / Fleet Operations) hi top item ban jaata hai.
+  // Cross-module landing page. Sirf tab dikhta hai jab dono module hain — ek hi
+  // module wale org ke liye combined view ka matlab nahi; unke liye apne module
+  // ka pehla section (ERP & CRM / Operate) hi top par aa jaata hai.
   { type: 'link', key: 'overview', access: 'both', to: '/command-center', label: 'Overview', icon: Gauge, end: true },
-  // Fleet-wide daily digest (added by live-map-refresh branch).
-  { type: 'link', key: 'fleetIntelligence', access: 'both', to: '/digest', label: 'Daily Digest', icon: CalendarClock },
-
-  // ─── Shared master data ────────────────────────────────────────────────────
-  // Vehicles aur Employees dono module use karte hain, isliye ye kisi ek section
-  // ke andar nahi hain — top par rehte hain aur module gate nahi lagta (sirf
-  // apni feature-flag key). moduleAccess.js ka SHARED_FLAG_KEYS dekho.
-  {
-    type: 'group',
-    key: 'vehicles',
-    label: 'Vehicles',
-    icon: Truck,
-    children: [
-      { to: '/vehicles', label: 'All Vehicles', end: true },
-      { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
-      { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
-    ],
-    matchRoutes: [
-      '/vehicles',
-      '/vehicles/dashboard',
-      '/vehicles/add',
-      '/vehicles/bulk-upload',
-      '/vehicles/service-intelligence',
-      '/vehicles/service-intelligence/add-service',
-      '/vehicles/service-intelligence/add-repair',
-    ],
-  },
-  // Workforce mirrors the Vehicles group: the employee directory and the RBAC
-  // (User Management) screen live under one collapsible parent. Whole group is
-  // gated by the `drivers` feature flag (same as both children were).
-  {
-    type: 'group',
-    key: 'drivers',
-    label: 'Workforce',
-    icon: Users,
-    children: [
-      { to: '/drivers', label: 'Employee', end: true },
-      { to: '/access-control', label: 'User Management' },
-    ],
-    matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
-  },
 
   // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
-  { type: 'link', key: 'erpOperations', access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
+  { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
   {
     type: 'group',
     groupId: 'erpPlanning',
@@ -154,85 +118,147 @@ export const SIDE_NAV_ITEMS = [
     ],
   },
 
-  // ─── Fleet operations ───────────────────────────────────────────────────────
-  { type: 'section', label: 'Fleet', access: 'fleet' },
-  { type: 'link', key: 'overview', access: 'fleet', hoistWhenSole: 'fleet', to: '/overview', label: 'Fleet Operations', icon: Grid },
+  // ─── Fleet: Operate ─────────────────────────────────────────────────────────
+  // Har group ek future hub hai aur uske children uske future tabs. Jab hub page
+  // ban jaayega (e.g. /fleet/fuel), group ek plain link ban jaata hai — sidebar
+  // ki row wahin rehti hai, sirf `to` badalta hai. Isi liye children ka order
+  // tab-order ke barabar rakha gaya hai.
+  { type: 'section', label: 'Operate', access: 'fleet' },
+  // Live hub — the Fleet landing. Tabs Live/Insights/Coverage/Daily digest in
+  // pages/Fleet/LiveHub.jsx; the map is the default and fills the viewport.
+  // Live Tracking had no sidebar entry at all before this work — it was
+  // reachable only from two links buried far down the old dashboard.
+  // `end` so this row is active on /fleet exactly and does not also light up
+  // for /fleet/fuel, /fleet/trips, /fleet/alerts and /fleet/places.
   {
-    type: 'group',
-    groupId: 'fuelManagement',
+    type: 'link',
+    key: 'overview',
     access: 'fleet',
-    label: 'Fuel Management',
+    to: '/fleet',
+    label: 'Live',
+    icon: Radio,
+    end: true,
+    matchRoutes: ['/live-tracking', '/overview', '/fleet-coverage', '/digest'],
+  },
+  // Trips hub — tabs Journeys/Deviations/Routes in pages/Fleet/TripsHub.jsx.
+  // matchRoutes keeps the row lit on the standalone trip screens the hub links
+  // out to: /trip/new (creation flow), /trip/:id, /trip-management/trip/:id
+  // (detail) and /routes/add. None of those live under /fleet/trips.
+  {
+    type: 'link',
+    key: 'vehicleActivity',
+    access: 'fleet',
+    to: '/fleet/trips',
+    label: 'Trips',
+    icon: RouteIcon,
+    matchRoutes: ['/fleet/trips', '/trip', '/trip-management', '/routes'],
+  },
+  // Fuel hub — seven sidebar rows collapsed into one. Tabs Logs/Checks/Costs
+  // live inside pages/Fleet/FuelHub.jsx; "AdBlue" is a fuel-type facet there,
+  // not a destination, so the same fluid no longer appears under two names.
+  // Old routes still resolve: App.jsx redirects each to its hub tab.
+  // matchRoutes on a link keeps the row highlighted on the standalone create/
+  // detail pages the hub links out to (they are not under /fleet/fuel).
+  {
+    type: 'link',
+    key: 'vehicleActivity',
+    access: 'fleet',
+    to: '/fleet/fuel',
+    label: 'Fuel',
     icon: Fuel,
-    children: [
-      { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
-      { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
-      { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
-      // Live-map-refresh / warehouse branch additions.
-      { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
-      { to: '/fuel-spend', label: 'Fuel Spend', key: 'fuelIntegrity' },
-      { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
-      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: 'fuelIntegrity' },
-    ],
     matchRoutes: [
+      '/fleet/fuel',
       '/mileage-tracking',
       '/adblue-tracking',
-      '/fuel-comparison',
+      '/field-agent-fuel',
       '/fuel-integrity',
+      '/fuel-comparison',
       '/fuel-spend',
       '/def-ledger',
-      '/field-agent-fuel',
-      '/trip-management',
     ],
   },
-  // Fleet Intelligence surfaces added by the live-map-refresh / warehouse branch.
+  // Alerts hub — four sidebar rows collapsed into one. Tabs Inbox/Documents/
+  // Anomalies/FleetEdge feed live in pages/Fleet/AlertsHub.jsx. The feeds are
+  // deliberately NOT merged (owner-alerts is the curated superset of the raw
+  // fleet-alerts timeline, and both paginate server-side) — the tab labels
+  // carry the distinction instead. Old routes redirect from App.jsx.
+  //
+  // '/geofence/zones' is intentionally absent: zone DEFINITION is master data
+  // and lives under Places, while zone/loss exceptions live here.
+  // No matchRoutes needed: none of the absorbed screens has a sub-route that
+  // persists (the legacy paths redirect away immediately), so NavLink's own
+  // prefix match on /fleet/alerts is enough. Listing '/geofence' here would be
+  // actively wrong — isGroupActive() matches by prefix, so it would also catch
+  // /geofence/zones and highlight Alerts while the user is in Places.
+  { type: 'link', key: 'fleetIntelligence', access: 'fleet', to: '/fleet/alerts', label: 'Alerts', icon: Bell },
+
+  // ─── Manage: shared master data ─────────────────────────────────────────────
+  // Vehicles aur Drivers dono module use karte hain, isliye inpe module gate
+  // nahi lagta — sirf apni feature-flag key. moduleAccess.js ka SHARED_FLAG_KEYS
+  // dekho. Pehle ye top par float karte the; ab "Manage" section me hain, jisse
+  // ERP-only org ka ERP block aur Fleet-only org ka Operate block top par aata hai.
+  { type: 'section', label: 'Manage' },
+  // Vehicles hub — three rows collapsed into one. Tabs Vehicles (Table/Grid
+  // facets) and Service & Repairs live in pages/Fleet/VehiclesHub.jsx.
+  // No matchRoutes: NavLink without `end` already prefix-matches every
+  // /vehicles/* route, including Vehicle 360 at /vehicles/:registrationNumber
+  // and the add/bulk-upload forms.
+  { type: 'link', key: 'vehicles', to: '/vehicles', label: 'Vehicles', icon: Truck },
+  // Pehle "Workforce" group tha jiske andar Employee + User Management thay.
+  // Driver directory rozana ka kaam hai aur RBAC setup-time ka, isliye Drivers
+  // yahan plain link hai aur Users & Access neeche Profile group me chala gaya.
+  { type: 'link', key: 'drivers', to: '/drivers', label: 'Drivers', icon: Users },
+  // Places hub — tabs Fuel pumps/Geofence zones in pages/Fleet/PlacesHub.jsx.
+  // "Places" not "Locations": LocationSwitcher/BranchContext already use
+  // "location" to mean a business branch, and that one changes X-Branch-Id for
+  // the whole app. matchRoutes covers /locations/add, which stays standalone.
+  {
+    type: 'link',
+    key: 'locations',
+    access: 'fleet',
+    to: '/fleet/places',
+    label: 'Places',
+    icon: MapPin,
+    matchRoutes: ['/fleet/places', '/locations', '/geofence/zones'],
+  },
+
+  // ─── Review: read-only, low-frequency ───────────────────────────────────────
+  { type: 'section', label: 'Review' },
+  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
+  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Ledger', icon: BookOpen },
+
+  // ─── Account / admin ────────────────────────────────────────────────────────
+  { type: 'section', label: 'Account' },
+  // `key: null` on the group — guaranteed fallback. Profile must stay reachable
+  // for every authenticated user regardless of plan; gating it can lock users
+  // out with no recovery path. "My Profile" child is also unkeyed, so the group
+  // always has at least one visible child and never disappears.
+  //
+  // /settings and /settings/fleetedge-accounts had ZERO inbound links anywhere —
+  // unreachable except by typing the URL. FleetEdge holds the telemetry tokens,
+  // so a broken integration had no in-app repair path at all. That is fixed here.
   {
     type: 'group',
-    groupId: 'fleetIntelligence',
-    access: 'fleet',
-    label: 'Fleet Intelligence',
-    icon: ShieldAlert,
+    groupId: 'account',
+    key: null,
+    label: 'Profile',
+    icon: User,
     children: [
-      { to: '/compliance', label: 'Compliance', key: 'fleetIntelligence' },
-      { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
-      { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
+      { to: '/profile', label: 'My Profile', end: true },
+      { to: '/settings', label: 'Settings', end: true },
+      { to: '/settings/fleetedge-accounts', label: 'FleetEdge Accounts' },
+      { to: '/access-control', label: 'Users & Access', key: 'drivers' },
       { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
-      { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
-      { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
-      '/compliance',
-      '/fleet-alerts',
-      '/fleet-coverage',
+      '/profile',
+      '/settings',
+      '/settings/fleetedge-accounts',
+      '/access-control',
+      '/access-control/assigned-employees',
       '/audit-trail',
-      '/route-deviation',
-      '/owner-alerts',
     ],
   },
-  { type: 'link', key: 'locations', access: 'fleet', to: '/locations', label: 'Locations', icon: MapPin },
-  {
-    type: 'group',
-    groupId: 'geofence',
-    key: 'geofence',
-    access: 'fleet',
-    label: 'Geofence',
-    icon: Navigation,
-    children: [
-      { to: '/geofence', label: 'Anomalies' },
-      { to: '/geofence/zones', label: 'Zones & Alerts' },
-    ],
-    matchRoutes: ['/geofence', '/geofence/zones'],
-  },
-
-  // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
-  { type: 'section', label: 'Insights' },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
-  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
-
-  { type: 'section', label: 'Account' },
-  // Always visible (no feature flag) — guaranteed fallback page. Profile must
-  // stay reachable for every authenticated user regardless of plan; gating it
-  // can lock users out with no recovery path, so `key` stays null on purpose.
-  { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
 ];
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */

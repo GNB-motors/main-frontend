@@ -159,12 +159,20 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         }
 
         if (item.type === 'link') {
+            // A hub link owns routes that don't share its URL prefix: /fleet/fuel
+            // is the Fuel hub, but /mileage-tracking/new is still a standalone
+            // page reached from inside it. Without matchRoutes the rail would
+            // show nothing selected while the user is on one of those, so a link
+            // may declare the same matchRoutes a group can.
+            const matchedByRoute = item.matchRoutes
+                ? isGroupActive(item, location.pathname)
+                : false;
             return (
                 <NavLink
                     key={item.to}
                     to={item.to}
                     end={item.end}
-                    className="nav-link"
+                    className={({ isActive }) => `nav-link${isActive || matchedByRoute ? ' active' : ''}`}
                     onClick={closeSidebarOnMobile}
                 >
                     <Icon size={20} /><span>{item.label}</span>

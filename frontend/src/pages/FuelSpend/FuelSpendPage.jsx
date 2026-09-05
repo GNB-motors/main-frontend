@@ -10,6 +10,7 @@ import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import { formatINR, formatInrCompact, formatNum, formatLitres } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
 import { buildCsvString, triggerFileDownload } from '../../utils/reportCsvExport';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 const WINDOWS = [
   { key: '7d', days: 7 },
@@ -63,7 +64,7 @@ function TableSkeleton({ rows = 5 }) {
 const HEAD_CELL = 'px-4 py-3 font-semibold';
 const HEAD_NUM = `num ${HEAD_CELL} text-right`;
 
-export default function FuelSpendPage() {
+export default function FuelSpendPage({ embedded = false }) {
   const [preset, setPreset] = useState('30d');
   const [page, setPage] = useState(1);
 
@@ -119,14 +120,17 @@ export default function FuelSpendPage() {
   const recordsGone = recordsError && !recordsData;
 
   return (
-    <div className="cluster-page space-y-5">
+    <div className={embedded ? 'fleet-embedded space-y-5' : 'cluster-page space-y-5'}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="cluster-title text-xl">Fuel Spend</h1>
-          <p className="text-dim mt-1 text-sm">
-            What the fleet actually paid for fuel — from uploaded bills and receipts.
-          </p>
-        </div>
+        {/* Embedded: FuelHub owns the title; the window buttons stay. */}
+        {!embedded && (
+          <div>
+            <h1 className="cluster-title text-xl">Fuel Spend</h1>
+            <p className="text-dim mt-1 text-sm">
+              What the fleet actually paid for fuel — from uploaded bills and receipts.
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {WINDOWS.map((w) => (
             <button
@@ -334,7 +338,7 @@ export default function FuelSpendPage() {
                   <tbody>
                     {byVehicle.map((v) => (
                       <tr key={v.vehicleId || v.registrationNumber} style={{ borderBottom: '1px solid var(--hairline)' }}>
-                        <td className="px-4 py-3"><span className="reg-plate">{v.registrationNumber}</span></td>
+                        <td className="px-4 py-3"><VehicleLink reg={v.registrationNumber} /></td>
                         <td className="num px-4 py-3 text-right">{formatNum(v.litres, { decimals: 1 })}</td>
                         <td className="num px-4 py-3 text-right font-semibold">{formatINR(v.amountInr)}</td>
                       </tr>
@@ -388,7 +392,7 @@ export default function FuelSpendPage() {
                     {records.map((r) => (
                       <tr key={r.id} style={{ borderBottom: '1px solid var(--hairline)' }}>
                         <td className="num px-4 py-3 whitespace-nowrap">{formatDateTimeIST(r.refuelTime)}</td>
-                        <td className="px-4 py-3"><span className="reg-plate">{r.registrationNumber}</span></td>
+                        <td className="px-4 py-3"><VehicleLink reg={r.registrationNumber} /></td>
                         <td className="px-4 py-3">{r.fuelType || '—'}</td>
                         <td className="px-4 py-3">{r.fillingType || '—'}</td>
                         <td className="num px-4 py-3 text-right">{formatNum(r.litres, { decimals: 1 })}</td>

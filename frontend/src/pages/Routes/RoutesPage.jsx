@@ -10,7 +10,7 @@ import RouteService from './RouteService';
 import { useNavigate } from 'react-router-dom';
 import './RoutesPage.css';
 
-const RoutesPage = () => {
+const RoutesPage = ({ embedded = false }) => {
   // State
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -134,10 +134,10 @@ const RoutesPage = () => {
   }, [fetchRoutes, meta.page, searchTerm]);
 
   return (
-    <div className="routes-page">
-      {/* Header */}
+    <div className={`routes-page${embedded ? ' fleet-embedded' : ''}`}>
+      {/* Header — the Add Route button stays; the hub owns the title. */}
       <div className="routes-header">
-        <h1>Routes Management</h1>
+        {!embedded && <h1>Routes Management</h1>}
         <button
           className="btn btn-primary"
           onClick={() => navigate('/routes/add')}

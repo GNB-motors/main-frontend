@@ -80,7 +80,7 @@ export function Trend({ value, unit = '%', goodWhenUp = true, placeholder = 'no 
  * KPI tile. `primary` gives the single most important metric stronger emphasis.
  * Optional `to` makes the whole tile a link.
  */
-export function KpiTile({ label, icon, value, sub, trend, tone, primary = false, to }) {
+export function KpiTile({ label, icon, value, sub, trend, tone, primary = false, to, note }) {
   const body = (
     <>
       <span className="ov-kpi-label">
@@ -97,11 +97,21 @@ export function KpiTile({ label, icon, value, sub, trend, tone, primary = false,
     </>
   );
   const cls = `ov-kpi ${primary ? 'ov-kpi--primary' : ''}`;
-  return to ? (
+  const tile = to ? (
     <Link to={to} className={cls}>
       {body}
     </Link>
   ) : (
     <div className={cls}>{body}</div>
+  );
+
+  // `note` sits OUTSIDE the Link: a popover trigger is a button, and nesting a
+  // button inside an anchor is invalid markup — the click would also navigate.
+  if (!note) return tile;
+  return (
+    <div className="ov-kpi-shell">
+      {tile}
+      <span className="ov-kpi-note">{note}</span>
+    </div>
   );
 }

@@ -23,10 +23,16 @@ const PROFILE_FALLBACK = '/profile';
  *
  * Module access decides the home first, mirroring the sidebar (sideNavUtils.js):
  *   - both modules -> `/command-center` (combined Overview)
- *   - ERP only     -> `/erp` (ERP Home, hoisted to the top of its sidebar)
- *   - Fleet only   -> `/overview` (Fleet Operations)
+ *   - ERP only     -> `/erp` (ERP Home, first item of the ERP & CRM section)
+ *   - Fleet only   -> `/fleet` (Live hub — the map, first item of Operate)
  * Only when neither module is present do we fall back to the first enabled
  * flag's route, then `/profile` (always accessible).
+ *
+ * Fleet landing was `/overview` until the Operate/Manage/Review restructure. It
+ * had to move: `getFirstNavPath()` (used after a branch switch) returns the first
+ * visible nav item, which is now Live Map — so leaving login on `/overview` made
+ * the two entry points disagree. Fleet users work in the present tense; the
+ * windowed dashboard is one click away at Live -> Insights (/fleet?tab=insights).
  */
 const resolveLandingRoute = (flags) => {
   if (!flags || typeof flags !== 'object') return PROFILE_FALLBACK;
@@ -37,7 +43,7 @@ const resolveLandingRoute = (flags) => {
 
   if (erp && fleet) return '/command-center';
   if (erp) return '/erp';
-  if (fleet) return '/overview';
+  if (fleet) return '/fleet';
 
   for (const [key, route] of FLAG_TO_ROUTE) {
     if (isEnabled(key)) return route;

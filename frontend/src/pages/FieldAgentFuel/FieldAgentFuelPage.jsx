@@ -40,7 +40,7 @@ const DEFAULT_FILTERS = () => ({
   to: toInputDate(new Date()),
 });
 
-const FieldAgentFuelPage = () => {
+const FieldAgentFuelPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [themeColors] = useState(getThemeCSS());
   const [logs, setLogs] = useState([]);
@@ -100,14 +100,17 @@ const FieldAgentFuelPage = () => {
   };
 
   return (
-    <div className="fa-fuel-page" style={themeColors}>
+    <div className={`fa-fuel-page${embedded ? ' fleet-embedded' : ''}`} style={themeColors}>
       <div className="fa-fuel-header">
-        <div>
-          <h1 className="fa-fuel-title">Field Agent Fuel Uploads</h1>
-          <p className="fa-fuel-sub">
-            Standalone fuel logs uploaded from the field — filter by vehicle and date.
-          </p>
-        </div>
+        {/* Embedded: FuelHub owns the title; Refresh and Log Fuel stay. */}
+        {!embedded && (
+          <div>
+            <h1 className="fa-fuel-title">Field Agent Fuel Uploads</h1>
+            <p className="fa-fuel-sub">
+              Standalone fuel logs uploaded from the field — filter by vehicle and date.
+            </p>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="fa-fuel-btn" onClick={fetchLogs} disabled={loading}>
             <RefreshCw size={16} /> Refresh

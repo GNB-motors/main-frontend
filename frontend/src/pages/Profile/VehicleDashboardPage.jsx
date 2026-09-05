@@ -121,7 +121,7 @@ const StatCard = ({ title, value, subtext, icon, accent }) => (
   </div>
 );
 
-const VehicleDashboardPage = () => {
+const VehicleDashboardPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [rows, setRows] = useState([]);
@@ -215,12 +215,15 @@ const VehicleDashboardPage = () => {
   };
 
   return (
-    <div className="vehicles-page-container" style={themeColors}>
+    <div className={`vehicles-page-container${embedded ? ' fleet-embedded' : ''}`} style={themeColors}>
       <div
         className="vehicles-content-wrapper"
-        style={{ paddingBottom: 48, alignItems: 'stretch' }}
+        style={{ paddingBottom: embedded ? 0 : 48, alignItems: 'stretch' }}
       >
-        {/* Left-aligned header (replaces PageHeader, which is centred + 920px) */}
+        {/* Header — suppressed when embedded: this is the Grid VIEW of the
+            Vehicles tab, so the hub owns the title and the "back to Vehicles"
+            link would point at the page the user is already on. */}
+        {!embedded && (
         <div style={{ padding: '4px 24px 16px' }}>
           <NewButton
             variant="link"
@@ -238,6 +241,7 @@ const VehicleDashboardPage = () => {
             Fleet-wide document expiry status. Badges update automatically based on each document's expiry date.
           </p>
         </div>
+        )}
 
         {/* KPIs */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0 24px 20px' }}>

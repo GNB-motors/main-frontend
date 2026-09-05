@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Truck, Check, Loader2, CheckCircle2 } from 'lucide-react';
 import SlideOver from '../../components/cluster/SlideOver.jsx';
 import { formatINR } from '../../utils/formatters';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 /**
  * AlertDetailsDrawer — structured, single-alert investigation panel.
@@ -29,7 +30,7 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
         <div>
           <h3 className="cluster-title text-lg" style={{ color }}>{alert.title}</h3>
           {alert.vehicleNumber ? (
-            <span className="reg-plate mt-2 inline-block">{alert.vehicleNumber}</span>
+            <VehicleLink reg={alert.vehicleNumber} className="mt-2 inline-block" />
           ) : (
             <span className="text-dim mt-2 inline-block text-sm">Fleet-wide</span>
           )}

@@ -918,6 +918,369 @@ a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--h
 }
 
 /* Header action buttons */
+/* Facet chip — the sub-selection row inside a FleetHub tab. Reads as a filter,
+   not a tab: pill-shaped and quieter than .erp-tab so the tab row above stays
+   the dominant control. Active state carries the accent border AND a weight
+   change, never colour alone. */
+.fleet-facet {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    color: var(--cluster-text-dim);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+}
+
+.fleet-facet:hover {
+    color: var(--cluster-text);
+    border-color: var(--hairline);
+}
+
+.fleet-facet[data-active='true'] {
+    border-color: var(--gnb-400);
+    color: var(--gnb-400);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--gnb-400) 8%, transparent);
+}
+
+.fleet-facet:focus-visible {
+    outline: 2px solid var(--gnb-400);
+    outline-offset: 2px;
+}
+
+/* ── Full-height hub tab (the live map) ─────────────────────────────────────
+   .page-content is the app's scroll container. A tab that must fill the
+   viewport instead of extending the page turns that scrolling off and becomes
+   a flex column, so a height:100% map resolves against a bounded parent. */
+.page-content.fleet-fill {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.fleet-hub--fill {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Both the Tabs root and the active panel have to pass the height through, or
+   the console collapses to its content height. */
+.fleet-hub--fill > [data-slot='tabs'],
+.fleet-hub--fill > div:has(> [data-slot='tabs-list']) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.fleet-tabpanel--fill {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.fleet-fillpane {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Telemetry connection health. Colour is a reinforcement, never the only
+   signal — the label always states the condition in words. */
+.fleet-edge-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    white-space: nowrap;
+}
+
+.fleet-edge-chip[data-degraded='true'] {
+    background: color-mix(in srgb, var(--critical) 9%, transparent);
+}
+
+.fleet-edge-chip__fix {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 600;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 1px;
+}
+
+.fleet-edge-chip__fix:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* KPI tile with a "how is this calculated?" note. The shell becomes the grid
+   item so the note can sit over the tile without being inside its link. */
+.ov-kpi-shell { position: relative; display: flex; min-width: 0; }
+.ov-kpi-shell > .ov-kpi { flex: 1; min-width: 0; }
+.ov-kpi-note { position: absolute; top: 10px; right: 10px; line-height: 0; }
+
+/* ── First-run setup checklist ──────────────────────────────────────────── */
+.setup-card {
+    max-width: 620px;
+    margin: 0 auto;
+    align-self: center;
+    background: var(--cluster-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    padding: 26px 28px;
+    box-shadow: var(--cluster-shadow);
+}
+
+.setup-steps {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setup-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 11px;
+}
+
+.setup-step[data-done='true'] { border-color: transparent; background: var(--cluster-raised); }
+
+.setup-step__mark {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--hairline-firm, var(--hairline));
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.setup-step[data-done='true'] .setup-step__mark { background: var(--ok); border-color: var(--ok); }
+
+.setup-step__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.setup-step__title { font-size: 14px; font-weight: 500; color: var(--cluster-text); }
+.setup-step__hint { font-size: 12px; color: var(--cluster-text-dim); }
+.setup-step__done { font-size: 11px; color: var(--ok); font-weight: 600; flex: none; }
+
+.setup-step__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--gnb-400);
+    text-decoration: none;
+    white-space: nowrap;
+    flex: none;
+}
+
+.setup-step__cta:hover { text-decoration: underline; }
+.setup-step__cta:focus-visible { outline: 2px solid var(--gnb-400); outline-offset: 3px; border-radius: 4px; }
+
+/* ── "How is this calculated?" affordance ───────────────────────────────── */
+.metric-note__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--cluster-text-dim);
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.metric-note__trigger:hover { color: var(--gnb-400); }
+.metric-note__trigger:focus-visible { outline: 2px solid var(--gnb-400); outline-offset: 1px; }
+
+.metric-note__content {
+    background: var(--cluster-panel);
+    color: var(--cluster-text);
+    border: 1px solid var(--hairline);
+}
+
+/* ── Live console ───────────────────────────────────────────────────────── */
+.live-console {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 12px;
+}
+
+.lc-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: none;
+}
+
+.lc-body {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+}
+
+.lc-list {
+    width: 268px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    background: var(--cluster-panel);
+    overflow: hidden;
+}
+
+.lc-list-scroll {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding: 6px;
+}
+
+.lc-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--cluster-text);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+}
+
+.lc-row:hover { background: var(--cluster-raised); }
+
+.lc-row[data-selected='true'] {
+    background: color-mix(in srgb, var(--gnb-400) 12%, transparent);
+    box-shadow: inset 2px 0 0 var(--gnb-400);
+}
+
+.lc-row:focus-visible { outline: 2px solid var(--gnb-400); outline-offset: -2px; }
+
+.lc-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+.lc-row-main { min-width: 0; flex: 1; }
+.lc-row-reg { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+.lc-row-sub { font-size: 11px; color: var(--cluster-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-row-speed { font-family: var(--font-mono); font-size: 11px; color: var(--cluster-text-dim); flex: none; }
+
+.lc-map {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--cluster-raised);
+}
+
+/* The rail is an overlay under 993px, so the console stacks instead. */
+@media (max-width: 992px) {
+    .lc-body { flex-direction: column; }
+    .lc-list { width: 100%; max-height: 220px; }
+    .lc-map { min-height: 320px; }
+}
+
+/* A plate rendered by <VehicleLink> — it opens Vehicle 360. Underline on hover
+   only; a permanently underlined plate reads as broken formatting in a table. */
+.reg-plate--link {
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.reg-plate--link:hover {
+    border-color: var(--gnb-400);
+    color: var(--gnb-400);
+    text-decoration: none;
+}
+
+.reg-plate--link:focus-visible {
+    outline: 2px solid var(--gnb-400);
+    outline-offset: 2px;
+}
+
+/* Hub-level search. Lives on the page toolbar, not in the Navbar — the Navbar
+   search inputs key off exact pathnames (`/mileage-tracking`, `/trip-management`)
+   and talk to the page through window CustomEvents, which breaks the moment the
+   page is embedded in a hub under a different URL. */
+.fleet-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 11px;
+    border-radius: 9px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel);
+    color: var(--cluster-text-dim);
+    max-width: 260px;
+}
+
+.fleet-search:focus-within {
+    border-color: var(--gnb-400);
+    color: var(--gnb-400);
+}
+
+.fleet-search input {
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--cluster-text);
+    font: inherit;
+    font-size: 13px;
+    min-width: 0;
+    width: 100%;
+}
+
+.fleet-search input::placeholder {
+    color: var(--cluster-text-dim);
+}
+
+/* An embedded page inside a hub tab drops its own outer page chrome — the hub
+   owns the header, padding and background. */
+.fleet-embedded {
+    padding: 0;
+    background: transparent;
+}
+
 .ov-btn {
     display: inline-flex;
     align-items: center;
@@ -1159,3 +1522,18 @@ a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--h
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+/* Reports is an aggregation layer over api/reports/*, distinct from the
+   operational screens. This is the link back to where the data is entered. */
+.reports-crosslink {
+    padding: 10px 16px 0;
+    font-size: 12.5px;
+}
+
+.reports-crosslink a {
+    color: var(--gnb-400);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.reports-crosslink a:hover { text-decoration: underline; }

@@ -44,7 +44,7 @@ const KpiCard = ({ icon: Icon, label, value, sub, colorClass }) => (
     </div>
 );
 
-const RouteDeviationPage = () => {
+const RouteDeviationPage = ({ embedded = false }) => {
     const [themeColors] = useState(getThemeCSS());
 
     // Filters
@@ -109,9 +109,11 @@ const RouteDeviationPage = () => {
     const pageCostInr = events.reduce((s, e) => s + (e.estimatedExtraCostInr || 0), 0);
 
     return (
-        <div className="fc-page" style={themeColors}>
+        <div className={`fc-page${embedded ? ' fleet-embedded' : ''}`} style={themeColors}>
             {/* Header */}
             <div className="fc-header-bar">
+                {/* Embedded: TripsHub owns the title; the filters stay. */}
+                {!embedded && (
                 <div className="fc-title-area">
                     <div className="fc-icon-wrap">
                         <Route size={24} color="#0f172a" />
@@ -123,6 +125,7 @@ const RouteDeviationPage = () => {
                         </span>
                     </div>
                 </div>
+                )}
                 <div className="fc-header-actions">
                     <button className="fc-btn fc-btn-icon" onClick={fetchData} title="Refresh">
                         <RefreshCw size={18} />

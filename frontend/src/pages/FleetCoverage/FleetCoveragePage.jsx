@@ -6,6 +6,7 @@ import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import { formatNum, formatPct } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 function StatTile({ label, value, tone }) {
   return (
@@ -28,7 +29,7 @@ function TableShell({ title, caption, children }) {
   );
 }
 
-export default function FleetCoveragePage() {
+export default function FleetCoveragePage({ embedded = false }) {
   const { data, loading, error } = useApi((signal) => FleetDataService.getFleetCoverage(signal), []);
 
   const summary = data?.summary || {};
@@ -48,7 +49,7 @@ export default function FleetCoveragePage() {
   );
 
   return (
-    <div className="cluster-page space-y-5">
+    <div className={embedded ? 'fleet-embedded space-y-5' : 'cluster-page space-y-5'}>
       <div>
         <h1 className="cluster-title text-xl">FleetEdge Coverage</h1>
         <p className="text-dim mt-1 text-sm">
@@ -119,7 +120,7 @@ export default function FleetCoveragePage() {
                       <tbody>
                         {onlyEdge.map((v) => (
                           <tr key={v.registrationNumber} style={{ borderBottom: '1px solid var(--hairline)' }}>
-                            <td className="px-4 py-3"><span className="reg-plate">{v.registrationNumber}</span></td>
+                            <td className="px-4 py-3"><VehicleLink reg={v.registrationNumber} /></td>
                             <td className="px-4 py-3">{v.vehicleModel || '—'}</td>
                             <td className="px-4 py-3">{v.manufacturer || '—'}</td>
                             <td className="px-4 py-3">{v.fuelType || '—'}</td>
@@ -165,7 +166,7 @@ export default function FleetCoveragePage() {
                       <tbody>
                         {onlyMaster.map((v) => (
                           <tr key={v.registrationNumber} style={{ borderBottom: '1px solid var(--hairline)' }}>
-                            <td className="px-4 py-3"><span className="reg-plate">{v.registrationNumber}</span></td>
+                            <td className="px-4 py-3"><VehicleLink reg={v.registrationNumber} /></td>
                             <td className="px-4 py-3">{v.model || '—'}</td>
                             <td className="px-4 py-3">{v.manufacturer || '—'}</td>
                             <td className="px-4 py-3">{v.status || '—'}</td>

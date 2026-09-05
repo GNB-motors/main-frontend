@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { Panel, StatusPill } from './overview.primitives.jsx';
 import EmptyState from '../../../components/cluster/EmptyState';
 import { formatINR, formatPct } from '../../../utils/formatters';
+import VehicleLink from '../../../components/Fleet/VehicleLink.jsx';
 
 const TARGET_UTIL_PCT = 75;
 
@@ -117,7 +118,7 @@ export default function VehicleAttentionTable({ money, downtime, utilization, lo
               {rows.map((r) => (
                 <tr key={r.reg}>
                   <td>
-                    <span className="reg-plate">{r.reg}</span>
+                    <VehicleLink reg={r.reg} />
                   </td>
                   <td>
                     <StatusPill tone={r.tone}>{r.status}</StatusPill>

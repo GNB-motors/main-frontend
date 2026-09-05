@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Panel, StatusPill } from './overview.primitives.jsx';
 import EmptyState from '../../../components/cluster/EmptyState';
 import { formatINR, formatInrCompact, formatNum } from '../../../utils/formatters';
+import VehicleLink from '../../../components/Fleet/VehicleLink.jsx';
 
 function DistCell({ label, count, tone }) {
   const color = tone === 'critical' ? 'var(--critical)' : tone === 'caution' ? 'var(--caution)' : 'var(--ok)';
@@ -77,7 +78,7 @@ export default function DowntimePanel({ downtime, totalVehicles = 0, loading }) 
                       </td>
                       <td>
                         <Link to={`/vehicles/${encodeURIComponent(v.registrationNumber)}`}>
-                          <span className="reg-plate">{v.registrationNumber}</span>
+                          <VehicleLink reg={v.registrationNumber} />
                         </Link>
                       </td>
                       <td className="num text-dim text-right">

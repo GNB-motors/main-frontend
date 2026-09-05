@@ -377,7 +377,7 @@ const DashboardSkeleton = () => (
 );
 
 // --- Main Component ---
-const OverviewPage = () => {
+const OverviewPage = ({ embedded = false }) => {
   const [summaryData, setSummaryData] = useState(null);
   const [fuelAnalytics, setFuelAnalytics] = useState(null);
   const [driverPerformance, setDriverPerformance] = useState(null);
@@ -494,7 +494,7 @@ const OverviewPage = () => {
   const hasCharts = fuelAnalytics?.dailyVariance?.length > 0 || fuelAnalytics?.dailyOutliers?.length > 0;
 
   return (
-    <div className="space-y-6 p-1">
+    <div className={embedded ? 'fleet-embedded space-y-6' : 'space-y-6 p-1'}>
       <DashboardHeader
         selectedDays={selectedDays}
         onRangeChange={setSelectedDays}

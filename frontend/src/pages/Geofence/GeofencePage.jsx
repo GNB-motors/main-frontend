@@ -173,7 +173,7 @@ const PIN = {
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
-const GeofencePage = () => {
+const GeofencePage = ({ embedded = false }) => {
   const [locations,    setLocations]    = useState([]);
   const [stats,        setStats]        = useState(null);
   const [loading,      setLoading]      = useState(true);
@@ -285,9 +285,11 @@ const GeofencePage = () => {
   };
 
   return (
-    <div className="gf-page">
+    <div className={`gf-page${embedded ? ' fleet-embedded' : ''}`}>
       {/* Header */}
       <div className="gf-header-bar">
+        {/* Embedded: AlertsHub owns the title; the live/offline chip stays. */}
+        {!embedded && (
         <div className="gf-title-area">
           <div className="gf-icon-wrap"><MapPin size={22} color="var(--primary-color,#4f46e5)" /></div>
           <div>
@@ -295,6 +297,7 @@ const GeofencePage = () => {
             <p className="gf-subtitle">Locations where vehicles stopped and unexplained fuel was lost</p>
           </div>
         </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 10px', borderRadius: '12px', background: liveOnline ? '#ecfdf5' : '#f1f5f9', color: liveOnline ? '#059669' : '#64748b', fontWeight: 500 }}>

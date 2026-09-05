@@ -10,6 +10,7 @@ import {
   assignVehicles,
   getDrift,
 } from '../Profile/FleetEdgeAccountService';
+import FleetEdgeStatusChip from '../../components/Fleet/FleetEdgeStatusChip.jsx';
 
 const STATUS_STYLES = {
   ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
@@ -312,6 +313,10 @@ export default function FleetEdgeAccountsPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-800">FleetEdge Accounts</h1>
             <p className="mt-0.5 text-sm text-slate-500">Manage the FleetEdge accounts supplying data to this organisation</p>
+            {/* compact={false} so the healthy state is stated here too — on the
+                page you opened specifically to check the connection, silence
+                is ambiguous. */}
+            <FleetEdgeStatusChip compact={false} className="mt-2" />
           </div>
           {isOwner && (
             <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">

@@ -27,7 +27,6 @@ import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
 import LoginPage from './pages/Login/LoginPage.jsx';
 import SignUpPage from './pages/SignUp/SIgnUpPage.jsx';
 import ContactPage from './pages/Contact/ContactPage.jsx';
-import OverviewPage from './pages/Overview/OverviewPage.jsx';
 import CommandCenterPage from './pages/CommandCenter/CommandCenterPage.jsx';
 import ReportsPage from './pages/Reports/ReportsPage.jsx';
 import ProfilePage from './pages/Profile/ProfilePage.jsx';
@@ -54,36 +53,20 @@ const RbacPermissionsPage = lazy(() => import('./pages/Superadmin/components/Rba
 const RbacRolesPage = lazy(() => import('./pages/Superadmin/components/RbacRolesPage.jsx'));
 const LemuLogsPage = lazy(() => import('./pages/Superadmin/components/LemuLogsPage.jsx'));
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
-import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
-import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
-import ServiceIntelligencePage from './pages/Maintenance/ServiceIntelligencePage.jsx';
 import AddMaintenancePage from './pages/Maintenance/AddMaintenancePage.jsx';
-import RoutesPage from './pages/Routes/RoutesPage.jsx';
 import AddRoutePage from './pages/Routes/AddRoutePage.jsx';
-import MileageTrackingPage from './pages/MileageTracking/MileageTrackingPage.jsx';
 import MileageTrackingVehicleDetail from './pages/MileageTracking/MileageTrackingVehicleDetail.jsx';
 import MileageFuelLogPage from './pages/MileageTracking/MileageFuelLogPage.jsx';
 import AdBlueLogPage from './pages/MileageTracking/AdBlueLogPage.jsx';
-import AdBlueTrackingPage from './pages/MileageTracking/AdBlueTrackingPage.jsx';
 import MileageIntervalDetailPage from './pages/MileageTracking/MileageIntervalDetailPage.jsx';
 import ModelComparisonPage from './pages/MileageTracking/ModelComparisonPage.jsx';
-import LocationPage from './pages/Locations/LocationPage.jsx';
 import AddLocationPage from './pages/Locations/AddLocationPage.jsx';
 import RefuelLogsPage from './pages/Trip/RefuelLogsPage.jsx';
-import FuelComparisonPage from './pages/FuelComparison/FuelComparisonPage.jsx';
-import FuelIntegrityPage from './pages/FuelIntegrity/FuelIntegrityPage.jsx';
-import RouteDeviationPage from './pages/RouteDeviation/RouteDeviationPage.jsx';
-import LiveTrackingPage from './pages/LiveTracking/LiveTrackingPage.jsx';
-import OwnerAlertsPage from './pages/OwnerAlerts/OwnerAlertsPage.jsx';
-import GeofencePage from './pages/Geofence/GeofencePage.jsx';
-import GeofenceZonesPage from './pages/Geofence/GeofenceZonesPage.jsx';
-import FieldAgentFuelPage from './pages/FieldAgentFuel/FieldAgentFuelPage.jsx';
 import FieldAgentFuelUploadPage from './pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx';
 import KhataLedgerPage from './pages/KhataLedger/KhataLedgerPage.jsx';
 import KhataLedgerDriverDetailPage from './pages/KhataLedger/KhataLedgerDriverDetailPage.jsx';
 import KhataLedgerVehicleDetailPage from './pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx';
-import TripReportDetailPage from './pages/Reports/reports/TripReportDetailPage.jsx';
 import PartiesPage from './pages/ErpMasters/PartiesPage.jsx';
 import RatesPage from './pages/ErpMasters/RatesPage.jsx';
 import CallTasksPage from './pages/ErpCallPlanning/CallTasksPage.jsx';
@@ -119,12 +102,6 @@ import ErpPayablesPage from './pages/ErpPayables/ErpPayablesPage.jsx';
 import ErpAccountsPage from './pages/ErpAccounts/ErpAccountsPage.jsx';
 import Account360Page from './pages/ErpAccounts/Account360Page.jsx';
 import DocumentDetailPage from './pages/ErpAccounts/DocumentDetailPage.jsx';
-import DailyDigestPage from './pages/DailyDigest/DailyDigestPage.jsx';
-import CompliancePage from './pages/Compliance/CompliancePage.jsx';
-import FleetAlertsPage from './pages/FleetAlerts/FleetAlertsPage.jsx';
-import FuelSpendPage from './pages/FuelSpend/FuelSpendPage.jsx';
-import DefLedgerPage from './pages/DefLedger/DefLedgerPage.jsx';
-import FleetCoveragePage from './pages/FleetCoverage/FleetCoveragePage.jsx';
 import AuditTrailPage from './pages/AuditTrail/AuditTrailPage.jsx';
 import Vehicle360Page from './pages/Vehicle360/Vehicle360Page.jsx';
 
@@ -141,6 +118,13 @@ import AboutV2 from './pages/landing-page-v2/about-v2/AboutV2.jsx';
 import ContactV2 from './pages/landing-page-v2/contact-v2/ContactV2.jsx';
 import AccessControlPage from './pages/AccessControl/AccessControlPage.jsx';
 import AssignedEmployeesPage from './pages/AccessControl/AssignedEmployeesPage.jsx';
+// Fleet hubs — one route hosting several existing pages as ?tab= panels.
+import FuelHub from './pages/Fleet/FuelHub.jsx';
+import AlertsHub from './pages/Fleet/AlertsHub.jsx';
+import VehiclesHub from './pages/Fleet/VehiclesHub.jsx';
+import TripsHub from './pages/Fleet/TripsHub.jsx';
+import PlacesHub from './pages/Fleet/PlacesHub.jsx';
+import LiveHub from './pages/Fleet/LiveHub.jsx';
 
 function App() {
   return (
@@ -191,55 +175,89 @@ function App() {
         }
       >
         <Route path="/command-center" element={<CommandCenterPage />} />
-        <Route path="/overview" element={<OverviewPage />} />
-        <Route path="/digest" element={<DailyDigestPage />} />
-        <Route path="/compliance" element={<CompliancePage />} />
-        <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
-        <Route path="/fuel-spend" element={<FuelSpendPage />} />
-        <Route path="/def-ledger" element={<DefLedgerPage />} />
-        <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
         <Route path="/audit-trail" element={<AuditTrailPage />} />
         <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
         <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
-        <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
-        <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
-        <Route path="/route-deviation" element={<RouteDeviationPage />} />
-        <Route path="/live-tracking" element={<LiveTrackingPage />} />
-        <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
-        <Route path="/geofence" element={<GeofencePage />} />
-        <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
-        <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
+        {/* ── Fleet Fuel hub ────────────────────────────────────────────────
+            One row in the sidebar replacing seven. The pages below still exist
+            as standalone routes for now; the redirects further down point the
+            old URLs at the matching hub tab so bookmarks keep working. */}
+        <Route path="/fleet/fuel" element={<FuelHub />} />
+        {/* ── Fleet Alerts hub ──────────────────────────────────────────────
+            Four sidebar rows become one. The feeds are NOT merged: owner-alerts
+            is the curated superset of fleet-alerts, and both are server-paginated
+            (see AlertsHub.jsx). Old URLs land on the matching tab. */}
+        <Route path="/fleet/alerts" element={<AlertsHub />} />
+        <Route path="/owner-alerts" element={<Navigate to="/fleet/alerts?tab=inbox" replace />} />
+        <Route path="/compliance" element={<Navigate to="/fleet/alerts?tab=documents" replace />} />
+        <Route path="/geofence" element={<Navigate to="/fleet/alerts?tab=anomalies" replace />} />
+        <Route path="/fleet-alerts" element={<Navigate to="/fleet/alerts?tab=feed" replace />} />
+        <Route path="/fuel-comparison" element={<Navigate to="/fleet/fuel?tab=checks&view=comparison" replace />} />
+        <Route path="/fuel-integrity" element={<Navigate to="/fleet/fuel?tab=checks&view=integrity" replace />} />
+        <Route path="/fuel-spend" element={<Navigate to="/fleet/fuel?tab=costs&view=spend" replace />} />
+        <Route path="/def-ledger" element={<Navigate to="/fleet/fuel?tab=costs&view=adblue" replace />} />
+        <Route path="/mileage-tracking" element={<Navigate to="/fleet/fuel?tab=logs&view=mileage" replace />} />
+        <Route path="/adblue-tracking" element={<Navigate to="/fleet/fuel?tab=logs&view=adblue" replace />} />
+        <Route path="/field-agent-fuel" element={<Navigate to="/fleet/fuel?tab=logs&view=field" replace />} />
         <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/access-control" element={<AccessControlPage />} />
         <Route path="/access-control/assigned-employees" element={<AssignedEmployeesPage />} />
         <Route path="/drivers/add" element={<AddDriverPage />} />
         <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
-        <Route path="/trip-management" element={<TripManagementPage />} />
         <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />
         <Route path="/trip/new" element={<TripCreationFlow />} />
         <Route path="/trip/:tripId" element={<TripManagementPage />} />
         <Route path="/refuel-logs" element={<RefuelLogsPage />} />
-        <Route path="/mileage-tracking" element={<MileageTrackingPage />} />
         <Route path="/mileage-tracking/vehicle/:vehicleId" element={<MileageTrackingVehicleDetail />} />
         <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
         <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
-        <Route path="/adblue-tracking" element={<AdBlueTrackingPage />} />
         <Route path="/adblue-tracking/new" element={<AdBlueLogPage />} />
         <Route path="/model-comparison" element={<ModelComparisonPage />} />
         <Route path="/expected-mileage" element={<ModelComparisonPage />} />
-        <Route path="/def-tracking" element={<Navigate to="/adblue-tracking" replace />} />
+        <Route path="/def-tracking" element={<Navigate to="/fleet/fuel?tab=logs&view=adblue" replace />} />
         <Route path="/fuel-bills" element={<RefuelLogsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/vehicles" element={<VehiclesPage />} />
-        <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
-        <Route path="/vehicles/service-intelligence" element={<ServiceIntelligencePage />} />
+        {/* ── Vehicles hub ──────────────────────────────────────────────────
+            /vehicles/dashboard was a separate nav row rendering the same fleet
+            as cards; it is now the Grid facet of the Vehicles tab. The add-
+            service / add-repair routes below stay real pages — they are forms,
+            reached from inside the Service tab. */}
+        {/* ── Fleet Trips hub ──────────────────────────────────────────────
+            The trip list had NO sidebar entry before this; /routes had no
+            inbound link at all despite being a complete screen. Both are
+            reachable here. /trip/new and /trip/:tripId stay standalone. */}
+        {/* ── Fleet Live hub — the module's landing surface ────────────────
+            /live-tracking previously had NO sidebar entry: its only ways in
+            were two links buried ~1,260px down /overview. The map is now the
+            default tab and fills the viewport; the old dashboard is the
+            Insights tab beside it. */}
+        <Route path="/fleet" element={<LiveHub />} />
+        <Route path="/live-tracking" element={<Navigate to="/fleet?tab=live" replace />} />
+        <Route path="/overview" element={<Navigate to="/fleet?tab=insights" replace />} />
+        <Route path="/fleet-coverage" element={<Navigate to="/fleet?tab=coverage" replace />} />
+        <Route path="/digest" element={<Navigate to="/fleet?tab=digest" replace />} />
+
+        <Route path="/fleet/trips" element={<TripsHub />} />
+        <Route path="/trip-management" element={<Navigate to="/fleet/trips?tab=journeys" replace />} />
+        <Route path="/route-deviation" element={<Navigate to="/fleet/trips?tab=deviations" replace />} />
+        <Route path="/routes" element={<Navigate to="/fleet/trips?tab=routes" replace />} />
+
+        {/* ── Fleet Places hub ─────────────────────────────────────────────
+            Pump locations + geofence zones. "Location" previously meant both a
+            map place and a business branch (BranchContext / LocationSwitcher);
+            the map-place meaning lives here as "Places". */}
+        <Route path="/fleet/places" element={<PlacesHub />} />
+        <Route path="/locations" element={<Navigate to="/fleet/places?tab=pumps" replace />} />
+        <Route path="/geofence/zones" element={<Navigate to="/fleet/places?tab=zones" replace />} />
+
+        <Route path="/vehicles" element={<VehiclesHub />} />
+        <Route path="/vehicles/dashboard" element={<Navigate to="/vehicles?tab=list&view=grid" replace />} />
+        <Route path="/vehicles/service-intelligence" element={<Navigate to="/vehicles?tab=service&view=SERVICE" replace />} />
         <Route path="/vehicles/service-intelligence/add-service" element={<AddMaintenancePage recordType="SERVICE" />} />
         <Route path="/vehicles/service-intelligence/add-repair" element={<AddMaintenancePage recordType="REPAIR" />} />
         <Route path="/vehicles/add" element={<AddVehiclePage />} />
         <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
-        <Route path="/routes" element={<RoutesPage />} />
         <Route path="/routes/add" element={<AddRoutePage />} />
         <Route path="/khata-ledger" element={<KhataLedgerPage />} />
         {/* ISOCL ERP — Hub & Spoke Architecture */}
@@ -288,7 +306,6 @@ function App() {
 
         <Route path="/khata-ledger/drivers/:id" element={<KhataLedgerDriverDetailPage />} />
         <Route path="/khata-ledger/trucks/:id" element={<KhataLedgerVehicleDetailPage />} />
-        <Route path="/locations" element={<LocationPage />} />
         <Route path="/locations/add" element={<AddLocationPage />} />
         {/* <Route path="/request-report" element={<RequestFormPage />} /> */}
         <Route path="/settings" element={<SettingsPage />} />

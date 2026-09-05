@@ -7,6 +7,7 @@ import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import { formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import { buildCsvString, triggerFileDownload } from '../../utils/reportCsvExport';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 const PAGE_SIZE = 20;
 const FUEL_TYPES = new Set(['RefuelAlert', 'FuelDrainAlert']);
@@ -21,7 +22,7 @@ const SEVERITY_COLOR = {
 const lampClass = (severity) =>
   severity === 'critical' || severity === 'caution' ? `lamp lamp--${severity}` : 'lamp';
 
-export default function FleetAlertsPage() {
+export default function FleetAlertsPage({ embedded = false }) {
   const [type, setType] = useState('');
   const [page, setPage] = useState(1);
   const [vehicleInput, setVehicleInput] = useState('');
@@ -85,14 +86,17 @@ export default function FleetAlertsPage() {
   };
 
   return (
-    <div className="cluster-page space-y-5">
+    <div className={embedded ? 'fleet-embedded space-y-5' : 'cluster-page space-y-5'}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="cluster-title text-xl">Fleet Alerts</h1>
-          <p className="text-dim mt-1 text-sm">
-            Native alerts pushed by FleetEdge — refuels, fuel drains, geofence events, overspeed and SOS.
-          </p>
-        </div>
+        {/* Embedded: AlertsHub owns the title; CSV export stays. */}
+        {!embedded && (
+          <div>
+            <h1 className="cluster-title text-xl">FleetEdge feed</h1>
+            <p className="text-dim mt-1 text-sm">
+              Raw alerts pushed by the device — refuels, fuel drains, geofence events, overspeed and SOS.
+            </p>
+          </div>
+        )}
         <button
           type="button"
           onClick={exportCsv}
@@ -181,7 +185,7 @@ export default function FleetAlertsPage() {
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className={lampClass(a.severity)}>{a.severity}</span>
                     <span className="text-sm font-semibold">{a.title}</span>
-                    {a.registrationNumber ? <span className="reg-plate">{a.registrationNumber}</span> : null}
+                    {a.registrationNumber ? <VehicleLink reg={a.registrationNumber} /> : null}
                     {FUEL_TYPES.has(a.type) && a.fuelDifferenceL != null ? (
                       <span
                         className="cluster-inset num px-2 py-0.5 text-[11px] font-semibold"

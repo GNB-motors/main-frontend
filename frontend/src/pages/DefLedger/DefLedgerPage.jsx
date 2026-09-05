@@ -9,6 +9,7 @@ import FreshnessBadge from '../../components/cluster/FreshnessBadge';
 import { formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import { buildCsvString, triggerFileDownload } from '../../utils/reportCsvExport';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 function humanizeFlagType(type) {
   if (!type) return 'Flag';
@@ -57,7 +58,7 @@ function FlagsDrawer({ vehicle, onClose }) {
   );
 }
 
-export default function DefLedgerPage() {
+export default function DefLedgerPage({ embedded = false }) {
   const [selected, setSelected] = useState(null);
 
   const { data, loading, error } = useApi((signal) => FleetDataService.getDefLedger(signal), []);
@@ -74,14 +75,17 @@ export default function DefLedgerPage() {
   };
 
   return (
-    <div className="cluster-page space-y-5">
+    <div className={embedded ? 'fleet-embedded space-y-5' : 'cluster-page space-y-5'}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="cluster-title text-xl">AdBlue / DEF Ledger</h1>
-          <p className="text-dim mt-1 text-sm">
-            Claimed (billed) DEF vs what the vehicles actually consumed. A persistent gap is where tamper shows up.
-          </p>
-        </div>
+        {/* Embedded: FuelHub owns the title; Export CSV stays. */}
+        {!embedded && (
+          <div>
+            <h1 className="cluster-title text-xl">AdBlue Costs</h1>
+            <p className="text-dim mt-1 text-sm">
+              Claimed (billed) AdBlue vs what the vehicles actually consumed. A persistent gap is where tamper shows up.
+            </p>
+          </div>
+        )}
         <button
           type="button"
           onClick={exportCsv}
@@ -143,7 +147,7 @@ export default function DefLedgerPage() {
                         className="cursor-pointer transition-opacity hover:opacity-75"
                         style={{ borderBottom: '1px solid var(--hairline)' }}
                       >
-                        <td className="px-4 py-3"><span className="reg-plate">{v.registrationNumber}</span></td>
+                        <td className="px-4 py-3"><VehicleLink reg={v.registrationNumber} /></td>
                         <td className="num px-4 py-3 text-right">{formatLitres(v.claimedAdblueL)}</td>
                         <td className="num px-4 py-3 text-right">{formatLitres(v.telemetryDefL)}</td>
                         <td className="num px-4 py-3 text-right font-semibold" style={{ color: balanceTone }}>{formatLitres(balance)}</td>

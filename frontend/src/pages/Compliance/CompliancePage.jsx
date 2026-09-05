@@ -9,6 +9,7 @@ import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import { formatINR, formatNum } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
 import { buildCsvString, triggerFileDownload } from '../../utils/reportCsvExport';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 const DOC_TYPES = ['ALL', 'RC', 'INSURANCE', 'FITNESS', 'PERMIT', 'NATIONAL_PERMIT'];
 const DOC_LABELS = {
@@ -121,7 +122,7 @@ function DocumentDrawer({ doc, onClose }) {
   );
 }
 
-export default function CompliancePage() {
+export default function CompliancePage({ embedded = false }) {
   const [days, setDays] = useState(30);
   const [docType, setDocType] = useState('ALL');
   const [selected, setSelected] = useState(null);
@@ -152,14 +153,17 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="cluster-page space-y-5">
+    <div className={embedded ? 'fleet-embedded space-y-5' : 'cluster-page space-y-5'}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="cluster-title text-xl">Compliance &amp; Documents</h1>
-          <p className="text-dim mt-1 text-sm">
-            Vehicle documents expired or expiring in the next {days} days, with estimated fine exposure.
-          </p>
-        </div>
+        {/* Embedded: AlertsHub owns the title; the window buttons and CSV stay. */}
+        {!embedded && (
+          <div>
+            <h1 className="cluster-title text-xl">Compliance &amp; Documents</h1>
+            <p className="text-dim mt-1 text-sm">
+              Vehicle documents expired or expiring in the next {days} days, with estimated fine exposure.
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {[30, 60, 90].map((d) => (
             <button
@@ -250,7 +254,7 @@ export default function CompliancePage() {
                       className="cursor-pointer transition-opacity hover:opacity-75"
                       style={{ borderBottom: '1px solid var(--hairline)' }}
                     >
-                      <td className="px-4 py-3"><span className="reg-plate">{d.registrationNumber}</span></td>
+                      <td className="px-4 py-3"><VehicleLink reg={d.registrationNumber} /></td>
                       <td className="px-4 py-3">{DOC_LABELS[d.docType] || d.docType}</td>
                       <td className="num px-4 py-3">{formatDateIST(d.expiryDate)}</td>
                       <td className="num px-4 py-3 text-right font-semibold" style={{ color: `var(--${tone === 'ok' ? 'ok' : tone})` }}>

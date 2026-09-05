@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import LocationService from './LocationService';
 import './LocationPage.css';
 
-const LocationPage = () => {
+const LocationPage = ({ embedded = false }) => {
     // State
     const [locations, setLocations] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -94,10 +94,10 @@ const LocationPage = () => {
     }, [selectedLocation, fetchLocations, meta.page, searchTerm]);
 
     return (
-        <div className="location-page">
-            {/* Header */}
+        <div className={`location-page${embedded ? ' fleet-embedded' : ''}`}>
+            {/* Header — Add Pump Location stays; the hub owns the title. */}
             <div className="location-header">
-                <h1>Pump Location Management</h1>
+                {!embedded && <h1>Pump Location Management</h1>}
                 <button
                     className="btn btn-primary"
                     onClick={() => navigate('/locations/add')}

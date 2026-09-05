@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ChevronRight, Plus, FileText } from 'lucide-react';
+import { ChevronRight, Plus, FileText, Search } from 'lucide-react';
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService } from './services';
@@ -26,10 +26,25 @@ import {
 
 const PAGE_SIZE = 10;
 
-const TripManagementPage = () => {
+/**
+ * `embedded` — rendered as the Journeys tab of TripsHub, which then owns the
+ * title, the "New trip" action and (via facets) the dataset switch.
+ *
+ * The search box used to live in the Navbar and reach this page through
+ * window CustomEvents ('tripSearchChange' / 'tripSearchReset'), keyed off
+ * `pathname === '/trip-management'`. That breaks the moment the page is
+ * embedded under another URL, so the input now lives on the page toolbar where
+ * the data it filters is, and the event pair is gone.
+ */
+const TripManagementPage = ({ embedded = false, activeTab: controlledTab, onTabChange }) => {
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('trips');
+  // NOTE: the 'trips' (weight-slip) dataset has no backend — fetchWeightSlipTrips
+  // deliberately returns [] until the ERP-trip migration. So the default here
+  // renders a guaranteed-empty list; TripsHub only surfaces 'refuel'.
+  const [localTab, setLocalTab] = useState('trips');
+  const activeTab = embedded && controlledTab ? controlledTab : localTab;
+  const setActiveTab = embedded && onTabChange ? onTabChange : setLocalTab;
   const [searchQuery, setSearchQuery] = useState('');
 
   const [weightSlipTrips, setWeightSlipTrips] = useState([]);
@@ -41,10 +56,11 @@ const TripManagementPage = () => {
   const [refuelPagination, setRefuelPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
 
   useEffect(() => {
+    if (embedded) return undefined;
     const el = document.querySelector('.page-content');
     if (el) el.classList.add('no-padding');
     return () => { if (el) el.classList.remove('no-padding'); };
-  }, []);
+  }, [embedded]);
 
   const fetchWeightSlipTrips = async () => {
     // The weight-slip trip flow was removed; there is no data source until the
@@ -79,27 +95,18 @@ const TripManagementPage = () => {
   }, [weightSlipPagination.page, refuelPagination.page]);
 
   useEffect(() => {
+    if (embedded) return undefined;
     const h = () => navigate('/trip/new');
     window.addEventListener('startNewTrip', h);
     return () => window.removeEventListener('startNewTrip', h);
-  }, [navigate]);
+  }, [navigate, embedded]);
 
-  // Receive search input from the Navbar
-  useEffect(() => {
-    const handleSearch = (e) => {
-      const value = e.detail?.value ?? '';
-      setSearchQuery(value);
-      setWeightSlipPagination(p => ({ ...p, page: 1 }));
-      setRefuelPagination(p => ({ ...p, page: 1 }));
-    };
-    window.addEventListener('tripSearchChange', handleSearch);
-    return () => window.removeEventListener('tripSearchChange', handleSearch);
-  }, []);
-
-  // Reset Navbar search on unmount
-  useEffect(() => () => {
-    window.dispatchEvent(new CustomEvent('tripSearchReset', { detail: { value: '' } }));
-  }, []);
+  // Search is page-local now. Reset to page 1 whenever the query changes.
+  const onSearch = (value) => {
+    setSearchQuery(value);
+    setWeightSlipPagination(p => ({ ...p, page: 1 }));
+    setRefuelPagination(p => ({ ...p, page: 1 }));
+  };
 
   const filterTrips = (trips) => {
     if (!searchQuery) return trips;
@@ -151,32 +158,37 @@ const TripManagementPage = () => {
   };
 
   return (
-    <div className="page-container trip-management-container">
+    <div className={`${embedded ? 'fleet-embedded' : 'page-container'} trip-management-container`}>
       {/* Header */}
       <div className="trip-management-header">
-        <div className="header-content">
-          <div className="tabs-container">
-            <button
-              className={`tab-btn ${activeTab === 'trips' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('trips');
-                setSearchQuery('');
-                window.dispatchEvent(new CustomEvent('tripSearchReset', { detail: { value: '' } }));
-              }}
-            >
-              Trips
-            </button>
-            <button
-              className={`tab-btn ${activeTab === 'refuel' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('refuel');
-                setSearchQuery('');
-                window.dispatchEvent(new CustomEvent('tripSearchReset', { detail: { value: '' } }));
-              }}
-            >
-              Refuel Journeys
-            </button>
-          </div>
+        <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {/* Tab strip hoisted into the hub's facet row when embedded. */}
+          {!embedded && (
+            <div className="tabs-container">
+              <button
+                className={`tab-btn ${activeTab === 'trips' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('trips'); onSearch(''); }}
+              >
+                Trips
+              </button>
+              <button
+                className={`tab-btn ${activeTab === 'refuel' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('refuel'); onSearch(''); }}
+              >
+                Refuel Journeys
+              </button>
+            </div>
+          )}
+          <label className="fleet-search" style={{ marginLeft: embedded ? 0 : 'auto' }}>
+            <Search size={15} />
+            <input
+              type="search"
+              value={searchQuery}
+              placeholder="Search vehicle or driver…"
+              onChange={(e) => onSearch(e.target.value)}
+              aria-label="Search trips"
+            />
+          </label>
         </div>
       </div>
 

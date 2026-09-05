@@ -16,6 +16,7 @@ import { formatINR, formatLitres } from '../../utils/formatters';
 import EvidenceDrawer from '../../components/cluster/EvidenceDrawer.jsx';
 import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';
 import { Panel, StatusPill } from '../Overview/components/overview.primitives.jsx';
+import VehicleLink from '../../components/Fleet/VehicleLink.jsx';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -62,7 +63,7 @@ const Kpi = ({ icon: Icon, label, value, sub, accent, emphasis }) => (
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const FuelIntegrityPage = () => {
+const FuelIntegrityPage = ({ embedded = false }) => {
   // Filters (backend)
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [inputFromDate, setInputFromDate] = useState('');
@@ -283,19 +284,22 @@ const FuelIntegrityPage = () => {
   ];
 
   return (
-    <div className="page-white">
-    <div className="space-y-5" style={{ maxWidth: 1600, margin: '0 auto' }}>
+    <div className={embedded ? 'fleet-embedded' : 'page-white'}>
+    <div className="space-y-5" style={embedded ? undefined : { maxWidth: 1600, margin: '0 auto' }}>
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--gnb-400) 12%, transparent)', color: 'var(--gnb-400)' }}>
-            <Fuel size={22} />
-          </span>
-          <div>
-            <h1 className="cluster-title text-2xl">Fuel Integrity</h1>
-            <p className="text-dim text-sm">Monitor fuel usage, anomalies and suspected losses</p>
+        {/* Embedded: FuelHub owns the title; Refresh and last-synced stay. */}
+        {!embedded && (
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--gnb-400) 12%, transparent)', color: 'var(--gnb-400)' }}>
+              <Fuel size={22} />
+            </span>
+            <div>
+              <h1 className="cluster-title text-2xl">Fuel Integrity</h1>
+              <p className="text-dim text-sm">Monitor fuel usage, anomalies and suspected losses</p>
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex items-center gap-2">
           {lastSynced && <span className="text-dim hidden text-xs sm:inline">Last synced {lastSynced.fromNow()}</span>}
           <button className="ov-btn" onClick={fetchData} disabled={isLoading}>
@@ -410,7 +414,7 @@ const FuelIntegrityPage = () => {
             ) : (
               affected.list.map((v) => (
                 <button key={v.reg} className="fi-affected w-full text-left" onClick={() => setDrillVehicle(v.reg)} title={`${v.def} DEF · ${v.bill} bill`}>
-                  <span className="reg-plate">{v.reg}</span>
+                  <VehicleLink reg={v.reg} />
                   <span className="fi-affected-track">
                     <span className="fi-affected-fill" style={{ width: `${(v.anomalies / affected.max) * 100}%`, background: 'var(--caution)' }} />
                   </span>
@@ -479,7 +483,7 @@ const FuelIntegrityPage = () => {
                     const isRev = reviewed.has(ev.id);
                     return (
                       <tr key={ev.id} className={`fi-row-click ${crit ? 'fi-row-crit' : flagged ? 'fi-row-flag' : ''}`} onClick={() => openEvent(ev)}>
-                        <td><span className="reg-plate">{ev.vehicle || '—'}</span></td>
+                        <td><VehicleLink reg={ev.vehicle} /></td>
                         <td>
                           {ev.kind === 'fill' && <span className="inline-flex items-center gap-1 text-sm" style={{ color: 'var(--ok)' }}><TrendingUp size={13} /> Fill</span>}
                           {ev.kind === 'loss' && <span className="inline-flex items-center gap-1 text-sm" style={{ color: 'var(--critical)' }}><TrendingDown size={13} /> Loss</span>}
@@ -543,7 +547,7 @@ const FuelIntegrityPage = () => {
               <tbody>
                 {riskVehicles.map((v) => (
                   <tr key={v.registrationNumber} className="fi-row-click" onClick={() => setDrillVehicle(v.registrationNumber)}>
-                    <td><span className="reg-plate">{v.registrationNumber}</span></td>
+                    <td><VehicleLink reg={v.registrationNumber} /></td>
                     <td className="num text-right">{formatLitres(v.fillsLitres)}</td>
                     <td className="num text-right" style={{ color: v.siphonSuspectedLossL > 0 ? 'var(--critical)' : 'var(--cluster-text-dim)' }}>{formatLitres(v.siphonSuspectedLossL)}</td>
                     <td className="num text-right" style={{ color: v.siphonSuspectedLossInr > 0 ? 'var(--critical)' : 'var(--cluster-text-dim)' }}>{formatINR(v.siphonSuspectedLossInr)}</td>

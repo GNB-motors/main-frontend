@@ -28,13 +28,24 @@ const formatCurrency = (n) => {
 const formatKm = (n) =>
   n === null || n === undefined ? '—' : `${Number(n).toLocaleString('en-IN')} km`;
 
-const ServiceIntelligencePage = () => {
+/**
+ * `embedded` — rendered as the Service tab of VehiclesHub.
+ *
+ * When embedded, the hub's facet row REPLACES this page's own tab strip and
+ * drives it through `activeTab`/`onTabChange`. Leaving both visible would put
+ * one tab row directly under another, which is the nesting the hub pattern
+ * exists to avoid.
+ */
+const ServiceIntelligencePage = ({ embedded = false, activeTab: controlledTab, onTabChange }) => {
   const navigate = useNavigate();
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   // Optional focusTab from location.state — set when navigating back from the
   // add-page so the user lands on the tab they just contributed to.
   const navState = typeof window !== 'undefined' ? (window.history.state?.usr || {}) : {};
-  const [activeTab, setActiveTab] = useState(navState.focusTab || 'SERVICE');
+  const [localTab, setLocalTab] = useState(navState.focusTab || 'SERVICE');
+  // Controlled by the hub when embedded, self-managed on the standalone route.
+  const activeTab = embedded && controlledTab ? controlledTab : localTab;
+  const setActiveTab = embedded && onTabChange ? onTabChange : setLocalTab;
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -119,9 +130,10 @@ const ServiceIntelligencePage = () => {
   }, [rows, activeTab]);
 
   return (
-    <div className="vehicles-page-container" style={themeColors}>
-      <div className="vehicles-content-wrapper" style={{ paddingBottom: 48, alignItems: 'stretch' }}>
-        {/* Header */}
+    <div className={`vehicles-page-container${embedded ? ' fleet-embedded' : ''}`} style={themeColors}>
+      <div className="vehicles-content-wrapper" style={{ paddingBottom: embedded ? 0 : 48, alignItems: 'stretch' }}>
+        {/* Header — the hub supplies title and breadcrumbs when embedded. */}
+        {!embedded && (
         <div style={{ padding: '4px 24px 16px' }}>
           <button
             onClick={() => navigate('/vehicles')}
@@ -148,8 +160,10 @@ const ServiceIntelligencePage = () => {
             Manage vehicle service and repair history. Alerts will surface automatically once we wire the rules.
           </p>
         </div>
+        )}
 
-        {/* Tabs */}
+        {/* Tabs — hoisted into the hub's facet row when embedded. */}
+        {!embedded && (
         <div style={{ padding: '0 24px', borderBottom: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', gap: 4 }}>
             {TABS.map((t) => {
@@ -180,6 +194,7 @@ const ServiceIntelligencePage = () => {
             })}
           </div>
         </div>
+        )}
 
         {activeTab === 'ALERTS' ? (
           <AlertsTab />

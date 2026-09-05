@@ -46,10 +46,16 @@ const fetchAdBlueLogs = async ({ page = 1, limit = PAGE_SIZE, search } = {}) => 
   return { logs: [], total: 0 };
 };
 
-const AdBlueTrackingPage = () => {
+/**
+ * `embedded` — rendered as a tab of FuelHub. The hub supplies the search query
+ * (already debounced) and owns the title, so the page's own header row is
+ * suppressed and the local debounce is bypassed to avoid debouncing twice.
+ */
+const AdBlueTrackingPage = ({ embedded = false, search = '' }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [localDebouncedSearch, setLocalDebouncedSearch] = useState('');
+  const debouncedSearch = embedded ? search : localDebouncedSearch;
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,15 +68,17 @@ const AdBlueTrackingPage = () => {
   const [viewImageLoading, setViewImageLoading] = useState(false);
 
   useEffect(() => {
+    if (embedded) return undefined;
     const el = document.querySelector('.page-content');
     if (el) el.classList.add('no-padding');
     return () => { if (el) el.classList.remove('no-padding'); };
-  }, []);
+  }, [embedded]);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    if (embedded) return undefined;
+    const t = setTimeout(() => setLocalDebouncedSearch(searchTerm.trim()), 300);
     return () => clearTimeout(t);
-  }, [searchTerm]);
+  }, [embedded, searchTerm]);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -181,21 +189,24 @@ const AdBlueTrackingPage = () => {
   };
 
   return (
-    <div className="refuel-logs-page adblue-tracking-page">
-      <div className="refuel-logs-header">
-        <h3 className="refuel-report-title">AdBlue</h3>
-        <div className="refuel-header-actions">
-          <div className="refuel-search">
-            <Search size={16} />
-            <input
-              type="text"
-              placeholder="Search vehicle, driver, or place"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <div className={`refuel-logs-page adblue-tracking-page${embedded ? ' fleet-embedded' : ''}`}>
+      {/* Embedded: FuelHub renders the title and the search box. */}
+      {!embedded && (
+        <div className="refuel-logs-header">
+          <h3 className="refuel-report-title">AdBlue</h3>
+          <div className="refuel-header-actions">
+            <div className="refuel-search">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search vehicle, driver, or place"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="refuel-table-container">
         <table className="refuel-table adblue-table">

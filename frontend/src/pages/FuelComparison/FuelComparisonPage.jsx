@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Box, CircularProgress, Alert, FormControl, Select, MenuItem, Chip,
@@ -84,7 +85,14 @@ const LiveErrorsWidget = ({ status, isLoading, userErrors }) => {
                     <div key={`reauth-${i}`} className="fc-error-item fc-error-reauth">
                         <WifiOff size={12} />
                         <span className="fc-error-msg">
-                            Re-auth needed: <strong>{err.externalFleetId || 'FleetEdge account'}</strong> — reconnect via the extension
+                            Re-auth needed: <strong>{err.externalFleetId || 'FleetEdge account'}</strong>
+                            {' — '}
+                            {/* Was "reconnect via the extension", which named no
+                                destination and linked nowhere while telemetry
+                                stayed down. */}
+                            <Link to="/settings/fleetedge-accounts" style={{ fontWeight: 600, textDecoration: 'underline' }}>
+                                reconnect this account
+                            </Link>
                         </span>
                     </div>
                 ))}
@@ -245,7 +253,7 @@ const ReviewModal = ({ task, onClose, onApproved }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const FuelComparisonPage = () => {
+const FuelComparisonPage = ({ embedded = false }) => {
     const LIMIT = 20;
 
     const [themeColors] = useState(getThemeCSS());
@@ -373,7 +381,7 @@ const FuelComparisonPage = () => {
     const activeTotal   = activeTab === 'all' ? compTotal   : activeTab === 'flagged' ? flaggedTotal : reviewTotal;
 
     return (
-        <div className="fc-page" style={themeColors}>
+        <div className={`fc-page${embedded ? ' fleet-embedded' : ''}`} style={themeColors}>
         {reviewingTask && (
             <ReviewModal
                 task={reviewingTask}
@@ -383,6 +391,8 @@ const FuelComparisonPage = () => {
         )}
             {/* Header & Title */}
             <div className="fc-header-bar">
+                {/* Embedded: FuelHub owns the title; the sync/status actions stay. */}
+                {!embedded && (
                 <div className="fc-title-area">
                     <div className="fc-icon-wrap">
                         <Fuel size={24} color="#0f172a" />
@@ -392,6 +402,7 @@ const FuelComparisonPage = () => {
                         <span className="fc-subtitle">Live analytics from the FleetEdge Extension Sync</span>
                     </div>
                 </div>
+                )}
                 <div className="fc-header-actions">
                     {status && (
                         <div className="fc-last-sync">

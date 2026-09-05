@@ -2,7 +2,7 @@ import { formatDateIST } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ChevronRight, FileText, Plus, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { ChevronRight, FileText, Plus, AlertCircle, CheckCircle2, Clock, Search } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
@@ -10,45 +10,52 @@ import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 
 const PAGE_SIZE = 10;
 
-const MileageTrackingPage = () => {
+/**
+ * `embedded` — rendered as a tab of FuelHub rather than as its own route. The
+ * hub then owns the page chrome (padding, header) and the search box, so the
+ * standalone-only wiring below is skipped: the Navbar's search input and count
+ * badge key off `pathname === '/mileage-tracking'`, which never matches inside
+ * the hub, so those window events would have no listener on the other end.
+ */
+const MileageTrackingPage = ({ embedded = false, search = '' }) => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
 
+  // Embedded: the hub is the source of truth for the query.
+  const effectiveSearch = embedded ? search : searchQuery;
+
   useEffect(() => {
+    if (embedded) return undefined;
     const el = document.querySelector('.page-content');
     if (el) el.classList.add('no-padding');
     return () => { if (el) el.classList.remove('no-padding'); };
-  }, []);
+  }, [embedded]);
 
-  // Receive search input from the Navbar
+  // Page 1 again whenever the hub's query changes, or the user pages past the
+  // end of a now-shorter result set.
   useEffect(() => {
-    const handleSearch = (e) => {
-      setSearchQuery(e.detail?.value ?? '');
-      setPagination(p => ({ ...p, page: 1 }));
-    };
-    window.addEventListener('mileageSearchChange', handleSearch);
-    return () => window.removeEventListener('mileageSearchChange', handleSearch);
-  }, []);
+    if (!embedded) return;
+    setPagination((p) => (p.page === 1 ? p : { ...p, page: 1 }));
+  }, [embedded, search]);
 
-  // Push total count up to the Navbar
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('mileageCountUpdate', { detail: { count: pagination.total } }));
-  }, [pagination.total]);
-
-  // Reset Navbar state on unmount
-  useEffect(() => () => {
-    window.dispatchEvent(new CustomEvent('mileageCountUpdate', { detail: { count: 0 } }));
-    window.dispatchEvent(new CustomEvent('mileageSearchReset', { detail: { value: '' } }));
-  }, []);
+  // Standalone search. Previously this arrived from the Navbar via
+  // 'mileageSearchChange' and pushed its row count back through
+  // 'mileageCountUpdate' — three window events to wire one input to the table
+  // it filters. The hub supplies `search` when embedded; otherwise the input
+  // below owns it.
+  const onSearch = (value) => {
+    setSearchQuery(value);
+    setPagination(p => ({ ...p, page: 1 }));
+  };
 
   const fetchFleetOverview = async () => {
     setIsLoading(true);
     try {
       const res = await apiClient.get('/api/mileage/fleet-overview', {
-        params: { page: pagination.page, limit: pagination.limit, search: searchQuery }
+        params: { page: pagination.page, limit: pagination.limit, search: effectiveSearch }
       });
       setVehicles(res.data?.data || []);
       const total = res.data?.meta?.total ?? 0;
@@ -60,7 +67,7 @@ const MileageTrackingPage = () => {
     }
   };
 
-  useEffect(() => { fetchFleetOverview(); }, [pagination.page, searchQuery]);
+  useEffect(() => { fetchFleetOverview(); }, [pagination.page, effectiveSearch]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
 
@@ -102,7 +109,21 @@ const MileageTrackingPage = () => {
   };
 
   return (
-    <div className="page-container mileage-listing-container">
+    <div className={`${embedded ? 'fleet-embedded' : 'page-container'} mileage-listing-container`}>
+      {!embedded && (
+        <div className="mileage-toolbar" style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0 12px' }}>
+          <label className="fleet-search">
+            <Search size={15} />
+            <input
+              type="search"
+              value={searchQuery}
+              placeholder="Search vehicle or status…"
+              onChange={(e) => onSearch(e.target.value)}
+              aria-label="Search mileage by vehicle"
+            />
+          </label>
+        </div>
+      )}
       {/* Content */}
       <div className="mileage-content-area">
         <div className="mileage-table-container">
@@ -160,7 +181,7 @@ const MileageTrackingPage = () => {
               <div className="empty-state">
                 <FileText size={48} color="#9ca3af" />
                 <p>No vehicles found for mileage tracking</p>
-                {searchQuery && <p className="empty-subtext">Try adjusting your search</p>}
+                {effectiveSearch && <p className="empty-subtext">Try adjusting your search</p>}
               </div>
             )}
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Mail, MapPin, Headphones, Bell, ChevronDown } from 'lucide-react';
 import ReportsSidebar from '../../components/ReportsSidebar';
 import '../PageStyles.css';
@@ -26,12 +27,37 @@ import RefuelLogsPage from '../Trip/RefuelLogsPage.jsx';
 import AdBlueComparisonReport from './reports/AdBlueComparisonReport.jsx';
 import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
 
+// Each report is an aggregated, exportable view of data you WORK with
+// somewhere else. Reports runs on its own api/reports/* surface, so these are
+// not duplicates of the operational screens — but nothing told the user which
+// door to use, or that the other door existed. This is the return path.
+const LIVE_DATA_FOR = {
+    driver: { to: '/drivers', label: 'Drivers' },
+    vehicle: { to: '/vehicles', label: 'Vehicles' },
+    mileageIntervals: { to: '/fleet/fuel?tab=logs&view=mileage', label: 'Mileage logs' },
+    modelComparison: { to: '/fleet/fuel?tab=logs&view=mileage', label: 'Mileage logs' },
+    dieselReport: { to: '/fleet/fuel?tab=logs&view=mileage', label: 'Fuel logs' },
+    adblueReport: { to: '/fleet/fuel?tab=logs&view=adblue', label: 'AdBlue logs' },
+};
+
+// Valid ?r= values. An unknown one falls back to the driver report rather than
+// rendering an empty pane.
+const REPORT_IDS = new Set([
+    'driver', 'vehicle', 'mileageIntervals', 'modelComparison', 'dieselReport', 'adblueReport', 'outliers',
+]);
+
 // --- MAIN REPORTS PAGE COMPONENT ---
 const ReportsPage = () => {
     const [isReportsSidebarOpen, setIsReportsSidebarOpen] = useState(true);
     const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
-    const [selectedReport, setSelectedReport] = useState('driver'); // Default to driver report
+    // Which report is showing lives in the URL (?r=), not just in state, so a
+    // report can be linked to. Operational pages now point at their matching
+    // report — "View mileage report →" from Fuel, and so on — which was
+    // impossible while the selection was component-local.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedReport = REPORT_IDS.has(searchParams.get('r')) ? searchParams.get('r') : 'driver';
+    const setSelectedReport = (id) => setSearchParams({ r: id }, { replace: true });
     const [highlightedOutlierId, setHighlightedOutlierId] = useState(null); // Used for linking
 
     // Removed profile context - profile logic completely removed
@@ -122,7 +148,15 @@ const ReportsPage = () => {
                 />
                 {/* Main Content Area */}
                 <div className={`reports-content ${isReportsSidebarOpen ? 'with-sidebar' : ''} ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}>
-                    {/* Top Nav Bar */}
+                    {/* Reports are read-only aggregates; this is the way back
+                        to the screen where the same data is entered and fixed. */}
+                    {LIVE_DATA_FOR[selectedReport] && (
+                        <div className="reports-crosslink">
+                            <Link to={LIVE_DATA_FOR[selectedReport].to}>
+                                Go to live data · {LIVE_DATA_FOR[selectedReport].label} &rarr;
+                            </Link>
+                        </div>
+                    )}
                     {/* Report Content */}
                     <div className="reports-main-content">
                         {renderReport()} {/* Renders the selected report component */}

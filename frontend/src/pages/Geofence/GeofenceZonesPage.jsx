@@ -141,7 +141,7 @@ const MapLegend = () => (
 );
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
-const GeofenceZonesPage = () => {
+const GeofenceZonesPage = ({ embedded = false }) => {
   const [zones, setZones] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -243,10 +243,12 @@ const GeofenceZonesPage = () => {
   const customCount = zones.filter(z => z.zoneType === 'CUSTOM').length;
 
   return (
-    <div className="gfz-page">
+    <div className={`gfz-page${embedded ? ' fleet-embedded' : ''}`}>
 
       {/* Header */}
       <div className="gfz-header">
+        {/* Embedded: PlacesHub owns the title; the live pill and actions stay. */}
+        {!embedded && (
         <div className="gfz-title-area">
           <div className="gfz-icon-wrap"><MapPin size={20} color="var(--primary-color,#4f46e5)" /></div>
           <div>
@@ -254,6 +256,7 @@ const GeofenceZonesPage = () => {
             <p className="gfz-subtitle">Accident blackspots, parking areas and custom zones · click the map to add a zone</p>
           </div>
         </div>
+        )}
         <div className="gfz-header-actions">
           {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
             <span className={`gfz-live-pill ${liveOnline ? (liveVehicles.some(v => v.isStale) ? 'gfz-live-stale' : 'gfz-live-on') : 'gfz-live-off'}`}>

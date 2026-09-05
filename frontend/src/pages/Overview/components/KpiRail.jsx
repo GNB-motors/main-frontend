@@ -1,5 +1,6 @@
 import { HeartPulse, Truck, Users, Route as RouteIcon, Gauge, IndianRupee } from 'lucide-react';
 import { KpiTile, StatusPill } from './overview.primitives.jsx';
+import MetricNote from '../../../components/Fleet/MetricNote.jsx';
 import { formatNum, formatInrCompact, gradeSignal } from '../../../utils/formatters';
 
 const GRADE_TONE = {
@@ -26,6 +27,14 @@ export default function KpiRail({ vehicles, drivers, trips, kilometers, health, 
       <KpiTile
         primary
         to="#fleet-health"
+        note={
+          <MetricNote label="Fleet Health">
+            A 0–100 roll-up of how the fleet is running: telemetry coverage,
+            document compliance, service overdue-ness and fuel anomalies. The
+            grade is the same score banded A–E. Open the Fleet Health panel
+            below for the component-by-component breakdown.
+          </MetricNote>
+        }
         label={
           <>
             <HeartPulse size={13} style={{ color: tone }} /> Fleet Health
@@ -48,7 +57,7 @@ export default function KpiRail({ vehicles, drivers, trips, kilometers, health, 
         sub={`${formatNum(drivers?.active || 0)} active`}
       />
       <KpiTile
-        to="/trips"
+        to="/fleet/trips"
         label={<><RouteIcon size={13} /> Trips</>}
         value={formatNum(trips?.total || 0)}
         sub={`${formatNum(trips?.completed || 0)} done · ${formatNum(trips?.ongoing || 0)} ongoing`}
@@ -59,9 +68,17 @@ export default function KpiRail({ vehicles, drivers, trips, kilometers, health, 
         sub="km this period"
       />
       <KpiTile
-        to="/owner-alerts"
+        to="/fleet/alerts?tab=inbox"
         label={<><IndianRupee size={13} style={{ color: wasteInr > 0 ? 'var(--critical)' : undefined }} /> Est. Waste</>}
         value={formatInrCompact(wasteInr || 0)}
+        note={
+          <MetricNote label="Estimated waste">
+            An estimate of money at risk today, not a confirmed loss: suspected
+            fuel siphoning, detours off the usual corridor, and idling burn,
+            priced at your recorded fuel rate. Every figure behind it is a flag
+            to review — open Alerts to see the individual events.
+          </MetricNote>
+        }
         tone={wasteInr > 0 ? 'var(--critical)' : undefined}
         sub="estimated exposure"
       />

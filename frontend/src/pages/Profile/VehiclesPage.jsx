@@ -210,7 +210,7 @@ function PortalDropdown({ triggerRef, isOpen, onClose, children }) {
     );
 }
 
-const VehiclesPage = () => {
+const VehiclesPage = ({ embedded = false }) => {
     const navigate = useNavigate();
     // Try to read business ref id from localStorage as a fallback when profile context is absent
     const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
@@ -242,6 +242,7 @@ const VehiclesPage = () => {
 
     // Remove global page-content padding only for this page
     useEffect(() => {
+        if (embedded) return undefined;
         const pageContentEl = document.querySelector('.page-content');
         if (pageContentEl) {
             pageContentEl.classList.add('no-padding');
@@ -251,7 +252,7 @@ const VehiclesPage = () => {
                 pageContentEl.classList.remove('no-padding');
             }
         };
-    }, []);
+    }, [embedded]);
 
     // Handle click outside to close dropdown
     useEffect(() => {
@@ -539,7 +540,7 @@ const VehiclesPage = () => {
 
     return (
         <>
-            <div className="vehicles-page-container" style={themeColors}>
+            <div className={`vehicles-page-container${embedded ? ' fleet-embedded' : ''}`} style={themeColors}>
                 <div className="vehicles-content-wrapper">
                     {/* Header Section */}
                     <div className="vehicles-header">
