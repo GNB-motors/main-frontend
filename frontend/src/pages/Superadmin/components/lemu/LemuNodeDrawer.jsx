@@ -1,55 +1,61 @@
-import React, { useEffect, useRef } from 'react';
-// eslint-disable-next-line no-unused-vars
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import LemuNodePulse from './LemuNodePulse';
-import LemuNodeStatus from './LemuNodeStatus';
-import LemuStatusChip from './LemuStatusChip';
-import LemuGraphEvidence from './graph/LemuGraphEvidence';
-import { formatDuration, fullRoutePath, jobStatusToTrio, relativeTime } from './utils';
+import { LemuService } from '../LemuService';
+import { DARK, LIGHT, kindHue, hexa } from './graph/graphTheme';
+import { upstreamNote } from './graph/upstreamTrace';
+import {
+  nf,
+  stampUTC,
+  evidenceVariant,
+  metricsRows,
+  ownedFunctionRows,
+  errorWindowLabel,
+  mirrorPanel,
+} from './graph/drawerModel';
+import { fullRoutePath, relativeTime } from './utils';
 
-/* Inline arrow handlers/middleware have no fn.name, so the manifest records
-   them as "anonymous". Never render that bare word — attach the derived module
-   (or a count, for middleware) so the operator still learns something. */
-const namedOrNull = (name) => (name && name !== 'anonymous' ? name : null);
+/* The design's kgdrawer slide-in (220ms), injected so the drawer stays
+   self-contained. Reduced motion honoured the same way the design does. */
+const KGDRAWER_CSS = `
+@keyframes kgdrawer{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.lemu-kgdrawer{animation:none !important}}
+`;
 
-/* INFRA kinds: the drawer resolves them from the topology payload (the page
-   passes it through), and the metrics block picks a few key facts per kind. */
+const MONO = 'ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace';
+
 const INFRA_KINDS = ['host', 'store', 'collection', 'table', 'pipe', 'source', 'surface'];
 
-const INFRA_METRICS = {
-  host: [['rssMb', 'RSS (MB)'], ['eventLoopLagMs', 'Event-loop lag (ms)'], ['uptimeSec', 'Uptime (s)']],
-  store: [['collectionCount', 'Collections'], ['tableCount', 'Tables']],
-  collection: [['ops', 'Ops (24h)'], ['fail', 'Failed (24h)']],
-  pipe: [['lagSeconds', 'CDC lag (s)'], ['watermarks', 'Watermarks']],
-  source: [['calls', 'Calls (24h)'], ['failures', 'Failures (24h)']],
-  surface: [['n', 'Requests (24h)'], ['err', 'Errors (24h)']],
-};
+/* State chip recipes, one per state — the same trio the canvas rings use. */
+const STATE_TONE = (T) => ({
+  measured: { bg: T.okBg, fg: T.okT, bd: `1px solid ${T.okBd}` },
+  declared: { bg: T.sunk, fg: T.t3, bd: `1px dashed ${T.hollow2}` },
+  unreachable: { bg: T.faultBg, fg: T.faultT, bd: `1px solid ${T.faultBd}` },
+});
 
-const handlerLabel = (route, moduleName) => namedOrNull(route.handlerName)
-  || `anonymous · ${moduleName ? `${moduleName} module` : 'unattributed'}`;
-
-const middlewareLabels = (middlewares) => {
-  const labels = [];
-  let anon = 0;
-  (middlewares || []).forEach((m) => {
-    const named = namedOrNull(m);
-    if (named) labels.push(named);
-    else anon += 1;
-  });
-  if (anon > 0) labels.push(`anonymous ×${anon}`);
-  return labels;
-};
-
-const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edges, liveness, topology, errorAttribution, closure, onSelectNode, onClose }) => {
+const LemuNodeDrawer = ({
+  node, kind, pulseSeries, pulseStatus, edges, liveness, topology, errorAttribution, onSelectNode, onClose,
+  /* Optional wiring, added with defaults so the existing page render site
+     keeps working unchanged:
+       onIsolate — collapses the graph to this node's 1-hop neighbourhood
+         (the tab owns hop state; the page does not pass this yet, so the
+         button hides until it does).
+       theme     — Task 14 wires the app-level switch; the drawer follows
+         the canvas default. */
+  onIsolate,
+  theme = 'dark',
+}) => {
+  const T = theme === 'light' ? LIGHT : DARK;
   const drawerRef = useRef(null);
   const closeBtnRef = useRef(null);
+  const [tracing, setTracing] = useState(false);
+  const [rebuild, setRebuild] = useState('idle'); // idle|confirm|busy|done|error
 
   useEffect(() => {
     closeBtnRef.current?.focus();
   }, [node, kind]);
 
-  /* Simple focus trap: keep focus cycling through focusable elements. */
+  /* Focus trap + Escape (unchanged behaviour from the pre-redesign
+     drawer; the design adds no scrim — the board stays interactive). */
   useEffect(() => {
     const drawer = drawerRef.current;
     if (!drawer) return undefined;
@@ -78,475 +84,412 @@ const LemuNodeDrawer = ({ node, kind, pulseSeries, findingIds, pulseStatus, edge
     return () => drawer.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  const hasFinding = findingIds?.has(node?._id);
+  if (!node) return null;
 
-  /* The node's key in the knowledge graph. Route nodes connect through their
-     module — edges are stored against mounts/modules/models/jobs, not routes. */
-  const graphKey = !node ? null
-    : kind === 'route' ? (node._module ? `module:${node._module}` : null)
-      : kind === 'model' ? `model:${node.modelName}`
-        : kind === 'job' ? `job:${node.name}`
-          : kind === 'module' ? `module:${node.name}`
-            : null;
+  const hue = kindHue(kind, theme) || '#94a3b8';
+  const tone = STATE_TONE(T);
 
-  const outgoing = graphKey ? (edges || []).filter((e) => e.from === graphKey) : [];
-  const incoming = graphKey ? (edges || []).filter((e) => e.to === graphKey) : [];
+  /* INFRA rows carry state on the node itself; code-layer jobs pick their
+     topology row up as _topo (the page resolves both). */
+  const stateNode = node.state ? node : node._topo || null;
+  const state = stateNode?.state || null;
+  const st = state ? tone[state] || tone.declared : null;
 
-  /* Attributed error groups for THIS node (Phase 4). graphKey is the same id
-     the attribution service emits (`module:<name>` for modules), so the join
-     is an equality match — no fuzzy guessing. Sorted by occurrences desc and
-     capped: the drawer is a detail view, not the inbox. */
+  /* ── Header copy ── */
+  const name = kind === 'route' ? `${node.method} ${fullRoutePath(node)}`
+    : kind === 'model' ? node.modelName
+      : kind === 'job' ? node.name
+        : kind === 'module' ? node.name
+          : node.label || node._id;
+  const path = kind === 'module' ? (node._functions?.[0]?.file || '—')
+    : kind === 'model' ? (node.collectionName || '—')
+      : kind === 'route' ? fullRoutePath(node)
+        : kind === 'job' ? (node.cronExpression || '—')
+          : (node.declaredBy || '—');
+  /* Host chip: INFRA names its hostId; code-layer nodes run on the API's
+     own host, looked up from the topology self marker — never guessed. */
+  const selfHost = (topology?.nodes || []).find((n) => n.kind === 'host' && n.self === true);
+  const host = node.hostId ? node.hostId.replace(/^host:/, '')
+    : INFRA_KINDS.includes(kind) ? 'unassigned'
+      : (selfHost ? selfHost.label : '—');
+
+  /* ── Metrics / evidence / mirror (pure builders — drawerModel.js) ── */
+  const metrics = metricsRows(stateNode || node, kind, edges || [], {
+    rel: relativeTime,
+    manifestNode: node,
+    latestPulse: Array.isArray(pulseSeries) ? pulseSeries[0] || {} : {},
+    liveness,
+    pulseStatus,
+    jobHealth: pulseSeries?._health || {},
+  });
+  const ev = stateNode ? evidenceVariant(stateNode) : null;
+  const mirror = INFRA_KINDS.includes(kind) ? mirrorPanel(node, topology, relativeTime) : null;
+
+  /* ── Owned functions (module is the only kind with a real source) ── */
+  const fnRows = kind === 'module' ? ownedFunctionRows(node._functions) : null;
+
+  /* ── Attributed errors (existing prop shape; the join key is the same
+     id the attribution service emits) ── */
+  const graphKey = kind === 'route' ? (node._module ? `module:${node._module}` : null)
+    : kind === 'model' ? `model:${node.modelName}`
+      : kind === 'job' ? `job:${node.name}`
+        : kind === 'module' ? `module:${node.name}`
+          : INFRA_KINDS.includes(kind) ? node._id : null;
   const errorGroups = (errorAttribution?.groups || [])
     .filter((g) => g.nodeId === graphKey)
     .sort((a, b) => (b.occurrences || 0) - (a.occurrences || 0));
+  const windowLabel = errorWindowLabel(errorAttribution?.windowHours);
+  const windowFrom = errorAttribution?.generatedAt
+    ? stampUTC(new Date(new Date(errorAttribution.generatedAt).getTime() - (errorAttribution.windowHours || 720) * 3600 * 1000).toISOString()).replace(' UTC', '')
+    : null;
 
-  const renderErrors = () => {
-    if (!errorGroups.length) return null;
-    return (
-      <div className="lemu-drawer__section">
-        <h4>Attributed errors</h4>
-        <ul className="lemu-err">
-          {errorGroups.slice(0, 10).map((g) => (
-            <li key={g.fingerprint} className="lemu-err__row">
-              <div className="lemu-err__name">{g.errorName}: {g.sampleMessage}</div>
-              <div className="lemu-meta">
-                {g.occurrences}× · {g.functionName ? `${g.functionName}()` : 'file only'} ·{' '}
-                <code>{g.file}{g.line ? `:${g.line}` : ''}</code> ·{' '}
-                {/* Match quality stays visible: a hidden guess becoming a fact
-                    is exactly how this project got burned before. */}
-                <span data-quality={g.matchQuality}>
-                  {g.matchQuality === 'exact' ? '✓ exact' : '~ file-only'}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
-        {errorGroups.length > 10 && (
-          <div className="lemu-meta">showing 10 of {errorGroups.length} — see the Errors tab</div>
-        )}
-      </div>
-    );
-  };
+  /* ── TRACE UPSTREAM — pure helpers over the layer's real edge set ── */
+  const links = INFRA_KINDS.includes(kind) ? (topology?.edges || []) : (edges || []);
+  const traceId = graphKey || node._id;
+  const nameOf = (id) => (topology?.nodes || []).find((n) => n.id === id)?.label || id.replace(/^\w+:/, '');
+  const TRACE_CAP = 8;
+  const traceNote = tracing ? upstreamNote(traceId, links, TRACE_CAP, nameOf) : '';
 
-  const livenessLine = () => {
-    if (!liveness || !node) return null;
-    if (kind === 'route') {
-      const live = liveness.routes?.[`${node.method} ${fullRoutePath(node)}`];
-      return live?.lastSeen ? relativeTime(live.lastSeen) : 'no traffic in 24h';
+  /* ── REBUILD MANIFEST (§0 C4) — a write, so it asks first ── */
+  const canRebuild = typeof localStorage !== 'undefined' && localStorage.getItem('user_role') === 'SUPER_ADMIN';
+  const onRebuildClick = async () => {
+    if (rebuild === 'confirm') {
+      setRebuild('busy');
+      try {
+        await LemuService.rebuildManifest();
+        setRebuild('done');
+      } catch {
+        setRebuild('error');
+      }
+      return;
     }
-    if (kind === 'model') {
-      const live = liveness.collections?.[node.collectionName];
-      return live?.lastSeen ? relativeTime(live.lastSeen) : 'no traffic in 24h';
-    }
-    return null;
-  };
-  const lastTraffic = livenessLine();
-
-  const renderConnections = () => {
-    if (!graphKey) return null;
-    if (!outgoing.length && !incoming.length) {
-      return (
-        <div className="lemu-drawer__section">
-          <h4>Connections</h4>
-          <div className="lemu-muted">No graph edges recorded for this node.</div>
-        </div>
-      );
-    }
-    return (
-      <div className="lemu-drawer__section">
-        <h4>Connections</h4>
-        {outgoing.length > 0 && (
-          <>
-            <div className="lemu-muted">Depends on / owns</div>
-            <ul className="lemu-drawer__list">
-              {outgoing.map((e, i) => <li key={i}>{e.to} <span className="lemu-muted">({e.kind}, {e.confidence})</span></li>)}
-            </ul>
-          </>
-        )}
-        {incoming.length > 0 && (
-          <>
-            <div className="lemu-muted">Used by</div>
-            <ul className="lemu-drawer__list">
-              {incoming.map((e, i) => <li key={i}>{e.from} <span className="lemu-muted">({e.kind}, {e.confidence})</span></li>)}
-            </ul>
-          </>
-        )}
-      </div>
-    );
+    if (rebuild === 'idle' || rebuild === 'error') setRebuild('confirm');
   };
 
-  /* Blast-radius closure (Phase 5): while the graph tab's blast toggle is
-     active for this selection, the drawer lists what the node touches —
-     downstream first ("depends on it" is the damage direction), then
-     upstream. Rows reuse the existing selection mechanism. */
-  const renderClosure = () => {
-    if (!closure) return null;
-    const { down = [], up = [] } = closure;
-    if (!down.length && !up.length) return null;
-    const row = (id) => (
-      <li key={id}>
-        {onSelectNode ? (
-          <button type="button" className="lemu-drawer__link" onClick={() => onSelectNode(id)}>{id}</button>
-        ) : id}
-      </li>
-    );
-    return (
-      <div className="lemu-drawer__section">
-        <h4>Blast radius</h4>
-        {down.length > 0 && (
-          <>
-            <div className="lemu-muted">Depends on it ({down.length})</div>
-            <ul className="lemu-drawer__list">{down.map(row)}</ul>
-          </>
-        )}
-        {up.length > 0 && (
-          <>
-            <div className="lemu-muted">It depends on ({up.length})</div>
-            <ul className="lemu-drawer__list">{up.map(row)}</ul>
-          </>
-        )}
-      </div>
-    );
+  /* ── Shared style fragments (design tokens verbatim via graphTheme) ── */
+  const sectionTitle = {
+    fontFamily: MONO, fontSize: 9.5, letterSpacing: '.14em', color: T.t5, margin: '0 0 7px',
+  };
+  const card = {
+    border: `1px solid ${T.l5}`, borderRadius: 9, overflow: 'hidden', marginBottom: 16,
+  };
+  const chip = {
+    fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', padding: '3px 8px', borderRadius: 5,
+  };
+  const actionBtn = (active, activeBg, activeBd, activeFg) => ({
+    flex: 1,
+    border: `1px solid ${active ? activeBd : T.l10}`,
+    background: active ? activeBg : 'transparent',
+    color: active ? activeFg : T.t4,
+    borderRadius: 7,
+    padding: '7px 0',
+    fontFamily: MONO,
+    fontSize: 10,
+    letterSpacing: '.07em',
+    cursor: 'pointer',
+  });
+
+  const glyphStyle = {
+    width: 15, height: 15, borderRadius: '50%', flex: 'none', marginTop: 2,
+    background: state === 'measured' ? hue : state === 'unreachable' ? T.voidFault : T.void,
+    border: state === 'measured' ? 'none'
+      : state === 'unreachable' ? `2px solid ${T.fault}` : `2px dashed ${hexa(hue, 0.6)}`,
+    boxShadow: state === 'measured' ? `0 0 12px ${hexa(hue, 0.7)}`
+      : state === 'unreachable' ? `0 0 0 3px ${T.faultBg}` : `inset 0 0 7px ${T.inset2}`,
   };
 
-  const renderRouteDetail = () => {
-    const route = node;
-    const latest = pulseSeries?.[0] || {};
-    const state = latest.err > 0 ? 'broken' : latest.n > 0 ? 'nothing' : 'nothing';
-    return (
-      <>
-        <div className="lemu-drawer__head">
-          <div className="lemu-drawer__kind">Route</div>
-          <h2 className="lemu-drawer__title">{route.method} {fullRoutePath(route)}</h2>
-          {hasFinding && <span className="lemu-drawer__badge lemu-drawer__badge--finding">▲ Finding</span>}
-        </div>
-        <dl className="lemu-drawer__grid">
-          <dt>Mount</dt><dd>{route.mountPath || '/'}</dd>
-          <dt>Handler</dt><dd>{handlerLabel(route, node._module)}</dd>
-          <dt>Derived module</dt><dd>{node._module || 'unattributed'}</dd>
-          <dt>Auth</dt><dd>{route.hasAuth ? 'yes' : 'no'}</dd>
-          <dt>Tenant guard</dt><dd>{route.hasTenantGuard ? 'yes' : 'no'}</dd>
-          {lastTraffic && <><dt>Last traffic</dt><dd>{lastTraffic}</dd></>}
-        </dl>
-        {route.middlewares?.length > 0 && (
-          <div className="lemu-drawer__section">
-            <h4>Middleware</h4>
-            <ul className="lemu-drawer__list">
-              {middlewareLabels(route.middlewares).map((m, i) => <li key={i}>{m}</li>)}
-            </ul>
-          </div>
-        )}
-        <LemuNodeStatus state={state} />
-        <div className="lemu-drawer__section">
-          <h4>Pulse</h4>
-          <div className="lemu-drawer__metrics">
-            <div className="lemu-metric"><span>n</span><strong>{latest.n ?? '—'}</strong></div>
-            <div className="lemu-metric"><span>err</span><strong>{latest.err ?? '—'}</strong></div>
-            <div className="lemu-metric"><span>p50</span><strong>{formatDuration(latest.p50)}</strong></div>
-            <div className="lemu-metric"><span>p95</span><strong>{formatDuration(latest.p95)}</strong></div>
-            <div className="lemu-metric"><span>p99</span><strong>{formatDuration(latest.p99)}</strong></div>
-          </div>
-          <LemuNodePulse series={pulseSeries} kind="route" />
-        </div>
-      </>
-    );
-  };
+  const headBg = state === 'unreachable' ? `linear-gradient(180deg, ${T.faultBg2}, transparent)`
+    : state === 'declared' ? `linear-gradient(180deg, ${T.hollow4}, transparent)`
+      : `linear-gradient(180deg, ${hexa(hue, 0.09)}, transparent)`;
 
-  const renderModelDetail = () => {
-    const model = node;
-    const latest = pulseSeries?.[0] || {};
-    const state = 'nothing';
-    return (
-      <>
-        <div className="lemu-drawer__head">
-          <div className="lemu-drawer__kind">Model</div>
-          <h2 className="lemu-drawer__title">{model.modelName}</h2>
-          {hasFinding && <span className="lemu-drawer__badge lemu-drawer__badge--finding">▲ Finding</span>}
-        </div>
-        <dl className="lemu-drawer__grid">
-          <dt>Collection</dt><dd>{model.collectionName || '—'}</dd>
-          <dt>Paths</dt><dd>{model.pathCount ?? '—'}</dd>
-          <dt>Indexes</dt><dd>{model.indexCount ?? '—'}</dd>
-          <dt>Tenant field</dt><dd>{model.hasTenantField ? 'yes' : 'no'}</dd>
-          <dt>Estimated docs</dt>
-          <dd>{model.estimatedDocs === null ? 'doc count unavailable' : model.estimatedDocs}</dd>
-          {lastTraffic && <><dt>Last traffic</dt><dd>{lastTraffic}</dd></>}
-        </dl>
-        {model.indexes?.length > 0 && (
-          <div className="lemu-drawer__section">
-            <h4>Index list</h4>
-            <ul className="lemu-drawer__list">
-              {model.indexes.map((ix, i) => <li key={i}><code>{ix}</code></li>)}
-            </ul>
-          </div>
-        )}
-        <LemuNodeStatus state={state} />
-        <div className="lemu-drawer__section">
-          <h4>Pulse</h4>
-          <div className="lemu-drawer__metrics lemu-drawer__metrics--wide">
-            <div className="lemu-metric"><span>find</span><strong>{latest.find ?? '—'}</strong></div>
-            <div className="lemu-metric"><span>insert</span><strong>{latest.insert ?? '—'}</strong></div>
-            <div className="lemu-metric"><span>update</span><strong>{latest.update ?? '—'}</strong></div>
-            <div className="lemu-metric"><span>del</span><strong>{latest.del ?? '—'}</strong></div>
-            <div className="lemu-metric"><span>agg</span><strong>{latest.agg ?? '—'}</strong></div>
-          </div>
-          <LemuNodePulse series={pulseSeries} kind="model" />
-        </div>
-      </>
-    );
-  };
+  const evTone = ev ? {
+    ok: {
+      border: `1px solid ${T.l7}`, bg: T.f1, divider: `1px solid ${T.l3}`,
+      dot: T.ok, dotBd: 'none', titleFg: T.okT, tsFg: T.t4, queryFg: T.t3, valueFg: T.t2,
+    },
+    hollow: {
+      border: `1px dashed ${T.hollow2}`, bg: T.sunk, divider: `1px dashed ${T.hollow3}`,
+      dot: T.void, dotBd: `1.5px dashed ${T.hollow}`, titleFg: T.t3, tsFg: T.t5, queryFg: T.t4, valueFg: T.t5,
+    },
+    fault: {
+      border: `1px solid ${T.faultBd}`, bg: T.faultBg2, divider: `1px solid ${T.faultBd2}`,
+      dot: T.fault, dotBd: 'none', titleFg: T.faultT, tsFg: T.faultT, queryFg: T.faultT2, valueFg: T.faultT,
+    },
+  }[ev.tone] : null;
 
-  const renderJobDetail = () => {
-    const job = node;
-    const health = pulseSeries?._health || {};
-    const state = jobStatusToTrio(health.status || 'unmonitored');
-    const trioReason = health.reason
-      ? health.reason
-      : health.status === 'never-ran'
-        ? 'Structurally cannot emit; job has never run.'
-        : health.status === 'unmonitored'
-          ? 'No heartbeat instrumentation registered.'
-          : '';
-    return (
-      <>
-        <div className="lemu-drawer__head">
-          <div className="lemu-drawer__kind">Job</div>
-          <h2 className="lemu-drawer__title">{job.name}</h2>
-          {hasFinding && <span className="lemu-drawer__badge lemu-drawer__badge--finding">▲ Finding</span>}
-        </div>
-        <dl className="lemu-drawer__grid">
-          <dt>Interval</dt><dd>{job.intervalMs ? `${job.intervalMs}ms` : '—'}</dd>
-          <dt>Cron</dt><dd>{job.cronExpression || '—'}</dd>
-          <dt>Instrumented</dt><dd>{job.instrumented ? 'yes' : 'no'}</dd>
-          <dt>Live status</dt><dd>{health.status || '—'}</dd>
-          <dt>Last OK</dt><dd>{health.lastOkAt ? relativeTime(health.lastOkAt) : '—'}</dd>
-        </dl>
-        <LemuNodeStatus state={state} reason={trioReason} />
-        {health.lastError && (
-          <div className="lemu-drawer__section lemu-drawer__section--error">
-            <h4>Last error</h4>
-            <pre>{health.lastError}</pre>
-          </div>
-        )}
-      </>
-    );
-  };
-
-  const renderModuleDetail = () => {
-    const module = node;
-    const routes = node._routes || [];
-    // Source order, NOT loc — loc is the FILE's line count, identical for
-    // every function in the file (plan §0), so sorting by it sorts by a
-    // constant. startLine is where the declaration actually starts.
-    const funcs = [...(node._functions || [])]
-      .sort((a, b) => (a.startLine ?? 0) - (b.startLine ?? 0));
-    // Function names an attributed error group resolved to for this node —
-    // those rows carry the same amber marker as the graph pips, which is the
-    // whole point of the phase: node -> function -> reason.
-    const errorFnNames = new Set(errorGroups.map((g) => g.functionName).filter(Boolean));
-    return (
-      <>
-        <div className="lemu-drawer__head">
-          <div className="lemu-drawer__kind">Module</div>
-          <h2 className="lemu-drawer__title">{module.name}</h2>
-        </div>
-        <dl className="lemu-drawer__grid">
-          <dt>Files</dt><dd>{module.fileCount ?? '—'}</dd>
-          <dt>Total LOC</dt><dd>{module.totalLoc ?? '—'}</dd>
-          <dt>Functions</dt><dd>{module.functionCount ?? '—'}</dd>
-          <dt>Attributed routes</dt><dd>{routes.length}</dd>
-        </dl>
-        <div className="lemu-drawer__section">
-          <h4>Functions</h4>
-          <ul className="lemu-drawer__list lemu-drawer__list--two">
-            {funcs.slice(0, 50).map((fn, i) => (
-              <li key={i}>
-                {errorFnNames.has(fn.functionName) && (
-                  <span className="lemu-err__pip" title="An attributed error resolves to this function" aria-label="has attributed error">⚠</span>
-                )}
-                {fn.functionName}{' '}
-                <code>{fn.file}{Number.isInteger(fn.startLine) ? `:${fn.startLine}` : ''}</code>
-              </li>
-            ))}
-          </ul>
-          {funcs.length > 50 && (
-            <div className="lemu-meta">showing 50 of {funcs.length}</div>
-          )}
-        </div>
-        <div className="lemu-drawer__section">
-          <h4>Routes</h4>
-          <ul className="lemu-drawer__list lemu-drawer__list--two">
-            {routes.slice(0, 30).map((r, i) => (
-              <li key={i}>{r.method} {fullRoutePath(r)}</li>
-            ))}
-          </ul>
-        </div>
-      </>
-    );
-  };
-
-  const renderInfraDetail = () => {
-    const metrics = node.metrics || {};
-    const facts = INFRA_METRICS[node.kind] || [];
-    const topoEdges = topology?.edges || [];
-    const outgoing = topoEdges.filter((e) => e.from === node.id);
-    const incoming = topoEdges.filter((e) => e.to === node.id);
-    const live = metrics.liveness || {};
-    return (
-      <>
-        <div className="lemu-drawer__head">
-          <div className="lemu-drawer__kind">{kind}</div>
-          <h2 className="lemu-drawer__title">{node.label}</h2>
-        </div>
-        {node.hostId && (
-          <dl className="lemu-drawer__grid">
-            <dt>Host</dt><dd>{node.hostId.replace(/^host:/, '')}</dd>
-          </dl>
-        )}
-        {(facts.length > 0 || node.kind === 'table') && (
-          <div className="lemu-drawer__section">
-            <h4>Key facts</h4>
-            <div className="lemu-drawer__metrics lemu-drawer__metrics--wide">
-              {facts.map(([key, label]) => (
-                <div className="lemu-metric" key={key}>
-                  <span>{label}</span>
-                  <strong>{metrics[key] ?? '—'}</strong>
-                </div>
-              ))}
-              {node.kind === 'table' && (
-                <>
-                  <div className="lemu-metric"><span>Liveness ok</span><strong>{live.ok == null ? '—' : live.ok ? 'yes' : 'no'}</strong></div>
-                  <div className="lemu-metric"><span>Checked</span><strong>{live.checkedAt ? relativeTime(live.checkedAt) : '—'}</strong></div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-        {(outgoing.length > 0 || incoming.length > 0) && (
-          <div className="lemu-drawer__section">
-            <h4>Connections</h4>
-            {outgoing.length > 0 && (
-              <>
-                <div className="lemu-muted">Flows to</div>
-                <ul className="lemu-drawer__list">
-                  {outgoing.map((e, i) => <li key={i}>{e.to} <span className="lemu-muted">({e.kind})</span></li>)}
-                </ul>
-              </>
-            )}
-            {incoming.length > 0 && (
-              <>
-                <div className="lemu-muted">Fed by</div>
-                <ul className="lemu-drawer__list">
-                  {incoming.map((e, i) => <li key={i}>{e.from} <span className="lemu-muted">({e.kind})</span></li>)}
-                </ul>
-              </>
-            )}
-          </div>
-        )}
-      </>
-    );
-  };
-
-  const renderContent = () => {
-    if (!node) {
-      return (
-        <div className="lemu-drawer__empty">
-          <div className="lemu-state__title">Select a node on the map</div>
-          <div>Click any route, model, job, or module plate to inspect it.</div>
-        </div>
-      );
-    }
-    /* Phase 5 (diff overlay): a node id with no row in the current manifest
-       (a removed-version ghost, a stale deep link) gets a name-only view —
-       never the full detail sections, which would render empty sections as
-       if the node were real. */
-    if (node._unresolved) {
-      return (
-        <div className="lemu-drawer__section">
-          <h2 className="lemu-drawer__title">{node.label}</h2>
-          <p className="lemu-meta">Not present in the current manifest — shown from a version comparison or an outdated link.</p>
-        </div>
-      );
-    }
-    /* P2: any node carrying a `state` (INFRA nodes directly; code-layer jobs
-       enriched with `_topo` from the topology payload) names the row behind
-       its colour at the very top of the drawer. */
-    const evidenceNode = node.state ? node : node._topo;
-    const evidenceBlock = evidenceNode ? <LemuGraphEvidence node={evidenceNode} /> : null;
-    if (pulseStatus === 'error') {
-      return (
-        <>
-          {evidenceBlock}
-          {kind === 'route' && renderRouteDetail()}
-          {kind === 'model' && renderModelDetail()}
-          {kind === 'job' && renderJobDetail()}
-          {kind === 'module' && renderModuleDetail()}
-          {INFRA_KINDS.includes(kind) && renderInfraDetail()}
-          {renderErrors()}
-          {renderConnections()}
-          {renderClosure()}
-          <div className="lemu-alert lemu-alert--error" role="alert">
-            Structure loaded; pulse unavailable (503). Structural fields still shown.
-          </div>
-        </>
-      );
-    }
-    return (
-      <>
-        {evidenceBlock}
-        {(() => {
-          switch (kind) {
-            case 'route': return renderRouteDetail();
-            case 'model': return renderModelDetail();
-            case 'job': return renderJobDetail();
-            case 'module': return renderModuleDetail();
-            default: return INFRA_KINDS.includes(kind) ? renderInfraDetail() : null;
-          }
-        })()}
-        {renderErrors()}
-        {renderConnections()}
-        {renderClosure()}
-      </>
-    );
-  };
+  const rebuildLabel = {
+    idle: 'REBUILD MANIFEST',
+    confirm: 'CONFIRM REBUILD',
+    busy: 'REBUILDING…',
+    done: 'REBUILD REQUESTED ✓',
+    error: 'REBUILD FAILED — RETRY?',
+  }[rebuild];
 
   return (
     <>
-      <motion.div
-        className="lemu-drawer-scrim"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <motion.aside
+      <style>{KGDRAWER_CSS}</style>
+      <aside
         ref={drawerRef}
-        className="lemu-drawer"
+        className="lemu-drawer lemu-kgdrawer"
         role="dialog"
-        aria-modal="true"
-        aria-labelledby="lemu-drawer-title"
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
+        aria-modal="false"
+        aria-label={name}
+        style={{
+          position: 'fixed',
+          top: 12, right: 12, bottom: 44,
+          width: 404,
+          maxWidth: 'calc(100vw - 24px)',
+          zIndex: 46,
+          borderRadius: 12,
+          background: T.panelSolid,
+          border: `1px solid ${T.l10}`,
+          boxShadow: `0 26px 80px ${T.sh1}`,
+          backdropFilter: 'blur(26px) saturate(1.4)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          color: T.t1,
+          animation: 'kgdrawer .22s cubic-bezier(.2,.8,.2,1)',
+        }}
       >
-        <div className="lemu-drawer__header">
-          <h3 id="lemu-drawer-title" className="lemu-drawer__heading">Node detail</h3>
-          <button
-            ref={closeBtnRef}
-            type="button"
-            className="lemu-drawer__close"
-            onClick={onClose}
-            aria-label="Close drawer"
-          >
-            <X size={18} />
-          </button>
+        {/* ── Header: state glyph, name, path, close, three chips ── */}
+        <div style={{ padding: '13px 14px 12px', borderBottom: `1px solid ${T.l6}`, background: headBg }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <span style={glyphStyle} aria-hidden="true" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: MONO, fontSize: 14, fontWeight: 500, color: T.t1, overflowWrap: 'anywhere', lineHeight: 1.3 }}>
+                {name}
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: 10.5, color: T.t5, marginTop: 3, overflowWrap: 'anywhere' }}>{path}</div>
+            </div>
+            <button
+              ref={closeBtnRef}
+              type="button"
+              onClick={onClose}
+              aria-label="Close drawer"
+              style={{
+                flex: 'none', border: `1px solid ${T.l10}`, background: 'transparent', color: T.t4,
+                borderRadius: 6, width: 24, height: 24, display: 'inline-flex', alignItems: 'center',
+                justifyContent: 'center', cursor: 'pointer', padding: 0,
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
+            <span style={{ ...chip, background: hexa(hue, 0.12), color: hue, border: `1px solid ${hexa(hue, 0.3)}` }}>{kind}</span>
+            {st && (
+              <span style={{ ...chip, background: st.bg, color: st.fg, border: st.bd }} data-state={state}>
+                {state === 'declared' ? 'DECLARED · NEVER MEASURED' : state.toUpperCase()}
+              </span>
+            )}
+            <span style={{ ...chip, background: T.f4, color: T.t4, border: `1px solid ${T.l5}` }}>{host}</span>
+          </div>
         </div>
-        <div className="lemu-drawer__body">
-          {renderContent()}
+
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 14px 18px' }}>
+          {node._unresolved ? (
+            <p style={{ fontFamily: MONO, fontSize: 10.5, color: T.t5, lineHeight: 1.6 }}>
+              Not present in the current manifest — shown from a version comparison or an outdated link.
+            </p>
+          ) : (
+            <>
+              {/* ── METRICS ── */}
+              {metrics.length > 0 && (
+                <>
+                  <div style={sectionTitle}>METRICS</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
+                    {metrics.map((m) => (
+                      <div key={m.label} style={{ border: `1px solid ${T.l5}`, borderRadius: 8, padding: '8px 10px', background: m.ok === false ? T.sunk2 : T.f2 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.09em', color: T.t5, marginBottom: 4 }}>{m.label}</div>
+                        <div style={{ fontFamily: MONO, fontSize: 15, fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em', color: m.ok === false ? T.t6 : T.t2, overflowWrap: 'anywhere' }}>{m.value}</div>
+                        <div style={{ fontFamily: MONO, fontSize: 9.5, color: T.t6, marginTop: 2 }}>{m.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* ── EVIDENCE — the most important block (P2) ── */}
+              {ev && evTone && (
+                <>
+                  <div style={sectionTitle}>EVIDENCE</div>
+                  <div style={{ borderRadius: 9, overflow: 'hidden', marginBottom: 16, border: evTone.border, background: evTone.bg }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', borderBottom: evTone.divider }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', flex: 'none', background: evTone.dot, border: evTone.dotBd }} aria-hidden="true" />
+                      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.09em', color: evTone.titleFg }}>{ev.title}</span>
+                      <span style={{ flex: 1 }} />
+                      <span style={{ fontFamily: MONO, fontSize: 10, fontVariantNumeric: 'tabular-nums', color: evTone.tsFg }}>{ev.ts}</span>
+                    </div>
+                    {ev.query && (
+                      <div style={{ padding: '9px 10px', fontFamily: MONO, fontSize: 10.5, lineHeight: 1.6, color: evTone.queryFg, overflowWrap: 'anywhere' }}>{ev.query}</div>
+                    )}
+                    {ev.value && (
+                      <div style={{ padding: '0 10px 9px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                        <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '.09em', color: T.t5 }}>→</span>
+                        <span style={{ fontFamily: MONO, fontSize: 12.5, fontVariantNumeric: 'tabular-nums', color: evTone.valueFg }}>{ev.value}</span>
+                      </div>
+                    )}
+                    {(ev.source || ev.method) && (
+                      <div style={{ padding: '6px 10px', borderTop: evTone.divider, display: 'flex', justifyContent: 'space-between', gap: 8, fontFamily: MONO, fontSize: 9.5, color: T.t5 }}>
+                        <span style={{ overflowWrap: 'anywhere' }}>{ev.source}</span>
+                        <span>{ev.method}</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* ── OWNED FUNCTIONS ── */}
+              {fnRows && (
+                <>
+                  <div style={sectionTitle}>OWNED FUNCTIONS</div>
+                  <div style={card}>
+                    {fnRows.slice(0, 50).map((f, i) => (
+                      <div key={`${f.ref}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderBottom: `1px solid ${T.l2}` }}>
+                        <span style={{ flex: 1, fontFamily: MONO, fontSize: 11, color: T.t3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 10, fontVariantNumeric: 'tabular-nums', color: T.t5, whiteSpace: 'nowrap' }}>{f.loc}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 10, color: T.link, whiteSpace: 'nowrap' }}>{f.ref}</span>
+                      </div>
+                    ))}
+                    {fnRows.length === 0 && (
+                      <div style={{ padding: 10, fontFamily: MONO, fontSize: 10.5, color: T.t6, textAlign: 'center' }}>no functions attributed</div>
+                    )}
+                  </div>
+                  {fnRows.length > 50 && (
+                    <div style={{ ...sectionTitle, marginTop: -12 }}>showing 50 of {fnRows.length}</div>
+                  )}
+                </>
+              )}
+
+              {/* ── ATTRIBUTED ERRORS — window stated even when empty (P4) ── */}
+              {graphKey && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                    <span style={{ ...sectionTitle, margin: 0 }}>ATTRIBUTED ERRORS</span>
+                    <span style={{
+                      fontFamily: MONO, fontSize: 9.5, fontVariantNumeric: 'tabular-nums', padding: '1px 6px', borderRadius: 4,
+                      background: errorGroups.length ? T.faultBg : T.f4,
+                      color: errorGroups.length ? T.faultT : T.t5,
+                    }}
+                    >
+                      {errorGroups.length ? nf(errorGroups.reduce((s, g) => s + (g.occurrences || 0), 0)) : '0'}
+                      {' '}in {windowLabel}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                    {errorGroups.slice(0, 10).map((g) => (
+                      <div key={g.fingerprint || g.message} style={{ border: `1px solid ${T.faultBd}`, background: T.faultBg2, borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                          <span style={{ flex: 1, fontFamily: MONO, fontSize: 11, color: T.faultT2, lineHeight: 1.45, wordBreak: 'break-word' }}>
+                            {g.message || g.sampleMessage || g.errorName || 'unknown error'}
+                          </span>
+                          <span style={{ fontFamily: MONO, fontSize: 11, fontVariantNumeric: 'tabular-nums', color: T.faultT, whiteSpace: 'nowrap' }}>
+                            {nf(g.occurrences)}×
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 5, fontFamily: MONO, fontSize: 10 }}>
+                          <span style={{ color: T.link, overflowWrap: 'anywhere' }}>
+                            {g.file ? `${g.file}${Number.isInteger(g.line) ? `:${g.line}` : ''}` : 'file unknown'}
+                            {' · '}
+                            <span data-quality={g.matchQuality}>
+                              {g.matchQuality === 'exact' ? '✓ exact' : g.matchQuality === 'file' ? '~ file-only' : 'unattributed'}
+                            </span>
+                          </span>
+                          <span style={{ color: T.t5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                            {g.lastOccurrence ? relativeTime(g.lastOccurrence) : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {errorGroups.length > 10 && (
+                      <div style={{ fontFamily: MONO, fontSize: 10, color: T.t5 }}>showing 10 of {errorGroups.length} — see the Errors tab</div>
+                    )}
+                    {errorAttribution == null ? (
+                      <div style={{ border: `1px solid ${T.l5}`, borderRadius: 8, padding: '9px 10px', fontFamily: MONO, fontSize: 10.5, color: T.t5 }}>
+                        attribution unavailable — could not load
+                      </div>
+                    ) : errorGroups.length === 0 && (
+                      <div style={{ border: `1px solid ${T.l5}`, borderRadius: 8, padding: '9px 10px', fontFamily: MONO, fontSize: 10.5, color: T.t5 }}>
+                        {`no attributed errors in the last ${windowLabel}`}
+                        {windowFrom ? ` · window ${windowFrom} → now` : ''}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* ── CLICKHOUSE MIRROR (§0 C3: absent fields omitted) ── */}
+              {mirror && (
+                <>
+                  <div style={sectionTitle}>CLICKHOUSE MIRROR</div>
+                  <div style={{ borderRadius: 9, overflow: 'hidden', border: `1px solid ${T.l7}`, background: T.f1 }}>
+                    <div style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.l3}` }}>
+                      <span
+                        style={{
+                          width: 7, height: 7, borderRadius: '50%', flex: 'none',
+                          background: mirror.ok ? T.ok : T.void,
+                          border: mirror.ok ? 'none' : `1.5px dashed ${T.hollow2}`,
+                        }}
+                        aria-hidden="true"
+                      />
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: mirror.ok ? T.t3 : T.t5, overflowWrap: 'anywhere' }}>{mirror.name}</span>
+                    </div>
+                    {mirror.rows.map((r) => (
+                      <div key={r.k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 10px', borderBottom: `1px solid ${T.l1}` }}>
+                        <span style={{ fontFamily: MONO, fontSize: 10.5, color: T.t5, whiteSpace: 'nowrap' }}>{r.k}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 10.5, fontVariantNumeric: 'tabular-nums', color: mirror.ok ? T.t3 : T.t5, overflowWrap: 'anywhere', textAlign: 'right' }}>{r.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ── TRACE UPSTREAM readout ── */}
+          {tracing && (
+            <div style={{ marginTop: 14, border: `1px dashed ${T.warnBd}`, background: T.warnBg2, borderRadius: 8, padding: '8px 10px', fontFamily: MONO, fontSize: 10.5, lineHeight: 1.5, color: T.warnT }}>
+              {traceNote}
+            </div>
+          )}
+
+          {/* ── Actions ── */}
+          {(onIsolate || traceId) && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
+              {onIsolate && (
+                <button type="button" onClick={() => onIsolate()} style={actionBtn(!tracing, T.acBg2, T.acBd2, T.acText)}>
+                  ISOLATE 1 HOP
+                </button>
+              )}
+              {traceId && (
+                <button
+                  type="button"
+                  onClick={() => setTracing((v) => !v)}
+                  aria-pressed={tracing}
+                  style={actionBtn(tracing, T.warnBg, T.warnBd, T.warnT)}
+                >
+                  {tracing ? 'UPSTREAM ✓' : 'TRACE UPSTREAM'}
+                </button>
+              )}
+            </div>
+          )}
+          {canRebuild && (
+            <button
+              type="button"
+              onClick={onRebuildClick}
+              disabled={rebuild === 'busy' || rebuild === 'done'}
+              style={{
+                ...actionBtn(rebuild === 'confirm', rebuild === 'error' ? T.faultBg : T.warnBg, rebuild === 'error' ? T.faultBd : T.warnBd, rebuild === 'error' ? T.faultT : T.warnT),
+                width: '100%',
+                marginTop: 6,
+              }}
+            >
+              {rebuildLabel}
+            </button>
+          )}
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 };
