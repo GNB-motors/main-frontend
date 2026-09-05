@@ -622,3 +622,161 @@
   margin-top: 2px;
   font-size: 12.5px;
 }
+
+/* ─── Current-action hero ─────────────────────────────────────────────────────
+   The one thing to do next, always on screen. Tone carries whether the step is
+   actionable now (accent), waiting (grey), blocked on something (amber, so it
+   draws the eye) or finished (green). A waiting/blocked card spells out WHY,
+   so a card with no button never reads as broken. */
+.trip360-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--t-line);
+  border-left: 3px solid var(--t-accent);
+  border-radius: 10px;
+  background: var(--t-surface);
+  padding: 14px 18px;
+  margin-top: 16px;
+}
+.trip360-action--act { border-left-color: var(--t-accent); background: var(--t-accent-soft); }
+.trip360-action--wait { border-left-color: var(--t-blocked); }
+.trip360-action--blocked { border-left-color: var(--t-warn); background: var(--t-warn-soft); }
+.trip360-action--done { border-left-color: var(--t-done); background: var(--t-done-soft); }
+
+.trip360-action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-line);
+  color: var(--t-accent);
+  flex-shrink: 0;
+}
+.trip360-action--blocked .trip360-action-icon { color: var(--t-warn); }
+.trip360-action--done .trip360-action-icon { color: var(--t-done); }
+.trip360-action--wait .trip360-action-icon { color: var(--t-muted); }
+
+.trip360-action-body { flex: 1; min-width: 0; }
+.trip360-action-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.trip360-action-head strong { font-size: 15px; font-weight: 700; color: var(--t-ink); }
+.trip360-action-detail { margin: 3px 0 0; font-size: 13px; color: var(--t-ink-2); }
+.trip360-action-cta { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .trip360-action { flex-wrap: wrap; }
+  .trip360-action-cta { width: 100%; justify-content: center; }
+}
+
+/* ─── "Accounts only" permission label ────────────────────────────────────────
+   Invisible-but-smart RBAC: Operations sees this small label instead of a
+   scary disabled button; Accounts sees the real action in its place. */
+.trip360-accounts-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t-muted);
+  background: var(--t-line-soft);
+  border: 1px solid var(--t-line);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+/* ─── Financials — receivable / payable / margin, state-aware ─────────────────
+   The trip screen explains finance; the Finance module operates it. */
+.trip360-fin { margin-top: 22px; }
+.trip360-fin-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  margin: 0 0 12px;
+}
+.trip360-fin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.trip360-fin-card {
+  border: 1px solid var(--t-line);
+  border-radius: 10px;
+  background: var(--t-surface);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.trip360-fin-card--margin { background: #fcfdff; }
+.trip360-fin-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.trip360-fin-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+}
+.trip360-fin-amount {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--t-ink);
+  font-variant-numeric: tabular-nums;
+}
+.trip360-fin-amount.pos { color: var(--t-done); }
+.trip360-fin-amount.neg { color: var(--signal-high, #e5484d); }
+.trip360-fin-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.trip360-fin-facts dt { color: var(--t-muted); }
+.trip360-fin-facts dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+  color: var(--t-ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.trip360-fin-empty { font-size: 12.5px; color: var(--t-muted); margin: 4px 0; }
+.trip360-fin-note { font-size: 11.5px; color: var(--t-muted); margin: 2px 0 0; font-style: italic; }
+.trip360-fin-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.trip360-fin-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t-accent);
+  text-decoration: none;
+  margin-left: auto;
+}
+.trip360-fin-link:hover { text-decoration: underline; }
+
+/* Links styled as buttons (deep-links into the finance module) must not carry
+   the browser's default underline. */
+a.trip360-btn { text-decoration: none; }
+
+/* ─── Activity / audit trail, promoted to a full-width section ─────────────── */
+.trip360-activity { margin-top: 22px; }

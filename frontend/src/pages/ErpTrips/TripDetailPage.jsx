@@ -7,8 +7,6 @@ import {
   MapPin,
   PackageCheck,
   Scale,
-  Receipt,
-  Banknote,
   Calendar,
   Check,
   Lock,
@@ -28,6 +26,9 @@ import PodDrawer from '../../components/Erp/Drawers/PodDrawer';
 import UnloadingDrawer from '../../components/Erp/Drawers/UnloadingDrawer';
 import SaleBillDrawer from '../../components/Erp/Drawers/SaleBillDrawer';
 import ReceiptDrawer from '../../components/Erp/Drawers/ReceiptDrawer';
+import CurrentActionCard from '../../components/Erp/Trip/CurrentActionCard';
+import TripFinancials from '../../components/Erp/Trip/TripFinancials';
+import { resolveNextAction } from '../../components/Erp/Trip/tripFinance';
 
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const day = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
@@ -52,13 +53,6 @@ const Facts = ({ items }) => (
         </React.Fragment>
       ))}
   </dl>
-);
-
-const MoneyRow = ({ label, value, tone, total }) => (
-  <div className={`trip360-money ${total ? 'total' : ''} ${tone || ''}`}>
-    <span className="trip360-money-label">{label}</span>
-    <span className="trip360-money-value">{value}</span>
-  </div>
 );
 
 const km = (v) => (v == null ? '—' : `${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 1 })} km`);
@@ -99,8 +93,8 @@ const EVENT_LABELS = {
 const TimelinePanel = ({ events }) => {
   if (!Array.isArray(events) || events.length === 0) return null;
   return (
-    <section className="trip360-panel">
-      <div className="trip360-panel-head">History</div>
+    <section className="trip360-panel trip360-activity">
+      <div className="trip360-panel-head">Activity</div>
       <div className="trip360-panel-body">
         <ol className="trip360-timeline">
           {events.map((e) => (
@@ -203,13 +197,20 @@ const TripDetailPage = () => {
   };
 
   const [data, setData] = useState(null);
+  const [finance, setFinance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeDrawer, setActiveDrawer] = useState(null);
 
   const fetchTrip = useCallback(async () => {
     try {
-      const result = await TripDashboardService.getTripById(tripId);
+      // Finance is a best-effort read: a failure there must never blank the
+      // operational trip view, so it resolves to null rather than throwing.
+      const [result, fin] = await Promise.all([
+        TripDashboardService.getTripById(tripId),
+        TripDashboardService.getTripFinance(tripId).catch(() => null),
+      ]);
       setData(result);
+      setFinance(fin);
     } catch (error) {
       toast.error(error.message || 'Failed to fetch trip details');
     } finally {
@@ -260,14 +261,13 @@ const TripDetailPage = () => {
   const stages = useMemo(() => {
     if (!data) return [];
 
-    // Backend (erpTrip.service.js getById) returns `saleBill` / `purchaseBill`.
-    const saleBill = data.saleBill;
+    // Only the OPERATIONS lifecycle lives on the stepper now. Sale Bill and
+    // Payment are not trip steps — they hang off the receivable / payable
+    // documents and render in the state-aware Financials section below.
     const hasCn = !!data.consignment || data.cnGate === 'UPDATED' || data.loadedQty != null;
     const closed = !!data.tripClosedAt || data.state === 'TRIP_CLOSED';
     const hasPod = !!data.pod || data.state === 'POD_RECEIVED';
     const hasUnloading = !!data.unloading;
-    const hasBill = !!saleBill;
-    const isPaid = saleBill?.status === 'PAID';
 
     const advances = data.advances || [];
     const u = data.unloading;
@@ -319,7 +319,7 @@ const TripDetailPage = () => {
         id: 'TRANSIT',
         label: 'In transit',
         icon: Navigation,
-        done: closed || hasPod || hasUnloading || hasBill,
+        done: closed || hasPod || hasUnloading,
         available: hasCn,
         blockedBy: 'CN update',
         facts: hasCn
@@ -383,37 +383,6 @@ const TripDetailPage = () => {
             ]
           : null,
       },
-      {
-        id: 'BILLING',
-        label: 'Sale Bill',
-        icon: Receipt,
-        done: hasBill,
-        available: hasUnloading,
-        blockedBy: 'Unloading',
-        action: { label: hasBill ? 'View bill' : 'Generate sale bill', drawer: 'salebill' },
-        facts: saleBill
-          ? [
-              { label: 'Bill no', value: saleBill.billNumber },
-              { label: 'Bill date', value: day(saleBill.billDate) },
-              { label: 'Grand total', value: money(saleBill.netAmount) },
-            ]
-          : null,
-      },
-      {
-        id: 'PAID',
-        label: 'Payment Received',
-        icon: Banknote,
-        done: isPaid,
-        available: hasBill,
-        blockedBy: 'Sale Bill',
-        action: { label: 'Record receipt', drawer: 'receipt' },
-        facts: hasBill
-          ? [
-              { label: 'Status', value: saleBill.status || 'BILLED' },
-              { label: 'Invoiced', value: money(saleBill.netAmount) },
-            ]
-          : null,
-      },
     ];
   }, [data]);
 
@@ -422,6 +391,22 @@ const TripDetailPage = () => {
     const i = stages.findIndex((s) => !s.done);
     return i === -1 ? stages.length : i;
   }, [stages]);
+
+  /**
+   * The single next step for the hero card — the operational ladder while the
+   * trip is running, then the finance ladder (billing → receipt → vendor
+   * payment) once the goods are unloaded, with the blocked reason surfaced.
+   */
+  const nextAction = useMemo(() => {
+    if (!data) return null;
+    const ops = {
+      hasCn: !!data.consignment || data.cnGate === 'UPDATED' || data.loadedQty != null,
+      closed: !!data.tripClosedAt || data.state === 'TRIP_CLOSED',
+      hasPod: !!data.pod || data.state === 'POD_RECEIVED',
+      hasUnloading: !!data.unloading,
+    };
+    return resolveNextAction(ops, finance);
+  }, [data, finance]);
 
   /** The single line a collapsed stage shows instead of its full card. */
   const summaryOf = (stage) => {
@@ -454,18 +439,6 @@ const TripDetailPage = () => {
       </div>
     );
   }
-
-  const advances = data.advances || [];
-  const advanceTotal = advances.reduce((a, x) => a + (x.amount || 0), 0);
-  const saleBill = data.saleBill;
-  const purchaseBill = data.purchaseBill;
-  const billed = saleBill?.netAmount || 0;
-  // Falls back to the full invoice when the field is absent (older bills), so a
-  // missing value never reads as "fully paid".
-  const outstanding = saleBill ? (saleBill.outstandingAmount ?? billed) : 0;
-  const received = Math.max(0, billed - outstanding);
-  const hireCost = purchaseBill?.netAmount || 0;
-  const settled = currentIdx >= stages.length;
 
   return (
     <div className="erp-page trip360">
@@ -527,6 +500,9 @@ const TripDetailPage = () => {
         })}
       </div>
 
+      {/* ── What to do next ── */}
+      <CurrentActionCard action={nextAction} onDrawer={openDrawer} />
+
       {/* ── Master / detail ── */}
       <div className="trip360-body">
         {/* Master rail */}
@@ -574,55 +550,10 @@ const TripDetailPage = () => {
             onRecompute={handleRecomputeTelematics}
             recomputing={recomputing}
           />
-
-          <TimelinePanel events={data.events} />
-
-          <section className="trip360-panel">
-            <div className="trip360-panel-head">Money</div>
-            <div className="trip360-panel-body">
-              <MoneyRow label={`Advances (${advances.length})`} value={money(advanceTotal)} />
-              <MoneyRow label="Sale bill" value={saleBill ? money(billed) : 'Not billed'} />
-              {data.vehicleType === 'HIRE' && (
-                <MoneyRow
-                  label="Hire cost"
-                  value={purchaseBill ? money(hireCost) : 'Not billed'}
-                />
-              )}
-              {data.unloading && (
-                <>
-                  <MoneyRow label="Shortage" value={money(data.unloading.shortageDeduction)} />
-                  <MoneyRow label="Detention" value={money(data.unloading.detentionAmount)} />
-                </>
-              )}
-              {saleBill && received > 0 && (
-                <MoneyRow label="Received" value={money(received)} tone="pos" />
-              )}
-              {saleBill && (
-                <MoneyRow
-                  label={outstanding > 0 ? 'Outstanding' : 'Fully received'}
-                  value={money(outstanding)}
-                  tone={outstanding > 0 ? 'neg' : 'pos'}
-                  total
-                />
-              )}
-            </div>
-          </section>
         </aside>
 
-        {/* Detail — the lifecycle */}
+        {/* Detail — the operations lifecycle */}
         <div className="trip360-stages">
-          {settled && (
-            <div className="trip360-settled">
-              <Check size={15} strokeWidth={3} />
-              <div>
-                <strong>Trip complete</strong>
-                <span className="erp-cell-muted">
-                  Billed and payment received. Open any stage below to see what was recorded.
-                </span>
-              </div>
-            </div>
-          )}
-
           {stages.map((stage, idx) => {
             const st = statusOf(stage, idx);
             const Icon = stage.icon;
@@ -792,6 +723,16 @@ const TripDetailPage = () => {
           })}
         </div>
       </div>
+
+      {/* ── Financials — the receivable / payable / margin, state-aware ── */}
+      <TripFinancials
+        finance={finance}
+        unloadingDone={!!data.unloading}
+        onRecordReceipt={() => openDrawer('receipt')}
+      />
+
+      {/* ── Activity / audit trail ── */}
+      <TimelinePanel events={data.events} />
 
       {/* ── Drawers ── */}
       <AdvanceDrawer
