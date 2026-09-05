@@ -7,9 +7,10 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShieldCheck, Check, X, Info, AlertTriangle } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ApprovalService from './ApprovalService';
+import ApprovalReviewDrawer from './ApprovalReviewDrawer';
 import {
   APPROVAL_TYPE_LABELS,
   ENTITY_TYPE_LABELS,
@@ -28,9 +29,6 @@ const ApprovalsPage = () => {
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
 
   const [active, setActive] = useState(null);
-  const [decision, setDecision] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   const fetchApprovals = useCallback(async (status, type, page = 1) => {
     setLoading(true);
@@ -69,49 +67,10 @@ const ApprovalsPage = () => {
     fetchSummary();
   }, [fetchApprovals, fetchSummary, statusFilter, typeFilter]);
 
-  const openDecision = (approval) => {
-    setActive(approval);
-    setDecision('');
-    setRemarks('');
-  };
-
-  const closeDecision = () => {
-    setActive(null);
-    setDecision('');
-    setRemarks('');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!decision) {
-      toast.error('Approve or reject?');
-      return;
-    }
-    if (decision === 'REJECTED' && remarks.trim().length < 3) {
-      toast.error('Remarks are required when rejecting');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await ApprovalService.decide(active._id, {
-        status: decision,
-        remarks: remarks.trim() || undefined,
-      });
-      toast.success(
-        decision === 'APPROVED'
-          ? 'Approved — the entity is released once all its requests clear'
-          : 'Rejected — the entity has been cancelled',
-      );
-      closeDecision();
-      fetchApprovals(statusFilter, typeFilter, meta.page);
-      fetchSummary();
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const handleDecided = useCallback(() => {
+    fetchApprovals(statusFilter, typeFilter, meta.page);
+    fetchSummary();
+  }, [fetchApprovals, fetchSummary, statusFilter, typeFilter, meta.page]);
 
   const requesterName = (a) =>
     a.requestedBy
@@ -209,11 +168,11 @@ const ApprovalsPage = () => {
                       <td>
                         <div className="erp-actions">
                           {a.status === 'PENDING' ? (
-                            <button className="btn btn-primary" onClick={() => openDecision(a)}>
+                            <button className="btn btn-primary" onClick={() => setActive(a)}>
                               Review
                             </button>
                           ) : (
-                            <button className="btn btn-secondary" onClick={() => openDecision(a)}>
+                            <button className="btn btn-secondary" onClick={() => setActive(a)}>
                               Details
                             </button>
                           )}
@@ -250,142 +209,11 @@ const ApprovalsPage = () => {
         )}
       </div>
 
-      {active && (
-        <div className="erp-modal-backdrop" onClick={closeDecision}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="erp-modal-header">
-              <h2>{APPROVAL_TYPE_LABELS[active.type] || active.type}</h2>
-              <button className="btn-icon" onClick={closeDecision}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="erp-modal-body">
-                <div className="erp-callout info">
-                  <Info size={16} />
-                  <span>
-                    {ENTITY_TYPE_LABELS[active.entityType] || active.entityType}{' '}
-                    <strong>{active.entityLabel}</strong> is held until every request on it
-                    clears. Rejecting cancels it and closes any sibling requests.
-                  </span>
-                </div>
-
-                <div className="erp-field full" style={{ marginBottom: 16 }}>
-                  <label>Why this was raised</label>
-                  <table className="erp-table" style={{ minWidth: 0 }}>
-                    <tbody>
-                      {formatReason(active.reason).map((r) => (
-                        <tr key={r.key}>
-                          <td className="erp-cell-muted">{r.label}</td>
-                          <td className="erp-cell-strong erp-numeric">{r.value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {active.requestPayload && Object.keys(active.requestPayload).length > 0 && (
-                  <div className="erp-field full" style={{ marginBottom: 16 }}>
-                    <label>Snapshot at request time</label>
-                    <table className="erp-table" style={{ minWidth: 0 }}>
-                      <tbody>
-                        {formatReason(active.requestPayload).map((r) => (
-                          <tr key={r.key}>
-                            <td className="erp-cell-muted">{r.label}</td>
-                            <td>{r.value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {active.status === 'PENDING' ? (
-                  <>
-                    <div className="erp-field full" style={{ marginBottom: 16 }}>
-                      <label>
-                        Decision <span className="required">*</span>
-                      </label>
-                      <div className="erp-outcomes">
-                        <button
-                          type="button"
-                          className={`erp-outcome ${decision === 'APPROVED' ? 'selected' : ''}`}
-                          onClick={() => setDecision('APPROVED')}
-                        >
-                          <Check size={16} /> Approve
-                          <small>Releases once all requests clear</small>
-                        </button>
-                        <button
-                          type="button"
-                          className={`erp-outcome ${decision === 'REJECTED' ? 'selected' : ''}`}
-                          onClick={() => setDecision('REJECTED')}
-                        >
-                          <X size={16} /> Reject
-                          <small>Cancels the entity</small>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="erp-field full">
-                      <label htmlFor="approval-remarks">
-                        Remarks
-                        {decision === 'REJECTED' && <span className="required"> *</span>}
-                      </label>
-                      <textarea
-                        id="approval-remarks"
-                        value={remarks}
-                        onChange={(e) => setRemarks(e.target.value)}
-                        placeholder={
-                          decision === 'REJECTED' ? 'Why? (required)' : 'Optional notes'
-                        }
-                      />
-                    </div>
-
-                    {decision === 'REJECTED' && (
-                      <div className="erp-callout info" style={{ marginTop: 16 }}>
-                        <AlertTriangle size={16} />
-                        <span>This cancels {active.entityLabel} and cannot be undone.</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="erp-field full">
-                    <label>Decision</label>
-                    <p style={{ margin: 0 }}>
-                      <span className={`erp-badge ${STATUS_TONE[active.status]}`}>
-                        {active.status}
-                      </span>
-                      {active.remarks && (
-                        <span className="erp-cell-muted"> — {active.remarks}</span>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="erp-modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeDecision}>
-                  Close
-                </button>
-                {active.status === 'PENDING' && (
-                  <button
-                    type="submit"
-                    className={`btn ${decision === 'REJECTED' ? 'btn-danger' : 'btn-primary'}`}
-                    disabled={submitting || !decision}
-                  >
-                    {submitting
-                      ? 'Saving...'
-                      : decision === 'REJECTED'
-                        ? 'Reject'
-                        : 'Approve'}
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ApprovalReviewDrawer
+        approval={active}
+        onClose={() => setActive(null)}
+        onDecided={handleDecided}
+      />
     </div>
   );
 };
