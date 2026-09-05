@@ -113,33 +113,48 @@ export const SIDE_NAV_ITEMS = [
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
   { type: 'link', key: 'erpOperations', access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
+  // CRM — the customer-facing workspace. "Accounts" used to mean both customer
+  // accounts AND accounting, which was the core sidebar confusion; the customer
+  // side now lives here (Customers = the party master) and the money side lives
+  // under "Finance" below.
   {
     type: 'group',
-    groupId: 'erpPlanning',
+    groupId: 'erpCrm',
     access: 'erp',
-    label: 'Planning',
+    label: 'CRM',
     icon: PhoneCall,
     children: [
+      { to: '/erp/parties', label: 'Customers', key: 'erpMasters' },
       { to: '/erp/call-tasks', label: 'Call Tasks', key: 'erpCallPlanning' },
       { to: '/erp/call-schedules', label: 'Call Schedules', key: 'erpCallPlanning' },
+    ],
+    matchRoutes: ['/erp/parties', '/erp/call-tasks', '/erp/call-schedules'],
+  },
+  // Operations — the trip pipeline (Delivery Orders / Placement / Trips are its
+  // tabs) plus inbound e-Way bills, which is a CN-updation / operations task.
+  {
+    type: 'group',
+    groupId: 'erpOperations',
+    access: 'erp',
+    label: 'Operations',
+    icon: ClipboardList,
+    children: [
+      { to: '/erp/pipeline', label: 'Trip Pipeline', key: 'erpOperations' },
       { to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', key: 'erpCnUpdation' },
     ],
-    matchRoutes: ['/erp/call-tasks', '/erp/call-schedules', '/erp/inbound-ewb'],
+    matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb'],
   },
-  // Ek hi link, kyunki Delivery Orders / Placement / Trips teeno ek hi Pipeline
-  // page ke tabs hain. Delivery Orders asal me Planning ka kaam hai — usko idhar
-  // se nikaalne ke liye Pipeline page ko todna padega, jo alag change hai.
-  { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp/pipeline', label: 'Operations', icon: ClipboardList },
+  // Finance — the accounting side. Renamed from the ambiguous "Accounts".
   {
     type: 'group',
     groupId: 'erpAccounts',
     access: 'erp',
-    label: 'Accounts',
+    label: 'Finance',
     icon: Landmark,
     children: [
       { to: '/erp/billing', label: 'Billing & Receivables', key: 'erpBilling' },
       { to: '/erp/payables', label: 'Payables', key: 'erpAccounts' },
-      { to: '/erp/accounts', label: 'Accounts & Ledger', key: 'erpAccounts' },
+      { to: '/erp/accounts', label: 'Ledger', key: 'erpAccounts' },
     ],
     // `/erp/accounts` bina slash ke Account 360 aur voucher detail dono ko cover
     // kar leta hai (isGroupActive prefix match karta hai).
@@ -149,7 +164,7 @@ export const SIDE_NAV_ITEMS = [
     type: 'group',
     groupId: 'erpApprovals',
     access: 'erp',
-    label: 'Approval',
+    label: 'Approval Center',
     icon: FileCheck,
     // Group parent par combined badge — pehle dono queues alag links thi aur
     // dono apna count dikhati thi; collapse hone par wo count gayab na ho.
@@ -167,7 +182,6 @@ export const SIDE_NAV_ITEMS = [
     label: 'Master Setting',
     icon: Settings,
     children: [
-      { to: '/erp/parties', label: 'Party Master', key: 'erpMasters' },
       { to: '/erp/rates', label: 'Rate Master', key: 'erpMasters' },
       { to: '/erp/vendors', label: 'Vendor Master', key: 'erpMasters' },
       { to: '/erp/material-compatibility', label: 'Material Compatibility', key: 'erpMasters' },
@@ -175,7 +189,6 @@ export const SIDE_NAV_ITEMS = [
       { to: '/erp/settings', label: 'ERP Settings', key: 'erpMasters' },
     ],
     matchRoutes: [
-      '/erp/parties',
       '/erp/rates',
       '/erp/vendors',
       '/erp/material-compatibility',

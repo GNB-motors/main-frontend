@@ -6,7 +6,9 @@
  * and a single rejection cancels it outright.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {
+  useState, useEffect, useCallback, useMemo,
+} from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ApprovalService from './ApprovalService';
@@ -16,6 +18,8 @@ import {
   ENTITY_TYPE_LABELS,
   STATUS_TONE,
   ACTIVE_APPROVAL_TYPES,
+  APPROVAL_BUCKETS,
+  bucketForType,
   formatReason,
 } from './approval.constants';
 import '../../styles/erp.css';
@@ -77,17 +81,84 @@ const ApprovalsPage = () => {
       ? `${a.requestedBy.firstName || ''} ${a.requestedBy.lastName || ''}`.trim() || '—'
       : '—';
 
+  // Pending counts per family, from the summary the page already fetches.
+  const bucketCounts = useMemo(() => {
+    const counts = {
+      PLACEMENT: 0, BILLING: 0, PURCHASE: 0, PAYMENTS: 0,
+    };
+    (summary.byType || []).forEach((row) => {
+      const type = row._id || row.type;
+      counts[bucketForType(type)] += row.count || 0;
+    });
+    return counts;
+  }, [summary]);
+
+  // The current page's rows, split into the four families (order preserved).
+  const grouped = useMemo(
+    () => APPROVAL_BUCKETS
+      .map((b) => ({ bucket: b, rows: approvals.filter((a) => bucketForType(a.type) === b.id) }))
+      .filter((g) => g.rows.length),
+    [approvals],
+  );
+
+  const renderRow = (a) => (
+    <tr key={a._id}>
+      <td>
+        <div className="erp-cell-strong">{a.entityLabel || '—'}</div>
+        <div className="erp-cell-muted">
+          {ENTITY_TYPE_LABELS[a.entityType] || a.entityType}
+        </div>
+      </td>
+      <td>{APPROVAL_TYPE_LABELS[a.type] || a.type}</td>
+      <td className="erp-cell-muted">
+        {formatReason(a.reason)
+          .slice(0, 2)
+          .map((r) => `${r.label}: ${r.value}`)
+          .join(' · ') || '—'}
+      </td>
+      <td className="erp-cell-muted">{requesterName(a)}</td>
+      <td>
+        <span className={`erp-badge ${STATUS_TONE[a.status] || 'neutral'}`}>
+          {a.status}
+        </span>
+      </td>
+      <td>
+        <div className="erp-actions">
+          {a.status === 'PENDING' ? (
+            <button className="btn btn-primary" onClick={() => setActive(a)}>
+              Review
+            </button>
+          ) : (
+            <button className="btn btn-secondary" onClick={() => setActive(a)}>
+              Details
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+
   return (
     <div className="erp-page">
       <div className="erp-header">
         <div>
-          <h1>Approvals</h1>
+          <h1>Approval Center</h1>
           <p className="erp-subtitle">
             {summary.total > 0
               ? `${summary.total} request${summary.total === 1 ? '' : 's'} waiting on a decision`
               : 'Nothing waiting on a decision'}
           </p>
         </div>
+      </div>
+
+      {/* Where the pending work sits, by family. */}
+      <div className="erp-buckets">
+        {APPROVAL_BUCKETS.map((b) => (
+          <div key={b.id} className="erp-bucket">
+            <span className="erp-bucket-count">{bucketCounts[b.id]}</span>
+            <span className="erp-bucket-label">{b.label}</span>
+          </div>
+        ))}
       </div>
 
       <div className="erp-toolbar">
@@ -107,10 +178,15 @@ const ApprovalsPage = () => {
           onChange={(e) => setTypeFilter(e.target.value)}
         >
           <option value="">All types</option>
-          {ACTIVE_APPROVAL_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {APPROVAL_TYPE_LABELS[t]}
-            </option>
+          {APPROVAL_BUCKETS.map((b) => (
+            <optgroup key={b.id} label={b.label}>
+              {b.types.map((t) => (
+                <option key={t} value={t}>
+                  {APPROVAL_TYPE_LABELS[t] || t}
+                  {ACTIVE_APPROVAL_TYPES.includes(t) ? '' : ' · soon'}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
@@ -144,41 +220,16 @@ const ApprovalsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {approvals.map((a) => (
-                    <tr key={a._id}>
-                      <td>
-                        <div className="erp-cell-strong">{a.entityLabel || '—'}</div>
-                        <div className="erp-cell-muted">
-                          {ENTITY_TYPE_LABELS[a.entityType] || a.entityType}
-                        </div>
-                      </td>
-                      <td>{APPROVAL_TYPE_LABELS[a.type] || a.type}</td>
-                      <td className="erp-cell-muted">
-                        {formatReason(a.reason)
-                          .slice(0, 2)
-                          .map((r) => `${r.label}: ${r.value}`)
-                          .join(' · ') || '—'}
-                      </td>
-                      <td className="erp-cell-muted">{requesterName(a)}</td>
-                      <td>
-                        <span className={`erp-badge ${STATUS_TONE[a.status] || 'neutral'}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="erp-actions">
-                          {a.status === 'PENDING' ? (
-                            <button className="btn btn-primary" onClick={() => setActive(a)}>
-                              Review
-                            </button>
-                          ) : (
-                            <button className="btn btn-secondary" onClick={() => setActive(a)}>
-                              Details
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                  {grouped.map((g) => (
+                    <React.Fragment key={g.bucket.id}>
+                      <tr className="erp-group-row">
+                        <td colSpan={6}>
+                          {g.bucket.label}
+                          <span className="erp-group-count">{g.rows.length}</span>
+                        </td>
+                      </tr>
+                      {g.rows.map(renderRow)}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
