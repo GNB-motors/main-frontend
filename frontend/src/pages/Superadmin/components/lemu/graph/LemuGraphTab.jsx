@@ -12,12 +12,14 @@ import { overlayFromDiff, ghostNode } from './diffOverlay';
 import { healthyPathSet } from './healthyPath';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
-import { KIND_HUE, KIND_LABEL, LINK_LABEL } from './graphTheme';
+import { countQueryMatches } from './graphPanelCounts';
 import KgCanvas from './KgCanvas';
 import LemuGraphControls from './LemuGraphControls';
+import LemuGraphFilters from './LemuGraphFilters';
 import LemuDeadSurfaces from './LemuDeadSurfaces';
 import LemuTimeScrubber from './LemuTimeScrubber';
 import LemuGraphTable from './LemuGraphTable';
+import LemuGraphEmpty from './LemuGraphEmpty';
 import GraphErrorBoundary from './GraphErrorBoundary';
 
 /* 3D knowledge graph tab for the LEMU manifest.
@@ -54,6 +56,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   });
   const [focusMatches, setFocusMatches] = useState(false);
   const [hiddenKinds, setHiddenKinds] = useState(() => new Set());
+  /* State visibility (plan Task 9): nodes whose state is in offStates drop
+     out of the visible graph, exactly like hiddenKinds. Nodes that carry no
+     state (the CODE layer) are never matched, so state filtering is a
+     no-op there — absence is not hidden. */
+  const [offStates, setOffStates] = useState(() => new Set());
   const [mode, setMode] = useState(() => {
     const m = searchParams.get('mode');
     if (m === '2d' || m === '3d') return m;
@@ -70,7 +77,6 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      OTHER state through the SAME opacity channel as search — P3, no new
      colour meaning. */
   const [dimmedStates, setDimmedStates] = useState(() => new Set());
-  const [legendOpen, setLegendOpen] = useState(false);
   const [degradedDismissed, setDegradedDismissed] = useState(false);
   /* Blast radius (Phase 5): with a selection, light the transitive closure
      through the SAME outline channel hop-filter highlighting already uses —
@@ -333,8 +339,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
 
   /* Blast radius: the closure is computed over the FULL layer graph (not the
      hop-filtered view), so the rail counts stay true even where the view is
-     collapsed — the same discipline as the legend footer, which also counts
-     the full graph. */
+     collapsed — the same discipline as the filter panel, whose counts also
+     describe the full graph. */
   const blast = useMemo(() => {
     if (!blastOn || !selectedNodeId) return null;
     return {
@@ -373,7 +379,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   }, [blast, onBlastChange]);
 
   /* Dead-surface detection (Phase 5): computed over the full layer graph,
-     like the legend counts. `flags` is {} on purpose — see the v2-C3 note
+     like the filter-panel counts. `flags` is {} on purpose — see the v2-C3 note
      in deadSurfaces.js: no honest supplier exists yet. */
   const deadSurfaces = useMemo(
     () => findDeadSurfaces({ nodes: graph.nodes, links: graph.links, jobHealth, flags: {} }),
@@ -381,17 +387,25 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   );
 
   /* Filters compose in a fixed order inside this memo: hidden kinds drop out
-     first, then focus-match search (when on), then the hop-depth collapse.
-     Legend counts and the footer below still describe the FULL graph. */
+     first, then hidden states, then focus-match search (when on), then the
+     hop-depth collapse. The rail and filter-panel counts still describe the
+     FULL graph. */
   const visible = useMemo(() => {
-    const kinded = applyKindFilter(graphStable, hiddenKinds);
-    let g = kinded;
-    if (focusMatches && matches) {
-      const nodes = kinded.nodes.filter((n) => matches.has(n.id));
+    let g = applyKindFilter(graphStable, hiddenKinds);
+    if (offStates.size) {
+      const nodes = g.nodes.filter((n) => !offStates.has(n.state));
       const present = new Set(nodes.map((n) => n.id));
       g = {
         nodes,
-        links: kinded.links.filter((l) => present.has(endId(l.source)) && present.has(endId(l.target))),
+        links: g.links.filter((l) => present.has(endId(l.source)) && present.has(endId(l.target))),
+      };
+    }
+    if (focusMatches && matches) {
+      const nodes = g.nodes.filter((n) => matches.has(n.id));
+      const present = new Set(nodes.map((n) => n.id));
+      g = {
+        nodes,
+        links: g.links.filter((l) => present.has(endId(l.source)) && present.has(endId(l.target))),
       };
     }
     if (!selectedNodeId || hopDepth === 'all') return g;
@@ -400,7 +414,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       nodes: g.nodes.filter((n) => keep.has(n.id)),
       links: g.links.filter((l) => keep.has(endId(l.source)) && keep.has(endId(l.target))),
     };
-  }, [graphStable, hiddenKinds, focusMatches, matches, selectedNodeId, hopDepth]);
+  }, [graphStable, hiddenKinds, offStates, focusMatches, matches, selectedNodeId, hopDepth]);
 
   /* dagSafe existed for the force-graph DAG layout, which threw on cycles.
      The raw-canvas renderer pins the infra layer to columns in its own sim
@@ -411,6 +425,19 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       const next = new Set(prev);
       if (next.has(kind)) next.delete(kind);
       else next.add(kind);
+      return next;
+    });
+  }, []);
+
+  const showAllKinds = useCallback(() => setHiddenKinds(new Set()), []);
+
+  /* Task 9 STATE chips: plain visibility toggles, unlike the INFRA status
+     rail's dim-the-others semantics above. */
+  const toggleStateOff = useCallback((state) => {
+    setOffStates((prev) => {
+      const next = new Set(prev);
+      if (next.has(state)) next.delete(state);
+      else next.add(state);
       return next;
     });
   }, []);
@@ -545,6 +572,21 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     }, { replace: true });
   }, [selectedNodeId, setSearchParams]);
 
+  /* Rail CLEAR (design onClearSel): query, focus, hop collapse, path
+     target and the selection itself all reset in one gesture. */
+  const handleClear = useCallback(() => {
+    setQuery('');
+    setFocusMatches(false);
+    setHopDepth('all');
+    setPathTarget(null);
+    if (!selectedNodeId) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('node');
+      return next;
+    }, { replace: true });
+  }, [selectedNodeId, setSearchParams]);
+
   /* The hairball cure (design select()): KgCanvas reports that a node was
    * selected while hop was 'all'; the tab owns hop state and collapses it. */
   const handleAutoHop = useCallback((h) => setHopDepth(h), []);
@@ -568,22 +610,35 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   const freshAgeSec = dataUpdatedAt ? Math.max(0, Math.floor((now - dataUpdatedAt) / 1000)) : 0;
   const freshState = freshAgeSec < 60 ? 'ok' : freshAgeSec <= 120 ? 'warn' : 'stale';
 
-  const counts = useMemo(() => {
-    const c = {};
-    graph.nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; });
-    return c;
-  }, [graph.nodes]);
+  /* Live layer-tab subtitles for the rail: `N n · M e` from the REAL
+     payload of each layer, never the design's hard-coded prototype
+     numbers. Both layers are built every render cycle (identity-cached),
+     so the inactive tab's count stays honest while it is not shown. */
+  const layerCounts = useMemo(() => ({
+    infra: { nodes: infraGraph.nodes.length, edges: infraGraph.links.length },
+    code: { nodes: codeGraph.nodes.length, edges: codeGraph.links.length },
+  }), [infraGraph, codeGraph]);
 
-  /* Legend + status rail content, derived from the ACTIVE graph so the
-     CODE layer shows code kinds/edges and INFRA shows infra — one source of
-     truth (KIND_HUE/KIND_LABEL/LINK_COLOR), never a hand-written list. */
-  const linkCounts = useMemo(() => {
-    const c = {};
-    graph.links.forEach((l) => { c[l.kind] = (c[l.kind] || 0) + 1; });
-    return c;
-  }, [graph.links]);
+  /* The rail's live `N hits` label: pure query matches over the whole
+     layer graph — the state-dimming / live-path overlays that shape the
+     `matches` set must not pollute it. */
+  const hitCount = useMemo(
+    () => countQueryMatches(graph.nodes, query),
+    [graph.nodes, query],
+  );
+
   const summary = layer === 'infra' ? topology?.summary : null;
   const degraded = layer === 'infra' ? (topology?.degraded || []) : [];
+
+  /* Empty payload (plan Task 12): distinguish "the endpoint returned zero
+     nodes" — a real product state, LemuGraphEmpty — from "filters hid
+     everything", which is the table/canvas's own empty hint. Judged on the
+     UNFILTERED layer graph, and only when a payload actually arrived: a
+     null payload (still loading, or the fetch failed) is not "no graph on
+     record". */
+  const payloadEmpty = layer === 'infra'
+    ? Boolean(topology) && Array.isArray(topology.nodes) && topology.nodes.length === 0
+    : graph.nodes.length === 0;
 
   /* A fresh topology payload re-arms the degraded strip even after the
      operator dismissed an earlier one. */
@@ -624,56 +679,50 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   }
 
   return (
-    <div className="lemu-graph3d">
-      <div className="lemu-graph3d__panel lemu-graph3d__panel--tl">
-        <LemuGraphControls
-          query={query}
-          onQuery={setQuery}
-          searchRef={searchRef}
-          showRoutes={showRoutes}
-          onShowRoutes={setShowRoutes}
-          routeCount={(manifest.routes || []).length}
-          hopDepth={hopDepth}
-          onHopDepth={setHopDepth}
-          hasSelection={!!selectedNodeId}
-          onFit={() => fitRef.current?.()}
-          focusMatches={focusMatches}
-          onFocusMatches={setFocusMatches}
-          blastOn={blastOn}
-          onBlast={setBlastOn}
-          mode={mode}
-          onMode={setMode}
-          layer={layer}
-          onLayer={setLayer}
-          view={view}
-          onView={setView}
-          showSnapshot={view === 'graph'}
-          onSnapshot={handleSnapshot}
-          versions={(manifests || []).filter((m) => m.version !== manifest?.version)}
-          diffVersion={diffVersion}
-          onDiffVersion={setDiffVersion}
-          livePathOn={livePathOn}
-          onLivePath={setLivePathOn}
-        />
-      </div>
+    <div className={`lemu-graph3d${payloadEmpty ? ' lemu-graph3d--graph-empty' : ''}`}>
+      <LemuGraphControls
+        query={query}
+        onQuery={setQuery}
+        searchRef={searchRef}
+        matchCount={hitCount}
+        onClear={handleClear}
+        layerCounts={layerCounts}
+        showRoutes={showRoutes}
+        onShowRoutes={setShowRoutes}
+        routeCount={(manifest.routes || []).length}
+        hopDepth={hopDepth}
+        onHopDepth={setHopDepth}
+        hasSelection={!!selectedNodeId}
+        onFit={() => fitRef.current?.()}
+        focusMatches={focusMatches}
+        onFocusMatches={setFocusMatches}
+        blastOn={blastOn}
+        onBlast={setBlastOn}
+        mode={mode}
+        onMode={setMode}
+        layer={layer}
+        onLayer={setLayer}
+        view={view}
+        onView={setView}
+        showSnapshot={view === 'graph'}
+        onSnapshot={handleSnapshot}
+        versions={(manifests || []).filter((m) => m.version !== manifest?.version)}
+        diffVersion={diffVersion}
+        onDiffVersion={setDiffVersion}
+        livePathOn={livePathOn}
+        onLivePath={setLivePathOn}
+      />
 
-      <div className="lemu-graph3d__legend lemu-graph3d__panel lemu-graph3d__panel--tr">
-        {Object.keys(KIND_LABEL)
-          .filter((k) => counts[k])
-          .map((k) => (
-            <button
-              key={k}
-              type="button"
-              className={`lemu-graph3d__legend-item${hiddenKinds.has(k) ? ' lemu-graph3d__legend-item--off' : ''}`}
-              aria-pressed={!hiddenKinds.has(k)}
-              onClick={() => toggleKind(k)}
-            >
-              <i style={{ background: KIND_HUE[k] }} aria-hidden="true" />
-              {KIND_LABEL[k]} <b>{counts[k]}</b>
-            </button>
-          ))}
-        <span className="lemu-meta">{graph.links.length} edges</span>
-      </div>
+      {/* Task 9 filter panel: state + kind visibility chips, counts from
+          the WHOLE layer graph so a filter shows what it is hiding. */}
+      <LemuGraphFilters
+        nodes={graph.nodes}
+        offStates={offStates}
+        onToggleState={toggleStateOff}
+        offKinds={hiddenKinds}
+        onToggleKind={toggleKind}
+        onShowAllKinds={showAllKinds}
+      />
 
       {/* INFRA status rail: payload summary as chips. Clicking one dims the
           other states through the search-opacity channel (see `matches`). */}
@@ -785,53 +834,32 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
         </div>
       )}
 
-      {/* Collapsible key, bottom-left: node kinds, edge kinds and ring
-          meanings, all read from graphTheme — the same tables the canvas
-          paints from. */}
-      {view === 'graph' && (
-        <div className="lemu-graph3d__key lemu-graph3d__panel">
-          <button
-            type="button"
-            className="lemu-graph3d__key-toggle"
-            aria-expanded={legendOpen}
-            onClick={() => setLegendOpen((v) => !v)}
-          >
-            Legend
-          </button>
-          {legendOpen && (
-            <div className="lemu-graph3d__key-body">
-              <div className="lemu-meta">Nodes</div>
-              {Object.keys(KIND_LABEL).filter((k) => counts[k]).map((k) => (
-                <span className="lemu-graph3d__key-item" key={k}>
-                  <i style={{ background: KIND_HUE[k] }} aria-hidden="true" />
-                  {KIND_LABEL[k]} <b>{counts[k]}</b>
-                </span>
-              ))}
-              <div className="lemu-meta">Edges</div>
-              {Object.keys(LINK_LABEL).filter((k) => linkCounts[k]).map((k) => (
-                <span className="lemu-graph3d__key-item" key={k}>
-                  <em style={{ background: 'rgba(148,163,184,0.4)' }} aria-hidden="true" />
-                  {LINK_LABEL[k]} <b>{linkCounts[k]}</b>
-                </span>
-              ))}
-              <div className="lemu-meta">Rings</div>
-              <span className="lemu-graph3d__key-item">
-                <u className="lemu-graph3d__key-ring lemu-graph3d__key-ring--solid" aria-hidden="true" />measured
-              </span>
-              <span className="lemu-graph3d__key-item">
-                <u className="lemu-graph3d__key-ring lemu-graph3d__key-ring--hollow" aria-hidden="true" />declared
-              </span>
-              <span className="lemu-graph3d__key-item">
-                <u className="lemu-graph3d__key-ring lemu-graph3d__key-ring--fault" aria-hidden="true" />unreachable
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Collapsible key removed with the Task 9 filter panel: kind chips,
+          state glyphs and counts now live in .lemu-kgfilt (bottom-left),
+          and the layer tabs carry the edge count. */}
 
-      {view === 'table' ? (
+      {payloadEmpty ? (
+        /* The endpoint answered with zero nodes: the empty state owns the
+           canvas region while the chrome dims behind it (see
+           .lemu-graph3d--graph-empty). The real failure context comes from
+           the payload's degraded[]; REBUILD MANIFEST is §0 C4's nearest real
+           action. */
+        <LemuGraphEmpty
+          generatedAt={topology?.generatedAt ?? null}
+          degraded={topology?.degraded ?? []}
+        />
+      ) : view === 'table' ? (
         /* The table and the canvas never mount at the same time (perf). */
-        <LemuGraphTable graph={visible} onSelectNode={handleTableSelect} />
+        <LemuGraphTable
+          graph={visible}
+          onSelectNode={handleTableSelect}
+          selectedNodeId={selectedNodeId}
+          totalCount={graph.nodes.length}
+          measuredAt={manifest?.createdAt ?? null}
+          onFocusSearch={handleFocusSearch}
+          onClear={handleClear}
+          onHopDepth={setHopDepth}
+        />
       ) : (
         <div onKeyDown={handleCanvasKeyDown}>
           <GraphErrorBoundary>
