@@ -204,6 +204,36 @@ describe('ownedFunctionRows', () => {
     expect(rows[0]).toEqual({ name: 'a', loc: '93', ref: 'a.js:7' });
     expect(rows[2].ref).toBe('b.js');
   });
+
+  it('shows empty names and control-flow keywords as <anonymous>', () => {
+    const rows = ownedFunctionRows([
+      { functionName: 'if', loc: 10, file: 'a.js', startLine: 3 },
+      { functionName: 'catch', loc: 10, file: 'a.js', startLine: 9 },
+      { functionName: '', loc: 10, file: 'a.js', startLine: 15 },
+      { functionName: '   ', loc: 10, file: 'a.js', startLine: 21 },
+      { functionName: 'do', loc: 10, file: 'a.js', startLine: 27 },
+      { functionName: 'realName', loc: 10, file: 'a.js', startLine: 33 },
+    ]);
+    expect(rows.map((r) => r.name)).toEqual(['<anonymous>', '<anonymous>', '<anonymous>', '<anonymous>', '<anonymous>', 'realName']);
+  });
+
+  it('collapses consecutive same-name same-ref rows into one row with a count', () => {
+    const rows = ownedFunctionRows([
+      { functionName: '', loc: 10, file: 'a.js', startLine: 3 },
+      { functionName: 'if', loc: 10, file: 'a.js', startLine: 3 },
+      { functionName: 'handle', loc: 10, file: 'a.js', startLine: 9 },
+      { functionName: 'handle', loc: 10, file: 'b.js', startLine: 9 },
+      { functionName: 'handle', loc: 10, file: 'a.js', startLine: 20 },
+    ]);
+    // the two anonymous records at a.js:3 collapse; handle at a.js:9 and
+    // b.js:9 do NOT (different files); a lone repeated name elsewhere does not
+    expect(rows).toEqual([
+      { name: '<anonymous>', loc: '10', ref: 'a.js:3', count: 2 },
+      { name: 'handle', loc: '10', ref: 'a.js:9' },
+      { name: 'handle', loc: '10', ref: 'b.js:9' },
+      { name: 'handle', loc: '10', ref: 'a.js:20' },
+    ]);
+  });
 });
 
 describe('errorWindowLabel (P4)', () => {

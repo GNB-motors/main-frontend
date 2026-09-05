@@ -1488,20 +1488,21 @@
 }
 
 /* ── Drawer ────────────────────────────────────────────────── */
-/* The scrim is a BLUR layer, not a paint blanket (r2 fix for the
-   light-theme "white blanket"): backdrop-filter keeps the graph visibly
-   present behind the drawer; the tint arrives via --lemu-scrim, set inline
-   by LemuNodeDrawer from the graph theme tokens (dark ≈ rgba(6,7,10,.32),
-   light ≈ rgba(255,255,255,.28)). One z-step BELOW the drawer (45 vs 46) so
-   the drawer renders crisp on top; pointer-transparent so the board stays
-   interactive. `position` is overridden inline (absolute when the drawer is
-   contained in the graph page's relative wrapper). */
+/* The scrim is a TINT layer only — no backdrop-filter. The old blur(8px)
+   blurred the whole board into a white blanket behind the drawer; the
+   selection-focus dimming lives in the canvas paint itself (kgDraw), so a
+   theme-appropriate tint is enough for the drawer to read as foreground
+   while the graph stays sharp underneath. The tint arrives via
+   --lemu-scrim, set inline by LemuNodeDrawer from the graph theme tokens
+   (dark ≈ rgba(6,7,10,.32), light ≈ rgba(255,255,255,.28)). One z-step
+   BELOW the drawer (45 vs 46) so the drawer renders crisp on top;
+   pointer-transparent so the board stays interactive. `position` is
+   overridden inline (absolute when the drawer is contained in the graph
+   page's relative wrapper). */
 .lemu-drawer-scrim {
   position: fixed;
   inset: 0;
   background: var(--lemu-scrim, rgba(17, 24, 39, 0.32));
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
   z-index: 45;
   pointer-events: none;
 }
