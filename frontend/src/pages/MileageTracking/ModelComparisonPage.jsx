@@ -5,8 +5,9 @@ import {
 } from 'recharts';
 import { BarChart2, Car, FileText, Gauge, Fuel, Route, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Select from 'react-select';
+import SearchableDropdown from '../../components/SearchableDropdown/SearchableDropdown';
 import apiClient from '../../utils/axiosConfig';
+import { useApi } from '../../hooks/useApi';
 import './MileageTracking.css';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -81,23 +82,25 @@ const VehicleTooltip = ({ active, payload, modelAvg }) => {
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 
-const KpiCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
-  <div className="mc-kpi-card">
-    <div className="mc-kpi-icon" style={{ background: iconBg }}>
-      <Icon size={18} color={iconColor} />
+const KpiCard = (props) => {
+  const { icon: Icon, label, value, iconBg, iconColor } = props;
+  return (
+    <div className="mc-kpi-card">
+      <div className="mc-kpi-icon" style={{ background: iconBg }}>
+        <Icon size={18} color={iconColor} />
+      </div>
+      <div className="mc-kpi-body">
+        <span className="mc-kpi-label">{label}</span>
+        <span className="mc-kpi-value">{value}</span>
+      </div>
     </div>
-    <div className="mc-kpi-body">
-      <span className="mc-kpi-label">{label}</span>
-      <span className="mc-kpi-value">{value}</span>
-    </div>
-  </div>
-);
+  );
+};
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
 const ModelComparisonPage = () => {
   const [data, setData]               = useState([]);
-  const [isLoading, setIsLoading]     = useState(true);
   const [selectedModel, setSelectedModel] = useState(null);
   const [selectedVehicles, setSelectedVehicles] = useState([]);
 
@@ -107,22 +110,22 @@ const ModelComparisonPage = () => {
     return () => { if (el) el.classList.remove('no-padding'); };
   }, []);
 
+  const { data: comparisonResponse, loading: isLoading, error: comparisonError } = useApi(
+    (signal) => apiClient.get('/api/mileage/model-comparison', { signal }),
+    []
+  );
+
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const res = await apiClient.get('/api/mileage/model-comparison');
-        const fetched = res.data?.data || [];
-        setData(fetched);
-        if (fetched.length > 0) setSelectedModel(fetched[0].model);
-      } catch {
-        toast.error('Failed to load model comparison data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+    if (comparisonResponse) {
+      const fetched = comparisonResponse.data?.data || [];
+      setData(fetched);
+      if (fetched.length > 0) setSelectedModel(fetched[0].model);
+    }
+  }, [comparisonResponse]);
+
+  useEffect(() => {
+    if (comparisonError) toast.error('Failed to load model comparison data');
+  }, [comparisonError]);
 
   // ── Derived data ───────────────────────────────────────────────────────────
 
@@ -155,21 +158,27 @@ const ModelComparisonPage = () => {
     const top3 = allVehicleChartData.slice(0, 3);
     const bottom3 = allVehicleChartData.slice(-3).filter(v => !top3.some(t => t.vehicleNumber === v.vehicleNumber));
     
-    const defaults = [...top3, ...bottom3].map(v => ({
-      value: v.vehicleNumber,
-      label: v.vehicleNumber
-    }));
-    
+    const defaults = [...top3, ...bottom3].map(v => v.vehicleNumber);
+
     setSelectedVehicles(defaults);
   }, [selectedModelData]); // we only want to re-calculate defaults when the model changes (data doesn't mutate dynamically here)
 
-  const selectedValues = selectedVehicles.map(opt => opt.value);
+  const selectedValues = selectedVehicles;
   const vehicleChartData = allVehicleChartData.filter(v => selectedValues.includes(v.vehicleNumber));
-  
-  const vehicleOptions = allVehicleChartData.map(v => ({
-    value: v.vehicleNumber,
-    label: v.vehicleNumber
-  }));
+
+  const vehicleOptions = allVehicleChartData.map(v => v.vehicleNumber);
+
+  const handleVehicleToggle = (vehicleNumber) => {
+    if (selectedVehicles.includes(vehicleNumber)) {
+      setSelectedVehicles(selectedVehicles.filter(v => v !== vehicleNumber));
+      return;
+    }
+    if (selectedVehicles.length >= 10) {
+      toast.error('Maximum 10 vehicles can be selected');
+      return;
+    }
+    setSelectedVehicles([...selectedVehicles, vehicleNumber]);
+  };
 
   const totalRecords  = data.reduce((s, d) => s + d.recordCount, 0);
   const totalVehicles = data.reduce((s, d) => s + d.vehicleCount, 0);
@@ -298,24 +307,14 @@ const ModelComparisonPage = () => {
               ) : (
                 <>
                   <div className="mc-chart-controls" style={{ padding: '0 24px 16px', zIndex: 10 }}>
-                    <Select
-                      isMulti
+                    <SearchableDropdown
                       options={vehicleOptions}
-                      value={selectedVehicles}
-                      onChange={(newVal) => {
-                        if (newVal.length > 10) {
-                          toast.error('Maximum 10 vehicles can be selected');
-                          return;
-                        }
-                        setSelectedVehicles(newVal);
-                      }}
+                      selectedOptions={selectedVehicles}
+                      onSelect={handleVehicleToggle}
+                      onRemove={(vehicleNumber) =>
+                        setSelectedVehicles(selectedVehicles.filter(v => v !== vehicleNumber))
+                      }
                       placeholder="Search and select vehicles (max 10)..."
-                      className="mc-react-select-container"
-                      classNamePrefix="mc-react-select"
-                      styles={{
-                        control: (base) => ({ ...base, fontSize: '14px', borderRadius: '8px', borderColor: '#e2e8f0' }),
-                        menu: (base) => ({ ...base, fontSize: '14px', zIndex: 9999 })
-                      }}
                     />
                   </div>
                   {(allVehicleChartData.length >= 3 && selectedVehicles.length < 3) ? (

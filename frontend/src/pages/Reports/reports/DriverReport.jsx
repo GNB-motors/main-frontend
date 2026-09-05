@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-    Box, Alert
-} from '@mui/material';
 import dayjs from 'dayjs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -157,7 +154,7 @@ const DriverReport = () => {
     };
 
     return (
-        <Box sx={{ padding: '24px' }}>
+        <div className="p-6">
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">
@@ -216,7 +213,9 @@ const DriverReport = () => {
                 </div>
             )}
             {driverError && !isLoadingDrivers && (
-                <Alert severity="error" sx={{ my: 2 }}>{driverError}</Alert>
+                <div role="alert" className="my-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {driverError}
+                </div>
             )}
 
             {/* Data Table */}
@@ -323,7 +322,7 @@ const DriverReport = () => {
                     )}
                 </div>
             )}
-        </Box>
+        </div>
     );
 };
 

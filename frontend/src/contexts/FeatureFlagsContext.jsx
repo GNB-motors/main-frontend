@@ -1,6 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import apiClient from '../utils/axiosConfig';
+import useApi from '../hooks/useApi';
+import { isAuthenticated } from '../utils/session.js';
 
 const FeatureFlagsContext = createContext({
   flags: {},
@@ -22,35 +24,31 @@ export const FeatureFlagsProvider = ({ children }) => {
   // The same /api/auth/me payload already carries the organization, so the
   // company logo rides along with the flags rather than costing a second call.
   const [organization, setOrganization] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    if (!localStorage.getItem('authToken')) {
-      setFlags({});
-      setPermissions({});
-      setLoading(false);
-      return;
-    }
-    try {
-      const res = await apiClient.get('/api/auth/me');
-      const payload = res.data?.data ?? res.data ?? {};
-      const org = payload?.organization ?? null;
-      setOrganization(org);
-      setFlags(org?.featureFlags ?? {});
-      setPermissions(payload?.permissions ?? {});
-    } catch (err) {
-      console.warn('FeatureFlags: failed to fetch', err);
-      setFlags({});
-      setPermissions({});
-      setOrganization(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: meResponse, loading, error: meError, refetch } = useApi(
+    (signal) => apiClient.get('/api/auth/me', { signal }),
+    [],
+    { enabled: isAuthenticated() }
+  );
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (!meResponse) return;
+    const payload = meResponse.data?.data ?? meResponse.data ?? {};
+    const org = payload?.organization ?? null;
+    setOrganization(org);
+    setFlags(org?.featureFlags ?? {});
+    setPermissions(payload?.permissions ?? {});
+  }, [meResponse]);
+
+  useEffect(() => {
+    if (!meError) return;
+    console.warn('FeatureFlags: failed to fetch', meError);
+    setFlags({});
+    setPermissions({});
+    setOrganization(null);
+  }, [meError]);
+
+  const refresh = useCallback(() => refetch(), [refetch]);
 
   // Permissions are resolved per active branch, so re-fetch when the user
   // switches location (BranchContext dispatches `branchChange`).

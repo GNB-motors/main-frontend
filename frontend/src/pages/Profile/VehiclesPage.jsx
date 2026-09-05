@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 // Profile context removed - vehicles page should render independently
-import { getPrimaryColor, getThemeCSS } from '../../utils/colorTheme.js';
+import { getThemeCSS } from '../../utils/colorTheme.js';
 import './ProfilePage.css';
 import './VehiclesPage.css';
 
@@ -14,14 +14,15 @@ import NewButton from '@/components/ui/NewButton';
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
 import { listAccounts } from './FleetEdgeAccountService.jsx';
+import { getToken, getProfileField } from '../../utils/session.js';
 
 // --- Delete Vehicle Modal Component ---
 const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: isDeleting }) => {
     if (!isOpen || !vehicle) return null;
 
     return (
-        <div className="vehicle-delete-modal-overlay" onClick={onClose}>
-            <div className="vehicle-delete-modal-content" onClick={e => e.stopPropagation()}>
+        <div className="vehicle-delete-modal-overlay" role="presentation" onClick={onClose}>
+            <div className="vehicle-delete-modal-content" role="presentation" onClick={e => e.stopPropagation()}>
                 <div className="vehicle-delete-modal-header">
                     <h4>Delete Vehicle</h4>
                     <button onClick={onClose} className="vehicle-delete-modal-close-btn">&times;</button>
@@ -203,6 +204,7 @@ function PortalDropdown({ triggerRef, isOpen, onClose, children }) {
             }}
             // Stop clicks inside the menu from bubbling to document (closing it)
             onMouseDown={(e) => e.stopPropagation()}
+            role="presentation"
         >
             {children}
         </div>,
@@ -212,8 +214,8 @@ function PortalDropdown({ triggerRef, isOpen, onClose, children }) {
 
 const VehiclesPage = () => {
     const navigate = useNavigate();
-    // Try to read business ref id from localStorage as a fallback when profile context is absent
-    const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
+    // Try to read business ref id from session storage as a fallback when profile context is absent
+    const businessRefId = getProfileField('business_ref_id') || null;
     const [vehicles, setVehicles] = useState([]);
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     const [vehicleError, setVehicleError] = useState(null);
@@ -221,9 +223,6 @@ const VehiclesPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [openMenuId, setOpenMenuId] = useState(null);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingVehicle, setEditingVehicle] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingVehicle, setDeletingVehicle] = useState(null);
     const [searchVehicleNo, setSearchVehicleNo] = useState('');
@@ -231,7 +230,7 @@ const VehiclesPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalVehicles, setTotalVehicles] = useState(0);
+    const [, setTotalVehicles] = useState(0);
     const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
     const [accountFilter, setAccountFilter] = useState('all'); // 'all' | 'untagged' | <accountId>
 
@@ -279,7 +278,7 @@ const VehiclesPage = () => {
         const fetchVehicles = async () => {
             setIsLoadingVehicles(true);
             setVehicleError(null);
-            const token = localStorage.getItem('authToken');
+            const token = getToken();
             try {
                 const result = await VehicleService.getAllVehicles(businessRefId, token, currentPage, itemsPerPage);
                 // Normalize API vehicle shape (camelCase) to UI expected snake_case
@@ -305,7 +304,7 @@ const VehiclesPage = () => {
                 try {
                     const accounts = await listAccounts(token);
                     setFleetEdgeAccounts(accounts || []);
-                } catch (_) { /* non-fatal */ }
+                } catch { /* non-fatal */ }
                 setVehicles(normalized);
                 setTotalPages(result.meta.totalPages);
                 setTotalVehicles(result.meta.total);
@@ -319,51 +318,12 @@ const VehiclesPage = () => {
         fetchVehicles();
     }, [businessRefId, currentPage, itemsPerPage, refreshKey]);
 
-    // --- Add Vehicle ---
-    const handleAddVehicle = async (vehicleData) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            toast.warn('No auth token found. Request may fail.');
-        }
-        setIsSubmitting(true);
-        setFormError(null);
-        try {
-            console.log('Adding vehicle with data:', vehicleData);
-            const addedVehicle = await VehicleService.addVehicle(businessRefId, vehicleData, token);
-            console.log('Vehicle added, API response:', addedVehicle);
-            
-            // Normalize returned vehicle to UI shape
-            const nv = {
-                id: addedVehicle._id || addedVehicle.id,
-                registration_no: addedVehicle.registrationNumber || addedVehicle.registration_no || vehicleData.registration_no,
-                vehicle_type: addedVehicle.vehicleType || addedVehicle.vehicle_type || '',
-                chassis_number: addedVehicle.chassisNumber || addedVehicle.chassis_number || vehicleData.chassis_number,
-                model: addedVehicle.model || vehicleData.model || '',
-                status: addedVehicle.status || 'AVAILABLE',
-                inventory: addedVehicle.inventory || [],
-                // New classification fields
-                manufacturer: addedVehicle.manufacturer || null,
-                vehicleCategory: addedVehicle.vehicleCategory || null,
-                classification: addedVehicle.classification || null,
-            };
-            console.log('Normalized vehicle for UI:', nv);
-            setVehicles(prevVehicles => [...prevVehicles, nv]);
-            setIsAddModalOpen(false);
-            toast.success(`Vehicle "${vehicleData.registration_no}" added successfully!`);
-        } catch (apiError) {
-            console.error("Failed to add vehicle:", apiError);
-            throw apiError;
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     // --- Remove Vehicle ---
     const handleRemoveVehicle = async (vehicleIdToRemove) => {
         setFormError(null);
         setIsSubmitting(true);
         setOpenMenuId(null);
-        const token = localStorage.getItem('authToken');
+        const token = getToken();
         if (!token) {
             toast.warn('No auth token found. Request may fail.');
         }
@@ -390,7 +350,7 @@ const VehiclesPage = () => {
     // Activate a deactivated (moved-away) vehicle back into the current location.
     // Re-import moves it here (active here, deactivated where it was).
     const handleActivateHere = async (vehicle) => {
-        const token = localStorage.getItem('authToken');
+        const token = getToken();
         try {
             await VehicleService.importVehicle(vehicle.id, token);
             toast.success('Vehicle activated in this location');
@@ -400,78 +360,11 @@ const VehiclesPage = () => {
         }
     };
 
-    const handleEditVehicle = (vehicleToEdit) => {
-        console.log("Attempting to edit vehicle:", vehicleToEdit);
-        setOpenMenuId(null);
-        setEditingVehicle(vehicleToEdit);
-        setIsEditModalOpen(true);
-        setFormError(null);
-    };
-
     // --- Open Delete Modal ---
     const handleOpenDeleteModal = (vehicleToDelete) => {
         setDeletingVehicle(vehicleToDelete);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
-    };
-
-    // --- Update Vehicle ---
-    const handleUpdateVehicle = async (vehicleData) => {
-        setFormError(null);
-        setIsSubmitting(true);
-        
-        const token = localStorage.getItem('authToken');
-        
-        if (!token) {
-            toast.warn('No auth token found. Request may fail.');
-        }
-        if (!editingVehicle) {
-            setFormError('No vehicle selected for editing.');
-            setIsSubmitting(false);
-            return;
-        }
-        
-        try {
-            const updatedVehicle = await VehicleService.updateVehicle(
-                businessRefId,
-                // pass the DB id (ObjectId) as required by PATCH /vehicles/{id}
-                editingVehicle.id || editingVehicle._id || editingVehicle.registration_no,
-                vehicleData,
-                token
-            );
-            
-            // Normalize the updated vehicle response
-            const normalizedUpdated = {
-                id: updatedVehicle._id || updatedVehicle.id || editingVehicle.id,
-                registration_no: updatedVehicle.registrationNumber || updatedVehicle.registration_no || vehicleData.registration_no,
-                vehicle_type: updatedVehicle.vehicleType || updatedVehicle.vehicle_type || '',
-                chassis_number: updatedVehicle.chassisNumber || updatedVehicle.chassis_number || vehicleData.chassis_number,
-                model: updatedVehicle.model || vehicleData.model,
-                status: updatedVehicle.status || editingVehicle.status || '',
-                inventory: updatedVehicle.inventory || [],
-                manufacturer: updatedVehicle.manufacturer || null,
-                vehicleCategory: updatedVehicle.vehicleCategory || null,
-                classification: updatedVehicle.classification || null,
-            };
-            
-            setVehicles(prevVehicles => 
-                prevVehicles.map(v => 
-                    v.id === editingVehicle.id ? normalizedUpdated : v
-                )
-            );
-            
-            setIsEditModalOpen(false);
-            setEditingVehicle(null);
-            toast.success(`Vehicle "${vehicleData.registration_no}" updated successfully!`);
-            console.log("Vehicle updated successfully:", normalizedUpdated);
-        } catch (apiError) {
-            console.error("Failed to update vehicle:", apiError);
-            const errorMessage = apiError?.detail || "Could not update vehicle.";
-            setFormError(errorMessage);
-            toast.error(errorMessage);
-        } finally {
-            setIsSubmitting(false);
-        }
     };
 
     // Build a map from accountId → account for fast lookup

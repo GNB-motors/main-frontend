@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import { parseWith } from '../../schemas/validate.js';
 
 /** Normalise a mobile number to E.164 (+91XXXXXXXXXX for Indian numbers). */
 function normaliseMobile(mobile) {
@@ -13,7 +14,7 @@ function normaliseMobile(mobile) {
 
 export const DriverService = {
     // --- Get Available Vehicles ---
-    getAvailableVehicles: async (businessRefId, token) => {
+    getAvailableVehicles: async (businessRefId) => {
         try {
             // New vehicles endpoint: GET /api/vehicles?orgId=<businessRefId>
             // Only include orgId param when provided to avoid serializing null/undefined
@@ -41,7 +42,7 @@ export const DriverService = {
             const response = await apiClient.get(`/api/employees`, { params: query });
             // Prefer new response shape
             if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
-                return { data: response.data.data, meta: response.data.meta };
+                return { data: await parseWith('driverListSchema', () => import('../../schemas/driver.schema.js'), response.data.data), meta: response.data.meta };
             }
             return { data: response.data, meta: null };
         } catch (error) {

@@ -11,6 +11,7 @@ import { PhoneCall, RefreshCw, Info, CheckCircle2, X, CalendarClock } from 'luci
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import ErpCallService from './ErpCallService';
+import { getUserRole } from '../../utils/session.js';
 import { CALL_OUTCOMES, OUTCOME_LABELS, OUTCOME_TONE } from './erpCall.constants';
 import '../../styles/erp.css';
 
@@ -26,7 +27,7 @@ const CAN_GENERATE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 
 const CallTasksPage = () => {
   const navigate = useNavigate();
-  const canGenerate = CAN_GENERATE.includes(localStorage.getItem('user_role'));
+  const canGenerate = CAN_GENERATE.includes(getUserRole());
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -307,8 +308,12 @@ const CallTasksPage = () => {
       </div>
 
       {activeTask && (
-        <div className="erp-modal-backdrop" onClick={closeOutcomeModal}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) closeOutcomeModal(); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>Record Call — {partyName(activeTask)}</h2>
               <button className="btn-icon" onClick={closeOutcomeModal}>

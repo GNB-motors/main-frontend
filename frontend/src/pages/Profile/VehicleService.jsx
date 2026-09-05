@@ -1,5 +1,7 @@
 import axios from 'axios';
 import apiClient from '../../utils/axiosConfig';
+import { getBranchId } from '../../utils/session.js';
+import { parseWith } from '../../schemas/validate.js';
 
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -25,7 +27,7 @@ const toExpectedMileage = (value) => {
 const resolveVehicleBranchId = (vehicleData) => {
   if (vehicleData.branchId) return vehicleData.branchId;
   if (Object.prototype.hasOwnProperty.call(vehicleData, 'branchId')) return null;
-  return localStorage.getItem('user_branchId') || null;
+  return getBranchId() || null;
 };
 
 const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branchId) => {
@@ -38,7 +40,7 @@ const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branch
     // Scope to the active location. These calls use raw axios (not the shared
     // apiClient), so the X-Branch-Id interceptor doesn't apply — pass it explicitly.
     // Omit for the enterprise "All locations" view (branch not selected).
-    const activeBranchId = branchId !== undefined ? branchId : localStorage.getItem('user_branchId');
+    const activeBranchId = branchId !== undefined ? branchId : getBranchId();
     if (activeBranchId) {
       url += `&branchId=${activeBranchId}`;
     }
@@ -51,7 +53,7 @@ const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branch
     // Return both data and meta for pagination
     if (response.data && response.data.status === 'success') {
       return {
-        data: Array.isArray(response.data.data) ? response.data.data : [],
+        data: await parseWith('vehicleListSchema', () => import('../../schemas/vehicle.schema.js'), Array.isArray(response.data.data) ? response.data.data : []),
         meta: response.data.meta || { total: 0, page: 1, limit: 10, totalPages: 1 }
       };
     }
@@ -131,7 +133,7 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
       orgId: businessRefId || undefined,
       // Location applied to the whole batch: explicit option, else the active
       // location, else the org default (resolved server-side).
-      branchId: options.branchId || localStorage.getItem('user_branchId') || undefined,
+      branchId: options.branchId || getBranchId() || undefined,
     };
 
     const response = await axios.post(
@@ -159,7 +161,7 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
 // axios (no interceptor), so pass the active branch explicitly via header + body.
 const importVehicle = async (vehicleId, token) => {
     try {
-        const branchId = localStorage.getItem('user_branchId') || undefined;
+        const branchId = getBranchId() || undefined;
         const response = await axios.post(
             `${API_BASE_URL}/api/vehicles/${vehicleId}/import`,
             { branchId },

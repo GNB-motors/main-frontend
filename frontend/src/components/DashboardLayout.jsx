@@ -9,6 +9,7 @@ import { ProfileService } from '../pages/Profile/ProfileService.jsx';
 import { storeProfileData } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
+import { isAuthenticated } from '../utils/session.js';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -37,7 +38,7 @@ const DashboardLayoutInner = () => {
     React.useEffect(() => {
         let cancelled = false;
         const syncProfileTheme = async () => {
-            if (!localStorage.getItem('authToken')) return;
+            if (!isAuthenticated()) return;
             try {
                 const data = await ProfileService.getProfile();
                 if (cancelled || !data) return;
@@ -53,8 +54,9 @@ const DashboardLayoutInner = () => {
 
     return (
         <div className="dashboard-layout">
+            <a href="#main-content" className="skip-to-content">Skip to main content</a>
             <Sidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
-            <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+            <main id="main-content" className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
                 <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
                 <div className="page-content" key={branchId || 'all-locations'}>
                     <Outlet />

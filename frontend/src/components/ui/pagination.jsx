@@ -28,7 +28,8 @@ function PaginationItem({ className, ...props }) {
 
 function PaginationLink({ className, isActive, size = "icon", onClick, ...props }) {
   return (
-    <a
+    <button
+      type="button"
       aria-current={isActive ? "page" : undefined}
       className={cn(
         buttonVariants({ variant: isActive ? "outline" : "ghost", size }),

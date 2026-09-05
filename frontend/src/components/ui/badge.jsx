@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva } from "class-variance-authority";

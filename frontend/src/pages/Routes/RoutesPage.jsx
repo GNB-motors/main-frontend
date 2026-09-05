@@ -20,14 +20,6 @@ const RoutesPage = () => {
   const navigate = useNavigate();
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
 
-  // Form state - matches backend API structure
-  const [formData, setFormData] = useState({
-    name: '',
-    sourceLocation: { address: '', city: '', state: '', lat: null, lng: null },
-    destLocation: { address: '', city: '', state: '', lat: null, lng: null },
-    distanceKm: ''
-  });
-
   // Fetch routes
   const fetchRoutes = useCallback(async (page = 1, search = '') => {
     setLoading(true);
@@ -59,37 +51,6 @@ const RoutesPage = () => {
     setSearchTerm(value);
     fetchRoutes(1, value);
   }, [fetchRoutes]);
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setFormData({
-      name: '',
-      sourceLocation: { address: '', city: '', state: '', lat: null, lng: null },
-      destLocation: { address: '', city: '', state: '', lat: null, lng: null },
-      distanceKm: ''
-    });
-  }, []);
-
-  // Handle form input change
-  const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  }, []);
-
-  // Handle location input change
-  const handleLocationChange = useCallback((locationType, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [locationType]: {
-        ...prev[locationType],
-        [field]: value
-      }
-    }));
-  }, []);
-
 
   // Navigate to edit page
   const openEditPage = useCallback((route) => {
@@ -258,8 +219,8 @@ const RoutesPage = () => {
 
       {/* Delete Route Modal */}
       {showDeleteModal && selectedRoute && (
-        <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="delete-modal-container" onClick={e => e.stopPropagation()}>
+        <div className="delete-modal-overlay" role="presentation" onClick={() => setShowDeleteModal(false)}>
+          <div className="delete-modal-container" role="presentation" onClick={e => e.stopPropagation()}>
             <div className="delete-modal-header">
               <h2>Delete Route</h2>
             </div>

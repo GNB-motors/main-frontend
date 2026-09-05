@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from './DocumentCard';
 import './DocumentUpload.css';
@@ -49,8 +49,6 @@ const DocumentUpload = ({
     currentDocument: null,
     imageSrc: null,
   });
-
-  const fileInputRef = useRef(null);
 
   // Handle file selection
   const handleDocumentSelect = (documentType) => {

@@ -8,11 +8,13 @@ import '../PageStyles.css';
 import './RefuelLogsPage.css';
 import '../../components/JourneySetupModal/modal.css';
 import apiClient from '../../utils/axiosConfig';
+import useApi from '../../hooks/useApi';
 import ChevronIcon from './assets/ChevronIcon.jsx';
 import DocumentService from './services/DocumentService';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import { exportFilteredReportCsv } from '../../utils/reportCsvExport';
 import { CsvIcon, ExcelIcon } from '../../components/Icons';
+import { getToken, getProfileField } from '../../utils/session.js';
 
 const FUEL_TYPES = ['DIESEL', 'ADBLUE'];
 const FILLING_TYPES = ['PARTIAL', 'FULL_TANK'];
@@ -27,7 +29,7 @@ const TAB_TO_FUEL_TYPE = {
   adblue: 'ADBLUE',
 };
 
-const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search, vehicleId } = {}) => {
+const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search, vehicleId } = {}, signal) => {
   const params = { page, limit };
   if (fuelType) {
     params.fuelType = fuelType;
@@ -39,7 +41,7 @@ const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search, 
     params.vehicleId = vehicleId;
   }
 
-  const response = await apiClient.get('api/fuel-logs', { params });
+  const response = await apiClient.get('api/fuel-logs', { params, signal });
   if (response.data.status === 'success') {
     const mapped = response.data.data.map(log => ({
         id: log._id,
@@ -154,7 +156,6 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
@@ -248,24 +249,19 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   }, []);
 
   // Fetch vehicles for the filter dropdown if this is a report page
+  const { data: vehiclesData } = useApi(
+    async () => {
+      const token = getToken();
+      const orgId = getProfileField('business_ref_id') || null;
+      if (!token) return null;
+      return VehicleService.getAllVehicles(orgId, token, 1, 1000);
+    },
+    [],
+    { enabled: isFixedFuelType }
+  );
   useEffect(() => {
-    if (!isFixedFuelType) return;
-    
-    const fetchVehicles = async () => {
-      const token = localStorage.getItem('authToken');
-      const orgId = localStorage.getItem('profile_business_ref_id') || null;
-      if (!token) return;
-      try {
-        const result = await VehicleService.getAllVehicles(orgId, token, 1, 1000);
-        if (result && result.data) {
-          setVehicles(result.data);
-        }
-      } catch (err) {
-        console.error('Failed to load vehicles for filter', err);
-      }
-    };
-    fetchVehicles();
-  }, [isFixedFuelType]);
+    if (vehiclesData?.data) setVehicles(vehiclesData.data);
+  }, [vehiclesData]);
 
   // Debounce the search box, then snap back to page 1 so results start at the top.
   useEffect(() => {
@@ -276,31 +272,40 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const loadLogs = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { logs: fetchedLogs, total } = await fetchRefuelLogs({
-        page: pagination.page,
-        limit: pagination.limit,
-        fuelType: TAB_TO_FUEL_TYPE[activeTab],
-        search: debouncedSearch,
-        vehicleId: selectedVehicleId || undefined,
-      });
-      setLogs(fetchedLogs);
-      setPagination((p) => ({ ...p, total }));
-    } catch (err) {
-      setError('Failed to load refuel logs');
-      console.error('Error loading refuel logs:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Refetch whenever the page, fuel-type tab, search term, or vehicle filter changes (all server-side).
+  const { data: logsData, loading, error: logsFetchError, refetch } = useApi(
+    (signal) => fetchRefuelLogs({
+      page: pagination.page,
+      limit: pagination.limit,
+      fuelType: TAB_TO_FUEL_TYPE[activeTab],
+      search: debouncedSearch,
+      vehicleId: selectedVehicleId || undefined,
+    }, signal),
+    [JSON.stringify({
+      page: pagination.page,
+      activeTab,
+      debouncedSearch,
+      vehicleId: selectedVehicleId,
+    })]
+  );
+
   useEffect(() => {
-    loadLogs();
-  }, [pagination.page, activeTab, debouncedSearch, selectedVehicleId]);
+    if (logsData) {
+      setLogs(logsData.logs);
+      setPagination((p) => ({ ...p, total: logsData.total }));
+    }
+  }, [logsData]);
+
+  useEffect(() => {
+    if (loading) setError(null);
+  }, [loading]);
+
+  useEffect(() => {
+    if (logsFetchError) {
+      setError('Failed to load refuel logs');
+      console.error('Error loading refuel logs:', logsFetchError);
+    }
+  }, [logsFetchError]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
 
@@ -369,7 +374,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       await updateFuelLog(editingLog.id, payload);
       toast.success('Fuel log updated successfully');
       handleEditClose();
-      await loadLogs();
+      refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update fuel log');
     } finally {
@@ -413,7 +418,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       await deleteFuelLog(deletingLog.id);
       toast.success('Fuel log deleted successfully');
       handleDeleteClose();
-      await loadLogs();
+      refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete fuel log');
     } finally {
@@ -579,6 +584,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
 
       <div
         className="refuel-table-container"
+        role="presentation"
         ref={tableContainerRef}
         onMouseDown={handleTableMouseDown}
         onMouseMove={handleTableMouseMove}
@@ -766,8 +772,8 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
 
       {/* Edit Modal */}
       {editingLog && createPortal(
-        <div className="refuel-modal-overlay" onClick={handleEditClose}>
-          <div className="refuel-modal refuel-edit-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="refuel-modal-overlay" role="presentation" onClick={handleEditClose}>
+          <div className="refuel-modal refuel-edit-modal" role="presentation" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
             <div className="refuel-modal-header">
               <h2>Edit Fuel Log</h2>
               <button type="button" className="refuel-modal-close" onClick={handleEditClose}>
@@ -871,8 +877,8 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
 
       {/* Delete Confirmation Modal */}
       {deletingLog && createPortal(
-        <div className="refuel-modal-overlay" onClick={handleDeleteClose}>
-          <div className="refuel-modal refuel-delete-modal" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="refuel-modal-overlay" role="presentation" onClick={handleDeleteClose}>
+          <div className="refuel-modal refuel-delete-modal" role="presentation" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
             <div className="refuel-modal-header">
               <h2>Delete Fuel Log</h2>
               <button type="button" className="refuel-modal-close" onClick={handleDeleteClose}>
@@ -909,9 +915,10 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
 
       {/* View Image Modal */}
       {viewImageUrl && createPortal(
-        <div className="refuel-modal-overlay" onClick={() => setViewImageUrl(null)} style={{ zIndex: 9999 }}>
-          <div 
-            onClick={(e) => e.stopPropagation()} 
+        <div className="refuel-modal-overlay" role="presentation" onClick={() => setViewImageUrl(null)} style={{ zIndex: 9999 }}>
+          <div
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
             style={{ 
               position: 'relative', 
               maxWidth: '80vw', 

@@ -284,8 +284,12 @@ const VendorsPage = () => {
       </div>
 
       {showModal && (
-        <div className="erp-modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>{editingId ? 'Edit Vendor' : 'Add Vendor'}</h2>
               <button className="btn-icon" onClick={() => setShowModal(false)}>
@@ -404,11 +408,14 @@ const VendorsPage = () => {
       )}
 
       {blacklistTarget && (
-        <div className="erp-modal-backdrop" onClick={() => setBlacklistTarget(null)}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setBlacklistTarget(null); }}
+        >
           <div
             className="erp-modal"
             style={{ maxWidth: 460 }}
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="erp-modal-header">
               <h2>

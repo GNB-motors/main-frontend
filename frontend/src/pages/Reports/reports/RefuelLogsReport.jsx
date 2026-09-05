@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import '../../Trip/RefuelLogsPage.css';
 import '../../../components/JourneySetupModal/modal.css';
 import apiClient from '../../../utils/axiosConfig';
+import useApi from '../../../hooks/useApi';
 import ChevronIcon from '../../Trip/assets/ChevronIcon.jsx';
 
 const FUEL_TYPES = ['DIESEL', 'ADBLUE'];
@@ -25,11 +26,11 @@ const filterTabs = [
   { id: 'adblue', label: 'AdBlue' },
 ];
 
-const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search } = {}) => {
+const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search, signal } = {}) => {
   const params = { page, limit };
   if (fuelType) params.fuelType = fuelType;
   if (search) params.search = search;
-  const response = await apiClient.get('api/fuel-logs', { params });
+  const response = await apiClient.get('api/fuel-logs', { params, signal });
   if (response.data.status === 'success') {
     const mapped = response.data.data.map(log => ({
       id: log._id,
@@ -107,7 +108,6 @@ const RefuelLogsReport = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
@@ -168,26 +168,30 @@ const RefuelLogsReport = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const loadLogs = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { logs: fetched, total } = await fetchRefuelLogs({
-        page: pagination.page,
-        limit: pagination.limit,
-        fuelType: TAB_TO_FUEL_TYPE[activeTab],
-        search: debouncedSearch,
-      });
-      setLogs(fetched);
-      setPagination((p) => ({ ...p, total }));
-    } catch {
-      setError('Failed to load refuel logs');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: logsResponse, loading, error: logsError, refetch: refetchLogs } = useApi(
+    (signal) => fetchRefuelLogs({
+      page: pagination.page,
+      limit: pagination.limit,
+      fuelType: TAB_TO_FUEL_TYPE[activeTab],
+      search: debouncedSearch,
+      signal,
+    }),
+    [JSON.stringify({ page: pagination.page, limit: pagination.limit, activeTab, debouncedSearch })]
+  );
 
-  useEffect(() => { loadLogs(); }, [pagination.page, activeTab, debouncedSearch]);
+  useEffect(() => {
+    if (logsResponse) {
+      setError(null);
+      setLogs(logsResponse.logs);
+      setPagination((p) => ({ ...p, total: logsResponse.total }));
+    }
+  }, [logsResponse]);
+
+  useEffect(() => {
+    if (logsError) {
+      setError('Failed to load refuel logs');
+    }
+  }, [logsError]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
 
@@ -248,7 +252,7 @@ const RefuelLogsReport = () => {
       await updateFuelLog(editingLog.id, payload);
       toast.success('Fuel log updated successfully');
       handleEditClose();
-      await loadLogs();
+      refetchLogs();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update fuel log');
     } finally {
@@ -266,7 +270,7 @@ const RefuelLogsReport = () => {
       await deleteFuelLog(deletingLog.id);
       toast.success('Fuel log deleted successfully');
       handleDeleteClose();
-      await loadLogs();
+      refetchLogs();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete fuel log');
     } finally {
@@ -292,7 +296,7 @@ const RefuelLogsReport = () => {
         </div>
       </div>
 
-      <div className="refuel-table-container" ref={tableContainerRef}
+      <div className="refuel-table-container" role="presentation" ref={tableContainerRef}
         onMouseDown={handleTableMouseDown} onMouseMove={handleTableMouseMove}
         onMouseUp={endTableDrag} onMouseLeave={endTableDrag} onClickCapture={handleTableClickCapture}>
         <table className="refuel-table">
@@ -406,8 +410,8 @@ const RefuelLogsReport = () => {
 
       {/* Edit Modal */}
       {editingLog && createPortal(
-        <div className="refuel-modal-overlay" onClick={handleEditClose}>
-          <div className="refuel-modal refuel-edit-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="refuel-modal-overlay" role="presentation" onClick={handleEditClose}>
+          <div className="refuel-modal refuel-edit-modal" role="presentation" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
             <div className="refuel-modal-header">
               <h2>Edit Fuel Log</h2>
               <button type="button" className="refuel-modal-close" onClick={handleEditClose}><X size={20} /></button>
@@ -466,8 +470,8 @@ const RefuelLogsReport = () => {
 
       {/* Delete Modal */}
       {deletingLog && createPortal(
-        <div className="refuel-modal-overlay" onClick={handleDeleteClose}>
-          <div className="refuel-modal refuel-delete-modal" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="refuel-modal-overlay" role="presentation" onClick={handleDeleteClose}>
+          <div className="refuel-modal refuel-delete-modal" role="presentation" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
             <div className="refuel-modal-header">
               <h2>Delete Fuel Log</h2>
               <button type="button" className="refuel-modal-close" onClick={handleDeleteClose}><X size={20} /></button>

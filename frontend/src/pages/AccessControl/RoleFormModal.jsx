@@ -96,9 +96,24 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, bran
     }
   };
 
+  const handleOverlayKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!saving) onClose();
+    }
+  };
+
   return (
-    <div className="ff-modal-overlay" onClick={() => !saving && onClose()}>
-      <div className="ff-modal ac-modal--wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+    <div
+      className="ff-modal-overlay"
+      role="button"
+      tabIndex={-1}
+      aria-label="Close dialog"
+      onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}
+      onKeyDown={handleOverlayKeyDown}
+    >
+      <div className="ff-modal ac-modal--wide" role="dialog" aria-modal="true">
         <div className="ff-modal__header">
           <div>
             <h2 className="ff-modal__title">

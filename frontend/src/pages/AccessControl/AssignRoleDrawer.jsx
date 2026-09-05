@@ -108,9 +108,24 @@ const AssignRoleDrawer = ({
     }
   };
 
+  const handleOverlayKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!submitting) onClose();
+    }
+  };
+
   return (
-    <div className="ff-modal-overlay" onClick={() => !submitting && onClose()}>
-      <div className="ff-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+    <div
+      className="ff-modal-overlay"
+      role="button"
+      tabIndex={-1}
+      aria-label="Close dialog"
+      onClick={(e) => { if (e.target === e.currentTarget && !submitting) onClose(); }}
+      onKeyDown={handleOverlayKeyDown}
+    >
+      <div className="ff-modal" role="dialog" aria-modal="true">
         <div className="ff-modal__header">
           <div>
             <h2 className="ff-modal__title">Assign a role</h2>

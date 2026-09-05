@@ -96,6 +96,7 @@ const PartialFuelSection = ({ fixedDocs, setFixedDocs, onOcrPreview }) => {
   return (
     <div
       className={`intake-partial-fuel${isDragging ? ' section-dragging' : ''}`}
+      role="presentation"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -148,7 +149,7 @@ const PartialFuelSection = ({ fixedDocs, setFixedDocs, onOcrPreview }) => {
             const scanning = partialFuelScanning[index];
             const status = fuel.ocrStatus || fuel.file?.ocrStatus;
             return (
-              <div key={index} className="multi-slot-thumb">
+              <div key={fuel.index} className="multi-slot-thumb">
                 <img src={fuel.file.preview} alt={`Fuel ${index + 1}`} className="multi-slot-img" />
                 <div className="multi-slot-num">#{index + 1}</div>
                 <div className={`multi-slot-status ${scanning ? 'scanning' : status}`}>

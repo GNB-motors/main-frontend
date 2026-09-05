@@ -6,6 +6,7 @@ import { ChevronRight, FileText, Plus, ChevronLeft, AlertTriangle, CheckCircle2,
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
+import { useApi } from '../../hooks/useApi';
 import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 
 const PAGE_SIZE = 10;
@@ -51,7 +52,6 @@ const MileageTrackingVehicleDetail = () => {
   const navigate = useNavigate();
   const { vehicleId } = useParams();
   const [intervals, setIntervals] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
   const [vehicleInfo, setVehicleInfo] = useState(null);
 
@@ -61,27 +61,29 @@ const MileageTrackingVehicleDetail = () => {
     return () => { if (el) el.classList.remove('no-padding'); };
   }, []);
 
-  const fetchIntervals = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiClient.get('/api/mileage/intervals', {
-        params: { page: pagination.page, limit: pagination.limit, vehicleId }
-      });
-      const data = res.data?.data || [];
+  const { data: intervalsResponse, loading: isLoading, error: intervalsError } = useApi(
+    (signal) => apiClient.get('/api/mileage/intervals', {
+      params: { page: pagination.page, limit: pagination.limit, vehicleId },
+      signal,
+    }),
+    [JSON.stringify({ page: pagination.page, vehicleId })]
+  );
+
+  useEffect(() => {
+    if (intervalsResponse) {
+      const data = intervalsResponse.data?.data || [];
       setIntervals(data);
       if (data.length > 0 && !vehicleInfo) {
         setVehicleInfo(data[0].vehicleId);
       }
-      const total = res.data?.pagination?.total ?? res.data?.total ?? res.data?.meta?.total ?? 0;
+      const total = intervalsResponse.data?.pagination?.total ?? intervalsResponse.data?.total ?? intervalsResponse.data?.meta?.total ?? 0;
       setPagination(p => ({ ...p, total }));
-    } catch {
-      toast.error('Failed to load mileage records');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [intervalsResponse, vehicleInfo]);
 
-  useEffect(() => { fetchIntervals(); }, [pagination.page, vehicleId]);
+  useEffect(() => {
+    if (intervalsError) toast.error('Failed to load mileage records');
+  }, [intervalsError]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
 

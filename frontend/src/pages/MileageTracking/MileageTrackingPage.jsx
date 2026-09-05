@@ -6,6 +6,7 @@ import { ChevronRight, FileText, Plus, AlertCircle, CheckCircle2, Clock } from '
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
+import { useApi } from '../../hooks/useApi';
 import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 
 const PAGE_SIZE = 10;
@@ -13,7 +14,6 @@ const PAGE_SIZE = 10;
 const MileageTrackingPage = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
 
@@ -44,23 +44,24 @@ const MileageTrackingPage = () => {
     window.dispatchEvent(new CustomEvent('mileageSearchReset', { detail: { value: '' } }));
   }, []);
 
-  const fetchFleetOverview = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiClient.get('/api/mileage/fleet-overview', {
-        params: { page: pagination.page, limit: pagination.limit, search: searchQuery }
-      });
-      setVehicles(res.data?.data || []);
-      const total = res.data?.meta?.total ?? 0;
-      setPagination(p => ({ ...p, total }));
-    } catch {
-      toast.error('Failed to load fleet mileage overview');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: fleetResponse, loading: isLoading, error: fleetError } = useApi(
+    (signal) => apiClient.get('/api/mileage/fleet-overview', {
+      params: { page: pagination.page, limit: pagination.limit, search: searchQuery },
+      signal,
+    }),
+    [JSON.stringify({ page: pagination.page, search: searchQuery })]
+  );
 
-  useEffect(() => { fetchFleetOverview(); }, [pagination.page, searchQuery]);
+  useEffect(() => {
+    if (fleetResponse) {
+      setVehicles(fleetResponse.data?.data || []);
+      setPagination(p => ({ ...p, total: fleetResponse.data?.meta?.total ?? 0 }));
+    }
+  }, [fleetResponse]);
+
+  useEffect(() => {
+    if (fleetError) toast.error('Failed to load fleet mileage overview');
+  }, [fleetError]);
 
   const totalPages = Math.ceil(pagination.total / pagination.limit) || 1;
 

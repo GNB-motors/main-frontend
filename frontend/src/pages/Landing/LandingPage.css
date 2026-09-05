@@ -550,9 +550,8 @@
     }
 }
 
-.lp-diagram-node .material-symbols-outlined {
+.lp-diagram-node .lp-icon {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 1.5rem;
     margin-bottom: 0.5rem;
 }
 
@@ -1198,8 +1197,9 @@
     opacity: 0.1;
 }
 
-.lp-card-bg-icon .material-symbols-outlined {
-    font-size: 6rem;
+.lp-card-bg-icon .lp-icon {
+    width: 6rem;
+    height: 6rem;
 }
 
 .lp-card-title {
@@ -1240,13 +1240,13 @@
     margin-top: 1.5rem;
 }
 
-.lp-card-icons .material-symbols-outlined {
+.lp-card-icons .lp-icon {
     color: rgba(255, 255, 255, 0.2);
     cursor: pointer;
     transition: color 0.3s;
 }
 
-.lp-card-icons .material-symbols-outlined:hover {
+.lp-card-icons .lp-icon:hover {
     color: #006039;
 }
 

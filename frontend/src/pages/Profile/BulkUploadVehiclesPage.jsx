@@ -14,6 +14,7 @@ import {
   dedupeRows,
 } from "../../utils/bulkNormalization";
 import EditRowModal from "../BulkUpload/EditRowModal";
+import { getToken } from "../../utils/session.js";
 
 const VEHICLE_COLUMNS = [
   {
@@ -196,7 +197,7 @@ const BulkUploadVehiclesPage = () => {
     // Build payload using API expected camelCase keys
     // Use VehicleService to handle the mapping and API call (it defaults inventory to [])
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const options = { dry_run: dryRun, upsert };
       const resp = await VehicleService.addBulkVehicles(businessRefId, rows, options, token);
 

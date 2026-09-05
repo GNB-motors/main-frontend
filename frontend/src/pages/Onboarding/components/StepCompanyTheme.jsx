@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import apiClient from '../../../utils/axiosConfig';
 import CompanyLogoUploader from '../../../components/CompanyLogoUploader.jsx';
+import { getOrgId } from '../../../utils/session.js';
 
-const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
+const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
     const [companyName, setCompanyName] = useState('');
     const [selectedColor, setSelectedColor] = useState('#2940d3');
     const [customHex, setCustomHex] = useState('');
@@ -11,7 +11,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange, formData }) => {
     // The org row already exists at this point (created at owner registration),
     // so the logo can be uploaded against it immediately rather than being held
     // in memory until onboarding is submitted.
-    const [orgId] = useState(() => localStorage.getItem('user_orgId') || '');
+    const [orgId] = useState(() => getOrgId() || '');
     const [logoUrl, setLogoUrl] = useState(null);
 
     // Predefined color swatches matching the app theme

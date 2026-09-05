@@ -251,8 +251,12 @@ const ApprovalsPage = () => {
       </div>
 
       {active && (
-        <div className="erp-modal-backdrop" onClick={closeDecision}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) closeDecision(); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>{APPROVAL_TYPE_LABELS[active.type] || active.type}</h2>
               <button className="btn-icon" onClick={closeDecision}>

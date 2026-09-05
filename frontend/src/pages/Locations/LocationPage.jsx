@@ -202,8 +202,8 @@ const LocationPage = () => {
 
             {/* Delete Modal */}
             {showDeleteModal && selectedLocation && (
-                <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-                    <div className="delete-modal-container" onClick={e => e.stopPropagation()}>
+                <div className="delete-modal-overlay" role="presentation" onClick={() => setShowDeleteModal(false)}>
+                    <div className="delete-modal-container" role="presentation" onClick={e => e.stopPropagation()}>
                         <div className="delete-modal-header">
                             <h2>Delete Pump Location</h2>
                         </div>

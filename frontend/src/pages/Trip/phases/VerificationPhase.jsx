@@ -29,7 +29,6 @@ const VerificationPhase = ({
   onBack,
   onSubmit,
   isSubmitting,
-  onCancel,
   fixedDocs: propsFixedDocs = {},
   weightSlips: propsWeightSlips = [],
   journeyData
@@ -117,7 +116,7 @@ const VerificationPhase = ({
   /* ── Image preview ── */
   const createdObjectUrls = React.useRef(new Set());
   React.useEffect(() => () => {
-    createdObjectUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+    createdObjectUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch { /* ignore revoke errors */ } });
     createdObjectUrls.current.clear();
   }, []);
 
@@ -133,7 +132,7 @@ const VerificationPhase = ({
         createdObjectUrls.current.add(url);
         return url;
       }
-    } catch(e) {}
+    } catch { /* not a file/blob object */ }
     return null;
   };
 
@@ -149,19 +148,28 @@ const VerificationPhase = ({
   }, [isDataComplete, onSubmit]);
 
   /* ── Helper: doc thumbnail ── */
-  const DocThumb = ({ src, label, onPreview }) => (
-    <div className="vp-doc-thumb" onClick={() => src && onPreview(src, label)}>
-      {src
-        ? <img src={src} alt={label} />
-        : <div className="vp-doc-thumb-empty">No Image</div>}
-      <div className="vp-doc-thumb-label">{label}</div>
-      {src && (
-        <div className="vp-doc-thumb-overlay">
-          <Eye size={18} />
-        </div>
-      )}
-    </div>
-  );
+  const DocThumb = ({ src, label, onPreview }) => {
+    const handlePreview = () => src && onPreview(src, label);
+    return (
+      <div
+        className="vp-doc-thumb"
+        role="button"
+        tabIndex={0}
+        onClick={handlePreview}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePreview(); } }}
+      >
+        {src
+          ? <img src={src} alt={label} />
+          : <div className="vp-doc-thumb-empty">No Image</div>}
+        <div className="vp-doc-thumb-label">{label}</div>
+        {src && (
+          <div className="vp-doc-thumb-overlay">
+            <Eye size={18} />
+          </div>
+        )}
+      </div>
+    );
+  };
 
   /* ── Journey metrics ── */
   const journeyMetrics = journeyData ? (() => {
@@ -286,7 +294,15 @@ const VerificationPhase = ({
                       <td className="vp-slip-num">#{i + 1}</td>
                       <td>
                         {src
-                          ? <img src={src} alt={`Slip ${i+1}`} className="vp-slip-thumb" onClick={() => openPreview(src, `Weight Slip #${i+1}`)} />
+                          ? (
+                            <button
+                              type="button"
+                              onClick={() => openPreview(src, `Weight Slip #${i+1}`)}
+                              style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
+                            >
+                              <img src={src} alt={`Slip ${i+1}`} className="vp-slip-thumb" />
+                            </button>
+                          )
                           : <span className="vp-no-img">—</span>}
                       </td>
                       <td className="vp-loc">{originText}</td>

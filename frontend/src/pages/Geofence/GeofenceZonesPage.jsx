@@ -23,7 +23,6 @@ const GMAPS_LIBS = ['places', 'geometry'];
 
 const IST = 'Asia/Kolkata';
 const fromNow = (d) => (d ? dayjs.utc(d).tz(IST).fromNow() : '—');
-const formatIST = (d) => (d ? dayjs.utc(d).tz(IST).format('DD MMM, hh:mm A') : '—');
 
 const MAP_CENTER = { lat: 22.5, lng: 82.0 };
 const MAP_OPTIONS = {
@@ -69,15 +68,18 @@ const ZoneTypeBadge = ({ zoneType }) => {
   return <span className={`gfz-badge ${cfg.badgeCls}`}>{cfg.label}</span>;
 };
 
-const KpiCard = ({ icon: Icon, label, value, colorClass }) => (
-  <div className={`gfz-kpi gfz-kpi-${colorClass}`}>
-    <div className="gfz-kpi-icon"><Icon size={18} /></div>
-    <div>
-      <p className="gfz-kpi-label">{label}</p>
-      <p className="gfz-kpi-value">{value ?? 0}</p>
+const KpiCard = (props) => {
+  const { icon: Icon, label, value, colorClass } = props;
+  return (
+    <div className={`gfz-kpi gfz-kpi-${colorClass}`}>
+      <div className="gfz-kpi-icon"><Icon size={18} /></div>
+      <div>
+        <p className="gfz-kpi-label">{label}</p>
+        <p className="gfz-kpi-value">{value ?? 0}</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const AlertPanel = ({ alerts, onMarkRead, onClose }) => (
   <div className="gfz-alerts-panel">

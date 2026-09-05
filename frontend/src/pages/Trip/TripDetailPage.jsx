@@ -12,7 +12,6 @@ import { ArrowLeft, ChevronDown, ChevronUp, Users, MapPin, Package, DollarSign, 
 import '../PageStyles.css';
 import './TripManagementPage.css';
 import { TripService } from './services';
-import { getVehicleRegistration, getDriverName, getDriverPhone } from '../../utils/dataFormatters';
 
 const TripDetailPage = () => {
   const navigate = useNavigate();
@@ -135,10 +134,6 @@ const TripDetailPage = () => {
     fuelLitres: journeyMileage.totalFuelUsedL ?? topMileage.fuelLitres ?? topMileage.totalFuelUsedL,
     fuelMileageKmPerL: journeyMileage.fuelMileageKmPerL ?? topMileage.fuelMileageKmPerL
   };
-
-  // Prefer journey-level vehicle/driver when available, otherwise fall back to top-level trip fields
-  const vehicle = trip.journeyId?.vehicleId || trip.vehicleId;
-  const driver = trip.journeyId?.driverId || trip.driverId;
 
   // Use journeyFinancials from API response if available, otherwise calculate from weightSlipTrips
   const totalRevenue = trip.journeyFinancials?.totalRevenue ||
@@ -566,6 +561,8 @@ const TripDetailPage = () => {
           marginBottom: '24px'
         }}>
           <div
+            role="button"
+            tabIndex={0}
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -574,6 +571,7 @@ const TripDetailPage = () => {
               marginBottom: expandedSections.weightSlips ? '20px' : '0'
             }}
             onClick={() => toggleSection('weightSlips')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSection('weightSlips'); } }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Package width={20} height={20} color="#1a73e8" />
@@ -589,6 +587,8 @@ const TripDetailPage = () => {
               {trip.weightSlipTrips.map((wst, index) => (
                 <div
                   key={wst._id || index}
+                  role="button"
+                  tabIndex={0}
                   style={{
                     padding: '16px',
                     marginBottom: '12px',
@@ -599,6 +599,7 @@ const TripDetailPage = () => {
                     transition: 'all 0.2s'
                   }}
                   onClick={() => navigate(`/trip-management/weight-slip/${wst._id}`)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/trip-management/weight-slip/${wst._id}`); } }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#f3f4f6';
                     e.currentTarget.style.borderColor = '#1a73e8';

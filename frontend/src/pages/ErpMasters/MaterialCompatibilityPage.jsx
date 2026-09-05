@@ -229,8 +229,12 @@ const MaterialCompatibilityPage = () => {
       </div>
 
       {showModal && (
-        <div className="erp-modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>Compatibility Rule</h2>
               <button className="btn-icon" onClick={() => setShowModal(false)}>
@@ -317,11 +321,14 @@ const MaterialCompatibilityPage = () => {
       )}
 
       {deleteTarget && (
-        <div className="erp-modal-backdrop" onClick={() => setDeleteTarget(null)}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
+        >
           <div
             className="erp-modal"
             style={{ maxWidth: 420 }}
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="erp-modal-header">
               <h2>Delete Rule</h2>

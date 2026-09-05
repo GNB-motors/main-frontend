@@ -24,9 +24,24 @@ const ConfirmDeleteModal = ({
 }) => {
   if (!open) return null;
 
+  const handleOverlayKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!busy) onClose();
+    }
+  };
+
   return (
-    <div className="ff-modal-overlay" onClick={() => !busy && onClose()}>
-      <div className="ff-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+    <div
+      className="ff-modal-overlay"
+      role="button"
+      tabIndex={-1}
+      aria-label="Close dialog"
+      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}
+      onKeyDown={handleOverlayKeyDown}
+    >
+      <div className="ff-modal" role="dialog" aria-modal="true">
         <div className="ff-modal__header">
           <div>
             <h2 className="ff-modal__title">{title}</h2>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { CircularProgress } from '@mui/material';
 import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle, ArrowLeft, Droplets } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
+import useApi from '../../hooks/useApi';
 import { OCRService } from '../Trip/services';
 import { FieldAgentFuelService } from './FieldAgentFuelService';
 import LocationAutocomplete from '../../components/LocationAutocomplete/LocationAutocomplete';
@@ -49,7 +49,15 @@ const SlotUpload = ({ docType, title, label, inputId, required, doc, isScanning,
       <input type="file" id={inputId} accept="image/*" style={{ display: 'none' }}
         onChange={(e) => { if (e.target.files[0]) { onDrop(docType, [e.target.files[0]]); e.target.value = ''; } }} />
       {!hasData ? (
-        <div className={`slot-dropzone ${isDragging ? 'dragging' : ''}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+        <div
+          className={`slot-dropzone ${isDragging ? 'dragging' : ''}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById(inputId)?.click(); } }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <div className={`slot-dropzone-inner ${isDragging ? 'dragging' : ''}`}>
             {isDragging ? (
               <><div className="slot-dropzone-drag-icon">⬇️</div><p className="slot-dropzone-drag-text">Drop it here!</p></>
@@ -99,7 +107,6 @@ const FieldAgentFuelUploadPage = () => {
     const [loadingVehicles, setLoadingVehicles] = useState(true);
     const [loadingDrivers, setLoadingDrivers] = useState(true);
     const [lastOdometer, setLastOdometer] = useState(null);
-    const [loadingLastOdometer, setLoadingLastOdometer] = useState(false);
     const [formData, setFormData] = useState({ fuelType: 'DIESEL', fillingType: 'PARTIAL', litres: '', rate: '', odometerReading: '', location: '' });
     const [fixedDocs, setFixedDocs] = useState({ fuel: null, odometer: null });
     const [ocrScanning, setOcrScanning] = useState({ fuel: false, odometer: false });
@@ -110,22 +117,26 @@ const FieldAgentFuelUploadPage = () => {
         return () => { if (el) el.classList.remove('no-padding'); };
     }, []);
 
+    const { data: odometerResponse, loading: loadingLastOdometer, error: odometerError } = useApi(
+        (signal) => apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`, {
+            headers: { 'X-Org-Id': selectedVehicle.orgId?._id || selectedVehicle.orgId },
+            signal,
+        }),
+        [JSON.stringify({ vehicleId: selectedVehicle?.id, orgId: selectedVehicle?.orgId?._id || selectedVehicle?.orgId || null })],
+        { enabled: !!selectedVehicle }
+    );
+
     useEffect(() => {
-        if (!selectedVehicle) { setLastOdometer(null); return; }
-        const fetchOdo = async () => {
-            setLoadingLastOdometer(true);
-            try { 
-                const targetOrgId = selectedVehicle.orgId?._id || selectedVehicle.orgId;
-                const res = await apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`, {
-                    headers: { 'X-Org-Id': targetOrgId }
-                }); 
-                setLastOdometer(res.data?.data || null); 
-            }
-            catch (err) { console.error("Failed to fetch last odometer", err); }
-            finally { setLoadingLastOdometer(false); }
-        };
-        fetchOdo();
+        if (!selectedVehicle) setLastOdometer(null);
     }, [selectedVehicle]);
+
+    useEffect(() => {
+        if (odometerResponse) setLastOdometer(odometerResponse.data?.data || null);
+    }, [odometerResponse]);
+
+    useEffect(() => {
+        if (odometerError) console.error("Failed to fetch last odometer", odometerError);
+    }, [odometerError]);
 
     useEffect(() => {
         const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); };
@@ -133,22 +144,32 @@ const FieldAgentFuelUploadPage = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
+    const { data: depsResponse, error: depsError } = useApi(
+        () => Promise.all([
+            FieldAgentFuelService.getVehicles(),
+            FieldAgentFuelService.getDrivers()
+        ]),
+        []
+    );
+
     useEffect(() => {
-        const fetchDeps = async () => {
-            try {
-                const [vehRes, drvRes] = await Promise.all([
-                    FieldAgentFuelService.getVehicles(),
-                    FieldAgentFuelService.getDrivers()
-                ]);
-                const vList = vehRes || [];
-                setVehicles(vList.map(v => ({ id: v._id, name: v.registrationNumber, registration: `${v.vehicleType || 'N/A'}`, orgId: v.orgId })));
-                const dList = drvRes || [];
-                setDrivers(dList.map(d => ({ id: d._id, name: `${d.firstName} ${d.lastName || ''}`.trim(), mobileNo: d.mobileNumber || 'N/A', orgId: d.orgId })));
-            } catch { toast.error('Failed to load drivers and vehicles'); }
-            finally { setLoadingVehicles(false); setLoadingDrivers(false); }
-        };
-        fetchDeps();
-    }, []);
+        if (!depsResponse) return;
+        const [vehRes, drvRes] = depsResponse;
+        const vList = vehRes || [];
+        setVehicles(vList.map(v => ({ id: v._id, name: v.registrationNumber, registration: `${v.vehicleType || 'N/A'}`, orgId: v.orgId })));
+        const dList = drvRes || [];
+        setDrivers(dList.map(d => ({ id: d._id, name: `${d.firstName} ${d.lastName || ''}`.trim(), mobileNo: d.mobileNumber || 'N/A', orgId: d.orgId })));
+        setLoadingVehicles(false);
+        setLoadingDrivers(false);
+    }, [depsResponse]);
+
+    useEffect(() => {
+        if (depsError) {
+            toast.error('Failed to load drivers and vehicles');
+            setLoadingVehicles(false);
+            setLoadingDrivers(false);
+        }
+    }, [depsError]);
 
     const filteredVehicles = useMemo(() => vehicles.filter(v => {
         if (selectedOrgFilter && (v.orgId?.companyName !== selectedOrgFilter)) return false;
@@ -208,15 +229,8 @@ const FieldAgentFuelUploadPage = () => {
             setFixedDocs(prev => ({ ...prev, [docType]: { file, preview: e.target.result, ocrStatus: 'scanning' } }));
             setOcrScanning(prev => ({ ...prev, [docType]: true }));
             try {
-                // Determine targetOrgId for OCR tracking (optional, but good practice if OCR requires org context)
-                const targetOrgId = selectedVehicle?.orgId?._id || selectedVehicle?.orgId;
-                
+                // OCRService.scan uses apiClient under the hood without X-Org-Id.
                 const ocrDocType = docType === 'odometer' ? 'ODOMETER' : 'FUEL_RECEIPT';
-                
-                // OCRService.scan typically doesn't strictly need X-Org-Id unless specifically configured,
-                // but we will pass it just in case if the API supports it via config.
-                // Assuming OCRService.scan uses apiClient under the hood without X-Org-Id,
-                // we might need to bypass it. For now, it uses the default.
                 const ocrResult = await OCRService.scan(file, ocrDocType);
                 if (ocrResult.success) {
                     const data = ocrResult.data;
@@ -558,7 +572,7 @@ const FieldAgentFuelUploadPage = () => {
                     <div className="mileage-actions">
                         <button type="button" className="mileage-btn mileage-btn-secondary" onClick={() => navigate('/field-agent-fuel')}>Cancel</button>
                         <button type="submit" disabled={isLoading} className="mileage-btn mileage-btn-primary">
-                            {isLoading ? <><CircularProgress size={16} color="inherit" style={{ marginRight: 8 }} /> Submitting</> : 'Submit Fuel Log'}
+                            {isLoading ? <><Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} /> Submitting</> : 'Submit Fuel Log'}
                         </button>
                     </div>
                 </form>

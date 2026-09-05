@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CircularProgress, Chip } from '@mui/material';
+import { Badge } from '@/components/ui/badge';
 import {
     Route, AlertTriangle, RefreshCw, Search, CheckCircle2, Eye, Loader2
 } from 'lucide-react';
@@ -181,7 +181,7 @@ const RouteDeviationPage = () => {
                 <div className="fc-table-wrap">
                     {isLoading ? (
                         <div className="fc-loading-state">
-                            <CircularProgress size={32} />
+                            <Loader2 size={32} className="animate-spin" />
                             <p>Loading route deviation events...</p>
                         </div>
                     ) : (
@@ -221,9 +221,9 @@ const RouteDeviationPage = () => {
                                         </td>
                                         <td>
                                             {ev.status === 'OPEN' ? (
-                                                <Chip size="small" icon={<AlertTriangle size={12} />} label="Please review" color="warning" variant="outlined" />
+                                                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700"><AlertTriangle size={12} /> Please review</Badge>
                                             ) : (
-                                                <Chip size="small" icon={<CheckCircle2 size={12} />} label="Reviewed" color="success" variant="outlined" />
+                                                <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700"><CheckCircle2 size={12} /> Reviewed</Badge>
                                             )}
                                         </td>
                                         <td>

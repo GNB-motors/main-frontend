@@ -10,6 +10,7 @@ import { useLemuGraphData, useLemuSelectedNode } from './useLemuGraphData';
    the LemuLogsPage chunk). */
 import '../LemuLogsPage.css';
 import './LemuGraphPage.css';
+import { getUserRole } from '../../../../../utils/session';
 
 /* Standalone full-page home for the LEMU knowledge graph (/superadmin/graph).
 
@@ -38,7 +39,7 @@ const LemuGraphPage = () => {
   const isolateRef = useRef(null);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);

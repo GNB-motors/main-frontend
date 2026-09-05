@@ -1,19 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Box,
-    Typography,
-    CircularProgress,
-    Alert,
-    Slider,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-} from '@mui/material';
-import {
     ChevronRight,
     TrendingUp,
     Wallet,
@@ -21,8 +8,20 @@ import {
     MapPin,
     DollarSign,
     Filter,
+    Loader2,
 } from 'lucide-react';
 import dayjs from 'dayjs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import {
     Select,
     SelectContent,
@@ -43,8 +42,23 @@ import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 import { DriverService } from '../../Drivers/DriverService';
 
+// --- Local Alert (replaces MUI Alert) ---
+const ALERT_SEVERITY_CLASSES = {
+    error: 'border-red-200 bg-red-50 text-red-700',
+    warning: 'border-amber-200 bg-amber-50 text-amber-700',
+    info: 'border-blue-200 bg-blue-50 text-blue-700',
+    success: 'border-green-200 bg-green-50 text-green-700',
+};
+
+const Alert = ({ severity = 'info', className = '', children }) => (
+    <div role="alert" className={`rounded-md border px-3 py-2 ${ALERT_SEVERITY_CLASSES[severity] || ALERT_SEVERITY_CLASSES.info} ${className}`}>
+        {children}
+    </div>
+);
+
 // --- Summary Card Component (KPI Card from Figma) ---
-const SummaryCard = ({ icon: Icon, label, value, iconColor = '#2F58EE' }) => {
+const SummaryCard = (props) => {
+    const { icon: Icon, label, value, iconColor = '#2F58EE' } = props;
     return (
         <div className="trip-ledger-kpi-card">
             <div className="trip-ledger-kpi-icon" style={{ background: `rgba(47, 88, 238, 0.10)` }}>
@@ -300,7 +314,7 @@ const TripLedgerReport = () => {
         setIsProfitModalOpen(false);
     };
 
-    const handleLocalSliderChange = (event, newValue) => {
+    const handleLocalSliderChange = (newValue) => {
         setLocalProfit([newValue[0].toString(), newValue[1].toString()]);
     };
 
@@ -362,7 +376,7 @@ const TripLedgerReport = () => {
     };
 
     return (
-        <Box sx={{ padding: '24px' }}>
+        <div className="p-6">
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">
@@ -380,11 +394,11 @@ const TripLedgerReport = () => {
                 {/* Summary Cards */}
                 <div className="trip-ledger-summary-cards">
                     {isLoadingSummary ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 2 }}>
-                            <CircularProgress size={24} />
-                        </Box>
+                        <div className="flex justify-center w-full py-4">
+                            <Loader2 size={24} className="animate-spin" />
+                        </div>
                     ) : summaryError ? (
-                        <Alert severity="error" sx={{ width: '100%' }}>{summaryError}</Alert>
+                        <Alert severity="error" className="w-full">{summaryError}</Alert>
                     ) : (
                         summaryData && (
                             <>
@@ -455,20 +469,11 @@ const TripLedgerReport = () => {
                     <div className="date-input-group">
                         <label>Profit Filter</label>
                         <Button
-                            variant="outlined"
+                            variant="outline"
                             onClick={handleOpenProfitModal}
-                            startIcon={<Filter size={16} />}
-                            sx={{
-                                height: 40,
-                                textTransform: 'none',
-                                borderColor: '#e2e8f0',
-                                color: '#475569',
-                                backgroundColor: 'white',
-                                minWidth: '200px',
-                                justifyContent: 'flex-start',
-                                '&:hover': { borderColor: '#cbd5e1', backgroundColor: '#f8fafc' },
-                            }}
+                            className="h-10 min-w-[200px] justify-start font-normal"
                         >
+                            <Filter size={16} />
                             {profitRange[0] === minProfit && profitRange[1] === maxProfit
                                 ? 'All Profits'
                                 : `${formatProfitLabel(profitRange[0])} - ${formatProfitLabel(profitRange[1])}`}
@@ -479,15 +484,15 @@ const TripLedgerReport = () => {
 
             {/* Loading State */}
             {isLoadingLedger && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-                    <CircularProgress />
-                    <Typography sx={{ ml: 2 }}>Loading trips...</Typography>
-                </Box>
+                <div className="flex items-center justify-center h-[400px]">
+                    <Loader2 size={40} className="animate-spin" />
+                    <span className="ml-2">Loading trips...</span>
+                </div>
             )}
 
             {/* Error State */}
             {ledgerError && !isLoadingLedger && (
-                <Alert severity="error" sx={{ my: 2 }}>{ledgerError}</Alert>
+                <Alert severity="error" className="my-4">{ledgerError}</Alert>
             )}
 
             {/* Table Content */}
@@ -612,62 +617,59 @@ const TripLedgerReport = () => {
             {/* Profit Filter Modal */}
             <Dialog
                 open={isProfitModalOpen}
-                onClose={() => setIsProfitModalOpen(false)}
-                // UI Fix to prevent horizontal scrollbar clipping
-                PaperProps={{ sx: { borderRadius: 2, minWidth: 400 } }}
+                onOpenChange={(open) => { if (!open) setIsProfitModalOpen(false); }}
             >
-                <DialogTitle sx={{ fontWeight: 600, fontSize: '1.1rem', pb: 1 }}>Filter by Profit</DialogTitle>
-                <DialogContent sx={{ overflowX: 'hidden' }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <TextField
-                                label="Min Profit (₹)"
-                                type="number"
-                                variant="outlined"
-                                size="small"
-                                fullWidth
-                                value={localProfit[0]}
-                                onChange={(e) => setLocalProfit([e.target.value, localProfit[1]])}
-                            />
-                            <TextField
-                                label="Max Profit (₹)"
-                                type="number"
-                                variant="outlined"
-                                size="small"
-                                fullWidth
-                                value={localProfit[1]}
-                                onChange={(e) => setLocalProfit([localProfit[0], e.target.value])}
-                            />
-                        </Box>
-                        <Box sx={{ px: 2 }}>
-                            <Typography variant="caption" color="text.secondary" gutterBottom>
-                                Range Selector
-                            </Typography>
+                <DialogContent className="min-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Filter by Profit</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-6 px-6 py-4 overflow-x-hidden">
+                        <div className="flex gap-4">
+                            <div className="flex flex-col gap-1.5 w-full">
+                                <Label htmlFor="min-profit">Min Profit (₹)</Label>
+                                <Input
+                                    id="min-profit"
+                                    type="number"
+                                    value={localProfit[0]}
+                                    onChange={(e) => setLocalProfit([e.target.value, localProfit[1]])}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5 w-full">
+                                <Label htmlFor="max-profit">Max Profit (₹)</Label>
+                                <Input
+                                    id="max-profit"
+                                    type="number"
+                                    value={localProfit[1]}
+                                    onChange={(e) => setLocalProfit([localProfit[0], e.target.value])}
+                                />
+                            </div>
+                        </div>
+                        <div className="px-2">
+                            <Label className="text-xs text-muted-foreground">Range Selector</Label>
                             <Slider
                                 value={[safeSliderMin, safeSliderMax]}
-                                onChange={handleLocalSliderChange}
-                                valueLabelDisplay="auto"
-                                valueLabelFormat={(value) => formatProfitLabel(value)}
+                                onValueChange={handleLocalSliderChange}
                                 min={minProfit}
                                 max={maxProfit}
-                                disableSwap
                             />
-                        </Box>
-                    </Box>
+                        </div>
+                    </div>
+                    <DialogFooter className="justify-between">
+                        <Button variant="ghost" onClick={handleResetProfit} className="text-destructive hover:text-destructive">
+                            Reset
+                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsProfitModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleApplyProfit}>
+                                Apply Filter
+                            </Button>
+                        </div>
+                    </DialogFooter>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={handleResetProfit} color="error" sx={{ mr: 'auto', textTransform: 'none' }}>
-                        Reset
-                    </Button>
-                    <Button onClick={() => setIsProfitModalOpen(false)} color="inherit" sx={{ textTransform: 'none' }}>
-                        Cancel
-                    </Button>
-                    <Button onClick={handleApplyProfit} variant="contained" sx={{ textTransform: 'none', boxShadow: 'none' }}>
-                        Apply Filter
-                    </Button>
-                </DialogActions>
             </Dialog>
-        </Box>
+        </div>
     );
 };
 

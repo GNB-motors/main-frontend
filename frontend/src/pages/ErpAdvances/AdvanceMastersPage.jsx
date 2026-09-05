@@ -6,11 +6,12 @@
  * are only ever set up together.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, X, Info, Gauge, Fuel, Receipt } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import AdvanceService from './AdvanceService';
+import useApi from '../../hooks/useApi';
 import '../../styles/erp.css';
 
 const TABS = [
@@ -25,47 +26,41 @@ const AdvanceMastersPage = () => {
   const [tab, setTab] = useState('mileage');
   const [routes, setRoutes] = useState([]);
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({});
 
-  const fetchRoutes = useCallback(async () => {
-    try {
-      const res = await apiClient.get('/api/routes', { params: { limit: 200 } });
-      setRoutes(res.data?.data || []);
-    } catch {
-      setRoutes([]);
-    }
-  }, []);
+  const { data: routesResponse } = useApi(
+    (signal) => apiClient.get('/api/routes', { params: { limit: 200 }, signal }),
+    [],
+  );
 
-  const fetchRows = useCallback(async (which) => {
-    setLoading(true);
-    try {
-      let res;
-      if (which === 'mileage') res = await AdvanceService.getMileage({ limit: 200 });
-      else if (which === 'fuel') res = await AdvanceService.getFuelRates();
-      else res = await AdvanceService.getRouteBudgets({ limit: 200 });
-      setRows(res.data || []);
-    } catch (err) {
-      if (err.status === 404) {
-        toast.error('ERP Masters is not enabled for your organization');
-      } else {
-        toast.error(err.message);
-      }
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: rowsResponse, loading, error: rowsError, refetch: refetchRows } = useApi(
+    () => {
+      if (tab === 'mileage') return AdvanceService.getMileage({ limit: 200 });
+      if (tab === 'fuel') return AdvanceService.getFuelRates();
+      return AdvanceService.getRouteBudgets({ limit: 200 });
+    },
+    [JSON.stringify({ tab })],
+  );
 
   useEffect(() => {
-    fetchRoutes();
-  }, [fetchRoutes]);
+    if (routesResponse) setRoutes(routesResponse.data?.data || []);
+  }, [routesResponse]);
 
   useEffect(() => {
-    fetchRows(tab);
-  }, [fetchRows, tab]);
+    if (rowsResponse) setRows(rowsResponse.data || []);
+  }, [rowsResponse]);
+
+  useEffect(() => {
+    if (!rowsError) return;
+    if (rowsError.status === 404) {
+      toast.error('ERP Masters is not enabled for your organization');
+    } else {
+      toast.error(rowsError.message);
+    }
+    setRows([]);
+  }, [rowsError]);
 
   const openCreate = () => {
     setForm(
@@ -116,7 +111,7 @@ const AdvanceMastersPage = () => {
       }
       toast.success('Saved');
       setShowModal(false);
-      fetchRows(tab);
+      refetchRows();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -131,7 +126,7 @@ const AdvanceMastersPage = () => {
       else if (tab === 'fuel') await AdvanceService.deleteFuelRate(row._id);
       else await AdvanceService.deleteRouteBudget(row._id);
       toast.success('Removed');
-      fetchRows(tab);
+      refetchRows();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -292,8 +287,12 @@ const AdvanceMastersPage = () => {
       </div>
 
       {showModal && (
-        <div className="erp-modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>Add {TABS.find((t) => t.key === tab).label}</h2>
               <button className="btn-icon" onClick={() => setShowModal(false)}>

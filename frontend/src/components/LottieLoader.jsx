@@ -1,7 +1,9 @@
-import React from 'react';
-import Lottie from 'lottie-react';
+import React, { lazy, Suspense } from 'react';
 import TruckAnimation from '../assets/animations/truck-material-onsite.json';
 import './LottieLoader.css';
+
+// lottie-web is ~650 KB — load it on demand so it never blocks the entry chunk.
+const Lottie = lazy(() => import('lottie-react'));
 
 const LottieLoader = ({ 
     isLoading = false, 
@@ -20,19 +22,21 @@ const LottieLoader = ({
     const LoaderContent = () => (
         <div className={`lottie-loader ${sizeClasses[size]}`}>
             <div className="lottie-animation-container">
-                <Lottie
-                    animationData={TruckAnimation}
-                    loop={true}
-                    autoplay={true}
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        background: 'transparent'
-                    }}
-                    rendererSettings={{
-                        preserveAspectRatio: 'xMidYMid slice'
-                    }}
-                />
+                <Suspense fallback={<div className="lottie-spinner" aria-label="Loading" />}>
+                    <Lottie
+                        animationData={TruckAnimation}
+                        loop={true}
+                        autoplay={true}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            background: 'transparent'
+                        }}
+                        rendererSettings={{
+                            preserveAspectRatio: 'xMidYMid slice'
+                        }}
+                    />
+                </Suspense>
             </div>
             {message && (
                 <div className="loader-message">

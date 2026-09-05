@@ -5,6 +5,7 @@ import { ArrowLeft, Paperclip, Plus, Search, Trash2, Wrench } from 'lucide-react
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
+import { getToken } from '../../utils/session.js';
 import '../Profile/VehiclesPage.css';
 
 const TABS = [
@@ -58,7 +59,7 @@ const ServiceIntelligencePage = () => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const res = await MaintenanceService.listRecords(token, {
         recordType,
         search: q || undefined,
@@ -87,7 +88,7 @@ const ServiceIntelligencePage = () => {
   const handleDelete = async (row) => {
     if (!window.confirm(`Delete this ${activeTab.toLowerCase()} entry? This cannot be undone.`)) return;
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       await MaintenanceService.deleteRecord(token, row._id);
       setRows((prev) => prev.filter((r) => r._id !== row._id));
       toast.success('Record deleted');

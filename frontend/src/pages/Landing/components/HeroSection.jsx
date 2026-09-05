@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+// eslint-disable-next-line no-unused-vars -- motion is used in JSX tags below, which the core rule does not detect
 import { motion, useScroll, useTransform } from 'framer-motion';
 import heroVideo from '../../../assets/Video/hero.mp4';
 import SpotlightButton from './SpotlightButton';

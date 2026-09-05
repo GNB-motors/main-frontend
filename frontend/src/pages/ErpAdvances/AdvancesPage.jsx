@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   Wallet,
   X,
@@ -39,7 +39,6 @@ const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` 
 
 const AdvancesPage = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [advances, setAdvances] = useState([]);
   const [placements, setPlacements] = useState([]);
@@ -325,8 +324,12 @@ const AdvancesPage = () => {
 
       {/* ─── Raise ────────────────────────────────────────────────────────── */}
       {showRaise && (
-        <div className="erp-modal-backdrop" onClick={() => setShowRaise(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowRaise(false); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>Raise Advance</h2>
               <button className="btn-icon" onClick={() => setShowRaise(false)}>
@@ -576,11 +579,14 @@ const AdvancesPage = () => {
 
       {/* ─── Pay ──────────────────────────────────────────────────────────── */}
       {payTarget && (
-        <div className="erp-modal-backdrop" onClick={() => setPayTarget(null)}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setPayTarget(null); }}
+        >
           <div
             className="erp-modal"
             style={{ maxWidth: 460 }}
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="erp-modal-header">
               <h2>Pay {payTarget.advanceNumber}</h2>

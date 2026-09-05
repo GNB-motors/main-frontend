@@ -1,11 +1,12 @@
 import apiClient from '../../utils/axiosConfig';
+import { parseWith } from '../../schemas/validate.js';
 
-const getProfile = async (token) => {
+const getProfile = async () => {
   try {
     const response = await apiClient.get('/api/auth/me');
     // Handle new API response structure: {status: "success", data: {...}}
     if (response.data && response.data.status === 'success') {
-      return response.data.data;
+      return response.data.data ? parseWith('profileSchema', () => import('../../schemas/profile.schema.js'), response.data.data) : response.data.data;
     }
     // Fallback for old response structure
     return response.data;

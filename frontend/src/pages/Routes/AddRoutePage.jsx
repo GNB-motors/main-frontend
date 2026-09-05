@@ -54,13 +54,6 @@ const AddRoutePage = () => {
     }
   }, [location?.state?.editingRoute]);
 
-  const handleInputChange = (field, value) => {
-    setInitialFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   const handleLocationChange = (locationType, field, value) => {
     setLocationData(prev => ({
       ...prev,

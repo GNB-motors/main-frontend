@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { Plus, RefreshCw, Trash2, X, KeyRound, Inbox } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import RbacApi from './rbacService';
+import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 import './Rbac.css';
 
@@ -24,7 +25,7 @@ const RbacPermissionsPage = () => {
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') navigate('/overview');
+    if (getUserRole() !== 'SUPER_ADMIN') navigate('/overview');
   }, [navigate]);
 
   const load = useCallback(async () => {

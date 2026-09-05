@@ -7,9 +7,9 @@ import {
   updateAccount,
   deleteAccount,
   discoverVehicles,
-  assignVehicles,
   getDrift,
 } from '../Profile/FleetEdgeAccountService';
+import { getToken, getUserRole } from '../../utils/session.js';
 
 const STATUS_STYLES = {
   ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
@@ -54,7 +54,7 @@ function AddAccountForm({ onSuccess, onClose }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       await createAccount(token, {
         externalAccountId: form.externalAccountId.trim(),
         friendlyName: form.friendlyName.trim() || undefined,
@@ -116,7 +116,7 @@ function RenameForm({ account, onSuccess, onClose }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       await updateAccount(token, account._id, { friendlyName: name.trim() });
       toast.success('Name updated');
       onSuccess();
@@ -152,7 +152,7 @@ function DiscoverPanel({ account, onClose }) {
   const discover = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const list = await discoverVehicles(token, account._id);
       setCandidates(list);
       setSelected([]);
@@ -171,7 +171,6 @@ function DiscoverPanel({ account, onClose }) {
     if (!selected.length) return;
     setAssigning(true);
     try {
-      const token = localStorage.getItem('authToken');
       // For /assign we need vehicleIds, but candidates are registrations.
       // Use a note to operator: they'll need to map regs to vehicle IDs.
       // For now, surface the list — OWNER can confirm via the vehicles page.
@@ -217,7 +216,7 @@ function DriftTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = getToken();
     getDrift(token).then(d => setRows(d.drift || [])).catch(() => toast.error('Failed to load drift log')).finally(() => setLoading(false));
   }, []);
 
@@ -259,16 +258,16 @@ export default function FleetEdgeAccountsPage() {
   const [discovering, setDiscovering] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  const userRole = localStorage.getItem('userRole') || '';
+  const userRole = getUserRole() || '';
   const isOwner = ['OWNER', 'SUPER_ADMIN'].includes(userRole);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const data = await listAccounts(token);
       setAccounts(data);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load FleetEdge accounts');
     } finally {
       setLoading(false);
@@ -281,7 +280,7 @@ export default function FleetEdgeAccountsPage() {
     if (!window.confirm(`Delete account "${account.friendlyName || account.externalAccountId}"?`)) return;
     setDeletingId(account._id);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const res = await deleteAccount(token, account._id);
       toast.success(res.message || 'Account removed');
       load();
@@ -295,7 +294,7 @@ export default function FleetEdgeAccountsPage() {
   const handleToggleStatus = async (account) => {
     const newStatus = account.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       await updateAccount(token, account._id, { status: newStatus });
       toast.success(`Account ${newStatus === 'ACTIVE' ? 'enabled' : 'disabled'}`);
       load();

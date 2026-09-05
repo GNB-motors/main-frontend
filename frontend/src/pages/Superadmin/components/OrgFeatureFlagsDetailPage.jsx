@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
+import useApi from '../../../hooks/useApi';
+import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 
 const FEATURE_LABELS = {
@@ -51,7 +53,6 @@ const OrgFeatureFlagsDetailPage = () => {
   const [original, setOriginal] = useState({});
   const [knownKeys, setKnownKeys] = useState([]);
   const [registryKeys, setRegistryKeys] = useState(new Set());
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -68,40 +69,44 @@ const OrgFeatureFlagsDetailPage = () => {
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);
 
-  const load = useCallback(async () => {
-    if (!orgId) return;
-    setLoading(true);
-    setError('');
-    try {
+  const { data: flagsData, loading, error: loadError, refetch } = useApi(
+    async (signal) => {
+      if (!orgId) return null;
       const [flagsRes, orgsRes, registryRes] = await Promise.all([
-        apiClient.get(`/api/feature-flags/${orgId}`),
-        apiClient.get('/api/admin/organizations'),
-        apiClient.get('/api/feature-flags/registry'),
+        apiClient.get(`/api/feature-flags/${orgId}`, { signal }),
+        apiClient.get('/api/admin/organizations', { signal }),
+        apiClient.get('/api/feature-flags/registry', { signal }),
       ]);
-      const payload = flagsRes.data?.data ?? {};
-      setFlags(payload.flags || {});
-      setOriginal(payload.flags || {});
-      setKnownKeys(payload.knownKeys || []);
-      const registry = registryRes.data?.data ?? [];
-      setRegistryKeys(new Set(registry.map((r) => r.key)));
-      const list = orgsRes.data?.data ?? [];
-      const me = list.find((o) => o._id === orgId);
-      setOrgName(me?.companyName || me?.ownerEmail || orgId);
-    } catch (e) {
-      setError(e.response?.data?.message || 'Failed to load flags');
-    } finally {
-      setLoading(false);
-    }
-  }, [orgId]);
+      return { flagsRes, orgsRes, registryRes };
+    },
+    [JSON.stringify({ orgId })]
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (loading) setError('');
+  }, [loading]);
+
+  useEffect(() => {
+    if (!flagsData) return;
+    const payload = flagsData.flagsRes.data?.data ?? {};
+    setFlags(payload.flags || {});
+    setOriginal(payload.flags || {});
+    setKnownKeys(payload.knownKeys || []);
+    const registry = flagsData.registryRes.data?.data ?? [];
+    setRegistryKeys(new Set(registry.map((r) => r.key)));
+    const list = flagsData.orgsRes.data?.data ?? [];
+    const me = list.find((o) => o._id === orgId);
+    setOrgName(me?.companyName || me?.ownerEmail || orgId);
+  }, [flagsData, orgId]);
+
+  useEffect(() => {
+    if (loadError) setError(loadError.response?.data?.message || 'Failed to load flags');
+  }, [loadError]);
 
   const toggle = (key) => {
     setFlags((prev) => ({ ...prev, [key]: !prev?.[key] }));
@@ -166,7 +171,7 @@ const OrgFeatureFlagsDetailPage = () => {
       });
       setAddOpen(false);
       toast.success(`Registered "${trimmedKey}"`);
-      await load();
+      refetch();
     } catch (e) {
       setAddError(e.response?.data?.message || 'Failed to register key');
     } finally {
@@ -183,7 +188,7 @@ const OrgFeatureFlagsDetailPage = () => {
       );
       toast.success(`Removed "${removeTarget}"`);
       setRemoveTarget(null);
-      await load();
+      refetch();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to remove');
     } finally {

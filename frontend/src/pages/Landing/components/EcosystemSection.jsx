@@ -1,5 +1,7 @@
 import { useRef } from 'react';
+// eslint-disable-next-line no-unused-vars -- motion is used in JSX tags below, which the core rule does not detect
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { Terminal, LayoutDashboard, Puzzle, MousePointerClick, Server, Webhook, Network } from 'lucide-react';
 import ScrollReveal from './ScrollReveal';
 
 const EcosystemSection = () => {
@@ -71,7 +73,7 @@ const EcosystemSection = () => {
                             whileHover={{ scale: 1.05 }}
                             transition={{ type: 'spring', stiffness: 300, bounce: 0.5 }}
                         >
-                            <span className="material-symbols-outlined text-blue-600 text-3xl sm:text-4xl mb-3 sm:mb-4 block">terminal</span>
+                            <Terminal className="lp-icon text-blue-600 w-7 h-7 sm:w-9 sm:h-9 mb-3 sm:mb-4 block" />
                             <h4 className="text-lg sm:text-xl font-extrabold font-sans uppercase tracking-tight text-slate-900 mb-2">
                                 Core Engine
                             </h4>
@@ -83,7 +85,7 @@ const EcosystemSection = () => {
                             className="z-20 bg-white/60 backdrop-blur-xl border border-slate-200 shadow-xl p-3 sm:p-6 w-36 sm:w-52 rounded-xl transition-colors absolute top-0 right-0 lg:right-4"
                             style={{ x: trX, y: trY, opacity: nodesOpacity }}
                         >
-                            <span className="material-symbols-outlined text-blue-500 text-xl sm:text-2xl mb-2 sm:mb-3 block">dashboard</span>
+                            <LayoutDashboard className="lp-icon text-blue-500 w-5 h-5 sm:w-6 sm:h-6 mb-2 sm:mb-3 block" />
                             <h5 className="text-[10px] sm:text-xs font-extrabold font-sans uppercase tracking-[0.1em] text-slate-900 mb-1">Executive UI</h5>
                             <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium uppercase tracking-wider">Real-time Visualization</p>
                         </motion.div>
@@ -93,7 +95,7 @@ const EcosystemSection = () => {
                             className="z-20 bg-white/60 backdrop-blur-xl border border-slate-200 shadow-xl p-3 sm:p-6 w-36 sm:w-52 rounded-xl transition-colors absolute bottom-0 left-0 lg:left-4"
                             style={{ x: blX, y: blY, opacity: nodesOpacity }}
                         >
-                            <span className="material-symbols-outlined text-blue-500 text-xl sm:text-2xl mb-2 sm:mb-3 block">extension</span>
+                            <Puzzle className="lp-icon text-blue-500 w-5 h-5 sm:w-6 sm:h-6 mb-2 sm:mb-3 block" />
                             <h5 className="text-[10px] sm:text-xs font-extrabold font-sans uppercase tracking-[0.1em] text-slate-900 mb-1">Telemetry Plugin</h5>
                             <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium uppercase tracking-wider">Session Capture</p>
                         </motion.div>
@@ -103,7 +105,7 @@ const EcosystemSection = () => {
                             className="z-20 bg-white/60 backdrop-blur-xl border border-slate-200 shadow-xl p-3 sm:p-6 w-36 sm:w-52 rounded-xl transition-colors absolute top-1/2 -translate-y-1/2 -right-2 sm:-right-8 lg:-right-12"
                             style={{ x: crX, opacity: nodesOpacity }}
                         >
-                            <span className="material-symbols-outlined text-blue-500 text-xl sm:text-2xl mb-2 sm:mb-3 block">smart_button</span>
+                            <MousePointerClick className="lp-icon text-blue-500 w-5 h-5 sm:w-6 sm:h-6 mb-2 sm:mb-3 block" />
                             <h5 className="text-[10px] sm:text-xs font-extrabold font-sans uppercase tracking-[0.1em] text-slate-900 mb-1">Command Layer</h5>
                             <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium uppercase tracking-wider">Atomic Transactions</p>
                         </motion.div>
@@ -138,22 +140,22 @@ const EcosystemSection = () => {
                     <div className="flex flex-col gap-10">
                         {[
                             {
-                                icon: 'dns',
+                                icon: Server,
                                 title: 'Intelligent Core',
                                 desc: "Node.js backbone orchestrating multi-service logic, featuring Python gRPC for high-performance processing and immutable MongoDB record keeping.",
                             },
                             {
-                                icon: 'dashboard',
+                                icon: LayoutDashboard,
                                 title: 'The Command Center',
                                 desc: "Refined React architecture. Implements the 'Single Submission Pattern', committing complex operational logs in one atomic transaction.",
                             },
                             {
-                                icon: 'api',
+                                icon: Webhook,
                                 title: 'Silent Telemetry',
                                 desc: "A robust browser extension that passively captures live telemetry, automatically running discrepancy checks against manually reported inputs.",
                             },
                             {
-                                icon: 'hub',
+                                icon: Network,
                                 title: 'Operational Pulse',
                                 desc: "Discord webhook integration providing real-time mechanical alerts directly to operational leaders exactly where they work.",
                             },
@@ -162,7 +164,7 @@ const EcosystemSection = () => {
                                 <div className="group pl-6 relative">
                                     <div className="absolute top-0 left-0 w-1 h-full bg-slate-200 group-hover:bg-blue-600 transition-colors duration-500" />
                                     <div className="flex items-start gap-4 mb-2">
-                                        <span className="material-symbols-outlined text-blue-600 mt-1">{item.icon}</span>
+                                        <item.icon className="lp-icon text-blue-600 mt-1" size={24} />
                                         <h3 className="text-xl font-sans font-extrabold tracking-tight text-slate-900">
                                             {item.title}
                                         </h3>

@@ -4,6 +4,8 @@ import { LogOut } from 'lucide-react';
 import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
+import { clearAuthData } from '../utils/authUtils';
+import { getToken, getOrgId } from '../utils/session.js';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import { SIDE_NAV_GROUPS, isGroupActive, getNavGroupId, getVisibleNavChildren, getVisibleNavItems } from '../utils/sideNavUtils.js';
@@ -38,10 +40,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     useEffect(() => {
         const authHeaders = () => {
-            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+            const token = getToken();
             if (!token) return null;
             const headers = { Authorization: `Bearer ${token}` };
-            const orgId = localStorage.getItem('user_orgId');
+            const orgId = getOrgId();
             if (orgId) headers['X-Org-Id'] = orgId;
             return headers;
         };
@@ -125,16 +127,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     };
 
     const handleLogout = () => {
-        // Clear user tokens here in a real application
-        localStorage.removeItem('authToken'); // Clear token on logout
-        // Clear individual profile fields on logout
-        localStorage.removeItem('profile_id');
-        localStorage.removeItem('profile_owner_email');
-        localStorage.removeItem('profile_company_name');
-        localStorage.removeItem('profile_gstin');
-        localStorage.removeItem('primaryThemeColor');
-        // Clear the active location so it can't leak into the next session.
-        localStorage.removeItem('user_branchId');
+        // Full logout teardown (auth token, user data, profile fields, theme
+        // colour, active location) lives in authUtils.clearAuthData.
+        clearAuthData();
         navigate('/login');
     };
 
@@ -236,7 +231,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         onError={() => setLogoFailed(true)}
                     />
                 </div>
-                <nav className="sidebar-nav">
+                <nav className="sidebar-nav" aria-label="Main navigation">
                     {navItems.map(renderNavItem)}
                 </nav>
             </div>

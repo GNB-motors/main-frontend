@@ -1,41 +1,45 @@
 /**
- * Utility functions for managing profile data in localStorage
+ * Utility functions for managing profile data in the session store
  * Each profile field is stored individually for easier access
  */
+import {
+    getProfileField as sessionGetProfileField,
+    setProfileField,
+    removeProfileField,
+    hasProfileData as sessionHasProfileData,
+    getThemeColor,
+    setThemeColor,
+} from './session.js';
 
 /**
- * Store individual profile fields in localStorage
+ * Store individual profile fields in the session store
  * @param {Object} profileData - The profile data to store
  */
 export const storeProfileData = (profileData) => {
     try {
-        if (profileData._id) localStorage.setItem('profile_id', profileData._id);
-        if (profileData.ownerEmail) localStorage.setItem('profile_owner_email', profileData.ownerEmail);
-        if (profileData.companyName) localStorage.setItem('profile_company_name', profileData.companyName);
-        if (profileData.gstin) localStorage.setItem('profile_gstin', profileData.gstin);
-        if (profileData.primaryThemeColor) {
-            localStorage.setItem('primaryThemeColor', profileData.primaryThemeColor);
-            // Dispatch custom event so Sidebar/Navbar re-render in the same tab.
-            // window 'storage' event does NOT fire in the same tab — CustomEvent does.
-            window.dispatchEvent(new CustomEvent('themeColorChange'));
-        }
+        if (profileData._id) setProfileField('id', profileData._id);
+        if (profileData.ownerEmail) setProfileField('owner_email', profileData.ownerEmail);
+        if (profileData.companyName) setProfileField('company_name', profileData.companyName);
+        if (profileData.gstin) setProfileField('gstin', profileData.gstin);
+        // setThemeColor persists the colour AND dispatches 'themeColorChange'.
+        if (profileData.primaryThemeColor) setThemeColor(profileData.primaryThemeColor);
     } catch (error) {
-        console.error('Failed to store profile data in localStorage:', error);
+        console.error('Failed to store profile data in the session store:', error);
     }
 };
 
 /**
- * Retrieve profile data from localStorage as an object
+ * Retrieve profile data from the session store as an object
  * @returns {Object|null} - The stored profile data or null if not found
  */
 export const getProfileData = () => {
     try {
         const profileData = {
-            _id: localStorage.getItem('profile_id'),
-            ownerEmail: localStorage.getItem('profile_owner_email'),
-            companyName: localStorage.getItem('profile_company_name'),
-            gstin: localStorage.getItem('profile_gstin'),
-            primaryThemeColor: localStorage.getItem('primaryThemeColor')
+            _id: getProfileField('id'),
+            ownerEmail: getProfileField('owner_email'),
+            companyName: getProfileField('company_name'),
+            gstin: getProfileField('gstin'),
+            primaryThemeColor: getThemeColor()
         };
         
         // Check if any required field is missing
@@ -45,45 +49,44 @@ export const getProfileData = () => {
         
         return profileData;
     } catch (error) {
-        console.error('Failed to retrieve profile data from localStorage:', error);
+        console.error('Failed to retrieve profile data from the session store:', error);
         return null;
     }
 };
 
 /**
- * Get individual profile field from localStorage
+ * Get individual profile field from the session store
  * @param {string} field - The field name (without 'profile_' prefix)
  * @returns {string|null} - The field value or null if not found
  */
 export const getProfileField = (field) => {
     try {
-        return localStorage.getItem(`profile_${field}`);
+        return sessionGetProfileField(field);
     } catch (error) {
-        console.error(`Failed to retrieve profile field '${field}' from localStorage:`, error);
+        console.error(`Failed to retrieve profile field '${field}' from the session store:`, error);
         return null;
     }
 };
 
 /**
- * Clear all profile data from localStorage
+ * Clear all profile data from the session store
  */
 export const clearProfileData = () => {
     try {
-        localStorage.removeItem('profile_id');
-        localStorage.removeItem('profile_owner_email');
-        localStorage.removeItem('profile_company_name');
-        localStorage.removeItem('profile_gstin');
-        localStorage.removeItem('primaryThemeColor');
-        console.log('Profile data cleared from localStorage');
+        removeProfileField('id');
+        removeProfileField('owner_email');
+        removeProfileField('company_name');
+        removeProfileField('gstin');
+        console.log('Profile data cleared from the session store');
     } catch (error) {
-        console.error('Failed to clear profile data from localStorage:', error);
+        console.error('Failed to clear profile data from the session store:', error);
     }
 };
 
 /**
- * Check if profile data exists in localStorage
+ * Check if profile data exists in the session store
  * @returns {boolean} - True if profile data exists, false otherwise
  */
 export const hasProfileData = () => {
-    return localStorage.getItem('profile_id') !== null;
+    return sessionHasProfileData();
 };

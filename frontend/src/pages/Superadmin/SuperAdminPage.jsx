@@ -24,6 +24,7 @@ import {
   formatNumber,
 } from './superAdminFormat';
 import { SortIcon } from './components/SortIcon.jsx';
+import { getUserRole, getUserFirstName, getUserLastName, getUserEmail, getUserId } from '../../utils/session';
 import './SuperAdminPage.css';
 
 // ── component ──────────────────────────────────────────────────────────────
@@ -54,17 +55,17 @@ const SuperAdminPage = () => {
 
   // ── auth guard ──────────────────────────────────────────────────────────
   useEffect(() => {
-    const userRole = localStorage.getItem('user_role');
+    const userRole = getUserRole();
     if (userRole !== 'SUPER_ADMIN') {
       navigate('/overview');
       return;
     }
     setUser({
-      firstName: localStorage.getItem('user_firstName') || '',
-      lastName:  localStorage.getItem('user_lastName')  || '',
-      email:     localStorage.getItem('user_email')     || '',
+      firstName: getUserFirstName() || '',
+      lastName:  getUserLastName()  || '',
+      email:     getUserEmail()     || '',
       role:      userRole,
-      userId:    localStorage.getItem('user_id')        || '',
+      userId:    getUserId()        || '',
     });
   }, [navigate]);
 

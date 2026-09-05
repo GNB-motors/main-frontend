@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
 import React, { useState, useEffect } from 'react';
 import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from '../../Drivers/Component/DocumentCard';

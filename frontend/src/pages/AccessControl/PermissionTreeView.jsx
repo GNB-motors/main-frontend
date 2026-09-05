@@ -106,7 +106,18 @@ const PermissionTreeView = ({ catalog = [], granted, baseline = null, readOnly =
         const onCount = items.filter((p) => granted.has(p.key)).length;
         return (
           <div className="rbac-group" key={group}>
-            <div className="rbac-group__head" onClick={() => toggleCollapse(group)}>
+            <div
+              className="rbac-group__head"
+              role="button"
+              tabIndex={0}
+              onClick={() => toggleCollapse(group)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleCollapse(group);
+                }
+              }}
+            >
               <span className="rbac-group__title">
                 {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                 {group}

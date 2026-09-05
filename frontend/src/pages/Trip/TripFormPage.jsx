@@ -20,14 +20,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, X, Loader, Plus, Trash2, Edit2, CheckCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import './TripFormPage.css';
 import { DriverService } from '../Drivers/DriverService.jsx';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import { DocumentService, TripService } from './services';
 import { getVehicleRegistration, getDriverName } from '../../utils/dataFormatters';
+import { getProfileField } from '../../utils/session.js';
 import ImageCropper from '../../components/ImageCropper/ImageCropper.jsx';
+import TripFormHeader from './components/TripFormHeader.jsx';
+import TripFormDocuments from './components/TripFormDocuments.jsx';
+import TripFormFuelReceipts from './components/TripFormFuelReceipts.jsx';
 
 const TripFormPage = () => {
   const navigate = useNavigate();
@@ -85,9 +89,9 @@ const TripFormPage = () => {
   // Dropdown options
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
-  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
-  const [dropdownError, setDropdownError] = useState(null);
-  const [uploadingDocs, setUploadingDocs] = useState({});
+  const [, setLoadingDropdowns] = useState(false);
+  const [, setDropdownError] = useState(null);
+  const [, setUploadingDocs] = useState({});
   // Whether uploading is allowed: either editing an existing trip or a vehicle is selected
   const canUpload = isEditMode || Boolean(formData.vehicleNo);
 
@@ -193,7 +197,7 @@ const TripFormPage = () => {
    */
   useEffect(() => {
     let mounted = true;
-    const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
+    const businessRefId = getProfileField('business_ref_id') || null;
 
     const fetchDropdowns = async () => {
       setLoadingDropdowns(true);
@@ -329,7 +333,7 @@ const TripFormPage = () => {
    * Process the cropped blob and upload to backend
    */
   const handleCropComplete = async (croppedBlob) => {
-    const { section, field, originalFile, receiptId, receiptType } = cropperState;
+    const { section, field, originalFile, receiptId } = cropperState;
     
     if (!croppedBlob || !section) return;
 
@@ -881,7 +885,7 @@ const TripFormPage = () => {
         royalty: expenses.royalty ? parseFloat(expenses.royalty) : null
       });
       console.log('Ending trip with data:', endData);
-      const response = await TripService.endTrip(currentTripId, endData);
+      await TripService.endTrip(currentTripId, endData);
       toast.success('Trip ended successfully');
       navigate('/trip-management');
     } catch (error) {
@@ -915,22 +919,7 @@ const TripFormPage = () => {
       <div className="trip-form-page">
       <div className="trip-form-container">
         {/* Modern Header */}
-        <div className="modern-page-header">
-          <div className="modern-header-top">
-            <h1 className="modern-page-title">{isEditMode ? 'Step 1: Edit Document Intake' : 'Step 1: Document Intake & OCR Preview'}</h1>
-            <button className="btn-primary" onClick={() => navigate('/trip-management')} style={{ background: '#2563eb' }}>
-                Next Step
-            </button>
-          </div>
-          {!isEditMode && (
-            <div className="modern-progress-bar-container">
-              <span className="modern-progress-text">Step 1 of 4</span>
-              <div className="modern-progress-track">
-                <div className="modern-progress-fill" style={{ width: '25%' }}></div>
-              </div>
-            </div>
-          )}
-        </div>
+        <TripFormHeader isEditMode={isEditMode} navigate={navigate} />
 
         {/* Main Form */}
         <div className="trip-form-content modern-form-content">
@@ -1010,200 +999,65 @@ const TripFormPage = () => {
           <p className="modern-instruction-text">Please sort your documents into the correct categories. Start with the fixed documents.</p>
 
           {/* Start Details Section - Start Documents */}
-          <section className="modern-form-section no-bg">
-            
-            {/* Odometer Start and Weigh-in Slip side by side */}
-            <div className="documents-grid modern-documents-grid">
-              {/* Odometer Start with Manual Toggle */}
-              <div className="document-section-with-toggle">
-                <div className="toggle-container">
-                  <label className="toggle-label">
-                    <input
-                      type="checkbox"
-                      checked={showManualOdometer}
-                      onChange={(e) => setShowManualOdometer(e.target.checked)}
-                      disabled={isEditMode}
-                    />
-                    <span className="toggle-text">No Odometer Document (Enter Manually)</span>
-                  </label>
-                </div>
-
-                {showManualOdometer ? (
-                  <div className="manual-input-container">
-                    <div className="form-group">
-                      <label>Manual Odometer Reading <span className="required">*</span></label>
-                      <input
-                        type="number"
-                        value={manualOdometerStart}
-                        onChange={(e) => setManualOdometerStart(e.target.value)}
-                        placeholder="Enter odometer reading"
-                        disabled={isEditMode}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <DocumentUpload
-                    title="SLOT A: START ODOMETER IMAGE"
-                    required
-                    document={startDocs.odometerStart}
-                    onUpload={(file) => handleFileUpload('start', 'odometerStart', file)}
-                    onProcess={() => processOCR('start', 'odometerStart')}
-                    isProcessing={isProcessing}
-                    canUpload={canUpload}
-                  />
-                )}
-              </div>
-
-              {/* Weigh-in Slip with No Slip ID Toggle */}
-              <div className="document-section-with-toggle">
-                <div className="toggle-container">
-                  <label className="toggle-label">
-                    <input
-                      type="checkbox"
-                      checked={noSlipId}
-                      onChange={(e) => setNoSlipId(e.target.checked)}
-                      disabled={isEditMode}
-                    />
-                    <span className="toggle-text">No Slip ID (Enter Payload Manually)</span>
-                  </label>
-                </div>
-
-                {noSlipId ? (
-                  <div className="manual-input-container">
-                    <div className="form-group">
-                      <label>Manual Payload Weight (kg) <span className="required">*</span></label>
-                      <input
-                        type="text"
-                        value={manualPayload}
-                        onChange={(e) => setManualPayload(e.target.value)}
-                        placeholder="Enter payload weight (e.g., 1500 KG)"
-                        disabled={isEditMode}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <DocumentUpload
-                    title="SLOT B: WEIGH-IN SLIP"
-                    required
-                    document={startDocs.weighInSlip}
-                    onUpload={(file) => handleFileUpload('start', 'weighInSlip', file)}
-                    onProcess={() => processOCR('start', 'weighInSlip')}
-                    isProcessing={isProcessing}
-                    canUpload={canUpload}
-                  />
-                )}
-              </div>
-            </div>
-          </section>
+          <TripFormDocuments
+            section="start"
+            isEditMode={isEditMode}
+            isCompletedTrip={isCompletedTrip}
+            canUpload={canUpload}
+            isProcessing={isProcessing}
+            startDocs={startDocs}
+            endDocs={endDocs}
+            showManualOdometer={showManualOdometer}
+            setShowManualOdometer={setShowManualOdometer}
+            manualOdometerStart={manualOdometerStart}
+            setManualOdometerStart={setManualOdometerStart}
+            noSlipId={noSlipId}
+            setNoSlipId={setNoSlipId}
+            manualPayload={manualPayload}
+            setManualPayload={setManualPayload}
+            showManualOdometerEnd={showManualOdometerEnd}
+            setShowManualOdometerEnd={setShowManualOdometerEnd}
+            manualOdometerEnd={manualOdometerEnd}
+            setManualOdometerEnd={setManualOdometerEnd}
+            handleFileUpload={handleFileUpload}
+            processOCR={processOCR}
+          />
 
           {/* Fuel Receipts */}
-          <section className="modern-form-section">
-            <div className="modern-section-header">
-              <h2 className="modern-section-heading" style={{ margin: 0 }}>Fuel Receipts</h2>
-              <div className="add-receipt-buttons">
-                <label className={`add-receipt-btn diesel ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
-                  <Plus size={16} />
-                  Add Diesel
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: 'none' }}
-                    disabled={!canUpload}
-                    onChange={(e) => e.target.files.length > 0 && handleMultipleFuelReceipts(e.target.files, 'diesel')}
-                  />
-                </label>
-                <label className={`add-receipt-btn adblue ${!canUpload ? 'disabled' : ''}`} title={!canUpload ? 'Select a vehicle to enable uploads' : undefined}>
-                  <Plus size={16} />
-                  Add AdBlue
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: 'none' }}
-                    disabled={!canUpload}
-                    onChange={(e) => e.target.files.length > 0 && handleMultipleFuelReceipts(e.target.files, 'adblue')}
-                  />
-                </label>
-              </div>
-            </div>
-            {fuelReceipts.length === 0 && (
-              <p className="modern-instruction-text" style={{ marginTop: '12px' }}>No fuel receipts added yet. Click "Add Diesel" or "Add AdBlue" above.</p>
-            )}
-            <div className="modern-documents-grid" style={{ marginTop: fuelReceipts.length > 0 ? '20px' : '0' }}>
-              {fuelReceipts.map(receipt => (
-                <FuelReceiptUpload
-                  key={receipt.id}
-                  receipt={receipt}
-                  onUpload={(file) => handleFuelReceiptUpload(receipt.id, file)}
-                  onProcess={() => processOCR('fuel', null, receipt.id)}
-                  onRemove={() => removeFuelReceipt(receipt.id)}
-                  isProcessing={isProcessing}
-                  canUpload={canUpload}
-                />
-              ))}
-            </div>
-          </section>
+          <TripFormFuelReceipts
+            canUpload={canUpload}
+            handleMultipleFuelReceipts={handleMultipleFuelReceipts}
+            fuelReceipts={fuelReceipts}
+            handleFuelReceiptUpload={handleFuelReceiptUpload}
+            processOCR={processOCR}
+            removeFuelReceipt={removeFuelReceipt}
+            isProcessing={isProcessing}
+          />
 
           {/* End Details Section - with End Documents side by side */}
-          <section className="modern-form-section">
-            <h2 className="modern-section-heading">End Documents</h2>
-            
-            {/* Odometer End and Proof of Delivery side by side */}
-            <div className="documents-grid modern-documents-grid">
-              {/* End Odometer with Manual Toggle */}
-              <div className="document-section-with-toggle">
-                <div className="toggle-container">
-                  <label className="toggle-label">
-                    <input
-                      type="checkbox"
-                      checked={showManualOdometerEnd}
-                      onChange={(e) => setShowManualOdometerEnd(e.target.checked)}
-                      disabled={isCompletedTrip}
-                    />
-                    <span className="toggle-text">No Odometer Document (Enter Manually)</span>
-                  </label>
-                </div>
-
-                {showManualOdometerEnd ? (
-                  <div className="manual-input-container">
-                    <div className="form-group">
-                      <label>Manual End Odometer Reading <span className="required">*</span></label>
-                      <input
-                        type="number"
-                        value={manualOdometerEnd}
-                        onChange={(e) => setManualOdometerEnd(e.target.value)}
-                        placeholder="Enter end odometer reading"
-                        disabled={isCompletedTrip}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <DocumentUpload
-                    title="SLOT C: END ODOMETER IMAGE"
-                    required
-                    document={endDocs.odometerEnd}
-                    onUpload={(file) => handleFileUpload('end', 'odometerEnd', file)}
-                    onProcess={() => processOCR('end', 'odometerEnd')}
-                    isProcessing={isProcessing}
-                    canUpload={canUpload}
-                  />
-                )}
-              </div>
-
-              {/* Proof of Delivery - Optional */}
-              <div className="document-section-with-toggle">
-                <DocumentUpload
-                  title="SLOT D: PROOF OF DELIVERY (OPTIONAL)"
-                  document={endDocs.proofOfDelivery}
-                  onUpload={(file) => handleFileUpload('end', 'proofOfDelivery', file)}
-                  onProcess={() => processOCR('end', 'proofOfDelivery')}
-                  isProcessing={isProcessing}
-                  canUpload={canUpload}
-                />
-              </div>
-            </div>
-          </section>
+          <TripFormDocuments
+            section="end"
+            isEditMode={isEditMode}
+            isCompletedTrip={isCompletedTrip}
+            canUpload={canUpload}
+            isProcessing={isProcessing}
+            startDocs={startDocs}
+            endDocs={endDocs}
+            showManualOdometer={showManualOdometer}
+            setShowManualOdometer={setShowManualOdometer}
+            manualOdometerStart={manualOdometerStart}
+            setManualOdometerStart={setManualOdometerStart}
+            noSlipId={noSlipId}
+            setNoSlipId={setNoSlipId}
+            manualPayload={manualPayload}
+            setManualPayload={setManualPayload}
+            showManualOdometerEnd={showManualOdometerEnd}
+            setShowManualOdometerEnd={setShowManualOdometerEnd}
+            manualOdometerEnd={manualOdometerEnd}
+            setManualOdometerEnd={setManualOdometerEnd}
+            handleFileUpload={handleFileUpload}
+            processOCR={processOCR}
+          />
         </div>
 
         {/* Footer */}
@@ -1333,204 +1187,6 @@ const TripFormPage = () => {
         }
         circularCrop={false}
       />
-    </div>
-  );
-};
-
-/**
- * DocumentUpload Component
- * Reusable component for uploading and processing single documents
- * 
- * @param {string} title - Display title for the document
- * @param {boolean} required - Whether the document is required
- * @param {Object} document - Document state object with file, preview, and ocrData
- * @param {Function} onUpload - Callback when file is selected
- * @param {Function} onProcess - Callback to trigger OCR processing
- * @param {boolean} isProcessing - Whether OCR is currently processing
- */
-const DocumentUpload = ({ title, required, document, onUpload, onProcess, isProcessing, canUpload, onRemove }) => {
-  const inputId = `upload-${title.replace(/\s+/g, '-').toLowerCase()}`;
-
-  const handleLabelClick = (e) => {
-    if (!canUpload) {
-      e.preventDefault();
-      toast.warn('Please select a vehicle to upload documents');
-    }
-  };
-
-  const hasData = document && (document.preview || document.documentMeta?.publicUrl);
-  const ocrData = document?.ocrData || document?.documentMeta?.ocrData;
-
-  return (
-    <div className="modern-document-slot">
-      <div className="slot-header">
-        <h3>{title.toUpperCase()} {required && <span className="required">*</span>}</h3>
-      </div>
-
-      <input
-        type="file"
-        id={inputId}
-        accept="image/*"
-        onChange={(e) => onUpload(e.target.files[0])}
-        style={{ display: 'none' }}
-        disabled={!canUpload}
-      />
-
-      {!hasData ? (
-        <label 
-          htmlFor={inputId} 
-          className={`slot-upload-area ${!canUpload ? 'disabled' : ''}`} 
-          onClick={handleLabelClick}
-          style={{ cursor: canUpload ? 'pointer' : 'not-allowed' }}
-        >
-          <Upload size={28} color="#94a3b8" />
-          <span>Drop files here or click to upload</span>
-        </label>
-      ) : (
-        <div className="slot-filled-container">
-          <div className="slot-image-wrapper">
-            <img src={document.documentMeta?.publicUrl || document.preview} alt={title} />
-            <div className="slot-image-overlay">
-              <div className="slot-badge success">
-                <CheckCircle size={14} className="badge-icon-svg" /> OCR Done
-              </div>
-              <div className="slot-actions">
-                <label htmlFor={inputId} className="slot-action-btn edit" onClick={handleLabelClick}>
-                  <Edit2 size={14} /> Edit
-                </label>
-                {onRemove && (
-                  <button className="slot-action-btn delete" onClick={(e) => { e.preventDefault(); onRemove(); }}>
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {(ocrData && Object.keys(ocrData).length > 0) && (
-            <div className="slot-data-ribbon">
-              <div className="slot-data-fields">
-                {Object.entries(ocrData).map(([key, value]) => (
-                  <div key={key} className="slot-data-item">
-                    <span className="data-label">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <span className="data-value">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="slot-confidence">
-                <div className="confidence-circle">
-                  <svg viewBox="0 0 36 36" className="circular-chart">
-                    <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="circle" strokeDasharray="85, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  </svg>
-                </div>
-                <div className="confidence-text">
-                  <span className="confidence-value">85%</span>
-                  <span className="confidence-label">Confidence</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * FuelReceiptUpload Component
- * Compact component for uploading fuel receipts with remove functionality
- * 
- * @param {Object} receipt - Receipt object with id, type, file, preview, and ocrData
- * @param {Function} onUpload - Callback when file is selected
- * @param {Function} onProcess - Callback to trigger OCR processing
- * @param {Function} onRemove - Callback to remove this receipt
- * @param {boolean} isProcessing - Whether OCR is currently processing
- */
-const FuelReceiptUpload = ({ receipt, onUpload, onProcess, onRemove, isProcessing, canUpload }) => {
-  const inputId = `fuel-receipt-${receipt.id}`;
-
-  const handleLabelClick = (e) => {
-    if (!canUpload) {
-      e.preventDefault();
-      toast.warn('Please select a vehicle to upload documents');
-    }
-  };
-
-  const hasData = receipt && (receipt.preview || receipt.documentMeta?.publicUrl);
-  const ocrData = receipt?.ocrData || receipt?.documentMeta?.ocrData;
-  const title = receipt.type === 'diesel' ? 'SLOT: DIESEL RECEIPT' : 'SLOT: ADBLUE RECEIPT';
-
-  return (
-    <div className="modern-document-slot">
-      <div className="slot-header">
-        <h3>{title}</h3>
-      </div>
-
-      <input
-        type="file"
-        id={inputId}
-        accept="image/*"
-        onChange={(e) => onUpload(e.target.files[0])}
-        style={{ display: 'none' }}
-        disabled={!canUpload}
-      />
-
-      {!hasData ? (
-        <label 
-          htmlFor={inputId} 
-          className={`slot-upload-area ${!canUpload ? 'disabled' : ''}`} 
-          onClick={handleLabelClick}
-          style={{ cursor: canUpload ? 'pointer' : 'not-allowed' }}
-        >
-          <Upload size={28} color="#94a3b8" />
-          <span>Drop receipt here or click to upload</span>
-        </label>
-      ) : (
-        <div className="slot-filled-container">
-          <div className="slot-image-wrapper">
-            <img src={receipt.documentMeta?.publicUrl || receipt.preview} alt={title} />
-            <div className="slot-image-overlay">
-              <div className="slot-badge success">
-                <CheckCircle size={14} className="badge-icon-svg" /> OCR Done
-              </div>
-              <div className="slot-actions">
-                <label htmlFor={inputId} className="slot-action-btn edit" onClick={handleLabelClick}>
-                  <Edit2 size={14} /> Edit
-                </label>
-                <button className="slot-action-btn delete" onClick={(e) => { e.preventDefault(); onRemove(); }}>
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          {(ocrData && Object.keys(ocrData).length > 0) && (
-            <div className="slot-data-ribbon">
-              <div className="slot-data-fields">
-                {Object.entries(ocrData).map(([key, value]) => (
-                  <div key={key} className="slot-data-item">
-                    <span className="data-label">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <span className="data-value">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="slot-confidence">
-                <div className="confidence-circle">
-                  <svg viewBox="0 0 36 36" className="circular-chart">
-                    <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="circle" strokeDasharray="85, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  </svg>
-                </div>
-                <div className="confidence-text">
-                  <span className="confidence-value">85%</span>
-                  <span className="confidence-label">Confidence</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

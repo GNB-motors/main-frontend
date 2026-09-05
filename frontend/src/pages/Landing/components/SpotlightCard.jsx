@@ -38,6 +38,7 @@ const SpotlightCard = ({
     return (
         <div
             ref={divRef}
+            role="presentation"
             onMouseMove={handleMouseMove}
             onFocus={handleFocus}
             onBlur={handleBlur}

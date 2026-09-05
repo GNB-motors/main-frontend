@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Truck, Building2 } from 'lucide-react';
 import NewButton from '@/components/ui/NewButton';
+import { getToken, getProfileField } from '../../utils/session.js';
 import './VehiclesPage.css';
 
 const BACKEND_TO_UI = VEHICLE_DOC_TYPES.reduce((acc, d) => {
@@ -38,7 +39,7 @@ const AddVehiclePage = () => {
   const [initialFormData, setInitialFormData] = useState({});
   const [documents, setDocuments] = useState(emptyDocsState);
 
-  const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
+  const businessRefId = getProfileField('business_ref_id') || null;
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
 
@@ -65,7 +66,7 @@ const AddVehiclePage = () => {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = getToken();
     if (!token) return;
     listAccounts(token)
       .then(accounts => {
@@ -95,7 +96,7 @@ const AddVehiclePage = () => {
 
         // Fetch existing vehicle documents — server returns subdocs with files[]
         try {
-          const token = localStorage.getItem('authToken');
+          const token = getToken();
           const fetchedDocs = await VehicleService.getVehicleDocuments(vId, token);
           const updatedDocs = emptyDocsState();
 
@@ -141,7 +142,7 @@ const AddVehiclePage = () => {
 
   const handleSubmit = async (formData) => {
     setIsSubmitting(true);
-    const token = localStorage.getItem('authToken');
+    const token = getToken();
 
     if (!token) {
       toast.warn('No auth token found. Request may fail.');
@@ -227,7 +228,7 @@ const AddVehiclePage = () => {
     if (!importCandidate?.id) return;
     setImporting(true);
     try {
-      await VehicleService.importVehicle(importCandidate.id, localStorage.getItem('authToken'));
+      await VehicleService.importVehicle(importCandidate.id, getToken());
       toast.success('Vehicle imported and activated in this location.');
       setImportCandidate(null);
       navigate('/vehicles');
@@ -240,7 +241,7 @@ const AddVehiclePage = () => {
 
   const handleDeleteDocument = async (documentId) => {
     if (!vehicleId) return;
-    const token = localStorage.getItem('authToken');
+    const token = getToken();
     await VehicleService.deleteVehicleDocument(vehicleId, documentId, token);
   };
 

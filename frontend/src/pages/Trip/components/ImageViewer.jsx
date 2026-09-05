@@ -52,6 +52,7 @@ const ImageViewer = ({ imageSource, zoom = 1, rotation = 0, onPreviewClick }) =>
   return (
     <div
       className="image-viewer"
+      role="presentation"
       ref={containerRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

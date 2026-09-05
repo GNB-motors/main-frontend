@@ -13,6 +13,7 @@ import {
   mirrorPanel,
 } from './graph/drawerModel';
 import { fullRoutePath, relativeTime } from './utils';
+import { getUserRole } from '../../../../utils/session';
 
 /* The design's kgdrawer slide-in (220ms), injected so the drawer stays
    self-contained. Reduced motion honoured the same way the design does. */
@@ -33,7 +34,7 @@ const STATE_TONE = (T) => ({
 });
 
 const LemuNodeDrawer = ({
-  node, kind, pulseSeries, pulseStatus, edges, liveness, topology, errorAttribution, onSelectNode, onClose,
+  node, kind, pulseSeries, pulseStatus, edges, liveness, topology, errorAttribution, onClose,
   /* Optional wiring, added with defaults so the existing page render site
      keeps working unchanged:
        onIsolate — collapses the graph to this node's 1-hop neighbourhood
@@ -160,7 +161,7 @@ const LemuNodeDrawer = ({
   const traceNote = tracing ? upstreamNote(traceId, links, TRACE_CAP, nameOf) : '';
 
   /* ── REBUILD MANIFEST (§0 C4) — a write, so it asks first ── */
-  const canRebuild = typeof localStorage !== 'undefined' && localStorage.getItem('user_role') === 'SUPER_ADMIN';
+  const canRebuild = getUserRole() === 'SUPER_ADMIN';
   const onRebuildClick = async () => {
     if (rebuild === 'confirm') {
       setRebuild('busy');

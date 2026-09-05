@@ -12,6 +12,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { FuelIntegrityService } from './FuelIntegrityService.jsx';
+import { getProfileField, setProfileField } from '../../utils/session.js';
 import { formatINR, formatLitres } from '../../utils/formatters';
 import EvidenceDrawer from '../../components/cluster/EvidenceDrawer.jsx';
 import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';
@@ -24,7 +25,6 @@ dayjs.extend(relativeTime);
 const IST_ZONE = 'Asia/Kolkata';
 const FEED_LIMIT = 100;
 const PAGE_SIZE = 12;
-const REVIEWED_KEY = 'fi-reviewed-events';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const toIST = (utcStr) => (utcStr ? dayjs.utc(utcStr).tz(IST_ZONE) : null);
@@ -92,14 +92,14 @@ const FuelIntegrityPage = () => {
   const [evidenceWindow, setEvidenceWindow] = useState(null);
   const [investigateEvent, setInvestigateEvent] = useState(null);
   const [reviewed, setReviewed] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem(REVIEWED_KEY) || '[]')); } catch { return new Set(); }
+    try { return new Set(JSON.parse(getProfileField('fi-reviewed-events') || '[]')); } catch { return new Set(); }
   });
 
   const markReviewed = useCallback((id) => {
     setReviewed((prev) => {
       const next = new Set(prev);
       next.add(id);
-      localStorage.setItem(REVIEWED_KEY, JSON.stringify([...next]));
+      setProfileField('fi-reviewed-events', JSON.stringify([...next]));
       return next;
     });
   }, []);

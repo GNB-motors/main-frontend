@@ -121,11 +121,13 @@ export default function CommandPalette() {
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]"
       style={{ background: 'rgba(4, 8, 16, 0.65)', backdropFilter: 'blur(3px)' }}
+      role="presentation"
       onClick={() => setOpen(false)}
     >
       <div
         className="cluster-panel w-full overflow-hidden"
         style={{ maxWidth: 560, maxHeight: '70vh' }}
+        role="presentation"
         onClick={(e) => e.stopPropagation()}
       >
         <div

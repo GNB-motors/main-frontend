@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars -- motion is used in JSX tags below, which the core rule does not detect
 import { motion } from 'framer-motion';
 
 const ScrollReveal = ({

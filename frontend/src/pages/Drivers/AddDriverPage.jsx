@@ -5,6 +5,7 @@ import { DriverService } from './DriverService.jsx';
 import AccessControlApi from '../AccessControl/accessControlService';
 import { useActiveBranch } from '../../contexts/BranchContext';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { getProfileField } from '../../utils/session.js';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -39,7 +40,7 @@ const AddDriverPage = () => {
     aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
   });
 
-  const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
+  const businessRefId = getProfileField('business_ref_id') || null;
 
   useEffect(() => {
     const updateTheme = () => setThemeColors(getThemeCSS());

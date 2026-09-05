@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LemuService } from '../../LemuService';
 import { DARK } from './graphTheme';
 import { stamp } from './kgTable';
+import { getUserRole } from '../../../../../utils/session';
 
 /* "No graph on record" (plan Task 12): the topology endpoint answered with
    zero nodes. Chrome is dimmed by the tab (lemu-graph3d--graph-empty); this
@@ -19,7 +20,7 @@ import { stamp } from './kgTable';
 const BODY_COPY = 'Nothing here is healthy or unhealthy — it is simply unmeasured. No inferred topology is drawn.';
 
 const isSuperAdmin = () => {
-  try { return localStorage.getItem('user_role') === 'SUPER_ADMIN'; } catch { return false; }
+  try { return getUserRole() === 'SUPER_ADMIN'; } catch { return false; }
 };
 
 const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {

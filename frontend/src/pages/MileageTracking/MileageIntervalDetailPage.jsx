@@ -10,6 +10,7 @@ import {
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
+import { useApi } from '../../hooks/useApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,17 +33,20 @@ const getVarianceMeta = (pct) => {
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
 
-const SectionCard = ({ title, icon: Icon, iconColor = '#2A4FD6', children }) => (
-  <div className="mid2-card">
-    <div className="mid2-card-header">
-      <div className="mid2-card-icon" style={{ background: `${iconColor}14`, color: iconColor }}>
-        <Icon size={18} />
+const SectionCard = (props) => {
+  const { title, icon: Icon, iconColor = '#2A4FD6', children } = props;
+  return (
+    <div className="mid2-card">
+      <div className="mid2-card-header">
+        <div className="mid2-card-icon" style={{ background: `${iconColor}14`, color: iconColor }}>
+          <Icon size={18} />
+        </div>
+        <h3 className="mid2-card-title">{title}</h3>
       </div>
-      <h3 className="mid2-card-title">{title}</h3>
+      {children}
     </div>
-    {children}
-  </div>
-);
+  );
+};
 
 const MetricRow = ({ label, value, highlight }) => (
   <div className="mid2-metric-row">
@@ -129,7 +133,6 @@ const MileageIntervalDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [interval, setInterval] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const el = document.querySelector('.page-content');
@@ -137,27 +140,30 @@ const MileageIntervalDetailPage = () => {
     return () => { if (el) el.classList.remove('no-padding'); };
   }, []);
 
+  const { data: intervalResponse, loading: isLoading, error: intervalError } = useApi(
+    (signal) => apiClient.get(`/api/mileage/intervals/${id}`, { signal }),
+    [JSON.stringify({ id })],
+    { enabled: !!id }
+  );
+
   useEffect(() => {
-    const fetchInterval = async () => {
-      setIsLoading(true);
-      try {
-        const res = await apiClient.get(`/api/mileage/intervals/${id}`);
-        const data = res.data?.data;
-        if (data) {
-          setInterval(data);
-        } else {
-          toast.error('Mileage interval not found');
-          navigate('/mileage-tracking');
-        }
-      } catch {
-        toast.error('Failed to load mileage interval');
+    if (intervalResponse) {
+      const data = intervalResponse.data?.data;
+      if (data) {
+        setInterval(data);
+      } else {
+        toast.error('Mileage interval not found');
         navigate('/mileage-tracking');
-      } finally {
-        setIsLoading(false);
       }
-    };
-    if (id) fetchInterval();
-  }, [id]);
+    }
+  }, [intervalResponse, navigate]);
+
+  useEffect(() => {
+    if (intervalError) {
+      toast.error('Failed to load mileage interval');
+      navigate('/mileage-tracking');
+    }
+  }, [intervalError, navigate]);
 
   if (isLoading) {
     return (

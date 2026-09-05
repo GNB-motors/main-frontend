@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Search, Truck } from 'lu
 import { VehicleService } from './VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import NewButton from '@/components/ui/NewButton';
+import { getToken } from '../../utils/session.js';
 import './VehiclesPage.css';
 
 // Document type → display label (must match backend Vehicle.DOCUMENT_TYPES).
@@ -144,7 +145,7 @@ const VehicleDashboardPage = () => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const data = await VehicleService.getFleetDashboard(token, q || undefined);
       if (myId !== requestIdRef.current) return; // a newer request superseded us
       setRows(Array.isArray(data) ? data : []);

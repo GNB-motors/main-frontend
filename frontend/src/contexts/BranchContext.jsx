@@ -1,19 +1,18 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { BranchService } from '../services/branchService';
+import { getOrgId, getBranchId, setBranchId as persistBranchId, getToken } from '../utils/session.js';
 
 /**
  * Global "active location" (branch) context.
  *
  * Holds the business's list of operating locations and the one currently selected
- * in the header switcher. The selection persists in localStorage `user_branchId`
+ * in the header switcher. The selection persists in storage as `user_branchId`
  * (mirroring `user_orgId`) so the axios interceptor can attach `X-Branch-Id` to
  * every request and pages keep their scope across reloads.
  *
- * The user's "businessRefId" is the existing org id (localStorage `user_orgId`).
+ * The user's "businessRefId" is the existing org id (`user_orgId`).
  */
-
-const STORAGE_KEY = 'user_branchId';
 
 const BranchContext = createContext({
   businessRefId: null,
@@ -26,18 +25,19 @@ const BranchContext = createContext({
 });
 
 export const BranchProvider = ({ children }) => {
-  const businessRefId = localStorage.getItem('user_orgId') || null;
+  const businessRefId = getOrgId() || null;
   const [branches, setBranches] = useState([]);
-  const [branchId, setBranchId] = useState(() => localStorage.getItem(STORAGE_KEY) || null);
+  const [branchId, setBranchId] = useState(() => getBranchId() || null);
   const [loading, setLoading] = useState(true);
 
   const persist = useCallback((id) => {
-    if (id) localStorage.setItem(STORAGE_KEY, id);
-    else localStorage.removeItem(STORAGE_KEY);
+    // session.setBranchId writes the id, or REMOVES the key when null —
+    // mirroring the old setItem/removeItem pair.
+    persistBranchId(id);
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!localStorage.getItem('authToken')) {
+    if (!getToken()) {
       setBranches([]);
       setLoading(false);
       return;
@@ -50,7 +50,7 @@ export const BranchProvider = ({ children }) => {
       // previously-selected location if it is still valid; otherwise fall back to
       // Enterprise. We never auto-select a specific location — that keeps the
       // logged-in default showing everything (non-breaking).
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = getBranchId();
       const valid = stored && list.some((b) => String(b._id) === String(stored));
       if (valid) {
         setBranchId(stored);

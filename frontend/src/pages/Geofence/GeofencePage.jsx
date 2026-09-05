@@ -52,15 +52,18 @@ const SeverityBadge = ({ severity }) => {
 };
 
 // ─── KPI Card ──────────────────────────────────────────────────────────────────
-const KpiCard = ({ icon: Icon, label, value, colorClass }) => (
-  <div className={`gf-kpi-card gf-kpi-${colorClass}`}>
-    <div className="gf-kpi-icon-wrap"><Icon size={20} /></div>
-    <div className="gf-kpi-content">
-      <span className="gf-kpi-label">{label}</span>
-      <span className="gf-kpi-value">{value ?? 0}</span>
+const KpiCard = (props) => {
+  const { icon: Icon, label, value, colorClass } = props;
+  return (
+    <div className={`gf-kpi-card gf-kpi-${colorClass}`}>
+      <div className="gf-kpi-icon-wrap"><Icon size={20} /></div>
+      <div className="gf-kpi-content">
+        <span className="gf-kpi-label">{label}</span>
+        <span className="gf-kpi-value">{value ?? 0}</span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Event Row ─────────────────────────────────────────────────────────────────
 const EventRow = ({ event, idx }) => (

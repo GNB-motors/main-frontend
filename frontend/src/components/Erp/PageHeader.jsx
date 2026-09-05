@@ -14,7 +14,7 @@ const PageHeader = ({
         {breadcrumbs.length > 0 && (
           <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
             {breadcrumbs.map((b, idx) => (
-              <React.Fragment key={idx}>
+              <React.Fragment key={b.label}>
                 {idx > 0 && <ChevronRight size={12} style={{ color: '#cbd5e1' }} />}
                 {b.to ? (
                   <Link to={b.to} style={{ color: '#64748b', textDecoration: 'none' }} className="hover:underline">

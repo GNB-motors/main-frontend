@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Box, CircularProgress, Alert, FormControl, Select, MenuItem, Chip,
-    Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button
-} from '@mui/material';
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from '@/components/ui/dialog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
     Fuel, AlertTriangle, CheckCircle2, Clock, RefreshCw,
     Activity, XCircle, Flag, Search, ShieldAlert, Gauge, Eye,
@@ -15,6 +19,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { ReportsService } from '../Reports/ReportsService.jsx';
 import { CsvIcon } from '../../components/Icons';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { getUserRole } from '../../utils/session.js';
 import './FuelComparison.css';
 
 // Extend dayjs with timezone and relative time support
@@ -31,12 +36,6 @@ const toIST = (utcStr) => {
     return dayjs.utc(utcStr).tz(IST_ZONE);
 };
 
-const formatIST = (utcStr) => {
-    const d = toIST(utcStr);
-    if (!d) return '—';
-    return d.format('DD MMM YYYY, hh:mm A [IST]');
-};
-
 const formatRelativeIST = (utcStr) => {
     const d = toIST(utcStr);
     if (!d) return null;
@@ -51,7 +50,9 @@ const formatDateRange = (from, to) => {
 
 // ─── Header KPI Card ──────────────────────────────────────────────────────────
 
-const StatusKpiCard = ({ icon: Icon, label, value, colorClass }) => (
+const StatusKpiCard = (props) => {
+    const { icon: Icon, label, value, colorClass } = props;
+    return (
     <div className={`fc-kpi-card fc-kpi-${colorClass}`}>
         <div className="fc-kpi-icon-wrap">
             <Icon size={20} />
@@ -61,7 +62,8 @@ const StatusKpiCard = ({ icon: Icon, label, value, colorClass }) => (
             <span className="fc-kpi-value">{value ?? '0'}</span>
         </div>
     </div>
-);
+    );
+};
 
 // ─── Live Errors Widget ───────────────────────────────────────────────────────
 
@@ -181,14 +183,17 @@ const ReviewModal = ({ task, onClose, onApproved }) => {
     };
 
     return (
-        <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Gauge size={18} /> Review Odometer Task — {task?.vehicleId?.registrationNumber || task?.vehicleNumber}
-            </DialogTitle>
-            <DialogContent dividers>
+        <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Gauge size={18} /> Review Odometer Task — {task?.vehicleId?.registrationNumber || task?.vehicleNumber}
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="px-6 py-4">
                 {/* Document photo */}
                 {task?.odometerDoc?.publicUrl && (
-                    <Box mb={2}>
+                    <div className="mb-4">
                         <p style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Odometer document photo</p>
                         <img
                             src={task.odometerDoc.publicUrl}
@@ -200,45 +205,57 @@ const ReviewModal = ({ task, onClose, onApproved }) => {
                                 OCR confidence: {task.odometerDoc.ocrData.confidence}% · Status: {task.odometerDoc.ocrData.processingStatus}
                             </p>
                         )}
-                    </Box>
+                    </div>
                 )}
 
                 <p style={{ fontSize: 13, color: '#ef4444', marginBottom: 12 }}>{task?.reviewReason}</p>
 
-                <Box display="flex" flexDirection="column" gap={2}>
-                    <TextField
-                        label="From Date (IST)"
-                        type="datetime-local"
-                        value={fromDate}
-                        onChange={e => setFromDate(e.target.value)}
-                        fullWidth size="small"
-                        InputLabelProps={{ shrink: true }}
-                    />
-                    <TextField
-                        label="To Date (IST)"
-                        type="datetime-local"
-                        value={toDate}
-                        onChange={e => setToDate(e.target.value)}
-                        fullWidth size="small"
-                        InputLabelProps={{ shrink: true }}
-                    />
-                    <TextField
-                        label="Corrected Odometer Reading (km)"
-                        type="number"
-                        value={odometerReading}
-                        onChange={e => setOdometerReading(e.target.value)}
-                        fullWidth size="small"
-                        helperText={`FleetEdge reports: ${task?.maxOdometer ?? '—'} km`}
-                    />
-                </Box>
-                {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="review-from-date">From Date (IST)</Label>
+                        <Input
+                            id="review-from-date"
+                            type="datetime-local"
+                            value={fromDate}
+                            onChange={e => setFromDate(e.target.value)}
+                            className="h-8"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="review-to-date">To Date (IST)</Label>
+                        <Input
+                            id="review-to-date"
+                            type="datetime-local"
+                            value={toDate}
+                            onChange={e => setToDate(e.target.value)}
+                            className="h-8"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="review-odometer">Corrected Odometer Reading (km)</Label>
+                        <Input
+                            id="review-odometer"
+                            type="number"
+                            value={odometerReading}
+                            onChange={e => setOdometerReading(e.target.value)}
+                            className="h-8"
+                        />
+                        <p className="text-xs text-muted-foreground">FleetEdge reports: {task?.maxOdometer ?? '—'} km</p>
+                    </div>
+                </div>
+                {error && (
+                    <div role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {error}
+                    </div>
+                )}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+                    <Button onClick={handleApprove} disabled={saving}>
+                        {saving ? 'Approving…' : 'Approve & Release'}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} disabled={saving}>Cancel</Button>
-                <Button onClick={handleApprove} disabled={saving} variant="contained" color="primary">
-                    {saving ? 'Approving…' : 'Approve & Release'}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 };
@@ -253,13 +270,13 @@ const FuelComparisonPage = () => {
     // Tab: 'all' | 'flagged' | 'review'
     const [activeTab, setActiveTab] = useState('all');
 
-    const userRole = localStorage.getItem('userRole') || '';
+    const userRole = getUserRole() || '';
     const canPullNow = ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(userRole);
 
     // Status widget
     const [status, setStatus] = useState(null);
     const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-    const [statusError, setStatusError] = useState(null);
+    const [, setStatusError] = useState(null);
 
     // FleetEdge connectivity + user errors
     const [connectivity, setConnectivity] = useState(null);
@@ -492,17 +509,18 @@ const FuelComparisonPage = () => {
                             Filter
                         </button>
                         {activeTab === 'all' && (
-                            <FormControl size="small" className="fc-select">
-                                <Select
-                                    value={flaggedOnly ? 'flagged' : 'all'}
-                                    onChange={(e) => setFlaggedOnly(e.target.value === 'flagged')}
-                                    displayEmpty
-                                    sx={{ minHeight: '36px', height: '36px', fontSize: '13px', borderRadius: '8px' }}
-                                >
-                                    <MenuItem value="all">All Status</MenuItem>
-                                    <MenuItem value="flagged">Flagged Only</MenuItem>
-                                </Select>
-                            </FormControl>
+                            <Select
+                                value={flaggedOnly ? 'flagged' : 'all'}
+                                onValueChange={(v) => setFlaggedOnly(v === 'flagged')}
+                            >
+                                <SelectTrigger size="sm" className="w-auto min-w-32 text-[13px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="flagged">Flagged Only</SelectItem>
+                                </SelectContent>
+                            </Select>
                         )}
                     </div>
                 </div>
@@ -510,7 +528,7 @@ const FuelComparisonPage = () => {
                 <div className="fc-table-wrap">
                     {isLoadingComp ? (
                         <div className="fc-loading-state">
-                            <CircularProgress size={32} />
+                            <Loader2 size={32} className="animate-spin" />
                             <p>Loading comparisons...</p>
                         </div>
                     ) : (
@@ -565,27 +583,26 @@ const FuelComparisonPage = () => {
                                         )}
                                         <td>
                                             {rec.isFlagged ? (
-                                                <Chip size="small" icon={<AlertTriangle size={12}/>} label="Flagged" color="warning" variant="outlined" />
+                                                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700"><AlertTriangle size={12}/> Flagged</Badge>
                                             ) : rec.status === 'PENDING_REVIEW' ? (
-                                                <Chip size="small" icon={<AlertTriangle size={12}/>} label="Needs Action" color="warning" variant="filled" />
+                                                <Badge className="bg-amber-100 text-amber-800"><AlertTriangle size={12}/> Needs Action</Badge>
                                             ) : (
-                                                <Chip size="small" icon={<CheckCircle2 size={12}/>} label="OK" color="success" variant="outlined" />
+                                                <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700"><CheckCircle2 size={12}/> OK</Badge>
                                             )}
                                         </td>
                                         <td>
                                             {rec.isOdometerFlagged ? (
-                                                <Chip
-                                                    size="small"
-                                                    icon={<Gauge size={12}/>}
-                                                    label="Odo Mismatch"
-                                                    color="error"
-                                                    variant="outlined"
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-red-300 bg-red-50 text-red-700"
                                                     title={rec.odometerFlagReason}
-                                                />
+                                                >
+                                                    <Gauge size={12}/> Odo Mismatch
+                                                </Badge>
                                             ) : rec.status === 'PENDING_REVIEW' ? (
-                                                <Chip size="small" icon={<Gauge size={12}/>} label="Needs Review" color="warning" variant="outlined" title={rec.reviewReason} />
+                                                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700" title={rec.reviewReason}><Gauge size={12}/> Needs Review</Badge>
                                             ) : rec.ocrOdometerReading != null ? (
-                                                <Chip size="small" icon={<CheckCircle2 size={12}/>} label="OK" color="success" variant="outlined" />
+                                                <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700"><CheckCircle2 size={12}/> OK</Badge>
                                             ) : (
                                                 <span className="fc-secondary-text">—</span>
                                             )}

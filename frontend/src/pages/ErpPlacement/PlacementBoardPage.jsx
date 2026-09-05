@@ -422,8 +422,12 @@ const PlacementBoardPage = () => {
 
       {/* ─── Placement modal ─────────────────────────────────────────────── */}
       {target && (
-        <div className="erp-modal-backdrop" onClick={closeModal}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>
                 {target.mode === 'OWN'

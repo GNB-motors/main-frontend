@@ -27,6 +27,7 @@ export default function SlideOver({ open, onClose, title, subtitle, children, wi
       <div
         className="absolute inset-0"
         style={{ background: 'rgba(4, 8, 16, 0.55)', backdropFilter: 'blur(2px)' }}
+        role="presentation"
         onClick={onClose}
       />
       <aside

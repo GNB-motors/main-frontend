@@ -63,7 +63,7 @@ const hashOf = (id) => {
   return Math.abs(h);
 };
 
-const ensurePositions = (nodes, infra, is3) => {
+const ensurePositions = (nodes, infra) => {
   for (let i = 0; i < nodes.length; i++) {
     const p = nodes[i];
     const h = hashOf(p.id);
@@ -96,7 +96,7 @@ const ensurePositions = (nodes, infra, is3) => {
 export const step = (nodes, links, opts) => {
   const infra = opts.layer === 'infra';
   const is3 = !!opts.is3d;
-  ensurePositions(nodes, infra, is3);
+  ensurePositions(nodes, infra);
   const a = opts.alpha;
   if (a < 0.004) return a;
   const n0 = nodes.length;
