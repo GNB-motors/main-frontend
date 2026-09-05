@@ -249,6 +249,12 @@ function App() {
         <Route path="/erp/billing" element={<ErpBillingPage />} />
         <Route path="/erp/payables" element={<ErpPayablesPage />} />
         <Route path="/erp/accounts" element={<ErpAccountsPage />} />
+        {/* Document detail — the "Source" links in Day Book / Account 360 /
+            Registers (documentRoutes.documentPathFor) point here. DocumentDetailPage
+            already handles each segment; these routes were simply never wired. */}
+        <Route path="/erp/billing/bill/:docId" element={<DocumentDetailPage segment="bill" />} />
+        <Route path="/erp/payables/purchase-bill/:docId" element={<DocumentDetailPage segment="purchase-bill" />} />
+        <Route path="/erp/payables/supplier-invoice/:docId" element={<DocumentDetailPage segment="supplier-invoice" />} />
         {/* Voucher/document detail — MUST precede the Account 360 catch-all so
             "voucher" is not matched as an accountType. */}
         <Route path="/erp/accounts/voucher/:docId" element={<DocumentDetailPage segment="voucher" />} />

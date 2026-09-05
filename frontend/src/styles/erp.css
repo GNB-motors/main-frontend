@@ -2018,3 +2018,47 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+/* ── Receipt allocation footer: received / applied / remaining ──────────────
+   Makes the allocation math visible as the user types — partial payments show
+   a positive "left unapplied" (a customer advance), over-allocation goes red. */
+.erp-alloc-foot {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.erp-alloc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.erp-alloc-cell span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.erp-alloc-cell strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+.erp-alloc-cell.neg strong { color: #b91c1c; }
+.erp-alloc-warn {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+.erp-alloc-note {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
