@@ -40,7 +40,7 @@ describe('shortestPath', () => {
     expect(shortestPath([], 'A', 'B')).toEqual([]);
   });
 
-  it('resolves object endpoints (force-graph mutated links)', () => {
+  it('resolves object endpoints (layout engine mutated links)', () => {
     const mutated = [{ source: { id: 'A' }, target: { id: 'B' } }];
     expect(shortestPath(mutated, 'A', 'B')).toEqual(['A', 'B']);
   });

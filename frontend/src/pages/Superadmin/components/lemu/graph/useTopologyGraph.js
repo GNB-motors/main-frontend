@@ -1,4 +1,5 @@
-/* INFRA layer transform: the /api/lemu/topology payload -> force-graph shape.
+/* INFRA layer transform: the /api/lemu/topology payload -> graph shape
+   ({ nodes, links } with string link endpoints).
 
    Node `state` is carried through untouched — it is what drives the ring
    treatment in graphTheme (solid = measured, hollow = declared, fault =

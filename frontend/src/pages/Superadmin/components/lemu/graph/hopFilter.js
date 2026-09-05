@@ -1,7 +1,8 @@
 /* Neighbourhood queries over the graph.
 
-   force-graph MUTATES graphData in place, replacing link.source/target string
-   ids with node object references once the simulation runs. Anything reading
+   The retired d3-based renderer MUTATED graphData in place, replacing
+   link.source/target string ids with node object references once the
+   simulation ran. Anything reading
    links must accept both shapes — reading `.id` off a string, or using an
    object as a Map key, silently yields an empty result. */
 export const endId = (v) => (v && typeof v === 'object' ? v.id : v);

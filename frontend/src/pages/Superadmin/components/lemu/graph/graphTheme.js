@@ -113,7 +113,7 @@ export const kindHue = (kind, theme) =>
   theme === 'light' ? KINDS_LIGHT[kind] : (KINDS[kind] ? KINDS[kind].c : undefined);
 
 /* Backwards-compatible dark-theme hue map for pre-redesign consumers that
-   index KIND_HUE as a plain object (LemuGraphTab, LemuGraphCanvas). New
+   index KIND_HUE as a plain object (LemuGraphTab). New
    code should call kindHue(kind, theme). Values are the DESIGN's hues. */
 export const KIND_HUE = Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, v.c]));
 

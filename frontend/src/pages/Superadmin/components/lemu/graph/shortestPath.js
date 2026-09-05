@@ -1,6 +1,6 @@
 /* "How does this collection reach that page?" — BFS, so the first path found
    is a shortest one. Undirected on purpose: the user is asking about
-   connection, not flow direction. `endId` handles force-graph mutating link
+   connection, not flow direction. `endId` handles a layout engine mutating link
    endpoints into node objects once the simulation runs. */
 import { endId } from './hopFilter';
 

@@ -74,7 +74,7 @@ describe('healthyPathSet', () => {
     expect(healthyPathSet(nodes, links)).toEqual(new Set(['source:s', 'collection:a', 'collection:b', 'table:t']));
   });
 
-  it('resolves object link endpoints (force-graph mutated links)', () => {
+  it('resolves object link endpoints (layout engine mutated links)', () => {
     const nodes = [node('source:s', 'source'), node('job:j', 'job')];
     const links = [{ source: { id: 'source:s' }, target: { id: 'job:j' }, kind: 'reads' }];
     expect(healthyPathSet(nodes, links)).toEqual(new Set(['source:s', 'job:j']));

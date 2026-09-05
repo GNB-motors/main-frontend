@@ -8,7 +8,7 @@
    is also how the parentless "origin" list stays honest: a truncated node that
    has unreached parents is not promoted to origin. Cycles are possible in the
    CODE layer (require graphs have them), so the walk is guarded by the map
-   itself rather than assuming a DAG. `endId` handles force-graph mutating link
+   itself rather than assuming a DAG. `endId` handles a layout engine mutating link
    endpoints into node objects once the simulation runs. */
 import { endId } from './hopFilter';
 

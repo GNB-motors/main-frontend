@@ -56,7 +56,7 @@ describe('blastRadius', () => {
       expect(downstreamOf([], 'A')).toEqual(new Set());
     });
 
-    it('resolves object endpoints (force-graph mutates links in place)', () => {
+    it('resolves object endpoints (layout engine mutates links in place)', () => {
       const mutated = [{ source: { id: 'A' }, target: { id: 'B' } }];
       expect(downstreamOf(mutated, 'A')).toEqual(new Set(['B']));
       expect(upstreamOf(mutated, 'B')).toEqual(new Set(['A']));

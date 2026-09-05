@@ -6,7 +6,7 @@
    Direction matters here, unlike hopFilter: downstream is what depends on
    this node, upstream is what it depends on. Cycles are possible in the CODE
    layer (require graphs have them), so the walk is guarded by a visited set
-   rather than assuming a DAG. `endId` handles force-graph mutating link
+   rather than assuming a DAG. `endId` handles a layout engine mutating link
    endpoints into node objects once the simulation runs. */
 import { endId } from './hopFilter';
 

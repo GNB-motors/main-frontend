@@ -37,7 +37,7 @@ describe('traceUpstream', () => {
       expect(traceUpstream('A', [])).toEqual(new Map([['A', 0]]));
     });
 
-    it('resolves object endpoints (force-graph mutates links in place)', () => {
+    it('resolves object endpoints (layout engine mutates links in place)', () => {
       const mutated = [{ source: { id: 'A' }, target: { id: 'B' } }];
       expect(traceUpstream('B', mutated)).toEqual(new Map([['B', 0], ['A', 1]]));
     });
