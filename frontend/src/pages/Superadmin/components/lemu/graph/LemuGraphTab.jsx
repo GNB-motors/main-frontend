@@ -15,6 +15,7 @@ import { applyKindFilter } from './kindFilter';
 import { countQueryMatches } from './graphPanelCounts';
 import { applyGraphParams } from './graphUrlSync';
 import { readStoredTheme, writeStoredTheme, applyThemeVars, clearThemeVars } from './graphTheme';
+import { degradedDetail, degradedTitle } from './degradedExplain';
 import KgCanvas from './KgCanvas';
 import LemuGraphControls from './LemuGraphControls';
 import LemuGraphFilters from './LemuGraphFilters';
@@ -35,7 +36,7 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef, manifests, diffsByVersion, diffStatusByVersion, onLoadDiff, isolateRef }) => {
+const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef, manifests, diffsByVersion, diffStatusByVersion, onLoadDiff, isolateRef, onThemeChange }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fitRef = useRef(null);
   const focusRef = useRef(null);
@@ -80,6 +81,26 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      colour meaning. */
   const [dimmedStates, setDimmedStates] = useState(() => new Set());
   const [degradedDismissed, setDegradedDismissed] = useState(false);
+  /* Degraded detail popover (r2): which strip chip is expanded, if any.
+     Escape or click-outside closes; rows are built by degradedExplain from
+     the entry's REAL fields only (§0 C3). */
+  const [degradedOpenIdx, setDegradedOpenIdx] = useState(null);
+  const degradedStripRef = useRef(null);
+  useEffect(() => {
+    if (degradedOpenIdx == null) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setDegradedOpenIdx(null); };
+    const onDown = (e) => {
+      if (degradedStripRef.current && !degradedStripRef.current.contains(e.target)) {
+        setDegradedOpenIdx(null);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [degradedOpenIdx]);
   /* Blast radius (Phase 5): with a selection, light the transitive closure
      through the SAME outline channel hop-filter highlighting already uses —
      P3, no new colour meaning. */
@@ -118,6 +139,14 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     applyThemeVars(el, theme);
     return () => clearThemeVars(el);
   }, [theme]);
+
+  /* Publish the theme outward so the page-level node drawer (rendered OUTSIDE
+     this component, sibling to it) follows the board's theme — without this
+     the drawer stays on its dark default in light theme and reads as a dark
+     ghost against the light board. */
+  useEffect(() => {
+    if (onThemeChange) onThemeChange(theme);
+  }, [theme, onThemeChange]);
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
 
@@ -837,24 +866,49 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       )}
 
       {/* Degraded strip: every measurement the backend could not complete is
-          named here instead of failing silently (spec §3.3). Dismissible,
+          named here instead of failing silently (spec §3.3). Notice tone, not
+          alarm — each chip opens a detail popover explaining the probe, the
+          reason, what it affects and when the payload reported it. Dismissible,
           re-armed by the next payload. */}
       {view === 'graph' && degraded.length > 0 && !degradedDismissed && (
-        <div className="lemu-graph3d__degraded lemu-graph3d__panel" role="alert">
+        <div ref={degradedStripRef} className="lemu-graph3d__degraded lemu-graph3d__panel" role="alert">
           {degraded.map((d, i) => (
-            <span key={i}>
+            <button
+              key={`${d.step}-${i}`}
+              type="button"
+              className="lemu-graph3d__degraded-chip"
+              aria-expanded={degradedOpenIdx === i}
+              aria-label={`Details: ${degradedTitle(d.step)}`}
+              onClick={() => setDegradedOpenIdx(degradedOpenIdx === i ? null : i)}
+            >
               <code>{d.step}</code> — {d.reason}
               {d.affects?.length ? ` (affects ${d.affects.length})` : ''}
-            </span>
+            </button>
           ))}
           <button
             type="button"
             className="lemu-graph3d__degraded-x"
-            onClick={() => setDegradedDismissed(true)}
+            onClick={() => { setDegradedDismissed(true); setDegradedOpenIdx(null); }}
             aria-label="Dismiss degraded report"
           >
             ×
           </button>
+          {degradedOpenIdx != null && degraded[degradedOpenIdx] && (
+            <div className="lemu-graph3d__degraded-pop lemu-graph3d__panel" role="dialog" aria-label={`Degraded detail: ${degraded[degradedOpenIdx].step}`}>
+              <h3 className="lemu-graph3d__degraded-pop-title">{degradedTitle(degraded[degradedOpenIdx].step)}</h3>
+              <dl style={{ margin: 0 }}>
+                {degradedDetail(degraded[degradedOpenIdx], {
+                  nodes: topology?.nodes || [],
+                  generatedAt: topology?.generatedAt || null,
+                }).map((row) => (
+                  <div key={row.k} className="lemu-graph3d__degraded-pop-row">
+                    <dt>{row.k}</dt>
+                    <dd className={row.mono ? 'lemu-graph3d__degraded-pop-mono' : undefined}>{row.v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </div>
       )}
 
@@ -948,8 +1002,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
 
       <p className="lemu-meta lemu-graph3d__foot lemu-graph3d__rail">
         {layer === 'infra'
-          ? 'Colour encodes kind; rings encode state (solid measured, hollow declared, fault unreachable); particles mark the CDC spine.'
-          : 'Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs also open in the node drawer. Colour encodes kind; particles along an edge mean recent traffic.'}
+          ? 'Colour encodes kind; rings encode state (solid measured, hollow declared, fault unreachable); particles mark the CDC spine. Hold Space and drag to pan.'
+          : 'Drag to rotate, scroll to zoom, click a sphere to focus it — modules, models and jobs also open in the node drawer. Colour encodes kind; particles along an edge mean recent traffic. Hold Space and drag to pan.'}
         {scrubbedBucket ? (
           /* Scrubbed into the past is a user choice, not staleness — the
              dot reads neutral grey and the label names the shown moment

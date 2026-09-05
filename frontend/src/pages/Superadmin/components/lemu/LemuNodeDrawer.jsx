@@ -61,7 +61,8 @@ const LemuNodeDrawer = ({
   }, [node, kind]);
 
   /* Focus trap + Escape (unchanged behaviour from the pre-redesign
-     drawer; the design adds no scrim — the board stays interactive). */
+     drawer). The r2 scrim below the drawer is pointer-transparent — the
+     board stays interactive while the drawer is open. */
   useEffect(() => {
     const drawer = drawerRef.current;
     if (!drawer) return undefined;
@@ -237,6 +238,25 @@ const LemuNodeDrawer = ({
   return (
     <>
       <style>{KGDRAWER_CSS}</style>
+      {/* The scrim is BLUR, not a paint blanket: backdrop-filter keeps the
+          board visibly present behind the drawer and the tint is subtle and
+          theme-appropriate (dark ≈ 32% black, light ≈ 28% white). It sits
+          one z-step BELOW the drawer (45 vs 46) so the drawer stays fully
+          crisp, and it never intercepts the pointer — clicking the blurred
+          board still selects/switches nodes. `contained` mirrors the
+          drawer's own positioning: absolute inside the graph page's relative
+          wrapper, fixed over the viewport on the embedded LEMU page. The
+          shared class (.lemu-drawer-scrim, LemuLogsPage.css) carries the
+          blur treatment; the tint arrives as the --lemu-scrim var so both
+          render sites stay theme-correct. */}
+      <div
+        className="lemu-drawer-scrim"
+        aria-hidden="true"
+        style={{
+          '--lemu-scrim': theme === 'light' ? 'rgba(255,255,255,0.28)' : 'rgba(6,7,10,0.32)',
+          position: contained ? 'absolute' : 'fixed',
+        }}
+      />
       <aside
         ref={drawerRef}
         className="lemu-drawer lemu-kgdrawer"
