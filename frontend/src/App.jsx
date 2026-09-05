@@ -40,6 +40,7 @@ const OrgDetailPage = lazy(() => import('./pages/Superadmin/components/OrgDetail
 const RbacPermissionsPage = lazy(() => import('./pages/Superadmin/components/RbacPermissionsPage.jsx'));
 const RbacRolesPage = lazy(() => import('./pages/Superadmin/components/RbacRolesPage.jsx'));
 const LemuLogsPage = lazy(() => import('./pages/Superadmin/components/LemuLogsPage.jsx'));
+const LemuGraphPage = lazy(() => import('./pages/Superadmin/components/lemu/graph/LemuGraphPage.jsx'));
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
@@ -144,6 +145,7 @@ function App() {
         <Route path="rbac/permissions" element={<Suspense fallback={null}><RbacPermissionsPage /></Suspense>} />
         <Route path="rbac/roles" element={<Suspense fallback={null}><RbacRolesPage /></Suspense>} />
         <Route path="lemu" element={<Suspense fallback={null}><LemuLogsPage /></Suspense>} />
+        <Route path="graph" element={<Suspense fallback={null}><LemuGraphPage /></Suspense>} />
         <Route path="warehouse" element={<Suspense fallback={null}><WarehousePage /></Suspense>} />
       </Route>
 

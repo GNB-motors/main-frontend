@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { LemuService } from '../LemuService';
 import { DARK, LIGHT, kindHue, hexa } from './graph/graphTheme';
-import { upstreamNote } from './graph/upstreamTrace';
+import { upstreamNote, topoTraceLinks } from './graph/upstreamTrace';
 import {
   nf,
   stampUTC,
@@ -40,9 +40,15 @@ const LemuNodeDrawer = ({
          (the tab owns hop state; the page does not pass this yet, so the
          button hides until it does).
        theme     — Task 14 wires the app-level switch; the drawer follows
-         the canvas default. */
+         the canvas default.
+       contained — the standalone /superadmin/graph page renders the drawer
+         inside its own position:relative wrapper; absolute positioning
+         anchors it to that container (12px below the navbar through the
+         wrapper geometry) instead of the fixed viewport offset. Defaults
+         keep every existing render site on the fixed path. */
   onIsolate,
   theme = 'dark',
+  contained = false,
 }) => {
   const T = theme === 'light' ? LIGHT : DARK;
   const drawerRef = useRef(null);
@@ -147,7 +153,7 @@ const LemuNodeDrawer = ({
     : null;
 
   /* ── TRACE UPSTREAM — pure helpers over the layer's real edge set ── */
-  const links = INFRA_KINDS.includes(kind) ? (topology?.edges || []) : (edges || []);
+  const links = INFRA_KINDS.includes(kind) ? topoTraceLinks(topology?.edges) : (edges || []);
   const traceId = graphKey || node._id;
   const nameOf = (id) => (topology?.nodes || []).find((n) => n.id === id)?.label || id.replace(/^\w+:/, '');
   const TRACE_CAP = 8;
@@ -238,13 +244,16 @@ const LemuNodeDrawer = ({
         aria-modal="false"
         aria-label={name}
         style={{
-          position: 'fixed',
           /* The app header (SuperAdminNavbar) is a fixed 72px bar at
              z-index 1001 — top:12 would slide the drawer (and its close
              button) underneath it. --lemu-header-h is the measured value
-             (LemuLogsPage.css); the geometry is otherwise the plan's:
-             404px wide, right 12, bottom 44. */
-          top: 'calc(var(--lemu-header-h, 72px) + 12px)',
+             (LemuLogsPage.css / LemuGraphPage.css); the geometry is
+             otherwise the plan's: 404px wide, right 12, bottom 44.
+             On the standalone graph page the drawer is CONTAINED: its
+             wrapper already starts 72px below the viewport top, so
+             absolute + top:12 lands at the same below-navbar offset. */
+          position: contained ? 'absolute' : 'fixed',
+          top: contained ? 12 : 'calc(var(--lemu-header-h, 72px) + 12px)',
           right: 12,
           bottom: 44,
           width: 404,

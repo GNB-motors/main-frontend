@@ -21,20 +21,27 @@ import LemuErrorsInbox from './lemu/LemuErrorsInbox';
 import LemuFlagsTab from './lemu/LemuFlagsTab';
 import LemuFindingsRibbon from './lemu/LemuFindingsRibbon';
 import LemuSystemMap from './lemu/LemuSystemMap';
-import LemuGraphTab from './lemu/graph/LemuGraphTab';
+import LemuGraphDoorway from './lemu/LemuGraphDoorway';
 import LemuNodeDrawer from './lemu/LemuNodeDrawer';
 import LemuChangeFeed from './lemu/LemuChangeFeed';
 import FuelIntegrityLineagePanel from './lemu/FuelIntegrityLineagePanel';
-import { deriveRouteModule, nodeId, relativeTime, routePulseKey } from './lemu/utils';
+import { useLemuGraphData, useLemuSelectedNode } from './lemu/graph/useLemuGraphData';
+import { relativeTime } from './lemu/utils';
 import './lemu/LemuLogsPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────
    LemuLogsPage
    Composition + data-fetching owner for the LEMU observability screen.
    Layer 3 adds the System map (manifest + pulse), Change feed (manifest
-   history + diffs), and a persistent Findings ribbon. All LEMU state lives
-   here so polls, the auto-refresh toggle and pagination behave exactly as
-   before and survive tab switches. The Flags tab is self-contained.
+   history + diffs), and a persistent Findings ribbon.
+
+   The knowledge graph moved to its own route (/superadmin/graph, see
+   LemuGraphPage) — the Graph tab here is a doorway. The graph-shaped data
+   the rest of this page still consumes (manifest, pulse, liveness, topology,
+   error attribution, job health, findings, versions/diffs — the System map,
+   ribbon, Change feed and node drawer all read it) comes from the shared
+   useLemuGraphData hook, so both pages poll on the same cadence and read
+   the same payload shapes.
 ──────────────────────────────────────────────────────────────────────────── */
 const PAGE_SIZE = 25;
 
@@ -53,6 +60,10 @@ const LemuLogsPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  /* Graph-shaped data (manifest/pulse/liveness/topology/attribution/jobs/
+     findings/versions/diffs) — shared with the standalone graph page. */
+  const graph = useLemuGraphData();
+
   /* ── Tabs ── */
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'system');
 
@@ -61,56 +72,18 @@ const LemuLogsPage = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState('');
 
-  /* ── Layer 3: system manifest + pulse + findings ── */
-  const [manifest, setManifest] = useState(null);
-  const [manifestStatus, setManifestStatus] = useState('loading');
-  const [pulse, setPulse] = useState(null);
-  const [pulseStatus, setPulseStatus] = useState('loading');
-  // Wide-window last-seen per route/collection — distinguishes "quiet this
-  // hour" from "no signal all day". Null until loaded; the map degrades to
-  // pulse-only behaviour without it.
-  const [liveness, setLiveness] = useState(null);
-  // INFRA topology payload ({nodes, edges, degraded, summary}) — the graph
-  // tab's Infra layer. Null until the first successful fetch.
-  const [topology, setTopology] = useState(null);
-  // Error attribution (Phase 4): error groups joined to manifest functions,
-  // with byNode rollups for the graph pips. Loaded by the same batch/poll as
-  // topology; null until the first successful fetch (or on failure).
-  const [errorAttribution, setErrorAttribution] = useState(null);
-  // Stamp of the last successful liveness fetch — drives the graph tab's
-  // freshness dot. Unset until the first success; a failed poll never moves it.
-  const [dataUpdatedAt, setDataUpdatedAt] = useState(null);
-  const [findings, setFindings] = useState(null);
-  const [findingsStatus, setFindingsStatus] = useState('loading');
-  const [manifestsList, setManifestsList] = useState([]);
-  const [manifestsStatus, setManifestsStatus] = useState('loading');
-  const [diffsByVersion, setDiffsByVersion] = useState({});
-  // Per-version fetch lifecycle: undefined = idle, 'loading' | 'ready' | 'error'.
-  // Kept separate from the diff payload so a failed fetch can never render as
-  // "no changes" (and vice versa).
-  const [diffStatusByVersion, setDiffStatusByVersion] = useState({});
+  /* ── Selection / drawer ── */
+  const [selectedNodeId, setSelectedNodeId] = useState(() => searchParams.get('node') || null);
+  const [drawerOpen, setDrawerOpen] = useState(() => !!searchParams.get('node'));
   const [sort, setSort] = useState('activity');
   const [findingsExpanded, setFindingsExpanded] = useState(() => searchParams.get('findings') === 'open');
   const [expandedVersions, setExpandedVersions] = useState(() => {
     const v = searchParams.get('v');
     return v ? new Set([Number(v)]) : new Set();
   });
-  const [selectedNodeId, setSelectedNodeId] = useState(() => searchParams.get('node') || null);
-  const [drawerOpen, setDrawerOpen] = useState(() => !!searchParams.get('node'));
-  // Blast-radius closure published by the graph tab (Phase 5) — the drawer
-  // lists it while a selection's blast radius is active.
-  const [blastClosure, setBlastClosure] = useState(null);
-  /* The graph tab owns hop state and publishes its setter here (same
-     pattern as onBlastChange, but downward-invoked): the drawer's
-     ISOLATE 1 HOP collapses the board to the selected node's 1-hop
-     neighbourhood. */
-  const isolateRef = useRef(null);
 
   /* ── Jobs panel ── */
-  const [jobs, setJobs] = useState([]);
-  const [jobsCheckedAt, setJobsCheckedAt] = useState(null);
-  const [jobsLoading, setJobsLoading] = useState(true);
-  const [jobsError, setJobsError] = useState('');
+  // (job health itself is fetched by useLemuGraphData; the panel reads it)
 
   /* ── Events explorer ── */
   const [events, setEvents] = useState([]);
@@ -141,10 +114,13 @@ const LemuLogsPage = () => {
     }
   }, [navigate]);
 
+  const { manifest, pulse, jobs, topology, liveness } = graph;
+  const { loadJobs, refreshLayer3 } = graph;
+
   /* ── Derived status ── */
   const derivedStatus = useMemo(() => {
-    if (manifestStatus === 'loading') return 'loading';
-    if (manifestStatus === 'error') return 'error';
+    if (graph.manifestStatus === 'loading') return 'loading';
+    if (graph.manifestStatus === 'error') return 'error';
     if (!manifest) return 'empty';
     const newestBucket = pulse?.buckets?.[0]?.bucketStart;
     if (newestBucket) {
@@ -152,9 +128,9 @@ const LemuLogsPage = () => {
       if (ageMin > 5) return 'stale';
     }
     return 'live';
-  }, [manifest, manifestStatus, pulse]);
+  }, [graph.manifestStatus, manifest, pulse]);
 
-  /* ── Loaders ── */
+  /* ── Loaders (page-owned data only; graph-shaped data loads in the hook) ── */
   const loadDashboard = useCallback(async (silent = false) => {
     if (!silent) setDashboardLoading(true);
     setDashboardError('');
@@ -167,121 +143,6 @@ const LemuLogsPage = () => {
       setDashboardError(e.detail || e.message || 'Failed to load dashboard stats');
     } finally {
       setDashboardLoading(false);
-    }
-  }, []);
-
-  const loadManifest = useCallback(async (silent = false) => {
-    if (!silent) setManifestStatus('loading');
-    try {
-      const data = await LemuService.getManifest();
-      setManifest(data.data || null);
-      setManifestStatus('live');
-    } catch {
-      setManifestStatus('error');
-    }
-  }, []);
-
-  const loadPulse = useCallback(async (silent = false) => {
-    if (!silent) setPulseStatus('loading');
-    try {
-      const data = await LemuService.getPulse({ limit: 60 });
-      setPulse(data.data || null);
-      setPulseStatus('live');
-    } catch {
-      setPulseStatus('error');
-    }
-  }, []);
-
-  const loadLiveness = useCallback(async () => {
-    try {
-      const data = await LemuService.getLiveness({ windowHours: 24 });
-      setLiveness(data.data || null);
-      setDataUpdatedAt(Date.now());
-    } catch {
-      // Liveness is an enhancement layer — pulse heat still renders without it.
-      setLiveness(null);
-    }
-  }, []);
-
-  /* INFRA topology for the graph tab's Infra layer. Refreshed by the same
-     30s poll as liveness; a failure degrades the layer to "no board" rather
-     than failing the page. */
-  const loadTopology = useCallback(async () => {
-    try {
-      const data = await LemuService.getTopology();
-      setTopology(data.data || null);
-    } catch {
-      setTopology(null);
-    }
-  }, []);
-
-  /* Error attribution — the drawer's error rows and the graph's pips read
-     this ONE payload, loaded here (v2-F1) rather than in the tab, so the
-     page resolves the selected node independently of the tab's merged node
-     objects. Failure degrades to "no attribution", never a page error. */
-  const loadErrorAttribution = useCallback(async () => {
-    try {
-      const data = await LemuService.getErrorAttribution();
-      setErrorAttribution(data.data || null);
-    } catch {
-      setErrorAttribution(null);
-    }
-  }, []);
-
-  const loadFindings = useCallback(async (silent = false) => {
-    if (!silent) setFindingsStatus('loading');
-    try {
-      const data = await LemuService.getFindings();
-      setFindings(data.data || null);
-      setFindingsStatus('live');
-    } catch {
-      setFindingsStatus('error');
-    }
-  }, []);
-
-  const loadManifests = useCallback(async (silent = false) => {
-    if (!silent) setManifestsStatus('loading');
-    try {
-      const data = await LemuService.getManifests({ page: 1, limit: 20 });
-      setManifestsList(data.data?.records || []);
-      setManifestsStatus('live');
-    } catch {
-      setManifestsStatus('error');
-    }
-  }, []);
-
-  const loadManifestDiff = useCallback(async (version) => {
-    setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'loading' }));
-    try {
-      const data = await LemuService.getManifestDiff(version);
-      setDiffsByVersion((prev) => ({ ...prev, [version]: data.data || null }));
-      setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'ready' }));
-    } catch {
-      // Leave the diff itself absent — status alone drives the error UI.
-      setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'error' }));
-    }
-  }, []);
-
-  const rebuildManifest = useCallback(async () => {
-    try {
-      await LemuService.rebuildManifest();
-      await loadManifest();
-    } catch {
-      setManifestStatus('error');
-    }
-  }, [loadManifest]);
-
-  const loadJobs = useCallback(async (silent = false) => {
-    if (!silent) setJobsLoading(true);
-    setJobsError('');
-    try {
-      const data = await LemuService.getJobs();
-      setJobs(data.data || []);
-      setJobsCheckedAt(data.checkedAt || null);
-    } catch (e) {
-      setJobsError(e.detail || e.message || 'Failed to load job health');
-    } finally {
-      setJobsLoading(false);
     }
   }, []);
 
@@ -322,38 +183,10 @@ const LemuLogsPage = () => {
     }
   }, [resolvedFilter]);
 
-  /* Initial loads — all sections fetch up-front, regardless of active tab */
+  /* Initial loads — page-owned sections fetch up-front, regardless of tab.
+     (Manifest/pulse/liveness/topology/attribution/jobs/findings/versions all
+     load inside useLemuGraphData.) */
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
-  useEffect(() => { loadManifest(); }, [loadManifest]);
-  useEffect(() => { loadPulse(); }, [loadPulse]);
-  useEffect(() => {
-    loadLiveness();
-    loadTopology();
-    loadErrorAttribution();
-    /* Live poll: liveness + job health + topology + error attribution every
-       30s so the graph's numbers stay honest. Paused while the document is
-       hidden — no catch-up ticks. Jobs load silently so the poll never fires
-       a spinner storm. */
-    const visibleRef = { current: document.visibilityState === 'visible' };
-    const onVisibility = () => {
-      visibleRef.current = document.visibilityState === 'visible';
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    const t = setInterval(() => {
-      if (!visibleRef.current) return;
-      loadLiveness();
-      loadJobs(true);
-      loadTopology();
-      loadErrorAttribution();
-    }, 30 * 1000);
-    return () => {
-      clearInterval(t);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, [loadLiveness, loadJobs, loadTopology, loadErrorAttribution]);
-  useEffect(() => { loadFindings(); }, [loadFindings]);
-  useEffect(() => { loadManifests(); }, [loadManifests]);
-  useEffect(() => { loadJobs(); }, [loadJobs]);
   useEffect(() => { loadTrackers(); }, [loadTrackers]);
 
   /* Events: debounce filter changes, refetch on page/filter change */
@@ -371,15 +204,12 @@ const LemuLogsPage = () => {
       loadDashboard(true);
       loadJobs(true);
       loadEvents(true);
-      if (activeTab === 'system' || activeTab === 'graph' || activeTab === 'changes') {
-        loadManifest(true);
-        loadPulse(true);
-        loadFindings(true);
-        loadManifests(true);
+      if (activeTab === 'system' || activeTab === 'changes') {
+        refreshLayer3(true);
       }
     }, 30000);
     return () => clearInterval(id);
-  }, [autoRefresh, activeTab, loadDashboard, loadJobs, loadEvents, loadManifest, loadPulse, loadFindings, loadManifests]);
+  }, [autoRefresh, activeTab, loadDashboard, loadJobs, refreshLayer3, loadEvents]);
 
   /* Sync active tab with URL; keep other params intact. */
   const setTab = useCallback((tabId) => {
@@ -391,97 +221,15 @@ const LemuLogsPage = () => {
     }, { replace: true });
   }, [setSearchParams]);
 
-  /* Resolve a selected node ID to a node object + kind + pulse series. */
-  const functionsByName = useMemo(() => {
-    const map = {};
-    (manifest?.functions || []).forEach((fn) => { map[fn.functionName] = fn; });
-    return map;
-  }, [manifest]);
-
-  /* INFRA kinds resolve from the topology payload — those nodes carry
-     state/evidence/metrics, which is what the drawer's evidence block
-     renders. `job:` stays on the manifest branch but picks up the topology
-     row (`_topo`) so its state is visible there too. */
-  const INFRA_KINDS = ['host', 'store', 'collection', 'table', 'pipe', 'source', 'surface'];
-
-  const selectedNode = useMemo(() => {
-    if (!selectedNodeId || !manifest) return null;
-    const kind = selectedNodeId.split(':')[0];
-
-    if (INFRA_KINDS.includes(kind)) {
-      const topoNode = (topology?.nodes || []).find((n) => n.id === selectedNodeId);
-      if (!topoNode) return null;
-      return { kind, node: { ...topoNode, _id: selectedNodeId }, pulseSeries: null };
-    }
-
-    if (kind === 'route') {
-      const route = (manifest.routes || []).find((r) => nodeId.route(r) === selectedNodeId);
-      if (route) {
-        const pulseSeries = (pulse?.buckets || []).map((b) => {
-          const r = (b.routes || []).find((x) => x.key === routePulseKey(route));
-          return r || { n: 0, err: 0 };
-        });
-        return { kind: 'route', node: { ...route, _id: selectedNodeId, _module: deriveRouteModule(route, functionsByName) }, pulseSeries };
-      }
-    }
-
-    if (kind === 'model') {
-      const model = (manifest.models || []).find((m) => nodeId.model(m) === selectedNodeId);
-      if (model) {
-        const pulseSeries = (pulse?.buckets || []).map((b) => {
-          const c = (b.collections || []).find((x) => x.name === model.collectionName);
-          return c || { find: 0, insert: 0, update: 0, del: 0, agg: 0 };
-        });
-        return { kind: 'model', node: { ...model, _id: selectedNodeId }, pulseSeries };
-      }
-    }
-
-    if (kind === 'job') {
-      const job = (manifest.jobs || []).find((j) => nodeId.job(j) === selectedNodeId);
-      if (job) {
-        const health = (jobs || []).find((j) => j.job === job.name) || {};
-        const topoJob = (topology?.nodes || []).find((n) => n.id === selectedNodeId);
-        return { kind: 'job', node: { ...job, _id: selectedNodeId, _topo: topoJob }, pulseSeries: { _health: health } };
-      }
-    }
-
-    if (kind === 'module') {
-      const module = (manifest.modules || []).find((m) => nodeId.module(m) === selectedNodeId);
-      if (module) {
-        const routes = (manifest.routes || []).filter((r) => deriveRouteModule(r, functionsByName) === module.name);
-        const funcs = (manifest.functions || []).filter((f) => f.module === module.name);
-        return { kind: 'module', node: { ...module, _id: selectedNodeId, _routes: routes, _functions: funcs }, pulseSeries: [] };
-      }
-    }
-
-    /* Phase 5 (diff overlay): a well-formed id that resolves to nothing in
-       the current manifest still gets an honest name-only drawer — diff
-       ghosts and stale deep links land here. INFRA kinds keep the null
-       above: their absence means the topology has no such node, and the
-       graph tab never invents INFRA ids. */
-    if (['model', 'job', 'module', 'route'].includes(kind)) {
-      return { kind, node: { _id: selectedNodeId, label: selectedNodeId.slice(kind.length + 1), _unresolved: true }, pulseSeries: null };
-    }
-
-    return null;
-  }, [selectedNodeId, manifest, pulse, jobs, functionsByName, topology]);
-
-  const findingIds = useMemo(() => {
-    const ids = new Set();
-    (findings?.untenantedRoutes || []).forEach((r) => ids.add(nodeId.route(r)));
-    (findings?.uninstrumentedJobs || []).forEach((j) => ids.add(nodeId.job(j)));
-    (findings?.modelsWithoutCollection || []).forEach((m) => ids.add(`model:${m}`));
-    (findings?.collectionsWithoutModel || []).forEach((c) => ids.add(`collection:${c}`));
-    return ids;
-  }, [findings]);
+  /* Resolve a selected node ID to a node object + kind + pulse series
+     (shared resolver — the standalone graph page uses the same one). */
+  const selectedNode = useLemuSelectedNode({ selectedNodeId, manifest, pulse, jobs, topology });
 
   const openNode = useCallback((nodeIdValue) => {
     setSelectedNodeId(nodeIdValue);
     setDrawerOpen(true);
     setActiveTab((current) => {
-      // The graph shows node context too, so selecting there must not yank
-      // the user back to the flat map.
-      if (current !== 'system' && current !== 'graph') {
+      if (current !== 'system') {
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
           next.set('tab', 'system');
@@ -577,10 +325,7 @@ const LemuLogsPage = () => {
     loadJobs(true);
     loadEvents(true);
     loadTrackers(true);
-    loadManifest(true);
-    loadPulse(true);
-    loadFindings(true);
-    loadManifests(true);
+    refreshLayer3(true);
   };
 
   /* Keep URL params in sync with local state when they change externally. */
@@ -631,7 +376,7 @@ const LemuLogsPage = () => {
 
       <div className="lemu-toolbar">
         <span className="lemu-meta">
-          {jobsCheckedAt && <>Jobs checked <strong>{relativeTime(jobsCheckedAt)}</strong></>}
+          {graph.jobsCheckedAt && <>Jobs checked <strong>{relativeTime(graph.jobsCheckedAt)}</strong></>}
         </span>
         <div className="lemu-toolbar__actions">
           <button
@@ -657,12 +402,12 @@ const LemuLogsPage = () => {
 
       {/* Persistent findings ribbon */}
       <LemuFindingsRibbon
-        findings={findings}
+        findings={graph.findings}
         version={manifest?.version}
         onOpenNode={openNode}
         expanded={findingsExpanded}
         onToggle={toggleFindings}
-        status={findingsStatus}
+        status={graph.findingsStatus}
       />
 
       <div className="lemu-tabs" role="tablist" aria-label="LEMU sections">
@@ -681,37 +426,19 @@ const LemuLogsPage = () => {
             onSelectNode={openNode}
             selectedNodeId={selectedNodeId}
             jobHealth={jobs}
-            onRebuild={rebuildManifest}
+            onRebuild={graph.rebuildManifest}
           />
         )}
 
-        {activeTab === 'graph' && (
-          <LemuGraphTab
-            manifest={manifest}
-            liveness={liveness}
-            jobHealth={jobs}
-            topology={topology}
-            errorAttribution={errorAttribution}
-            onSelectNode={openNode}
-            onOpenErrors={() => setTab('errors')}
-            selectedNodeId={selectedNodeId}
-            dataUpdatedAt={dataUpdatedAt}
-            onBlastChange={setBlastClosure}
-            isolateRef={isolateRef}
-            manifests={manifestsList}
-            diffsByVersion={diffsByVersion}
-            diffStatusByVersion={diffStatusByVersion}
-            onLoadDiff={loadManifestDiff}
-          />
-        )}
+        {activeTab === 'graph' && <LemuGraphDoorway />}
 
         {activeTab === 'changes' && (
           <LemuChangeFeed
-            manifests={manifestsList}
-            diffsByVersion={diffsByVersion}
-            diffStatusByVersion={diffStatusByVersion}
-            status={manifestsStatus}
-            onLoadDiff={loadManifestDiff}
+            manifests={graph.manifests}
+            diffsByVersion={graph.diffsByVersion}
+            diffStatusByVersion={graph.diffStatusByVersion}
+            status={graph.manifestsStatus}
+            onLoadDiff={graph.loadManifestDiff}
             expandedVersions={expandedVersions}
             onToggleVersion={toggleVersion}
           />
@@ -740,7 +467,7 @@ const LemuLogsPage = () => {
         )}
 
         {activeTab === 'jobs' && (
-          <LemuJobsPanel jobs={jobs} loading={jobsLoading} error={jobsError} />
+          <LemuJobsPanel jobs={jobs} loading={graph.jobsLoading} error={graph.jobsError} />
         )}
 
         {activeTab === 'errors' && (
@@ -766,16 +493,14 @@ const LemuLogsPage = () => {
           node={selectedNode.node}
           kind={selectedNode.kind}
           pulseSeries={selectedNode.pulseSeries}
-          findingIds={findingIds}
-          pulseStatus={pulseStatus}
+          findingIds={graph.findingIds}
+          pulseStatus={graph.pulseStatus}
           edges={manifest?.edges || []}
           liveness={liveness}
           topology={topology}
-          errorAttribution={errorAttribution}
-          closure={blastClosure}
+          errorAttribution={graph.errorAttribution}
           onSelectNode={openNode}
           onClose={closeDrawer}
-          onIsolate={() => isolateRef.current?.(selectedNodeId)}
         />
       )}
     </div>

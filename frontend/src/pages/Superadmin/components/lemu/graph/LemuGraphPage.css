@@ -1,0 +1,24 @@
+/* Standalone graph page (/superadmin/graph).
+
+   The wrapper bleeds over .page-content's 24px padding (negative margin) so
+   the graph is full-bleed below the fixed 72px SuperAdminNavbar, and is the
+   drawer's positioning context: position:relative + a full content-area
+   height, so the contained drawer anchors to THIS container rather than the
+   old .lemu-page context. --lemu-header-h is the same MEASURED value the
+   LEMU page and .lemu-graph3d define; the drawer on this page sits 12px
+   below the navbar through the container geometry, and the fallback keeps
+   resolving for anything else that reads the token. */
+.lemu-graph-page {
+  --lemu-header-h: 72px;
+
+  position: relative;
+  margin: -24px;
+  height: calc(100dvh - var(--lemu-header-h, 72px));
+  overflow: hidden;
+}
+
+/* The graph shell cancels its own bleed when it already sits flush inside
+   the page wrapper (its negative margin is driven by --lemu-page-pad). */
+.lemu-graph-page .lemu-graph3d {
+  --lemu-page-pad: 0px;
+}

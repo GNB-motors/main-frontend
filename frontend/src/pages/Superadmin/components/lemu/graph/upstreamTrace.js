@@ -48,8 +48,7 @@ export const traceUpstream = (nodeId, links, cap = Infinity) => {
    before one). Origins are named through `nameOf`, which defaults to the id
    itself — callers with a node table pass (id) => byId[id].name. */
 export const upstreamNote = (nodeId, links, cap = Infinity, nameOf = (id) => id) => {
-  const depthMap = traceUpstream(nodeId, links, cap);
-  const ancestors = depthMap.size - 1;
+  const depthMap = traceUpstream(nodeId, links, cap);  const ancestors = depthMap.size - 1;
   let maxDepth = 0;
   depthMap.forEach((d) => {
     if (d > maxDepth) maxDepth = d;
@@ -74,3 +73,10 @@ export const upstreamNote = (nodeId, links, cap = Infinity, nameOf = (id) => id)
       : 'no origin node reached — this is a root')
   );
 };
+
+/* Topology payloads name their endpoints {from,to}; the trace helpers read
+   the graph shape {source,target} (see useTopologyGraph.buildTopologyGraph).
+   Adapt at the boundary so the drawer's TRACE UPSTREAM walks the REAL infra
+   edge set instead of an empty one. */
+export const topoTraceLinks = (edges) =>
+  (edges || []).map((e) => ({ source: e.from, target: e.to }));

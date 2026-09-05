@@ -13,6 +13,7 @@ import { healthyPathSet } from './healthyPath';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
 import { countQueryMatches } from './graphPanelCounts';
+import { applyGraphParams } from './graphUrlSync';
 import { readStoredTheme, writeStoredTheme, applyThemeVars, clearThemeVars } from './graphTheme';
 import KgCanvas from './KgCanvas';
 import LemuGraphControls from './LemuGraphControls';
@@ -125,33 +126,21 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      the lazy initializers above, so writing them back on mount is by
      construction either a no-op or a corruption — never useful.
 
-     The corruption: setSearchParams copies `prev`, which is React Router's
-     closed-over snapshot, and echoes back EVERY param including `tab`, which
-     this component does not own. On mount that snapshot can still predate the
-     `tab=graph` write that just mounted us, so the effect rewrote `tab` to the
-     previous tab. LemuLogsPage:516-522 treats the URL as the source of truth
-     for activeTab, so the page followed it straight back and the Graph tab
-     could not be opened at all. */
+     The corruption this guards against: the merge must start from the LIVE
+     URL, not a render-captured searchParams snapshot. setSearchParams
+     functional updaters receive React Router's closed-over snapshot, which
+     can predate another writer's param in the same event — a canvas click's
+     node= (openNode) followed by this effect firing for the auto-hop it
+     triggered used to echo the stale snapshot and clobber node=, losing the
+     selection. applyGraphParams reads window.location.search at effect time,
+     so concurrent writers survive (see graphUrlSync.js). */
   const firstSync = useRef(true);
   useEffect(() => {
     if (firstSync.current) {
       firstSync.current = false;
       return;
     }
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (view === 'graph') next.delete('gview');
-      else next.set('gview', view);
-      if (hopDepth === 2) next.delete('hops');
-      else next.set('hops', String(hopDepth));
-      if (!query.trim()) next.delete('q');
-      else next.set('q', query);
-      if (mode === '3d') next.delete('mode');
-      else next.set('mode', mode);
-      if (layer === 'code') next.delete('layer');
-      else next.set('layer', layer);
-      return next;
-    }, { replace: true });
+    setSearchParams(applyGraphParams(window.location.search, { view, hopDepth, query, mode, layer }), { replace: true });
   }, [view, hopDepth, query, mode, layer, setSearchParams]);
 
   /* Pulse history for the scrubber. v2-C4: /pulse passes `limit` straight

@@ -81,3 +81,20 @@ describe('upstreamNote', () => {
     expect(upstreamNote('C', chain, 1)).toBe('1 ancestors · 1 hop deep · no origin node reached — this is a root');
   });
 });
+
+describe('topoTraceLinks', () => {
+  it('adapts topology {from,to} edges to the {source,target} graph shape', async () => {
+    const { topoTraceLinks } = await import('./upstreamTrace');
+    const topoEdges = [{ from: 'host:h', to: 'table:t', kind: 'hosts' }];
+    expect(topoTraceLinks(topoEdges)).toEqual([{ source: 'host:h', target: 'table:t' }]);
+    expect(upstreamNote('table:t', topoTraceLinks(topoEdges))).toBe(
+      '1 ancestors · 1 hop deep · origins: host:h'
+    );
+  });
+
+  it('tolerates null/undefined payloads', async () => {
+    const { topoTraceLinks } = await import('./upstreamTrace');
+    expect(topoTraceLinks(null)).toEqual([]);
+    expect(topoTraceLinks(undefined)).toEqual([]);
+  });
+});
