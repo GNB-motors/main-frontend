@@ -168,9 +168,25 @@ export const RING_RECIPES = {
     halo: { offset: 3.4, alpha: 0.3, dash: [2, 3] },
     slash: { x0: -0.5, y0: 0.5, x1: 0.5, y1: -0.5, alpha: 0.8, width: (r) => Math.max(1, r * 0.16) },
   },
-  // diff overlay 'removed' — the manifest-diff owns the node, not state
-  ghost: {},
+  // diff overlay 'removed' — the manifest-diff owns the node, not state.
+  // A ghost renders HOLLOW at reduced opacity with the diff outline ring —
+  // never the fault ring/slash: it was removed from the manifest, it did not
+  // fail a probe. One channel, one meaning (P3). The draw pass multiplies
+  // node alpha by `dim` for this ring.
+  ghost: {
+    fill: 'void',
+    dim: 0.45,
+    ringAlpha: (glow) => (glow ? 0.42 : 0.62),
+    ringWidth: (r, glow) => Math.max(1, r * (glow ? 0.17 : 0.20)),
+    dash: (r) => [Math.max(2, r * 0.5), Math.max(2, r * 0.44)],
+    innerRim: (r) => Math.max(0.5, r - 1.6),
+  },
 };
+
+/* The manifest-diff ghost marker: either state (diffOverlay.ghostNode stamps
+   state: 'removed') or the explicit ghost flag. Kept in one place so the
+   draw pass and nodeAppearance agree on what a ghost is. */
+export const isGhostNode = (node) => Boolean(node) && (node.state === 'removed' || node.ghost === true);
 
 const RING_BY_STATE = { measured: 'solid', declared: 'hollow', unreachable: 'fault', removed: 'ghost' };
 
@@ -217,7 +233,7 @@ export const nodeAppearance = (node, ctx = {}) => {
   } else if (selectedNodeId && node.id === selectedNodeId) outline = 'selected';
   else if (neighbours && (neighbours.has ? neighbours.has(node.id) : neighbours[node.id])) outline = 'neighbour';
 
-  const ring = node.state ? RING_BY_STATE[node.state] || 'hollow' : 'solid';
+  const ring = isGhostNode(node) ? 'ghost' : (node.state ? RING_BY_STATE[node.state] || 'hollow' : 'solid');
 
   // A hollow node must stay legible zoomed out: any non-measured node
   // gets a hard floor of 4.6 on its radius (design ~line 1064).
@@ -228,4 +244,49 @@ export const nodeAppearance = (node, ctx = {}) => {
   const pip = node.errorCount ? 'errors' : null;
 
   return { color, opacity, ring, outline, pip, minRadius };
+};
+
+/* ---------- theme plumbing (plan Task 14) ----------
+
+   The design's syncFilters (Knowledge Graph.dc.html, ~line 789) writes the
+   whole DARK/LIGHT token set onto the document root as CSS custom properties
+   when the theme flips. Here the write is SCOPED to the graph container
+   element instead: the graph CSS vars (--panel, --l8, ...) are defined under
+   .lemu-graph3d, so writing them on that element reaches every panel the
+   graph owns and nothing else in the app shell. The static CSS keeps the
+   DARK values as fallbacks; these inline properties override them while the
+   graph is mounted, and clearThemeVars removes them on unmount. */
+
+export const THEME_STORAGE_KEY = 'lemu-graph-theme';
+
+/* localStorage is best-effort: private mode, disabled storage and sandboxed
+   iframes can all throw. Any unreadable value means dark (the design's
+   default board). */
+export const readStoredTheme = () => {
+  try {
+    const v = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return v === 'light' ? 'light' : 'dark';
+  } catch {
+    return 'dark';
+  }
+};
+
+export const writeStoredTheme = (theme) => {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme === 'light' ? 'light' : 'dark');
+  } catch {
+    /* persistence is a convenience, not a requirement */
+  }
+};
+
+export const applyThemeVars = (el, theme) => {
+  if (!el || !el.style) return;
+  const T = themeTokens(theme);
+  Object.keys(T).forEach((k) => el.style.setProperty('--' + k, T[k]));
+};
+
+export const clearThemeVars = (el) => {
+  if (!el || !el.style) return;
+  const keys = new Set([...Object.keys(DARK), ...Object.keys(LIGHT)]);
+  keys.forEach((k) => el.style.removeProperty('--' + k));
 };

@@ -2388,8 +2388,8 @@
   background-size: auto, 26px 26px, auto;
 }
 
-/* The negative inline margin reaches the .lemu-page padding; that padding is
-   a hardcoded 24px there, so the token always resolves to its fallback. */
+/* The negative inline margin reaches the .lemu-page padding; the value is
+   measured (24px — see the token definition in the Plan-5 block below). */
 .lemu-graph3d > .lemu-state {
   color: var(--lg-text-dim);
 }
@@ -3185,14 +3185,24 @@ button.lemu-graph3d__legend-item {
   .lemu-graph3d__table { padding: 148px 8px 88px; }
 }
 
-/* ── Plan 5 Tasks 8/9: left rail + state/kind filter panel ───
+/* ── Plan 5 Tasks 8/9/14: left rail + state/kind filter panel + theme ───
    The redesign's glass chrome reads the design tokens as CSS custom
-   properties (--panel, --l8, --sh3, --acBg3, --faultT, …). LEMU is
-   dark-only until Task 14, so the DARK values are defined here, scoped to
-   the graph tab root; Task 14 swaps in LIGHT under the same names. Every
-   value below is copied from graphTheme.js themeTokens('dark') +
-   canvasTokens('dark') — do not retype by hand. */
+   properties (--panel, --l8, --sh3, --acBg3, --faultT, …). The static values
+   below are themeTokens('dark') + canvasTokens('dark') and serve as the
+   DARK fallbacks — do not retype by hand. Task 14's light theme writes the
+   LIGHT set over them as inline properties on .lemu-graph3d (see
+   graphTheme.applyThemeVars); .lemu-graph3d--light swaps the legacy --lg-*
+   chrome tokens the same way.
+
+   --lemu-header-h / --lemu-page-pad are MEASURED, not guessed: the app-shell
+   header (SuperAdminNavbar) is a fixed bar with height:72px and
+   .main-content pads padding-top:72px beneath it (SuperAdminLayout.css);
+   .lemu-page's own inline padding is 24px on each side. The consumers keep
+   their fallbacks regardless. */
 .lemu-graph3d {
+  --lemu-header-h: 72px;
+  --lemu-page-pad: 24px;
+
   --bg: #06070A;
   --panel: rgba(11,13,19,.72);
   --inputBg: rgba(0,0,0,.28);
@@ -3230,6 +3240,22 @@ button.lemu-graph3d__legend-item {
   /* The design sets 'IBM Plex Mono'; it is not a loaded webfont here, so
      the stack falls back to the same mono the canvas label pass uses. */
   --kg-mono: "IBM Plex Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Light theme (Task 14): the pre-redesign --lg-* chrome tokens (canvas-region
+   background, hint tooltip, foot rails, scrubber, dead-surface panel) get
+   the LIGHT palette under the same names, mapped from themeTokens('light').
+   The DARK/LIGHT design tokens themselves are written inline by
+   graphTheme.applyThemeVars on the same element; these stay in CSS because
+   they are not part of that token set. */
+.lemu-graph3d--light {
+  --lg-bg: #F4F5F8;
+  --lg-panel: rgba(255,255,255,.78);
+  --lg-panel-border: rgba(15,23,42,.12);
+  --lg-text: #17233A;
+  --lg-text-dim: #56637A;
+  --lg-accent: #2563EB;
+  --lg-danger: #DC2626;
 }
 
 /* Shared glass treatment: 296px panels, blur(20px) saturate(1.35),

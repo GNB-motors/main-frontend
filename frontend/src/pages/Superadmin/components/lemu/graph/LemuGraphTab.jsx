@@ -13,6 +13,7 @@ import { healthyPathSet } from './healthyPath';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
 import { countQueryMatches } from './graphPanelCounts';
+import { readStoredTheme, writeStoredTheme, applyThemeVars, clearThemeVars } from './graphTheme';
 import KgCanvas from './KgCanvas';
 import LemuGraphControls from './LemuGraphControls';
 import LemuGraphFilters from './LemuGraphFilters';
@@ -98,6 +99,24 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      matches opacity channel. INFRA only — code edges are static facts,
      not data flow. */
   const [livePathOn, setLivePathOn] = useState(false);
+  /* Theme (plan Task 14): dark is the design's default board; the choice
+     persists in localStorage (best-effort — see graphTheme.readStoredTheme). */
+  const [theme, setTheme] = useState(readStoredTheme);
+  const graphRootRef = useRef(null);
+
+  /* Theme writes ALL DARK/LIGHT tokens onto the graph container as CSS custom
+     properties (the design's syncFilters approach), NOT document.documentElement:
+     the graph vars are scoped under .lemu-graph3d, and this element is their
+     natural owner. The static CSS keeps the dark values as fallbacks; these
+     inline properties override them while mounted and are removed on unmount
+     so no graph token leaks into the rest of the app shell. */
+  useEffect(() => {
+    writeStoredTheme(theme);
+    const el = graphRootRef.current;
+    if (!el) return undefined;
+    applyThemeVars(el, theme);
+    return () => clearThemeVars(el);
+  }, [theme]);
 
   /* Write-on-change URL sync. Defaults are deleted to keep shared URLs short.
 
@@ -667,7 +686,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
 
   if (!manifest) {
     return (
-      <div className="lemu-graph3d">
+      <div ref={graphRootRef} className={`lemu-graph3d${theme === 'light' ? ' lemu-graph3d--light' : ''}`}>
         <div className="lemu-state">
           <div className="lemu-state__icon"><Boxes size={24} /></div>
           <div className="lemu-state__title">
@@ -679,7 +698,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   }
 
   return (
-    <div className={`lemu-graph3d${payloadEmpty ? ' lemu-graph3d--graph-empty' : ''}`}>
+    <div
+      ref={graphRootRef}
+      className={`lemu-graph3d${payloadEmpty ? ' lemu-graph3d--graph-empty' : ''}${theme === 'light' ? ' lemu-graph3d--light' : ''}`}
+    >
       <LemuGraphControls
         query={query}
         onQuery={setQuery}
@@ -711,6 +733,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
         onDiffVersion={setDiffVersion}
         livePathOn={livePathOn}
         onLivePath={setLivePathOn}
+        theme={theme}
+        onTheme={setTheme}
       />
 
       {/* Task 9 filter panel: state + kind visibility chips, counts from
@@ -867,6 +891,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               graph={visible}
               layer={layer}
               mode={mode}
+              theme={theme}
               selectedNodeId={selectedNodeId}
               hopDepth={hopDepth}
               matches={matches}

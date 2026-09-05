@@ -54,6 +54,8 @@ const LemuGraphControls = ({
   onDiffVersion,
   mode,
   onMode,
+  theme,
+  onTheme,
   view,
   onView,
   onFit,
@@ -171,6 +173,13 @@ const LemuGraphControls = ({
               {['3d', '2d'].map((m) => (
                 <button key={m} type="button" aria-pressed={mode === m} className={segCls(mode === m)} onClick={() => onMode(m)}>
                   {m === '3d' ? '3D' : '2D'}
+                </button>
+              ))}
+            </div>
+            <div className="lemu-graph3d__seg" role="group" aria-label="Graph theme">
+              {[['dark', 'Dark'], ['light', 'Light']].map(([t, label]) => (
+                <button key={t} type="button" aria-pressed={theme === t} className={segCls(theme === t)} onClick={() => onTheme(t)}>
+                  {label}
                 </button>
               ))}
             </div>

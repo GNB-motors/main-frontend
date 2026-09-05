@@ -3,6 +3,8 @@ import {
   kindHue, KIND_HUE, KIND_LABEL, LINK_LABEL,
   RING_RECIPES, OUTLINE_COLOR, hexa, nodeAppearance,
   themeTokens, canvasTokens,
+  isGhostNode, THEME_STORAGE_KEY,
+  readStoredTheme, writeStoredTheme, applyThemeVars, clearThemeVars,
 } from './graphTheme';
 
 describe('kindHue — hue = kind (P3)', () => {
@@ -106,6 +108,97 @@ describe('nodeAppearance — P3 channel separation', () => {
   it('a neighbour gets outline neighbour, not selected', () => {
     const a = nodeAppearance({ id: 'b', kind: 'store', state: 'measured' }, { selectedNodeId: 'a', neighbours: new Set(['b']) });
     expect(a.outline).toBe('neighbour');
+  });
+
+  it('a diff ghost (state removed) gets the ghost ring — hollow, not fault', () => {
+    const a = nodeAppearance({ id: 'a', kind: 'module', state: 'removed', ghost: true }, {});
+    expect(a.ring).toBe('ghost');
+    expect(a.ring).not.toBe('fault');
+    expect(RING_RECIPES.ghost.fill).toBe('void');
+    expect(RING_RECIPES.ghost.dim).toBeGreaterThan(0);
+    expect(RING_RECIPES.ghost.dim).toBeLessThan(1);
+    // non-measured: keeps the 4.6 legibility floor
+    expect(a.minRadius).toBe(4.6);
+  });
+
+  it('the ghost flag alone (no state) is still a ghost', () => {
+    expect(isGhostNode({ id: 'a', kind: 'module', ghost: true })).toBe(true);
+    expect(isGhostNode({ id: 'a', kind: 'module', state: 'removed' })).toBe(true);
+    expect(isGhostNode({ id: 'a', kind: 'module', state: 'measured' })).toBe(false);
+    expect(isGhostNode({ id: 'a', kind: 'module', state: 'unreachable' })).toBe(false);
+    expect(isGhostNode(null)).toBe(false);
+    const a = nodeAppearance({ id: 'a', kind: 'module', ghost: true }, {});
+    expect(a.ring).toBe('ghost');
+  });
+
+  it('ghost ring recipes render hollow-style rings in both themes', () => {
+    expect(RING_RECIPES.ghost.ringAlpha(true)).toBe(RING_RECIPES.hollow.ringAlpha(true));
+    expect(RING_RECIPES.ghost.ringAlpha(false)).toBe(RING_RECIPES.hollow.ringAlpha(false));
+    expect(RING_RECIPES.ghost.ringWidth(10, true)).toBe(RING_RECIPES.hollow.ringWidth(10, true));
+    expect(RING_RECIPES.ghost.innerRim(10)).toBe(RING_RECIPES.hollow.innerRim(10));
+    // and no fault-only keys crept in
+    expect(RING_RECIPES.ghost.halo).toBeUndefined();
+    expect(RING_RECIPES.ghost.slash).toBeUndefined();
+  });
+});
+
+describe('theme plumbing — persistence and scoped CSS vars', () => {
+  beforeEach(() => {
+    try { window.localStorage.clear(); } catch { /* jsdom always has it */ }
+  });
+
+  it('readStoredTheme defaults to dark when nothing is stored', () => {
+    expect(readStoredTheme()).toBe('dark');
+  });
+
+  it('readStoredTheme honours a stored light choice and rejects garbage', () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
+    expect(readStoredTheme()).toBe('light');
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'solarized');
+    expect(readStoredTheme()).toBe('dark');
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'DARK');
+    expect(readStoredTheme()).toBe('dark');
+  });
+
+  it('reads and writes are safe when localStorage throws', () => {
+    const spyGet = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
+    expect(readStoredTheme()).toBe('dark');
+    spyGet.mockRestore();
+    const spySet = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied'); });
+    expect(() => writeStoredTheme('light')).not.toThrow();
+    spySet.mockRestore();
+  });
+
+  it('writeStoredTheme persists a valid theme', () => {
+    writeStoredTheme('light');
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+    writeStoredTheme('dark');
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+  });
+
+  it('applyThemeVars writes the full LIGHT token set as CSS custom properties', () => {
+    const el = document.createElement('div');
+    applyThemeVars(el, 'light');
+    expect(el.style.getPropertyValue('--bg')).toBe(LIGHT.bg);
+    expect(el.style.getPropertyValue('--panel')).toBe(LIGHT.panel);
+    expect(el.style.getPropertyValue('--faultT')).toBe(LIGHT.faultT);
+    expect(el.style.getPropertyValue('--hollow')).toBe(LIGHT.hollow);
+    expect(el.style.getPropertyValue('--bg')).not.toBe(DARK.bg);
+    applyThemeVars(el, 'dark');
+    expect(el.style.getPropertyValue('--bg')).toBe(DARK.bg);
+  });
+
+  it('applyThemeVars/clearThemeVars are no-ops on a missing element', () => {
+    expect(() => applyThemeVars(null, 'light')).not.toThrow();
+    expect(() => clearThemeVars(null)).not.toThrow();
+  });
+
+  it('clearThemeVars removes every token key from both palettes', () => {
+    const el = document.createElement('div');
+    applyThemeVars(el, 'light');
+    clearThemeVars(el);
+    const keys = new Set([...Object.keys(DARK), ...Object.keys(LIGHT)]);
+    keys.forEach((k) => expect(el.style.getPropertyValue('--' + k), `--${k}`).toBe(''));
   });
 });
 

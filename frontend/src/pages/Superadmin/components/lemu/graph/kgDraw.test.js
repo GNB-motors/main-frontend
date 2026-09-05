@@ -1,5 +1,5 @@
 import { draw, drawHosts } from './kgDraw';
-import { kindHue, canvasTokens, hexa, CANVAS } from './graphTheme';
+import { kindHue, canvasTokens, hexa, CANVAS, OUTLINE_COLOR } from './graphTheme';
 
 /* Recording 2D-context stub. Every method call lands in `calls` with a
    snapshot of the style state at that moment, so tests can assert both the
@@ -256,6 +256,57 @@ describe('draw — the three node treatments', () => {
     }));
     expect(ctx.calls.some((c) => c.m === 'arc' && c.args[2] === 13.4 && c.strokeStyle === CANVAS.dark.nbRing)).toBe(true);
     expect(ctx.calls.some((c) => c.m === 'arc' && c.args[2] === 14 && c.strokeStyle === CANVAS.dark.hoverRing)).toBe(true);
+  });
+
+  it('a ghost (removed) node renders hollow + dimmed + the removed outline — NOT the fault treatment', () => {
+    const ctx = makeCtx();
+    draw(ctx, baseModel({ nodes: [measuredNode({ state: 'removed', ghost: true, r: 10 })] }));
+    // hollow fill, never the fault fill
+    expect(ctx.calls.some((c) => c.m === 'fill' && c.fillStyle === CANVAS.dark.void)).toBe(true);
+    expect(ctx.calls.some((c) => c.m === 'fill' && c.fillStyle === CANVAS.dark.voidFault)).toBe(false);
+    // no fault ring, no dashed fault halo, no slash
+    expect(ctx.calls.some((c) => c.m === 'stroke' && c.strokeStyle === hexa(CANVAS.dark.faultCss, 0.95))).toBe(false);
+    expect(ctx.calls.some((c) => c.m === 'setLineDash' && c.args[0].join() === '2,3')).toBe(false);
+    expect(ctx.calls.some((c) => c.m === 'moveTo' && c.args[0] === 95 && c.args[1] === 105)).toBe(false);
+    // dimmed: the node paint carries globalAlpha 0.45
+    const voidFill = ctx.calls.find((c) => c.m === 'fill' && c.fillStyle === CANVAS.dark.void);
+    expect(voidFill.globalAlpha).toBeCloseTo(0.45, 5);
+    // the diff outline owns the outline channel: removed ring at r+3 @ 1.5px
+    expect(ctx.calls.some(
+      (c) => c.m === 'arc' && c.args[2] === 13 && c.strokeStyle === OUTLINE_COLOR.removed
+    )).toBe(true);
+    const outlineStroke = ctx.calls.find((c) => c.m === 'stroke' && c.strokeStyle === OUTLINE_COLOR.removed);
+    expect(outlineStroke.lineWidth).toBe(1.5);
+    // hollow ring recipe still applies (dashed ring + inner rim)
+    expect(ctx.calls.some((c) => c.m === 'stroke' && c.strokeStyle === CANVAS.dark.innerRim)).toBe(true);
+    // no glow anywhere near a ghost
+    const shadowSets = ctx.calls.filter((c) => c.m === 'set' && c.prop === 'shadowBlur' && c.args[0] !== 0);
+    expect(shadowSets.length).toBe(0);
+  });
+
+  it('the ghost flag alone (no state) gets the same treatment', () => {
+    const ctx = makeCtx();
+    draw(ctx, baseModel({ nodes: [measuredNode({ ghost: true, r: 10 })] }));
+    expect(ctx.calls.some((c) => c.m === 'fill' && c.fillStyle === CANVAS.dark.void)).toBe(true);
+    expect(ctx.calls.some((c) => c.m === 'fill' && c.fillStyle === CANVAS.dark.voidFault)).toBe(false);
+    expect(ctx.calls.some((c) => c.m === 'stroke' && c.strokeStyle === OUTLINE_COLOR.removed)).toBe(true);
+  });
+
+  it('a ghost among measured nodes keeps its dimming when a selection dims the others', () => {
+    const ctx = makeCtx();
+    draw(ctx, baseModel({
+      nodes: [
+        measuredNode({ id: 'a', state: 'removed', ghost: true, r: 10, x: 100, y: 100 }),
+        measuredNode({ id: 'b', kind: 'store', x: 300, y: 100 }),
+        measuredNode({ id: 'c', kind: 'job', x: 100, y: 300 }),
+      ],
+      links: [{ s: 'b', t: 'c' }],
+      selectedId: 'b',
+      neighbours: new Set(['c']),
+    }));
+    const voidFill = ctx.calls.find((c) => c.m === 'fill' && c.fillStyle === CANVAS.dark.void);
+    // selection dimming floors alpha at 0.22 first, then the ghost dim applies
+    expect(voidFill.globalAlpha).toBeCloseTo(0.22 * 0.45, 5);
   });
 
   it('3D sorts painter-style by d descending and scales alpha by depth', () => {

@@ -63,6 +63,7 @@ const nodeColumn = (n) => {
    nothing plausible-looking is invented (plan §0). */
 const hoverMeta = (n) => {
   const state = n.state || 'measured';
+  if (n.ghost || state === 'removed') return `${n.kind} · removed in the compared manifest`;
   if (state === 'measured') {
     const rows = n.metrics && n.metrics.rows;
     const loc = n.meta && n.meta.totalLoc;

@@ -10,11 +10,22 @@
    The three node treatments are the heart of the design:
      measured    — solid kind-hue disc; glow (dark) or 1px rim (light); specular arc
      declared    — C.void fill, NEVER the kind hue; dashed hue ring; inner rim
-     unreachable — C.voidFault fill; solid fault ring; dashed halo; diagonal slash */
+     unreachable — C.voidFault fill; solid fault ring; dashed halo; diagonal slash
+     ghost       — the diff overlay's 'removed' node (state 'removed' / ghost:true):
+                   hollow like declared at 0.45 alpha, plus the removed diff
+                   outline ring — a removed node did not fail a probe, so the
+                   fault treatment would assert a measurement that never
+                   happened (P3) */
 
-import { hexa, kindHue, canvasTokens } from './graphTheme';
+import { hexa, kindHue, canvasTokens, isGhostNode, OUTLINE_COLOR } from './graphTheme';
 
 const TAU = 6.2832;
+
+/* Diff ghosts (state 'removed' / ghost: true) read as hollow at reduced
+   opacity with the diff outline ring — they were removed from the compared
+   manifest, they did not fail a probe, so the fault ring/slash would assert
+   a measurement that never happened (P3). */
+const GHOST_DIM = 0.45;
 
 /**
  * @param {CanvasRenderingContext2D} ctx  2D context (any recording stub with the same surface)
@@ -103,15 +114,17 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
   for (const n of order) {
     const p = byId[n.id], hue = kc(n.kind);
     const sState = n.state || 'measured';
+    const ghost = isGhostNode(n);
     let r = Math.max(2.2, n.r * k * (p.s == null ? 1 : p.s));
     if (sState !== 'measured') r = Math.max(r, 4.6);
     let alpha = 1;
     if (q) alpha = model.matches && model.matches.has(n.id) ? 1 : 0.11;
     if (sel && !model.focus) { if (n.id === sel) alpha = 1; else if (isNb(n.id)) alpha = Math.max(alpha, 0.9); else alpha = Math.min(alpha, 0.22); }
     if (model.mode3d) alpha *= 0.55 + 0.45 * Math.min(1, p.s == null ? 1 : p.s);
+    if (ghost) alpha *= GHOST_DIM;
     ctx.globalAlpha = alpha;
 
-    if (sState === 'measured') {
+    if (sState === 'measured' && !ghost) {
       if (C.glow) { ctx.shadowColor = hexa(hue, 0.75); ctx.shadowBlur = Math.min(22, r * 1.7); }
       ctx.fillStyle = hue; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
       ctx.shadowBlur = 0;
@@ -119,7 +132,7 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
       if (!C.glow) { ctx.strokeStyle = hexa(hue, 0.9); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, r + 0.5, 0, TAU); ctx.stroke(); }
       ctx.fillStyle = C.spec;
       ctx.beginPath(); ctx.arc(p.x - r * 0.28, p.y - r * 0.3, r * 0.34, 0, TAU); ctx.fill();
-    } else if (sState === 'declared') {
+    } else if (sState === 'declared' || ghost) {
       ctx.shadowBlur = 0;
       ctx.fillStyle = C.void;
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
@@ -129,6 +142,12 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
       ctx.setLineDash([]);
       ctx.strokeStyle = C.innerRim; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, r - 1.6), 0, TAU); ctx.stroke();
+      /* The diff owns the outline channel for a ghost: the removed ring at
+         r+3 @ 1.5px, the same recipe the pre-redesign overlay painted. */
+      if (ghost) {
+        ctx.strokeStyle = OUTLINE_COLOR.removed; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, TAU); ctx.stroke();
+      }
     } else {
       ctx.shadowBlur = 0;
       ctx.fillStyle = C.voidFault;
