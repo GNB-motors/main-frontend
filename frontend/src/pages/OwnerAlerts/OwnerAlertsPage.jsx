@@ -10,6 +10,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.jsx';
 import AlertDetailsDrawer from './AlertDetailsDrawer.jsx';
 import { Panel, StatusPill } from '../Overview/components/overview.primitives.jsx';
+import StatusChip from '../../components/ui/StatusChip';
 import { formatINR, formatNum } from '../../utils/formatters';
 
 dayjs.extend(utc);
@@ -65,7 +66,6 @@ const sevOf = (t) => SEVERITY_BY_TYPE[t] || 'WARNING';
 const catOf = (t) => CATEGORY_BY_TYPE[t] || 'other';
 const titleOf = (t) => ALERT_TITLE[t] || ALERT_TYPE_LABELS[t] || t;
 const SEV_RANK = { CRITICAL: 3, WARNING: 2, INFO: 1 };
-const SEV_TONE = { CRITICAL: 'critical', WARNING: 'caution', INFO: 'brand' };
 const SEV_ROWCLASS = { CRITICAL: 'oa-row-crit', WARNING: 'oa-row-warn', INFO: 'oa-row-info' };
 const SEV_ICON = { CRITICAL: ShieldAlert, WARNING: AlertTriangle, INFO: Info };
 const cleanMsg = (m) => (m || '').replace(/^Please review:\s*/i, '');
@@ -352,7 +352,7 @@ const OwnerAlertsPage = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold" style={{ color: 'var(--cluster-text)' }}>{a.title}</span>
-                              <StatusPill tone={SEV_TONE[a.severity]}>{a.severity}</StatusPill>
+                              <StatusChip group="severity" value={a.severity} />
                               {a.inrEstimate != null && <span className="num text-xs" style={{ color }}>{formatINR(a.inrEstimate)}</span>}
                             </div>
                             <div className="oa-clamp text-dim mt-0.5 text-xs">{cleanMsg(a.message)}</div>

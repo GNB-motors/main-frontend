@@ -803,6 +803,32 @@ a.ov-kpi:hover {
 .ov-pill--inert    { color: var(--inert);    background: color-mix(in srgb, var(--inert) 12%, transparent); }
 .ov-pill--brand    { color: var(--gnb-400);  background: color-mix(in srgb, var(--gnb-400) 12%, transparent); }
 
+/* Status chip — shared vocabulary-layer chip (lib/vocabulary.js).
+   Reserved state semantics only: colour answers "does this need me?". */
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.status-chip::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+.status-chip--critical { color: var(--critical); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+.status-chip--caution  { color: var(--caution);  background: color-mix(in srgb, var(--caution) 14%, transparent); }
+.status-chip--ok       { color: var(--ok);       background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.status-chip--inert    { color: var(--inert);    background: color-mix(in srgb, var(--inert) 12%, transparent); }
+
 /* Stacked magnitude bar — 2px surface gaps between fills (dataviz spec) */
 .ov-stack {
     display: flex;

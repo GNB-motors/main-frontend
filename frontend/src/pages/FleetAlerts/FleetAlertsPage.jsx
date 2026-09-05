@@ -4,6 +4,7 @@ import FleetDataService from '../../services/FleetDataService';
 import useApi from '../../hooks/useApi';
 import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
+import StatusChip from '../../components/ui/StatusChip';
 import { formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import { buildCsvString, triggerFileDownload } from '../../utils/reportCsvExport';
@@ -16,10 +17,6 @@ const SEVERITY_COLOR = {
   caution: 'var(--caution)',
   info: 'var(--cluster-text-dim)',
 };
-
-/* No lamp--info exists in the design system — base .lamp renders the inert dot. */
-const lampClass = (severity) =>
-  severity === 'critical' || severity === 'caution' ? `lamp lamp--${severity}` : 'lamp';
 
 export default function FleetAlertsPage() {
   const [type, setType] = useState('');
@@ -179,7 +176,7 @@ export default function FleetAlertsPage() {
                   style={a.severity === 'critical' ? { borderLeft: '2px solid var(--critical)' } : undefined}
                 >
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className={lampClass(a.severity)}>{a.severity}</span>
+                    <StatusChip group="severity" value={a.severity} />
                     <span className="text-sm font-semibold">{a.title}</span>
                     {a.registrationNumber ? <span className="reg-plate">{a.registrationNumber}</span> : null}
                     {FUEL_TYPES.has(a.type) && a.fuelDifferenceL != null ? (

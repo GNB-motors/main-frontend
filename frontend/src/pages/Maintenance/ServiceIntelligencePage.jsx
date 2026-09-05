@@ -6,6 +6,7 @@ import { MaintenanceService } from './MaintenanceService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
 import { getToken } from '../../utils/session.js';
+import StatusChip from '../../components/ui/StatusChip';
 import '../Profile/VehiclesPage.css';
 
 const TABS = [
@@ -347,7 +348,7 @@ const RecordsTab = ({ activeTab, rows, loading, kpi, search, setSearch, onAdd, o
                       <td style={td}>{formatDate(r.date)}</td>
                       {isService && <td style={td}>{formatKm(r.currentKm)}</td>}
                       <td style={td}>{r.workshop}</td>
-                      <td style={td}>{r.type}</td>
+                      <td style={td}><StatusChip group="serviceType" value={r.type} /></td>
                       <td style={td}>{formatCurrency(r.amount)}</td>
                       <td style={{ ...td, maxWidth: 260, color: '#475569' }}>
                         {r.notes ? <span title={r.notes}>{r.notes.length > 60 ? `${r.notes.slice(0, 60)}…` : r.notes}</span> : '—'}

@@ -12,6 +12,7 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import AddZoneDrawer from './AddZoneDrawer.jsx';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
+import { label } from '../../lib/vocabulary';
 import './GeofenceZones.css';
 
 dayjs.extend(utc);
@@ -404,7 +405,7 @@ const GeofenceZonesPage = () => {
                   <p className="gfz-iw-name">{selectedZone.name}</p>
                   <ZoneTypeBadge zoneType={selectedZone.zoneType} />
                   {selectedZone.radiusMetres > 0 && <p className="gfz-iw-meta">Radius: {selectedZone.radiusMetres}m</p>}
-                  {selectedZone.state && <p className="gfz-iw-meta">{selectedZone.state}</p>}
+                  {selectedZone.state && <p className="gfz-iw-meta">{label('status', selectedZone.state)}</p>}
                   <p className="gfz-iw-meta">
                     Entry: {selectedZone.alertConfig?.alertOnEntry ? '✅' : '—'} &nbsp;
                     Exit: {selectedZone.alertConfig?.alertOnExit ? '✅' : '—'}
