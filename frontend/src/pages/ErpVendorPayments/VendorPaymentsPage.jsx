@@ -7,6 +7,7 @@ import { Truck, Send } from 'lucide-react';
 import { toast } from 'react-toastify';
 import VendorPaymentApi from './VendorPaymentService';
 import PageShell from '../../components/Erp/PageShell';
+import StatusBadge from '../../components/Erp/StatusBadge';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -58,10 +59,12 @@ const VendorPaymentsPage = ({ embedded = false }) => {
     }
   }, []);
 
+  // Load both queues up front so the KPI tiles are accurate regardless of the
+  // open tab; switching tabs then just reveals already-loaded data.
   useEffect(() => {
-    if (tab === 'outstanding') loadOutstanding();
-    else loadPending();
-  }, [tab, loadOutstanding, loadPending]);
+    loadOutstanding();
+    loadPending();
+  }, [loadOutstanding, loadPending]);
 
   // The vendor list no longer ships every vendor's bills — that payload was
   // unbounded and only the totals were rendered. Bills are fetched for the one
@@ -128,6 +131,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       setShowOnAccountPopup(false);
       setSelectedVendor(null);
       loadOutstanding();
+      loadPending();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -147,12 +151,21 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       toast.success('Payment released');
       setReleaseTarget(null);
       loadPending();
+      loadOutstanding();
     } catch (err) {
       toast.error(err.message);
     } finally {
       setBusy(false);
     }
   };
+
+  const readyToPay = groups.reduce((s, g) => s + (g.totalOutstanding || 0), 0);
+  const awaitingRelease = pending.reduce((s, p) => s + (p.netPayable || 0), 0);
+  const selectedTotal = selectedVendor
+    ? (selectedVendor.bills || [])
+      .filter((b) => selectedBillIds.has(b.purchaseBillId))
+      .reduce((s, b) => s + (b.netAmount || 0), 0)
+    : 0;
 
   return (
     <PageShell
@@ -161,6 +174,25 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       subtitle="Outstanding purchase bills → approval → bank release."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Vendor Payments' }]}
     >
+
+      <div className="erp-buckets">
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{money(readyToPay)}</span>
+          <span className="erp-bucket-label">Ready to pay</span>
+        </div>
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{groups.length}</span>
+          <span className="erp-bucket-label">Vendors</span>
+        </div>
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{money(awaitingRelease)}</span>
+          <span className="erp-bucket-label">Awaiting release</span>
+        </div>
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{pending.length}</span>
+          <span className="erp-bucket-label">To release</span>
+        </div>
+      </div>
 
       <div className="erp-tabs">
         {[['outstanding', 'Outstanding bills'], ['release', 'Pending release']].map(
@@ -210,9 +242,10 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                       <th />
                       <th>Bill</th>
                       <th>Trip</th>
-                      <th>Vehicle</th>
+                      <th>Route</th>
                       <th>Net</th>
                       <th>Due</th>
+                      <th>Ageing</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -225,18 +258,46 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                             onChange={() => toggleBill(b.purchaseBillId)}
                           />
                         </td>
-                        <td>{b.billNumber}</td>
+                        <td>
+                          <div className="erp-cell-strong">{b.billNumber}</div>
+                          <div className="erp-cell-muted">{b.vehicleNumber}</div>
+                        </td>
                         <td>{b.tripNumber}</td>
-                        <td>{b.vehicleNumber}</td>
+                        <td className="erp-cell-muted">{b.route || '—'}</td>
                         <td>{money(b.netAmount)}</td>
                         <td>{b.dueDate?.slice?.(0, 10) || '—'}</td>
+                        <td>
+                          {b.ageingBucket
+                            ? <StatusBadge status={b.ageingBucket} label={`${b.overdueDays ?? 0}d`} />
+                            : '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+
+              {selectedBillIds.size > 0 && (
+                <div className="erp-alloc-foot">
+                  <div className="erp-alloc-cell">
+                    <span>Bills selected</span>
+                    <strong>{selectedBillIds.size}</strong>
+                  </div>
+                  <div className="erp-alloc-cell">
+                    <span>Payment amount</span>
+                    <strong>{money(selectedTotal)}</strong>
+                  </div>
+                  {selectedVendor.onAccountAvailable > 0 && (
+                    <div className="erp-alloc-cell">
+                      <span>On-account available</span>
+                      <strong>{money(selectedVendor.onAccountAvailable)}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="erp-form-actions">
-                <button type="button" className="erp-btn primary" disabled={busy} onClick={prepareSubmit}>
+                <button type="button" className="erp-btn primary" disabled={busy || selectedBillIds.size === 0} onClick={prepareSubmit}>
                   <Send size={14} /> Submit for approval
                 </button>
               </div>
