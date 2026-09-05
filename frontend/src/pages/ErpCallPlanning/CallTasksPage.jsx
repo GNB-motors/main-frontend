@@ -18,7 +18,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PhoneCall, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
 import RowMenu from '../../components/Erp/RowMenu';
 import ErpCallService from './ErpCallService';
 import RecordCallDrawer from './RecordCallDrawer';
@@ -38,7 +37,6 @@ const CAN_GENERATE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 const EMPTY_STATS = { total: 0, open: 0, closed: 0, completed: 0, notCalled: 0, overdue: 0 };
 
 const CallTasksPage = () => {
-  const navigate = useNavigate();
   const canGenerate = CAN_GENERATE.includes(localStorage.getItem('user_role'));
 
   const [tasks, setTasks] = useState([]);
@@ -120,14 +118,12 @@ const CallTasksPage = () => {
     );
   }, [tasks, search]);
 
-  const handleSaved = (doDraft) => {
-    if (doDraft) {
-      setActiveTask(null);
-      navigate('/erp/pipeline?tab=dos', { state: { doDraft } });
-      return;
-    }
-    refresh();
-  };
+  /**
+   * A recorded outcome only refreshes this page. A sure order does not open the
+   * delivery-order form from here — it joins the pending queue on the delivery
+   * orders page, and operations raises it there.
+   */
+  const handleSaved = () => refresh();
 
   const isToday = date === toDateInput(new Date());
   const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;

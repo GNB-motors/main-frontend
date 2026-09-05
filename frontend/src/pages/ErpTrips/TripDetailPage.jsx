@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   FileText,
   Truck,
+  Navigation,
   MapPin,
   PackageCheck,
   Scale,
@@ -183,6 +184,13 @@ const TripDetailPage = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  /**
+   * Which finished stage the user has opened. Completed and locked stages
+   * collapse to one line; only the stage you can act on is expanded, so the
+   * current step is on screen without scrolling past 200px cards for work
+   * already done and work that cannot start.
+   */
+  const [openStageId, setOpenStageId] = useState(null);
 
   /**
    * Prefer real history so the user lands back where they came from — the
@@ -300,6 +308,29 @@ const TripDetailPage = () => {
         hasCn,
       },
       {
+        /**
+         * The vehicle is on the road. This state has always existed —
+         * ERP_TRIP_STATES has DISPATCHED, stamped the moment the CN is saved
+         * (see erpTrip.constants) — but the lifecycle jumped straight from
+         * "Advance & CN" to "Trip Close", so the longest-lived phase of a trip
+         * was the one it never showed. There is deliberately no action: nothing
+         * to do here but wait for the vehicle to arrive.
+         */
+        id: 'TRANSIT',
+        label: 'In transit',
+        icon: Navigation,
+        done: closed || hasPod || hasUnloading || hasBill,
+        available: hasCn,
+        blockedBy: 'CN update',
+        facts: hasCn
+          ? [
+              { label: 'Dispatched', value: stamp(data.dispatchedAt) },
+              { label: 'Expected free', value: stamp(data.expectedFreeAt) },
+              { label: 'Distance', value: data.totalKm ? `${data.totalKm} km` : null },
+            ]
+          : null,
+      },
+      {
         id: 'CLOSE',
         label: 'Trip Close',
         icon: MapPin,
@@ -392,6 +423,16 @@ const TripDetailPage = () => {
     return i === -1 ? stages.length : i;
   }, [stages]);
 
+  /** The single line a collapsed stage shows instead of its full card. */
+  const summaryOf = (stage) => {
+    if (stage.render === 'advanceCn') {
+      return stage.hasCn ? 'CN updated' : 'No consignment note yet';
+    }
+    const facts = (stage.facts || []).filter((f) => f.value);
+    if (facts.length) return facts.slice(0, 3).map((f) => f.value).join(' · ');
+    return null;
+  };
+
   const statusOf = (stage, idx) => {
     if (stage.done) return 'done';
     if (idx === currentIdx) return 'current';
@@ -425,7 +466,6 @@ const TripDetailPage = () => {
   const received = Math.max(0, billed - outstanding);
   const hireCost = purchaseBill?.netAmount || 0;
   const settled = currentIdx >= stages.length;
-  const nextStage = settled ? null : stages[currentIdx];
 
   return (
     <div className="erp-page trip360">
@@ -469,36 +509,6 @@ const TripDetailPage = () => {
         <span>
           {data.fromLocation || '—'} → {data.toLocation || '—'}
         </span>
-      </div>
-
-      {/* ── Next best action ── */}
-      <div className={`trip360-nba ${settled ? 'settled' : ''}`}>
-        <div>
-          <div className="trip360-nba-eyebrow">{settled ? 'Complete' : 'Next step'}</div>
-          <p className="trip360-nba-title">
-            {settled ? 'This trip is fully settled' : nextStage.label}
-          </p>
-          <p className="trip360-nba-hint">
-            {settled
-              ? 'Billed and payment received. No action pending.'
-              : nextStage.available === false
-                ? `Waiting on ${nextStage.blockedBy}`
-                : 'This is the only step you can act on right now.'}
-          </p>
-        </div>
-        {!settled && (nextStage.action || nextStage.render === 'advanceCn') && (
-          <button
-            className="trip360-btn primary trip360-nba-cta"
-            onClick={() => openDrawer(nextStage.render === 'advanceCn' ? 'cn' : nextStage.action.drawer)}
-          >
-            {nextStage.render === 'advanceCn'
-              ? nextStage.hasCn
-                ? 'Update CN'
-                : 'Create CN'
-              : nextStage.action.label}
-            <ArrowRight size={15} />
-          </button>
-        )}
       </div>
 
       {/* ── Stepper ── */}
@@ -601,10 +611,67 @@ const TripDetailPage = () => {
 
         {/* Detail — the lifecycle */}
         <div className="trip360-stages">
+          {settled && (
+            <div className="trip360-settled">
+              <Check size={15} strokeWidth={3} />
+              <div>
+                <strong>Trip complete</strong>
+                <span className="erp-cell-muted">
+                  Billed and payment received. Open any stage below to see what was recorded.
+                </span>
+              </div>
+            </div>
+          )}
+
           {stages.map((stage, idx) => {
             const st = statusOf(stage, idx);
             const Icon = stage.icon;
             const blocked = st === 'blocked';
+            // The current stage is always open. A finished one opens on click;
+            // a locked one has nothing to open.
+            const expanded = st === 'current' || openStageId === stage.id;
+            const summary = summaryOf(stage);
+
+            if (!expanded) {
+              return (
+                <section key={stage.id} className={`trip360-stage ${st} is-collapsed`}>
+                  <header
+                    className="trip360-stage-head"
+                    onClick={blocked ? undefined : () => setOpenStageId(stage.id)}
+                    role={blocked ? undefined : 'button'}
+                    tabIndex={blocked ? undefined : 0}
+                    onKeyDown={
+                      blocked
+                        ? undefined
+                        : (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setOpenStageId(stage.id);
+                          }
+                        }
+                    }
+                  >
+                    <span className="trip360-stage-index">{idx + 1}</span>
+                    <span className="trip360-stage-icon">
+                      {st === 'done' ? <Check size={14} strokeWidth={3} /> : <Icon size={14} />}
+                    </span>
+                    <h2 className="trip360-stage-title">{stage.label}</h2>
+                    {summary && !blocked && (
+                      <span className="trip360-stage-summary">{summary}</span>
+                    )}
+                    <div className="trip360-stage-status">
+                      {blocked ? (
+                        <span className="trip360-blocked-note">
+                          <Lock size={12} /> After {stage.blockedBy}
+                        </span>
+                      ) : (
+                        <StatusBadge status="COMPLETED" />
+                      )}
+                    </div>
+                  </header>
+                </section>
+              );
+            }
 
             return (
               <section key={stage.id} className={`trip360-stage ${st}`}>
@@ -621,6 +688,15 @@ const TripDetailPage = () => {
                       </span>
                     ) : (
                       <StatusBadge status={st === 'done' ? 'COMPLETED' : 'PENDING'} />
+                    )}
+                    {st !== 'current' && (
+                      <button
+                        type="button"
+                        className="trip360-btn ghost trip360-btn--xs"
+                        onClick={() => setOpenStageId(null)}
+                      >
+                        Hide
+                      </button>
                     )}
                   </div>
                 </header>

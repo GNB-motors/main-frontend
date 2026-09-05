@@ -125,14 +125,20 @@ const MiniLifecycle = ({ state }) => {
   const idx = stageIndex(state);
   return (
     <span className="trippipe-mini" title={idx < 0 ? 'Cancelled' : `Waiting on ${LIFECYCLE[idx]}`}>
-      {LIFECYCLE.map((label, i) => (
-        <span
-          key={label}
-          className={`trippipe-mini-seg ${
-            idx < 0 ? 'cancelled' : i < idx ? 'done' : i === idx ? 'current' : ''
-          }`}
-        />
-      ))}
+      <span className="trippipe-mini-segs">
+        {LIFECYCLE.map((label, i) => (
+          <span
+            key={label}
+            className={`trippipe-mini-seg ${
+              idx < 0 ? 'cancelled' : i < idx ? 'done' : i === idx ? 'current' : ''
+            }`}
+          />
+        ))}
+      </span>
+      {/* Eight dots alone do not say how far along a trip is. */}
+      <span className="trippipe-mini-count">
+        {idx < 0 ? 'cancelled' : `${idx} / ${LIFECYCLE.length}`}
+      </span>
     </span>
   );
 };
@@ -215,11 +221,36 @@ const TripDashboardPage = () => {
     const p = summary?.pendingCounts;
     if (!p) return [];
     const active = p.activeTrips || {};
+    /**
+     * Two rows, not seven equal cards.
+     *
+     * "Awaiting CN" is work for right now; "Awaiting payment" is a trip sitting
+     * with accounts. Giving them the same size and weight made the operator read
+     * seven numbers to find the one they act on. `lead: true` marks the headline
+     * figures — everything else is a stage filter of the same list.
+     */
+    const awaitingCn = p.pendingCns || 0;
+    const readyToClose = p.pendingTripClose || 0;
+    const awaitingPod = p.pendingPods || 0;
+
     return [
-      { key: '', label: 'All active', value: Object.values(active).reduce((a, b) => a + b, 0) },
-      { key: 'PLACED', label: 'Awaiting CN', value: p.pendingCns || 0, tone: 'attention' },
-      { key: 'DISPATCHED', label: 'Ready to close', value: p.pendingTripClose || 0, tone: 'attention' },
-      { key: 'TRIP_CLOSED', label: 'Awaiting POD', value: p.pendingPods || 0, tone: 'attention' },
+      {
+        key: '',
+        label: 'Active trips',
+        value: Object.values(active).reduce((a, b) => a + b, 0),
+        lead: true,
+      },
+      {
+        key: 'PLACED',
+        label: 'Need action now',
+        value: awaitingCn + readyToClose + awaitingPod,
+        tone: 'attention',
+        lead: true,
+        hint: 'CN, close or POD outstanding',
+      },
+      { key: 'PLACED', label: 'Awaiting CN', value: awaitingCn, tone: 'attention' },
+      { key: 'DISPATCHED', label: 'Ready to close', value: readyToClose, tone: 'attention' },
+      { key: 'TRIP_CLOSED', label: 'Awaiting POD', value: awaitingPod, tone: 'attention' },
       { key: 'POD_RECEIVED', label: 'To unload', value: p.pendingUnloadings || 0 },
       { key: 'UNLOADED', label: 'Ready to bill', value: active.UNLOADED || 0 },
       { key: 'BILLED', label: 'Awaiting payment', value: active.BILLED || 0, tone: 'idle' },
@@ -263,22 +294,40 @@ const TripDashboardPage = () => {
 
       {/* ── Situational awareness, before the table ── */}
       {stats.length > 0 && (
-        <div className="trippipe-summary">
-          {stats.map((s) => (
-            <button
-              key={s.label}
-              type="button"
-              className={`trippipe-stat ${s.tone || ''} ${state === s.key && s.key !== '' ? 'active' : ''} ${
-                s.key === '' && !state ? 'active' : ''
-              }`}
-              onClick={() => setState(s.key)}
-              aria-pressed={state === s.key}
-            >
-              <span className="trippipe-stat-value">{s.value}</span>
-              <span className="trippipe-stat-label">{s.label}</span>
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="trippipe-summary trippipe-summary--lead">
+            {stats.filter((s) => s.lead).map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className={`trippipe-stat lead ${s.tone || ''} ${
+                  s.key === '' && !state ? 'active' : ''
+                }`}
+                onClick={() => setState(s.key)}
+              >
+                <span className="trippipe-stat-value">{s.value}</span>
+                <span className="trippipe-stat-label">{s.label}</span>
+                {s.hint && <span className="trippipe-stat-hint">{s.hint}</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className="trippipe-stagerow">
+            <span className="trippipe-stagerow-label">By stage</span>
+            {stats.filter((s) => !s.lead).map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className={`trippipe-chip ${s.tone || ''} ${state === s.key ? 'active' : ''}`}
+                onClick={() => setState(state === s.key ? '' : s.key)}
+                aria-pressed={state === s.key}
+              >
+                {s.label}
+                <span className="trippipe-chip-count">{s.value}</span>
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {/* ── Filters ── */}

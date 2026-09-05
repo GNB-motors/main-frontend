@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarClock, CheckCircle2, Info } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Info } from 'lucide-react';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
 import ErpCallService from './ErpCallService';
 import { CALL_OUTCOMES } from './erpCall.constants';
@@ -35,6 +35,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
   const [outcome, setOutcome] = useState('');
   const [remarks, setRemarks] = useState('');
   const [nextDate, setNextDate] = useState('');
+  const [order, setOrder] = useState({ material: '', qty: '', unit: 'KL' });
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
@@ -46,6 +47,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
     if (!task) return;
     setOutcome('');
     setRemarks('');
+    setOrder({ material: '', qty: '', unit: 'KL' });
     setResult(null);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -74,10 +76,17 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
 
   const previous = history.find((h) => h._id !== task?._id) || null;
 
+  // A sure order is only useful if it says what was sold and how much —
+  // operations raises the delivery order off exactly these three values.
+  const orderComplete = Boolean(
+    order.material.trim() && Number(order.qty) > 0 && order.unit,
+  );
+
   const valid = Boolean(
     selected
       && (!selected.needsRemark || remarks.trim().length >= 3)
-      && (!selected.needsNextDate || nextDate),
+      && (!selected.needsNextDate || nextDate)
+      && (outcome !== 'SURE_ORDER' || orderComplete),
   );
 
   const handleSubmit = async (e) => {
@@ -89,6 +98,9 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
       const res = await ErpCallService.recordOutcome(task._id, {
         outcome,
         remarks: remarks.trim() || undefined,
+        orderMaterial: order.material.trim().toUpperCase(),
+        orderQty: order.qty,
+        orderQtyUnit: order.unit,
         // Midday so an IST-vs-UTC shift cannot roll the date back a day.
         nextFollowUpDate: selected.needsNextDate
           ? new Date(`${nextDate}T12:00:00`).toISOString()
@@ -118,21 +130,14 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
       maxWidth="560px"
       footer={
         result ? (
-          <>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Close
-            </button>
-            {result.doDraft && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => onSaved(result.doDraft)}
-              >
-                Create Delivery Order
-                <ArrowRight size={16} />
-              </button>
-            )}
-          </>
+          // Just "Done". This page decides the call's outcome and stops there —
+          // the delivery order is raised on the delivery-order page, from the
+          // queue this sure order has just joined. Offering the DO form here
+          // meant one screen opening another screen's form, and a KAM being
+          // dropped into a job that is not theirs.
+          <button type="button" className="btn btn-primary" onClick={onClose}>
+            Done
+          </button>
         ) : (
           <>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
@@ -193,7 +198,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                 <strong>Call recorded.</strong>
                 <div style={{ marginTop: 4 }}>
                   {result.doDraft
-                    && `Order confirmed for ${result.doDraft.partyName}. Raise the delivery order to lock the rate and credit terms.`}
+                    && `Order confirmed for ${result.doDraft.partyName}. It is now in the operations team's delivery-order queue.`}
                   {result.childTask
                     && `Next call scheduled for ${shortDate(result.childTask.scheduledDate)} — the task is already in ${kamName(task.kamId)}'s list.`}
                   {!result.doDraft && !result.childTask && 'Task closed. No follow-up was needed.'}
@@ -220,6 +225,58 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
               </button>
             ))}
           </div>
+
+          {outcome === 'SURE_ORDER' && (
+            <div className="erp-order-capture">
+              <span className="erp-field-sublabel">What did they commit to?</span>
+              <div className="erp-order-grid">
+                <div className="erp-field">
+                  <label htmlFor="order-material">
+                    Material <span className="required">*</span>
+                  </label>
+                  <input
+                    id="order-material"
+                    value={order.material}
+                    onChange={(e) => setOrder((p) => ({ ...p, material: e.target.value }))}
+                    placeholder="e.g. MTO"
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+                <div className="erp-field">
+                  <label htmlFor="order-qty">
+                    Quantity <span className="required">*</span>
+                  </label>
+                  <input
+                    id="order-qty"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={order.qty}
+                    onChange={(e) => setOrder((p) => ({ ...p, qty: e.target.value }))}
+                    placeholder="100"
+                    required
+                  />
+                </div>
+                <div className="erp-field">
+                  <label htmlFor="order-unit">Unit</label>
+                  <select
+                    id="order-unit"
+                    value={order.unit}
+                    onChange={(e) => setOrder((p) => ({ ...p, unit: e.target.value }))}
+                  >
+                    <option value="KL">KL</option>
+                    <option value="MT">MT</option>
+                    <option value="VEHICLE">Vehicles</option>
+                  </select>
+                </div>
+              </div>
+              <span className="erp-field-hint">
+                Operations raises the delivery order from these, so they cannot be filled in
+                later by someone who was not on the call.
+              </span>
+            </div>
+          )}
 
           {selected?.needsNextDate && (
             <div className="erp-field full" style={{ marginTop: 18 }}>
@@ -268,8 +325,8 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
             <div className="erp-callout info" style={{ marginTop: 18, marginBottom: 0 }}>
               <Info size={16} />
               <span>
-                Saving brings back this account&apos;s credit limit and terms, ready for the
-                delivery order.
+                The order goes to the operations team&apos;s delivery-order queue with the
+                material, quantity and this account&apos;s credit terms attached.
               </span>
             </div>
           )}

@@ -91,53 +91,6 @@
   color: var(--t-warn);
 }
 
-/* ── Next best action ─────────────────────────────────────────────────────── */
-.trip360-nba {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  border: 1px solid var(--t-line);
-  border-left: 3px solid var(--t-accent);
-  border-radius: 10px;
-  background: linear-gradient(180deg, var(--t-accent-soft), var(--t-surface) 70%);
-  padding: 14px 18px;
-  margin: 16px 0 20px;
-}
-
-.trip360-nba.settled {
-  border-left-color: var(--t-done);
-  background: linear-gradient(180deg, var(--t-done-soft), var(--t-surface) 70%);
-}
-
-.trip360-nba-eyebrow {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--t-accent);
-}
-
-.trip360-nba.settled .trip360-nba-eyebrow {
-  color: var(--t-done);
-}
-
-.trip360-nba-title {
-  font-size: 15.5px;
-  font-weight: 700;
-  margin: 3px 0 0;
-}
-
-.trip360-nba-hint {
-  font-size: 12.5px;
-  color: var(--t-muted);
-  margin: 2px 0 0;
-}
-
-.trip360-nba-cta {
-  margin-left: auto;
-}
-
 /* ── Stepper ──────────────────────────────────────────────────────────────── */
 .trip360-stepper {
   display: grid;
@@ -604,3 +557,68 @@
 }
 .trip360-timeline-label { color: #111827; }
 .trip360-timeline-time { color: #6b7280; white-space: nowrap; }
+
+/* ─── Collapsed stage row ─────────────────────────────────────────────────── */
+/*
+ * A trip has eight stages. Rendering all eight as full cards made the page a
+ * scroll through work already finished and work that cannot start, with the one
+ * actionable stage somewhere in the middle. Only the current stage stays
+ * expanded; the rest are a single line, and a finished one opens on click.
+ */
+.trip360-stage.is-collapsed {
+  padding: 0;
+}
+
+.trip360-stage.is-collapsed .trip360-stage-head {
+  padding: 10px 16px;
+  border-bottom: none;
+  cursor: pointer;
+}
+
+.trip360-stage.is-collapsed.blocked .trip360-stage-head {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.trip360-stage.is-collapsed .trip360-stage-title {
+  font-size: 14px;
+}
+
+.trip360-stage-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+/* The one stage that can be acted on should look like it. */
+.trip360-stage.current {
+  border-color: #00c896;
+  box-shadow: 0 1px 3px rgba(0, 200, 150, 0.12);
+}
+
+.trip360-settled {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  background: #f0fdf9;
+  color: #065f46;
+}
+
+.trip360-settled strong {
+  display: block;
+  font-size: 14px;
+}
+
+.trip360-settled .erp-cell-muted {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+}

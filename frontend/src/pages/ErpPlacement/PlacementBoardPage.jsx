@@ -1,27 +1,42 @@
 /**
- * Tanker Availability Board (ISOCL ERP Stage 3)
+ * Placement Board (ISOCL ERP Stage 3)
  *
- * Location-wise grid. Selecting a delivery order flags every tanker for
- * material compatibility up front, so an incompatible tanker is disabled rather
- * than rejected after the operator has filled in a form.
+ * An order-fulfilment workspace, not a vehicle inventory page. The question
+ * being answered is "how do I fulfil THIS delivery order", so the order is
+ * picked first and everything below is scoped to it:
+ *
+ *   select order → see the requirement → assign fleet → hire if short
+ *
+ * Hire is deliberately not a peer of fleet placement. It sits with the fleet it
+ * is an alternative to, as a secondary action, and is promoted to a primary
+ * gap-sized button in the coverage bar only when the fleet actually falls short.
+ * It is never offered from the page header, and never once the order is placed.
+ *
+ * Vehicles are filtered by availability and material compatibility — never by
+ * capacity. A 20 KL tanker against a 100 KL order is normal: the balance draws
+ * down across several placements, and capacity only produces an advisory when a
+ * single planned quantity exceeds one tanker.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Truck,
-  X,
-  Info,
-  AlertTriangle,
-  Ban,
-  CheckCircle2,
-  CalendarClock,
-  Users,
+  Truck, CheckCircle2, XCircle, CalendarClock, ArrowRight, ArrowLeft, AlertTriangle, Search, Plus,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import PlacementService from './PlacementService';
+import PlacementDrawer from './PlacementDrawer';
+import CancelPlacementDrawer from './CancelPlacementDrawer';
 import ErpMasterService from '../ErpMasters/ErpMasterService';
 import DeliveryOrderService from '../ErpDeliveryOrders/DeliveryOrderService';
 import '../../styles/erp.css';
+
+const BOARD_STATE_LABEL = {
+  AVAILABLE: 'Available',
+  ON_TRIP: 'On trip',
+  WAITING_UNLOAD: 'Waiting to unload',
+  MAINTENANCE: 'In maintenance',
+};
 
 const BOARD_STATE_TONE = {
   AVAILABLE: 'success',
@@ -34,21 +49,21 @@ const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` 
 const dateLabel = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '—');
 
 const PlacementBoardPage = () => {
+  const navigate = useNavigate();
   const [board, setBoard] = useState(null);
   const [orders, setOrders] = useState([]);
   const [vendors, setVendors] = useState([]);
-  const [drivers, setDrivers] = useState([]);
+  const [placed, setPlaced] = useState([]);
   const [selectedDoId, setSelectedDoId] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Placement modal
-  const [target, setTarget] = useState(null); // { mode: 'OWN'|'HIRE', tanker? }
-  const [form, setForm] = useState({});
-  const [check, setCheck] = useState(null);
-  const [checking, setChecking] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const selectedOrder = orders.find((o) => o._id === selectedDoId) || null;
+  const [showAll, setShowAll] = useState(false);
+  const [target, setTarget] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
+  const [queueSearch, setQueueSearch] = useState('');
+  const [locFilter, setLocFilter] = useState('');
+  const [sortBy, setSortBy] = useState('LOADING_POINT');
+  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [showEveryRow, setShowEveryRow] = useState(false);
 
   const fetchBoard = useCallback(async (doId) => {
     setLoading(true);
@@ -69,9 +84,11 @@ const PlacementBoardPage = () => {
 
   const fetchOptions = useCallback(async () => {
     try {
-      const res = await DeliveryOrderService.getOrders({ status: 'PENDING', limit: 100 });
-      const partial = await DeliveryOrderService.getOrders({ status: 'PARTIAL', limit: 100 });
-      setOrders([...(res.data || []), ...(partial.data || [])]);
+      const [pending, partial] = await Promise.all([
+        DeliveryOrderService.getOrders({ status: 'PENDING', limit: 100 }),
+        DeliveryOrderService.getOrders({ status: 'PARTIAL', limit: 100 }),
+      ]);
+      setOrders([...(pending.data || []), ...(partial.data || [])]);
     } catch {
       setOrders([]);
     }
@@ -83,590 +100,743 @@ const PlacementBoardPage = () => {
     }
   }, []);
 
+  /** What is already assigned to this order — the "placed so far" list. */
+  const fetchPlaced = useCallback(async (doId) => {
+    if (!doId) {
+      setPlaced([]);
+      return;
+    }
+    try {
+      const res = await PlacementService.getPlacements({ doId, limit: 50 });
+      setPlaced(res.data || []);
+    } catch {
+      setPlaced([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchBoard(selectedDoId);
+    fetchPlaced(selectedDoId);
+  }, [fetchBoard, fetchPlaced, selectedDoId]);
+
+  useEffect(() => {
     fetchOptions();
-  }, [fetchBoard, fetchOptions, selectedDoId]);
+  }, [fetchOptions]);
 
-  useEffect(() => {
-    if (board?.spareDrivers) setDrivers(board.spareDrivers);
-  }, [board]);
+  // The board's copy is authoritative once a DO is picked — it is read inside
+  // the same request that computed compatibility, so it cannot be a page behind.
+  const order = board?.deliveryOrder || null;
+  const drivers = board?.spareDrivers || [];
 
-  // ─── Placement modal ───────────────────────────────────────────────────────
+  const required = order?.qty ?? 0;
+  const remaining = order?.balanceQty ?? 0;
+  const done = Math.max(0, required - remaining);
+  const pct = required > 0 ? Math.round((done / required) * 100) : 0;
 
-  const openOwn = (tanker) => {
-    if (!selectedDoId) {
-      toast.error('Pick a delivery order first');
-      return;
-    }
-    setTarget({ mode: 'OWN', tanker });
-    setForm({
-      vehicleId: tanker.vehicleId,
-      driverId: '',
-      plannedQty: selectedOrder?.balanceQty ?? '',
-    });
-    setCheck(null);
-  };
+  /** Every tanker on the board, flattened out of its location grouping. */
+  const tankers = useMemo(
+    () => (board?.locations || []).flatMap((loc) => loc.tankers || []),
+    [board],
+  );
 
-  const openHire = () => {
-    if (!selectedDoId) {
-      toast.error('Pick a delivery order first');
-      return;
-    }
-    setTarget({ mode: 'HIRE' });
-    setForm({
-      vendorId: '',
-      hireVehicleNumber: '',
-      hireDriverName: '',
-      hireDriverPhone: '',
-      previousCargo: '',
-      plannedQty: selectedOrder?.balanceQty ?? '',
-      pbRate: '',
-      pbRateUnit: 'PER_KL',
-      pbRateRemark: '',
-    });
-    setCheck(null);
-  };
+  /**
+   * Assignable now. Compatibility is only computed when a DO is selected, so
+   * `isCompatible === null` means "not evaluated" rather than "incompatible".
+   */
+  const eligible = useMemo(
+    () => tankers.filter((t) => t.isAvailable && t.isCompatible !== false),
+    [tankers],
+  );
 
-  const closeModal = () => {
-    setTarget(null);
-    setForm({});
-    setCheck(null);
-  };
+  const locations = useMemo(
+    () => [...new Set(tankers.map((t) => t.location).filter(Boolean))].sort(),
+    [tankers],
+  );
 
-  const setField = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
+  /**
+   * Ordering. "Nearest to origin" is deliberately not offered: nothing in the
+   * data holds a vehicle-to-loading-point distance, and a made-up proximity on a
+   * placement screen would be worse than no ordering at all. What can be said
+   * truthfully is whether a tanker is already sitting AT the loading point,
+   * which is an exact match, so that is the default.
+   */
+  const atLoadingPoint = (t) =>
+    Boolean(order?.fromLocation)
+    && String(t.location || '').toLowerCase() === String(order.fromLocation).toLowerCase();
 
-  /** Ask the server what would happen — same code path the submit runs. */
-  const runCheck = useCallback(async () => {
-    if (!target || !selectedDoId) return;
-    setChecking(true);
-    try {
-      const payload = {
-        doId: selectedDoId,
-        vehicleType: target.mode,
-        ...(target.mode === 'OWN'
-          ? {
-              vehicleId: form.vehicleId,
-              ...(form.driverId ? { driverId: form.driverId } : {}),
-            }
-          : {
-              ...(form.vendorId ? { vendorId: form.vendorId } : {}),
-              ...(form.hireVehicleNumber ? { hireVehicleNumber: form.hireVehicleNumber } : {}),
-              ...(form.previousCargo ? { previousCargo: form.previousCargo } : {}),
-              ...(form.pbRate ? { pbRate: Number(form.pbRate) } : {}),
-            }),
-        ...(form.plannedQty ? { plannedQty: Number(form.plannedQty) } : {}),
-      };
-      // Hire needs a vendor before the server can say anything useful.
-      if (target.mode === 'HIRE' && !form.vendorId) {
-        setCheck(null);
-        return;
-      }
-      const res = await PlacementService.checkRestrictions(payload);
-      setCheck(res.data);
-    } catch (err) {
-      toast.error(err.message);
-      setCheck(null);
-    } finally {
-      setChecking(false);
-    }
-  }, [target, selectedDoId, form]);
-
-  useEffect(() => {
-    if (!target) return;
-    const t = setTimeout(runCheck, 300);
-    return () => clearTimeout(t);
-  }, [target, runCheck]);
-
-  const handlePlace = async (e) => {
-    e.preventDefault();
-    if (!check?.canPlace) {
-      toast.error('Resolve the blocking issues first');
-      return;
-    }
-    setSaving(true);
-    try {
-      // Every warning shown must be acknowledged — the server enforces this too.
-      const acknowledgedWarnings = (check.warnings || []).map((w) => w.code);
-      let res;
-      if (target.mode === 'OWN') {
-        res = await PlacementService.placeOwn({
-          doId: selectedDoId,
-          vehicleId: form.vehicleId,
-          driverId: form.driverId,
-          plannedQty: Number(form.plannedQty),
-          acknowledgedWarnings,
-        });
-      } else {
-        const payload = {
-          doId: selectedDoId,
-          vendorId: form.vendorId,
-          hireVehicleNumber: form.hireVehicleNumber.trim().toUpperCase(),
-          hireDriverName: form.hireDriverName.trim(),
-          hireDriverPhone: form.hireDriverPhone.trim(),
-          previousCargo: form.previousCargo.trim().toUpperCase(),
-          plannedQty: Number(form.plannedQty),
-          acknowledgedWarnings,
-        };
-        if (form.pbRate) {
-          payload.pbRate = Number(form.pbRate);
-          payload.pbRateUnit = form.pbRateUnit;
-          payload.pbRateRemark = form.pbRateRemark.trim();
-        }
-        res = await PlacementService.placeHire(payload);
-      }
-
-      toast.success(
-        res.data.status === 'PENDING_APPROVAL'
-          ? `${res.data.placementNumber} created — waiting for approval`
-          : `${res.data.placementNumber} placed`,
+  const visible = useMemo(() => {
+    const q = vehicleSearch.trim().toLowerCase();
+    const base = (showAll ? tankers : eligible)
+      .filter((t) => !locFilter || t.location === locFilter)
+      .filter(
+        (t) => !q
+          || (t.registrationNumber || '').toLowerCase().includes(q)
+          || (t.model || '').toLowerCase().includes(q),
       );
-      closeModal();
-      fetchBoard(selectedDoId);
-      fetchOptions();
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setSaving(false);
-    }
+
+    return [...base].sort((a, b) => {
+      if (sortBy === 'CAPACITY') return (b.capacity || 0) - (a.capacity || 0);
+      if (sortBy === 'LOCATION') return String(a.location || '').localeCompare(String(b.location || ''));
+      const av = atLoadingPoint(a) ? 0 : 1;
+      const bv = atLoadingPoint(b) ? 0 : 1;
+      if (av !== bv) return av - bv;
+      return (b.capacity || 0) - (a.capacity || 0);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAll, tankers, eligible, locFilter, sortBy, vehicleSearch, order]);
+
+  const hidden = tankers.length - eligible.length;
+
+  /**
+   * A 300-tanker fleet rendered whole is 300 rows to scan for a decision that
+   * needs about ten. The list is already ordered by usefulness — loading point
+   * first — so the first page of it is the answer nearly every time; the rest is
+   * one click away rather than gone.
+   */
+  const PAGE = 25;
+  const rows = showEveryRow ? visible : visible.slice(0, PAGE);
+  const notShown = visible.length - rows.length;
+
+  /**
+   * The placement queue, in the order the work should be done:
+   *
+   *   1. expiring soonest — an expired DO cannot be placed at all
+   *   2. then nothing-placed before partly-placed — a partly-placed order is
+   *      already moving, an untouched one is not
+   *   3. then largest outstanding
+   *
+   * A dropdown of orders in creation order made the operator work this out for
+   * themselves every morning.
+   */
+  const queue = useMemo(() => {
+    const q = queueSearch.trim().toLowerCase();
+    const matched = orders.filter(
+      (o) => !q
+        || (o.doNumber || '').toLowerCase().includes(q)
+        || (o.partyId?.name || '').toLowerCase().includes(q)
+        || (o.material || '').toLowerCase().includes(q),
+    );
+    return [...matched].sort((a, b) => {
+      const ax = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+      const bx = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+      if (ax !== bx) return ax - bx;
+      const started = (o) => (o.liftedQty > 0 ? 1 : 0);
+      if (started(a) !== started(b)) return started(a) - started(b);
+      return (b.balanceQty || 0) - (a.balanceQty || 0);
+    });
+  }, [orders, queueSearch]);
+
+  const untouched = orders.filter((o) => !o.liftedQty).length;
+  const started = orders.length - untouched;
+
+  /** Whole days until a DO expires; negative once it has. */
+  const daysToExpiry = (o) =>
+    (o.expiryDate
+      ? Math.ceil((new Date(o.expiryDate).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+      : null);
+
+  /**
+   * What the branch's own tankers could still carry. Capacity is not a hard
+   * constraint — a placement may be for less than a tanker holds — so this is a
+   * ceiling, not a promise. It decides how loudly to offer hire, never whether
+   * hire is allowed.
+   */
+  const fleetCeiling = useMemo(
+    () => eligible.reduce((sum, t) => sum + (t.capacity || 0), 0),
+    [eligible],
+  );
+  const externalNeeded = Math.max(0, remaining - fleetCeiling);
+
+  /**
+   * The coverage bar pins itself over the vehicle rows, so it has to be worth
+   * the space. It is, when there is a gap to close or the order is done. It is
+   * not when the fleet already covers the balance: restating "remaining 20,
+   * fleet 95, gap none" tells the operator nothing they cannot read off the
+   * order card and the rows they are about to assign from.
+   */
+  const showCoverageBar = Boolean(order) && (remaining === 0 || externalNeeded > 0);
+
+  /**
+   * What one tanker would take: whichever of the outstanding balance and its own
+   * capacity runs out first. Shown on the button so the operator knows the size
+   * of the action before pressing it, and used as the drawer's default.
+   */
+  const assignQty = (t) => (t.capacity ? Math.min(remaining, t.capacity) : remaining);
+
+  const closeDrawer = () => setTarget(null);
+
+  const handlePlaced = () => {
+    setTarget(null);
+    fetchBoard(selectedDoId);
+    fetchPlaced(selectedDoId);
+    fetchOptions();
   };
 
+  const reasons = (t) => {
+    const list = [];
+    list.push({
+      ok: t.isAvailable,
+      text: t.isAvailable ? 'No active trip' : BOARD_STATE_LABEL[t.boardState] || t.boardState,
+    });
+    if (t.isCompatible !== null) {
+      list.push({
+        ok: t.isCompatible,
+        text: t.isCompatible
+          ? t.requiresCleaning
+            ? `Compatible after cleaning (last carried ${t.previousMaterial || 'nothing'})`
+            : 'Material compatible'
+          : t.incompatibleReason || 'Material not compatible',
+      });
+    }
+    return list;
+  };
+
+  // The sticky fulfilment bar only exists once an order is selected.
   return (
-    <div className="erp-page">
+    <div className={`erp-page ${showCoverageBar ? 'has-sticky-bar' : ''}`}>
       <div className="erp-header">
         <div>
           <h1>Placement Board</h1>
           <p className="erp-subtitle">
-            Tanker availability by location — pick a delivery order to check compatibility
+            Assign fleet or hired vehicles to delivery orders
           </p>
         </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-secondary" onClick={openHire} disabled={!selectedDoId}>
-            <Truck size={18} />
-            Place Hire Vehicle
-          </button>
-        </div>
       </div>
 
-      <div className="erp-toolbar">
-        <select
-          className="erp-filter"
-          value={selectedDoId}
-          onChange={(e) => setSelectedDoId(e.target.value)}
-          style={{ minWidth: 320 }}
-        >
-          <option value="">Select a delivery order…</option>
-          {orders.map((o) => (
-            <option key={o._id} value={o._id}>
-              {o.doNumber} · {o.partyId?.name} · {o.material} · {o.balanceQty} {o.qtyUnit} left
-            </option>
-          ))}
-        </select>
-        {board?.summary && (
-          <span className="erp-cell-muted">
-            {board.summary.available} available · {board.summary.onTrip} on trip ·{' '}
-            {board.summary.maintenance} in maintenance
-          </span>
-        )}
-      </div>
+      {!selectedDoId ? (
+        <>
+          <h2 className="erp-section-heading">
+            {orders.length} order{orders.length === 1 ? '' : 's'} awaiting placement
+            {orders.length > 0 && (
+              <>
+                <span className="erp-badge info">{untouched} not started</span>
+                {started > 0 && <span className="erp-badge purple">{started} partly placed</span>}
+              </>
+            )}
+          </h2>
 
-      {selectedOrder && (
-        <div className="erp-callout info" style={{ marginTop: 16 }}>
-          <Info size={16} />
-          <span>
-            <strong>{selectedOrder.doNumber}</strong> · {selectedOrder.material} ·{' '}
-            {selectedOrder.fromLocation} → {selectedOrder.toLocation} · balance{' '}
-            {selectedOrder.balanceQty} {selectedOrder.qtyUnit} · rate{' '}
-            {money(selectedOrder.sbRate)}
-          </span>
-        </div>
-      )}
+          {orders.length > 3 && (
+            <div className="erp-toolbar" style={{ marginTop: 0 }}>
+              <div className="erp-search">
+                <input
+                  type="search"
+                  value={queueSearch}
+                  onChange={(e) => setQueueSearch(e.target.value)}
+                  placeholder="Search order, customer or material…"
+                  style={{ paddingLeft: 14 }}
+                />
+              </div>
+            </div>
+          )}
 
-      {loading ? (
-        <div className="erp-container">
-          <div className="erp-state">
-            <p>Loading the board...</p>
+          <div className="erp-container">
+            {queue.length === 0 ? (
+              <div className="erp-state">
+                <Truck size={48} />
+                <p>{queueSearch ? 'Nothing matches that search' : 'Nothing to place'}</p>
+                <span className="erp-cell-muted">
+                  {queueSearch
+                    ? 'Clear the search to see the rest.'
+                    : 'Orders arrive here once a delivery order is raised and approved.'}
+                </span>
+              </div>
+            ) : (
+              <div className="erp-table-scroll">
+                <table className="erp-table">
+                  <thead>
+                    <tr>
+                      <th>Order</th>
+                      <th>Route</th>
+                      <th>Requirement</th>
+                      <th>Expires</th>
+                      <th aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {queue.map((o) => {
+                      const left = o.balanceQty || 0;
+                      const total = o.qty || 0;
+                      const placedQty = Math.max(0, total - left);
+                      const dte = daysToExpiry(o);
+                      const urgent = dte !== null && dte <= 1;
+                      return (
+                        <tr
+                          key={o._id}
+                          className="clickable"
+                          onClick={() => setSelectedDoId(o._id)}
+                        >
+                          <td>
+                            <div className="erp-cell-strong">{o.partyId?.name || '—'}</div>
+                            <div className="erp-cell-muted">
+                              {o.doNumber} · {o.material}
+                            </div>
+                          </td>
+                          <td className="erp-cell-muted">
+                            {o.fromLocation || '—'} → {o.toLocation || '—'}
+                          </td>
+                          <td>
+                            <div>{placedQty} / {total} {o.qtyUnit}</div>
+                            <div className="erp-progress-track" style={{ marginTop: 4, height: 5 }}>
+                              <span
+                                className="erp-progress-fill"
+                                style={{ width: `${total > 0 ? (placedQty / total) * 100 : 0}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td>
+                            {dte === null ? (
+                              <span className="erp-cell-muted">—</span>
+                            ) : (
+                              <span className={`erp-badge ${urgent ? 'danger' : dte <= 3 ? 'warning' : 'neutral'}`}>
+                                {urgent && <AlertTriangle size={11} />}
+                                {dte < 0
+                                  ? 'expired'
+                                  : dte === 0
+                                    ? 'today'
+                                    : dte === 1
+                                      ? 'tomorrow'
+                                      : `${dte} days`}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => setSelectedDoId(o._id)}
+                            >
+                              {placedQty > 0 ? 'Continue' : 'Start placement'}
+                              <ArrowRight size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {notShown > 0 && (
+                  <div className="erp-more-row">
+                    <span className="erp-cell-muted">
+                      Showing the {PAGE} most useful of {visible.length}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setShowEveryRow(true)}
+                    >
+                      Show all {visible.length}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+        </>
+      ) : loading ? (
+        <div className="erp-container">
+          <div className="erp-state"><p>Loading…</p></div>
         </div>
-      ) : !board || board.locations.length === 0 ? (
+      ) : !order ? (
         <div className="erp-container">
-          <div className="erp-state">
-            <Truck size={48} />
-            <p>No tankers on the board</p>
-            <span className="erp-cell-muted">
-              Add vehicles with a capacity and base location to see them here.
-            </span>
-          </div>
+          <div className="erp-state"><p>That order could not be loaded.</p></div>
         </div>
       ) : (
-        board.locations.map((loc) => (
-          <div className="erp-container" key={loc.location} style={{ marginTop: 20 }}>
-            <div
-              style={{
-                padding: '14px 16px',
-                borderBottom: '1px solid #f1f5f9',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
+        <>
+          {/* "Back" and "Change order" are the two things an operator actually
+              wants here. The old "Clear" was neither — nobody sets out to have
+              no order selected. */}
+          <div className="erp-toolbar" style={{ marginTop: 20 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setSelectedDoId('')}
             >
-              <strong>{loc.location}</strong>
-              <span className="erp-cell-muted">
-                {loc.available} of {loc.tankers.length} available
-              </span>
-            </div>
-
-            <div className="erp-table-scroll">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>Tanker</th>
-                    <th>Capacity</th>
-                    <th>Previous Material</th>
-                    <th>State</th>
-                    <th>Board Note</th>
-                    <th>Carry Forward</th>
-                    <th aria-label="Actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {loc.tankers.map((t) => {
-                    const blockedByCompat = t.isCompatible === false;
-                    const canPlace = t.isAvailable && !blockedByCompat;
-                    return (
-                      <tr key={t.vehicleId}>
-                        <td>
-                          <div className="erp-cell-strong">{t.registrationNumber}</div>
-                          {t.model && <div className="erp-cell-muted">{t.model}</div>}
-                        </td>
-                        <td className="erp-numeric">
-                          {t.capacity ? `${t.capacity} ${t.capacityUnit || ''}`.trim() : '—'}
-                        </td>
-                        <td>
-                          {t.previousMaterial || <span className="erp-cell-muted">—</span>}
-                          {blockedByCompat && (
-                            <div
-                              className="erp-cell-muted"
-                              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                            >
-                              <Ban size={12} /> {t.incompatibleReason}
-                            </div>
-                          )}
-                          {t.requiresCleaning && (
-                            <div className="erp-cell-muted">Needs cleaning first</div>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`erp-badge ${BOARD_STATE_TONE[t.boardState]}`}>
-                            {t.boardState.replace('_', ' ')}
-                          </span>
-                          {t.expectedFreeAt && (
-                            <div
-                              className="erp-cell-muted"
-                              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                            >
-                              <CalendarClock size={12} /> {dateLabel(t.expectedFreeAt)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="erp-cell-muted">{t.boardStatusRaw || '—'}</td>
-                        <td className="erp-numeric">
-                          {t.carriedForwardAmount > 0 ? money(t.carriedForwardAmount) : '—'}
-                        </td>
-                        <td>
-                          <div className="erp-actions">
-                            <button
-                              className="btn btn-primary"
-                              disabled={!canPlace || !selectedDoId}
-                              title={
-                                !selectedDoId
-                                  ? 'Pick a delivery order first'
-                                  : blockedByCompat
-                                    ? t.incompatibleReason
-                                    : !t.isAvailable
-                                      ? 'This tanker is not available'
-                                      : 'Place this tanker'
-                              }
-                              onClick={() => openOwn(t)}
-                            >
-                              Place
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+              <ArrowLeft size={15} />
+              Back to placement queue
+            </button>
+            <select
+              className="erp-filter"
+              value={selectedDoId}
+              onChange={(e) => setSelectedDoId(e.target.value)}
+              style={{ minWidth: 340, marginLeft: 'auto' }}
+              aria-label="Change delivery order"
+            >
+              {orders.map((o) => (
+                <option key={o._id} value={o._id}>
+                  {o.doNumber} · {o.partyId?.name} · {o.balanceQty} {o.qtyUnit} left
+                </option>
+              ))}
+            </select>
           </div>
-        ))
-      )}
 
-      {board?.spareDrivers?.length > 0 && (
-        <div className="erp-container" style={{ marginTop: 20 }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
-            <strong style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Users size={16} /> Spare Drivers ({board.spareDrivers.length})
-            </strong>
-          </div>
-          <div style={{ padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {board.spareDrivers.map((d) => (
-              <span key={d._id} className="erp-badge neutral">
-                {d.firstName} {d.lastName}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ─── Placement modal ─────────────────────────────────────────────── */}
-      {target && (
-        <div className="erp-modal-backdrop" onClick={closeModal}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="erp-modal-header">
-              <h2>
-                {target.mode === 'OWN'
-                  ? `Place ${target.tanker.registrationNumber}`
-                  : 'Place a Hire Vehicle'}
-              </h2>
-              <button className="btn-icon" onClick={closeModal}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handlePlace}>
-              <div className="erp-modal-body">
-                {/* Restriction verdict */}
-                {checking && (
-                  <div className="erp-callout info">
-                    <Info size={16} />
-                    <span>Checking restrictions…</span>
-                  </div>
-                )}
-
-                {check?.blocks?.map((b) => (
-                  <div className="erp-callout" key={b.code} style={{ background: '#fee2e2', color: '#b91c1c' }}>
-                    <Ban size={16} />
-                    <span>
-                      <strong>Blocked:</strong> {b.message}
-                    </span>
-                  </div>
-                ))}
-
-                {check?.warnings?.map((w) => (
-                  <div className="erp-callout" key={w.code} style={{ background: '#fef3c7', color: '#b45309' }}>
-                    <AlertTriangle size={16} />
-                    <span>
-                      <strong>Needs approval:</strong> {w.message}
-                    </span>
-                  </div>
-                ))}
-
-                {check?.info?.map((i) => (
-                  <div className="erp-callout info" key={i.code}>
-                    <Info size={16} />
-                    <span>{i.message}</span>
-                  </div>
-                ))}
-
-                {check?.canPlace && !check.needsApproval && (
-                  <div className="erp-callout success">
-                    <CheckCircle2 size={16} />
-                    <span>Nothing blocking — this will be placed straight away.</span>
-                  </div>
-                )}
-
-                <div className="erp-form-grid" style={{ marginTop: 8 }}>
-                  {target.mode === 'OWN' ? (
-                    <>
-                      <div className="erp-field">
-                        <label htmlFor="pl-driver">
-                          Driver <span className="required">*</span>
-                        </label>
-                        <select
-                          id="pl-driver"
-                          value={form.driverId || ''}
-                          onChange={(e) => setField('driverId', e.target.value)}
-                          required
-                        >
-                          <option value="">Select a driver</option>
-                          {drivers.map((d) => (
-                            <option key={d._id} value={d._id}>
-                              {d.firstName} {d.lastName}
-                            </option>
-                          ))}
-                        </select>
-                        {drivers.length === 0 && (
-                          <span className="erp-field-hint">
-                            No spare drivers — every driver is on a live placement.
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="erp-field">
-                        <label htmlFor="pl-qty">
-                          Quantity <span className="required">*</span>
-                        </label>
-                        <input
-                          id="pl-qty"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={form.plannedQty || ''}
-                          onChange={(e) => setField('plannedQty', e.target.value)}
-                          required
-                        />
-                        <span className="erp-field-hint">
-                          Tanker capacity {target.tanker.capacity || '—'}{' '}
-                          {target.tanker.capacityUnit || ''}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="erp-field full">
-                        <label htmlFor="pl-vendor">
-                          Vendor <span className="required">*</span>
-                        </label>
-                        <select
-                          id="pl-vendor"
-                          value={form.vendorId || ''}
-                          onChange={(e) => setField('vendorId', e.target.value)}
-                          required
-                        >
-                          <option value="">Select a vendor</option>
-                          {vendors.map((v) => (
-                            <option key={v._id} value={v._id} disabled={v.isBlacklisted}>
-                              {v.name} ({v.code}){v.isBlacklisted ? ' — blacklisted' : ''}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="erp-field">
-                        <label htmlFor="pl-hv">
-                          Tanker Number <span className="required">*</span>
-                        </label>
-                        <input
-                          id="pl-hv"
-                          value={form.hireVehicleNumber || ''}
-                          onChange={(e) =>
-                            setField('hireVehicleNumber', e.target.value.toUpperCase())
-                          }
-                          placeholder="WB11AA1111"
-                          required
-                        />
-                      </div>
-
-                      <div className="erp-field">
-                        <label htmlFor="pl-prev">
-                          Previous Cargo <span className="required">*</span>
-                        </label>
-                        <input
-                          id="pl-prev"
-                          value={form.previousCargo || ''}
-                          onChange={(e) => setField('previousCargo', e.target.value.toUpperCase())}
-                          placeholder="MTO"
-                          required
-                        />
-                        <span className="erp-field-hint">
-                          A hired tanker has no history here — this drives the safety check.
-                        </span>
-                      </div>
-
-                      <div className="erp-field">
-                        <label htmlFor="pl-dname">
-                          Driver Name <span className="required">*</span>
-                        </label>
-                        <input
-                          id="pl-dname"
-                          value={form.hireDriverName || ''}
-                          onChange={(e) => setField('hireDriverName', e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="erp-field">
-                        <label htmlFor="pl-dphone">
-                          Driver Phone <span className="required">*</span>
-                        </label>
-                        <input
-                          id="pl-dphone"
-                          value={form.hireDriverPhone || ''}
-                          onChange={(e) => setField('hireDriverPhone', e.target.value)}
-                          placeholder="9876543210"
-                          required
-                        />
-                      </div>
-
-                      <div className="erp-field">
-                        <label htmlFor="pl-hqty">
-                          Quantity <span className="required">*</span>
-                        </label>
-                        <input
-                          id="pl-hqty"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={form.plannedQty || ''}
-                          onChange={(e) => setField('plannedQty', e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="erp-field">
-                        <label htmlFor="pl-pb">Purchase Rate (₹)</label>
-                        <input
-                          id="pl-pb"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={form.pbRate || ''}
-                          onChange={(e) => setField('pbRate', e.target.value)}
-                        />
-                        <span className="erp-field-hint">
-                          Blank uses the rate master. Entering one needs a remark.
-                        </span>
-                      </div>
-
-                      {form.pbRate && (
-                        <div className="erp-field full">
-                          <label htmlFor="pl-pbremark">
-                            Reason for the manual rate <span className="required">*</span>
-                          </label>
-                          <textarea
-                            id="pl-pbremark"
-                            value={form.pbRateRemark || ''}
-                            onChange={(e) => setField('pbRateRemark', e.target.value)}
-                            required
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
+          {/* ── The requirement ─────────────────────────────────────────────── */}
+          <section className="erp-order-card">
+            <div className="erp-order-card-head">
+              <div>
+                <div className="erp-order-card-party">{order.partyId?.name || '—'}</div>
+                <div className="erp-cell-muted">
+                  {order.doNumber} · {order.fromLocation || '—'} → {order.toLocation || '—'} ·{' '}
+                  {order.material} · sale rate {money(order.sbRate)}
+                  {order.sbRateUnit ? `/${order.sbRateUnit.replace('PER_', '')}` : ''}
                 </div>
               </div>
+              <span
+                className={`erp-badge ${remaining === 0 ? 'success' : done > 0 ? 'purple' : 'info'}`}
+              >
+                {remaining === 0
+                  ? 'Fully placed'
+                  : done > 0
+                    ? 'Partially placed'
+                    : 'Ready for placement'}
+              </span>
+            </div>
 
-              <div className="erp-modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={saving || checking || !check?.canPlace}
-                >
-                  {saving
-                    ? 'Placing...'
-                    : check?.needsApproval
-                      ? 'Place & Request Approval'
-                      : 'Place Vehicle'}
-                </button>
+            <div className="erp-order-card-figures">
+              <div>
+                <span className="erp-order-figure-label">Required</span>
+                <span className="erp-order-figure">{required} {order.qtyUnit}</span>
               </div>
-            </form>
+              <div>
+                <span className="erp-order-figure-label">Placed</span>
+                <span className="erp-order-figure">{done} {order.qtyUnit}</span>
+              </div>
+              <div>
+                <span className="erp-order-figure-label">Remaining</span>
+                <span className="erp-order-figure is-remaining">
+                  {remaining} {order.qtyUnit}
+                </span>
+              </div>
+              {order.expiryDate && (
+                <div>
+                  <span className="erp-order-figure-label">Expires</span>
+                  <span className="erp-order-figure is-small">{dateLabel(order.expiryDate)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="erp-progress-track">
+              <span className="erp-progress-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </section>
+
+          {/* ── Already assigned ────────────────────────────────────────────── */}
+          {placed.length > 0 && (
+            <>
+              <h2 className="erp-section-heading">Assigned to this order</h2>
+              <div className="erp-container">
+                <div className="erp-table-scroll">
+                  <table className="erp-table">
+                    <thead>
+                      <tr>
+                        <th>Placement</th>
+                        <th>Vehicle</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th aria-label="Actions" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {placed.map((p) => (
+                        <tr key={p._id}>
+                          <td className="erp-cell-strong">{p.placementNumber}</td>
+                          <td>
+                            {p.vehicleId?.registrationNumber || p.hireVehicleNumber || '—'}
+                            {p.vendorId?.name && (
+                              <div className="erp-cell-muted">{p.vendorId.name}</div>
+                            )}
+                          </td>
+                          <td className="erp-cell-muted">
+                            {p.vehicleType === 'HIRE' ? 'Hired' : 'Own fleet'}
+                          </td>
+                          <td className="erp-numeric">{p.plannedQty} {order.qtyUnit}</td>
+                          <td>
+                            <span
+                              className={`erp-badge ${p.status === 'PENDING_APPROVAL' ? 'warning' : 'open'}`}
+                            >
+                              {p.status === 'PENDING_APPROVAL' ? 'Awaiting approval' : p.status}
+                            </span>
+                          </td>
+                          <td>
+                            {/* Not "Undo": the server needs a reason and may
+                                carry empty running forward, so this reverses a
+                                real operational commitment. */}
+                            <button
+                              type="button"
+                              className="erp-inline-link"
+                              onClick={() => setCancelling(p)}
+                            >
+                              Cancel
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── The fleet that can carry it ─────────────────────────────────── */}
+          <h2 className="erp-section-heading">
+            {showAll ? 'All tankers at this location' : 'Available fleet'}
+          </h2>
+
+          <div className="erp-toolbar" style={{ marginTop: 0 }}>
+            <span className="erp-cell-muted">
+              {eligible.length} of {tankers.length} can be assigned
+              {hidden > 0 && !showAll && ` · ${hidden} hidden`}
+            </span>
+
+            <div className="erp-search" style={{ flex: '1 1 220px' }}>
+              <Search size={16} className="search-icon" />
+              <input
+                type="search"
+                value={vehicleSearch}
+                onChange={(e) => setVehicleSearch(e.target.value)}
+                placeholder="Search vehicle number…"
+              />
+            </div>
+
+            {locations.length > 1 && (
+              <select
+                className="erp-filter"
+                value={locFilter}
+                onChange={(e) => setLocFilter(e.target.value)}
+                aria-label="Filter by location"
+              >
+                <option value="">All locations</option>
+                {locations.map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+            )}
+
+            <select
+              className="erp-filter"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label="Sort tankers"
+            >
+              <option value="LOADING_POINT">At the loading point first</option>
+              <option value="CAPACITY">Largest capacity first</option>
+              <option value="LOCATION">By location</option>
+            </select>
+            {/* Hire belongs beside the fleet it is an alternative to: the choice
+                is "assign one of these, or bring in an outside vehicle", and
+                that reads as one decision only when both sit together. */}
+            <div className="erp-toolbar-actions">
+              {hidden > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowAll((v) => !v)}
+                >
+                  {showAll ? 'Only assignable' : 'Show all, with reasons'}
+                </button>
+              )}
+              {remaining > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setTarget({ mode: 'HIRE', suggestedQty: remaining })}
+                >
+                  <Plus size={15} />
+                  Hire vehicle
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+
+          <div className="erp-container">
+            {visible.length === 0 ? (
+              <div className="erp-state">
+                <Truck size={48} />
+                <p>No tanker at this location can carry this order</p>
+                <span className="erp-cell-muted">
+                  {tankers.length === 0
+                    ? 'No tankers on the board. Add vehicles with a capacity and base location.'
+                    : 'Every tanker is on a trip, in maintenance, or carrying an incompatible material.'}
+                </span>
+              </div>
+            ) : (
+              <div className="erp-table-scroll">
+                <table className="erp-table">
+                  <thead>
+                    <tr>
+                      <th>Vehicle</th>
+                      <th>Location</th>
+                      <th>Capacity</th>
+                      <th>Compatibility</th>
+                      <th aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((t) => {
+                      const assignable = t.isAvailable && t.isCompatible !== false;
+                      return (
+                        <tr key={t.vehicleId}>
+                          <td>
+                            <div className="erp-cell-strong">{t.registrationNumber}</div>
+                            {t.model && <div className="erp-cell-muted">{t.model}</div>}
+                          </td>
+                          <td>
+                            {t.location}
+                            {atLoadingPoint(t) && (
+                              <div className="erp-badge success" style={{ marginTop: 2 }}>
+                                at loading point
+                              </div>
+                            )}
+                            {t.expectedFreeAt && (
+                              <div className="erp-cell-muted">
+                                <CalendarClock size={11} style={{ verticalAlign: '-1px' }} />{' '}
+                                free {dateLabel(t.expectedFreeAt)}
+                              </div>
+                            )}
+                          </td>
+                          <td className="erp-numeric">
+                            {t.capacity != null ? `${t.capacity} ${t.capacityUnit || ''}` : '—'}
+                          </td>
+                          <td>
+                            <ul className="erp-reasons">
+                              {reasons(t).map((r) => (
+                                <li key={r.text} className={r.ok ? 'is-ok' : 'is-no'}>
+                                  {r.ok ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                                  {r.text}
+                                </li>
+                              ))}
+                            </ul>
+                            {t.carriedForwardAmount > 0 && (
+                              <div className="erp-cell-muted">
+                                carries {money(t.carriedForwardAmount)} empty running
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            {assignable ? (
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => setTarget({ mode: 'OWN', tanker: t })}
+                              >
+                                Assign {assignQty(t)} {order.qtyUnit}
+                              </button>
+                            ) : (
+                              <span className={`erp-badge ${BOARD_STATE_TONE[t.boardState] || 'neutral'}`}>
+                                {BOARD_STATE_LABEL[t.boardState] || t.boardState}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ── Coverage bar. Sticky, because with 300 tankers the shortfall
+                 and the only route out of it would otherwise sit several
+                 screens below the rows you are deciding between. ──────────── */}
+          {showCoverageBar && (
+          <div className="erp-sticky-bar">
+            {remaining > 0 ? (
+              <>
+                <div className="erp-coverage-figures">
+                  {/* Three figures that subtract: remaining − available fleet =
+                      gap. The earlier labels ("still required" against "your
+                      fleet can cover") described the same numbers but did not
+                      read as arithmetic, so a 100 KL order with 95 KL of fleet
+                      looked like it needed 100 and 5 at the same time. */}
+                  <div>
+                    <span className="erp-order-figure-label">Remaining</span>
+                    <span className="erp-order-figure is-remaining">
+                      {remaining} {order.qtyUnit}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="erp-order-figure-label">Available fleet</span>
+                    <span className="erp-order-figure is-small">
+                      {fleetCeiling} {order.qtyUnit}
+                      <span className="erp-cell-muted" style={{ fontWeight: 400 }}>
+                        {' '}· {eligible.length} tanker{eligible.length === 1 ? '' : 's'}
+                      </span>
+                    </span>
+                  </div>
+                  <div>
+                    <span className="erp-order-figure-label">Coverage gap</span>
+                    <span className="erp-order-figure is-small" style={{ color: '#b45309' }}>
+                      {externalNeeded} {order.qtyUnit}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="erp-coverage-actions">
+                  {/* The gap is a number the operator should not have to work
+                      out, so the button carries it and pre-fills the form. */}
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setTarget({ mode: 'HIRE', suggestedQty: externalNeeded })}
+                  >
+                    <Truck size={18} />
+                    Hire {externalNeeded} {order.qtyUnit}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <strong className="erp-coverage-done">
+                    <CheckCircle2 size={16} />
+                    Placement complete — {required} of {required} {order.qtyUnit} assigned
+                  </strong>
+                  <div className="erp-cell-muted">
+                    Every unit on {order.doNumber} has a vehicle against it.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => navigate('/erp/pipeline?tab=trips')}
+                >
+                  Go to trips
+                  <ArrowRight size={16} />
+                </button>
+              </>
+            )}
+          </div>
+          )}
+
+        </>
+      )}
+
+      {cancelling && (
+        <CancelPlacementDrawer
+          placement={cancelling}
+          qtyUnit={order?.qtyUnit || ''}
+          onClose={() => setCancelling(null)}
+          onCancelled={() => {
+            setCancelling(null);
+            fetchBoard(selectedDoId);
+            fetchPlaced(selectedDoId);
+            fetchOptions();
+          }}
+        />
+      )}
+
+      {target && (
+        <PlacementDrawer
+          target={target}
+          order={order}
+          vendors={vendors}
+          drivers={drivers}
+          onClose={closeDrawer}
+          onPlaced={handlePlaced}
+        />
       )}
     </div>
   );

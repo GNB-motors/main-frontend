@@ -25,7 +25,7 @@ const ErpPipelinePage = () => {
     <div className="erp-page">
       <PageHeader
         title="Operations Pipeline"
-        subtitle="Manage Delivery Orders, Placement Board, and Active Trips"
+        subtitle="Release orders, assign vehicles, and follow every trip to payment"
         breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Pipeline' }]}
       />
 
@@ -47,7 +47,7 @@ const ErpPipelinePage = () => {
             className={`erp-tab ${activeTab === 'trips' ? 'active' : ''}`}
             onClick={() => handleTabChange('trips')}
           >
-            Active Trips
+            Trip Pipeline
           </button>
         </div>
       </div>

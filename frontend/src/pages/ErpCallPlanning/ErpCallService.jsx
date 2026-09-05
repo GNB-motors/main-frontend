@@ -51,11 +51,20 @@ const ErpCallService = {
    * FOLLOW_UP / NO_RESPONSE need both remarks and nextFollowUpDate; the server
    * rejects the request otherwise. SURE_ORDER returns a doDraft for Stage 2.
    */
-  recordOutcome: async (taskId, { outcome, remarks, nextFollowUpDate }) => {
+  recordOutcome: async (
+    taskId,
+    { outcome, remarks, nextFollowUpDate, orderMaterial, orderQty, orderQtyUnit },
+  ) => {
     try {
       const body = { outcome };
       if (remarks) body.remarks = remarks;
       if (nextFollowUpDate) body.nextFollowUpDate = nextFollowUpDate;
+      // The server forbids these on any other outcome, so send them only here.
+      if (outcome === 'SURE_ORDER') {
+        body.orderMaterial = orderMaterial;
+        body.orderQty = Number(orderQty);
+        body.orderQtyUnit = orderQtyUnit;
+      }
       const response = await apiClient.post(`${BASE}/tasks/${taskId}/outcome`, body);
       return response.data;
     } catch (error) {
@@ -69,6 +78,20 @@ const ErpCallService = {
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to create call task');
+    }
+  },
+
+  /**
+   * Sure orders that still owe a delivery order — the operations team's queue.
+   * 404s when the org has no Call Planning feature, which callers must treat as
+   * "no queue" rather than an error.
+   */
+  getPendingOrders: async (params = {}) => {
+    try {
+      const response = await apiClient.get(`${BASE}/pending-orders`, { params });
+      return response.data;
+    } catch (error) {
+      throw unwrapError(error, 'Failed to fetch pending orders');
     }
   },
 

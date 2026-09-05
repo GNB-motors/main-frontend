@@ -74,6 +74,83 @@
 .trippipe-stat.attention .trippipe-stat-value { color: var(--p-warn); }
 .trippipe-stat.idle .trippipe-stat-value { color: var(--p-muted); }
 
+/* ── Two tiers, because the seven counts were not seven equal things ───────
+   "Awaiting CN" is work for now; "Awaiting payment" is a trip sitting with
+   accounts. Equal cards made the operator read all seven to find the one they
+   act on. The headline pair stays a card; the rest become stage filters. */
+.trippipe-summary--lead {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-bottom: 12px;
+}
+
+.trippipe-stat.lead {
+  padding: 14px 16px;
+}
+
+.trippipe-stat.lead .trippipe-stat-value {
+  font-size: 30px;
+}
+
+.trippipe-stat.lead.attention {
+  border-left: 3px solid var(--p-warn);
+}
+
+.trippipe-stat-hint {
+  display: block;
+  padding-top: 3px;
+  font-size: 11px;
+  color: var(--p-muted);
+}
+
+.trippipe-stagerow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.trippipe-stagerow-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--p-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.trippipe-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: var(--p-surface);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--p-muted);
+  cursor: pointer;
+}
+
+.trippipe-chip:hover {
+  border-color: #c9d2e2;
+  color: inherit;
+}
+
+.trippipe-chip.active {
+  border-color: var(--p-accent);
+  background: var(--p-accent-soft);
+  color: inherit;
+}
+
+.trippipe-chip-count {
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+.trippipe-chip.attention .trippipe-chip-count { color: var(--p-warn); }
+
 /* ── Toolbar ──────────────────────────────────────────────────────────────── */
 .trippipe-toolbar {
   display: flex;
@@ -238,8 +315,22 @@
 /* ── Mini lifecycle indicator ─────────────────────────────────────────────── */
 .trippipe-mini {
   display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trippipe-mini-segs {
+  display: inline-flex;
   align-items: center;
   gap: 3px;
+}
+
+/* Eight dots do not say how far along a trip is on their own. */
+.trippipe-mini-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--p-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .trippipe-mini-seg {
