@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Check, Info, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  AlertTriangle, ArrowUpRight, Check, Info, Truck, X,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
 import ApprovalService from './ApprovalService';
@@ -19,6 +22,9 @@ const Row = ({ label, children }) => (
 
 const personName = (u) =>
   u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || '—' : '—';
+
+const money = (n) =>
+  (typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : null);
 
 /**
  * One approval request, from why it fired to the decision.
@@ -41,6 +47,8 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
 
   const pending = approval.status === 'PENDING';
   const entityName = ENTITY_TYPE_LABELS[approval.entityType] || approval.entityType;
+  const ctx = approval.context || {};
+  const hasContext = Boolean(ctx.trip || ctx.partyName || ctx.doNumber || ctx.amount != null);
   const reasonRows = formatReason(approval.reason);
   const snapshotRows = formatReason(approval.requestPayload);
 
@@ -105,6 +113,32 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
             on it clears. Rejecting cancels it and closes any sibling requests.
           </span>
         </div>
+      )}
+
+      {hasContext && (
+        <>
+          <h3 className="erp-detail-heading">What you&apos;re approving</h3>
+          <div className="erp-detail-block">
+            {ctx.trip && (
+              <Row label="Trip">
+                <Link to={`/erp/trips/${ctx.trip.id}`} className="appr-trip-inline">
+                  <Truck size={13} />
+                  {ctx.trip.tripNumber}
+                  {ctx.trip.route ? ` · ${ctx.trip.route}` : ''}
+                  <ArrowUpRight size={12} />
+                </Link>
+              </Row>
+            )}
+            <Row label="Document">
+              {entityName}
+              {approval.entityLabel ? ` · ${approval.entityLabel}` : ''}
+            </Row>
+            {ctx.partyName && <Row label="Party">{ctx.partyName}</Row>}
+            {ctx.vehicle && <Row label="Vehicle">{ctx.vehicle}</Row>}
+            {ctx.doNumber && <Row label="DO">{ctx.doNumber}</Row>}
+            {ctx.amount != null && <Row label="Amount">{money(ctx.amount)}</Row>}
+          </div>
+        </>
       )}
 
       <h3 className="erp-detail-heading">Why this was raised</h3>

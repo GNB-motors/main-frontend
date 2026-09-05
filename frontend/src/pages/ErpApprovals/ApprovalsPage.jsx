@@ -9,7 +9,10 @@
 import React, {
   useState, useEffect, useCallback, useMemo,
 } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  ShieldCheck, Truck, ArrowUpRight, Clock, User,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import ApprovalService from './ApprovalService';
 import ApprovalReviewDrawer from './ApprovalReviewDrawer';
@@ -23,6 +26,24 @@ import {
   formatReason,
 } from './approval.constants';
 import '../../styles/erp.css';
+
+const money = (n) =>
+  (typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : null);
+
+/** Compact "raised 2h ago" so the queue conveys urgency without a full date. */
+const relativeTime = (d) => {
+  if (!d) return '—';
+  const t = new Date(d).getTime();
+  if (Number.isNaN(t)) return '—';
+  const mins = Math.round((Date.now() - t) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 const ApprovalsPage = () => {
   const [approvals, setApprovals] = useState([]);
@@ -101,42 +122,75 @@ const ApprovalsPage = () => {
     [approvals],
   );
 
-  const renderRow = (a) => (
-    <tr key={a._id}>
-      <td>
-        <div className="erp-cell-strong">{a.entityLabel || '—'}</div>
-        <div className="erp-cell-muted">
-          {ENTITY_TYPE_LABELS[a.entityType] || a.entityType}
-        </div>
-      </td>
-      <td>{APPROVAL_TYPE_LABELS[a.type] || a.type}</td>
-      <td className="erp-cell-muted">
-        {formatReason(a.reason)
-          .slice(0, 2)
-          .map((r) => `${r.label}: ${r.value}`)
-          .join(' · ') || '—'}
-      </td>
-      <td className="erp-cell-muted">{requesterName(a)}</td>
-      <td>
-        <span className={`erp-badge ${STATUS_TONE[a.status] || 'neutral'}`}>
-          {a.status}
-        </span>
-      </td>
-      <td>
-        <div className="erp-actions">
-          {a.status === 'PENDING' ? (
-            <button className="btn btn-primary" onClick={() => setActive(a)}>
-              Review
-            </button>
+  const renderCard = (a) => {
+    const ctx = a.context || {};
+    const { trip } = ctx;
+    const pending = a.status === 'PENDING';
+    const why = formatReason(a.reason)
+      .slice(0, 2)
+      .map((r) => `${r.label}: ${r.value}`)
+      .join(' · ');
+    const entityText = `${ENTITY_TYPE_LABELS[a.entityType] || a.entityType}${a.entityLabel ? ` · ${a.entityLabel}` : ''}`;
+    const chips = [
+      trip ? entityText : null, // when no trip, entity is the sub-line below instead
+      ctx.partyName,
+      ctx.vehicle,
+      ctx.doNumber ? `DO ${ctx.doNumber}` : null,
+    ].filter(Boolean);
+
+    return (
+      <article key={a._id} className="appr-card">
+        <div className="appr-card-body">
+          <div className="appr-card-head">
+            <span className="appr-type">{APPROVAL_TYPE_LABELS[a.type] || a.type}</span>
+            <span className={`erp-badge ${STATUS_TONE[a.status] || 'neutral'}`}>{a.status}</span>
+          </div>
+
+          {trip ? (
+            <Link to={`/erp/trips/${trip.id}`} className="appr-trip">
+              <Truck size={14} />
+              <span className="appr-trip-num">{trip.tripNumber}</span>
+              {trip.route && <span className="appr-trip-route">{trip.route}</span>}
+            </Link>
           ) : (
-            <button className="btn btn-secondary" onClick={() => setActive(a)}>
-              Details
-            </button>
+            <div className="appr-entity">{entityText}</div>
+          )}
+
+          {chips.length > 0 && (
+            <div className="appr-chips">
+              {chips.map((c) => (
+                <span key={c} className="appr-chip">{c}</span>
+              ))}
+            </div>
+          )}
+
+          {why && <p className="appr-why">{why}</p>}
+
+          <div className="appr-meta">
+            <span><User size={12} /> {requesterName(a)}</span>
+            <span><Clock size={12} /> {relativeTime(a.createdAt)}</span>
+          </div>
+        </div>
+
+        <div className="appr-card-side">
+          {ctx.amount != null && <div className="appr-amount">{money(ctx.amount)}</div>}
+          <button
+            type="button"
+            className={`btn ${pending ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActive(a)}
+          >
+            {pending ? 'Review' : 'Details'}
+          </button>
+          {trip && (
+            <Link to={`/erp/trips/${trip.id}`} className="appr-open-trip">
+              Open trip
+              <ArrowUpRight size={12} />
+            </Link>
           )}
         </div>
-      </td>
-    </tr>
-  );
+      </article>
+    );
+  };
 
   return (
     <div className="erp-page">
@@ -207,33 +261,17 @@ const ApprovalsPage = () => {
           </div>
         ) : (
           <>
-            <div className="erp-table-scroll">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>Reference</th>
-                    <th>Trigger</th>
-                    <th>Why</th>
-                    <th>Raised by</th>
-                    <th>Status</th>
-                    <th aria-label="Actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {grouped.map((g) => (
-                    <React.Fragment key={g.bucket.id}>
-                      <tr className="erp-group-row">
-                        <td colSpan={6}>
-                          {g.bucket.label}
-                          <span className="erp-group-count">{g.rows.length}</span>
-                        </td>
-                      </tr>
-                      {g.rows.map(renderRow)}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {grouped.map((g) => (
+              <section key={g.bucket.id} className="appr-group">
+                <h2 className="appr-group-head">
+                  {g.bucket.label}
+                  <span className="erp-group-count">{g.rows.length}</span>
+                </h2>
+                <div className="appr-list">
+                  {g.rows.map(renderCard)}
+                </div>
+              </section>
+            ))}
 
             {meta.totalPages > 1 && (
               <div className="erp-pagination">

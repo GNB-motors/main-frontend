@@ -2062,3 +2062,113 @@
   font-size: 12.5px;
   color: #6b7280;
 }
+
+/* ── Approval Center: context-rich request cards ────────────────────────────
+   Each card answers what is being approved, FOR WHICH TRIP, for whom and how
+   much — so an approver never has to open a document number to know what it is. */
+.appr-group { margin-bottom: 22px; }
+.appr-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.appr-list { display: grid; gap: 10px; }
+.appr-card {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+}
+.appr-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.appr-card-head { display: flex; align-items: center; gap: 10px; }
+.appr-type { font-size: 15px; font-weight: 700; color: #111827; }
+.appr-trip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 4px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.appr-trip:hover { background: #dbeafe; }
+.appr-trip-num { font-weight: 700; }
+.appr-trip-route { color: #3b5ba5; font-weight: 500; }
+.appr-entity { font-size: 13.5px; font-weight: 600; color: #374151; }
+.appr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.appr-chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.appr-why { margin: 0; font-size: 12.5px; color: #6b7280; }
+.appr-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #9ca3af; }
+.appr-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.appr-card-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 128px;
+  text-align: right;
+}
+.appr-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+.appr-open-trip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2f5fd0;
+  text-decoration: none;
+}
+.appr-open-trip:hover { text-decoration: underline; }
+.appr-trip-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #2f5fd0;
+  font-weight: 600;
+  text-decoration: none;
+}
+.appr-trip-inline:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .appr-card { flex-direction: column; }
+  .appr-card-side {
+    align-items: flex-start;
+    text-align: left;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
