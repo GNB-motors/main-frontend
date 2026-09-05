@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowUpRight, Check, Info, Truck, X,
+  AlertTriangle, Check, Info, Truck, X,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
 import ApprovalService from './ApprovalService';
 import {
@@ -37,6 +38,9 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
   const [decision, setDecision] = useState('');
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Trip is a link only for users who can work operations; others see it as text.
+  const { canAccess } = useFeatureFlags();
+  const canOpenTrip = canAccess('erpOperations');
 
   useEffect(() => {
     setDecision('');
@@ -121,12 +125,19 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
           <div className="erp-detail-block">
             {ctx.trip && (
               <Row label="Trip">
-                <Link to={`/erp/trips/${ctx.trip.id}`} className="appr-trip-inline">
-                  <Truck size={13} />
-                  {ctx.trip.tripNumber}
-                  {ctx.trip.route ? ` · ${ctx.trip.route}` : ''}
-                  <ArrowUpRight size={12} />
-                </Link>
+                {canOpenTrip ? (
+                  <Link to={`/erp/trips/${ctx.trip.id}`} className="appr-trip-inline">
+                    <Truck size={13} />
+                    {ctx.trip.tripNumber}
+                    {ctx.trip.route ? ` · ${ctx.trip.route}` : ''}
+                  </Link>
+                ) : (
+                  <span className="appr-trip-inline appr-trip-inline--static">
+                    <Truck size={13} />
+                    {ctx.trip.tripNumber}
+                    {ctx.trip.route ? ` · ${ctx.trip.route}` : ''}
+                  </span>
+                )}
               </Row>
             )}
             <Row label="Document">

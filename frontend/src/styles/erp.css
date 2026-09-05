@@ -2172,3 +2172,15 @@
     gap: 12px;
   }
 }
+
+/* Trip shown as plain text (no operations access → not a link). */
+.appr-trip--static {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #111827;
+  cursor: default;
+}
+.appr-trip--static:hover { background: #f3f4f6; }
+.appr-trip--static .appr-trip-route { color: #6b7280; }
+.appr-trip-inline--static { color: #111827; cursor: default; }
+.appr-trip-inline--static:hover { text-decoration: none; }

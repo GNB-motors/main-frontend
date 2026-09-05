@@ -11,9 +11,10 @@ import React, {
 } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ShieldCheck, Truck, ArrowUpRight, Clock, User,
+  ShieldCheck, Truck, Clock, User,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import ApprovalService from './ApprovalService';
 import ApprovalReviewDrawer from './ApprovalReviewDrawer';
 import {
@@ -54,6 +55,11 @@ const ApprovalsPage = () => {
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
 
   const [active, setActive] = useState(null);
+
+  // Only users who can actually work operations get a link into the trip screen;
+  // for everyone else the trip is shown as plain text, not a dead-end link.
+  const { canAccess } = useFeatureFlags();
+  const canOpenTrip = canAccess('erpOperations');
 
   const fetchApprovals = useCallback(async (status, type, page = 1) => {
     setLoading(true);
@@ -138,6 +144,24 @@ const ApprovalsPage = () => {
       ctx.doNumber ? `DO ${ctx.doNumber}` : null,
     ].filter(Boolean);
 
+    // The trip identity is always shown; it is a link into the trip screen only
+    // for users with operations access, otherwise plain (non-clickable) text.
+    const tripInner = trip && (
+      <>
+        <Truck size={14} />
+        <span className="appr-trip-num">{trip.tripNumber}</span>
+        {trip.route && <span className="appr-trip-route">{trip.route}</span>}
+      </>
+    );
+    let tripEl;
+    if (!trip) {
+      tripEl = <div className="appr-entity">{entityText}</div>;
+    } else if (canOpenTrip) {
+      tripEl = <Link to={`/erp/trips/${trip.id}`} className="appr-trip">{tripInner}</Link>;
+    } else {
+      tripEl = <div className="appr-trip appr-trip--static">{tripInner}</div>;
+    }
+
     return (
       <article key={a._id} className="appr-card">
         <div className="appr-card-body">
@@ -146,15 +170,7 @@ const ApprovalsPage = () => {
             <span className={`erp-badge ${STATUS_TONE[a.status] || 'neutral'}`}>{a.status}</span>
           </div>
 
-          {trip ? (
-            <Link to={`/erp/trips/${trip.id}`} className="appr-trip">
-              <Truck size={14} />
-              <span className="appr-trip-num">{trip.tripNumber}</span>
-              {trip.route && <span className="appr-trip-route">{trip.route}</span>}
-            </Link>
-          ) : (
-            <div className="appr-entity">{entityText}</div>
-          )}
+          {tripEl}
 
           {chips.length > 0 && (
             <div className="appr-chips">
@@ -181,12 +197,6 @@ const ApprovalsPage = () => {
           >
             {pending ? 'Review' : 'Details'}
           </button>
-          {trip && (
-            <Link to={`/erp/trips/${trip.id}`} className="appr-open-trip">
-              Open trip
-              <ArrowUpRight size={12} />
-            </Link>
-          )}
         </div>
       </article>
     );
