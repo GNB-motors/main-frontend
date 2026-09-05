@@ -43,6 +43,8 @@ const GHOST_DIM = 0.45;
  *   matches                  Set<string> of node ids matching the search
  *   selectedId, hoverId      string | null
  *   neighbours               Set<string> | object<string, truthy>
+ *   overlay                  Map<nodeId, 'added'|'changed'|'removed'> — the
+ *                            manifest-diff marks; owns the outline channel (P3)
  *   nodes                    projected nodes: { id, kind, state, name, r, x, y, s?, d?,
  *                            errorCount?|errBase?, host? } — x/y are SCREEN coords,
  *                            s is the projection scale (default 1), d the depth
@@ -166,6 +168,17 @@ export const draw = (ctx, model, C = canvasTokens(model.theme)) => {
       const a2 = -0.78, px = p.x + Math.cos(a2) * (r + 1.5), py = p.y + Math.sin(a2) * (r + 1.5);
       ctx.fillStyle = C.pipRim; ctx.beginPath(); ctx.arc(px, py, 3.1, 0, TAU); ctx.fill();
       ctx.fillStyle = C.faultCss; ctx.beginPath(); ctx.arc(px, py, 2.1, 0, TAU); ctx.fill();
+    }
+    /* The manifest-diff overlay owns the outline channel (P3): an 'added' or
+       'changed' mark on a live node — or a 'removed' mark that still resolves
+       to one — gets the diff outline ring, the SAME r+3 @ 1.5px recipe the
+       ghost treatment draws for unresolved removed nodes and the pre-redesign
+       overlay painted for every mark. Ghosts self-describe (state 'removed')
+       and drew their ring inside the state treatment above. */
+    const mark = (model.overlay && model.overlay.size) ? model.overlay.get(n.id) : null;
+    if (mark && !ghost && OUTLINE_COLOR[mark]) {
+      ctx.strokeStyle = OUTLINE_COLOR[mark]; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, TAU); ctx.stroke();
     }
     if (n.id === sel) {
       ctx.strokeStyle = C.selRing; ctx.lineWidth = 1.6;

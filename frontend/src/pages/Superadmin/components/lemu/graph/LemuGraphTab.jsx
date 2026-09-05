@@ -203,7 +203,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   /* Node object identity is preserved across rebuilds, and that is what stops
      the graph exploding every 30 seconds.
 
-     force-graph hands its node objects to d3-force, which MUTATES them with
+     The old renderer handed its node objects to d3-force, which MUTATED them with
      x/y/z and velocities. The liveness poll changes `activity` every 30s,
      which rebuilt every node as a fresh object — so d3 got nodes with no
      coordinates, discarded the settled layout and re-simulated from a random
@@ -310,7 +310,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      re-scatter the layout. The identity cache already merges live/ops into
      the SAME node objects, so when the node/link shape is unchanged (the
      only diff is activity), hand the renderer the PREVIOUS graph object
-     back — force-graph then sees no data change, does not reheat, and the
+     back — the renderer then sees no data change, does not reheat, and the
      canvas repaints colours/particles via the changed accessors alone. */
   const graphStableRef = useRef(null);
   const graphStable = useMemo(() => {
@@ -324,7 +324,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       /* the ref must hold the object we RETURNED last time — that is the
          object the renderer still holds; handing back a never-rendered
          sibling with the same shape still reads as a data swap to
-         force-graph and reheats the layout */
+         the sim and reheats the layout */
       if (sameShape) next = prev;
     }
     graphStableRef.current = next;
@@ -435,8 +435,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     };
   }, [graphStable, hiddenKinds, offStates, focusMatches, matches, selectedNodeId, hopDepth]);
 
-  /* dagSafe existed for the force-graph DAG layout, which threw on cycles.
-     The raw-canvas renderer pins the infra layer to columns in its own sim
+  /* dagSafe existed for the retired DAG-mode layout engine, which threw on
+     cycles. The raw-canvas renderer pins the infra layer to columns in its own sim
      (kgLayout) and never builds a DAG, so the cycle probe is gone with it. */
 
   const toggleKind = useCallback((kind) => {
@@ -462,7 +462,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   }, []);
 
   /* KgCanvas fits explicitly — first graph load and layer switch, both
-     internal to the shell — so the old force-graph fit latch (auto-fit on
+     internal to the shell — so the old renderer's fit latch (auto-fit on
      engine stop) has no consumer left and is gone. */
 
   /* The drawer resolves module/model/job ids plus every INFRA kind. Mounts
@@ -896,6 +896,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
               hopDepth={hopDepth}
               matches={matches}
               neighbours={analysisNeighbours}
+              overlay={overlayMarks}
               query={query}
               focusMatches={focusMatches}
               drawerOpen={!!selectedNodeId}

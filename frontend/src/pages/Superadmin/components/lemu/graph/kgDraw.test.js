@@ -292,6 +292,40 @@ describe('draw — the three node treatments', () => {
     expect(ctx.calls.some((c) => c.m === 'stroke' && c.strokeStyle === OUTLINE_COLOR.removed)).toBe(true);
   });
 
+  it('an overlay-added node draws its outline ring in OUTLINE_COLOR.added at r+3 @ 1.5px', () => {
+    const ctx = makeCtx();
+    draw(ctx, baseModel({
+      nodes: [measuredNode({ id: 'a', r: 10 }), measuredNode({ id: 'b', kind: 'store', x: 300, y: 100 })],
+      links: [{ s: 'a', t: 'b' }],
+      overlay: new Map([['a', 'added']]),
+    }));
+    // the ring colour comes straight from OUTLINE_COLOR, not a local literal
+    const ring = ctx.calls.find((c) => c.m === 'stroke' && c.strokeStyle === OUTLINE_COLOR.added);
+    expect(ring).toBeTruthy();
+    expect(ring.lineWidth).toBe(1.5);
+    expect(ctx.calls.some(
+      (c) => c.m === 'arc' && c.args[2] === 13 && c.strokeStyle === OUTLINE_COLOR.added
+    )).toBe(true);
+    // an unmarked node gets no diff outline of any colour
+    expect(ctx.calls.some(
+      (c) => c.m === 'arc' && c.args[0] === 300 && c.strokeStyle === OUTLINE_COLOR.changed
+    )).toBe(false);
+  });
+
+  it('an overlay-changed node draws its outline ring in OUTLINE_COLOR.changed, regardless of node state', () => {
+    const ctx = makeCtx();
+    draw(ctx, baseModel({
+      nodes: [measuredNode({ id: 'a', state: 'declared', r: 10 })],
+      overlay: new Map([['a', 'changed']]),
+    }));
+    const ring = ctx.calls.find((c) => c.m === 'stroke' && c.strokeStyle === OUTLINE_COLOR.changed);
+    expect(ring).toBeTruthy();
+    expect(ring.lineWidth).toBe(1.5);
+    expect(ctx.calls.some(
+      (c) => c.m === 'arc' && c.args[2] === 13 && c.strokeStyle === OUTLINE_COLOR.changed
+    )).toBe(true);
+  });
+
   it('a ghost among measured nodes keeps its dimming when a selection dims the others', () => {
     const ctx = makeCtx();
     draw(ctx, baseModel({

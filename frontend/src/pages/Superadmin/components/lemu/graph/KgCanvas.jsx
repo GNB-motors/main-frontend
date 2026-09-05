@@ -1,5 +1,5 @@
 /* KgCanvas — the React shell around the raw-canvas knowledge-graph renderer
-   (plan Task 7). Replaces the react-force-graph wrapper: it owns the <canvas>,
+   (plan Task 7). Replaces the legacy wrapper: it owns the <canvas>,
    the RAF loop, pointer binding, picking and camera state, and calls the pure
    modules for everything else — kgLayout (sim), kgProject (camera),
    kgDraw (draw pass), kgLabels (labels), kgPick (hit-testing).
@@ -88,6 +88,8 @@ const HIDE_TIP = { show: false, x: 0, y: 0, color: '#fff', name: '', meta: '' };
  *   selectedNodeId, hopDepth  — selection state, owned by the tab
  *   matches      Set<string> | null — search/state-dim/live-path opacity gate
  *   neighbours   Set<string> | null — analysis (blast/path) + hop highlight
+ *   overlay      Map<nodeId, 'added'|'changed'|'removed'> | null — manifest-diff
+ *                marks; owns the outline channel while non-empty (P3)
  *   query        raw search string
  *   focusMatches bool — search-focus mode suspends selection dimming
  *   motion       bool — particles and camera flights
@@ -110,6 +112,7 @@ const KgCanvas = ({
   hopDepth = 'all',
   matches = null,
   neighbours = null,
+  overlay = null,
   query = '',
   focusMatches = false,
   motion = true,
@@ -159,7 +162,7 @@ const KgCanvas = ({
   const propsRef = useRef({});
   propsRef.current = {
     graph, layer, is3d: mode === '3d', theme, selectedNodeId, hopDepth,
-    matches, neighbours, query, focusMatches, motion, drawerOpen,
+    matches, neighbours, overlay, query, focusMatches, motion, drawerOpen,
     onSelect, onAutoHop, onHover, onClearSelection, onHopDepth, onFocusSearch,
   };
 
@@ -439,6 +442,7 @@ const KgCanvas = ({
       selectedId: pr.selectedNodeId,
       hoverId: hoverRef.current,
       neighbours: pr.neighbours,
+      overlay: pr.overlay,
       nodes: sim.drawNodes,
       links: sim.drawLinks,
     }) || [];
