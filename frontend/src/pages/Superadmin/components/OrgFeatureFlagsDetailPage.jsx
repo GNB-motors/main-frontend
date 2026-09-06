@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import {
-  Save,
-  RotateCcw,
-  Plus,
-  Trash2,
-  X,
-  AlertTriangle,
-  ToggleRight,
-} from 'lucide-react';
+import { Save, RotateCcw, Plus, Trash2, X, AlertTriangle, ToggleRight } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
 import useApi from '../../../hooks/useApi';
@@ -74,7 +66,12 @@ const OrgFeatureFlagsDetailPage = () => {
     }
   }, [navigate]);
 
-  const { data: flagsData, loading, error: loadError, refetch } = useApi(
+  const {
+    data: flagsData,
+    loading,
+    error: loadError,
+    refetch,
+  } = useApi(
     async (signal) => {
       if (!orgId) return null;
       const [flagsRes, orgsRes, registryRes] = await Promise.all([
@@ -84,7 +81,7 @@ const OrgFeatureFlagsDetailPage = () => {
       ]);
       return { flagsRes, orgsRes, registryRes };
     },
-    [JSON.stringify({ orgId })]
+    [JSON.stringify({ orgId })],
   );
 
   useEffect(() => {
@@ -112,9 +109,7 @@ const OrgFeatureFlagsDetailPage = () => {
     setFlags((prev) => ({ ...prev, [key]: !prev?.[key] }));
   };
 
-  const dirty = knownKeys.some(
-    (k) => (flags?.[k] === true) !== (original?.[k] === true),
-  );
+  const dirty = knownKeys.some((k) => (flags?.[k] === true) !== (original?.[k] === true));
 
   const enabledCount = knownKeys.filter((k) => flags?.[k] === true).length;
 
@@ -183,9 +178,7 @@ const OrgFeatureFlagsDetailPage = () => {
     if (!removeTarget) return;
     setRemoving(true);
     try {
-      await apiClient.delete(
-        `/api/feature-flags/registry/${encodeURIComponent(removeTarget)}`,
-      );
+      await apiClient.delete(`/api/feature-flags/registry/${encodeURIComponent(removeTarget)}`);
       toast.success(`Removed "${removeTarget}"`);
       setRemoveTarget(null);
       refetch();
@@ -212,8 +205,13 @@ const OrgFeatureFlagsDetailPage = () => {
             'Loading…'
           ) : (
             <>
-              <strong>{enabledCount}</strong> of <strong>{knownKeys.length}</strong> features enabled
-              {dirty && <span className="ff-badge ff-badge--brand" style={{ marginLeft: 10 }}>Unsaved changes</span>}
+              <strong>{enabledCount}</strong> of <strong>{knownKeys.length}</strong> features
+              enabled
+              {dirty && (
+                <span className="ff-badge ff-badge--brand" style={{ marginLeft: 10 }}>
+                  Unsaved changes
+                </span>
+              )}
             </>
           )}
         </span>
@@ -291,9 +289,7 @@ const OrgFeatureFlagsDetailPage = () => {
                   return (
                     <tr key={key}>
                       <td>
-                        <span className="ff-feature__label">
-                          {FEATURE_LABELS[key] || key}
-                        </span>
+                        <span className="ff-feature__label">{FEATURE_LABELS[key] || key}</span>
                         {key === 'dailyMileageReport' && (
                           <div className="ff-feature__hint">
                             Sends a daily 09:00 IST mileage digest to this org.
@@ -352,23 +348,29 @@ const OrgFeatureFlagsDetailPage = () => {
       {addOpen && (
         <div
           className="ff-modal-overlay"
-          onClick={() => !adding && setAddOpen(false)}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !adding) setAddOpen(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (!adding) setAddOpen(false);
+            }
+          }}
         >
-          <div
-            className="ff-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="ff-add-title"
-          >
+          <div className="ff-modal" role="dialog" aria-modal="true" aria-labelledby="ff-add-title">
             <div className="ff-modal__header">
               <div>
                 <h2 className="ff-modal__title" id="ff-add-title">
                   Register a new feature flag
                 </h2>
                 <p className="ff-modal__subtitle">
-                  New flags become available to all organizations. Each one starts
-                  denied — flip the toggle to enable it.
+                  New flags become available to all organizations. Each one starts denied — flip the
+                  toggle to enable it.
                 </p>
               </div>
               <button
@@ -462,11 +464,22 @@ const OrgFeatureFlagsDetailPage = () => {
       {removeTarget && (
         <div
           className="ff-modal-overlay"
-          onClick={() => !removing && setRemoveTarget(null)}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !removing) setRemoveTarget(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (!removing) setRemoveTarget(null);
+            }
+          }}
         >
           <div
             className="ff-modal"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="ff-remove-title"
@@ -481,8 +494,8 @@ const OrgFeatureFlagsDetailPage = () => {
                     Remove “{removeTarget}”?
                   </h2>
                   <p className="ff-modal__subtitle">
-                    It stops appearing here for all organizations. Each org keeps its
-                    stored value, so re-registering the key restores it.
+                    It stops appearing here for all organizations. Each org keeps its stored value,
+                    so re-registering the key restores it.
                   </p>
                 </div>
               </div>

@@ -36,7 +36,7 @@ const STRUCTURAL_LINKS = new Set(['hosts', 'contains']);
 const hashOf = (id) => {
   let h = 0;
   const s = String(id);
-  for (let i = 0; i < s.length; i++) h = ((h * 31) + s.charCodeAt(i)) | 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
 };
 
@@ -54,7 +54,8 @@ const hostColumn = (n) => {
 };
 
 const nodeColumn = (n) => {
-  if (n.kind === 'store') return saysClickhouse(n) ? INFRA_COLUMN.storeClickhouse : INFRA_COLUMN.store;
+  if (n.kind === 'store')
+    return saysClickhouse(n) ? INFRA_COLUMN.storeClickhouse : INFRA_COLUMN.store;
   const col = INFRA_COLUMN[n.kind];
   return col == null ? 3.0 : col;
 };
@@ -153,9 +154,9 @@ const KgCanvas = ({
   /* Motion budget: read once. Reduced motion means no particles, no camera
      flights — every camera jump lands instantly. */
   const reducedRef = useRef(
-    typeof window !== 'undefined'
-      && window.matchMedia
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
 
   /* The frame loop must see current props without re-subscribing: refresh a
@@ -163,9 +164,25 @@ const KgCanvas = ({
      refs; no prop is captured in a closure that outlives it. */
   const propsRef = useRef({});
   propsRef.current = {
-    graph, layer, is3d: mode === '3d', theme, selectedNodeId, hopDepth,
-    matches, neighbours, overlay, query, focusMatches, motion, drawerOpen,
-    onSelect, onAutoHop, onHover, onClearSelection, onHopDepth, onFocusSearch,
+    graph,
+    layer,
+    is3d: mode === '3d',
+    theme,
+    selectedNodeId,
+    hopDepth,
+    matches,
+    neighbours,
+    overlay,
+    query,
+    focusMatches,
+    motion,
+    drawerOpen,
+    onSelect,
+    onAutoHop,
+    onHover,
+    onClearSelection,
+    onHopDepth,
+    onFocusSearch,
   };
 
   const requestFit = useCallback((instant) => {
@@ -198,11 +215,14 @@ const KgCanvas = ({
   /* First fit is gated on knowing the viewport size, which arrives
      asynchronously (ResizeObserver) — possibly AFTER the graph-prep effect
      ran. Both paths call here; whoever finds nodes + dims first wins. */
-  const maybeFit = useCallback((instant) => {
-    if (fittedRef.current || !simRef.current.nodes.length || !dimsRef.current.width) return;
-    fittedRef.current = true;
-    requestFit(instant);
-  }, [requestFit]);
+  const maybeFit = useCallback(
+    (instant) => {
+      if (fittedRef.current || !simRef.current.nodes.length || !dimsRef.current.width) return;
+      fittedRef.current = true;
+      requestFit(instant);
+    },
+    [requestFit],
+  );
 
   /* The Fit button lives one level up; publish the handler the same way the
      old wrapper did. `f` calls the same path from the keyboard handler. */
@@ -266,7 +286,9 @@ const KgCanvas = ({
         return p ? { x: p.x, y: p.y, s: p.s } : null;
       },
     };
-    return () => { if (instanceRef.current && instanceRef.current.graph) instanceRef.current = null; };
+    return () => {
+      if (instanceRef.current && instanceRef.current.graph) instanceRef.current = null;
+    };
   }, [instanceRef]);
 
   /* ---------- graph preparation ----------
@@ -343,7 +365,10 @@ const KgCanvas = ({
         r: n.r,
         host: layer === 'infra' && n.kind !== 'host' ? n.hostId || null : null,
         errorCount: n.errorCount,
-        x: 0, y: 0, s: 1, d: 0,
+        x: 0,
+        y: 0,
+        s: 1,
+        d: 0,
         _n: n,
       });
       if (n.kind !== 'host') simNodes.push(n); // hosts are not simulated (design: r = 0)
@@ -353,7 +378,8 @@ const KgCanvas = ({
     const simLinks = [];
     const drawLinks = [];
     graph.links.forEach((l) => {
-      const s = endId(l.source), t = endId(l.target);
+      const s = endId(l.source),
+        t = endId(l.target);
       simLinks.push({ s, t });
       if (layer === 'infra' && STRUCTURAL_LINKS.has(l.kind)) return;
       let traffic = false;
@@ -364,7 +390,8 @@ const KgCanvas = ({
         traffic = l.kind === 'mirrors';
         w = 0.8;
       } else {
-        const sn = byId.get(s), tn = byId.get(t);
+        const sn = byId.get(s),
+          tn = byId.get(t);
         traffic = Boolean((sn && sn.live) || (tn && tn.live));
         ops = Math.max((sn && sn.ops) || 0, (tn && tn.ops) || 0);
         w = Math.min(1, 0.3 + ops / 50);
@@ -375,7 +402,9 @@ const KgCanvas = ({
     const traf = drawLinks.filter((l) => l.traffic);
     if (traf.length > PARTICLE_EDGE_CAP) {
       traf.sort((a, b) => b._ops - a._ops);
-      traf.slice(PARTICLE_EDGE_CAP).forEach((l) => { l.traffic = false; });
+      traf.slice(PARTICLE_EDGE_CAP).forEach((l) => {
+        l.traffic = false;
+      });
     }
 
     const sig = `${key}|${nodes.map((n) => n.id).join(',')}|${graph.links.map((l) => `${endId(l.source)}>${endId(l.target)}`).join(',')}`;
@@ -418,7 +447,11 @@ const KgCanvas = ({
     }
 
     if (alphaRef.current >= 0.004 && sim.nodes.length) {
-      alphaRef.current = step(sim.nodes, sim.links, { layer: pr.layer, is3d, alpha: alphaRef.current });
+      alphaRef.current = step(sim.nodes, sim.links, {
+        layer: pr.layer,
+        is3d,
+        alpha: alphaRef.current,
+      });
       collide(sim.nodes, { layer: pr.layer });
     }
 
@@ -433,27 +466,28 @@ const KgCanvas = ({
       projOf.set(e.id, p);
     }
 
-    const chips = draw(ctx, {
-      width: W,
-      height: H,
-      dpr: d,
-      now,
-      theme: pr.theme,
-      layer: pr.layer,
-      k: cam.k,
-      mode3d: is3d,
-      motion: pr.motion,
-      reduced: reducedRef.current,
-      focus: pr.focusMatches,
-      query: pr.query,
-      matches: pr.matches,
-      selectedId: pr.selectedNodeId,
-      hoverId: hoverRef.current,
-      neighbours: pr.neighbours,
-      overlay: pr.overlay,
-      nodes: sim.drawNodes,
-      links: sim.drawLinks,
-    }) || [];
+    const chips =
+      draw(ctx, {
+        width: W,
+        height: H,
+        dpr: d,
+        now,
+        theme: pr.theme,
+        layer: pr.layer,
+        k: cam.k,
+        mode3d: is3d,
+        motion: pr.motion,
+        reduced: reducedRef.current,
+        focus: pr.focusMatches,
+        query: pr.query,
+        matches: pr.matches,
+        selectedId: pr.selectedNodeId,
+        hoverId: hoverRef.current,
+        neighbours: pr.neighbours,
+        overlay: pr.overlay,
+        nodes: sim.drawNodes,
+        links: sim.drawLinks,
+      }) || [];
     chipsRef.current = chips;
 
     const labels = placeLabels(sim.nodes, {
@@ -496,12 +530,18 @@ const KgCanvas = ({
       try {
         frame();
       } catch (err) {
-        if (!loggedRef.current) { loggedRef.current = true; console.error(err); }
+        if (!loggedRef.current) {
+          loggedRef.current = true;
+          console.error(err);
+        }
       }
       raf = requestAnimationFrame(loop);
     });
     const pump = setInterval(() => {
-      if (gen !== window.__kgGen) { clearInterval(pump); return; }
+      if (gen !== window.__kgGen) {
+        clearInterval(pump);
+        return;
+      }
       if (performance.now() - lastRef.current > 260) frame();
     }, 200);
 
@@ -541,7 +581,10 @@ const KgCanvas = ({
       window.addEventListener('resize', resize);
       return () => window.removeEventListener('resize', resize);
     }
-    const ro = new ResizeObserver(() => { resize(); maybeFit(true); });
+    const ro = new ResizeObserver(() => {
+      resize();
+      maybeFit(true);
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, [maybeFit]);
@@ -559,7 +602,9 @@ const KgCanvas = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.style.cursor = spaceRef.current
-      ? (dragRef.current ? SPACE_PAN_CURSORS.dragging : SPACE_PAN_CURSORS.ready)
+      ? dragRef.current
+        ? SPACE_PAN_CURSORS.dragging
+        : SPACE_PAN_CURSORS.ready
       : '';
   }, []);
 
@@ -600,7 +645,13 @@ const KgCanvas = ({
   const pickAt = (mx, my) => {
     const hostId = pickHostChip(chipsRef.current, mx, my);
     if (hostId) return { node: hostByIdRef.current.get(hostId) || null, hostId };
-    const n = pickNode(simRef.current.nodes, (x) => projOfRef.current.get(x.id), mx, my, camRef.current.k);
+    const n = pickNode(
+      simRef.current.nodes,
+      (x) => projOfRef.current.get(x.id),
+      mx,
+      my,
+      camRef.current.k,
+    );
     return { node: n, hostId: null };
   };
 
@@ -611,11 +662,17 @@ const KgCanvas = ({
     if (spaceRef.current) {
       /* Space-pan wins over node-drag: an empty pan drag, never a click. */
       dragRef.current = {
-        space: true, n: null, hostId: null,
-        mx, my,
+        space: true,
+        n: null,
+        hostId: null,
+        mx,
+        my,
         moved: true,
         shift: e.shiftKey,
-        ox: cam.tx, oy: cam.ty, yaw: cam.yaw, pitch: cam.pitch,
+        ox: cam.tx,
+        oy: cam.ty,
+        yaw: cam.yaw,
+        pitch: cam.pitch,
       };
       canvasRef.current.setPointerCapture(e.pointerId);
       updateCursor();
@@ -625,10 +682,14 @@ const KgCanvas = ({
     dragRef.current = {
       n: node && node.kind !== 'host' ? node : null,
       hostId: node && node.kind === 'host' ? node.id : null,
-      mx, my,
+      mx,
+      my,
       moved: false,
       shift: e.shiftKey,
-      ox: cam.tx, oy: cam.ty, yaw: cam.yaw, pitch: cam.pitch,
+      ox: cam.tx,
+      oy: cam.ty,
+      yaw: cam.yaw,
+      pitch: cam.pitch,
     };
     if (dragRef.current.n) {
       dragRef.current.n.fixed = true;
@@ -642,7 +703,8 @@ const KgCanvas = ({
     const [mx, my] = toLocal(e);
     const d = dragRef.current;
     if (d) {
-      const dx = mx - d.mx, dy = my - d.my;
+      const dx = mx - d.mx,
+        dy = my - d.my;
       if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
       if (d.space) {
         /* Space-pan: translate the camera in BOTH 2D and 3D (a pan of the
@@ -658,8 +720,8 @@ const KgCanvas = ({
           d.n.x = (mx - cam.tx) / cam.k;
           d.n.y = (my - cam.ty) / cam.k;
         } else {
-          d.n.x += dx * 0.9 / cam.k;
-          d.n.y += dy * 0.9 / cam.k;
+          d.n.x += (dx * 0.9) / cam.k;
+          d.n.y += (dy * 0.9) / cam.k;
           d.mx = mx;
           d.my = my;
         }
@@ -692,14 +754,15 @@ const KgCanvas = ({
       if (!node) {
         pr.onHover && pr.onHover(HIDE_TIP);
       } else {
-        pr.onHover && pr.onHover({
-          show: true,
-          x: mx + 52,
-          y: my + 44,
-          color: kindHue(node.kind, pr.theme) || '#94a3b8',
-          name: node.name || node.id,
-          meta: hoverMeta(node),
-        });
+        pr.onHover &&
+          pr.onHover({
+            show: true,
+            x: mx + 52,
+            y: my + 44,
+            color: kindHue(node.kind, pr.theme) || '#94a3b8',
+            name: node.name || node.id,
+            meta: hoverMeta(node),
+          });
       }
     }
   };
@@ -786,7 +849,10 @@ const KgCanvas = ({
 
   return (
     /* role=img + the counts label: the canvas is a black box to AT, so it
-       announces what it is and points at the table view (spec §4.6). */
+       announces what it is and points at the table view (spec §4.6). The
+       wrapper stays keyboard-focusable so sighted keyboard users can pan/zoom
+       the canvas — hence the non-interactive role with a key handler. */
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       ref={wrapRef}
       className="lemu-graph3d__canvas"

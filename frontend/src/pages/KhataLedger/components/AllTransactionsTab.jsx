@@ -1,9 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Trash2, Edit2, BookOpen, IndianRupee, Filter, X, ChevronLeft, ChevronRight, Truck, User, Route, Fuel } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
+  BookOpen,
+  IndianRupee,
+  Filter,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Truck,
+  User,
+  Route,
+  Fuel,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
 import {
@@ -92,10 +114,20 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color,#4f46e5)] focus:border-[var(--primary-color,#4f46e5)]';
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{editingExpense ? 'Edit Expense' : 'Add Expense'}</h2>
+          <h2 className="text-lg font-semibold">
+            {editingExpense ? 'Edit Expense' : 'Add Expense'}
+          </h2>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100">
             <X size={20} />
           </button>
@@ -132,7 +164,11 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
-              <select className={inputClass} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              <select
+                className={inputClass}
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {CATEGORY_LABELS[c]}
@@ -165,11 +201,17 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
           </div>
 
           <div className="rounded-lg border border-gray-200 p-3">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Optional — Map to</p>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+              Optional — Map to
+            </p>
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs text-gray-600">Vehicle</label>
-                <select className={inputClass} value={form.vehicleId} onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}>
+                <select
+                  className={inputClass}
+                  value={form.vehicleId}
+                  onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
+                >
                   <option value="">None</option>
                   {vehicles.map((v) => (
                     <option key={v._id} value={v._id}>
@@ -180,7 +222,11 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
               </div>
               <div>
                 <label className="mb-1 block text-xs text-gray-600">Driver</label>
-                <select className={inputClass} value={form.driverId} onChange={(e) => setForm({ ...form, driverId: e.target.value })}>
+                <select
+                  className={inputClass}
+                  value={form.driverId}
+                  onChange={(e) => setForm({ ...form, driverId: e.target.value })}
+                >
                   <option value="">None</option>
                   {drivers.map((d) => (
                     <option key={d._id} value={d._id}>
@@ -218,7 +264,14 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
 const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalResults: 0, totalManual: 0, totalTrip: 0, totalFuel: 0 });
+  const [meta, setMeta] = useState({
+    page: 1,
+    totalPages: 1,
+    totalResults: 0,
+    totalManual: 0,
+    totalTrip: 0,
+    totalFuel: 0,
+  });
   const [summary, setSummary] = useState({ totalAmount: 0, count: 0 });
 
   const [searchInput, setSearchInput] = useState('');
@@ -272,7 +325,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
         setLoading(false);
       }
     },
-    [search, category, includeTripExpenses, startDate, endDate]
+    [search, category, includeTripExpenses, startDate, endDate],
   );
 
   useEffect(() => {
@@ -318,7 +371,9 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">All Transactions</h2>
-          <p className="text-sm text-muted-foreground">Flat merged list of manual and trip-generated expenses</p>
+          <p className="text-sm text-muted-foreground">
+            Flat merged list of manual and trip-generated expenses
+          </p>
         </div>
         <button
           onClick={() => {
@@ -338,12 +393,17 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
           <CardContent className="flex items-center gap-4 p-5">
             <div
               className="flex h-11 w-11 items-center justify-center rounded-xl"
-              style={{ backgroundColor: 'var(--primary-light, #eef2ff)', color: 'var(--primary-color, #4f46e5)' }}
+              style={{
+                backgroundColor: 'var(--primary-light, #eef2ff)',
+                color: 'var(--primary-color, #4f46e5)',
+              }}
             >
               <IndianRupee size={22} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Manual Expenses</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Total Manual Expenses
+              </p>
               <p className="mt-0.5 text-xl font-bold">{formatCurrency(summary.totalAmount)}</p>
             </div>
           </CardContent>
@@ -354,7 +414,9 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               <BookOpen size={22} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Manual Entries</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Manual Entries
+              </p>
               <p className="mt-0.5 text-xl font-bold">{meta.totalManual}</p>
             </div>
           </CardContent>
@@ -365,8 +427,12 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               <Route size={22} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Trip Expenses</p>
-              <p className="mt-0.5 text-xl font-bold">{includeTripExpenses ? meta.totalTrip : 'Hidden'}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Trip Expenses
+              </p>
+              <p className="mt-0.5 text-xl font-bold">
+                {includeTripExpenses ? meta.totalTrip : 'Hidden'}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -376,8 +442,12 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               <Fuel size={22} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fuel Logs</p>
-              <p className="mt-0.5 text-xl font-bold">{includeTripExpenses ? meta.totalFuel : 'Hidden'}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Fuel Logs
+              </p>
+              <p className="mt-0.5 text-xl font-bold">
+                {includeTripExpenses ? meta.totalFuel : 'Hidden'}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -387,7 +457,10 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none"
                 style={{ outline: 'none' }}
@@ -421,7 +494,11 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
             <div className="mt-3 flex flex-wrap items-end gap-3 border-t pt-3">
               <div>
                 <label className="mb-1 block text-xs text-gray-500">Category</label>
-                <select className="rounded-lg border border-gray-300 px-3 py-2 text-sm" value={category} onChange={(e) => setCategory(e.target.value)}>
+                <select
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
                   <option value="">All Categories</option>
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -432,11 +509,21 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-gray-500">From</label>
-                <input type="date" className="rounded-lg border border-gray-300 px-3 py-2 text-sm" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <input
+                  type="date"
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs text-gray-500">To</label>
-                <input type="date" className="rounded-lg border border-gray-300 px-3 py-2 text-sm" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <input
+                  type="date"
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
               </div>
               <button
                 onClick={() => {
@@ -495,17 +582,23 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               <TableBody>
                 {expenses.map((exp) => (
                   <TableRow key={`${exp.source}-${exp._id}`}>
-                    <TableCell className="whitespace-nowrap text-sm">{formatDate(exp.expenseDate)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">
+                      {formatDate(exp.expenseDate)}
+                    </TableCell>
                     <TableCell>
                       <div>
                         <p className="text-sm font-medium">{exp.title}</p>
                         {exp.description && (
-                          <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground">{exp.description}</p>
+                          <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground">
+                            {exp.description}
+                          </p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={`text-xs ${CATEGORY_COLORS[exp.category] || CATEGORY_COLORS.MISCELLANEOUS}`}>
+                      <Badge
+                        className={`text-xs ${CATEGORY_COLORS[exp.category] || CATEGORY_COLORS.MISCELLANEOUS}`}
+                      >
                         {CATEGORY_LABELS[exp.category] || exp.category}
                       </Badge>
                     </TableCell>
@@ -531,7 +624,10 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`text-xs ${SOURCE_COLORS[exp.source] || SOURCE_COLORS.MANUAL}`}>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${SOURCE_COLORS[exp.source] || SOURCE_COLORS.MANUAL}`}
+                      >
                         {SOURCE_LABELS[exp.source] || exp.source}
                       </Badge>
                     </TableCell>
@@ -602,17 +698,31 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
       />
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={() => setDeleteTarget(null)}>
-          <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
+          role="presentation"
+          onClick={() => setDeleteTarget(null)}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl"
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-semibold">Delete Expense</h3>
             <p className="mt-2 text-sm text-gray-600">
               Are you sure you want to delete <strong>{deleteTarget.title}</strong>?
             </p>
             <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
                 Cancel
               </button>
-              <button onClick={handleDelete} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+              <button
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
                 Delete
               </button>
             </div>

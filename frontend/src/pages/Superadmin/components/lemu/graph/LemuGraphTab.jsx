@@ -36,7 +36,25 @@ import GraphErrorBoundary from './GraphErrorBoundary';
    Routes are deliberately NOT nodes by default: there are ~1700 of them and
    they hang off mounts, so including them buries the structure this view exists
    to show. The toggle is there for when you actually want the full surface. */
-const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttribution, onSelectNode, onOpenErrors, selectedNodeId, dataUpdatedAt, onBlastChange, instanceRef, manifests, diffsByVersion, diffStatusByVersion, onLoadDiff, isolateRef, onThemeChange }) => {
+const LemuGraphTab = ({
+  manifest,
+  liveness,
+  jobHealth,
+  topology,
+  errorAttribution,
+  onSelectNode,
+  onOpenErrors,
+  selectedNodeId,
+  dataUpdatedAt,
+  onBlastChange,
+  instanceRef,
+  manifests,
+  diffsByVersion,
+  diffStatusByVersion,
+  onLoadDiff,
+  isolateRef,
+  onThemeChange,
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fitRef = useRef(null);
   const focusRef = useRef(null);
@@ -75,7 +93,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      topology board (hosts -> stores -> collections -> CDC -> tables). Read
      once at mount like the other view params; the default is deleted from
      the URL by the sync effect below. */
-  const [layer, setLayer] = useState(() => (searchParams.get('layer') === 'infra' ? 'infra' : 'code'));
+  const [layer, setLayer] = useState(() =>
+    searchParams.get('layer') === 'infra' ? 'infra' : 'code',
+  );
   /* State-rail dimming (INFRA layer): clicking a summary chip dims every
      OTHER state through the SAME opacity channel as search — P3, no new
      colour meaning. */
@@ -88,7 +108,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   const degradedStripRef = useRef(null);
   useEffect(() => {
     if (degradedOpenIdx == null) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') setDegradedOpenIdx(null); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setDegradedOpenIdx(null);
+    };
     const onDown = (e) => {
       if (degradedStripRef.current && !degradedStripRef.current.contains(e.target)) {
         setDegradedOpenIdx(null);
@@ -170,7 +192,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       firstSync.current = false;
       return;
     }
-    setSearchParams(applyGraphParams(window.location.search, { view, hopDepth, query, mode, layer }), { replace: true });
+    setSearchParams(
+      applyGraphParams(window.location.search, { view, hopDepth, query, mode, layer }),
+      { replace: true },
+    );
   }, [view, hopDepth, query, mode, layer, setSearchParams]);
 
   /* Pulse history for the scrubber. v2-C4: /pulse passes `limit` straight
@@ -184,12 +209,15 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     LemuService.getPulse({ limit: 1440 })
       .then((d) => {
         if (!alive) return;
-        const buckets = [...(d?.data?.buckets || [])]
-          .sort((a, b) => new Date(a.bucketStart) - new Date(b.bucketStart));
+        const buckets = [...(d?.data?.buckets || [])].sort(
+          (a, b) => new Date(a.bucketStart) - new Date(b.bucketStart),
+        );
         setPulseBuckets(buckets);
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const scrubbedBucket = scrubIndex == null ? null : pulseBuckets[scrubIndex] || null;
@@ -213,9 +241,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      24h rollup — same Map shape, so the code graph and its identity cache
      consume it unchanged. */
   const activity = useMemo(
-    () => (scrubbedBucket
-      ? activityAtBucket(scrubbedBucket, manifest)
-      : buildActivity({ manifest, liveness, jobHealth })),
+    () =>
+      scrubbedBucket
+        ? activityAtBucket(scrubbedBucket, manifest)
+        : buildActivity({ manifest, liveness, jobHealth }),
     [manifest, liveness, jobHealth, scrubbedBucket],
   );
 
@@ -261,7 +290,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     const byNode = errorAttribution?.byNode || {};
     const keys = Object.keys(byNode);
     if (!keys.length) {
-      graphBase.nodes.forEach((n) => { delete n.errorCount; delete n.errorOccurrences; });
+      graphBase.nodes.forEach((n) => {
+        delete n.errorCount;
+        delete n.errorOccurrences;
+      });
       return graphBase;
     }
     return {
@@ -337,9 +369,10 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     let next = effectiveGraph;
     if ((scrubbedBucket || diffOverlay) && prev) {
       const nextById = new Map(effectiveGraph.nodes.map((n) => [n.id, n]));
-      const sameShape = prev.nodes.length === effectiveGraph.nodes.length
-        && prev.links.length === effectiveGraph.links.length
-        && prev.nodes.every((n) => nextById.has(n.id));
+      const sameShape =
+        prev.nodes.length === effectiveGraph.nodes.length &&
+        prev.links.length === effectiveGraph.links.length &&
+        prev.nodes.every((n) => nextById.has(n.id));
       /* the ref must hold the object we RETURNED last time — that is the
          object the renderer still holds; handing back a never-rendered
          sibling with the same shape still reads as a data swap to
@@ -359,18 +392,25 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     const q = query.trim().toLowerCase();
     const dim = layer === 'infra' ? dimmedStates : null;
     if (!q && (!dim || !dim.size) && !livePath) return null;
-    return new Set(graph.nodes
-      .filter((n) => (!q || n.id.toLowerCase().includes(q))
-        && (!dim || !dim.size || !dim.has(n.state))
-        && (!livePath || livePath.has(n.id)))
-      .map((n) => n.id));
+    return new Set(
+      graph.nodes
+        .filter(
+          (n) =>
+            (!q || n.id.toLowerCase().includes(q)) &&
+            (!dim || !dim.size || !dim.has(n.state)) &&
+            (!livePath || livePath.has(n.id)),
+        )
+        .map((n) => n.id),
+    );
   }, [query, graph.nodes, dimmedStates, layer, livePath]);
 
   const toggleStateDim = useCallback((state) => {
     setDimmedStates((prev) => {
       if (prev.has(state)) return new Set();
       const next = new Set();
-      ['measured', 'declared', 'unreachable'].forEach((s) => { if (s !== state) next.add(s); });
+      ['measured', 'declared', 'unreachable'].forEach((s) => {
+        if (s !== state) next.add(s);
+      });
       return next;
     });
   }, []);
@@ -396,7 +436,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   }, [pathTarget, selectedNodeId, graph.links]);
 
   /* A new selection invalidates the old target. */
-  useEffect(() => { setPathTarget(null); }, [selectedNodeId, layer]);
+  useEffect(() => {
+    setPathTarget(null);
+  }, [selectedNodeId, layer]);
 
   /* Blast/path highlights feed the canvas through the neighbour-outline
      channel — the SAME treatment hop highlighting already uses (P3). */
@@ -406,7 +448,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       blast.down.forEach((id) => s.add(id));
       blast.up.forEach((id) => s.add(id));
     }
-    (pathInfo || []).forEach((id) => { if (id !== selectedNodeId) s.add(id); });
+    (pathInfo || []).forEach((id) => {
+      if (id !== selectedNodeId) s.add(id);
+    });
     return s.size ? s : null;
   }, [blast, pathInfo, selectedNodeId]);
 
@@ -488,7 +532,18 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      and routes have no drawer view, so the canvas focuses the camera instead
      of opening an empty panel (its handleClick does the camera work after
      this fires). */
-  const DRAWER_KINDS = ['module', 'model', 'job', 'host', 'store', 'collection', 'table', 'pipe', 'source', 'surface'];
+  const DRAWER_KINDS = [
+    'module',
+    'model',
+    'job',
+    'host',
+    'store',
+    'collection',
+    'table',
+    'pipe',
+    'source',
+    'surface',
+  ];
   const handleNodeClick = useCallback(
     (node, event) => {
       /* Shift-click sets the path-finding target instead of moving the
@@ -504,10 +559,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     [onSelectNode],
   );
 
-  const nodeById = useMemo(
-    () => new Map(visible.nodes.map((n) => [n.id, n])),
-    [visible.nodes],
-  );
+  const nodeById = useMemo(() => new Map(visible.nodes.map((n) => [n.id, n])), [visible.nodes]);
 
   /* Table rows address nodes by id (spec: the Name button calls
      onSelectNode(node.id)); resolve back to the node object and run the SAME
@@ -603,11 +655,14 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
   const handleClearSelection = useCallback(() => {
     setPathTarget(null);
     if (!selectedNodeId) return;
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete('node');
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('node');
+        return next;
+      },
+      { replace: true },
+    );
   }, [selectedNodeId, setSearchParams]);
 
   /* Rail CLEAR (design onClearSel): query, focus, hop collapse, path
@@ -618,11 +673,14 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     setHopDepth('all');
     setPathTarget(null);
     if (!selectedNodeId) return;
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete('node');
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('node');
+        return next;
+      },
+      { replace: true },
+    );
   }, [selectedNodeId, setSearchParams]);
 
   /* The hairball cure (design select()): KgCanvas reports that a node was
@@ -637,7 +695,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
     isolateRef.current = (id) => {
       if (id) setHopDepth(1);
     };
-    return () => { isolateRef.current = null; };
+    return () => {
+      isolateRef.current = null;
+    };
   }, [isolateRef]);
 
   const handleFocusSearch = useCallback(() => searchRef.current?.focus(), []);
@@ -663,21 +723,21 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      payload of each layer, never the design's hard-coded prototype
      numbers. Both layers are built every render cycle (identity-cached),
      so the inactive tab's count stays honest while it is not shown. */
-  const layerCounts = useMemo(() => ({
-    infra: { nodes: infraGraph.nodes.length, edges: infraGraph.links.length },
-    code: { nodes: codeGraph.nodes.length, edges: codeGraph.links.length },
-  }), [infraGraph, codeGraph]);
+  const layerCounts = useMemo(
+    () => ({
+      infra: { nodes: infraGraph.nodes.length, edges: infraGraph.links.length },
+      code: { nodes: codeGraph.nodes.length, edges: codeGraph.links.length },
+    }),
+    [infraGraph, codeGraph],
+  );
 
   /* The rail's live `N hits` label: pure query matches over the whole
      layer graph — the state-dimming / live-path overlays that shape the
      `matches` set must not pollute it. */
-  const hitCount = useMemo(
-    () => countQueryMatches(graph.nodes, query),
-    [graph.nodes, query],
-  );
+  const hitCount = useMemo(() => countQueryMatches(graph.nodes, query), [graph.nodes, query]);
 
   const summary = layer === 'infra' ? topology?.summary : null;
-  const degraded = layer === 'infra' ? (topology?.degraded || []) : [];
+  const degraded = layer === 'infra' ? topology?.degraded || [] : [];
 
   /* Empty payload (plan Task 12): distinguish "the endpoint returned zero
      nodes" — a real product state, LemuGraphEmpty — from "filters hid
@@ -685,13 +745,16 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      UNFILTERED layer graph, and only when a payload actually arrived: a
      null payload (still loading, or the fetch failed) is not "no graph on
      record". */
-  const payloadEmpty = layer === 'infra'
-    ? Boolean(topology) && Array.isArray(topology.nodes) && topology.nodes.length === 0
-    : graph.nodes.length === 0;
+  const payloadEmpty =
+    layer === 'infra'
+      ? Boolean(topology) && Array.isArray(topology.nodes) && topology.nodes.length === 0
+      : graph.nodes.length === 0;
 
   /* A fresh topology payload re-arms the degraded strip even after the
      operator dismissed an earlier one. */
-  useEffect(() => { setDegradedDismissed(false); }, [topology?.generatedAt]);
+  useEffect(() => {
+    setDegradedDismissed(false);
+  }, [topology?.generatedAt]);
 
   /* Attribution quality headline (v2-F3): the Phase-4 acceptance metric,
      visible at all times rather than buried in a one-off measurement.
@@ -716,9 +779,14 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
 
   if (!manifest) {
     return (
-      <div ref={graphRootRef} className={`lemu-graph3d${theme === 'light' ? ' lemu-graph3d--light' : ''}`}>
+      <div
+        ref={graphRootRef}
+        className={`lemu-graph3d${theme === 'light' ? ' lemu-graph3d--light' : ''}`}
+      >
         <div className="lemu-state">
-          <div className="lemu-state__icon"><Boxes size={24} /></div>
+          <div className="lemu-state__icon">
+            <Boxes size={24} />
+          </div>
           <div className="lemu-state__title">
             No manifest yet — the graph is built from the system manifest.
           </div>
@@ -781,7 +849,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
       {/* INFRA status rail: payload summary as chips. Clicking one dims the
           other states through the search-opacity channel (see `matches`). */}
       {view === 'graph' && summary && (
-        <div className="lemu-graph3d__statusrail lemu-graph3d__panel" role="group" aria-label="Node states">
+        <div
+          className="lemu-graph3d__statusrail lemu-graph3d__panel"
+          role="group"
+          aria-label="Node states"
+        >
           {[
             ['measured', '●'],
             ['declared', '○'],
@@ -807,8 +879,12 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           nothing (none). Same chip styling as the state rail above; clicking
           switches to the Errors tab. The unattributed line shares the click
           target: an error shown as unattributable beats one silently dropped. */}
-      {view === 'graph' && (errorAttribution?.groups?.length > 0) && (
-        <div className="lemu-graph3d__attribrail lemu-graph3d__panel" role="group" aria-label="Error attribution quality">
+      {view === 'graph' && errorAttribution?.groups?.length > 0 && (
+        <div
+          className="lemu-graph3d__attribrail lemu-graph3d__panel"
+          role="group"
+          aria-label="Error attribution quality"
+        >
           <button
             type="button"
             className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
@@ -836,33 +912,57 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           the attribution rail — readouts, not alarms, reusing statechip
           styling. */}
       {view === 'graph' && (blast || pathInfo || diffOverlay || livePath) && (
-        <div className="lemu-graph3d__analysisrail lemu-graph3d__panel" role="group" aria-label="Analysis readouts">
+        <div
+          className="lemu-graph3d__analysisrail lemu-graph3d__panel"
+          role="group"
+          aria-label="Analysis readouts"
+        >
           {livePath && (
-            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="livepath">
+            <span
+              className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
+              data-analysis="livepath"
+            >
               <i aria-hidden="true">⌁</i> live path: <b>{livePath.size}</b> measured nodes lit
             </span>
           )}
           {diffOverlay && (
-            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="diff">
-              <i aria-hidden="true">±</i> diff (v{diffVersion}): <b>{diffOverlay.counts.added}</b> added · <b>{diffOverlay.counts.changed}</b> changed · <b>{diffOverlay.counts.removed}</b> removed
+            <span
+              className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
+              data-analysis="diff"
+            >
+              <i aria-hidden="true">±</i> diff (v{diffVersion}): <b>{diffOverlay.counts.added}</b>{' '}
+              added · <b>{diffOverlay.counts.changed}</b> changed ·{' '}
+              <b>{diffOverlay.counts.removed}</b> removed
             </span>
           )}
           {blast && (
-            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="blast">
-              <i aria-hidden="true">◉</i> blast: <b>{blast.down.size}</b> downstream · <b>{blast.up.size}</b> upstream
+            <span
+              className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
+              data-analysis="blast"
+            >
+              <i aria-hidden="true">◉</i> blast: <b>{blast.down.size}</b> downstream ·{' '}
+              <b>{blast.up.size}</b> upstream
             </span>
           )}
-          {pathInfo && (pathInfo.length > 0 ? (
-            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="path">
-              <i aria-hidden="true">→</i> path: <b>{pathInfo.length - 1}</b> hop{pathInfo.length - 1 === 1 ? '' : 's'}
-            </span>
-          ) : (
-            /* [] is a real answer: the layers have different edge sets, so
+          {pathInfo &&
+            (pathInfo.length > 0 ? (
+              <span
+                className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
+                data-analysis="path"
+              >
+                <i aria-hidden="true">→</i> path: <b>{pathInfo.length - 1}</b> hop
+                {pathInfo.length - 1 === 1 ? '' : 's'}
+              </span>
+            ) : (
+              /* [] is a real answer: the layers have different edge sets, so
                the copy names the layer rather than claiming disconnection. */
-            <span className="lemu-graph3d__statechip lemu-graph3d__statechip--on" data-analysis="path">
-              <i aria-hidden="true">∅</i> no path in this layer
-            </span>
-          ))}
+              <span
+                className="lemu-graph3d__statechip lemu-graph3d__statechip--on"
+                data-analysis="path"
+              >
+                <i aria-hidden="true">∅</i> no path in this layer
+              </span>
+            ))}
         </div>
       )}
 
@@ -872,7 +972,11 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           reason, what it affects and when the payload reported it. Dismissible,
           re-armed by the next payload. */}
       {view === 'graph' && degraded.length > 0 && !degradedDismissed && (
-        <div ref={degradedStripRef} className="lemu-graph3d__degraded lemu-graph3d__panel" role="alert">
+        <div
+          ref={degradedStripRef}
+          className="lemu-graph3d__degraded lemu-graph3d__panel"
+          role="alert"
+        >
           {degraded.map((d, i) => (
             <button
               key={`${d.step}-${i}`}
@@ -889,14 +993,23 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           <button
             type="button"
             className="lemu-graph3d__degraded-x"
-            onClick={() => { setDegradedDismissed(true); setDegradedOpenIdx(null); }}
+            onClick={() => {
+              setDegradedDismissed(true);
+              setDegradedOpenIdx(null);
+            }}
             aria-label="Dismiss degraded report"
           >
             ×
           </button>
           {degradedOpenIdx != null && degraded[degradedOpenIdx] && (
-            <div className="lemu-graph3d__degraded-pop lemu-graph3d__panel" role="dialog" aria-label={`Degraded detail: ${degraded[degradedOpenIdx].step}`}>
-              <h3 className="lemu-graph3d__degraded-pop-title">{degradedTitle(degraded[degradedOpenIdx].step)}</h3>
+            <div
+              className="lemu-graph3d__degraded-pop lemu-graph3d__panel"
+              role="dialog"
+              aria-label={`Degraded detail: ${degraded[degradedOpenIdx].step}`}
+            >
+              <h3 className="lemu-graph3d__degraded-pop-title">
+                {degradedTitle(degraded[degradedOpenIdx].step)}
+              </h3>
               <dl style={{ margin: 0 }}>
                 {degradedDetail(degraded[degradedOpenIdx], {
                   nodes: topology?.nodes || [],
@@ -904,7 +1017,9 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
                 }).map((row) => (
                   <div key={row.k} className="lemu-graph3d__degraded-pop-row">
                     <dt>{row.k}</dt>
-                    <dd className={row.mono ? 'lemu-graph3d__degraded-pop-mono' : undefined}>{row.v}</dd>
+                    <dd className={row.mono ? 'lemu-graph3d__degraded-pop-mono' : undefined}>
+                      {row.v}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -940,7 +1055,7 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
           onHopDepth={setHopDepth}
         />
       ) : (
-        <div onKeyDown={handleCanvasKeyDown}>
+        <div role="presentation" onKeyDown={handleCanvasKeyDown}>
           <GraphErrorBoundary>
             <KgCanvas
               graph={visible}
@@ -1015,17 +1130,24 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
             title={`Showing activity at ${new Date(scrubbedBucket.bucketStart).toLocaleString()}`}
           >
             <i className="lemu-graph3d__fresh-dot" aria-hidden="true" />
-            showing {new Date(scrubbedBucket.bucketStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+            showing{' '}
+            {new Date(scrubbedBucket.bucketStart).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })}
           </span>
-        ) : dataUpdatedAt && (
-          <span
-            className={`lemu-graph3d__fresh lemu-graph3d__fresh--${freshState}`}
-            aria-live="off"
-            title={`Data updated ${new Date(dataUpdatedAt).toLocaleString()}`}
-          >
-            <i className="lemu-graph3d__fresh-dot" aria-hidden="true" />
-            updated {freshAgeSec}s ago
-          </span>
+        ) : (
+          dataUpdatedAt && (
+            <span
+              className={`lemu-graph3d__fresh lemu-graph3d__fresh--${freshState}`}
+              aria-live="off"
+              title={`Data updated ${new Date(dataUpdatedAt).toLocaleString()}`}
+            >
+              <i className="lemu-graph3d__fresh-dot" aria-hidden="true" />
+              updated {freshAgeSec}s ago
+            </span>
+          )
         )}
       </p>
     </div>

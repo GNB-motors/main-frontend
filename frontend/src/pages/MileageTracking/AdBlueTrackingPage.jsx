@@ -64,7 +64,9 @@ const AdBlueTrackingPage = () => {
   useEffect(() => {
     const el = document.querySelector('.page-content');
     if (el) el.classList.add('no-padding');
-    return () => { if (el) el.classList.remove('no-padding'); };
+    return () => {
+      if (el) el.classList.remove('no-padding');
+    };
   }, []);
 
   useEffect(() => {
@@ -72,14 +74,20 @@ const AdBlueTrackingPage = () => {
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  const { data: logsResult, loading, error: logsLoadError, refetch: refetchLogs } = useApi(
-    (signal) => fetchAdBlueLogs({
-      page: pagination.page,
-      limit: pagination.limit,
-      search: debouncedSearch,
-      signal,
-    }),
-    [JSON.stringify({ page: pagination.page, search: debouncedSearch })]
+  const {
+    data: logsResult,
+    loading,
+    error: logsLoadError,
+    refetch: refetchLogs,
+  } = useApi(
+    (signal) =>
+      fetchAdBlueLogs({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedSearch,
+        signal,
+      }),
+    [JSON.stringify({ page: pagination.page, search: debouncedSearch })],
   );
 
   useEffect(() => {
@@ -114,7 +122,11 @@ const AdBlueTrackingPage = () => {
     } else {
       pages.push(1);
       if (pagination.page > 3) pages.push('...');
-      for (let i = Math.max(2, pagination.page - 1); i <= Math.min(totalPages - 1, pagination.page + 1); i++) {
+      for (
+        let i = Math.max(2, pagination.page - 1);
+        i <= Math.min(totalPages - 1, pagination.page + 1);
+        i++
+      ) {
         if (i !== 1 && i !== totalPages) pages.push(i);
       }
       if (pagination.page < totalPages - 2) pages.push('...');
@@ -128,7 +140,7 @@ const AdBlueTrackingPage = () => {
     setEditForm({
       litres: log.litres ?? '',
       amount: log.amount ?? '',
-      place: log.place === '-' ? '' : (log.place || ''),
+      place: log.place === '-' ? '' : log.place || '',
     });
   };
 
@@ -224,11 +236,15 @@ const AdBlueTrackingPage = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="refuel-empty-state">Loading AdBlue logs...</td>
+                <td colSpan={7} className="refuel-empty-state">
+                  Loading AdBlue logs...
+                </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={7} className="refuel-empty-state">{error}</td>
+                <td colSpan={7} className="refuel-empty-state">
+                  {error}
+                </td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
@@ -253,7 +269,9 @@ const AdBlueTrackingPage = () => {
             ) : (
               logs.map((log) => {
                 const timestamp = log.date ? `${log.date}${log.time ? `T${log.time}` : ''}` : null;
-                const formattedDate = timestamp ? formatDateIST(timestamp) : formatDateIST(log.date);
+                const formattedDate = timestamp
+                  ? formatDateIST(timestamp)
+                  : formatDateIST(log.date);
                 return (
                   <tr key={log.id}>
                     <td>
@@ -325,9 +343,11 @@ const AdBlueTrackingPage = () => {
           >
             <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
           </button>
-          {generatePageNumbers().map((page, index) => (
+          {generatePageNumbers().map((page, index) =>
             page === '...' ? (
-              <div key={`overflow-${index}`} className="refuel-page-overflow"><span>...</span></div>
+              <div key={`overflow-${index}`} className="refuel-page-overflow">
+                <span>...</span>
+              </div>
             ) : (
               <button
                 key={page}
@@ -338,8 +358,8 @@ const AdBlueTrackingPage = () => {
               >
                 <span>{page}</span>
               </button>
-            )
-          ))}
+            ),
+          )}
           <button
             type="button"
             className="refuel-pagination-btn"
@@ -351,88 +371,169 @@ const AdBlueTrackingPage = () => {
         </div>
       )}
 
-      {editingLog && createPortal(
-        <div className="refuel-modal-overlay" onClick={() => setEditingLog(null)}>
-          <div className="refuel-modal refuel-edit-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
-            <div className="refuel-modal-header">
-              <h2>Edit AdBlue Entry</h2>
-              <button type="button" className="refuel-modal-close" onClick={() => setEditingLog(null)}>
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleEditSubmit}>
-              <div className="refuel-modal-body">
-                <div className="refuel-form-row">
-                  <div className="form-group">
-                    <label>Litres *</label>
-                    <input type="number" step="any" value={editForm.litres} onChange={(e) => setEditForm({ ...editForm, litres: e.target.value })} required />
+      {editingLog &&
+        createPortal(
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={() => setEditingLog(null)}
+          >
+            <div
+              className="refuel-modal refuel-edit-modal"
+              role="presentation"
+              style={{ maxWidth: 480 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="refuel-modal-header">
+                <h2>Edit AdBlue Entry</h2>
+                <button
+                  type="button"
+                  className="refuel-modal-close"
+                  onClick={() => setEditingLog(null)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <form onSubmit={handleEditSubmit}>
+                <div className="refuel-modal-body">
+                  <div className="refuel-form-row">
+                    <div className="form-group">
+                      <label>Litres *</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={editForm.litres}
+                        onChange={(e) => setEditForm({ ...editForm, litres: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Amount *</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={editForm.amount}
+                        onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="form-group">
-                    <label>Amount *</label>
-                    <input type="number" step="any" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} required />
+                    <label>Place</label>
+                    <input
+                      type="text"
+                      value={editForm.place}
+                      onChange={(e) => setEditForm({ ...editForm, place: e.target.value })}
+                      placeholder="Optional"
+                    />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Place</label>
-                  <input type="text" value={editForm.place} onChange={(e) => setEditForm({ ...editForm, place: e.target.value })} placeholder="Optional" />
+                <div className="refuel-modal-footer">
+                  <button
+                    type="button"
+                    className="refuel-btn-secondary"
+                    onClick={() => setEditingLog(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="refuel-btn-primary" disabled={submitting}>
+                    {submitting ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {deletingLog &&
+        createPortal(
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={() => setDeletingLog(null)}
+          >
+            <div
+              className="refuel-modal"
+              role="presentation"
+              style={{ maxWidth: 420 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="refuel-modal-header">
+                <h2>Delete AdBlue Entry</h2>
+                <button
+                  type="button"
+                  className="refuel-modal-close"
+                  onClick={() => setDeletingLog(null)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="refuel-modal-body">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <AlertTriangle size={22} color="#dc2626" />
+                  <p style={{ margin: 0, color: '#475569' }}>
+                    Delete AdBlue entry for <strong>{deletingLog.vehicleNo}</strong>? This cannot be
+                    undone.
+                  </p>
                 </div>
               </div>
               <div className="refuel-modal-footer">
-                <button type="button" className="refuel-btn-secondary" onClick={() => setEditingLog(null)}>Cancel</button>
-                <button type="submit" className="refuel-btn-primary" disabled={submitting}>
-                  {submitting ? 'Saving...' : 'Save'}
+                <button
+                  type="button"
+                  className="refuel-btn-secondary"
+                  onClick={() => setDeletingLog(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="refuel-btn-danger"
+                  onClick={handleDeleteConfirm}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>,
-        document.body,
-      )}
-
-      {deletingLog && createPortal(
-        <div className="refuel-modal-overlay" onClick={() => setDeletingLog(null)}>
-          <div className="refuel-modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <div className="refuel-modal-header">
-              <h2>Delete AdBlue Entry</h2>
-              <button type="button" className="refuel-modal-close" onClick={() => setDeletingLog(null)}>
-                <X size={20} />
-              </button>
             </div>
-            <div className="refuel-modal-body">
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <AlertTriangle size={22} color="#dc2626" />
-                <p style={{ margin: 0, color: '#475569' }}>
-                  Delete AdBlue entry for <strong>{deletingLog.vehicleNo}</strong>? This cannot be undone.
-                </p>
+          </div>,
+          document.body,
+        )}
+
+      {viewImageUrl &&
+        createPortal(
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={() => setViewImageUrl(null)}
+          >
+            <div
+              className="refuel-modal"
+              role="presentation"
+              style={{ maxWidth: 720 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="refuel-modal-header">
+                <h2>AdBlue Proof</h2>
+                <button
+                  type="button"
+                  className="refuel-modal-close"
+                  onClick={() => setViewImageUrl(null)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="refuel-modal-body" style={{ textAlign: 'center' }}>
+                <img
+                  src={viewImageUrl}
+                  alt="AdBlue receipt"
+                  style={{ maxWidth: '100%', borderRadius: 8 }}
+                />
               </div>
             </div>
-            <div className="refuel-modal-footer">
-              <button type="button" className="refuel-btn-secondary" onClick={() => setDeletingLog(null)}>Cancel</button>
-              <button type="button" className="refuel-btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                {submitting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
-
-      {viewImageUrl && createPortal(
-        <div className="refuel-modal-overlay" onClick={() => setViewImageUrl(null)}>
-          <div className="refuel-modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
-            <div className="refuel-modal-header">
-              <h2>AdBlue Proof</h2>
-              <button type="button" className="refuel-modal-close" onClick={() => setViewImageUrl(null)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="refuel-modal-body" style={{ textAlign: 'center' }}>
-              <img src={viewImageUrl} alt="AdBlue receipt" style={{ maxWidth: '100%', borderRadius: 8 }} />
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

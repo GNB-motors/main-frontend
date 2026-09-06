@@ -1,6 +1,6 @@
 /**
  * JourneySetupModal Component
- * 
+ *
  * Modal for setting up journey-level data (odometer readings, fuel consumption)
  * before processing individual weight slips
  */
@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Gauge, Fuel, MapPin, Calculator } from 'lucide-react';
 import { TripService } from '../../pages/Trip/services';
+import logger from '../../utils/logger.js';
 import './modal.css';
 
 const JourneySetupModal = ({
@@ -18,9 +19,8 @@ const JourneySetupModal = ({
   fuelSlipData,
   partialFuelData = [],
   selectedVehicle,
-  selectedDriver
+  selectedDriver,
 }) => {
-
   const [journeyData, setJourneyData] = useState({
     startOdometer: 0,
     endOdometer: 0,
@@ -28,7 +28,7 @@ const JourneySetupModal = ({
     fuelRate: 0,
     fuelLocation: '',
     totalDistance: 0,
-    estimatedEfficiency: 0
+    estimatedEfficiency: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -45,22 +45,26 @@ const JourneySetupModal = ({
   // Auto-populate from OCR data
   useEffect(() => {
     if (isOpen && (odometerOcrData || fuelSlipData)) {
-      console.log('🎯 Auto-populating from OCR data:', { odometerOcrData, fuelSlipData });
+      logger.info('JourneySetup', 'Auto-populating from OCR data', {
+        odometerOcrData,
+        fuelSlipData,
+      });
 
       let updates = {};
 
       // Get end odometer from OCR data - only if user hasn't edited it
       if (odometerOcrData && !userEditedFields.has('endOdometer')) {
-        const endOdometerRaw = odometerOcrData?.reading ||
+        const endOdometerRaw =
+          odometerOcrData?.reading ||
           odometerOcrData?.extractedData?.reading ||
           odometerOcrData?.extractedData?.endOdometer ||
           0;
         const endOdometer = parseFloat(String(endOdometerRaw).replace(/[^\d.]/g, '')) || 0;
-        console.log('🚗 End odometer extraction:', {
+        logger.info('JourneySetup', 'End odometer extraction', {
           raw: endOdometerRaw,
           parsed: endOdometer,
           userEdited: userEditedFields.has('endOdometer'),
-          ocrStructure: odometerOcrData
+          ocrStructure: odometerOcrData,
         });
 
         if (endOdometer > 0) {
@@ -73,12 +77,12 @@ const JourneySetupModal = ({
         if (!userEditedFields.has('fuelLitres')) {
           const litres = parseFloat(
             fuelSlipData?.volume ||
-            fuelSlipData?.litres ||
-            fuelSlipData?.liters ||
-            fuelSlipData?.quantity ||
-            fuelSlipData?.extractedData?.volume ||
-            fuelSlipData?.extractedData?.litres ||
-            0
+              fuelSlipData?.litres ||
+              fuelSlipData?.liters ||
+              fuelSlipData?.quantity ||
+              fuelSlipData?.extractedData?.volume ||
+              fuelSlipData?.extractedData?.litres ||
+              0,
           );
           if (litres > 0) updates.fuelLitres = litres;
         }
@@ -86,50 +90,52 @@ const JourneySetupModal = ({
         if (!userEditedFields.has('fuelRate')) {
           const rate = parseFloat(
             fuelSlipData?.rate ||
-            fuelSlipData?.price ||
-            fuelSlipData?.pricePerLitre ||
-            fuelSlipData?.extractedData?.rate ||
-            fuelSlipData?.extractedData?.price ||
-            0
+              fuelSlipData?.price ||
+              fuelSlipData?.pricePerLitre ||
+              fuelSlipData?.extractedData?.rate ||
+              fuelSlipData?.extractedData?.price ||
+              0,
           );
           if (rate > 0) updates.fuelRate = rate;
         }
 
         if (!userEditedFields.has('fuelLocation')) {
-          const location = fuelSlipData?.location ||
+          const location =
+            fuelSlipData?.location ||
             fuelSlipData?.extractedData?.location ||
-            fuelSlipData?.station || '';
+            fuelSlipData?.station ||
+            '';
           if (location) updates.fuelLocation = location;
         }
 
-        console.log('⛽ Fuel data extraction:', {
+        logger.info('JourneySetup', 'Fuel data extraction', {
           fuelLitres: updates.fuelLitres,
           fuelRate: updates.fuelRate,
           fuelLocation: updates.fuelLocation,
           userEditedFields: Array.from(userEditedFields),
-          fuelStructure: fuelSlipData
+          fuelStructure: fuelSlipData,
         });
       }
 
-      console.log('📊 Parsed values for update:', updates);
+      logger.info('JourneySetup', 'Parsed values for update', updates);
 
       if (Object.keys(updates).length > 0) {
-        setJourneyData(prev => {
+        setJourneyData((prev) => {
           const newData = { ...prev, ...updates };
           const distance = Math.max(0, newData.endOdometer - newData.startOdometer);
-          console.log('🧮 Calculating distance:', {
+          logger.info('JourneySetup', 'Calculating distance', {
             start: newData.startOdometer,
             end: newData.endOdometer,
-            distance: distance
+            distance: distance,
           });
 
           const finalData = {
             ...newData,
             totalDistance: distance,
-            estimatedEfficiency: newData.fuelLitres > 0 ? distance / newData.fuelLitres : 0
+            estimatedEfficiency: newData.fuelLitres > 0 ? distance / newData.fuelLitres : 0,
           };
 
-          console.log('✅ Final journey data:', finalData);
+          logger.info('JourneySetup', 'Final journey data', finalData);
           return finalData;
         });
       }
@@ -138,7 +144,16 @@ const JourneySetupModal = ({
 
   // Compute partial fills sum and total fuel used (full tank + partials)
   const partialFillsSum = (partialFuelData || []).reduce((sum, pf) => {
-    const v = parseFloat(pf?.volume || pf?.litres || pf?.liters || pf?.quantity || pf?.extractedData?.volume || pf?.extractedData?.litres || 0) || 0;
+    const v =
+      parseFloat(
+        pf?.volume ||
+          pf?.litres ||
+          pf?.liters ||
+          pf?.quantity ||
+          pf?.extractedData?.volume ||
+          pf?.extractedData?.litres ||
+          0,
+      ) || 0;
     return sum + v;
   }, 0);
 
@@ -146,59 +161,61 @@ const JourneySetupModal = ({
 
   const fetchStartOdometer = async () => {
     if (!selectedVehicle?.id) {
-      console.error('❌ No selectedVehicle.id available:', selectedVehicle);
+      logger.error('JourneySetup', 'No selectedVehicle.id available', selectedVehicle);
       return;
     }
 
     try {
       setLoading(true);
-      console.log('🚗 Fetching start odometer for vehicle:', selectedVehicle.id);
+      logger.info('JourneySetup', 'Fetching start odometer for vehicle', selectedVehicle.id);
       const response = await TripService.getVehicleLastFuelLog(selectedVehicle.id);
-      console.log('📊 Start odometer API response:', response);
+      logger.info('JourneySetup', 'Start odometer API response', response);
       const startOdometer = response.data.startOdometer || response.data.odometerReading || 0;
-      console.log('🎯 Using start odometer value:', startOdometer);
+      logger.info('JourneySetup', 'Using start odometer value', startOdometer);
 
-      setJourneyData(prev => ({
+      setJourneyData((prev) => ({
         ...prev,
         startOdometer,
         totalDistance: Math.max(0, prev.endOdometer - startOdometer),
-        estimatedEfficiency: prev.fuelLitres > 0 ? Math.max(0, prev.endOdometer - startOdometer) / prev.fuelLitres : 0
+        estimatedEfficiency:
+          prev.fuelLitres > 0 ? Math.max(0, prev.endOdometer - startOdometer) / prev.fuelLitres : 0,
       }));
 
-      console.log('✅ Updated journey data with start odometer:', {
+      logger.info('JourneySetup', 'Updated journey data with start odometer', {
         startOdometer,
         endOdometer: journeyData.endOdometer,
-        calculatedDistance: Math.max(0, journeyData.endOdometer - startOdometer)
+        calculatedDistance: Math.max(0, journeyData.endOdometer - startOdometer),
       });
     } catch (error) {
-      console.error('Failed to fetch start odometer:', error);
+      logger.error('JourneySetup', 'Failed to fetch start odometer', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleInputChange = (field, value) => {
-    console.log('✏️ User edited field:', field, 'new value:', value);
+    logger.info('JourneySetup', `User edited field: ${field}`, value);
 
     // Mark field as user-edited
-    setUserEditedFields(prev => new Set(prev).add(field));
+    setUserEditedFields((prev) => new Set(prev).add(field));
 
     let newValue = value;
     // For number fields, allow empty string, otherwise parse
-    if (["endOdometer", "startOdometer", "fuelLitres", "fuelRate"].includes(field)) {
+    if (['endOdometer', 'startOdometer', 'fuelLitres', 'fuelRate'].includes(field)) {
       newValue = value === '' ? '' : parseFloat(value) || 0;
     }
 
-    setJourneyData(prev => {
+    setJourneyData((prev) => {
       const updated = { ...prev, [field]: newValue };
 
       // Recalculate dependent values
-      if (["endOdometer", "startOdometer"].includes(field)) {
+      if (['endOdometer', 'startOdometer'].includes(field)) {
         const end = updated.endOdometer === '' ? 0 : Number(updated.endOdometer);
         const start = updated.startOdometer === '' ? 0 : Number(updated.startOdometer);
         updated.totalDistance = Math.max(0, end - start);
-        updated.estimatedEfficiency = updated.fuelLitres > 0 ? updated.totalDistance / updated.fuelLitres : 0;
-      } else if (field === "fuelLitres") {
+        updated.estimatedEfficiency =
+          updated.fuelLitres > 0 ? updated.totalDistance / updated.fuelLitres : 0;
+      } else if (field === 'fuelLitres') {
         const litres = updated.fuelLitres === '' ? 0 : Number(updated.fuelLitres);
         updated.estimatedEfficiency = litres > 0 ? updated.totalDistance / litres : 0;
       }
@@ -208,7 +225,7 @@ const JourneySetupModal = ({
 
     // Clear field-specific errors
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
+      setErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
 
@@ -248,8 +265,11 @@ const JourneySetupModal = ({
         ocrData: {
           ...odometerOcrData,
           reading: journeyData.endOdometer,
-          correctedReading: journeyData.endOdometer !== parseFloat(odometerOcrData?.reading || 0) ? journeyData.endOdometer : null
-        }
+          correctedReading:
+            journeyData.endOdometer !== parseFloat(odometerOcrData?.reading || 0)
+              ? journeyData.endOdometer
+              : null,
+        },
       };
 
       const fuelData = {
@@ -266,9 +286,9 @@ const JourneySetupModal = ({
             ...fuelSlipData?.extractedData,
             litres: journeyData.fuelLitres,
             rate: journeyData.fuelRate,
-            volume: journeyData.fuelLitres
-          }
-        }
+            volume: journeyData.fuelLitres,
+          },
+        },
       };
 
       onSave({ mileageData, fuelData });
@@ -278,7 +298,11 @@ const JourneySetupModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" role="presentation" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div
+      className="modal-overlay"
+      role="presentation"
+      onClick={(e) => e.target === e.currentTarget && onCancel()}
+    >
       <div className="modal">
         <div className="modal-header">
           <h2>Trip Setup</h2>
@@ -322,7 +346,11 @@ const JourneySetupModal = ({
                 <label>End Odometer (km)</label>
                 <input
                   type="number"
-                  value={userEditedFields.has('endOdometer') && journeyData.endOdometer === '' ? '' : journeyData.endOdometer}
+                  value={
+                    userEditedFields.has('endOdometer') && journeyData.endOdometer === ''
+                      ? ''
+                      : journeyData.endOdometer
+                  }
                   onChange={(e) => handleInputChange('endOdometer', e.target.value)}
                   className={errors.endOdometer ? 'error' : ''}
                   placeholder="Enter end odometer reading"
@@ -340,7 +368,9 @@ const JourneySetupModal = ({
                 <label>Total Distance (km)</label>
                 <div className="calculated-field">
                   <MapPin size={16} />
-                  <span><strong>{journeyData.totalDistance.toLocaleString()}</strong></span>
+                  <span>
+                    <strong>{journeyData.totalDistance.toLocaleString()}</strong>
+                  </span>
                 </div>
               </div>
 
@@ -348,11 +378,14 @@ const JourneySetupModal = ({
                 <label>Fuel Efficiency</label>
                 <div className="calculated-field">
                   <Gauge size={16} />
-                  <span><strong>{
-                    journeyData.totalDistance > 0 && totalFuelUsed > 0
-                      ? (journeyData.totalDistance / totalFuelUsed).toFixed(2)
-                      : '--'
-                  } km/L</strong></span>
+                  <span>
+                    <strong>
+                      {journeyData.totalDistance > 0 && totalFuelUsed > 0
+                        ? (journeyData.totalDistance / totalFuelUsed).toFixed(2)
+                        : '--'}{' '}
+                      km/L
+                    </strong>
+                  </span>
                 </div>
               </div>
             </div>
@@ -369,21 +402,29 @@ const JourneySetupModal = ({
               <div className="form-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   Fuel Litres
-                  <span style={{
-                    fontSize: '10px',
-                    fontWeight: '700',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: 'white',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>FULL TANK</span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    FULL TANK
+                  </span>
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  value={userEditedFields.has('fuelLitres') && journeyData.fuelLitres === '' ? '' : journeyData.fuelLitres}
+                  value={
+                    userEditedFields.has('fuelLitres') && journeyData.fuelLitres === ''
+                      ? ''
+                      : journeyData.fuelLitres
+                  }
                   onChange={(e) => handleInputChange('fuelLitres', e.target.value)}
                   className={errors.fuelLitres ? 'error' : ''}
                   placeholder="Enter fuel litres"
@@ -402,7 +443,11 @@ const JourneySetupModal = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={userEditedFields.has('fuelRate') && journeyData.fuelRate === '' ? '' : journeyData.fuelRate}
+                  value={
+                    userEditedFields.has('fuelRate') && journeyData.fuelRate === ''
+                      ? ''
+                      : journeyData.fuelRate
+                  }
                   onChange={(e) => handleInputChange('fuelRate', e.target.value)}
                   className={errors.fuelRate ? 'error' : ''}
                   placeholder="Enter rate per litre"
@@ -421,7 +466,9 @@ const JourneySetupModal = ({
                 <input
                   type="text"
                   value={journeyData.fuelLocation}
-                  onChange={(e) => setJourneyData(prev => ({ ...prev, fuelLocation: e.target.value }))}
+                  onChange={(e) =>
+                    setJourneyData((prev) => ({ ...prev, fuelLocation: e.target.value }))
+                  }
                   placeholder="Enter fuel station location"
                 />
               </div>
@@ -437,7 +484,7 @@ const JourneySetupModal = ({
                     background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
                     border: '2px solid #bae6fd',
                     color: '#0c4a6e',
-                    fontWeight: '700'
+                    fontWeight: '700',
                   }}
                 />
               </div>
@@ -445,9 +492,30 @@ const JourneySetupModal = ({
               {partialFuelData && partialFuelData.length > 0 && (
                 <>
                   {partialFuelData.map((pf, idx) => {
-                    const volume = parseFloat(pf?.volume || pf?.litres || pf?.liters || pf?.quantity || pf?.extractedData?.volume || pf?.extractedData?.litres || 0) || 0;
-                    const rate = parseFloat(pf?.rate || pf?.price || pf?.pricePerLitre || pf?.extractedData?.rate || pf?.extractedData?.price || 0) || 0;
-                    const location = pf?.station || pf?.location || pf?.extractedData?.location || `Partial Fill ${idx + 1}`;
+                    const volume =
+                      parseFloat(
+                        pf?.volume ||
+                          pf?.litres ||
+                          pf?.liters ||
+                          pf?.quantity ||
+                          pf?.extractedData?.volume ||
+                          pf?.extractedData?.litres ||
+                          0,
+                      ) || 0;
+                    const rate =
+                      parseFloat(
+                        pf?.rate ||
+                          pf?.price ||
+                          pf?.pricePerLitre ||
+                          pf?.extractedData?.rate ||
+                          pf?.extractedData?.price ||
+                          0,
+                      ) || 0;
+                    const location =
+                      pf?.station ||
+                      pf?.location ||
+                      pf?.extractedData?.location ||
+                      `Partial Fill ${idx + 1}`;
                     const cost = volume * rate;
 
                     return (
@@ -455,41 +523,30 @@ const JourneySetupModal = ({
                         <div className="form-group">
                           <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             Fuel Litres
-                            <span style={{
-                              fontSize: '10px',
-                              fontWeight: '700',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                              color: 'white',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px'
-                            }}>PARTIAL FILL</span>
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                color: 'white',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                              }}
+                            >
+                              PARTIAL FILL
+                            </span>
                           </label>
-                          <input
-                            type="number"
-                            value={volume}
-                            readOnly
-                            className="readonly-input"
-                          />
+                          <input type="number" value={volume} readOnly className="readonly-input" />
                         </div>
                         <div className="form-group">
                           <label>Rate per Litre (₹)</label>
-                          <input
-                            type="number"
-                            value={rate}
-                            readOnly
-                            className="readonly-input"
-                          />
+                          <input type="number" value={rate} readOnly className="readonly-input" />
                         </div>
                         <div className="form-group">
                           <label>Fuel Station Location</label>
-                          <input
-                            type="text"
-                            value={location}
-                            readOnly
-                            className="readonly-input"
-                          />
+                          <input type="text" value={location} readOnly className="readonly-input" />
                         </div>
                         <div className="form-group">
                           <label>Total Cost (₹)</label>
@@ -502,7 +559,7 @@ const JourneySetupModal = ({
                               background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
                               border: '2px solid #bae6fd',
                               color: '#0c4a6e',
-                              fontWeight: '700'
+                              fontWeight: '700',
                             }}
                           />
                         </div>
@@ -516,11 +573,19 @@ const JourneySetupModal = ({
                 <label>Total Fuel Used (L)</label>
                 <div className="calculated-field">
                   <Fuel size={16} />
-                  <span><strong>{totalFuelUsed ? Number(totalFuelUsed).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0.00'} L</strong></span>
+                  <span>
+                    <strong>
+                      {totalFuelUsed
+                        ? Number(totalFuelUsed).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })
+                        : '0.00'}{' '}
+                      L
+                    </strong>
+                  </span>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -528,11 +593,7 @@ const JourneySetupModal = ({
           <button className="btn btn-secondary" onClick={onCancel}>
             Back to Intake
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleSave}
-            disabled={loading}
-          >
+          <button className="btn btn-primary" onClick={handleSave} disabled={loading}>
             {loading ? 'Loading...' : 'Start Processing Weight Slips'}
           </button>
         </div>
