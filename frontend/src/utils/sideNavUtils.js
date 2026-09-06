@@ -62,9 +62,24 @@ export const SIDE_NAV_ITEMS = [
   // Cross-module landing page. Sirf tab dikhta hai jab dono module hain —
   // ek hi module wale org ke liye ye combined view ka koi matlab nahi, unke liye
   // unka apna module home (ERP Home / Fleet Operations) hi top item ban jaata hai.
-  { type: 'link', key: 'overview', access: 'both', to: '/command-center', label: 'Overview', icon: Gauge, end: true },
+  {
+    type: 'link',
+    key: 'overview',
+    access: 'both',
+    to: '/command-center',
+    label: 'Overview',
+    icon: Gauge,
+    end: true,
+  },
   // Fleet-wide daily digest (added by live-map-refresh branch).
-  { type: 'link', key: 'fleetIntelligence', access: 'both', to: '/digest', label: 'Daily Digest', icon: CalendarClock },
+  {
+    type: 'link',
+    key: 'fleetIntelligence',
+    access: 'both',
+    to: '/digest',
+    label: 'Daily Digest',
+    icon: CalendarClock,
+  },
 
   // ─── Shared master data ────────────────────────────────────────────────────
   // Vehicles aur Employees dono module use karte hain, isliye ye kisi ek section
@@ -109,7 +124,16 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
-  { type: 'link', key: 'erpOperations', access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
+  {
+    type: 'link',
+    key: 'erpOperations',
+    access: 'erp',
+    hoistWhenSole: 'erp',
+    to: '/erp',
+    label: 'ERP Home',
+    icon: LayoutDashboard,
+    end: true,
+  },
   {
     type: 'group',
     groupId: 'erpPlanning',
@@ -122,12 +146,56 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: ['/erp/call-tasks', '/erp/call-schedules'],
   },
-  { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/approvals', label: 'Approvals', icon: FileCheck, badgeKey: 'approvalsCount' },
-  { type: 'link', key: 'erpApprovals', access: 'erp', to: '/erp/bill-approvals', label: 'Bill Approvals', icon: ReceiptText, badgeKey: 'billApprovalsCount' },
-  { type: 'link', key: 'erpOperations', access: 'erp', to: '/erp/pipeline', label: 'Pipeline', icon: ClipboardList },
-  { type: 'link', key: 'erpBilling', access: 'erp', to: '/erp/billing', label: 'Billing & Receivables', icon: Receipt },
-  { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/payables', label: 'Payables', icon: Banknote },
-  { type: 'link', key: 'erpAccounts', access: 'erp', to: '/erp/accounts', label: 'Accounts & Ledger', icon: Landmark },
+  {
+    type: 'link',
+    key: 'erpApprovals',
+    access: 'erp',
+    to: '/erp/approvals',
+    label: 'Approvals',
+    icon: FileCheck,
+    badgeKey: 'approvalsCount',
+  },
+  {
+    type: 'link',
+    key: 'erpApprovals',
+    access: 'erp',
+    to: '/erp/bill-approvals',
+    label: 'Bill Approvals',
+    icon: ReceiptText,
+    badgeKey: 'billApprovalsCount',
+  },
+  {
+    type: 'link',
+    key: 'erpOperations',
+    access: 'erp',
+    to: '/erp/pipeline',
+    label: 'Pipeline',
+    icon: ClipboardList,
+  },
+  {
+    type: 'link',
+    key: 'erpBilling',
+    access: 'erp',
+    to: '/erp/billing',
+    label: 'Billing & Receivables',
+    icon: Receipt,
+  },
+  {
+    type: 'link',
+    key: 'erpAccounts',
+    access: 'erp',
+    to: '/erp/payables',
+    label: 'Payables',
+    icon: Banknote,
+  },
+  {
+    type: 'link',
+    key: 'erpAccounts',
+    access: 'erp',
+    to: '/erp/accounts',
+    label: 'Accounts & Ledger',
+    icon: Landmark,
+  },
   {
     type: 'group',
     groupId: 'erpMasters',
@@ -154,7 +222,15 @@ export const SIDE_NAV_ITEMS = [
 
   // ─── Fleet operations ───────────────────────────────────────────────────────
   { type: 'section', label: 'Fleet', access: 'fleet' },
-  { type: 'link', key: 'overview', access: 'fleet', hoistWhenSole: 'fleet', to: '/overview', label: 'Fleet Operations', icon: Grid },
+  {
+    type: 'link',
+    key: 'overview',
+    access: 'fleet',
+    hoistWhenSole: 'fleet',
+    to: '/overview',
+    label: 'Fleet Operations',
+    icon: Grid,
+  },
   {
     type: 'group',
     groupId: 'fuelManagement',
@@ -196,6 +272,9 @@ export const SIDE_NAV_ITEMS = [
       { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
       { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
+      { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
+      { to: '/overspeed', label: 'Overspeed', key: 'fleetIntelligence' },
+      { to: '/hotspots', label: 'Theft Hotspots', key: 'fleetIntelligence' },
       { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
@@ -208,7 +287,14 @@ export const SIDE_NAV_ITEMS = [
       '/owner-alerts',
     ],
   },
-  { type: 'link', key: 'locations', access: 'fleet', to: '/locations', label: 'Locations', icon: MapPin },
+  {
+    type: 'link',
+    key: 'locations',
+    access: 'fleet',
+    to: '/locations',
+    label: 'Locations',
+    icon: MapPin,
+  },
   {
     type: 'group',
     groupId: 'geofence',
@@ -305,6 +391,4 @@ export const getFirstNavPath = (isEnabled) => {
  * Group ko auto-expand / auto-close karne ke liye use hota hai.
  */
 export const isGroupActive = (group, pathname) =>
-  (group.matchRoutes || []).some(
-    (r) => pathname === r || pathname.startsWith(`${r}/`),
-  );
+  (group.matchRoutes || []).some((r) => pathname === r || pathname.startsWith(`${r}/`));

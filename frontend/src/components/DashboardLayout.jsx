@@ -4,6 +4,7 @@ import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
 import CommandPalette from './cluster/CommandPalette.jsx';
+import { ConfirmDialogHost } from './ui/ConfirmDialog.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { ProfileService } from '../pages/Profile/ProfileService.jsx';
 import { storeProfileData } from '../utils/profileStorage.js';
@@ -59,7 +60,9 @@ const DashboardLayoutInner = () => {
             <main id="main-content" className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
                 <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
                 <div className="page-content" key={branchId || 'all-locations'}>
-                    <Outlet />
+                    <ConfirmDialogHost>
+                        <Outlet />
+                    </ConfirmDialogHost>
                 </div>
             </main>
             <CommandPalette />

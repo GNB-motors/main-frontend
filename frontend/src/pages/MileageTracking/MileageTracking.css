@@ -136,6 +136,14 @@
   flex-direction: column;
 }
 
+/* Shared chassis frame inside the content area — the area already carries
+   the page padding, so the shell only provides the gap between its slots. */
+.mileage-content-area .mileage-detail-shell {
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+}
+
 /* ── Native Table (matches DriversPage) ──────────────────────────────── */
 .mileage-table-container {
   align-self: stretch;

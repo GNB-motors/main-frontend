@@ -3,6 +3,7 @@ import { LemuService } from '../../LemuService';
 import { DARK } from './graphTheme';
 import { stamp } from './kgTable';
 import { getUserRole } from '../../../../../utils/session';
+import { useConfirm } from '../../../../../components/ui/confirmContext';
 
 /* "No graph on record" (plan Task 12): the topology endpoint answered with
    zero nodes. Chrome is dimmed by the tab (lemu-graph3d--graph-empty); this
@@ -26,11 +27,18 @@ const isSuperAdmin = () => {
 const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {
   const [phase, setPhase] = useState('idle'); // idle | busy | done | error
   const [error, setError] = useState('');
+  const confirm = useConfirm();
 
   const handleRebuild = async () => {
     if (phase === 'busy') return;
     /* A write against the running system's manifest — confirm first. */
-    if (!window.confirm('Rebuild the system manifest? The backend re-derives it from the running codebase.')) return;
+    const ok = await confirm({
+      title: 'Rebuild the system manifest?',
+      body: 'The backend re-derives it from the running codebase.',
+      confirmLabel: 'Rebuild manifest',
+      danger: true,
+    });
+    if (!ok) return;
     setPhase('busy');
     setError('');
     try {

@@ -1,332 +1,429 @@
 .sidebar {
-    width: 120px;
-    background-color: var(--color-white);
-    padding: 8px !important;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--color-grey-200);
-    flex-shrink: 0;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                margin-left 0.3s ease;
-    position: fixed;
-    height: 100vh;
-    height: 100dvh; /* survive mobile browser chrome collapsing */
-    top: 0;
-    left: 0;
-    z-index: 1004 !important;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    overflow: hidden; /* the nav scrolls, the shell never does */
+  /* ── Brand gradient ground (design system §H.3) ─────────────────────────
+     Two stacked layers cross-fade: orange in fleet sections, blue on ERP &
+     CRM routes (~350 ms). Text/icon colours are driven by the --sb-* vars
+     below so BOTH gradients keep WCAG AA:
+       fleet  : #1F2937 on #EE6126→#F2754A  (≈7.8:1 / 7.0:1)
+       erp    : #FFFFFF on #1E3A8A→#1E88E5  (≈10.4:1 / 3.9:1 at the light
+                end — the inset scrim on the blue layer darkens that band so
+                white stays ≥4.5:1 along the whole rail). */
+  --sb-text: #4b5563;
+  --sb-text-strong: #1f2937;
+  --sb-active-bg: rgba(255, 255, 255, 0.35);
+  --sb-active-text: #111827;
+  --sb-hover-bg: rgba(255, 255, 255, 0.22);
+  --sb-divider: rgba(31, 41, 55, 0.14);
+
+  /* Remap the tokens the existing nav rules already consume — no rule
+     rewrites needed, and .sidebar--erp flips them all at once. */
+  --color-grey-400: var(--sb-text);
+  --color-grey-800: var(--sb-text-strong);
+  --color-grey-200: var(--sb-divider);
+  --primary-light: var(--sb-hover-bg);
+  --primary-color: var(--sb-active-text);
+  --color-white: transparent;
+
+  width: 120px;
+  background-color: var(--color-white);
+  padding: 8px !important;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-grey-200);
+  flex-shrink: 0;
+  transition:
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.3s ease;
+  position: fixed;
+  height: 100vh;
+  height: 100dvh; /* survive mobile browser chrome collapsing */
+  top: 0;
+  left: 0;
+  z-index: 1004 !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* the nav scrolls, the shell never does */
+}
+
+/* Stacked gradient layers — content sits above via z-index in
+   .sidebar-content / .sidebar-footer. */
+.sidebar::before,
+.sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sidebar::before {
+  background: linear-gradient(180deg, #ee6126 0%, #f2754a 100%);
+}
+
+.sidebar::after {
+  background: linear-gradient(180deg, #1e3a8a 0%, #1e88e5 100%);
+  /* Darken the band near the light end so white text keeps AA there. */
+  box-shadow: inset 0 -140px 100px -60px rgba(7, 12, 26, 0.55);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.sidebar--erp {
+  --sb-text: rgba(255, 255, 255, 0.92);
+  --sb-text-strong: #ffffff;
+  --sb-active-bg: rgba(255, 255, 255, 0.22);
+  --sb-active-text: #ffffff;
+  --sb-hover-bg: rgba(255, 255, 255, 0.12);
+  --sb-divider: rgba(255, 255, 255, 0.22);
+}
+
+.sidebar--erp::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar::after {
+    transition: none;
+  }
+
+  /* Keep the structural transitions (collapse/expand) but make the
+     colour cross-fade instant. */
+  .nav-link,
+  .nav-parent {
+    transition:
+      color 0s linear,
+      background-color 0s linear,
+      gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 .sidebar-content {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1; /* Pushes footer down */
-    /* Without min-height:0 a flex item refuses to shrink below its content
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Pushes footer down */
+  position: relative; /* sit above the ::before/::after gradient layers */
+  z-index: 1;
+  /* Without min-height:0 a flex item refuses to shrink below its content
        height, so overflow-y never engages and the tail of the nav is unreachable. */
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-    /* Scrollbar hidden in all browsers — the nav still scrolls (wheel/trackpad),
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  /* Scrollbar hidden in all browsers — the nav still scrolls (wheel/trackpad),
        there is just no visible bar. */
-    scrollbar-width: none; /* Firefox */
+  scrollbar-width: none; /* Firefox */
 }
 
 .sidebar-content::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none; /* Chrome / Safari / Edge */
+  width: 0;
+  height: 0;
+  display: none; /* Chrome / Safari / Edge */
 }
 
 .sidebar-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-    margin-top: 12px;
-    overflow: hidden;
-    height: auto;
-    min-height: 40px;
-    flex-shrink: 0;
-    transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  margin-top: 12px;
+  overflow: hidden;
+  height: auto;
+  min-height: 40px;
+  flex-shrink: 0;
+  transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logo-text {
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--color-grey-800);
-    white-space: nowrap;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-grey-800);
+  white-space: nowrap;
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.35s ease;
 }
 
 .logo-img {
-    flex-shrink: 0;
-    height: 48px;
-    width: auto;
-    max-width: 100%;
-    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  height: 48px;
+  width: auto;
+  max-width: 100%;
+  transition:
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
 }
 
 .nav-link {
-    display: flex;
-    align-items: center;
-    padding: 10px 8px;
-    border-radius: var(--border-radius-md);
-    color: var(--color-grey-400);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: var(--border-radius-md);
+  color: var(--color-grey-400);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.35s ease,
+    background-color 0.35s ease;
 }
 
 /* Gap only when sidebar is hovered */
 .sidebar:hover .nav-link {
-    gap: var(--spacing-md);
+  gap: var(--spacing-md);
 }
 
 .nav-link span {
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Ensure Lucide React icons inherit the proper colors */
 .nav-link svg {
-    color: inherit;
-    transition: color 0.2s ease, 
-                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  color: inherit;
+  transition:
+    color 0.35s ease,
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-link:hover {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .nav-link.active {
-    /* Use the themed light primary background + primary text colour so the
+  /* Use the themed light primary background + primary text colour so the
        active highlight follows the user's chosen primary color. */
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .sidebar-footer {
-    padding-top: 12px;
-    border-top: 1px solid var(--color-grey-200);
-    flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
-    background-color: var(--color-white); /* Match sidebar bg so it looks solid */
+  padding-top: 12px;
+  border-top: 1px solid var(--color-grey-200);
+  flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
+  position: relative; /* sit above the gradient layers */
+  z-index: 1;
 }
 
 .logout-btn {
-    width: 100%;
-    background: none;
-    border: none;
-    cursor: pointer;
-    /* The padding is inherited from .nav-link */
-    color: var(--color-grey-400);
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  /* The padding is inherited from .nav-link */
+  color: var(--color-grey-400);
 }
 
-.logout-btn:hover span, .logout-btn:hover {
-    color: var(--primary-color);
+.logout-btn:hover span,
+.logout-btn:hover {
+  color: var(--primary-color);
 }
 .logout-btn:hover {
-    background-color: var(--primary-light);
+  background-color: var(--primary-light);
 }
 
 /* === Desktop Hover Styles === */
 @media (min-width: 993px) {
-    .sidebar {
-        width: 100px;
-        padding-left: var(--spacing-md);
-        padding-right: var(--spacing-md);
-    }
+  .sidebar {
+    width: 100px;
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
 
-    .sidebar:hover {
-        width: 260px;
-        padding-left: var(--spacing-lg);
-        padding-right: var(--spacing-lg);
-        /* Elevate the rail when expanded so it clearly reads as the focused overlay */
-        box-shadow: 0 12px 48px rgba(15, 23, 42, 0.32);
-    }
+  .sidebar:hover {
+    width: 260px;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+    /* Elevate the rail when expanded so it clearly reads as the focused overlay */
+    box-shadow: 0 12px 48px rgba(15, 23, 42, 0.32);
+  }
 
-    .sidebar .nav-link svg {
-        width: 24px;
-        height: 24px;
-    }
-    
-    .sidebar .logo-img {
-        height: 70px;
-        width: 70px;
-        margin-left: 10px;
-    }
+  .sidebar .nav-link svg {
+    width: 24px;
+    height: 24px;
+  }
 
-    .sidebar .logo-text,
-    .sidebar .nav-link span {
-        opacity: 0;
-        visibility: hidden;
-        width: 0;
-    }
+  .sidebar .logo-img {
+    height: 70px;
+    width: 70px;
+    margin-left: 10px;
+  }
 
-    .sidebar:hover .logo-text,
-    .sidebar:hover .nav-link span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-    }
+  .sidebar .logo-text,
+  .sidebar .nav-link span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+  }
 
-    .sidebar .sidebar-header {
-        justify-content: center;
-    }
+  .sidebar:hover .logo-text,
+  .sidebar:hover .nav-link span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+  }
 
-    .sidebar:hover .sidebar-header {
-        justify-content: flex-start;
-    }
+  .sidebar .sidebar-header {
+    justify-content: center;
+  }
 
-    .sidebar .nav-link {
-        justify-content: center;
-        gap: 0;
-    }
+  .sidebar:hover .sidebar-header {
+    justify-content: flex-start;
+  }
 
-    .sidebar:hover .nav-link {
-        justify-content: flex-start;
-    }
+  .sidebar .nav-link {
+    justify-content: center;
+    gap: 0;
+  }
+
+  .sidebar:hover .nav-link {
+    justify-content: flex-start;
+  }
 }
 
 /* === Mobile Overlay Styles === */
 @media (max-width: 992px) {
-    .sidebar {
-        width: 260px;
-        margin-left: -260px;
-        box-shadow: 0 0 40px rgba(0,0,0,0.1);
-    }
+  .sidebar {
+    width: 260px;
+    margin-left: -260px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
 
-    .sidebar.open {
-        margin-left: 0;
-    }
+  .sidebar.open {
+    margin-left: 0;
+  }
 
-    .sidebar .logo-text,
-    .sidebar .nav-link span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-    }
+  .sidebar .logo-text,
+  .sidebar .nav-link span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+  }
 
-    .sidebar .sidebar-header {
-        justify-content: flex-start;
-    }
+  .sidebar .sidebar-header {
+    justify-content: flex-start;
+  }
 
-    .sidebar .nav-link {
-        justify-content: flex-start;
-        gap: var(--spacing-md);
-    }
+  .sidebar .nav-link {
+    justify-content: flex-start;
+    gap: var(--spacing-md);
+  }
 }
 
 /* === Section headings === */
 .nav-section-label {
-    padding: 14px 8px 4px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-grey-400);
-    white-space: nowrap;
-    overflow: hidden;
-    user-select: none;
+  padding: 14px 8px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-grey-400);
+  white-space: nowrap;
+  overflow: hidden;
+  user-select: none;
+  transition: color 0.35s ease;
 }
 
 .nav-section-label:first-child {
-    padding-top: 4px;
+  padding-top: 4px;
 }
 
 .nav-section-label span {
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* === Vehicle Activity Collapsible Section === */
 .nav-section {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .nav-parent {
-    display: flex;
-    align-items: center;
-    padding: 10px 8px;
-    border-radius: var(--border-radius-md);
-    color: var(--color-grey-400);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    position: relative;
-    justify-content: space-between;
-    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 0.2s ease,
-                color 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: var(--border-radius-md);
+  color: var(--color-grey-400);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  position: relative;
+  justify-content: space-between;
+  transition:
+    gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.35s ease,
+    background-color 0.35s ease;
 }
 
 .nav-parent-left {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
 }
 
 .nav-parent-left svg {
-    flex-shrink: 0;
-    color: inherit;
-    transition: color 0.2s ease, 
-                width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  color: inherit;
+  transition:
+    color 0.35s ease,
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-parent:hover {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .nav-parent.active-parent {
-    /* Active parent uses themed light primary background + primary text. */
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+  /* Active parent uses themed light primary background + primary text. */
+  background-color: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .chevron-icon {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
-    margin-left: auto;
-    transform: rotate(0deg); /* closed: point right */
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  margin-left: auto;
+  transform: rotate(0deg); /* closed: point right */
 }
 
 .chevron-icon.rotated {
-    /* open: point down */
-    transform: rotate(-180deg);
+  /* open: point down */
+  transform: rotate(-180deg);
 }
 
 /* Collapse/expand animates grid-template-rows 0fr <-> 1fr rather than
@@ -335,172 +432,259 @@
    followed by a snap. 0fr/1fr resolves to the real content height, so open and
    close take the same time regardless of how many children a group has. */
 .nav-children {
-    display: grid;
-    grid-template-rows: 0fr;
-    overflow: hidden;
-    opacity: 0;
-    padding-top: 0;
-    transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                padding-top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.2s ease;
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  padding-top: 0;
+  transition:
+    grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    padding-top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s ease;
 }
 
 .nav-children-inner {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-height: 0;   /* Required: lets the 0fr row actually clip its content */
-    overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0; /* Required: lets the 0fr row actually clip its content */
+  overflow: hidden;
 }
 
 .nav-children.open {
-    grid-template-rows: 1fr;
-    opacity: 1;
-    padding-top: 6px;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  padding-top: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .nav-children {
-        transition-duration: 0.01ms;
-    }
+  .nav-children {
+    transition-duration: 0.01ms;
+  }
 }
 
 .nav-child {
-    padding: 11px 10px 11px 48px !important;
-    font-size: 14px;
-    line-height: 1.35;
+  padding: 11px 10px 11px 48px !important;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .nav-child span {
-    margin-left: 0;
+  margin-left: 0;
 }
 
 /* Desktop specific styles for collapsed sidebar */
 @media (min-width: 993px) {
-    /* Collapsed: the heading text can't fit, so show a short rule instead —
+  /* Collapsed: the heading text can't fit, so show a short rule instead —
        the sections stay visually separated without any label. */
-    .sidebar .nav-section-label {
-        padding: 12px 8px 8px;
-        display: flex;
-        justify-content: center;
-    }
+  .sidebar .nav-section-label {
+    padding: 12px 8px 8px;
+    display: flex;
+    justify-content: center;
+  }
 
-    .sidebar .nav-section-label span {
-        opacity: 0;
-        visibility: hidden;
-        width: 0;
-        height: 0;
-    }
+  .sidebar .nav-section-label span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    height: 0;
+  }
 
-    .sidebar .nav-section-label::before {
-        content: '';
-        height: 1px;
-        width: 28px;
-        background-color: var(--color-grey-200);
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                    opacity 0.2s ease;
-    }
+  .sidebar .nav-section-label::before {
+    content: '';
+    height: 1px;
+    width: 28px;
+    background-color: var(--color-grey-200);
+    transition:
+      width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease;
+  }
 
-    .sidebar:hover .nav-section-label {
-        display: block;
-    }
+  .sidebar:hover .nav-section-label {
+    display: block;
+  }
 
-    .sidebar:hover .nav-section-label span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-        height: auto;
-    }
+  .sidebar:hover .nav-section-label span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+    height: auto;
+  }
 
-    .sidebar:hover .nav-section-label::before {
-        display: none;
-    }
+  .sidebar:hover .nav-section-label::before {
+    display: none;
+  }
 
-    /* When sidebar is collapsed (not hovered) */
-    .sidebar .nav-parent {
-        justify-content: center;
-        gap: 0;
-    }
-    
-    .sidebar .nav-parent-left {
-        gap: 0;
-        justify-content: center;
-    }
-    
-    .sidebar .nav-parent-left svg {
-        width: 24px;
-        height: 24px;
-        margin: 0px 0 0 24px;
-    }
+  /* When sidebar is collapsed (not hovered) */
+  .sidebar .nav-parent {
+    justify-content: center;
+    gap: 0;
+  }
 
-    .sidebar .chevron-icon {
-        opacity: 0;
-        width: 0;
-        overflow: hidden;
-    }
-    
-    .sidebar .nav-children {
-        display: none;
-    }
-    
-    .sidebar .nav-parent span {
-        opacity: 0;
-        visibility: hidden;
-        width: 0;
-    }
-    
-    /* When sidebar is hovered/expanded */
-    .sidebar:hover .nav-parent {
-        justify-content: space-between;
-        gap: var(--spacing-md);
-    }
+  .sidebar .nav-parent-left {
+    gap: 0;
+    justify-content: center;
+  }
 
-    .sidebar:hover .nav-parent-left svg {
-        margin: 0; 
-    }
-    .sidebar:hover .nav-parent-left {
-        gap: var(--spacing-md);
-        justify-content: flex-start;
-    }
-    
-    .sidebar:hover .nav-parent span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-    }
-    
-    .sidebar:hover .chevron-icon {
-        opacity: 1;
-        width: 16px;
-    }
-    
-    .sidebar:hover .nav-children {
-        display: grid;
-    }
+  .sidebar .nav-parent-left svg {
+    width: 24px;
+    height: 24px;
+    margin: 0px 0 0 24px;
+  }
 
-    .sidebar:hover .nav-children.open {
-        opacity: 1;
-        grid-template-rows: 1fr;
-    }
-    
-    .sidebar .nav-child {
-        justify-content: flex-start;
-    }
+  .sidebar .chevron-icon {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+  }
+
+  .sidebar .nav-children {
+    display: none;
+  }
+
+  .sidebar .nav-parent span {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+  }
+
+  /* When sidebar is hovered/expanded */
+  .sidebar:hover .nav-parent {
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+
+  .sidebar:hover .nav-parent-left svg {
+    margin: 0;
+  }
+  .sidebar:hover .nav-parent-left {
+    gap: var(--spacing-md);
+    justify-content: flex-start;
+  }
+
+  .sidebar:hover .nav-parent span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+  }
+
+  .sidebar:hover .chevron-icon {
+    opacity: 1;
+    width: 16px;
+  }
+
+  .sidebar:hover .nav-children {
+    display: grid;
+  }
+
+  .sidebar:hover .nav-children.open {
+    opacity: 1;
+    grid-template-rows: 1fr;
+  }
+
+  .sidebar .nav-child {
+    justify-content: flex-start;
+  }
 }
-
 
 /* Mobile styles */
 @media (max-width: 992px) {
-    .nav-parent {
-        justify-content: space-between;
-    }
-    
-    .nav-parent-left {
-        gap: var(--spacing-md);
-    }
-    
-    .chevron-icon {
-        opacity: 1;
-        width: 16px;
-    }
+  .nav-parent {
+    justify-content: space-between;
+  }
+
+  .nav-parent-left {
+    gap: var(--spacing-md);
+  }
+
+  .chevron-icon {
+    opacity: 1;
+    width: 16px;
+  }
+}
+/* ── Dark-mode active highlight ───────────────────────────────────────────
+   `--primary-light` is derived once as rgba(primary, 0.12) in colorTheme.js
+   (getLightColor). That alpha was chosen against a WHITE sidebar, where it
+   reads as a pale wash. Composited over the dark sidebar it collapses into
+   mud — orange at 12% over near-black is brown.
+
+   Dark needs its own alpha, and color-mix composites in a perceptual space
+   so the result stays a tint rather than going muddy. Do not "fix" this by
+   changing getLightColor — that would wreck the light theme, which is
+   correct as it stands. */
+.dark .nav-link.active,
+.dark .nav-parent.active-parent {
+  background-color: color-mix(in oklab, var(--primary-color) 22%, transparent);
+  color: var(--primary-color);
+}
+
+/* ── Neutral rail (Workstream H, step 2) ────────────────────────────────
+   Supersedes the §H.3 full-bleed brand gradient defined at the top of this
+   file. Kept as an override block rather than an edit-in-place so the whole
+   change reverts as one unit and the AA reasoning above stays readable.
+
+   Why the flood went away: the canvas rail is #EE6126 under a
+   rgba(20,12,6,.38) scrim, which composites to #9B411A — a dark brick. That
+   is the "weirdly dark" rail, and the same maroon defect still on prod.
+   Lightening the scrim only trades mud for glare; a 264px-wide fully
+   saturated orange column is punishing across an 8-hour dispatcher shift.
+
+   So the area shrinks and the identity stays: neutral rail, orange on the
+   active item, the logo and the mode indicator. The FMS/ERP cue survives —
+   orange vs blue accent — it just stops being a wall of colour. It also
+   stops competing with --critical and --caution, which are the two colours
+   that actually mean a truck needs attention.  (Owner decision 2026-09-06.)
+
+   Light-only for now: the .dark active rule further up has higher
+   specificity (.dark .nav-link.active) and still wins on background/colour,
+   so dark keeps its color-mix tint and additionally picks up the edge.  */
+.sidebar {
+  --sb-text: #55627a;
+  --sb-text-strong: #0b1220;
+  --sb-active-bg: var(--orange-tint);
+  --sb-active-text: var(--accent-ink);
+  --sb-hover-bg: var(--ds-sunk);
+  --sb-divider: var(--ds-line);
+
+  --primary-light: var(--sb-hover-bg);
+  --primary-color: var(--sb-active-text);
+
+  background-color: #ffffff;
+  border-right: 1px solid var(--ds-line);
+  box-shadow: none;
+}
+
+/* Both brand-gradient layers retired. */
+.sidebar::before,
+.sidebar::after,
+.sidebar--erp::after {
+  background: none;
+  box-shadow: none;
+  opacity: 0;
+}
+
+/* The active item carries the brand: tint ground, AA-safe ink, and a 3px
+   edge in full-strength orange — small enough area that #EE6126 is legible
+   as a marker without being read as text. */
+.nav-link.active,
+.nav-parent.active-parent {
+  background-color: var(--sb-active-bg);
+  color: var(--sb-active-text);
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+
+/* ERP mirrors the treatment exactly, in blue. Text stays neutral because
+   the rail is no longer coloured — only the accent moves. */
+.sidebar--erp {
+  --sb-text: #55627a;
+  --sb-text-strong: #0b1220;
+  --sb-active-bg: var(--erp-tint);
+  --sb-active-text: var(--erp-ink);
+  --sb-hover-bg: var(--ds-sunk);
+  --sb-divider: var(--ds-line);
+}
+
+.sidebar--erp .nav-link.active,
+.sidebar--erp .nav-parent.active-parent {
+  box-shadow: inset 3px 0 0 var(--erp);
 }

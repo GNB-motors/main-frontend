@@ -5,6 +5,11 @@ import { getThemeCSS } from '../../utils/colorTheme';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import LottieLoader from '../../components/LottieLoader';
 import { FieldAgentFuelService } from './FieldAgentFuelService';
+import { humanise } from '../../lib/vocabulary';
+import { footerSummary } from '../../lib/tableState';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import ExportButton from '../../components/ui/ExportButton';
 import './FieldAgentFuel.css';
 
 const PAGE_SIZE = 20;
@@ -34,6 +39,36 @@ const KpiCard = ({ icon, label, value }) => (
 
 const agentName = (u) => (u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || '-' : '-');
 
+const LOG_EXPORT_COLUMNS = [
+  { key: 'refuelTime', label: 'Date' },
+  { key: 'organization', label: 'Organization' },
+  { key: 'vehicle', label: 'Vehicle' },
+  { key: 'uploadedBy', label: 'Uploaded by' },
+  { key: 'fuelType', label: 'Fuel' },
+  { key: 'fillingType', label: 'Type' },
+  { key: 'litres', label: 'Litres', type: 'number' },
+  { key: 'rate', label: 'Rate (₹)', type: 'currency' },
+  { key: 'totalAmount', label: 'Amount (₹)', type: 'currency' },
+  { key: 'odometerReading', label: 'Odometer', type: 'number' },
+  { key: 'location', label: 'Location' },
+  { key: 'reviewStatus', label: 'Review' },
+];
+const logExportRows = (records) =>
+  records.map((log) => ({
+    refuelTime: log.refuelTime ? formatDateTimeIST(log.refuelTime) : '—',
+    organization: log.orgId?.companyName || 'Unknown',
+    vehicle: log.vehicleId?.registrationNumber || '—',
+    uploadedBy: agentName(log.loggedBy),
+    fuelType: log.fuelType || '—',
+    fillingType: log.fillingType ? humanise(log.fillingType) : '—',
+    litres: log.litres,
+    rate: log.rate,
+    totalAmount: log.totalAmount,
+    odometerReading: log.odometerReading,
+    location: log.location || '—',
+    reviewStatus: humanise(log.reviewStatus),
+  }));
+
 const DEFAULT_FILTERS = () => ({
   vehicleId: '',
   from: toInputDate(daysAgo(30)),
@@ -52,6 +87,7 @@ const FieldAgentFuelPage = () => {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState(DEFAULT_FILTERS); // committed (drives the query)
   const [draft, setDraft] = useState(filters); // editable inputs
+  const [logQuery, setLogQuery] = useState(''); // client-side search over the loaded page
 
   useEffect(() => {
     FieldAgentFuelService.getVehicles()
@@ -99,25 +135,68 @@ const FieldAgentFuelPage = () => {
     setFilters(reset);
   };
 
+  // Client-side search — the logs endpoint accepts no q param, so this
+  // narrows the records already on screen (the current page).
+  const logNeedle = logQuery.trim().toLowerCase();
+  const filteredLogs = logNeedle
+    ? logs.filter((log) =>
+        [
+          log.vehicleId?.registrationNumber,
+          log.orgId?.companyName,
+          agentName(log.loggedBy),
+          log.fuelType,
+          log.fillingType,
+          log.location,
+          log.reviewStatus,
+        ].some((f) => String(f ?? '').toLowerCase().includes(logNeedle)))
+    : logs;
+  const logFilterCount = (filters.vehicleId ? 1 : 0) + (logNeedle ? 1 : 0);
+  const selectedVehicle = vehicles.find((v) => v._id === filters.vehicleId) || null;
+
   return (
     <div className="fa-fuel-page" style={themeColors}>
-      <div className="fa-fuel-header">
-        <div>
-          <h1 className="fa-fuel-title">Field Agent Fuel Uploads</h1>
-          <p className="fa-fuel-sub">
-            Standalone fuel logs uploaded from the field — filter by vehicle and date.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="fa-fuel-btn" onClick={fetchLogs} disabled={loading}>
-            <RefreshCw size={16} /> Refresh
-          </button>
-          <button className="fa-fuel-btn fa-fuel-btn-primary" onClick={() => navigate('/field-agent-fuel/new')}>
-            <Plus size={16} /> Log Fuel
-          </button>
-        </div>
-      </div>
-
+      <PageShell
+        title="Field Agent Fuel Uploads"
+        subtitle="Standalone fuel logs uploaded from the field — filter by vehicle and date."
+        count={meta.total}
+        actions={(
+          <>
+            <button className="fa-fuel-btn" onClick={fetchLogs} disabled={loading}>
+              <RefreshCw size={16} /> Refresh
+            </button>
+            <button className="fa-fuel-btn fa-fuel-btn-primary" onClick={() => navigate('/field-agent-fuel/new')}>
+              <Plus size={16} /> Log Fuel
+            </button>
+          </>
+        )}
+        filters={(
+          <FilterBar
+            searchValue={logQuery}
+            onSearchChange={setLogQuery}
+            searchPlaceholder="Search vehicle, agent or location…"
+            activeCount={logFilterCount}
+            onClear={() => { setLogQuery(''); clearFilters(); }}
+            right={(
+              <ExportButton
+                rows={logExportRows(filteredLogs)}
+                columns={LOG_EXPORT_COLUMNS}
+                filename="field-agent-fuel"
+                disabled={loading || !!error}
+                meta={{
+                  generatedAt: new Date(),
+                  filters: [
+                    ...(logNeedle ? [{ label: 'Search (this page)', value: logQuery.trim() }] : []),
+                    { label: 'Vehicle', value: selectedVehicle?.registrationNumber || 'All vehicles' },
+                    { label: 'From', value: filters.from || '—' },
+                    { label: 'To', value: filters.to || '—' },
+                  ],
+                }}
+              />
+            )}
+          />
+        )}
+        footer={footerSummary({ showing: filteredLogs.length, total: meta.total, activeFilters: logFilterCount }) + ' on this page'}
+      >
       <div className="fa-fuel-kpis">
         <KpiCard icon={<FileText size={20} />} label="Uploads" value={fmtNum(stats.totalUploads, 0)} />
         <KpiCard icon={<Droplet size={20} />} label="Total Litres" value={`${fmtNum(stats.totalLitres)} L`} />
@@ -187,6 +266,8 @@ const FieldAgentFuelPage = () => {
           <div className="fa-fuel-state fa-fuel-error">{error}</div>
         ) : logs.length === 0 ? (
           <div className="fa-fuel-state">No fuel uploads found for the selected filters.</div>
+        ) : filteredLogs.length === 0 ? (
+          <div className="fa-fuel-state">No uploads on this page match “{logQuery.trim()}”. Try another term or clear the search.</div>
         ) : (
           <table className="fa-fuel-table">
             <thead>
@@ -272,6 +353,7 @@ const FieldAgentFuelPage = () => {
           </button>
         </div>
       )}
+      </PageShell>
     </div>
   );
 };

@@ -33,27 +33,41 @@ const TripDetailPage = lazy(() => import('./pages/Trip/TripDetailPage.jsx'));
 const SuperAdminLayout = lazy(() => import('./pages/Superadmin/SuperAdminLayout.jsx'));
 const SuperAdminPage = lazy(() => import('./pages/Superadmin/SuperAdminPage.jsx'));
 const AddUserPage = lazy(() => import('./pages/Superadmin/components/AddUserPage.jsx'));
-const OrgFeatureFlagsPage = lazy(() => import('./pages/Superadmin/components/OrgFeatureFlagsPage.jsx'));
-const OrgFeatureFlagsDetailPage = lazy(() => import('./pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx'));
+const OrgFeatureFlagsPage = lazy(
+  () => import('./pages/Superadmin/components/OrgFeatureFlagsPage.jsx'),
+);
+const OrgFeatureFlagsDetailPage = lazy(
+  () => import('./pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx'),
+);
 const OrgDetailPage = lazy(() => import('./pages/Superadmin/components/OrgDetailPage.jsx'));
-const RbacPermissionsPage = lazy(() => import('./pages/Superadmin/components/RbacPermissionsPage.jsx'));
+const RbacPermissionsPage = lazy(
+  () => import('./pages/Superadmin/components/RbacPermissionsPage.jsx'),
+);
 const RbacRolesPage = lazy(() => import('./pages/Superadmin/components/RbacRolesPage.jsx'));
 const LemuLogsPage = lazy(() => import('./pages/Superadmin/components/LemuLogsPage.jsx'));
-const LemuGraphPage = lazy(() => import('./pages/Superadmin/components/lemu/graph/LemuGraphPage.jsx'));
+const LemuGraphPage = lazy(
+  () => import('./pages/Superadmin/components/lemu/graph/LemuGraphPage.jsx'),
+);
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
 const VehiclesPage = lazy(() => import('./pages/Profile/VehiclesPage.jsx'));
 const AddVehiclePage = lazy(() => import('./pages/Profile/AddVehiclePage.jsx'));
 const VehicleDashboardPage = lazy(() => import('./pages/Profile/VehicleDashboardPage.jsx'));
-const ServiceIntelligencePage = lazy(() => import('./pages/Maintenance/ServiceIntelligencePage.jsx'));
+const ServiceIntelligencePage = lazy(
+  () => import('./pages/Maintenance/ServiceIntelligencePage.jsx'),
+);
 const AddMaintenancePage = lazy(() => import('./pages/Maintenance/AddMaintenancePage.jsx'));
 const RoutesPage = lazy(() => import('./pages/Routes/RoutesPage.jsx'));
 const AddRoutePage = lazy(() => import('./pages/Routes/AddRoutePage.jsx'));
 const MileageTrackingPage = lazy(() => import('./pages/MileageTracking/MileageTrackingPage.jsx'));
-const MileageTrackingVehicleDetail = lazy(() => import('./pages/MileageTracking/MileageTrackingVehicleDetail.jsx'));
+const MileageTrackingVehicleDetail = lazy(
+  () => import('./pages/MileageTracking/MileageTrackingVehicleDetail.jsx'),
+);
 const MileageFuelLogPage = lazy(() => import('./pages/MileageTracking/MileageFuelLogPage.jsx'));
 const AdBlueLogPage = lazy(() => import('./pages/MileageTracking/AdBlueLogPage.jsx'));
 const AdBlueTrackingPage = lazy(() => import('./pages/MileageTracking/AdBlueTrackingPage.jsx'));
-const MileageIntervalDetailPage = lazy(() => import('./pages/MileageTracking/MileageIntervalDetailPage.jsx'));
+const MileageIntervalDetailPage = lazy(
+  () => import('./pages/MileageTracking/MileageIntervalDetailPage.jsx'),
+);
 const ModelComparisonPage = lazy(() => import('./pages/MileageTracking/ModelComparisonPage.jsx'));
 const LocationPage = lazy(() => import('./pages/Locations/LocationPage.jsx'));
 const AddLocationPage = lazy(() => import('./pages/Locations/AddLocationPage.jsx'));
@@ -61,15 +75,26 @@ const RefuelLogsPage = lazy(() => import('./pages/Trip/RefuelLogsPage.jsx'));
 const FuelComparisonPage = lazy(() => import('./pages/FuelComparison/FuelComparisonPage.jsx'));
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
 const RouteDeviationPage = lazy(() => import('./pages/RouteDeviation/RouteDeviationPage.jsx'));
+const RouteProfitabilityPage = lazy(
+  () => import('./pages/RouteProfitability/RouteProfitabilityPage.jsx'),
+);
+const OverspeedPage = lazy(() => import('./pages/Overspeed/OverspeedPage.jsx'));
+const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('./pages/OwnerAlerts/OwnerAlertsPage.jsx'));
 const GeofencePage = lazy(() => import('./pages/Geofence/GeofencePage.jsx'));
 const GeofenceZonesPage = lazy(() => import('./pages/Geofence/GeofenceZonesPage.jsx'));
 const FieldAgentFuelPage = lazy(() => import('./pages/FieldAgentFuel/FieldAgentFuelPage.jsx'));
-const FieldAgentFuelUploadPage = lazy(() => import('./pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx'));
+const FieldAgentFuelUploadPage = lazy(
+  () => import('./pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx'),
+);
 const KhataLedgerPage = lazy(() => import('./pages/KhataLedger/KhataLedgerPage.jsx'));
-const KhataLedgerDriverDetailPage = lazy(() => import('./pages/KhataLedger/KhataLedgerDriverDetailPage.jsx'));
-const KhataLedgerVehicleDetailPage = lazy(() => import('./pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx'));
+const KhataLedgerDriverDetailPage = lazy(
+  () => import('./pages/KhataLedger/KhataLedgerDriverDetailPage.jsx'),
+);
+const KhataLedgerVehicleDetailPage = lazy(
+  () => import('./pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx'),
+);
 const TripReportDetailPage = lazy(() => import('./pages/Reports/reports/TripReportDetailPage.jsx'));
 const PartiesPage = lazy(() => import('./pages/ErpMasters/PartiesPage.jsx'));
 const RatesPage = lazy(() => import('./pages/ErpMasters/RatesPage.jsx'));
@@ -81,7 +106,9 @@ const BillApprovalsPage = lazy(() => import('./pages/ErpBillApprovals/BillApprov
 const PlacementBoardPage = lazy(() => import('./pages/ErpPlacement/PlacementBoardPage.jsx'));
 const PlacementsPage = lazy(() => import('./pages/ErpPlacement/PlacementsPage.jsx'));
 const VendorsPage = lazy(() => import('./pages/ErpMasters/VendorsPage.jsx'));
-const MaterialCompatibilityPage = lazy(() => import('./pages/ErpMasters/MaterialCompatibilityPage.jsx'));
+const MaterialCompatibilityPage = lazy(
+  () => import('./pages/ErpMasters/MaterialCompatibilityPage.jsx'),
+);
 const ErpSettingsPage = lazy(() => import('./pages/ErpMasters/ErpSettingsPage.jsx'));
 const ErpTripDetailPage = lazy(() => import('./pages/ErpTrips/TripDetailPage.jsx'));
 const AdvanceMastersPage = lazy(() => import('./pages/ErpAdvances/AdvanceMastersPage.jsx'));
@@ -100,7 +127,9 @@ const FuelSpendPage = lazy(() => import('./pages/FuelSpend/FuelSpendPage.jsx'));
 const DefLedgerPage = lazy(() => import('./pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('./pages/FleetCoverage/FleetCoveragePage.jsx'));
 const AuditTrailPage = lazy(() => import('./pages/AuditTrail/AuditTrailPage.jsx'));
-const RouteIntelligencePage = lazy(() => import('./pages/RouteIntelligence/RouteIntelligencePage.jsx'));
+const RouteIntelligencePage = lazy(
+  () => import('./pages/RouteIntelligence/RouteIntelligencePage.jsx'),
+);
 const Vehicle360Page = lazy(() => import('./pages/Vehicle360/Vehicle360Page.jsx'));
 
 const LandingPage = lazy(() => import('./pages/Landing/LandingPage.jsx'));
@@ -119,22 +148,95 @@ function App() {
         <Route path="/onboarding" element={<OnboardingPage />} />
 
         {/* Super Admin Routes */}
-        <Route path="/superadmin" element={
-          <Suspense fallback={<div style={{ padding: 24 }}>Loading admin…</div>}>
-            <SuperAdminLayout />
-          </Suspense>
-        }>
-          <Route index element={<Suspense fallback={null}><SuperAdminPage /></Suspense>} />
-          <Route path="add-user" element={<Suspense fallback={null}><AddUserPage /></Suspense>} />
-          <Route path="feature-flags" element={<Suspense fallback={null}><OrgFeatureFlagsPage /></Suspense>} />
-          <Route path="feature-flags/:orgId" element={<Suspense fallback={null}><OrgFeatureFlagsDetailPage /></Suspense>} />
-          <Route path="organizations/:id" element={<Suspense fallback={null}><OrgDetailPage /></Suspense>} />
+        <Route
+          path="/superadmin"
+          element={
+            <Suspense fallback={<div style={{ padding: 24 }}>Loading admin…</div>}>
+              <SuperAdminLayout />
+            </Suspense>
+          }
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={null}>
+                <SuperAdminPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="add-user"
+            element={
+              <Suspense fallback={null}>
+                <AddUserPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="feature-flags"
+            element={
+              <Suspense fallback={null}>
+                <OrgFeatureFlagsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="feature-flags/:orgId"
+            element={
+              <Suspense fallback={null}>
+                <OrgFeatureFlagsDetailPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="organizations/:id"
+            element={
+              <Suspense fallback={null}>
+                <OrgDetailPage />
+              </Suspense>
+            }
+          />
           {/* RBAC management */}
-          <Route path="rbac/permissions" element={<Suspense fallback={null}><RbacPermissionsPage /></Suspense>} />
-          <Route path="rbac/roles" element={<Suspense fallback={null}><RbacRolesPage /></Suspense>} />
-          <Route path="lemu" element={<Suspense fallback={null}><LemuLogsPage /></Suspense>} />
-          <Route path="graph" element={<Suspense fallback={null}><LemuGraphPage /></Suspense>} />
-          <Route path="warehouse" element={<Suspense fallback={null}><WarehousePage /></Suspense>} />
+          <Route
+            path="rbac/permissions"
+            element={
+              <Suspense fallback={null}>
+                <RbacPermissionsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="rbac/roles"
+            element={
+              <Suspense fallback={null}>
+                <RbacRolesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="lemu"
+            element={
+              <Suspense fallback={null}>
+                <LemuLogsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="graph"
+            element={
+              <Suspense fallback={null}>
+                <LemuGraphPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="warehouse"
+            element={
+              <Suspense fallback={null}>
+                <WarehousePage />
+              </Suspense>
+            }
+          />
         </Route>
 
         {/* Protected Routes inside DashboardLayout */}
@@ -161,6 +263,9 @@ function App() {
           <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
           <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
           <Route path="/route-deviation" element={<RouteDeviationPage />} />
+          <Route path="/route-profitability" element={<RouteProfitabilityPage />} />
+          <Route path="/overspeed" element={<OverspeedPage />} />
+          <Route path="/hotspots" element={<HotspotsPage />} />
           <Route path="/live-tracking" element={<LiveTrackingPage />} />
           <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
           <Route path="/geofence" element={<GeofencePage />} />
@@ -178,7 +283,10 @@ function App() {
           <Route path="/trip/:tripId" element={<TripManagementPage />} />
           <Route path="/refuel-logs" element={<RefuelLogsPage />} />
           <Route path="/mileage-tracking" element={<MileageTrackingPage />} />
-          <Route path="/mileage-tracking/vehicle/:vehicleId" element={<MileageTrackingVehicleDetail />} />
+          <Route
+            path="/mileage-tracking/vehicle/:vehicleId"
+            element={<MileageTrackingVehicleDetail />}
+          />
           <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
           <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
           <Route path="/adblue-tracking" element={<AdBlueTrackingPage />} />
@@ -191,8 +299,14 @@ function App() {
           <Route path="/vehicles" element={<VehiclesPage />} />
           <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
           <Route path="/vehicles/service-intelligence" element={<ServiceIntelligencePage />} />
-          <Route path="/vehicles/service-intelligence/add-service" element={<AddMaintenancePage recordType="SERVICE" />} />
-          <Route path="/vehicles/service-intelligence/add-repair" element={<AddMaintenancePage recordType="REPAIR" />} />
+          <Route
+            path="/vehicles/service-intelligence/add-service"
+            element={<AddMaintenancePage recordType="SERVICE" />}
+          />
+          <Route
+            path="/vehicles/service-intelligence/add-repair"
+            element={<AddMaintenancePage recordType="REPAIR" />}
+          />
           <Route path="/vehicles/add" element={<AddVehiclePage />} />
           <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
           <Route path="/routes" element={<RoutesPage />} />
@@ -206,7 +320,10 @@ function App() {
           <Route path="/erp/accounts" element={<ErpAccountsPage />} />
           {/* Voucher/document detail — MUST precede the Account 360 catch-all so
               "voucher" is not matched as an accountType. */}
-          <Route path="/erp/accounts/voucher/:docId" element={<DocumentDetailPage segment="voucher" />} />
+          <Route
+            path="/erp/accounts/voucher/:docId"
+            element={<DocumentDetailPage segment="voucher" />}
+          />
           {/* Account 360 — per-party/vendor/supplier/driver financial detail. */}
           <Route path="/erp/accounts/:accountType/:accountId" element={<Account360Page />} />
           <Route path="/erp/approvals" element={<ApprovalsPage />} />
@@ -224,22 +341,61 @@ function App() {
           <Route path="/erp/settings" element={<ErpSettingsPage />} />
 
           {/* Legacy Route Redirects (1 Release Backward Compatibility) */}
-          <Route path="/erp/delivery-orders" element={<RedirectWithState to="/erp/pipeline?tab=dos" />} />
-          <Route path="/erp/placement-board" element={<RedirectWithState to="/erp/pipeline?tab=placement" />} />
-          <Route path="/erp/placements" element={<RedirectWithState to="/erp/pipeline?tab=placement" />} />
+          <Route
+            path="/erp/delivery-orders"
+            element={<RedirectWithState to="/erp/pipeline?tab=dos" />}
+          />
+          <Route
+            path="/erp/placement-board"
+            element={<RedirectWithState to="/erp/pipeline?tab=placement" />}
+          />
+          <Route
+            path="/erp/placements"
+            element={<RedirectWithState to="/erp/pipeline?tab=placement" />}
+          />
           <Route path="/erp/trips" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
-          <Route path="/erp/advances" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
-          <Route path="/erp/consignments" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
-          <Route path="/erp/trip-close" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
+          <Route
+            path="/erp/advances"
+            element={<RedirectWithState to="/erp/pipeline?tab=trips" />}
+          />
+          <Route
+            path="/erp/consignments"
+            element={<RedirectWithState to="/erp/pipeline?tab=trips" />}
+          />
+          <Route
+            path="/erp/trip-close"
+            element={<RedirectWithState to="/erp/pipeline?tab=trips" />}
+          />
           <Route path="/erp/pods" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
-          <Route path="/erp/unloading" element={<RedirectWithState to="/erp/pipeline?tab=trips" />} />
-          <Route path="/erp/sale-bills" element={<RedirectWithState to="/erp/billing?tab=bills" />} />
-          <Route path="/erp/outstanding" element={<RedirectWithState to="/erp/billing?tab=outstanding" />} />
-          <Route path="/erp/receipts" element={<RedirectWithState to="/erp/billing?tab=receipts" />} />
-          <Route path="/erp/vendor-payments" element={<RedirectWithState to="/erp/payables?tab=vendor" />} />
-          <Route path="/erp/supplier-payments" element={<RedirectWithState to="/erp/payables?tab=supplier" />} />
+          <Route
+            path="/erp/unloading"
+            element={<RedirectWithState to="/erp/pipeline?tab=trips" />}
+          />
+          <Route
+            path="/erp/sale-bills"
+            element={<RedirectWithState to="/erp/billing?tab=bills" />}
+          />
+          <Route
+            path="/erp/outstanding"
+            element={<RedirectWithState to="/erp/billing?tab=outstanding" />}
+          />
+          <Route
+            path="/erp/receipts"
+            element={<RedirectWithState to="/erp/billing?tab=receipts" />}
+          />
+          <Route
+            path="/erp/vendor-payments"
+            element={<RedirectWithState to="/erp/payables?tab=vendor" />}
+          />
+          <Route
+            path="/erp/supplier-payments"
+            element={<RedirectWithState to="/erp/payables?tab=supplier" />}
+          />
           <Route path="/erp/ledger" element={<RedirectWithState to="/erp/accounts?tab=ledger" />} />
-          <Route path="/erp/finance" element={<RedirectWithState to="/erp/accounts?tab=finance" />} />
+          <Route
+            path="/erp/finance"
+            element={<RedirectWithState to="/erp/accounts?tab=finance" />}
+          />
 
           <Route path="/khata-ledger/drivers/:id" element={<KhataLedgerDriverDetailPage />} />
           <Route path="/khata-ledger/trucks/:id" element={<KhataLedgerVehicleDetailPage />} />

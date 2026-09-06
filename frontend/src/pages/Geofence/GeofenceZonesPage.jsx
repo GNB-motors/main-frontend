@@ -12,6 +12,13 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import AddZoneDrawer from './AddZoneDrawer.jsx';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
+import { label, humanise } from '../../lib/vocabulary';
+import { footerSummary } from '../../lib/tableState';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import ExportButton from '../../components/ui/ExportButton';
+import { useConfirm } from '../../components/ui/confirmContext';
+import { toast } from 'react-toastify';
 import './GeofenceZones.css';
 
 dayjs.extend(utc);
@@ -67,6 +74,31 @@ const ZoneTypeBadge = ({ zoneType }) => {
   const cfg = ZONE_CFG[zoneType] || ZONE_CFG.CUSTOM;
   return <span className={`gfz-badge ${cfg.badgeCls}`}>{cfg.label}</span>;
 };
+
+// Export shape for the zone table — humanised types, no raw ids or UPPER_SNAKE.
+const ZONE_EXPORT_COLUMNS = [
+  { key: 'name', label: 'Zone name' },
+  { key: 'zoneType', label: 'Type' },
+  { key: 'shape', label: 'Shape' },
+  { key: 'radiusMetres', label: 'Radius (m)', type: 'number' },
+  { key: 'alertOnEntry', label: 'Entry alert' },
+  { key: 'alertOnExit', label: 'Exit alert' },
+  { key: 'state', label: 'State' },
+  { key: 'highway', label: 'Highway' },
+  { key: 'status', label: 'Status' },
+];
+const zoneExportRows = (records) =>
+  records.map((z) => ({
+    name: z.name,
+    zoneType: ZONE_CFG[z.zoneType]?.label || humanise(z.zoneType),
+    shape: z.geofenceType === 'polygon' ? 'Polygon' : 'Circular',
+    radiusMetres: z.radiusMetres > 0 ? z.radiusMetres : null,
+    alertOnEntry: z.alertConfig?.alertOnEntry ? 'Yes' : 'No',
+    alertOnExit: z.alertConfig?.alertOnExit ? 'Yes' : 'No',
+    state: z.state || '—',
+    highway: z.highway || '—',
+    status: z.isActive ? 'Active' : 'Inactive',
+  }));
 
 const KpiCard = (props) => {
   const { icon: Icon, label, value, colorClass } = props;
@@ -145,6 +177,7 @@ const MapLegend = () => (
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofenceZonesPage = () => {
   const [zones, setZones] = useState([]);
+  const confirm = useConfirm();
   const [alerts, setAlerts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [liveVehicles, setLiveVehicles] = useState([]);
@@ -152,6 +185,7 @@ const GeofenceZonesPage = () => {
   const [error, setError] = useState(null);
   const [typeFilter, setTypeFilter] = useState('');
   const [showResolved, setShowResolved] = useState(false);
+  const [zoneQuery, setZoneQuery] = useState('');
   const [showDrawer, setShowDrawer] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
   const [clickedLatLng, setClickedLatLng] = useState(null);
@@ -227,10 +261,16 @@ const GeofenceZonesPage = () => {
   };
 
   const handleDelete = async (zoneId) => {
-    if (!window.confirm('Delete this custom zone?')) return;
+    const ok = await confirm({
+      title: 'Delete this custom zone?',
+      body: 'Vehicles inside it stop generating zone alerts until you recreate it.',
+      confirmLabel: 'Delete zone',
+      danger: true,
+    });
+    if (!ok) return;
     setDeletingId(zoneId);
     try { await GeofenceService.deleteZone(zoneId); fetchZones(); }
-    catch (err) { alert(err.message || 'Failed to delete'); }
+    catch (err) { toast.error(err.message || 'Failed to delete'); }
     finally { setDeletingId(null); }
   };
 
@@ -244,19 +284,23 @@ const GeofenceZonesPage = () => {
   const parkingCount = zones.filter(z => z.zoneType === 'PARKING').length;
   const customCount = zones.filter(z => z.zoneType === 'CUSTOM').length;
 
-  return (
-    <div className="gfz-page">
+  // Client-side name search — getZones accepts no q param, and the loaded list
+  // (up to 5000) is the full filtered set for the current type/status filters.
+  const zoneNeedle = zoneQuery.trim().toLowerCase();
+  const filteredZones = zoneNeedle
+    ? zones.filter(z => String(z.name ?? '').toLowerCase().includes(zoneNeedle))
+    : zones;
+  const zoneFilterCount =
+    (typeFilter ? 1 : 0) + (showResolved ? 1 : 0) + (zoneNeedle ? 1 : 0);
 
-      {/* Header */}
-      <div className="gfz-header">
-        <div className="gfz-title-area">
-          <div className="gfz-icon-wrap"><MapPin size={20} color="var(--primary-color,#4f46e5)" /></div>
-          <div>
-            <h1 className="gfz-title">Geofence Zones</h1>
-            <p className="gfz-subtitle">Accident blackspots, parking areas and custom zones · click the map to add a zone</p>
-          </div>
-        </div>
-        <div className="gfz-header-actions">
+  return (
+    <PageShell
+      className="gfz-page"
+      title="Geofence Zones"
+      subtitle="Accident blackspots, parking areas and custom zones · click the map to add a zone"
+      count={filteredZones.length}
+      actions={(
+        <>
           {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
             <span className={`gfz-live-pill ${liveOnline ? (liveVehicles.some(v => v.isStale) ? 'gfz-live-stale' : 'gfz-live-on') : 'gfz-live-off'}`}>
               {liveOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
@@ -281,9 +325,35 @@ const GeofenceZonesPage = () => {
           <button className="gfz-btn gfz-btn-ghost" onClick={fetchZones} disabled={loading}>
             <RefreshCw size={14} className={loading ? 'gfz-spin' : ''} />
           </button>
-        </div>
-      </div>
-
+        </>
+      )}
+      filters={(
+        <FilterBar
+          searchValue={zoneQuery}
+          onSearchChange={setZoneQuery}
+          searchPlaceholder="Search zone name…"
+          activeCount={zoneFilterCount}
+          onClear={() => { setZoneQuery(''); setTypeFilter(''); setShowResolved(false); }}
+          right={(
+            <ExportButton
+              rows={zoneExportRows(filteredZones)}
+              columns={ZONE_EXPORT_COLUMNS}
+              filename="geofence-zones"
+              disabled={loading || !!error}
+              meta={{
+                generatedAt: new Date(),
+                filters: [
+                  ...(zoneNeedle ? [{ label: 'Search', value: zoneQuery.trim() }] : []),
+                  { label: 'Zone type', value: typeFilter ? ZONE_CFG[typeFilter]?.label || humanise(typeFilter) : 'All types' },
+                  { label: 'Status', value: showResolved ? 'Active + inactive' : 'Active only' },
+                ],
+              }}
+            />
+          )}
+        />
+      )}
+      footer={footerSummary({ showing: filteredZones.length, total: zones.length, activeFilters: zoneFilterCount })}
+    >
       {/* KPI Row */}
       <div className="gfz-kpi-row">
         <KpiCard icon={AlertTriangle} label="Accident Blackspots" value={accidentCount} colorClass="danger" />
@@ -404,7 +474,7 @@ const GeofenceZonesPage = () => {
                   <p className="gfz-iw-name">{selectedZone.name}</p>
                   <ZoneTypeBadge zoneType={selectedZone.zoneType} />
                   {selectedZone.radiusMetres > 0 && <p className="gfz-iw-meta">Radius: {selectedZone.radiusMetres}m</p>}
-                  {selectedZone.state && <p className="gfz-iw-meta">{selectedZone.state}</p>}
+                  {selectedZone.state && <p className="gfz-iw-meta">{label('status', selectedZone.state)}</p>}
                   <p className="gfz-iw-meta">
                     Entry: {selectedZone.alertConfig?.alertOnEntry ? '✅' : '—'} &nbsp;
                     Exit: {selectedZone.alertConfig?.alertOnExit ? '✅' : '—'}
@@ -457,7 +527,9 @@ const GeofenceZonesPage = () => {
             <tbody>
               {zones.length === 0 ? (
                 <tr><td colSpan={9} className="gfz-empty-row">No zones found. Run the seeder script or add a custom zone.</td></tr>
-              ) : zones.map(zone => (
+              ) : filteredZones.length === 0 ? (
+                <tr><td colSpan={9} className="gfz-empty-row">No zones match “{zoneQuery.trim()}”. Try another name or clear the search.</td></tr>
+              ) : filteredZones.map(zone => (
                 <tr key={zone._id} className="gfz-row">
                   <td className="gfz-td"><span className="gfz-zone-name">{zone.name}</span></td>
                   <td className="gfz-td gfz-td-c"><ZoneTypeBadge zoneType={zone.zoneType} /></td>
@@ -500,8 +572,7 @@ const GeofenceZonesPage = () => {
           onSaved={() => { setShowDrawer(false); setClickedLatLng(null); setEditingZone(null); fetchZones(); }}
         />
       )}
-
-    </div>
+    </PageShell>
   );
 };
 

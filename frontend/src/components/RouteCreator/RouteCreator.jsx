@@ -4,6 +4,7 @@ import { fetchLocations } from '../../utils/fetchLocations';
 import SearchableDropdown from '../SearchableDropdown/SearchableDropdown';
 import GoogleMapsModal from '../GoogleMapsModal/GoogleMapsModal';
 import { useLoadScript } from '@react-google-maps/api';
+import { toast } from 'react-toastify';
 import './RouteCreator.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
@@ -235,7 +236,7 @@ const RouteCreator = ({
 
       } catch (error) {
         console.error("Error processing location prediction:", error);
-        alert("Failed to fetch details for the selected location.");
+        toast.error("Failed to fetch details for the selected location.");
       }
     } else {
       // Handle Existing Location Selection
@@ -302,7 +303,7 @@ const RouteCreator = ({
       setLocationOptions(prev => [...prev, created]);
       updateRouteData(currentLocationType, created);
     } catch {
-      alert('Failed to add location. Please try again.');
+      toast.error('Failed to add location. Please try again.');
     }
   };
 
@@ -334,7 +335,7 @@ const RouteCreator = ({
         });
       }
     } catch {
-      alert('Failed to delete location.');
+      toast.error('Failed to delete location.');
     }
   };
 

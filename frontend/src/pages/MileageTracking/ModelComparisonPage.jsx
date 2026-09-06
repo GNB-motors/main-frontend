@@ -6,6 +6,7 @@ import {
 import { BarChart2, Car, FileText, Gauge, Fuel, Route, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SearchableDropdown from '../../components/SearchableDropdown/SearchableDropdown';
+import ExportButton from '../../components/ui/ExportButton';
 import apiClient from '../../utils/axiosConfig';
 import { useApi } from '../../hooks/useApi';
 import './MileageTracking.css';
@@ -184,6 +185,25 @@ const ModelComparisonPage = () => {
   const totalVehicles = data.reduce((s, d) => s + d.vehicleCount, 0);
   const bestModel     = data[0] ?? null;
   const maxAvg        = data.length ? Math.max(...data.map(d => d.avgMileage)) : 0;
+
+  // Export rows for the Model-wise Summary table — one row per model with the
+  // same at-risk definition the table uses (variance below -5%).
+  const summaryExportRows = data.map((row) => ({
+    ...row,
+    atRisk: (row.vehicles ?? []).filter(v => getVariancePercent(v.avgMileage, row.avgMileage) < -5).length,
+  }));
+
+  const summaryExportColumns = [
+    { key: 'model', label: 'Model' },
+    { key: 'vehicleCount', label: 'Vehicles', type: 'number' },
+    { key: 'recordCount', label: 'Records', type: 'number' },
+    { key: 'avgMileage', label: 'Avg Mileage (km/L)', type: 'number' },
+    { key: 'minMileage', label: 'Min', type: 'number' },
+    { key: 'maxMileage', label: 'Max', type: 'number' },
+    { key: 'totalDistanceKm', label: 'Total Distance (km)', type: 'number' },
+    { key: 'totalFuelL', label: 'Total Fuel (L)', type: 'number' },
+    { key: 'atRisk', label: 'At Risk Vehicles', type: 'number' },
+  ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -399,6 +419,17 @@ const ModelComparisonPage = () => {
                   <Route size={16} color="#6366F1" />
                 </div>
                 <h3 className="mc-card-title">Model-wise Summary</h3>
+                <div style={{ marginLeft: 'auto' }}>
+                  <ExportButton
+                    rows={summaryExportRows}
+                    columns={summaryExportColumns}
+                    filename="model-comparison"
+                    meta={{
+                      filters: [{ label: 'Models compared', value: data.length }],
+                      generatedAt: new Date(),
+                    }}
+                  />
+                </div>
               </div>
               <div className="mc-table-wrapper">
                 <table className="mc-table">

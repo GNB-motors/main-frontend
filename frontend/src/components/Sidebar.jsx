@@ -105,6 +105,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         return match ? getNavGroupId(match) : null;
     }, [location.pathname]);
 
+    // H.3 brand cue: the sidebar ground is orange in fleet sections and
+    // cross-fades to blue on ERP & CRM routes (and back on leaving).
+    const isErpRoute = location.pathname === '/erp' || location.pathname.startsWith('/erp/');
+
     // Auto-expand the group whose child route is active. Navigating to a route
     // outside every group leaves the user's manual selection alone.
     useEffect(() => {
@@ -218,7 +222,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     return (
         <aside
-            className={`sidebar ${isSidebarOpen ? 'open' : ''}`}
+            className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isErpRoute ? 'sidebar--erp' : ''}`}
             onMouseEnter={() => setIsSidebarHovered(true)}
             onMouseLeave={() => setIsSidebarHovered(false)}
         >
