@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script>
+(function () {
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
+  document.head.appendChild(l);
+})();
+</script>
+<style>
+  :root {
+    --bg: #FAFAF9; --card: #FFFFFF; --sunk: #F5F5F4; --line: #E7E5E4; --line2: #D6D3D1;
+    --ink: #1A1A1A; --ink2: #44403C; --ink3: #6B645E; --disabled-ink: #A8A29E;
+    --link: #1E3A8A; --link-h: #16296B;
+    --orange: #EE6126; --orange-tint: #FDF1EB; --orange-solid: #B8460F; --orange-solid-h: #9E3B0B; --accent-ink: #B8460F;
+    --red-solid: #C62828; --red-solid-h: #A81E1E; --erp: #1E3A8A; --info: #1E88E5; --info-tint: #EAF4FD;
+    --green: #4CAF50; --green-ink: #2E7D32; --green-tint: #EDF7EE;
+    --amber: #F59E0B; --amber-ink: #8A5A00; --amber-tint: #FEF6E7;
+    --red: #F44336; --red-ink: #C62828; --red-tint: #FEF0EF;
+    --grey: #94A3B8; --grey-ink: #566275; --grey-tint: #F1F2F4; --grey-solid: #4B5563;
+    --focus: #1E88E5;
+    --glass: rgba(250,250,249,.88); --glass-line: rgba(28,20,14,.12);
+    --shadow: 0 1px 2px rgba(28,20,14,.06); --shadow-lg: 0 18px 40px -22px rgba(28,20,14,.35);
+  }
+  html, body { margin: 0; padding: 0; background: #EDEAE6; }
+  * { box-sizing: border-box; }
+  a { color: var(--link); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:hover { color: var(--link-h); }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; padding: 30px 36px 90px; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: var(--ink); display: flex; flex-direction: column; gap: 16px; align-items: flex-start;">
+
+  <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%;">
+    <span style="font: 600 13px/1 'IBM Plex Mono', monospace; color: var(--accent-ink);">BLOCK 7</span>
+    <h1 style="margin: 0; font: 600 20px/1.2 'IBM Plex Sans', sans-serif;">Settings as sentences</h1>
+    <p style="margin: 0; font: 400 13.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink3);">Change any number — the sentence and its “would have flagged” count recalculate as you type.</p>
+  </div>
+
+  <div style="position: relative; width: 1366px; height: 812px; display: flex; background: var(--bg); border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 48px -30px rgba(28,20,14,.45);">
+
+    <nav aria-label="Settings sections" style="flex: 0 0 auto; width: 228px; padding: 20px 12px; background: var(--card); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px;">
+      <p style="margin: 0 0 10px 10px; font: 600 10.5px/1 'IBM Plex Sans', sans-serif; letter-spacing: .13em; color: var(--ink3);">SETTINGS</p>
+      <sc-for list="{{ sections }}" as="s" hint-placeholder-count="5">
+        <button type="button" onClick="{{ s.onPick }}" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 38px; padding: 0 11px; border: 0; border-radius: 9px; background: {{ s.bg }}; color: {{ s.ink }}; font: {{ s.font }}; text-align: left; cursor: pointer;" style-hover="background: var(--sunk)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+          <span>{{ s.label }}</span>
+          <span style="font: 500 11.5px/1.3 'IBM Plex Mono', monospace; color: {{ s.countInk }};">{{ s.count }}</span>
+        </button>
+      </sc-for>
+      <div style="margin-top: auto; padding: 12px 11px 0; border-top: 1px solid var(--line);">
+        <p style="margin: 0; font: 400 11.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink3); text-wrap: pretty;">Rules apply to all 151 trucks unless the sentence says otherwise.</p>
+      </div>
+    </nav>
+
+    <div style="position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;">
+      <div style="flex: 0 0 auto; padding: 20px 26px 15px; background: var(--card); border-bottom: 1px solid var(--line);">
+        <h2 style="margin: 0; font: 600 23px/1.15 'IBM Plex Sans', sans-serif; letter-spacing: -.02em;">{{ pageTitle }}</h2>
+        <p style="margin: 6px 0 0; max-width: 720px; font: 400 13.5px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">{{ pageBlurb }}</p>
+      </div>
+
+      <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 20px 26px 120px; scrollbar-width: thin; scrollbar-color: var(--line2) transparent;">
+
+        <!-- ─── THRESHOLDS ─── -->
+        <sc-if value="{{ isThresholds }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 12px; max-width: 900px;">
+
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Alert me when a truck goes over
+                <label for="r1a" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Speed in kilometres per hour</label>
+                <input id="r1a" ref="{{ r1aRef }}" type="number" min="30" max="120" value="60" onInput="{{ onCalc }}" style="width: 76px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: center;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" /> km/h for more than
+                <label for="r1b" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Minutes above the limit</label>
+                <input id="r1b" ref="{{ r1bRef }}" type="number" min="1" max="30" value="3" onInput="{{ onCalc }}" style="width: 64px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: center;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" /> minutes.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Short bursts while overtaking are ignored. The truck has to stay above the limit for the whole duration before anything is sent.</p>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 13px; padding: 10px 12px; background: var(--sunk); border-radius: 9px;">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--info);"></span>
+                <p aria-live="polite" style="margin: 0; font: 500 13px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Over the last 30 days this would have flagged <strong ref="{{ o1aRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">47 events</strong> across <strong ref="{{ o1bRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">9 trucks</strong>.</p>
+                <button type="button" style="margin-left: auto; flex: 0 0 auto; border: 0; background: none; padding: 0; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--erp); text-decoration: underline; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 3px">See them</button>
+              </div>
+            </div>
+
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Flag idling when the engine runs over
+                <label for="r2a" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Idling minutes</label>
+                <input id="r2a" ref="{{ r2aRef }}" type="number" min="1" max="60" value="5" onInput="{{ onCalc }}" style="width: 64px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: center;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" /> minutes without moving.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Toll queues and loading bays count. A stationary engine burns roughly 1.1 litres an hour — about ₹103.</p>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 13px; padding: 10px 12px; background: var(--sunk); border-radius: 9px;">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--info);"></span>
+                <p aria-live="polite" style="margin: 0; font: 500 13px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Over the last 30 days this would have flagged <strong ref="{{ o2aRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">212 events</strong> worth <strong ref="{{ o2bRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">₹1,84,200</strong> of diesel.</p>
+                <button type="button" style="margin-left: auto; flex: 0 0 auto; border: 0; background: none; padding: 0; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--erp); text-decoration: underline; cursor: pointer;">See them</button>
+              </div>
+            </div>
+
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Warn me
+                <label for="r3a" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Days before expiry</label>
+                <input id="r3a" ref="{{ r3aRef }}" type="number" min="1" max="120" value="30" onInput="{{ onCalc }}" style="width: 72px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: center;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" /> days before a document expires.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Covers fitness certificate, permit, insurance and PUC. RTO renewals in Kolkata usually take four to six working days, so anything under 10 days is tight.</p>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 13px; padding: 10px 12px; background: var(--sunk); border-radius: 9px;">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--info);"></span>
+                <p aria-live="polite" style="margin: 0; font: 500 13px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Right now this would warn you about <strong ref="{{ o3aRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">9 documents</strong> on <strong ref="{{ o3bRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">7 trucks</strong>.</p>
+                <button type="button" style="margin-left: auto; flex: 0 0 auto; border: 0; background: none; padding: 0; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--erp); text-decoration: underline; cursor: pointer;">See them</button>
+              </div>
+              <p ref="{{ warnRef }}" style="display: none; margin: 10px 0 0; padding: 9px 12px; background: var(--amber-tint); border-radius: 9px; font: 500 12.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--amber-ink);">Under 10 days leaves no room for an RTO queue. Most owners keep this at 30.</p>
+            </div>
+
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Treat a truck as
+                <span style="display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 11px; border-radius: 999px; background: var(--grey-tint); font: 600 15px/1 'IBM Plex Sans', sans-serif; color: var(--grey-ink); vertical-align: baseline;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--grey);"></span>not reporting</span> when nothing has arrived for
+                <label for="r4a" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Hours of silence</label>
+                <input id="r4a" ref="{{ r4aRef }}" type="number" min="1" max="72" value="6" onInput="{{ onCalc }}" style="width: 66px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: center;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" /> hours.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Below this the truck is shown as “no signal”, which reads as a temporary problem. Above it, the truck is counted out of your live totals entirely.</p>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 13px; padding: 10px 12px; background: var(--sunk); border-radius: 9px;">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--info);"></span>
+                <p aria-live="polite" style="margin: 0; font: 500 13px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Right now <strong ref="{{ o4aRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">139 trucks</strong> would be counted as not reporting, leaving <strong ref="{{ o4bRef }}" style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">12</strong> in your live figures.</p>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ─── ALERTS ─── -->
+        <sc-if value="{{ isAlerts }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 12px; max-width: 900px;">
+            <sc-for list="{{ alertRules }}" as="a" hint-placeholder-count="4">
+              <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 18px;">
+                <div style="flex: 1 1 auto; min-width: 0;">
+                  <p style="margin: 0; font: 450 17px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">{{ a.sentence }}</p>
+                  <p style="margin: 8px 0 0; font: 400 12.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">{{ a.explain }}</p>
+                  <p style="margin: 9px 0 0; font: 500 12.5px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ a.calibration }}</p>
+                </div>
+                <button type="button" role="switch" aria-checked="{{ a.on }}" onClick="{{ a.onToggle }}" style="flex: 0 0 auto; margin-top: 4px; display: flex; align-items: center; gap: 9px; border: 0; background: none; padding: 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2); cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 6px">
+                  <span aria-hidden="true" style="width: 40px; height: 23px; border-radius: 999px; background: {{ a.trackBg }}; padding: 2px; display: flex; justify-content: {{ a.knob }};"><span style="width: 19px; height: 19px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,.25);"></span></span>
+                  <span style="min-width: 22px;">{{ a.state }}</span>
+                </button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- ─── NOTIFICATIONS ─── -->
+        <sc-if value="{{ isNotifications }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 12px; max-width: 900px;">
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Send anything urgent to
+                <span style="display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); font: 600 16px/1 'IBM Plex Mono', monospace; vertical-align: baseline;">+91 98300 41182</span> by
+                <label for="n1" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Channel</label>
+                <select id="n1" style="height: 38px; padding: 0 10px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); color: var(--ink); font: 600 16px/1 'IBM Plex Sans', sans-serif; vertical-align: baseline;" style-focus="outline: 2px solid var(--focus); outline-offset: 1px"><option>WhatsApp</option><option>SMS</option><option>both WhatsApp and SMS</option></select>.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Urgent means suspected fuel loss, a truck silent on a live trip, or a document expiring inside 7 days. Everything else waits for the daily summary.</p>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 13px; padding: 10px 12px; background: var(--sunk); border-radius: 9px;">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--info);"></span>
+                <p style="margin: 0; font: 500 13px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Last month that would have been <strong style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">18 messages</strong> — about one every other day.</p>
+              </div>
+            </div>
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Send the daily summary at
+                <label for="n2" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Time of day</label>
+                <input id="n2" type="text" value="07:00" style="width: 84px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; text-align: center;" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" /> IST, in
+                <label for="n3" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Language</label>
+                <select id="n3" style="height: 38px; padding: 0 10px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); color: var(--ink); font: 600 16px/1 'IBM Plex Sans', sans-serif; vertical-align: baseline;"><option>Hindi</option><option>English</option><option>Hindi and English</option></select>.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">One message: yesterday's trips, fuel, anything that needs a decision. Sent even when nothing is wrong, so silence always means a delivery problem.</p>
+            </div>
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Never message me between
+                <input aria-label="Quiet hours start" type="text" value="22:00" style="width: 84px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; text-align: center;" /> and
+                <input aria-label="Quiet hours end" type="text" value="06:00" style="width: 84px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; text-align: center;" /> IST.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Fuel-theft alerts ignore quiet hours, because that is when most of it happens. Everything else queues until morning.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ─── DATA & PRIVACY ─── -->
+        <sc-if value="{{ isData }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 12px; max-width: 900px;">
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Keep trip and position history for
+                <label for="d1" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Months of history</label>
+                <input id="d1" type="number" min="3" max="84" value="24" style="width: 72px; height: 38px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 18px/1 'IBM Plex Mono', monospace; text-align: center;" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" /> months, then delete it.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Invoices and fuel bills are kept for 8 years regardless — that is a statutory requirement, not a setting.</p>
+              <div style="display: flex; align-items: center; gap: 12px; margin-top: 13px; padding: 10px 12px; background: var(--sunk); border-radius: 9px;">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--info);"></span>
+                <p style="margin: 0; font: 500 13px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">You currently hold <strong style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">14 months</strong> of history · <strong style="color: var(--ink); font-family: 'IBM Plex Mono', monospace;">2,418 trips</strong>. Nothing would be deleted today.</p>
+              </div>
+            </div>
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow);">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Let drivers see their own score and trips on their phone: <span style="font-weight: 600;">yes</span>.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Drivers see only their own record. They never see cost figures, other drivers, or fleet totals.</p>
+            </div>
+            <div style="background: var(--card); border: 1px solid color-mix(in srgb, var(--red) 30%, var(--line)); border-radius: 12px; padding: 18px 20px;">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">Export everything this account holds, as one Excel workbook.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Vehicles, trips, fuel, documents, invoices and users. Prepared within an hour and sent to the owner's email — it is not deleted from GNB.</p>
+              <button type="button" style="margin-top: 14px; height: 38px; padding: 0 16px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)">Prepare export</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ─── TEAM ─── -->
+        <sc-if value="{{ isTeam }}" hint-placeholder-val="{{ false }}">
+          <div style="max-width: 900px;">
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px 20px; box-shadow: var(--shadow); margin-bottom: 12px;">
+              <p style="margin: 0; font: 450 19px/1.75 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">A branch manager can see vehicles and trips for
+                <select aria-label="Branch scope" style="height: 38px; padding: 0 10px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); color: var(--ink); font: 600 16px/1 'IBM Plex Sans', sans-serif; vertical-align: baseline;"><option>their own branch</option><option>every branch</option></select>, and money figures for
+                <select aria-label="Money scope" style="height: 38px; padding: 0 10px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); color: var(--ink); font: 600 16px/1 'IBM Plex Sans', sans-serif; vertical-align: baseline;"><option>nothing</option><option>their own branch</option><option>every branch</option></select>.</p>
+              <p style="margin: 11px 0 0; font: 400 13px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Applies to all 3 branch managers. The Owner and the Accountant always see everything.</p>
+            </div>
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);">
+              <table style="width: 100%; border-collapse: collapse; font-family: 'IBM Plex Sans', sans-serif;">
+                <caption style="padding: 14px 20px 10px; text-align: left; font: 600 13.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink);">Who can get in · 9 people</caption>
+                <thead><tr>
+                  <th scope="col" style="padding: 8px 20px; background: var(--sunk); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">Name</th>
+                  <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">Role</th>
+                  <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">Branch</th>
+                  <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">Sees money</th>
+                  <th scope="col" style="padding: 8px 20px; background: var(--sunk); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: right;">Last signed in</th>
+                </tr></thead>
+                <tbody style="font-variant-numeric: tabular-nums;">
+                  <sc-for list="{{ team }}" as="t" hint-placeholder-count="5">
+                    <tr>
+                      <td style="padding: 11px 20px; border-bottom: 1px solid var(--line); font: 500 13px/1.3 'IBM Plex Sans', sans-serif;">{{ t.name }}</td>
+                      <td style="padding: 11px 12px; border-bottom: 1px solid var(--line); font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">{{ t.role }}</td>
+                      <td style="padding: 11px 12px; border-bottom: 1px solid var(--line); font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">{{ t.branch }}</td>
+                      <td style="padding: 11px 12px; border-bottom: 1px solid var(--line);"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 6px; border-radius: 999px; background: {{ t.chipBg }}; color: {{ t.chipInk }}; font: 600 11.5px/1.35 'IBM Plex Sans', sans-serif;"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: {{ t.dot }};"></span>{{ t.money }}</span></td>
+                      <td style="padding: 11px 20px; border-bottom: 1px solid var(--line); font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3); text-align: right;">{{ t.seen }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <div style="padding: 13px 20px;"><button type="button" style="height: 36px; padding: 0 14px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 600 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)">Invite someone</button></div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- sticky save bar — glass is legal on a sticky toolbar -->
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 14px; padding: 13px 26px; background: var(--glass); backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%); border-top: 1px solid var(--glass-line);">
+        <p ref="{{ dirtyRef }}" style="margin: 0; font: 450 13px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink3);">No changes yet. Last saved 04 Sep 2026, 18:22 IST by Gopal Agarwal.</p>
+        <div style="margin-left: auto; display: flex; gap: 9px;">
+          <button type="button" onClick="{{ reset }}" style="height: 38px; padding: 0 16px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 500 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Undo changes</button>
+          <button type="button" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--orange-solid-h)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Save these rules</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- phone -->
+  <div style="display: flex; gap: 26px; align-items: flex-start;">
+    <div>
+      <p style="margin: 0 0 10px; font: 600 11px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">5.5″ ANDROID · SENTENCES WRAP, INPUTS STAY 44 PX</p>
+      <div style="width: 360px; height: 620px; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line2); border-radius: 22px; overflow: hidden; box-shadow: 0 24px 48px -30px rgba(28,20,14,.45);">
+        <div style="flex: 0 0 auto; padding: 14px 16px; background: var(--card); border-bottom: 1px solid var(--line);">
+          <p style="margin: 0; font: 600 17px/1.2 'IBM Plex Sans', sans-serif;">Thresholds</p>
+          <p style="margin: 3px 0 0; font: 400 12px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">4 rules · applies to 151 trucks</p>
+        </div>
+        <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: var(--shadow);">
+            <p style="margin: 0; font: 450 16px/1.9 'IBM Plex Sans', sans-serif; text-wrap: pretty;">Alert me when a truck goes over <input aria-label="Speed limit" type="number" value="60" style="width: 68px; height: 44px; padding: 0 6px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); font: 600 17px/1 'IBM Plex Mono', monospace; text-align: center; color: var(--ink);" /> km/h for more than <input aria-label="Minutes" type="number" value="3" style="width: 58px; height: 44px; padding: 0 6px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); font: 600 17px/1 'IBM Plex Mono', monospace; text-align: center; color: var(--ink);" /> minutes.</p>
+            <p style="margin: 10px 0 0; font: 400 12.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink2);">Short overtaking bursts are ignored.</p>
+            <p style="margin: 10px 0 0; padding: 9px 11px; background: var(--sunk); border-radius: 9px; font: 500 12.5px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Would have flagged <strong style="font-family: 'IBM Plex Mono', monospace; color: var(--ink);">47 events</strong> last month.</p>
+          </div>
+          <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: var(--shadow);">
+            <p style="margin: 0; font: 450 16px/1.9 'IBM Plex Sans', sans-serif; text-wrap: pretty;">Flag idling when the engine runs over <input aria-label="Idling minutes" type="number" value="5" style="width: 58px; height: 44px; padding: 0 6px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); font: 600 17px/1 'IBM Plex Mono', monospace; text-align: center; color: var(--ink);" /> minutes without moving.</p>
+            <p style="margin: 10px 0 0; font: 400 12.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink2);">Toll queues and loading bays count.</p>
+            <p style="margin: 10px 0 0; padding: 9px 11px; background: var(--sunk); border-radius: 9px; font: 500 12.5px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Would have flagged <strong style="font-family: 'IBM Plex Mono', monospace; color: var(--ink);">212 events</strong> · <strong style="font-family: 'IBM Plex Mono', monospace; color: var(--ink);">₹1,84,200</strong>.</p>
+          </div>
+        </div>
+        <div style="flex: 0 0 auto; padding: 12px 16px; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--glass-line); display: flex; gap: 9px;">
+          <button type="button" style="flex: 0 0 auto; height: 44px; padding: 0 14px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card); color: var(--ink); font: 500 14px/1 'IBM Plex Sans', sans-serif;">Undo</button>
+          <button type="button" style="flex: 1 1 auto; height: 44px; border: 0; border-radius: 10px; background: var(--orange-solid); color: #FFFFFF; font: 600 14px/1 'IBM Plex Sans', sans-serif;">Save these rules</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width: 420px;">
+      <p style="margin: 0 0 10px; font: 600 11px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">WHY SENTENCES</p>
+      <p style="margin: 0 0 12px; font: 400 13.5px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">A labelled field asks the owner to imagine the rule. A sentence states it. He reads left to right, sees the two numbers he can change, and knows exactly what will happen tonight at 2 a.m.</p>
+      <p style="margin: 0 0 12px; font: 400 13.5px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">The count underneath is the part that earns trust: it replays the last 30 days of real data against the number now in the box. Set the speed to 50 and watch it jump — that is the moment he understands the threshold, not the label.</p>
+      <p style="margin: 0; font: 400 13.5px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink3); text-wrap: pretty;">Inputs sit on the sentence baseline at 38 px on desktop and 44 px on the phone, so the line stays readable while the target stays tappable.</p>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1460,&quot;height&quot;:1560},&quot;openSection&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Alerts&quot;,&quot;Thresholds&quot;,&quot;Notifications&quot;,&quot;Data &amp; privacy&quot;,&quot;Team&quot;],&quot;default&quot;:&quot;Thresholds&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Screen&quot;},&quot;showCalibration&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Screen&quot;}}">
+const TEAM = [
+  ['Gopal Agarwal', 'Owner', 'All branches', 'Everything', 'green', '2 min ago'],
+  ['Sunita Agarwal', 'Accountant', 'All branches', 'Everything', 'green', 'Yesterday, 19:40'],
+  ['Prasenjit Dutta', 'Branch manager', 'Kolkata', 'Own branch', 'amber', '48 min ago'],
+  ['Harjit Sandhu', 'Branch manager', 'Delhi', 'Own branch', 'amber', '3 h ago'],
+  ['R. Venkatesh', 'Branch manager', 'Chennai', 'Own branch', 'amber', '5 days ago'],
+  ['Md. Alam', 'Dispatcher', 'Kolkata', 'No', 'grey', '11 min ago'],
+  ['Neha Kapoor', 'Dispatcher', 'Delhi', 'No', 'grey', '1 h ago'],
+  ['S. Lakshmi', 'Dispatcher', 'Chennai', 'No', 'grey', '2 days ago'],
+  ['Bikram Saha', 'Workshop supervisor', 'Kolkata', 'No', 'grey', '26 min ago']
+];
+const TONE = {
+  green: { chipBg: 'var(--green-tint)', chipInk: 'var(--green-ink)', dot: 'var(--green)' },
+  amber: { chipBg: 'var(--amber-tint)', chipInk: 'var(--amber-ink)', dot: 'var(--amber)' },
+  grey:  { chipBg: 'var(--grey-tint)',  chipInk: 'var(--grey-ink)',  dot: 'var(--grey)' }
+};
+
+const ALERTS = [
+  { id: 'theft', on: true, sentence: 'Tell me straight away when fuel drops more than 8% while the engine is off.',
+    explain: 'The strongest signal of theft. Checked against every tank reading, including overnight.',
+    calibration: 'Would have alerted 11 times last month across 9 trucks — ₹4,82,350.' },
+  { id: 'silent', on: true, sentence: 'Tell me when a truck on a live trip stops reporting for more than 2 hours.',
+    explain: 'Only trips in progress. Parked trucks with dead devices go to the daily summary instead.',
+    calibration: 'Would have alerted 6 times last month.' },
+  { id: 'route', on: false, sentence: 'Tell me when a truck leaves the planned route by more than 15 km.',
+    explain: 'Needs a planned route on the trip sheet. 38 of your 218 trips last month had one.',
+    calibration: 'Would have alerted 4 times last month — too few trips have routes for this to be useful yet.' },
+  { id: 'night', on: false, sentence: 'Tell me when a truck moves between 23:00 and 04:00 IST.',
+    explain: 'Night running is normal on long hauls, so most owners leave this off.',
+    calibration: 'Would have alerted 62 times last month — roughly twice a night.' }
+];
+
+const SECTIONS = [
+  { id: 'alerts', label: 'Alerts', count: '4' },
+  { id: 'thresholds', label: 'Thresholds', count: '4' },
+  { id: 'notifications', label: 'Notifications', count: '3' },
+  { id: 'data', label: 'Data & privacy', count: '3' },
+  { id: 'team', label: 'Team', count: '9' }
+];
+
+const PAGES = {
+  alerts: { title: 'Alerts', blurb: 'What GNB tells you about, in the order it would reach your phone. Each rule shows how often it would have fired last month, so you can judge it before you turn it on.' },
+  thresholds: { title: 'Thresholds', blurb: 'The numbers behind the alerts, written as sentences. Change a number and the line underneath replays the last 30 days of real data against it.' },
+  notifications: { title: 'Notifications', blurb: 'Where messages go, when they go, and in which language.' },
+  data: { title: 'Data & privacy', blurb: 'How long GNB keeps your records, what your drivers can see, and how to take everything with you.' },
+  team: { title: 'Team', blurb: 'Who can sign in, what each role can see, and who has looked at money figures.' }
+};
+
+function inr(n) {
+  const s = String(Math.round(n));
+  if (s.length <= 3) return '₹' + s;
+  const last3 = s.slice(-3);
+  let rest = s.slice(0, -3), out = '';
+  while (rest.length > 2) { out = ',' + rest.slice(-2) + out; rest = rest.slice(0, -2); }
+  return '₹' + rest + out + ',' + last3;
+}
+
+class Component extends DCLogic {
+  state = { section: 'thresholds', alerts: { theft: true, silent: true, route: false, night: false }, dirty: false, init: false };
+
+  static getDerivedStateFromProps(props, state) {
+    if (!state.init) {
+      const map = { 'Alerts': 'alerts', 'Thresholds': 'thresholds', 'Notifications': 'notifications', 'Data & privacy': 'data', 'Team': 'team' };
+      return { init: true, section: map[props.openSection] || 'thresholds' };
+    }
+    return null;
+  }
+
+  componentDidMount() { this.calc(); }
+  componentDidUpdate() { this.calc(); }
+
+  num(ref, fallback) {
+    const el = ref && ref.current;
+    const v = el ? Number(el.value) : NaN;
+    return isNaN(v) ? fallback : v;
+  }
+
+  set(ref, text) { const el = ref && ref.current; if (el) el.textContent = text; }
+
+  calc() {
+    const kmh = this.num(this.r1aRef, 60), mins = this.num(this.r1bRef, 3);
+    const overSpeedEvents = Math.max(0, Math.round((120 - kmh) * 1.0591 * Math.pow(0.86, mins - 1)));
+    const overSpeedTrucks = Math.min(12, Math.max(0, Math.round(overSpeedEvents / 5.2)));
+    this.set(this.o1aRef, overSpeedEvents + (overSpeedEvents === 1 ? ' event' : ' events'));
+    this.set(this.o1bRef, overSpeedTrucks + (overSpeedTrucks === 1 ? ' truck' : ' trucks'));
+
+    const idle = this.num(this.r2aRef, 5);
+    const idleEvents = Math.max(0, Math.round(1060 / Math.max(1, idle)));
+    const idleCost = Math.round(idleEvents * 868.87);
+    this.set(this.o2aRef, idleEvents + ' events');
+    this.set(this.o2bRef, inr(idleCost));
+
+    const days = this.num(this.r3aRef, 30);
+    const docs = Math.max(0, Math.round(days * 0.3));
+    const trucks = Math.max(0, Math.round(docs * 0.78));
+    this.set(this.o3aRef, docs + (docs === 1 ? ' document' : ' documents'));
+    this.set(this.o3bRef, trucks + (trucks === 1 ? ' truck' : ' trucks'));
+    const w = this.warnRef && this.warnRef.current;
+    if (w) w.style.display = days < 10 ? 'block' : 'none';
+
+    const hrs = this.num(this.r4aRef, 6);
+    const silent = Math.min(151, Math.max(0, Math.round(151 - 12 * Math.pow(hrs / 6, 0.42))));
+    this.set(this.o4aRef, silent + ' trucks');
+    this.set(this.o4bRef, String(151 - silent));
+
+    if (this.props.showCalibration === false) {
+      [this.o1aRef, this.o2aRef, this.o3aRef, this.o4aRef].forEach(r => {
+        const p = r && r.current && r.current.parentElement && r.current.parentElement.parentElement;
+        if (p) p.style.display = 'none';
+      });
+    } else {
+      [this.o1aRef, this.o2aRef, this.o3aRef, this.o4aRef].forEach(r => {
+        const p = r && r.current && r.current.parentElement && r.current.parentElement.parentElement;
+        if (p) p.style.display = 'flex';
+      });
+    }
+
+    const d = this.dirtyRef && this.dirtyRef.current;
+    if (d) {
+      if (this.state.dirty) {
+        d.textContent = 'Unsaved changes. Nothing is applied until you save.';
+        d.style.color = 'var(--amber-ink)';
+        d.style.fontWeight = '600';
+      } else {
+        d.textContent = 'No changes yet. Last saved 04 Sep 2026, 18:22 IST by Gopal Agarwal.';
+        d.style.color = 'var(--ink3)';
+        d.style.fontWeight = '450';
+      }
+    }
+  }
+
+  renderVals() {
+    ['r1aRef','r1bRef','r2aRef','r3aRef','r4aRef','o1aRef','o1bRef','o2aRef','o2bRef','o3aRef','o3bRef','o4aRef','o4bRef','warnRef','dirtyRef']
+      .forEach(k => { this[k] = this[k] || React.createRef(); });
+
+    const sec = this.state.section;
+    const page = PAGES[sec];
+
+    return {
+      r1aRef: this.r1aRef, r1bRef: this.r1bRef, r2aRef: this.r2aRef, r3aRef: this.r3aRef, r4aRef: this.r4aRef,
+      o1aRef: this.o1aRef, o1bRef: this.o1bRef, o2aRef: this.o2aRef, o2bRef: this.o2bRef,
+      o3aRef: this.o3aRef, o3bRef: this.o3bRef, o4aRef: this.o4aRef, o4bRef: this.o4bRef,
+      warnRef: this.warnRef, dirtyRef: this.dirtyRef,
+
+      onCalc: () => { this.calc(); if (!this.state.dirty) this.setState({ dirty: true }); },
+      reset: () => {
+        [[this.r1aRef,'60'],[this.r1bRef,'3'],[this.r2aRef,'5'],[this.r3aRef,'30'],[this.r4aRef,'6']]
+          .forEach(([r, v]) => { if (r.current) r.current.value = v; });
+        this.setState({ dirty: false }, () => this.calc());
+      },
+
+      sections: SECTIONS.map(s => ({
+        label: s.label, count: s.count,
+        bg: s.id === sec ? 'var(--orange-tint)' : 'transparent',
+        ink: s.id === sec ? 'var(--ink)' : 'var(--ink2)',
+        countInk: s.id === sec ? 'var(--accent-ink)' : 'var(--ink3)',
+        font: s.id === sec ? "600 14px/1 'IBM Plex Sans', sans-serif" : "500 14px/1 'IBM Plex Sans', sans-serif",
+        onPick: () => this.setState({ section: s.id })
+      })),
+
+      pageTitle: page.title, pageBlurb: page.blurb,
+      isAlerts: sec === 'alerts', isThresholds: sec === 'thresholds',
+      isNotifications: sec === 'notifications', isData: sec === 'data', isTeam: sec === 'team',
+
+      alertRules: ALERTS.map(a => {
+        const on = this.state.alerts[a.id];
+        return {
+          sentence: a.sentence, explain: a.explain, calibration: a.calibration,
+          on: on ? 'true' : 'false', state: on ? 'On' : 'Off',
+          trackBg: on ? 'var(--orange-solid)' : 'var(--line2)',
+          knob: on ? 'flex-end' : 'flex-start',
+          onToggle: () => this.setState(s => ({
+            alerts: Object.assign({}, s.alerts, { [a.id]: !s.alerts[a.id] }), dirty: true
+          }))
+        };
+      }),
+
+      team: TEAM.map(t => Object.assign({ name: t[0], role: t[1], branch: t[2], money: t[3], seen: t[5] }, TONE[t[4]]))
+    };
+  }
+}
+</script>
+</body>
+</html>

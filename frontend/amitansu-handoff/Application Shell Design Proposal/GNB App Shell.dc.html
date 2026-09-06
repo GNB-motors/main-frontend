@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script>
+(function () {
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
+  document.head.appendChild(l);
+})();
+</script>
+<style>
+  :root {
+    --bg: #FAFAF9; --card: #FFFFFF; --sunk: #F5F5F4; --line: #E7E5E4; --line2: #D6D3D1;
+    --ink: #1A1A1A; --ink2: #44403C; --ink3: #6B645E; --disabled-ink: #A8A29E;
+    --link: #1E3A8A; --link-h: #16296B;
+    --orange: #EE6126; --orange-tint: #FDF1EB; --orange-solid: #B8460F; --orange-solid-h: #9E3B0B; --accent-ink: #B8460F;
+    --red-solid: #C62828; --erp: #1E3A8A; --info: #1E88E5;
+    --green: #4CAF50; --green-ink: #2E7D32; --green-tint: #EDF7EE;
+    --amber: #F59E0B; --amber-ink: #8A5A00; --amber-tint: #FEF6E7;
+    --red: #F44336; --red-ink: #C62828; --red-tint: #FEF0EF;
+    --grey: #94A3B8; --grey-ink: #566275; --grey-tint: #F1F2F4; --grey-solid: #4B5563;
+    --focus: #1E88E5;
+    --nav-ink: #FFFFFF; --nav-ink2: #EFE3DC; --nav-scrim: rgba(20,12,6,.38);
+    --shadow: 0 1px 2px rgba(28,20,14,.06); --shadow-lg: 0 18px 40px -22px rgba(28,20,14,.35);
+  }
+  html, body { margin: 0; padding: 0; background: #EDEAE6; }
+  * { box-sizing: border-box; }
+  a { color: var(--link); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:hover { color: var(--link-h); }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; padding: 30px 36px 90px; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: var(--ink); display: flex; flex-direction: column; gap: 18px; align-items: flex-start;">
+
+  <svg width="0" height="0" style="position: absolute;" aria-hidden="true" focusable="false"><defs>
+    <symbol id="i-live" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.4"></circle><path d="M7.7 7.7a6.1 6.1 0 0 0 0 8.6M16.3 16.3a6.1 6.1 0 0 0 0-8.6M4.9 4.9a10.1 10.1 0 0 0 0 14.2M19.1 19.1a10.1 10.1 0 0 0 0-14.2"></path></symbol>
+    <symbol id="i-attention" viewBox="0 0 24 24"><path d="M6.4 9.6a5.6 5.6 0 0 1 11.2 0c0 3.7 1 5 1.8 5.8H4.6c.8-.8 1.8-2.1 1.8-5.8Z"></path><path d="M9.8 18.4a2.4 2.4 0 0 0 4.4 0"></path></symbol>
+    <symbol id="i-money" viewBox="0 0 24 24"><path d="M7.6 5.4h8.8M7.6 9h8.8M14.6 5.4c2.2 1 2 4.6-.7 5.2-1 .2-2.2.2-3.3.2l6 8"></path></symbol>
+    <symbol id="i-fitness" viewBox="0 0 24 24"><path d="M12 3.4 5.4 6v6c0 3.9 2.9 6.8 6.6 8.5 3.7-1.7 6.6-4.6 6.6-8.5V6L12 3.4Z"></path><path d="M9.3 12l2.1 2.1 3.8-3.9"></path></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9.3" cy="8.5" r="3"></circle><path d="M3.8 19.2c.5-2.9 2.7-4.7 5.5-4.7s5 1.8 5.5 4.7"></path><path d="M16.4 6.5a2.9 2.9 0 0 1 0 5.3M17.6 14.8c1.8.6 3 2.2 3.3 4.4"></path></symbol>
+    <symbol id="i-operations" viewBox="0 0 24 24"><rect x="5.9" y="4.7" width="12.2" height="15.2" rx="2.1"></rect><path d="M9.7 4.7V3.5h4.6v1.2"></path><path d="M9.4 12.2l1.9 1.9 3.4-3.6"></path></symbol>
+    <symbol id="i-accounts" viewBox="0 0 24 24"><path d="M6.3 3.7h11.4v16.6l-1.9-1.4-1.9 1.4-1.9-1.4-1.9 1.4-1.9-1.4L6.3 20.3Z"></path><path d="M9.5 8.3h5.1M9.5 11.6h5.1"></path></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M3.9 8.2h8.2M17.1 8.2h3M3.9 15.8h3.1M11.9 15.8h8.2"></path><circle cx="14.6" cy="8.2" r="2.2"></circle><circle cx="9.4" cy="15.8" r="2.2"></circle></symbol>
+    <symbol id="i-sources" viewBox="0 0 24 24"><ellipse cx="12" cy="6.3" rx="6.6" ry="2.6"></ellipse><path d="M5.4 6.3v11.4c0 1.4 3 2.6 6.6 2.6s6.6-1.2 6.6-2.6V6.3"></path><path d="M5.4 12c0 1.4 3 2.6 6.6 2.6s6.6-1.2 6.6-2.6"></path></symbol>
+    <symbol id="i-roles" viewBox="0 0 24 24"><circle cx="8.9" cy="8.9" r="3.5"></circle><path d="M11.4 11.4 20 20M15.8 15.8l1.7-1.7"></path></symbol>
+  </defs></svg>
+
+  <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%;">
+    <span style="font: 600 13px/1 'IBM Plex Mono', monospace; color: var(--accent-ink);">BLOCK 6</span>
+    <h1 style="margin: 0; font: 600 20px/1.2 'IBM Plex Sans', sans-serif;">Application shell</h1>
+    <p style="margin: 0; font: 400 13.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink3);">Click Operations or Accounts — the field crosses to ERP blue over 350 ms and back on leaving. Nothing outside the sidebar changes colour.</p>
+    <button type="button" onClick="{{ toggle }}" style="margin-left: auto; height: 34px; padding: 0 13px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">{{ toggleLabel }}</button>
+  </div>
+
+  <!-- ══════════ LIVE SHELL 1366 × 768 ══════════ -->
+  <div style="width: 1366px; height: 768px; display: flex; background: var(--bg); border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 48px -30px rgba(28,20,14,.45);">
+
+    <nav aria-label="Main navigation" ref="{{ navRef }}" style="position: relative; flex: 0 0 auto; width: var(--sbw, 264px); display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(168deg, #F2754A 0%, #EE6126 55%, #E15318 100%); transition: width 220ms cubic-bezier(.4,0,.2,1);">
+      <span ref="{{ blueRef }}" aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(168deg, #1E88E5 0%, #2A55A8 55%, #1E3A8A 100%); opacity: 0; transition: opacity 350ms cubic-bezier(.4,0,.2,1);"></span>
+      <span aria-hidden="true" style="position: absolute; inset: 0; background: var(--nav-scrim);"></span>
+
+      <div style="position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 11px; height: 58px; padding: 0 14px;">
+        <span aria-hidden="true" style="flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: #FFFFFF; font: 700 14px/1 'IBM Plex Sans', sans-serif; color: #1A1A1A;">G</span>
+        <span style="display: var(--lbl, block); font: 700 18px/1 'IBM Plex Sans', sans-serif; letter-spacing: .02em; color: var(--nav-ink); white-space: nowrap;">GNB</span>
+        <button type="button" onClick="{{ toggle }}" aria-label="{{ toggleLabel }}" style="margin-left: auto; display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; border: 0; border-radius: 8px; background: rgba(255,255,255,.20); color: var(--nav-ink); cursor: pointer;" style-hover="background: rgba(255,255,255,.34)" style-focus="outline: 2px solid #FFFFFF; outline-offset: 2px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: var(--tglrot, none);"><path d="M14.5 7 9.5 12l5 5"></path><path d="M5.5 5v14"></path></svg>
+        </button>
+      </div>
+
+      <div style="position: relative; flex: 1 1 auto; min-height: 0; padding: 4px 12px; display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
+        <p style="display: var(--lbl, block); margin: 6px 0 5px 10px; font: 600 10px/1 'IBM Plex Sans', sans-serif; letter-spacing: .14em; color: var(--nav-ink2);">FLEET</p>
+        <sc-for list="{{ fleetNav }}" as="n" hint-placeholder-count="5">
+          <button type="button" onClick="{{ n.onPick }}" style="position: relative; display: flex; align-items: center; gap: 11px; width: 100%; height: 38px; padding: 0 9px; border: 0; border-radius: 10px; background: {{ n.rowBg }}; color: {{ n.ink }}; font: {{ n.font }}; text-align: left; cursor: pointer; transition: background-color 160ms ease;" style-hover="box-shadow: inset 0 0 0 40px rgba(255,255,255,.16)" style-focus="outline: 2px solid #FFFFFF; outline-offset: 2px">
+            <span aria-hidden="true" style="flex: 0 0 auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: {{ n.tint }};">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="{{ n.icon }}"></use></svg>
+            </span>
+            <span style="display: var(--lbl, block); flex: 1 1 auto; white-space: nowrap; overflow: hidden;">{{ n.label }}</span>
+            <span style="display: {{ n.badgeD }}; min-width: 23px; padding: 2px 6px; border-radius: 7px; background: #FFFFFF; font: 600 11.5px/1.35 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: center; color: #1A1A1A;">{{ n.badge }}</span>
+            <span aria-hidden="true" style="display: {{ n.dotD }}; position: absolute; top: 4px; right: 5px; min-width: 17px; height: 16px; padding: 0 3px; border-radius: 8px; background: #FFFFFF; font: 600 10px/16px 'IBM Plex Mono', monospace; text-align: center; color: #1A1A1A;">{{ n.badge }}</span>
+          </button>
+        </sc-for>
+
+        <p style="display: var(--lbl, block); margin: 13px 0 5px 10px; font: 600 10px/1 'IBM Plex Sans', sans-serif; letter-spacing: .14em; color: var(--nav-ink2);">ERP</p>
+        <sc-for list="{{ erpNav }}" as="n" hint-placeholder-count="2">
+          <button type="button" onClick="{{ n.onPick }}" style="position: relative; display: flex; align-items: center; gap: 11px; width: 100%; height: 38px; padding: 0 9px; border: 0; border-radius: 10px; background: {{ n.rowBg }}; color: {{ n.ink }}; font: {{ n.font }}; text-align: left; cursor: pointer; transition: background-color 160ms ease;" style-hover="box-shadow: inset 0 0 0 40px rgba(255,255,255,.16)" style-focus="outline: 2px solid #FFFFFF; outline-offset: 2px">
+            <span aria-hidden="true" style="flex: 0 0 auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: {{ n.tint }};">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="{{ n.icon }}"></use></svg>
+            </span>
+            <span style="display: var(--lbl, block); flex: 1 1 auto; white-space: nowrap; overflow: hidden;">{{ n.label }}</span>
+            <span style="display: {{ n.badgeD }}; min-width: 23px; padding: 2px 6px; border-radius: 7px; background: #FFFFFF; font: 600 11.5px/1.35 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: center; color: #1A1A1A;">{{ n.badge }}</span>
+            <span aria-hidden="true" style="display: {{ n.dotD }}; position: absolute; top: 4px; right: 5px; min-width: 17px; height: 16px; padding: 0 3px; border-radius: 8px; background: #FFFFFF; font: 600 10px/16px 'IBM Plex Mono', monospace; text-align: center; color: #1A1A1A;">{{ n.badge }}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="position: relative; flex: 0 0 auto; margin: 0 12px 12px; padding-top: 11px; border-top: 1px solid rgba(255,255,255,.34); display: flex; flex-direction: column; gap: 2px;">
+        <p style="display: var(--lbl, block); margin: 0 0 5px 10px; font: 600 10px/1 'IBM Plex Sans', sans-serif; letter-spacing: .14em; color: var(--nav-ink2);">SETUP</p>
+        <sc-for list="{{ setupNav }}" as="n" hint-placeholder-count="3">
+          <button type="button" onClick="{{ n.onPick }}" style="position: relative; display: flex; align-items: center; gap: 11px; width: 100%; height: 36px; padding: 0 9px; border: 0; border-radius: 10px; background: {{ n.rowBg }}; color: {{ n.ink }}; font: {{ n.font }}; text-align: left; cursor: pointer; transition: background-color 160ms ease;" style-hover="box-shadow: inset 0 0 0 40px rgba(255,255,255,.16)" style-focus="outline: 2px solid #FFFFFF; outline-offset: 2px">
+            <span aria-hidden="true" style="flex: 0 0 auto; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: {{ n.tint }};">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><use href="{{ n.icon }}"></use></svg>
+            </span>
+            <span style="display: var(--lbl, block); flex: 1 1 auto; white-space: nowrap; overflow: hidden;">{{ n.label }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </nav>
+
+    <!-- content column -->
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--bg);">
+
+      <!-- TOP BAR -->
+      <header style="flex: 0 0 auto; display: flex; align-items: center; gap: 14px; height: 58px; padding: 0 18px; background: var(--card); border-bottom: 1px solid var(--line);">
+        <button type="button" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 11px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+          <span aria-hidden="true" style="display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--orange-tint); font: 700 11px/1 'IBM Plex Sans', sans-serif; color: var(--orange-solid);">GA</span>
+          <span style="text-align: left;"><span style="display: block; font: 600 13px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink);">Gopal Agarwal Transport</span><span style="display: block; font: 400 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink3);">Kolkata branch · 151 trucks</span></span>
+          <span aria-hidden="true" style="color: var(--ink3); font-size: 11px;">▾</span>
+        </button>
+
+        <div style="position: relative; flex: 1 1 auto; max-width: 460px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position: absolute; left: 11px; top: 11px;"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 20 20"></path></svg>
+          <label for="gsearch" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Search everything</label>
+          <input id="gsearch" type="search" placeholder="Search vehicles, drivers, invoices, screens…" style="width: 100%; height: 37px; padding: 0 46px 0 32px; border: 1px solid var(--line2); border-radius: 9px; background: var(--sunk); color: var(--ink); font: 450 13.5px/1 'IBM Plex Sans', sans-serif;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); background: var(--card)" />
+          <kbd style="position: absolute; right: 9px; top: 9px; padding: 2px 6px; border: 1px solid var(--line2); border-radius: 5px; background: var(--card); font: 500 11px/1.4 'IBM Plex Mono', monospace; color: var(--ink3);">⌘K</kbd>
+        </div>
+
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+          <button type="button" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+            <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--amber);"></span>
+            <span style="text-align: left;"><span style="display: block; font: 500 12px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2);">Data as of 12:46 IST</span><span style="display: block; font: 400 10.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink3);">2 of 3 feeds live · fuel card down 3 h</span></span>
+          </button>
+          <button type="button" aria-label="Notifications, 3 unread" style="position: relative; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink2); cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-attention"></use></svg>
+            <span aria-hidden="true" style="position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; border: 2px solid var(--card); background: var(--red-solid); color: #FFFFFF; font: 600 10px/13px 'IBM Plex Mono', monospace; text-align: center;">3</span>
+          </button>
+          <button type="button" style="display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 9px 0 4px; border: 1px solid var(--line2); border-radius: 999px; background: var(--card); cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+            <span aria-hidden="true" style="display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: var(--grey-tint); font: 600 11.5px/1 'IBM Plex Sans', sans-serif; color: var(--grey-ink);">GA</span>
+            <span style="font: 500 12.5px/1 'IBM Plex Sans', sans-serif; color: var(--ink2);">Owner</span>
+            <span aria-hidden="true" style="color: var(--ink3); font-size: 11px;">▾</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT (deliberately plain — it never changes colour with the sidebar) -->
+      <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 22px 24px;">
+        <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px;">
+          <h2 style="margin: 0; font: 600 23px/1.15 'IBM Plex Sans', sans-serif; letter-spacing: -.02em;">{{ pageTitle }}</h2>
+          <span style="font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ pageSub }}</span>
+        </div>
+        <p style="margin: 0 0 18px; max-width: 620px; font: 400 13.5px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">{{ pageBody }}</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; max-width: 1000px;">
+          <sc-for list="{{ pageCards }}" as="c" hint-placeholder-count="3">
+            <div style="position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px 16px 13px; box-shadow: var(--shadow);">
+              <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: {{ c.rail }};"></span>
+              <p style="margin: 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">{{ c.label }}<br /><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ c.period }}</span></p>
+              <p style="margin: 11px 0 0; font: 600 26px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums;">{{ c.value }}</p>
+              <p style="margin: 7px 0 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: {{ c.deltaInk }};">{{ c.delta }}</p>
+              <p style="margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 6px; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>{{ c.fresh }}</p>
+            </div>
+          </sc-for>
+        </div>
+
+        <p style="margin: 20px 0 0; padding: 11px 13px; max-width: 1000px; background: var(--sunk); border: 1px solid var(--line); border-radius: 10px; font: 400 12.5px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;"><strong style="color: var(--ink);">Note.</strong> Content chrome is identical in every section — same ground, same card, same hairline, same ink. Only the sidebar field moves between orange and blue. The gradient is an orientation cue, not a theme.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ FOUR SPECIFIED FRAMES ══════════ -->
+  <div style="width: 100%;">
+    <h2 style="margin: 0 0 4px; font: 600 17px/1.2 'IBM Plex Sans', sans-serif;">The four states, side by side</h2>
+    <p style="margin: 0 0 14px; font: 400 13.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink3);">Expanded and collapsed, both colour states, and the transition caught at 175 ms — the exact midpoint of the 350 ms cross-fade.</p>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+      <sc-for list="{{ frames }}" as="f" hint-placeholder-count="4">
+        <div>
+          <p style="margin: 0 0 8px; font: 600 11px/1.3 'IBM Plex Sans', sans-serif; letter-spacing: .09em; color: var(--ink3);">{{ f.title }}</p>
+          <nav aria-label="{{ f.title }}" style="position: relative; width: {{ f.width }}; height: 470px; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; background: linear-gradient(168deg, #F2754A 0%, #EE6126 55%, #E15318 100%); box-shadow: 0 18px 36px -24px rgba(28,20,14,.5);">
+            <span aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(168deg, #1E88E5 0%, #2A55A8 55%, #1E3A8A 100%); opacity: {{ f.blue }};"></span>
+            <span aria-hidden="true" style="position: absolute; inset: 0; background: var(--nav-scrim);"></span>
+            <div style="position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 12px;">
+              <span aria-hidden="true" style="flex: 0 0 auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: #FFFFFF; font: 700 12px/1 'IBM Plex Sans', sans-serif; color: #1A1A1A;">G</span>
+              <span style="display: {{ f.lbl }}; font: 700 16px/1 'IBM Plex Sans', sans-serif; color: var(--nav-ink);">GNB</span>
+            </div>
+            <div style="position: relative; flex: 1 1 auto; min-height: 0; padding: 2px 10px; display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
+              <p style="display: {{ f.lbl }}; margin: 4px 0 4px 8px; font: 600 9.5px/1 'IBM Plex Sans', sans-serif; letter-spacing: .14em; color: var(--nav-ink2);">FLEET</p>
+              <sc-for list="{{ f.items }}" as="it" hint-placeholder-count="7">
+                <span style="position: relative; display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 8px; border-radius: 9px; background: {{ it.rowBg }}; color: {{ it.ink }}; font: {{ it.font }};">
+                  <span aria-hidden="true" style="flex: 0 0 auto; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: {{ it.tint }};">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="{{ it.icon }}"></use></svg>
+                  </span>
+                  <span style="display: {{ f.lbl }}; flex: 1 1 auto; white-space: nowrap;">{{ it.label }}</span>
+                  <span style="display: {{ it.badgeD }}; min-width: 21px; padding: 1px 5px; border-radius: 6px; background: #FFFFFF; font: 600 10.5px/1.4 'IBM Plex Mono', monospace; text-align: center; color: #1A1A1A;">{{ it.badge }}</span>
+                  <span aria-hidden="true" style="display: {{ it.dotD }}; position: absolute; top: 2px; right: 3px; min-width: 16px; height: 15px; padding: 0 3px; border-radius: 8px; background: #FFFFFF; font: 600 9.5px/15px 'IBM Plex Mono', monospace; text-align: center; color: #1A1A1A;">{{ it.badge }}</span>
+                </span>
+              </sc-for>
+            </div>
+            <div style="position: relative; flex: 0 0 auto; margin: 0 10px 10px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.34); display: flex; flex-direction: column; gap: 2px;">
+              <p style="display: {{ f.lbl }}; margin: 0 0 3px 8px; font: 600 9.5px/1 'IBM Plex Sans', sans-serif; letter-spacing: .14em; color: var(--nav-ink2);">SETUP</p>
+              <sc-for list="{{ f.setup }}" as="it" hint-placeholder-count="3">
+                <span style="display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 8px; border-radius: 9px; background: {{ it.rowBg }}; color: {{ it.ink }}; font: {{ it.font }};">
+                  <span aria-hidden="true" style="flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: {{ it.tint }};">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="{{ it.icon }}"></use></svg>
+                  </span>
+                  <span style="display: {{ f.lbl }}; flex: 1 1 auto; white-space: nowrap;">{{ it.label }}</span>
+                </span>
+              </sc-for>
+            </div>
+          </nav>
+          <p style="margin: 8px 0 0; max-width: 230px; font: 400 11.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink3); text-wrap: pretty;">{{ f.note }}</p>
+        </div>
+      </sc-for>
+
+      <!-- contrast specification -->
+      <div style="flex: 1 1 340px; min-width: 320px; max-width: 460px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: var(--shadow);">
+        <h3 style="margin: 0 0 4px; font: 600 15px/1.3 'IBM Plex Sans', sans-serif;">Text colours that satisfy both gradients</h3>
+        <p style="margin: 0 0 14px; font: 400 12.5px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">White fails AA on raw #EE6126 (3.29:1) and on raw #1E88E5 (3.68:1), so neither gradient can carry white text on its own. A single constant scrim — <code style="font: 500 12px/1 'IBM Plex Mono', monospace; color: var(--ink);">rgba(20,12,6,.38)</code> — sits over both gradients at all times. The hue still reads; the luminance is bounded. One ink then clears AA everywhere.</p>
+        <table style="width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums;">
+          <caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Contrast ratios of sidebar inks against both gradients</caption>
+          <thead><tr>
+            <th scope="col" style="padding: 7px 8px 7px 0; border-bottom: 1px solid var(--line2); font: 600 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink3); text-align: left;">Role</th>
+            <th scope="col" style="padding: 7px 8px; border-bottom: 1px solid var(--line2); font: 600 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink3); text-align: left;">Hex</th>
+            <th scope="col" style="padding: 7px 8px; border-bottom: 1px solid var(--line2); font: 600 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink3); text-align: right;">On orange</th>
+            <th scope="col" style="padding: 7px 0 7px 8px; border-bottom: 1px solid var(--line2); font: 600 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink3); text-align: right;">On blue</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif;">Nav label, icon</td><td style="padding: 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace;">#FFFFFF</td><td style="padding: 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">5.9 : 1</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">7.3 : 1</td></tr>
+            <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif;">Group heading</td><td style="padding: 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace;">#EFE3DC</td><td style="padding: 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">5.1 : 1</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">6.3 : 1</td></tr>
+            <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif;">Active row ink</td><td style="padding: 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace;">#1A1A1A</td><td style="padding: 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">17.4 : 1</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px solid var(--line); font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">17.4 : 1</td></tr>
+            <tr><td style="padding: 8px 8px 8px 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif;">Badge ink</td><td style="padding: 8px; font: 500 12px/1.3 'IBM Plex Mono', monospace;">#1A1A1A</td><td style="padding: 8px; font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">17.4 : 1</td><td style="padding: 8px 0 8px 8px; font: 500 12px/1.3 'IBM Plex Mono', monospace; text-align: right;">17.4 : 1</td></tr>
+          </tbody>
+        </table>
+        <p style="margin: 13px 0 0; font: 400 12px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink3); text-wrap: pretty;">Active row and badges sit on an opaque white plate, so their ratio is independent of the gradient underneath — which is why they do not shift during the cross-fade. The section tints are warm or cool whites at 14–26% alpha; none of them is green, amber, red or grey, so no tint can be mistaken for a status.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1460,&quot;height&quot;:980},&quot;startCollapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sidebar&quot;},&quot;scrimStrength&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.28,&quot;max&quot;:0.5,&quot;step&quot;:0.02,&quot;default&quot;:0.38,&quot;tsType&quot;:&quot;number&quot;,&quot;unit&quot;:&quot;alpha&quot;,&quot;section&quot;:&quot;Sidebar&quot;}}">
+const SECTIONS = [
+  { id: 'live',       label: 'Live',          icon: '#i-live',       group: 'fleet', tint: 'rgba(255,255,255,.20)' },
+  { id: 'attention',  label: 'Attention',     icon: '#i-attention',  group: 'fleet', tint: 'rgba(255,236,214,.26)', badge: '12' },
+  { id: 'money',      label: 'Money',         icon: '#i-money',      group: 'fleet', tint: 'rgba(255,226,206,.22)' },
+  { id: 'fitness',    label: 'Fitness',       icon: '#i-fitness',    group: 'fleet', tint: 'rgba(255,255,255,.14)' },
+  { id: 'people',     label: 'People',        icon: '#i-people',     group: 'fleet', tint: 'rgba(255,244,231,.18)' },
+  { id: 'operations', label: 'Operations',    icon: '#i-operations', group: 'erp',   tint: 'rgba(214,232,255,.22)' },
+  { id: 'accounts',   label: 'Accounts',      icon: '#i-accounts',   group: 'erp',   tint: 'rgba(196,220,255,.26)', badge: '5' },
+  { id: 'settings',   label: 'Settings',      icon: '#i-settings',   group: 'setup', tint: 'rgba(255,255,255,.16)' },
+  { id: 'sources',    label: 'Data sources',  icon: '#i-sources',    group: 'setup', tint: 'rgba(255,255,255,.16)' },
+  { id: 'roles',      label: 'Roles & access', icon: '#i-roles',     group: 'setup', tint: 'rgba(255,255,255,.16)' }
+];
+
+const PAGES = {
+  live:       { title: 'Live', sub: '12 of 151 trucks reporting · 12:46 IST', body: 'Positions, speeds and stops as they arrive. Trucks without a working device never appear here — they are counted separately so the map is never mistaken for the whole fleet.' },
+  attention:  { title: 'Attention', sub: '12 open items · sorted by money at stake', body: 'Every item names one vehicle, one problem in plain language, the rupees involved, and a single action. Items you dismiss come back tomorrow if the cause is still there.' },
+  money:      { title: 'Money', sub: 'Last 30 days to 06 Sep 2026', body: 'Fuel, idling, suspected loss and cost per kilometre — each with its unit, its period, a comparison and a freshness stamp. Figures cover the 12 reporting trucks only.' },
+  fitness:    { title: 'Fitness', sub: '151 vehicles · 9 documents expiring in 30 days', body: 'Fitness certificates, permits, insurance and PUC, by expiry date. Reminders start 30 days out; you can change that in Settings.' },
+  people:     { title: 'People', sub: '87 drivers · 42 assigned today', body: 'Drivers, licences and assignment history. Scores appear once a driver has seven days of recorded trips.' },
+  operations: { title: 'Operations', sub: 'ERP · 218 trips this month', body: 'Trip sheets, consignments, loading and unloading records. This is where the office works — the field data from Live flows into it.' },
+  accounts:   { title: 'Accounts', sub: 'ERP · 5 invoices awaiting approval', body: 'Invoices, receivables, fuel bills and driver advances. Access is limited to the Owner and the Accountant role.' },
+  settings:   { title: 'Settings', sub: 'Alerts · Thresholds · Notifications · Data & privacy · Team', body: 'Rules written as plain sentences with the numbers filled in, so you can read what the system will do before you save it.' },
+  sources:    { title: 'Data sources', sub: '3 feeds · 1 down for 3 h 41 min', body: 'GPS, OBD and the fuel-card API. When a feed stops, every figure it touches is marked stale rather than quietly frozen.' },
+  roles:      { title: 'Roles & access', sub: '9 people · 4 roles', body: 'Who can see money, who can only see vehicles, and who can change thresholds.' }
+};
+
+const CARDS = [
+  { label: 'Trucks reporting', period: 'right now · of 151', value: '12', delta: 'unchanged for 14 days', deltaInk: 'var(--ink3)', rail: 'var(--grey)', fresh: '2 min ago · GPS feed' },
+  { label: 'Idling waste', period: 'last 30 days', value: '₹1,84,200', delta: '↑ 13.8% vs previous 30 days', deltaInk: 'var(--amber-ink)', rail: 'var(--amber)', fresh: '11 min ago · OBD feed' },
+  { label: 'Cost per km', period: 'reporting trucks · 30 days', value: '₹28.40', delta: '↓ 3.7% vs previous 30 days', deltaInk: 'var(--green-ink)', rail: 'var(--green)', fresh: '4 min ago · trip ledger' }
+];
+
+const ROW_FONT = "500 14px/1 'IBM Plex Sans', sans-serif";
+const ROW_FONT_ON = "600 14px/1 'IBM Plex Sans', sans-serif";
+const MINI_FONT = "500 12.5px/1 'IBM Plex Sans', sans-serif";
+const MINI_FONT_ON = "600 12.5px/1 'IBM Plex Sans', sans-serif";
+
+class Component extends DCLogic {
+  state = { active: 'live', collapsed: false, init: false };
+
+  static getDerivedStateFromProps(props, state) {
+    if (!state.init && props.startCollapsed === true) return { init: true, collapsed: true };
+    if (!state.init) return { init: true };
+    return null;
+  }
+
+  componentDidMount() { this.apply(); }
+  componentDidUpdate() { this.apply(); }
+
+  apply() {
+    const a = this.props.scrimStrength;
+    if (typeof a === 'number') document.documentElement.style.setProperty('--nav-scrim', 'rgba(20,12,6,' + a + ')');
+    const nav = this.navRef && this.navRef.current;
+    const blue = this.blueRef && this.blueRef.current;
+    if (nav) {
+      nav.style.setProperty('--sbw', this.state.collapsed ? '76px' : '264px');
+      nav.style.setProperty('--lbl', this.state.collapsed ? 'none' : 'block');
+      nav.style.setProperty('--tglrot', this.state.collapsed ? 'rotate(180deg)' : 'none');
+    }
+    if (blue) blue.style.opacity = (this.state.active === 'operations' || this.state.active === 'accounts') ? '1' : '0';
+  }
+
+  buildRow(s, collapsed, activeId, fonts) {
+    const on = s.id === activeId;
+    return {
+      label: s.label, icon: s.icon,
+      tint: on ? 'rgba(26,26,26,.08)' : s.tint,
+      rowBg: on ? '#FFFFFF' : 'transparent',
+      ink: on ? '#1A1A1A' : 'var(--nav-ink)',
+      font: on ? fonts[1] : fonts[0],
+      badge: s.badge || '',
+      badgeD: (s.badge && !collapsed) ? 'block' : 'none',
+      dotD: (s.badge && collapsed) ? 'block' : 'none',
+      current: on ? 'page' : 'false'
+    };
+  }
+
+  renderVals() {
+    this.navRef = this.navRef || React.createRef();
+    this.blueRef = this.blueRef || React.createRef();
+    const { active, collapsed } = this.state;
+    const page = PAGES[active];
+
+    const live = (group) => SECTIONS.filter(s => s.group === group).map(s => {
+      const r = this.buildRow(s, collapsed, active, [ROW_FONT, ROW_FONT_ON]);
+      r.onPick = () => this.setState({ active: s.id });
+      return r;
+    });
+
+    const mini = (group, activeId, coll) =>
+      SECTIONS.filter(s => s.group === group).map(s => this.buildRow(s, coll, activeId, [MINI_FONT, MINI_FONT_ON]));
+
+    const frame = (title, activeId, coll, blueOpacity, note) => ({
+      title, note, width: coll ? '76px' : '230px', lbl: coll ? 'none' : 'block', blue: blueOpacity,
+      items: mini('fleet', activeId, coll).concat(mini('erp', activeId, coll)),
+      setup: mini('setup', activeId, coll)
+    });
+
+    return {
+      navRef: this.navRef, blueRef: this.blueRef,
+      fleetNav: live('fleet'), erpNav: live('erp'), setupNav: live('setup'),
+      toggle: () => this.setState(s => ({ collapsed: !s.collapsed })),
+      toggleLabel: collapsed ? 'Expand sidebar' : 'Collapse sidebar',
+      pageTitle: page.title, pageSub: page.sub, pageBody: page.body, pageCards: CARDS,
+      frames: [
+        frame('EXPANDED · FLEET', 'live', false, 0, 'Default. Orange field, Live active on a white plate, badge counts on Attention and Accounts only.'),
+        frame('COLLAPSED · FLEET', 'live', true, 0, '76 px. Labels drop, the badge becomes a small numeral in the corner of the icon, group rules stay so Setup is still separated.'),
+        frame('MID-TRANSITION · 175 ms', 'operations', false, 0.5, 'The cross-fade at its midpoint. Both gradients are present; the scrim keeps every ink above 4.5:1 throughout, so no frame of the animation is unreadable.'),
+        frame('EXPANDED · ERP', 'operations', false, 1, 'Operations or Accounts selected. Only the field has changed — the same rows, same inks, same plate, and the content area is untouched.')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

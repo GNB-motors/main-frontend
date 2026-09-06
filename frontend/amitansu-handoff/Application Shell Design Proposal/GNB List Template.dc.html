@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script>
+(function () {
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
+  document.head.appendChild(l);
+})();
+</script>
+<style>
+  :root {
+    --bg: #FAFAF9; --card: #FFFFFF; --sunk: #F5F5F4; --line: #E7E5E4; --line2: #D6D3D1;
+    --ink: #1A1A1A; --ink2: #44403C; --ink3: #6B645E; --disabled-ink: #A8A29E;
+    --link: #1E3A8A; --link-h: #16296B;
+    --orange: #EE6126; --orange-tint: #FDF1EB;
+    --orange-solid: #B8460F; --orange-solid-h: #9E3B0B; --accent-ink: #B8460F;
+    --red-solid: #C62828; --red-solid-h: #A81E1E;
+    --erp: #1E3A8A; --info: #1E88E5;
+    --green: #4CAF50; --green-ink: #2E7D32; --green-tint: #EDF7EE;
+    --amber: #F59E0B; --amber-ink: #8A5A00; --amber-tint: #FEF6E7;
+    --red: #F44336; --red-ink: #C62828; --red-tint: #FEF0EF;
+    --grey: #94A3B8; --grey-ink: #566275; --grey-tint: #F1F2F4; --grey-solid: #4B5563;
+    --focus: #1E88E5;
+    --shadow: 0 1px 2px rgba(28,20,14,.06); --shadow-lg: 0 18px 40px -22px rgba(28,20,14,.35);
+    --rowpad: 11px;
+  }
+  html, body { margin: 0; padding: 0; background: #EDEAE6; }
+  * { box-sizing: border-box; }
+  a { color: var(--link); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:hover { color: var(--link-h); }
+  input::placeholder { color: #A8A29E; }
+  @keyframes gnb-spin { to { transform: rotate(360deg); } }
+  @keyframes gnb-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; padding: 32px 36px 90px; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: var(--ink); display: flex; flex-direction: column; gap: 16px; align-items: flex-start;">
+
+  <div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;">
+    <span style="font: 600 13px/1 'IBM Plex Mono', monospace; color: var(--accent-ink);">BLOCK 3</span>
+    <h1 style="margin: 0; font: 600 20px/1.2 'IBM Plex Sans', sans-serif;">List / table template</h1>
+    <p style="margin: 0; font: 400 13.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink3);">One template for vehicles, trips, drivers, alerts, invoices. Switch the state to see every failure mode.</p>
+  </div>
+
+  <div role="group" aria-label="Screen state" style="display: flex; flex-wrap: wrap; padding: 3px; gap: 2px; background: var(--sunk); border: 1px solid var(--line); border-radius: 10px;">
+    <button type="button" onClick="{{ go.data }}" aria-pressed="{{ isData }}" style="padding: 7px 14px; border: 0; border-radius: 7px; background: var(--st-data, transparent); box-shadow: var(--sh-data, none); color: var(--ink); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">151 vehicles</button>
+    <button type="button" onClick="{{ go.loading }}" aria-pressed="{{ isLoading }}" style="padding: 7px 14px; border: 0; border-radius: 7px; background: var(--st-loading, transparent); box-shadow: var(--sh-loading, none); color: var(--ink); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Loading</button>
+    <button type="button" onClick="{{ go.filtered }}" aria-pressed="{{ isFiltered }}" style="padding: 7px 14px; border: 0; border-radius: 7px; background: var(--st-filtered, transparent); box-shadow: var(--sh-filtered, none); color: var(--ink); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Empty · filtered</button>
+    <button type="button" onClick="{{ go.setup }}" aria-pressed="{{ isSetup }}" style="padding: 7px 14px; border: 0; border-radius: 7px; background: var(--st-setup, transparent); box-shadow: var(--sh-setup, none); color: var(--ink); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Empty · never set up</button>
+    <button type="button" onClick="{{ go.error }}" aria-pressed="{{ isError }}" style="padding: 7px 14px; border: 0; border-radius: 7px; background: var(--st-error, transparent); box-shadow: var(--sh-error, none); color: var(--ink); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Error</button>
+    <button type="button" onClick="{{ go.denied }}" aria-pressed="{{ isDenied }}" style="padding: 7px 14px; border: 0; border-radius: 7px; background: var(--st-denied, transparent); box-shadow: var(--sh-denied, none); color: var(--ink); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Permission denied</button>
+  </div>
+
+  <!-- ══════ DESKTOP FRAME 1366 ══════ -->
+  <div ref="{{ frameRef }}" style="position: relative; width: 1366px; height: 812px; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 48px -30px rgba(28,20,14,.45);">
+
+    <!-- title row -->
+    <div style="flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 20px 24px 14px; background: var(--card); border-bottom: 1px solid var(--line);">
+      <div>
+        <nav aria-label="Breadcrumb"><ol style="display: flex; gap: 6px; margin: 0 0 6px; padding: 0; list-style: none; font: 450 12px/1.3 'IBM Plex Sans', sans-serif;"><li><a href="#top" style="color: var(--ink3);">Live</a></li><li aria-hidden="true" style="color: var(--line2);">/</li><li><span aria-current="page" style="color: var(--ink2); font-weight: 600;">Vehicles</span></li></ol></nav>
+        <h2 style="margin: 0; display: flex; align-items: baseline; gap: 10px; font: 600 23px/1.15 'IBM Plex Sans', sans-serif; letter-spacing: -.02em;">Vehicles <span style="font: 500 15px/1.2 'IBM Plex Mono', monospace; color: var(--ink3);">{{ headCount }}</span></h2>
+      </div>
+      <div style="display: flex; align-items: center; gap: 9px;">
+        <span style="display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); font: 450 12px/1.35 'IBM Plex Sans', sans-serif; color: var(--ink2);"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: var(--green);"></span>Updated 2 min ago<span style="color: var(--ink3);">· GPS feed · IST</span></span>
+        <button type="button" style="display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--orange-solid-h)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v11M7.5 10.5 12 15l4.5-4.5"></path><path d="M4.5 19.5h15"></path></svg>
+          Export to Excel
+        </button>
+        <button type="button" style="height: 36px; padding: 0 13px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink2); font: 500 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">CSV</button>
+      </div>
+    </div>
+
+    <!-- filter bar -->
+    <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 12px 24px; background: var(--card); border-bottom: 1px solid var(--line);">
+      <div style="position: relative; flex: 0 0 auto;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position: absolute; left: 10px; top: 10px;"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 20 20"></path></svg>
+        <label for="lt-q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Search vehicles</label>
+        <input id="lt-q" type="search" placeholder="Vehicle or driver…" style="width: 230px; height: 35px; padding: 0 10px 0 31px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 450 13.5px/1 'IBM Plex Sans', sans-serif;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus)" />
+      </div>
+      <div style="display: flex; align-items: stretch; height: 35px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); overflow: hidden;">
+        <span style="display: flex; align-items: center; padding: 0 9px; font: 500 11px/1 'IBM Plex Sans', sans-serif; color: var(--ink3); background: var(--sunk); border-right: 1px solid var(--line);">SEEN</span>
+        <span style="display: flex; align-items: center; padding: 0 11px; font: 450 12.5px/1 'IBM Plex Mono', monospace; color: var(--ink);">01 Aug – 06 Sep 2026</span>
+        <button type="button" aria-label="Change date range" style="width: 30px; border: 0; border-left: 1px solid var(--line); background: var(--sunk); color: var(--ink3); cursor: pointer;" style-hover="color: var(--ink)">▾</button>
+      </div>
+      <span aria-hidden="true" style="width: 1px; height: 22px; background: var(--line);"></span>
+      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 999px; background: var(--card); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)">Moving</button>
+      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 999px; background: var(--card); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)">Parked</button>
+      <button type="button" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 8px 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--bg); font: 600 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Not reporting <span style="font-family: 'IBM Plex Mono', monospace; opacity: .75;">139</span><span aria-hidden="true" style="display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: rgba(250,250,249,.24);">×</span></button>
+      <button type="button" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 8px 0 12px; border: 1px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--bg); font: 600 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Kolkata branch<span aria-hidden="true" style="display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: rgba(250,250,249,.24);">×</span></button>
+      <span style="font: 500 12.5px/1 'IBM Plex Sans', sans-serif; color: var(--ink2);">2 filters active</span>
+      <button type="button" style="border: 0; background: none; padding: 0; font: 600 12.5px/1 'IBM Plex Sans', sans-serif; color: var(--erp); text-decoration: underline; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 3px">Clear all</button>
+
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 9px;">
+        <label for="lt-view" style="font: 500 12px/1 'IBM Plex Sans', sans-serif; color: var(--ink3);">Saved view</label>
+        <select id="lt-view" style="height: 35px; padding: 0 9px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 450 13px/1 'IBM Plex Sans', sans-serif;" style-focus="outline: 2px solid var(--focus); outline-offset: 1px">
+          <option>Silent trucks — Kolkata</option>
+          <option>All vehicles</option>
+          <option>FC expiring in 30 days</option>
+          <option>+ Save this view…</option>
+        </select>
+        <button type="button" onClick="{{ toggleCols }}" style="height: 35px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink2); font: 500 13px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Columns ▾</button>
+        <div role="group" aria-label="Row density" style="display: flex; padding: 3px; gap: 2px; background: var(--sunk); border: 1px solid var(--line); border-radius: 9px;">
+          <button type="button" onClick="{{ setComfy }}" aria-pressed="{{ isComfy }}" style="padding: 5px 10px; border: 0; border-radius: 6px; background: var(--d-comfy, var(--card)); box-shadow: var(--dsh-comfy, 0 1px 2px rgba(28,20,14,.10)); color: var(--ink); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Comfortable</button>
+          <button type="button" onClick="{{ setCompact }}" aria-pressed="{{ isCompact }}" style="padding: 5px 10px; border: 0; border-radius: 6px; background: var(--d-compact, transparent); box-shadow: var(--dsh-compact, none); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Compact</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STAGE ── -->
+    <div style="position: relative; flex: 1 1 auto; min-height: 0; overflow: auto;">
+
+      <sc-if value="{{ showCols }}" hint-placeholder-val="{{ false }}">
+        <div role="dialog" aria-label="Column visibility" style="position: absolute; top: 8px; right: 152px; z-index: 20; width: 232px; padding: 12px 13px; background: color-mix(in srgb, var(--card) 90%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line2); border-radius: 11px; box-shadow: var(--shadow-lg);">
+          <p style="margin: 0 0 9px; font: 600 10.5px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">SHOW COLUMNS</p>
+          <label style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 15px; height: 15px; accent-color: var(--orange);" />Driver</label>
+          <label style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 15px; height: 15px; accent-color: var(--orange);" />Branch</label>
+          <label style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 15px; height: 15px; accent-color: var(--orange);" />Km this month</label>
+          <label style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; cursor: pointer;"><input type="checkbox" style="width: 15px; height: 15px; accent-color: var(--orange);" />Fitness expiry</label>
+          <label style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; cursor: pointer;"><input type="checkbox" style="width: 15px; height: 15px; accent-color: var(--orange);" />Insurance expiry</label>
+          <button type="button" onClick="{{ toggleCols }}" style="margin-top: 9px; width: 100%; height: 32px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); color: var(--ink); font: 600 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Done</button>
+        </div>
+      </sc-if>
+
+      <!-- STATE: data -->
+      <sc-if value="{{ isData }}" hint-placeholder-val="{{ true }}">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-family: 'IBM Plex Sans', sans-serif;">
+          <caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Vehicles, 24 of 151 shown, 2 filters active</caption>
+          <thead style="position: sticky; top: 0; z-index: 10;">
+            <tr>
+              <th scope="col" rowspan="2" style="width: 40px; padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); text-align: left;"><input type="checkbox" ref="{{ selAllRef }}" onChange="{{ toggleAll }}" aria-label="Select all 24 shown rows" style="width: 16px; height: 16px; accent-color: var(--orange);" /></th>
+              <th scope="colgroup" colspan="3" style="padding: 6px 12px; background: var(--sunk); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); font: 600 10px/1.2 'IBM Plex Sans', sans-serif; letter-spacing: .11em; color: var(--ink3); text-align: left;">IDENTITY</th>
+              <th scope="colgroup" colspan="2" style="padding: 6px 12px; background: var(--sunk); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); font: 600 10px/1.2 'IBM Plex Sans', sans-serif; letter-spacing: .11em; color: var(--ink3); text-align: left;">STATUS</th>
+              <th scope="colgroup" colspan="2" style="padding: 6px 12px; background: var(--sunk); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); font: 600 10px/1.2 'IBM Plex Sans', sans-serif; letter-spacing: .11em; color: var(--ink3); text-align: right;">PERFORMANCE</th>
+              <th scope="colgroup" colspan="2" style="padding: 6px 12px; background: var(--sunk); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); font: 600 10px/1.2 'IBM Plex Sans', sans-serif; letter-spacing: .11em; color: var(--ink3); text-align: right;">COST</th>
+              <th scope="col" rowspan="2" style="width: 44px; padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2);"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Row actions</span></th>
+            </tr>
+            <tr>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); border-left: 1px solid var(--line); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">Vehicle</th>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">Driver</th>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">Branch</th>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); border-left: 1px solid var(--line); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: left;">State</th>
+              <th scope="col" aria-sort="ascending" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink); text-align: left;"><button type="button" style="display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer;" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">Last seen <span aria-hidden="true" style="color: var(--accent-ink);">↑</span></button></th>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); border-left: 1px solid var(--line); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: right;">Km · Sep</th>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: right;">Utilisation</th>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); border-left: 1px solid var(--line); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: right;">₹ / km</th>
+              <th scope="col" style="padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--line2); font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2); text-align: right;">Aug total</th>
+            </tr>
+          </thead>
+          <tbody style="font-variant-numeric: tabular-nums;">
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="10">
+              <tr onClick="{{ row.onSelect }}" style="background: {{ row.bg }}; box-shadow: {{ row.rail }}; cursor: pointer;" style-hover="background: var(--sunk)">
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line);"><input type="checkbox" checked="{{ row.checked }}" onChange="{{ row.onSelect }}" aria-label="{{ row.selectLabel }}" style="width: 16px; height: 16px; accent-color: var(--orange);" /></td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); font: 500 13px/1.3 'IBM Plex Mono', monospace; color: var(--ink);">{{ row.reg }}</td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: {{ row.driverInk }};">{{ row.driver }}</td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">{{ row.branch }}</td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line);"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 6px; border-radius: 999px; background: {{ row.chipBg }}; color: {{ row.chipInk }}; font: 600 11.5px/1.35 'IBM Plex Sans', sans-serif; white-space: nowrap;"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.dotBg }}; box-shadow: {{ row.dotRing }};"></span>{{ row.state }}</span></td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; color: {{ row.seenInk }};">{{ row.seen }}</td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); font: 450 13px/1.3 'IBM Plex Mono', monospace; color: var(--ink2); text-align: right;">{{ row.km }}</td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); text-align: right;"><span style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 7px;"><span aria-hidden="true" style="display: var(--utilbar, inline-block); width: 44px; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden;"><span style="display: block; width: {{ row.utilPct }}; height: 100%; background: {{ row.utilBar }};"></span></span><span style="font: 450 12.5px/1.3 'IBM Plex Mono', monospace; color: var(--ink2); min-width: 34px;">{{ row.util }}</span></span></td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); font: 500 13px/1.3 'IBM Plex Mono', monospace; color: {{ row.costInk }}; text-align: right;">{{ row.costKm }}</td>
+                <td style="padding: var(--rowpad) 12px; border-bottom: 1px solid var(--line); font: 450 13px/1.3 'IBM Plex Mono', monospace; color: var(--ink2); text-align: right;">{{ row.total }}</td>
+                <td style="padding: var(--rowpad) 8px; border-bottom: 1px solid var(--line); text-align: center;"><span aria-hidden="true" style="color: var(--ink3);">⋯</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </sc-if>
+
+      <!-- STATE: loading -->
+      <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}">
+        <div aria-busy="true" aria-label="Loading vehicles" style="padding: 0;">
+          <div style="display: flex; gap: 16px; align-items: center; padding: 13px 24px; background: var(--sunk); border-bottom: 1px solid var(--line2);">
+            <span style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(90deg, var(--line) 25%, var(--line2) 37%, var(--line) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+            <span style="width: 88px; height: 10px; border-radius: 4px; background: linear-gradient(90deg, var(--line) 25%, var(--line2) 37%, var(--line) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+            <span style="width: 74px; height: 10px; border-radius: 4px; background: linear-gradient(90deg, var(--line) 25%, var(--line2) 37%, var(--line) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+            <span style="width: 66px; height: 10px; border-radius: 4px; background: linear-gradient(90deg, var(--line) 25%, var(--line2) 37%, var(--line) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+            <span style="margin-left: auto; width: 92px; height: 10px; border-radius: 4px; background: linear-gradient(90deg, var(--line) 25%, var(--line2) 37%, var(--line) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+          </div>
+          <sc-for list="{{ skeletonRows }}" as="s" hint-placeholder-count="12">
+            <div style="display: flex; gap: 16px; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--card);">
+              <span style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 37%, var(--sunk) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+              <span style="width: 112px; height: 11px; border-radius: 4px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 37%, var(--sunk) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+              <span style="width: 132px; height: 11px; border-radius: 4px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 37%, var(--sunk) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+              <span style="width: 96px; height: 11px; border-radius: 4px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 37%, var(--sunk) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+              <span style="width: 84px; height: 18px; border-radius: 999px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 37%, var(--sunk) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+              <span style="margin-left: auto; width: 74px; height: 11px; border-radius: 4px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 37%, var(--sunk) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+              <span style="width: 90px; height: 11px; border-radius: 4px; background: linear-gradient(90deg, var(--sunk) 25%, var(--line) 37%, var(--sunk) 63%); background-size: 400% 100%; animation: gnb-shimmer 1.4s ease-in-out infinite;"></span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- STATE: empty because filtered -->
+      <sc-if value="{{ isFiltered }}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; place-items: center; min-height: 100%; padding: 60px 24px;">
+          <div style="max-width: 460px; text-align: center;">
+            <p style="margin: 0; font: 600 19px/1.3 'IBM Plex Sans', sans-serif;">No vehicle matches these filters</p>
+            <p style="margin: 9px 0 0; font: 400 14px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">You are asking for <strong style="color: var(--ink);">Kolkata branch</strong> + <strong style="color: var(--ink);">Not reporting</strong> + last seen <strong style="color: var(--ink);">01 Aug – 06 Sep 2026</strong>. All 139 silent trucks are in Delhi and Chennai.</p>
+            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; margin-top: 18px;">
+              <button type="button" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--orange-solid-h)">Drop the branch filter</button>
+              <button type="button" style="height: 38px; padding: 0 16px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 500 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)">Clear all filters</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- STATE: never set up -->
+      <sc-if value="{{ isSetup }}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; place-items: center; min-height: 100%; padding: 60px 24px;">
+          <div style="max-width: 520px; text-align: center;">
+            <p style="margin: 0; font: 600 19px/1.3 'IBM Plex Sans', sans-serif;">No vehicles have been added yet</p>
+            <p style="margin: 9px 0 0; font: 400 14px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Add your trucks once — registration number, branch and driver — and trips, fuel, documents and costs fill in on their own. Most owners import an existing Excel sheet.</p>
+            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; margin-top: 18px;">
+              <button type="button" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--orange-solid-h)">Import from Excel</button>
+              <button type="button" style="height: 38px; padding: 0 16px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 500 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)">Add one vehicle</button>
+            </div>
+            <p style="margin: 16px 0 0; font: 400 12.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink3);">Takes about 10 minutes for 150 trucks. <a href="#top">See the Excel format</a></p>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- STATE: error -->
+      <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; place-items: center; min-height: 100%; padding: 60px 24px;">
+          <div style="max-width: 480px; text-align: center;">
+            <span aria-hidden="true" style="display: inline-grid; place-items: center; width: 40px; height: 40px; margin-bottom: 14px; border-radius: 50%; background: var(--red-tint);"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--red-ink)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5M12 16.2v.2"></path></svg></span>
+            <p style="margin: 0; font: 600 19px/1.3 'IBM Plex Sans', sans-serif;">This list could not be loaded</p>
+            <p style="margin: 9px 0 0; font: 400 14px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">The vehicle service did not answer within 30 seconds. Nothing was changed and no data was lost — this is a display problem only.</p>
+            <p style="margin: 10px 0 0; font: 400 12.5px/1.4 'IBM Plex Mono', monospace; color: var(--ink3);">06 Sep 2026, 12:48 IST · reference VH-5521</p>
+            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; margin-top: 18px;">
+              <button type="button" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--orange-solid-h)">Try again</button>
+              <button type="button" style="height: 38px; padding: 0 16px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 500 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)">Copy reference for support</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- STATE: permission denied -->
+      <sc-if value="{{ isDenied }}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; place-items: center; min-height: 100%; padding: 60px 24px;">
+          <div style="max-width: 480px; text-align: center;">
+            <p style="margin: 0; font: 600 19px/1.3 'IBM Plex Sans', sans-serif;">You do not have access to this list</p>
+            <p style="margin: 9px 0 0; font: 400 14px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Your role is <strong style="color: var(--ink);">Operations Manager — Kolkata</strong>. Vehicles outside your branch are visible only to the Owner and to head-office staff.</p>
+            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; margin-top: 18px;">
+              <button type="button" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--orange-solid-h)">Request access from owner</button>
+              <button type="button" style="height: 38px; padding: 0 16px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 500 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="border-color: var(--ink3)">Show my 42 Kolkata trucks</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- footer -->
+    <div style="flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 11px 24px; background: var(--card); border-top: 1px solid var(--line);">
+      <p style="margin: 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">{{ footerText }}</p>
+      <nav aria-label="Pagination" style="display: flex; align-items: center; gap: 5px;">
+        <button type="button" disabled="disabled" style="width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 7px; background: var(--sunk); color: var(--disabled-ink); cursor: not-allowed;">‹</button>
+        <button type="button" aria-current="page" style="min-width: 30px; height: 30px; padding: 0 8px; border: 0; border-radius: 7px; background: var(--ink); color: var(--bg); font: 600 12.5px/1 'IBM Plex Mono', monospace; cursor: pointer;">1</button>
+        <button type="button" style="min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 7px; background: var(--card); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Mono', monospace; cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)">2</button>
+        <button type="button" style="min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 7px; background: var(--card); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Mono', monospace; cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)">3</button>
+        <span style="padding: 0 3px; color: var(--ink3);">…</span>
+        <button type="button" style="min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--line2); border-radius: 7px; background: var(--card); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Mono', monospace; cursor: pointer;">7</button>
+        <button type="button" style="width: 30px; height: 30px; border: 1px solid var(--line2); border-radius: 7px; background: var(--card); color: var(--ink2); cursor: pointer;" style-hover="border-color: var(--ink3); color: var(--ink)">›</button>
+      </nav>
+    </div>
+
+    <!-- floating bulk bar -->
+    <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+      <div role="region" aria-label="Bulk actions" style="position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; background: color-mix(in srgb, #1A1A1A 92%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 12px; box-shadow: 0 20px 44px -18px rgba(28,20,14,.6);">
+        <span style="font: 600 13px/1.3 'IBM Plex Sans', sans-serif; color: #FAFAF9;">{{ selCount }} selected</span>
+        <span aria-hidden="true" style="width: 1px; height: 20px; background: rgba(250,250,249,.24);"></span>
+        <button type="button" style="height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: rgba(250,250,249,.14); color: #FAFAF9; font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: rgba(250,250,249,.24)">Assign driver</button>
+        <button type="button" style="height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: rgba(250,250,249,.14); color: #FAFAF9; font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: rgba(250,250,249,.24)">Move to branch</button>
+        <button type="button" style="height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: rgba(250,250,249,.14); color: #FAFAF9; font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: rgba(250,250,249,.24)">Export selected</button>
+        <button type="button" style="height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--red-solid); color: #FFFFFF; font: 600 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--red-solid-h)">Remove from fleet</button>
+        <button type="button" onClick="{{ clearSel }}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: rgba(250,250,249,.8); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="color: #FFFFFF">Clear</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- ══════ MOBILE ══════ -->
+  <div style="display: flex; align-items: flex-start; gap: 26px; margin-top: 10px;">
+    <div>
+      <p style="margin: 0 0 10px; font: 600 11px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">5.5″ ANDROID · ROWS BECOME CARDS</p>
+      <div style="width: 360px; height: 720px; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line2); border-radius: 22px; overflow: hidden; box-shadow: 0 24px 48px -30px rgba(28,20,14,.45);">
+        <div style="flex: 0 0 auto; padding: 14px 16px 11px; background: var(--card); border-bottom: 1px solid var(--line);">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+            <h3 style="margin: 0; font: 600 19px/1.2 'IBM Plex Sans', sans-serif;">Vehicles</h3>
+            <span style="font: 500 13px/1.2 'IBM Plex Mono', monospace; color: var(--ink3);">24 / 151</span>
+          </div>
+          <div style="position: relative; margin-top: 10px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position: absolute; left: 11px; top: 13px;"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 20 20"></path></svg>
+            <label for="mq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Search vehicles</label>
+            <input id="mq" type="search" placeholder="Vehicle or driver…" style="width: 100%; height: 44px; padding: 0 12px 0 32px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card); color: var(--ink); font: 450 14px/1 'IBM Plex Sans', sans-serif;" />
+          </div>
+          <div style="display: flex; gap: 7px; margin-top: 9px; overflow: hidden;">
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; border-radius: 999px; background: var(--ink); color: var(--bg); font: 600 12.5px/1 'IBM Plex Sans', sans-serif; white-space: nowrap;">Not reporting 139</span>
+            <span style="display: inline-flex; align-items: center; height: 32px; padding: 0 11px; border: 1px solid var(--line2); border-radius: 999px; color: var(--ink2); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; white-space: nowrap;">Kolkata</span>
+            <span style="display: inline-flex; align-items: center; height: 32px; padding: 0 11px; border: 1px dashed var(--line2); border-radius: 999px; color: var(--ink3); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; white-space: nowrap;">+ Filter</span>
+          </div>
+        </div>
+        <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <sc-for list="{{ mobileRows }}" as="m" hint-placeholder-count="4">
+            <div style="background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; box-shadow: var(--shadow);">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;">
+                <div>
+                  <p style="margin: 0; font: 600 15px/1.25 'IBM Plex Mono', monospace;">{{ m.reg }}</p>
+                  <p style="margin: 3px 0 0; font: 450 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ m.driver }} · {{ m.branch }}</p>
+                </div>
+                <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; border-radius: 999px; background: {{ m.chipBg }}; color: {{ m.chipInk }}; font: 600 11.5px/1.35 'IBM Plex Sans', sans-serif; white-space: nowrap;"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: {{ m.dotBg }}; box-shadow: {{ m.dotRing }};"></span>{{ m.state }}</span>
+              </div>
+              <dl style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 8px; margin: 12px 0 0;">
+                <dt style="font: 400 10.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Last seen</dt>
+                <dt style="font: 400 10.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">₹ / km</dt>
+                <dt style="font: 400 10.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Aug total</dt>
+                <dd style="margin: 0; font: 500 13px/1.35 'IBM Plex Sans', sans-serif; color: {{ m.seenInk }};">{{ m.seen }}</dd>
+                <dd style="margin: 0; font: 500 13px/1.35 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums;">{{ m.costKm }}</dd>
+                <dd style="margin: 0; font: 500 13px/1.35 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums;">{{ m.total }}</dd>
+              </dl>
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button type="button" style="flex: 1 1 auto; height: 44px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card); color: var(--ink); font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Open</button>
+                <button type="button" style="flex: 1 1 auto; height: 44px; border: 0; border-radius: 10px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">{{ m.action }}</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex: 0 0 auto; padding: 11px 16px; background: var(--card); border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between;">
+          <span style="font: 450 12px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">Showing 24 of 151 · 2 filters</span>
+          <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); color: var(--ink); font: 600 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Load more</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="width: 360px;">
+      <p style="margin: 0 0 10px; font: 600 11px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">MOBILE · EMPTY BECAUSE FILTERED</p>
+      <div style="background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 26px 20px; text-align: center; box-shadow: var(--shadow);">
+        <p style="margin: 0; font: 600 16px/1.3 'IBM Plex Sans', sans-serif;">No vehicle matches</p>
+        <p style="margin: 8px 0 0; font: 400 13.5px/1.55 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Kolkata + Not reporting returns nothing. The silent trucks are in Delhi and Chennai.</p>
+        <button type="button" style="margin-top: 15px; width: 100%; height: 44px; border: 0; border-radius: 10px; background: var(--orange-solid); color: #FFFFFF; font: 600 14px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Drop the branch filter</button>
+        <button type="button" style="margin-top: 8px; width: 100%; height: 44px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card); color: var(--ink); font: 500 14px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Clear all filters</button>
+      </div>
+      <p style="margin: 22px 0 10px; font: 600 11px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">MOBILE · BULK SELECTION</p>
+      <div style="position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: var(--shadow);">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--orange); border-radius: 11px; background: var(--orange-tint);">
+          <input type="checkbox" checked="checked" aria-label="Selected" style="width: 18px; height: 18px; accent-color: var(--orange);" />
+          <span style="font: 600 14px/1.3 'IBM Plex Mono', monospace;">WB 23 F 4821</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 9px; margin-top: 12px; padding: 10px 12px; background: #1A1A1A; border-radius: 11px;">
+          <span style="font: 600 13px/1.3 'IBM Plex Sans', sans-serif; color: #FAFAF9;">3 selected</span>
+          <button type="button" style="margin-left: auto; height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: rgba(250,250,249,.16); color: #FAFAF9; font: 500 13px/1 'IBM Plex Sans', sans-serif;">Assign</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: rgba(250,250,249,.16); color: #FAFAF9; font: 500 13px/1 'IBM Plex Sans', sans-serif;">Export</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;defaultDensity&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Comfortable&quot;,&quot;Compact&quot;],&quot;default&quot;:&quot;Comfortable&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Table&quot;},&quot;showUtilisationBars&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Table&quot;}}">
+const STATES = {
+  moving:   { label: 'Moving',        chipBg: 'var(--green-tint)', chipInk: 'var(--green-ink)', dot: 'var(--green)', ring: 'none' },
+  parked:   { label: 'Parked',        chipBg: 'var(--amber-tint)', chipInk: 'var(--amber-ink)', dot: 'var(--amber)', ring: 'none' },
+  nosignal: { label: 'No signal',     chipBg: 'var(--red-tint)',   chipInk: 'var(--red-ink)',   dot: 'var(--red)',   ring: 'none' },
+  silent:   { label: 'Not reporting', chipBg: 'var(--grey-tint)',  chipInk: 'var(--grey-ink)',  dot: 'transparent',  ring: 'inset 0 0 0 2px var(--grey)' }
+};
+
+const DATA = [
+  ['WB 23 F 4821', 'Rakesh Yadav',   'Kolkata', 'moving',   '2 min ago',        '4,120', 82, '₹26.10', '₹1,42,800'],
+  ['WB 19 C 7734', 'Sunil Mahato',   'Kolkata', 'parked',   '26 min ago',       '3,480', 71, '₹31.75', '₹1,66,200'],
+  ['WB 11 B 2290', 'Imran Sheikh',   'Kolkata', 'moving',   '4 min ago',        '4,860', 88, '₹24.90', '₹1,38,400'],
+  ['DL 1 GC 9902', 'Not assigned',   'Delhi',   'silent',   'Never',            '—',      0, '—',      '—'],
+  ['TN 22 BZ 1140', 'M. Selvam',     'Chennai', 'nosignal', '4 h 12 min ago',   '2,940', 58, '₹34.20', '₹1,81,050'],
+  ['WB 23 G 5518', 'Debashis Roy',   'Kolkata', 'moving',   '1 min ago',        '5,210', 91, '₹23.80', '₹1,29,600'],
+  ['DL 1 LT 4407', 'Harpreet Singh', 'Delhi',   'silent',   'Never',            '—',      0, '—',      '—'],
+  ['TN 09 AK 6612', 'R. Kumar',      'Chennai', 'parked',   '52 min ago',       '3,105', 64, '₹29.40', '₹1,54,900'],
+  ['WB 07 D 3341', 'Ashok Pramanik', 'Kolkata', 'moving',   '3 min ago',        '4,470', 85, '₹25.60', '₹1,33,750'],
+  ['DL 1 GD 1187', 'Vikas Chauhan',  'Delhi',   'nosignal', '1 h 38 min ago',   '3,820', 76, '₹28.15', '₹1,47,300'],
+  ['WB 15 E 8802', 'Not assigned',   'Kolkata', 'silent',   'Never',            '—',      0, '—',      '—'],
+  ['TN 22 CQ 3095', 'S. Anbarasan',  'Chennai', 'moving',   '7 min ago',        '4,015', 79, '₹27.30', '₹1,45,100'],
+  ['WB 23 F 6644', 'Jamal Ansari',   'Kolkata', 'parked',   '2 h 05 min ago',   '2,760', 55, '₹33.90', '₹1,72,400'],
+  ['DL 1 MN 2218', 'Not assigned',   'Delhi',   'silent',   'Never',            '—',      0, '—',      '—'],
+  ['WB 19 C 4470', 'Prabir Das',     'Kolkata', 'moving',   '5 min ago',        '4,690', 87, '₹25.05', '₹1,31,200'],
+  ['TN 09 BM 7731', 'K. Murugan',    'Chennai', 'nosignal', '6 h 44 min ago',   '2,210', 47, '₹37.60', '₹1,94,850'],
+  ['WB 11 A 9954', 'Sk. Rafiq',      'Kolkata', 'moving',   '2 min ago',        '5,340', 93, '₹23.10', '₹1,26,900'],
+  ['DL 1 GC 5563', 'Not assigned',   'Delhi',   'silent',   'Never',            '—',      0, '—',      '—'],
+  ['WB 23 H 1129', 'Tapan Ghosh',    'Kolkata', 'parked',   '38 min ago',       '3,650', 73, '₹30.20', '₹1,58,600'],
+  ['TN 22 BZ 8840', 'V. Ramesh',     'Chennai', 'moving',   '9 min ago',        '4,230', 81, '₹26.75', '₹1,41,050'],
+  ['WB 07 D 7716', 'Bikash Barman',  'Kolkata', 'silent',   'Never',            '—',      0, '—',      '—'],
+  ['DL 1 LT 9038', 'Manoj Tyagi',    'Delhi',   'moving',   '11 min ago',       '3,970', 78, '₹27.90', '₹1,48,700'],
+  ['WB 15 E 2267', 'Not assigned',   'Kolkata', 'silent',   'Never',            '—',      0, '—',      '—'],
+  ['TN 09 AK 1902', 'P. Dinesh',     'Chennai', 'parked',   '1 h 12 min ago',   '3,290', 67, '₹29.95', '₹1,56,300']
+];
+
+class Component extends DCLogic {
+  state = { view: 'data', density: 'comfortable', selected: [1, 4], cols: false, initDensity: false };
+
+  static getDerivedStateFromProps(props, state) {
+    if (!state.initDensity && props.defaultDensity) {
+      return { initDensity: true, density: props.defaultDensity === 'Compact' ? 'compact' : 'comfortable' };
+    }
+    return null;
+  }
+
+  componentDidUpdate() { this.apply(); }
+  componentDidMount() { this.apply(); }
+
+  apply() {
+    const el = this.frameRef && this.frameRef.current;
+    if (el) {
+      el.style.setProperty('--rowpad', this.state.density === 'compact' ? '6px' : '11px');
+      el.style.setProperty('--utilbar', this.props.showUtilisationBars === false ? 'none' : 'inline-block');
+    }
+    const r = document.documentElement;
+    ['data','loading','filtered','setup','error','denied'].forEach(k => {
+      const on = this.state.view === k;
+      r.style.setProperty('--st-' + k, on ? '#FFFFFF' : 'transparent');
+      r.style.setProperty('--sh-' + k, on ? '0 1px 2px rgba(28,20,14,.10)' : 'none');
+    });
+    const comfy = this.state.density === 'comfortable';
+    r.style.setProperty('--d-comfy', comfy ? '#FFFFFF' : 'transparent');
+    r.style.setProperty('--dsh-comfy', comfy ? '0 1px 2px rgba(28,20,14,.10)' : 'none');
+    r.style.setProperty('--d-compact', comfy ? 'transparent' : '#FFFFFF');
+    r.style.setProperty('--dsh-compact', comfy ? 'none' : '0 1px 2px rgba(28,20,14,.10)');
+    const s = this.selAllRef && this.selAllRef.current;
+    if (s) s.indeterminate = this.state.selected.length > 0 && this.state.selected.length < DATA.length;
+  }
+
+  toggleRow(i) {
+    this.setState(st => ({
+      selected: st.selected.indexOf(i) === -1 ? st.selected.concat([i]) : st.selected.filter(x => x !== i)
+    }));
+  }
+
+  renderVals() {
+    this.frameRef = this.frameRef || React.createRef();
+    this.selAllRef = this.selAllRef || React.createRef();
+    const v = this.state.view;
+    const sel = this.state.selected;
+
+    const build = (d, i) => {
+      const st = STATES[d[3]];
+      const checked = sel.indexOf(i) !== -1;
+      const silent = d[3] === 'silent';
+      return {
+        reg: d[0], driver: d[1], branch: d[2], seen: d[4], km: d[5],
+        util: d[7] === '—' ? '—' : d[6] + '%', utilPct: d[6] + '%',
+        utilBar: d[6] === 0 ? 'var(--grey)' : (d[6] < 60 ? 'var(--amber)' : 'var(--green)'),
+        costKm: d[7], total: d[8],
+        state: st.label, chipBg: st.chipBg, chipInk: st.chipInk, dotBg: st.dot, dotRing: st.ring,
+        driverInk: d[1] === 'Not assigned' ? 'var(--ink3)' : 'var(--ink2)',
+        seenInk: silent ? 'var(--ink3)' : 'var(--ink2)',
+        costInk: d[7] === '—' ? 'var(--ink3)' : 'var(--ink)',
+        checked, bg: checked ? 'var(--orange-tint)' : 'var(--card)',
+        rail: checked ? 'inset 3px 0 0 var(--orange)' : 'none',
+        selectLabel: 'Select ' + d[0],
+        action: silent ? 'Fix device' : 'Call driver',
+        onSelect: () => this.toggleRow(i)
+      };
+    };
+
+    const rows = DATA.map(build);
+    return {
+      frameRef: this.frameRef, selAllRef: this.selAllRef,
+      rows, mobileRows: [rows[0], rows[3], rows[4], rows[1]],
+      skeletonRows: [1,2,3,4,5,6,7,8,9,10,11,12],
+      isData: v === 'data', isLoading: v === 'loading', isFiltered: v === 'filtered',
+      isSetup: v === 'setup', isError: v === 'error', isDenied: v === 'denied',
+      go: {
+        data: () => this.setState({ view: 'data' }),
+        loading: () => this.setState({ view: 'loading' }),
+        filtered: () => this.setState({ view: 'filtered' }),
+        setup: () => this.setState({ view: 'setup' }),
+        error: () => this.setState({ view: 'error' }),
+        denied: () => this.setState({ view: 'denied' })
+      },
+      headCount: v === 'data' ? '24 shown of 151' : (v === 'setup' ? '0' : '151 total'),
+      footerText: v === 'data' ? 'Showing 24 of 151 · 2 filters active'
+        : v === 'loading' ? 'Loading 151 vehicles…'
+        : v === 'filtered' ? 'Showing 0 of 151 · 2 filters active'
+        : v === 'setup' ? 'No vehicles yet'
+        : v === 'error' ? 'Could not load · reference VH-5521'
+        : 'Access limited to your branch',
+      isComfy: this.state.density === 'comfortable',
+      isCompact: this.state.density === 'compact',
+      setComfy: () => this.setState({ density: 'comfortable' }),
+      setCompact: () => this.setState({ density: 'compact' }),
+      showCols: this.state.cols,
+      toggleCols: () => this.setState(s => ({ cols: !s.cols })),
+      hasSelection: v === 'data' && sel.length > 0,
+      selCount: sel.length,
+      clearSel: () => this.setState({ selected: [] }),
+      toggleAll: () => this.setState(s => ({ selected: s.selected.length ? [] : DATA.map((_, i) => i) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

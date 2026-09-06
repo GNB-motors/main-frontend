@@ -1,0 +1,28 @@
+COWORKER_HANDOFF_..._SHARE.md	Start here. State, worklist, the four landmines
+WORKING_RULES_2026-09-06.md	The gate + verification discipline. Non-optional
+HANDOFF_WORKSTREAM_H_..._SESSION2_SHARE.md	Only if he touches design (steps 3–6)
+SONNET_DESIGN_INSTRUCTIONS_2026-09-06.md	Full design brief — its §6 step 1 is stale, names a deleted file
+FRONTEND_UX_AUDIT_2026-09-06.md	Where the WS0.x numbers come from
+DESIGN_SYSTEM_AND_AI_PROMPTS_2026-09-06.md	IA + design system reasoning
+OVERHAUL_MASTER_PLAN_2026-09-06.md	Data-layer plan
+Application Shell Design Proposal/	6 .dc.html artboards — the design source of truth
+He gets frontend/CLAUDE.md (the 26 rules) automatically with the repo clone.
+
+Not included, deliberately: HANDOFF.md — it's the old master doc from Aug 14 and still carries the dead dev IP 13.232.78.42. It'd send him to a box that no longer exists. Give it only if he asks for deep history, with that warning.
+
+The message
+Hey Amitansu — handing you the GNB frontend chassis work, I'm out for the night.
+
+Everything's pushed. Branch revamp/frontend-audit-fixes, HEAD f29cc4a, working tree clean, gate fully green: 0 lint errors, 619 tests, build ok, bundle 590,706 B under the 600,000 cap. You're starting from a good state.
+
+Read COWORKER_HANDOFF_2026-09-06_SHARE.md first — it has the current state, the remaining page list with the file-prefix scheme, and four gotchas that'll each cost you an hour. The short version:
+
+Run tests as TZ=UTC npx vitest run. Our laptops are IST, Vercel builds UTC. Anything formatting a date passes locally and fails the deploy — that broke the build today.
+Check line counts after committing (git show HEAD:<path> | wc -l). The prettier hook re-wraps and inflates them. FieldAgentFuelUploadPage measured 329 pre-commit and landed at 492 — still over the 400 cap despite what its commit message says. That one still needs splitting.
+Mongo db is test, not express-msc-db. The one in docker-compose exists and is empty, so everything looks broken.
+The demo org has no telemetry — tracking/overspeed/ETA pages render empty on purpose. Don't chase it in the frontend.
+Where to start: TripManagementPage.jsx. The columns module is already written and matches both its tab layouts — wiring it in is most of the conversion. Same for ServiceIntelligencePage, OwnerAlertsPage, FieldAgentFuelLogPage: modules exist, pages aren't converted yet.
+
+Two rules that bite: never git add -A (multiple agents share the tree — stage explicit paths), and no Co-Authored-By in commits.
+
+Logins are in the doc with the passwords stripped — I'll send those separately.

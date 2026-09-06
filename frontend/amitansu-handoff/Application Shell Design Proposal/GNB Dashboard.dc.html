@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script>
+(function () {
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
+  document.head.appendChild(l);
+})();
+</script>
+<style>
+  :root {
+    --bg: #FAFAF9; --card: #FFFFFF; --sunk: #F5F5F4; --line: #E7E5E4; --line2: #D6D3D1;
+    --ink: #1A1A1A; --ink2: #44403C; --ink3: #6B645E; --disabled-ink: #A8A29E;
+    --link: #1E3A8A; --link-h: #16296B;
+    --orange: #EE6126; --orange-tint: #FDF1EB;
+    --orange-solid: #B8460F; --orange-solid-h: #9E3B0B; --accent-ink: #B8460F;
+    --red-solid: #C62828; --red-solid-h: #A81E1E;
+    --erp: #1E3A8A; --info: #1E88E5;
+    --green: #4CAF50; --green-ink: #2E7D32; --green-tint: #EDF7EE;
+    --amber: #F59E0B; --amber-ink: #8A5A00; --amber-tint: #FEF6E7;
+    --red: #F44336; --red-ink: #C62828; --red-tint: #FEF0EF;
+    --grey: #94A3B8; --grey-ink: #566275; --grey-tint: #F1F2F4; --grey-solid: #4B5563;
+    --focus: #1E88E5;
+    --map-ground: #E9E5DF; --map-block: #DED9D2; --map-road: #FFFFFF; --map-major: #F3EFE9; --map-ink: #6B645E;
+    --glass: rgba(255,255,255,.82); --glass-line: rgba(28,20,14,.12);
+    --shadow: 0 1px 2px rgba(28,20,14,.06); --shadow-lg: 0 18px 40px -22px rgba(28,20,14,.35);
+  }
+  html, body { margin: 0; padding: 0; background: #EDEAE6; }
+  * { box-sizing: border-box; }
+  a { color: var(--link); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  a:hover { color: var(--link-h); }
+  @keyframes gnb-spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" style="min-height: 100vh; padding: 30px 36px 90px; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: var(--ink); background: var(--bg); display: flex; flex-direction: column; gap: 16px; align-items: flex-start;">
+
+  <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%;">
+    <span style="font: 600 13px/1 'IBM Plex Mono', monospace; color: var(--accent-ink);">BLOCK 2</span>
+    <h1 style="margin: 0; font: 600 20px/1.2 'IBM Plex Sans', sans-serif;">Owner dashboard · 151 trucks</h1>
+    <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+      <div role="group" aria-label="Attention list state" style="display: flex; padding: 3px; gap: 2px; background: var(--sunk); border: 1px solid var(--line); border-radius: 9px;">
+        <button type="button" onClick="{{ setBusy }}" aria-pressed="{{ isBusy }}" style="padding: 6px 12px; border: 0; border-radius: 6px; background: var(--a-busy, #FFFFFF); box-shadow: var(--ash-busy, 0 1px 2px rgba(28,20,14,.1)); color: var(--ink); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">4 decisions</button>
+        <button type="button" onClick="{{ setCalm }}" aria-pressed="{{ isCalm }}" style="padding: 6px 12px; border: 0; border-radius: 6px; background: var(--a-calm, transparent); box-shadow: var(--ash-calm, none); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Nothing wrong</button>
+      </div>
+      <div role="group" aria-label="Theme" style="display: flex; padding: 3px; gap: 2px; background: var(--sunk); border: 1px solid var(--line); border-radius: 9px;">
+        <button type="button" onClick="{{ setLight }}" aria-pressed="{{ isLight }}" style="padding: 6px 12px; border: 0; border-radius: 6px; background: var(--t-light, #FFFFFF); box-shadow: var(--tsh-light, 0 1px 2px rgba(28,20,14,.1)); color: var(--ink); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Light</button>
+        <button type="button" onClick="{{ setDark }}" aria-pressed="{{ isDark }}" style="padding: 6px 12px; border: 0; border-radius: 6px; background: var(--t-dark, transparent); box-shadow: var(--tsh-dark, none); color: var(--ink2); font: 500 12.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Dark</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ DESKTOP 1366 ════════ -->
+  <div style="width: 1366px; background: var(--bg); border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 48px -30px rgba(28,20,14,.45);">
+
+    <!-- top bar -->
+    <div style="display: flex; align-items: center; gap: 14px; height: 58px; padding: 0 22px; background: var(--card); border-bottom: 1px solid var(--line);">
+      <span style="font: 600 15px/1.2 'IBM Plex Sans', sans-serif;">Good morning, Mr Agarwal</span>
+      <span style="font: 400 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Sunday, 06 Sep 2026 · 12:48 IST</span>
+      <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); font: 450 12px/1.35 'IBM Plex Sans', sans-serif; color: var(--ink2);"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: var(--amber);"></span>Data as of 12:46 IST<span style="color: var(--ink3);">· 2 of 3 feeds live</span></span>
+      <select aria-label="Branch" style="height: 34px; padding: 0 9px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); color: var(--ink); font: 450 13px/1 'IBM Plex Sans', sans-serif;"><option>All branches</option><option>Kolkata</option><option>Delhi</option><option>Chennai</option></select>
+    </div>
+
+    <div style="padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 16px;">
+
+      <!-- ═══ 1 · WHAT NEEDS ME TODAY ═══ -->
+      <section aria-labelledby="s1">
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;">
+          <h2 id="s1" style="margin: 0; font: 600 17px/1.2 'IBM Plex Sans', sans-serif;">What needs you today</h2>
+          <span style="font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ attentionSub }}</span>
+        </div>
+
+        <sc-if value="{{ isBusy }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="4">
+              <div style="position: relative; overflow: hidden; display: flex; align-items: center; gap: 16px; padding: 13px 16px 13px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 11px; box-shadow: var(--shadow);">
+                <span aria-hidden="true" style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: {{ d.rail }};"></span>
+                <div style="flex: 0 0 132px;">
+                  <p style="margin: 0; font: 600 14px/1.3 'IBM Plex Mono', monospace;">{{ d.reg }}</p>
+                  <p style="margin: 3px 0 0; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ d.where }}</p>
+                </div>
+                <div style="flex: 1 1 auto; min-width: 0;">
+                  <p style="margin: 0; font: 500 14px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink); text-wrap: pretty;">{{ d.issue }}</p>
+                  <p style="margin: 3px 0 0; font: 400 12px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ d.evidence }}</p>
+                </div>
+                <div style="flex: 0 0 auto; text-align: right;">
+                  <p style="margin: 0; font: 600 16px/1.2 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: {{ d.moneyInk }};">{{ d.money }}</p>
+                  <p style="margin: 2px 0 0; font: 400 11px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ d.moneyLabel }}</p>
+                </div>
+                <button type="button" style="flex: 0 0 auto; height: 38px; padding: 0 15px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;" style-hover="background: var(--orange-solid-h)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">{{ d.action }}</button>
+                <button type="button" aria-label="Dismiss for today" style="flex: 0 0 auto; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--ink3); font-size: 15px; cursor: pointer;" style-hover="background: var(--sunk); color: var(--ink)">×</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isCalm }}" hint-placeholder-val="{{ false }}">
+          <div style="position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; padding: 22px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);">
+            <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--green);"></span>
+            <span aria-hidden="true" style="display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--green-tint);"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--green-ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12.5l3.6 3.6L18 7.8"></path></svg></span>
+            <div>
+              <p style="margin: 0; font: 600 17px/1.3 'IBM Plex Sans', sans-serif;">Nothing needs your attention</p>
+              <p style="margin: 4px 0 0; font: 400 14px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">47 trucks running normally. Last checked 2 min ago, 12:46 IST.</p>
+            </div>
+          </div>
+        </sc-if>
+      </section>
+
+      <!-- ═══ 2 · WHAT IS MY FLEET DOING ═══ -->
+      <section aria-labelledby="s2">
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;">
+          <h2 id="s2" style="margin: 0; font: 600 17px/1.2 'IBM Plex Sans', sans-serif;">What your fleet is doing</h2>
+          <span style="font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">151 trucks · counted 12:46 IST</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.9fr; gap: 12px;">
+          <button type="button" style="text-align: left; padding: 15px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+            <span style="display: inline-flex; align-items: center; gap: 6px; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--green-ink);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--green);"></span>Moving</span>
+            <p style="margin: 8px 0 0; font: 600 30px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink);">7</p>
+            <p style="margin: 6px 0 0; font: 400 12px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink3);">of 12 reporting · was 9 yesterday</p>
+          </button>
+          <button type="button" style="text-align: left; padding: 15px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+            <span style="display: inline-flex; align-items: center; gap: 6px; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--amber-ink);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--amber);"></span>Parked</span>
+            <p style="margin: 8px 0 0; font: 600 30px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink);">4</p>
+            <p style="margin: 6px 0 0; font: 400 12px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink3);">of 12 reporting · 2 over 24 h</p>
+          </button>
+          <button type="button" style="text-align: left; padding: 15px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 2px">
+            <span style="display: inline-flex; align-items: center; gap: 6px; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--red-ink);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--red);"></span>No signal</span>
+            <p style="margin: 8px 0 0; font: 600 30px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink);">1</p>
+            <p style="margin: 6px 0 0; font: 400 12px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink3);">was reporting, went quiet 4 h ago</p>
+          </button>
+
+          <!-- NOT REPORTING — the most important state -->
+          <div style="position: relative; overflow: hidden; padding: 15px 18px; background: var(--sunk); border: 1px solid var(--line2); border-radius: 12px;">
+            <span aria-hidden="true" style="position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--grey) 13%, transparent) 9px 10px);"></span>
+            <div style="position: relative; display: flex; align-items: flex-start; gap: 18px;">
+              <div style="flex: 1 1 auto;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--grey-ink);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--grey);"></span>Not reporting</span>
+                <p style="margin: 8px 0 0; display: flex; align-items: baseline; gap: 8px;"><span style="font: 600 30px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink);">139</span><span style="font: 500 14px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2);">of 151 trucks</span></p>
+                <p style="margin: 8px 0 0; max-width: 380px; font: 400 13px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Only <strong style="color: var(--ink);">12 trucks</strong> are sending data. The rest have no device fitted, or the device has stopped. Everything below is calculated from those 12 — treat fleet totals as partial.</p>
+                <div aria-hidden="true" style="margin-top: 11px; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line2);"><span style="display: block; width: 8%; height: 100%; background: var(--grey-solid);"></span></div>
+                <p style="margin: 6px 0 0; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">8% coverage · unchanged for 14 days</p>
+              </div>
+              <div style="flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; align-items: stretch;">
+                <button type="button" style="height: 38px; padding: 0 15px; border: 0; border-radius: 9px; background: var(--orange-solid); color: #FFFFFF; font: 600 13.5px/1 'IBM Plex Sans', sans-serif; white-space: nowrap; cursor: pointer;" style-hover="background: var(--orange-solid-h)">See the 139</button>
+                <button type="button" style="height: 38px; padding: 0 15px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); color: var(--ink); font: 500 13.5px/1 'IBM Plex Sans', sans-serif; white-space: nowrap; cursor: pointer;" style-hover="border-color: var(--ink3)">Order devices</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ 3 · WHERE IS MY MONEY GOING ═══ -->
+      <section aria-labelledby="s3">
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;">
+          <h2 id="s3" style="margin: 0; font: 600 17px/1.2 'IBM Plex Sans', sans-serif;">Where your money is going</h2>
+          <span style="font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Last 30 days to 06 Sep 2026 · from 12 reporting trucks</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+
+          <div style="position: relative; overflow: hidden; background: var(--sunk); border: 1px solid var(--line2); border-radius: 12px; padding: 15px 16px 13px;">
+            <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--grey);"></span>
+            <span aria-hidden="true" style="position: absolute; inset: 3px 0 0 0; background: repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--grey) 15%, transparent) 7px 8px);"></span>
+            <div style="position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+              <p style="margin: 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">Fuel spend<br /><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">All branches · 30 days</span></p>
+              <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 6px; border-radius: 999px; background: var(--grey-solid); color: #FFFFFF; font: 600 11px/1.35 'IBM Plex Sans', sans-serif; white-space: nowrap;"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #FFFFFF;"></span>Feed down</span>
+            </div>
+            <p style="position: relative; margin: 11px 0 0; font: 600 27px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink3);">₹19,40,600</p>
+            <p style="position: relative; margin: 4px 0 0; font: 500 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Last known · frozen 09:12 IST</p>
+            <p style="position: relative; margin: 8px 0 0; font: 400 12px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">Fuel-card feed silent 3 h 41 min. Do not act on this figure.</p>
+            <div style="position: relative; margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--line2); display: flex; justify-content: space-between; align-items: center;"><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Fuel-card API</span><a href="#m" style="font: 600 12px/1.3 'IBM Plex Sans', sans-serif;">Check sources</a></div>
+          </div>
+
+          <div style="position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px 16px 13px; box-shadow: var(--shadow);">
+            <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--amber);"></span>
+            <span aria-hidden="true" style="position: absolute; inset: 3px 0 0 0; background: var(--amber-tint);"></span>
+            <div style="position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+              <p style="margin: 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">Idling waste<br /><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Diesel burnt stationary · 30 days</span></p>
+              <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 6px; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 55%, transparent); color: var(--amber-ink); font: 600 11px/1.35 'IBM Plex Sans', sans-serif;"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: var(--amber);"></span>Watch</span>
+            </div>
+            <p style="position: relative; margin: 11px 0 0; font: 600 27px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums;">₹1,84,200</p>
+            <p style="position: relative; margin: 4px 0 0; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">≈ 2,180 litres · 9.4% of fuel spend</p>
+            <p style="position: relative; margin: 8px 0 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--amber-ink);">↑ ₹22,400 (13.8%) vs previous 30 days</p>
+            <div style="position: relative; margin: 10px 0 0; padding-top: 9px; border-top: 1px solid color-mix(in srgb, var(--amber) 25%, transparent); display: flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">11 min ago · OBD feed</span></div>
+          </div>
+
+          <div style="position: relative; overflow: hidden; background: var(--card); border: 1px solid color-mix(in srgb, var(--red) 32%, var(--line)); border-radius: 12px; padding: 15px 16px 13px; box-shadow: var(--shadow);">
+            <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--red);"></span>
+            <span aria-hidden="true" style="position: absolute; inset: 4px 0 0 0; background: var(--red-tint);"></span>
+            <div style="position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+              <p style="margin: 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">Suspected fuel loss<br /><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Unexplained drops · 30 days</span></p>
+              <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 6px; border-radius: 999px; background: var(--red-solid); color: #FFFFFF; font: 600 11px/1.35 'IBM Plex Sans', sans-serif;"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #FFFFFF;"></span>Critical</span>
+            </div>
+            <p style="position: relative; margin: 11px 0 0; font: 600 27px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums;">₹4,82,350</p>
+            <p style="position: relative; margin: 4px 0 0; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">9 vehicles · 41 events</p>
+            <p style="position: relative; margin: 8px 0 0; font: 600 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--red-ink);">↑ ₹1,96,000 (68%) vs previous 30 days</p>
+            <div style="position: relative; margin: 10px 0 0; padding-top: 9px; border-top: 1px solid color-mix(in srgb, var(--red) 25%, transparent); display: flex; justify-content: space-between; align-items: center;"><span style="display: flex; align-items: center; gap: 6px; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>6 min ago</span><a href="#m" style="font: 600 12px/1.3 'IBM Plex Sans', sans-serif;">See 9 vehicles</a></div>
+          </div>
+
+          <div style="position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px 16px 13px; box-shadow: var(--shadow);">
+            <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--green);"></span>
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+              <p style="margin: 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">Cost per km<br /><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">Reporting trucks · 30 days</span></p>
+              <span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 6px; border-radius: 999px; background: var(--green-tint); color: var(--green-ink); font: 600 11px/1.35 'IBM Plex Sans', sans-serif;"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: var(--green);"></span>Normal</span>
+            </div>
+            <p style="margin: 11px 0 0; display: flex; align-items: baseline; gap: 5px;"><span style="font: 600 27px/1 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums;">₹28.40</span><span style="font: 500 12.5px/1 'IBM Plex Sans', sans-serif; color: var(--ink3);">per km</span></p>
+            <p style="margin: 4px 0 0; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">fuel + toll + driver, no EMI</p>
+            <p style="margin: 8px 0 0; font: 500 12.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--green-ink);">↓ ₹1.10 (3.7%) vs previous 30 days</p>
+            <div style="margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span><span style="font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">4 min ago · trip ledger</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ 4 · WHERE ARE MY TRUCKS ═══ -->
+      <section aria-labelledby="s4">
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;">
+          <h2 id="s4" style="margin: 0; font: 600 17px/1.2 'IBM Plex Sans', sans-serif;">Where your trucks are</h2>
+          <span style="font: 450 13px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">12 trucks on the map · 139 have no position to show</span>
+        </div>
+
+        <div style="position: relative; height: 420px; border: 1px solid var(--line2); border-radius: 12px; overflow: hidden; background: var(--map-ground);">
+          <svg viewBox="0 0 1320 420" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" role="img" aria-label="Map of eastern India showing 12 reporting trucks along NH-19, NH-16 and NH-12" style="display: block;">
+            <rect width="1320" height="420" fill="var(--map-ground)"></rect>
+            <g fill="var(--map-block)">
+              <rect x="90" y="60" width="150" height="96" rx="4"></rect><rect x="270" y="40" width="120" height="70" rx="4"></rect>
+              <rect x="150" y="200" width="180" height="120" rx="4"></rect><rect x="420" y="140" width="140" height="90" rx="4"></rect>
+              <rect x="600" y="70" width="170" height="110" rx="4"></rect><rect x="640" y="240" width="130" height="100" rx="4"></rect>
+              <rect x="850" y="120" width="160" height="120" rx="4"></rect><rect x="1060" y="60" width="140" height="90" rx="4"></rect>
+              <rect x="960" y="290" width="180" height="90" rx="4"></rect><rect x="380" y="310" width="150" height="80" rx="4"></rect>
+            </g>
+            <g stroke="var(--map-major)" stroke-width="16" fill="none" stroke-linecap="round">
+              <path d="M-20 190 L360 176 L700 210 L1040 188 L1340 200"></path>
+              <path d="M250 -20 L268 180 L300 420"></path>
+              <path d="M820 -20 L806 200 L840 420"></path>
+            </g>
+            <g stroke="var(--map-road)" stroke-width="9" fill="none" stroke-linecap="round">
+              <path d="M-20 190 L360 176 L700 210 L1040 188 L1340 200"></path>
+              <path d="M250 -20 L268 180 L300 420"></path>
+              <path d="M820 -20 L806 200 L840 420"></path>
+              <path d="M60 300 L420 288 L700 320 L1180 300" stroke-width="5"></path>
+              <path d="M120 90 L520 78 L900 96 L1260 84" stroke-width="5"></path>
+            </g>
+            <g font-family="'IBM Plex Sans', sans-serif" font-size="11" font-weight="600" fill="var(--map-ink)" letter-spacing=".04em">
+              <text x="430" y="168">NH-19</text><text x="962" y="180">NH-16</text><text x="276" y="386">NH-12</text>
+              <text x="120" y="330" font-size="12" font-weight="700">DANKUNI</text>
+              <text x="700" y="352" font-size="12" font-weight="700">KHARAGPUR</text>
+              <text x="1075" y="266" font-size="12" font-weight="700">BALASORE</text>
+            </g>
+          </svg>
+
+          <!-- map markers -->
+          <span aria-hidden="true" style="position: absolute; left: 22%; top: 41%; width: 15px; height: 15px; border-radius: 50%; background: var(--green); border: 2.5px solid var(--card); box-shadow: 0 2px 6px rgba(28,20,14,.35);"></span>
+          <span aria-hidden="true" style="position: absolute; left: 39%; top: 44%; width: 15px; height: 15px; border-radius: 50%; background: var(--green); border: 2.5px solid var(--card); box-shadow: 0 2px 6px rgba(28,20,14,.35);"></span>
+          <span aria-hidden="true" style="position: absolute; left: 54%; top: 49%; width: 15px; height: 15px; border-radius: 50%; background: var(--amber); border: 2.5px solid var(--card); box-shadow: 0 2px 6px rgba(28,20,14,.35);"></span>
+          <span aria-hidden="true" style="position: absolute; left: 63%; top: 74%; width: 15px; height: 15px; border-radius: 50%; background: var(--green); border: 2.5px solid var(--card); box-shadow: 0 2px 6px rgba(28,20,14,.35);"></span>
+          <span aria-hidden="true" style="position: absolute; left: 71%; top: 43%; width: 15px; height: 15px; border-radius: 50%; background: var(--red); border: 2.5px solid var(--card); box-shadow: 0 2px 6px rgba(28,20,14,.35);"></span>
+          <span aria-hidden="true" style="position: absolute; left: 19%; top: 70%; width: 15px; height: 15px; border-radius: 50%; background: var(--amber); border: 2.5px solid var(--card); box-shadow: 0 2px 6px rgba(28,20,14,.35);"></span>
+
+          <!-- glass rail (the one legitimate glass surface) -->
+          <div style="position: absolute; top: 12px; left: 12px; bottom: 12px; width: 318px; display: var(--rail-d, flex); flex-direction: column; background: var(--glass); backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%); border: 1px solid var(--glass-line); border-radius: 12px; box-shadow: 0 16px 36px -20px rgba(28,20,14,.5); overflow: hidden;">
+            <div style="flex: 0 0 auto; padding: 12px 14px 10px; border-bottom: 1px solid var(--glass-line);">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                <p style="margin: 0; font: 600 14px/1.2 'IBM Plex Sans', sans-serif;">On the map</p>
+                <span style="font: 500 12.5px/1.2 'IBM Plex Mono', monospace; color: var(--ink2);">12 of 151</span>
+              </div>
+              <div style="display: flex; gap: 6px; margin-top: 9px;">
+                <button type="button" aria-pressed="true" style="height: 28px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--ink); color: var(--bg); font: 600 11.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">All 12</button>
+                <button type="button" style="height: 28px; padding: 0 10px; border: 1px solid var(--glass-line); border-radius: 999px; background: transparent; color: var(--ink2); font: 500 11.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Moving 7</button>
+                <button type="button" style="height: 28px; padding: 0 10px; border: 1px solid var(--glass-line); border-radius: 999px; background: transparent; color: var(--ink2); font: 500 11.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Parked 4</button>
+              </div>
+            </div>
+            <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: var(--line2) transparent;">
+              <sc-for list="{{ railItems }}" as="r" hint-placeholder-count="6">
+                <button type="button" style="width: 100%; text-align: left; display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; margin-bottom: 4px; border: 1px solid {{ r.border }}; border-radius: 9px; background: {{ r.bg }}; cursor: pointer;" style-hover="border-color: var(--ink3)" style-focus="outline: 2px solid var(--focus); outline-offset: 1px">
+                  <span aria-hidden="true" style="flex: 0 0 auto; margin-top: 4px; width: 9px; height: 9px; border-radius: 50%; background: {{ r.dot }}; box-shadow: {{ r.ring }};"></span>
+                  <span style="flex: 1 1 auto; min-width: 0;">
+                    <span style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;"><span style="font: 600 13px/1.3 'IBM Plex Mono', monospace; color: var(--ink);">{{ r.reg }}</span><span style="font: 450 11px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ r.seen }}</span></span>
+                    <span style="display: block; margin-top: 3px; font: 450 12px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink2);">{{ r.place }}</span>
+                    <span style="display: block; margin-top: 2px; font: 400 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">{{ r.detail }}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="flex: 0 0 auto; padding: 10px 14px; border-top: 1px solid var(--glass-line); background: color-mix(in srgb, var(--sunk) 60%, transparent);">
+              <p style="margin: 0; font: 400 11.5px/1.45 'IBM Plex Sans', sans-serif; color: var(--ink2);">139 trucks are not on this map because they send no position. <a href="#m" style="font-weight: 600;">See the list</a></p>
+            </div>
+          </div>
+
+          <!-- floating map toolbar, also legitimately glass -->
+          <div style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; padding: 6px; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--glass-line); border-radius: 10px; box-shadow: var(--shadow-lg);">
+            <button type="button" style="height: 30px; padding: 0 11px; border: 0; border-radius: 7px; background: var(--card); color: var(--ink); font: 600 12px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Live</button>
+            <button type="button" style="height: 30px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; color: var(--ink2); font: 500 12px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Last 24 h</button>
+            <span aria-hidden="true" style="width: 1px; background: var(--glass-line);"></span>
+            <button type="button" aria-label="Zoom in" style="width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: var(--ink2); font-size: 15px; cursor: pointer;">+</button>
+            <button type="button" aria-label="Zoom out" style="width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: var(--ink2); font-size: 15px; cursor: pointer;">−</button>
+          </div>
+
+          <div style="position: absolute; left: 342px; bottom: 12px; display: flex; align-items: center; gap: 14px; padding: 7px 12px; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--glass-line); border-radius: 999px;">
+            <span style="display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px/1 'IBM Plex Sans', sans-serif; color: var(--ink2);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--green);"></span>Moving 7</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px/1 'IBM Plex Sans', sans-serif; color: var(--ink2);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--amber);"></span>Parked 4</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px/1 'IBM Plex Sans', sans-serif; color: var(--ink2);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--red);"></span>No signal 1</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ════════ PHONE ════════ -->
+  <div style="display: flex; gap: 26px; align-items: flex-start;">
+    <div>
+      <p style="margin: 0 0 10px; font: 600 11px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">5.5″ ANDROID · SAME FOUR QUESTIONS, STACKED</p>
+      <div style="width: 360px; height: 740px; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line2); border-radius: 22px; overflow: hidden; box-shadow: 0 24px 48px -30px rgba(28,20,14,.45);">
+        <div style="flex: 0 0 auto; padding: 13px 16px; background: var(--card); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between;">
+          <div><p style="margin: 0; font: 600 15px/1.2 'IBM Plex Sans', sans-serif;">Your fleet</p><p style="margin: 2px 0 0; font: 400 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink3);">06 Sep 2026 · 12:48 IST</p></div>
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); font: 450 11px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: var(--amber);"></span>2 min ago</span>
+        </div>
+        <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <p style="margin: 0 0 8px; font: 600 13px/1 'IBM Plex Sans', sans-serif; letter-spacing: .02em;">Needs you today · 4</p>
+            <div style="position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px 13px 16px; box-shadow: var(--shadow);">
+              <span aria-hidden="true" style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--red);"></span>
+              <p style="margin: 0; font: 600 14px/1.3 'IBM Plex Mono', monospace;">WB 19 C 7734</p>
+              <p style="margin: 5px 0 0; font: 500 13.5px/1.45 'IBM Plex Sans', sans-serif; text-wrap: pretty;">42 litres vanished while parked overnight at Dankuni yard.</p>
+              <p style="margin: 5px 0 0; font: 400 11.5px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink3);">Tank went 78% → 34% between 01:10 and 03:40 IST. Engine off.</p>
+              <p style="margin: 9px 0 0; font: 600 18px/1 'IBM Plex Mono', monospace; color: var(--red-ink);">₹4,120</p>
+              <p style="margin: 2px 0 0; font: 400 11px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink3);">at today's diesel rate</p>
+              <button type="button" style="margin-top: 11px; width: 100%; height: 44px; border: 0; border-radius: 10px; background: var(--orange-solid); color: #FFFFFF; font: 600 14px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">Open fuel report</button>
+            </div>
+          </div>
+          <div>
+            <p style="margin: 0 0 8px; font: 600 13px/1 'IBM Plex Sans', sans-serif;">Fleet right now</p>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+              <div style="background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 11px 10px;"><span style="display: flex; align-items: center; gap: 5px; font: 600 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--green-ink);"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: var(--green);"></span>Moving</span><p style="margin: 7px 0 0; font: 600 22px/1 'IBM Plex Mono', monospace;">7</p></div>
+              <div style="background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 11px 10px;"><span style="display: flex; align-items: center; gap: 5px; font: 600 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--amber-ink);"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: var(--amber);"></span>Parked</span><p style="margin: 7px 0 0; font: 600 22px/1 'IBM Plex Mono', monospace;">4</p></div>
+              <div style="background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 11px 10px;"><span style="display: flex; align-items: center; gap: 5px; font: 600 11px/1.2 'IBM Plex Sans', sans-serif; color: var(--red-ink);"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: var(--red);"></span>No sig.</span><p style="margin: 7px 0 0; font: 600 22px/1 'IBM Plex Mono', monospace;">1</p></div>
+            </div>
+            <div style="position: relative; overflow: hidden; margin-top: 8px; background: var(--sunk); border: 1px solid var(--line2); border-radius: 11px; padding: 13px 14px;">
+              <span aria-hidden="true" style="position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--grey) 13%, transparent) 9px 10px);"></span>
+              <div style="position: relative;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px/1.2 'IBM Plex Sans', sans-serif; color: var(--grey-ink);"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--grey);"></span>Not reporting</span>
+                <p style="margin: 7px 0 0; display: flex; align-items: baseline; gap: 7px;"><span style="font: 600 24px/1 'IBM Plex Mono', monospace;">139</span><span style="font: 500 13px/1.2 'IBM Plex Sans', sans-serif; color: var(--ink2);">of 151</span></p>
+                <p style="margin: 6px 0 0; font: 400 12.5px/1.5 'IBM Plex Sans', sans-serif; color: var(--ink2); text-wrap: pretty;">Only 12 trucks send data. Numbers below cover those 12 only.</p>
+                <button type="button" style="margin-top: 10px; width: 100%; height: 44px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card); color: var(--ink); font: 600 13.5px/1 'IBM Plex Sans', sans-serif; cursor: pointer;">See the 139</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p style="margin: 0 0 8px; font: 600 13px/1 'IBM Plex Sans', sans-serif;">Money · last 30 days</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="position: relative; overflow: hidden; background: var(--card); border: 1px solid color-mix(in srgb, var(--red) 32%, var(--line)); border-radius: 11px; padding: 12px 13px;">
+                <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--red);"></span>
+                <span aria-hidden="true" style="position: absolute; inset: 4px 0 0 0; background: var(--red-tint);"></span>
+                <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                  <p style="margin: 0; font: 500 12px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">Suspected fuel loss</p>
+                  <span style="padding: 2px 8px; border-radius: 999px; background: var(--red-solid); color: #FFFFFF; font: 600 10.5px/1.5 'IBM Plex Sans', sans-serif;">Critical</span>
+                </div>
+                <p style="position: relative; margin: 8px 0 0; font: 600 22px/1 'IBM Plex Mono', monospace;">₹4,82,350</p>
+                <p style="position: relative; margin: 5px 0 0; font: 600 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--red-ink);">↑ 68% vs previous 30 days</p>
+              </div>
+              <div style="position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 12px 13px;">
+                <span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--amber);"></span>
+                <span aria-hidden="true" style="position: absolute; inset: 3px 0 0 0; background: var(--amber-tint);"></span>
+                <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                  <p style="margin: 0; font: 500 12px/1.3 'IBM Plex Sans', sans-serif; color: var(--ink2);">Idling waste</p>
+                  <span style="padding: 2px 8px; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 55%, transparent); color: var(--amber-ink); font: 600 10.5px/1.5 'IBM Plex Sans', sans-serif;">Watch</span>
+                </div>
+                <p style="position: relative; margin: 8px 0 0; font: 600 22px/1 'IBM Plex Mono', monospace;">₹1,84,200</p>
+                <p style="position: relative; margin: 5px 0 0; font: 500 11.5px/1.3 'IBM Plex Sans', sans-serif; color: var(--amber-ink);">↑ 13.8% vs previous 30 days</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p style="margin: 0 0 8px; font: 600 13px/1 'IBM Plex Sans', sans-serif;">Where they are</p>
+            <div style="position: relative; height: 190px; border: 1px solid var(--line2); border-radius: 12px; overflow: hidden; background: var(--map-ground);">
+              <svg viewBox="0 0 340 190" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" role="img" aria-label="Map showing 12 reporting trucks" style="display: block;">
+                <rect width="340" height="190" fill="var(--map-ground)"></rect>
+                <g fill="var(--map-block)"><rect x="20" y="24" width="70" height="46" rx="3"></rect><rect x="130" y="16" width="66" height="38" rx="3"></rect><rect x="228" y="40" width="76" height="54" rx="3"></rect><rect x="46" y="118" width="86" height="52" rx="3"></rect><rect x="200" y="126" width="90" height="46" rx="3"></rect></g>
+                <g stroke="var(--map-road)" stroke-width="6" fill="none" stroke-linecap="round"><path d="M-10 92 L120 84 L220 100 L350 92"></path><path d="M112 -10 L120 84 L134 200"></path><path d="M244 -10 L238 96 L252 200"></path></g>
+                <g font-family="'IBM Plex Sans', sans-serif" font-size="8" font-weight="600" fill="var(--map-ink)"><text x="150" y="78">NH-19</text><text x="60" y="112">DANKUNI</text></g>
+              </svg>
+              <span aria-hidden="true" style="position: absolute; left: 24%; top: 42%; width: 13px; height: 13px; border-radius: 50%; background: var(--green); border: 2.5px solid var(--card);"></span>
+              <span aria-hidden="true" style="position: absolute; left: 52%; top: 48%; width: 13px; height: 13px; border-radius: 50%; background: var(--amber); border: 2.5px solid var(--card);"></span>
+              <span aria-hidden="true" style="position: absolute; left: 71%; top: 40%; width: 13px; height: 13px; border-radius: 50%; background: var(--red); border: 2.5px solid var(--card);"></span>
+              <div style="position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 9px 11px; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--glass-line); border-radius: 10px;">
+                <p style="margin: 0; font: 500 12px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink2);">12 trucks visible · 139 send no position</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width: 420px;">
+      <p style="margin: 0 0 10px; font: 600 11px/1 'IBM Plex Sans', sans-serif; letter-spacing: .1em; color: var(--ink3);">READING ORDER</p>
+      <ol style="margin: 0; padding-left: 18px; font: 400 13.5px/1.7 'IBM Plex Sans', sans-serif; color: var(--ink2);">
+        <li><strong style="color: var(--ink);">What needs me today</strong> — decisions with money attached, one action each.</li>
+        <li><strong style="color: var(--ink);">What is my fleet doing</strong> — four counts; “not reporting” gets the widest tile because it is the truest thing on the screen.</li>
+        <li><strong style="color: var(--ink);">Where is my money going</strong> — every figure carries unit, period, comparison and freshness.</li>
+        <li><strong style="color: var(--ink);">Where are my trucks</strong> — map last, because it is the least decision-shaped.</li>
+      </ol>
+      <p style="margin: 16px 0 0; font: 400 13px/1.6 'IBM Plex Sans', sans-serif; color: var(--ink3); text-wrap: pretty;">Glass appears exactly three times, all of them floating over the map: the vehicle rail, the map toolbar, the legend. Nothing else on the page is translucent.</p>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1460,&quot;height&quot;:980},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Light&quot;,&quot;Dark&quot;],&quot;default&quot;:&quot;Light&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Display&quot;},&quot;showMapRail&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Map&quot;}}">
+const DECISIONS = [
+  { reg: 'WB 19 C 7734', where: 'Dankuni yard', rail: 'var(--red)',
+    issue: '42 litres of diesel vanished while the truck was parked overnight.',
+    evidence: 'Tank 78% → 34% between 01:10 and 03:40 IST. Engine off the whole time.',
+    money: '₹4,120', moneyLabel: 'at today’s rate', moneyInk: 'var(--red-ink)', action: 'Open fuel report' },
+  { reg: 'TN 22 BZ 1140', where: 'NH-16, Chilakaluripet', rail: 'var(--red)',
+    issue: 'No signal for 4 hours on a live trip to Chennai.',
+    evidence: 'Last position 05:41 IST. Driver M. Selvam is not answering calls.',
+    money: '₹86,000', moneyLabel: 'cargo value on board', moneyInk: 'var(--red-ink)', action: 'Call transporter' },
+  { reg: 'WB 23 F 4821', where: 'Kolkata', rail: 'var(--amber)',
+    issue: 'Fitness certificate expires in 9 days.',
+    evidence: 'Valid to 15 Sep 2026. Renewal at Beltala RTO takes 4–6 working days.',
+    money: '₹12,500', moneyLabel: 'fine if stopped', moneyInk: 'var(--amber-ink)', action: 'Start renewal' },
+  { reg: 'DL 1 GD 1187', where: 'Delhi', rail: 'var(--amber)',
+    issue: 'Driver Vikas Chauhan crossed 80 km/h nine times this week.',
+    evidence: 'Worst: 94 km/h for 11 min on NH-48 near Manesar, 04 Sep, 22:14 IST.',
+    money: '₹9,400', moneyLabel: 'extra fuel this month', moneyInk: 'var(--amber-ink)', action: 'Send warning' }
+];
+
+const RAIL = [
+  { reg: 'WB 23 F 4821', seen: '2 min', place: 'NH-19 near Dankuni Toll', detail: 'Moving · 58 km/h · to Durgapur', kind: 'moving' },
+  { reg: 'WB 11 A 9954', seen: '2 min', place: 'NH-19 near Palsit', detail: 'Moving · 62 km/h · to Asansol', kind: 'moving' },
+  { reg: 'WB 23 G 5518', seen: '1 min', place: 'NH-12 near Krishnanagar', detail: 'Moving · 54 km/h · to Berhampore', kind: 'moving' },
+  { reg: 'WB 19 C 7734', seen: '26 min', place: 'Dankuni yard, bay 4', detail: 'Parked 2 h 14 min · engine off', kind: 'parked' },
+  { reg: 'TN 22 BZ 1140', seen: '4 h 12 min', place: 'NH-16 near Chilakaluripet', detail: 'No signal since 05:41 IST', kind: 'nosignal' },
+  { reg: 'WB 07 D 3341', seen: '3 min', place: 'NH-16 near Kharagpur bypass', detail: 'Moving · 49 km/h · to Balasore', kind: 'moving' },
+  { reg: 'WB 23 H 1129', seen: '38 min', place: 'Bombay Road, Uluberia', detail: 'Parked 38 min · loading', kind: 'parked' },
+  { reg: 'WB 15 E 8802', seen: '9 min', place: 'NH-19 near Shaktigarh', detail: 'Moving · 66 km/h · to Durgapur', kind: 'moving' }
+];
+
+const KIND = {
+  moving:   { dot: 'var(--green)', ring: 'none', bg: 'color-mix(in srgb, var(--card) 70%, transparent)', border: 'var(--glass-line)' },
+  parked:   { dot: 'var(--amber)', ring: 'none', bg: 'color-mix(in srgb, var(--card) 70%, transparent)', border: 'var(--glass-line)' },
+  nosignal: { dot: 'var(--red)',   ring: 'none', bg: 'color-mix(in srgb, var(--red-tint) 78%, transparent)', border: 'color-mix(in srgb, var(--red) 34%, transparent)' }
+};
+
+class Component extends DCLogic {
+  state = { theme: 'light', attention: 'busy', initTheme: false };
+
+  static getDerivedStateFromProps(props, state) {
+    if (!state.initTheme && props.theme) {
+      return { initTheme: true, theme: props.theme === 'Dark' ? 'dark' : 'light' };
+    }
+    return null;
+  }
+
+  DARK = {
+    '--bg': '#1C1917', '--card': '#262322', '--sunk': '#211F1E', '--line': '#3A3634', '--line2': '#4A4543',
+    '--ink': '#F5F5F4', '--ink2': '#C4BFBA', '--ink3': '#A39C96', '--disabled-ink': '#7A736D',
+    '--link': '#8FB4FF', '--link-h': '#B8D0FF',
+    '--orange': '#F2754A', '--orange-tint': '#3A241B',
+    '--orange-solid': '#C0501A', '--orange-solid-h': '#A84314', '--accent-ink': '#F2754A',
+    '--red-solid': '#C62828', '--red-solid-h': '#AC1F1F',
+    '--erp': '#8FB4FF', '--info': '#4BA3F0',
+    '--green': '#5FC463', '--green-ink': '#7FD583', '--green-tint': '#1E2B1F',
+    '--amber': '#FBBF24', '--amber-ink': '#FBBF24', '--amber-tint': '#2A2520',
+    '--red': '#FF6B5E', '--red-ink': '#FF8A7E', '--red-tint': '#2E2120',
+    '--grey': '#8B8680', '--grey-ink': '#A8A29E', '--grey-tint': '#2B2827', '--grey-solid': '#6B645E',
+    '--focus': '#7FC0FF',
+    '--map-ground': '#232020', '--map-block': '#2C2827', '--map-road': '#453F3C', '--map-major': '#332F2D', '--map-ink': '#A39C96',
+    '--glass': 'rgba(38,35,34,.82)', '--glass-line': 'rgba(245,245,244,.14)',
+    '--shadow': '0 1px 2px rgba(0,0,0,.5)', '--shadow-lg': '0 18px 40px -18px rgba(0,0,0,.7)'
+  };
+
+  componentDidMount() { this.apply(); }
+  componentDidUpdate() { this.apply(); }
+
+  apply() {
+    const el = this.rootRef && this.rootRef.current;
+    if (!el) return;
+    const dark = this.state.theme === 'dark';
+    Object.keys(this.DARK).forEach(k => dark ? el.style.setProperty(k, this.DARK[k]) : el.style.removeProperty(k));
+    document.body.style.background = dark ? '#151313' : '#EDEAE6';
+    el.style.setProperty('--rail-d', this.props.showMapRail === false ? 'none' : 'flex');
+    const r = document.documentElement;
+    const on = dark ? '#3A3634' : '#FFFFFF';
+    const sh = dark ? '0 1px 2px rgba(0,0,0,.5)' : '0 1px 2px rgba(28,20,14,.1)';
+    r.style.setProperty('--t-light', dark ? 'transparent' : on);
+    r.style.setProperty('--tsh-light', dark ? 'none' : sh);
+    r.style.setProperty('--t-dark', dark ? on : 'transparent');
+    r.style.setProperty('--tsh-dark', dark ? sh : 'none');
+    const busy = this.state.attention === 'busy';
+    r.style.setProperty('--a-busy', busy ? on : 'transparent');
+    r.style.setProperty('--ash-busy', busy ? sh : 'none');
+    r.style.setProperty('--a-calm', busy ? 'transparent' : on);
+    r.style.setProperty('--ash-calm', busy ? 'none' : sh);
+  }
+
+  renderVals() {
+    this.rootRef = this.rootRef || React.createRef();
+    const busy = this.state.attention === 'busy';
+    return {
+      rootRef: this.rootRef,
+      decisions: DECISIONS,
+      railItems: RAIL.map(r => Object.assign({}, r, KIND[r.kind])),
+      isBusy: busy, isCalm: !busy,
+      attentionSub: busy ? '4 decisions · sorted by money at stake' : 'checked 12:46 IST',
+      setBusy: () => this.setState({ attention: 'busy' }),
+      setCalm: () => this.setState({ attention: 'calm' }),
+      isLight: this.state.theme === 'light', isDark: this.state.theme === 'dark',
+      setLight: () => this.setState({ theme: 'light' }),
+      setDark: () => this.setState({ theme: 'dark' })
+    };
+  }
+}
+</script>
+</body>
+</html>
