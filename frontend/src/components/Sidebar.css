@@ -617,3 +617,74 @@
   background-color: color-mix(in oklab, var(--primary-color) 22%, transparent);
   color: var(--primary-color);
 }
+
+/* ── Neutral rail (Workstream H, step 2) ────────────────────────────────
+   Supersedes the §H.3 full-bleed brand gradient defined at the top of this
+   file. Kept as an override block rather than an edit-in-place so the whole
+   change reverts as one unit and the AA reasoning above stays readable.
+
+   Why the flood went away: the canvas rail is #EE6126 under a
+   rgba(20,12,6,.38) scrim, which composites to #9B411A — a dark brick. That
+   is the "weirdly dark" rail, and the same maroon defect still on prod.
+   Lightening the scrim only trades mud for glare; a 264px-wide fully
+   saturated orange column is punishing across an 8-hour dispatcher shift.
+
+   So the area shrinks and the identity stays: neutral rail, orange on the
+   active item, the logo and the mode indicator. The FMS/ERP cue survives —
+   orange vs blue accent — it just stops being a wall of colour. It also
+   stops competing with --critical and --caution, which are the two colours
+   that actually mean a truck needs attention.  (Owner decision 2026-09-06.)
+
+   Light-only for now: the .dark active rule further up has higher
+   specificity (.dark .nav-link.active) and still wins on background/colour,
+   so dark keeps its color-mix tint and additionally picks up the edge.  */
+.sidebar {
+  --sb-text: #55627a;
+  --sb-text-strong: #0b1220;
+  --sb-active-bg: var(--orange-tint);
+  --sb-active-text: var(--accent-ink);
+  --sb-hover-bg: var(--ds-sunk);
+  --sb-divider: var(--ds-line);
+
+  --primary-light: var(--sb-hover-bg);
+  --primary-color: var(--sb-active-text);
+
+  background-color: #ffffff;
+  border-right: 1px solid var(--ds-line);
+  box-shadow: none;
+}
+
+/* Both brand-gradient layers retired. */
+.sidebar::before,
+.sidebar::after,
+.sidebar--erp::after {
+  background: none;
+  box-shadow: none;
+  opacity: 0;
+}
+
+/* The active item carries the brand: tint ground, AA-safe ink, and a 3px
+   edge in full-strength orange — small enough area that #EE6126 is legible
+   as a marker without being read as text. */
+.nav-link.active,
+.nav-parent.active-parent {
+  background-color: var(--sb-active-bg);
+  color: var(--sb-active-text);
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+
+/* ERP mirrors the treatment exactly, in blue. Text stays neutral because
+   the rail is no longer coloured — only the accent moves. */
+.sidebar--erp {
+  --sb-text: #55627a;
+  --sb-text-strong: #0b1220;
+  --sb-active-bg: var(--erp-tint);
+  --sb-active-text: var(--erp-ink);
+  --sb-hover-bg: var(--ds-sunk);
+  --sb-divider: var(--ds-line);
+}
+
+.sidebar--erp .nav-link.active,
+.sidebar--erp .nav-parent.active-parent {
+  box-shadow: inset 3px 0 0 var(--erp);
+}
