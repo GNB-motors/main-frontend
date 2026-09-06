@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MapPin, Fuel, Factory, ParkingCircle, Wrench, Road, Ticket } from 'lucide-react';
+import { MapPin, Fuel, Factory, ParkingCircle, Wrench, Route, Ticket } from 'lucide-react';
 import { resolvePlace } from '../../services/PlaceService';
 
 /**
@@ -17,7 +17,7 @@ const KIND_ICON = {
   PLANT: Factory,
   PARKING: ParkingCircle,
   WORKSHOP: Wrench,
-  HIGHWAY: Road,
+  HIGHWAY: Route,
 };
 
 export default function PlaceLabel({ lat, lng, place = null, showMap = true, className = '' }) {
