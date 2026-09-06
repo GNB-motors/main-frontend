@@ -1672,3 +1672,113 @@ a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--h
 .cdlg-confirm--danger:hover {
     background: color-mix(in srgb, var(--critical) 88%, black);
 }
+
+/* Leaderboard — best AND worst ends of a metric */
+.lb {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel, var(--surface, #fff));
+}
+.lb-head { margin: 0; }
+.lb-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cluster-text, var(--ink));
+}
+.lb-empty {
+    font-size: 13px;
+    color: var(--cluster-text-dim, var(--ink-3));
+}
+.lb-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 768px) {
+    .lb-cols { grid-template-columns: 1fr; }
+}
+.lb-col { min-width: 0; }
+.lb-col-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.lb-col-title--best { color: var(--ok); }
+.lb-col-title--worst { color: var(--caution); }
+.lb-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--cluster-text, var(--ink));
+}
+.lb-row--best { background: color-mix(in srgb, var(--ok) 7%, transparent); }
+.lb-row--worst { background: color-mix(in srgb, var(--caution) 9%, transparent); }
+.lb-rank {
+    flex: 0 0 auto;
+    width: 18px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--cluster-text-dim, var(--ink-3));
+    font-size: 12px;
+}
+.lb-tone-icon { flex: 0 0 auto; }
+.lb-row--best .lb-tone-icon { color: var(--ok); }
+.lb-row--worst .lb-tone-icon { color: var(--caution); }
+.lb-label {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+.lb-label strong {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lb-label small {
+    font-size: 11px;
+    color: var(--cluster-text-dim, var(--ink-3));
+}
+.lb-value {
+    flex: 0 0 auto;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Route Profitability — pending-coupling notice */
+.rp-pending {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--caution) 40%, var(--hairline));
+    background: color-mix(in srgb, var(--caution) 7%, transparent);
+    color: var(--cluster-text, var(--ink));
+}
+.rp-pending svg { flex: 0 0 auto; color: var(--caution); margin-top: 2px; }
+.rp-pending strong { font-size: 14px; }
+.rp-pending p { margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--cluster-text-dim, var(--ink-3)); }
+.rp-pending-links a { color: var(--gnb-400); font-weight: 600; }
