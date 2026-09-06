@@ -1544,3 +1544,73 @@ a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--h
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+/* ExportButton — format menu */
+.xbtn {
+    position: relative;
+    display: inline-flex;
+}
+.xbtn .pshell-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+.xbtn-spin {
+    animation: xbtn-rot 0.9s linear infinite;
+}
+@keyframes xbtn-rot {
+    to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .xbtn-spin { animation: none; }
+}
+.xbtn-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 40;
+    min-width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel, var(--surface, #fff));
+    box-shadow: 0 10px 30px rgba(11, 18, 32, 0.18);
+}
+.xbtn-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--cluster-text, var(--ink));
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+}
+.xbtn-item svg {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    color: var(--gnb-400);
+}
+.xbtn-item span {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.xbtn-item strong {
+    font-weight: 600;
+}
+.xbtn-item small {
+    font-size: 11px;
+    color: var(--cluster-text-dim, var(--ink-3));
+}
+.xbtn-item:hover,
+.xbtn-item:focus-visible {
+    background: color-mix(in srgb, var(--gnb-400) 8%, transparent);
+    outline: none;
+}
