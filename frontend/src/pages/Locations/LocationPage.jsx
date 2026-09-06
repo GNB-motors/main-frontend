@@ -4,237 +4,229 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Search, MapPin, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import LocationService from './LocationService';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import DataTable from '../../components/ui/DataTable';
+import ExportButton from '../../components/ui/ExportButton';
+import { useConfirm } from '../../components/ui/confirmContext';
 import './LocationPage.css';
 
+const EXPORT_COLUMNS = [
+  { key: 'name', label: 'Name' },
+  { key: 'pincode', label: 'Pincode' },
+  { key: 'address', label: 'Address' },
+  { key: 'cityState', label: 'City / State' },
+];
+
 const LocationPage = () => {
-    // State
-    const [locations, setLocations] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [selectedLocation, setSelectedLocation] = useState(null);
-    const navigate = useNavigate();
-    const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+  const confirm = useConfirm();
+  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
 
-    // Fetch locations
-    const fetchLocations = useCallback(async (page = 1, search = '') => {
-        setLoading(true);
-        try {
-            const response = await LocationService.getLocations({
-                page,
-                limit: 10,
-                search
-            });
-            // Handle both formats if backend returns just array or pagination object
-            if (response && response.results) {
-                setLocations(response.results);
-                setMeta({
-                    total: response.totalResults,
-                    page: response.page,
-                    limit: response.limit,
-                    totalPages: response.totalPages
-                });
-            } else if (Array.isArray(response)) {
-                setLocations(response);
-                setMeta({ total: response.length, page: 1, limit: response.length, totalPages: 1 });
-            } else {
-                setLocations(response.data || []);
-                setMeta(response.meta || { total: 0, page: 1, limit: 10, totalPages: 0 });
-            }
+  const fetchLocations = useCallback(async (page = 1, search = '') => {
+    setLoading(true);
+    try {
+      const response = await LocationService.getLocations({ page, limit: 10, search });
+      if (response && response.results) {
+        setLocations(response.results);
+        setMeta({
+          total: response.totalResults,
+          page: response.page,
+          limit: response.limit,
+          totalPages: response.totalPages,
+        });
+      } else if (Array.isArray(response)) {
+        setLocations(response);
+        setMeta({ total: response.length, page: 1, limit: response.length, totalPages: 1 });
+      } else {
+        setLocations(response.data || []);
+        setMeta(response.meta || { total: 0, page: 1, limit: 10, totalPages: 0 });
+      }
+    } catch (error) {
+      const errorMsg = error?.message || 'Failed to fetch locations';
+      toast.error(errorMsg);
+      console.error('Fetch locations error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-        } catch (error) {
-            const errorMsg = error?.message || 'Failed to fetch locations';
-            toast.error(errorMsg);
-            console.error('Fetch locations error:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  useEffect(() => {
+    fetchLocations(1, '');
+  }, [fetchLocations]);
 
-    // Initial fetch
-    useEffect(() => {
-        fetchLocations(1, '');
-    }, [fetchLocations]);
+  const handleSearchChange = useCallback(
+    (value) => {
+      setSearchTerm(value);
+      fetchLocations(1, value);
+    },
+    [fetchLocations],
+  );
 
-    // Handle search
-    const handleSearch = useCallback((e) => {
-        const value = e.target.value;
-        setSearchTerm(value);
-        // Debounce suggested across the app but for now direct call
-        fetchLocations(1, value);
-    }, [fetchLocations]);
+  const openEditPage = useCallback(
+    (location) => {
+      navigate('/locations/add', { state: { editingLocation: location } });
+    },
+    [navigate],
+  );
 
-    // Navigate to edit page
-    const openEditPage = useCallback((location) => {
-        navigate('/locations/add', { state: { editingLocation: location } });
-    }, [navigate]);
+  const handleDeleteLocation = useCallback(
+    async (location) => {
+      const ok = await confirm({
+        title: 'Delete this pump location?',
+        body: `"${location.name}" will be permanently removed. This action cannot be undone.`,
+        confirmLabel: 'Delete location',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await LocationService.deleteLocation(location._id || location.id);
+        toast.success('Location deleted successfully');
+        fetchLocations(meta.page, searchTerm);
+      } catch (error) {
+        toast.error(error?.message || 'Failed to delete location');
+      }
+    },
+    [confirm, fetchLocations, meta.page, searchTerm],
+  );
 
-    // Open delete modal
-    const openDeleteModal = useCallback((location) => {
-        setSelectedLocation(location);
-        setShowDeleteModal(true);
-    }, []);
+  const exportRows = locations.map((loc) => ({
+    name: loc.name,
+    pincode: loc.pincode || '',
+    address: loc.address,
+    cityState: [loc.city, loc.state].filter(Boolean).join(', '),
+  }));
 
-    // Delete location
-    const handleDeleteLocation = useCallback(async () => {
-        try {
-            await LocationService.deleteLocation(selectedLocation._id || selectedLocation.id);
-            toast.success('Location deleted successfully');
-            setShowDeleteModal(false);
-            setSelectedLocation(null);
-            fetchLocations(meta.page, searchTerm);
-        } catch (error) {
-            const errorMsg = error?.message || 'Failed to delete location';
-            toast.error(errorMsg);
-        }
-    }, [selectedLocation, fetchLocations, meta.page, searchTerm]);
-
-    return (
-        <div className="location-page">
-            {/* Header */}
-            <div className="location-header">
-                <h1>Pump Location Management</h1>
-                <button
-                    className="btn btn-primary"
-                    onClick={() => navigate('/locations/add')}
-                >
-                    <Plus size={18} />
-                    Add Pump Location
-                </button>
-            </div>
-
-            {/* Search Bar */}
-            <div className="location-search">
-                <Search size={18} className="search-icon" />
-                <input
-                    type="text"
-                    placeholder="Search pump locations by name, city..."
-                    value={searchTerm}
-                    onChange={handleSearch}
-                    className="search-input"
-                />
-            </div>
-
-            {/* Locations Container */}
-            <div className="location-container">
-                {loading ? (
-                    <div className="loading-state">Loading locations...</div>
-                ) : locations.length === 0 ? (
-                    <div className="empty-state">
-                        <MapPin size={48} />
-                        <p>No pump locations found</p>
-                        <button className="btn btn-primary" onClick={() => navigate('/locations/add')}>
-                            Create your first pump location
-                        </button>
-                    </div>
-                ) : (
-                    <>
-                        <table className="location-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '25%' }}>Name</th>
-                                    <th style={{ width: '10%' }}>Pincode</th>
-                                    <th style={{ width: '55%' }}>Address</th>
-                                    <th style={{ textAlign: 'right', width: '10%' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {locations.map(loc => (
-                                    <tr key={loc._id || loc.id}>
-                                        <td className="location-name-cell">{loc.name}</td>
-                                        <td className="location-pincode-cell">
-                                            {loc.pincode || '-'}
-                                        </td>
-                                        <td className="location-address-cell">
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <span style={{ fontSize: '14px', color: '#121214' }}>{loc.address}</span>
-                                                <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                                    {loc.city}{loc.city && loc.state ? ', ' : ''}{loc.state}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="actions-cell">
-                                            <button
-                                                className="btn-icon edit"
-                                                onClick={() => openEditPage(loc)}
-                                                title="Edit pump location"
-                                            >
-                                                <Edit2 size={16} />
-                                            </button>
-                                            <button
-                                                className="btn-icon delete"
-                                                onClick={() => openDeleteModal(loc)}
-                                                title="Delete pump location"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        {/* Pagination */}
-                        {meta.totalPages > 1 && (
-                            <div className="pagination">
-                                <button
-                                    disabled={meta.page === 1}
-                                    onClick={() => fetchLocations(meta.page - 1, searchTerm)}
-                                >
-                                    Previous
-                                </button>
-                                <span>{meta.page} of {meta.totalPages}</span>
-                                <button
-                                    disabled={meta.page === meta.totalPages}
-                                    onClick={() => fetchLocations(meta.page + 1, searchTerm)}
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-
-            {/* Delete Modal */}
-            {showDeleteModal && selectedLocation && (
-                <div className="delete-modal-overlay" role="presentation" onClick={() => setShowDeleteModal(false)}>
-                    <div className="delete-modal-container" role="presentation" onClick={e => e.stopPropagation()}>
-                        <div className="delete-modal-header">
-                            <h2>Delete Pump Location</h2>
-                        </div>
-
-                        <div className="delete-modal-content">
-                            <p>Are you sure you want to delete <strong>{selectedLocation.name}</strong>?</p>
-                            <p className="delete-modal-warning">
-                                <AlertTriangle size={16} />
-                                This action cannot be undone.
-                            </p>
-                        </div>
-
-                        <div className="delete-modal-actions">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    setShowDeleteModal(false);
-                                    setSelectedLocation(null);
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button className="btn btn-danger" onClick={handleDeleteLocation}>
-                                Delete Pump Location
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+  const columns = [
+    { key: 'name', label: 'Name', render: (loc) => loc.name },
+    { key: 'pincode', label: 'Pincode', render: (loc) => loc.pincode || '-' },
+    {
+      key: 'address',
+      label: 'Address',
+      render: (loc) => (
+        <div className="flex flex-col gap-1">
+          <span style={{ fontSize: 14, color: '#121214' }}>{loc.address}</span>
+          <span style={{ fontSize: 12, color: '#64748b' }}>
+            {loc.city}
+            {loc.city && loc.state ? ', ' : ''}
+            {loc.state}
+          </span>
         </div>
-    );
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      align: 'right',
+      render: (loc) => (
+        <div className="actions-cell">
+          <button
+            type="button"
+            className="btn-icon edit"
+            onClick={() => openEditPage(loc)}
+            title="Edit pump location"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            type="button"
+            className="btn-icon delete"
+            onClick={() => handleDeleteLocation(loc)}
+            title="Delete pump location"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="location-page">
+      <PageShell
+        title="Pump Location Management"
+        count={meta.total}
+        actions={
+          <div className="flex items-center gap-2">
+            <ExportButton
+              rows={exportRows}
+              columns={EXPORT_COLUMNS}
+              filename="pump-locations"
+              disabled={!locations.length}
+            />
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => navigate('/locations/add')}
+            >
+              <Plus size={18} />
+              Add Pump Location
+            </button>
+          </div>
+        }
+        filters={
+          <FilterBar
+            searchValue={searchTerm}
+            onSearchChange={handleSearchChange}
+            searchPlaceholder="Search pump locations by name, city…"
+          />
+        }
+        footer={
+          meta.totalPages > 1
+            ? `Page ${meta.page} of ${meta.totalPages} · ${meta.total} locations`
+            : null
+        }
+      >
+        <DataTable
+          columns={columns}
+          rows={locations}
+          rowKey={(loc) => loc._id || loc.id}
+          loading={loading}
+          showing={locations.length}
+          total={meta.total}
+          emptyTitle="No pump locations found"
+          emptyAction={
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => navigate('/locations/add')}
+            >
+              Create your first pump location
+            </button>
+          }
+        />
+
+        {meta.totalPages > 1 && (
+          <div className="pagination">
+            <button
+              type="button"
+              disabled={meta.page === 1}
+              onClick={() => fetchLocations(meta.page - 1, searchTerm)}
+            >
+              Previous
+            </button>
+            <span>
+              {meta.page} of {meta.totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={meta.page === meta.totalPages}
+              onClick={() => fetchLocations(meta.page + 1, searchTerm)}
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </PageShell>
+    </div>
+  );
 };
 
 export default LocationPage;
