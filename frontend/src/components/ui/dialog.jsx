@@ -1,7 +1,7 @@
-import * as React from "react";
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from 'react';
+import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
+import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -17,8 +17,9 @@ function DialogOverlay({ className, ...props }) {
       data-slot="dialog-backdrop"
       className={cn(
         // z must clear the legacy page CSS (side panels/map overlays sit at 9999-10001)
-        "fixed inset-0 z-[10050] bg-black/50 backdrop-blur-sm data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 transition-opacity duration-100",
-        className
+        // Scrim is glass (artboard §7): ink at 32% over a 3px blur — never a flat black sheet
+        'fixed inset-0 z-[10050] bg-[color-mix(in_srgb,var(--ds-ink)_32%,transparent)] backdrop-blur-[3px] data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 transition-opacity duration-100',
+        className,
       )}
       {...props}
     />
@@ -32,10 +33,10 @@ function DialogContent({ className, children, ...props }) {
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-[10051] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-card p-0 text-card-foreground shadow-lg",
-          "data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[starting-style]:scale-95",
-          "transition-all duration-100",
-          className
+          'fixed left-1/2 top-1/2 z-[10051] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-[var(--ds-radius-md)] border border-[var(--ds-line2)] bg-card p-0 text-card-foreground shadow-[var(--ds-shadow-lg)]',
+          'data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[starting-style]:scale-95',
+          'transition-all duration-100',
+          className,
         )}
         {...props}
       >
@@ -49,10 +50,7 @@ function DialogHeader({ className, ...props }) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn(
-        "flex flex-col gap-1 border-b px-6 py-4",
-        className
-      )}
+      className={cn('flex flex-col gap-1 border-b border-[var(--ds-line)] px-6 py-4', className)}
       {...props}
     />
   );
@@ -62,7 +60,7 @@ function DialogTitle({ className, ...props }) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-lg font-semibold leading-none", className)}
+      className={cn('text-lg font-semibold leading-none', className)}
       {...props}
     />
   );
@@ -72,7 +70,7 @@ function DialogDescription({ className, ...props }) {
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn('text-sm text-muted-foreground', className)}
       {...props}
     />
   );
@@ -83,8 +81,8 @@ function DialogFooter({ className, ...props }) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex justify-end gap-2 border-t px-6 py-4",
-        className
+        'flex justify-end gap-2 border-t border-[var(--ds-line)] bg-[var(--ds-sunk)] px-6 py-4',
+        className,
       )}
       {...props}
     />

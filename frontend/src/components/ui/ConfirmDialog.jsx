@@ -9,6 +9,7 @@ import ConfirmContext from './confirmContext';
  *   const ok = await confirm({
  *     title: 'Delete this zone?',
  *     body: 'Vehicles inside it stop generating alerts until you recreate it.',
+ *     consequence: 'This cannot be undone from the app.', // optional amber callout
  *     confirmLabel: 'Delete zone',
  *     danger: true,
  *   });
@@ -54,17 +55,14 @@ function ConfirmDialog({ options, onSettle }) {
   const {
     title,
     body,
+    consequence,
     confirmLabel = 'Confirm',
     cancelLabel = 'Cancel',
     danger = false,
   } = options;
 
   return (
-    <div
-      className="cdlg-overlay"
-      role="presentation"
-      onClick={() => onSettle(false)}
-    >
+    <div className="cdlg-overlay" role="presentation" onClick={() => onSettle(false)}>
       <div
         className="cdlg"
         role="alertdialog"
@@ -77,6 +75,7 @@ function ConfirmDialog({ options, onSettle }) {
           <h2 className="cdlg-title">{title}</h2>
         </div>
         {body && <p className="cdlg-body">{body}</p>}
+        {consequence && <p className="cdlg-consequence">{consequence}</p>}
         <div className="cdlg-actions">
           <button type="button" className="pshell-btn" onClick={() => onSettle(false)}>
             {cancelLabel}
