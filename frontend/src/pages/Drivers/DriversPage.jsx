@@ -9,14 +9,13 @@ import LottieLoader from '../../components/LottieLoader.jsx';
 import NewButton from '@/components/ui/NewButton';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
+import { getInitials, formatRole } from './Component/driverPresenters.js';
+import { EditDriverModal } from './Component/DriverFormModals.jsx';
 import {
-  getInitials,
-  formatRole,
-  EditDriverModal,
   DeleteDriverModal,
   DeactivateDriverModal,
   MoveEmployeeModal,
-} from './Component/driversComponents.jsx';
+} from './Component/DriverConfirmModals.jsx';
 import DriverTable from './Component/DriverTable.jsx';
 import DriversPagination from './Component/DriversPagination.jsx';
 import DriverFilter from './Component/DriverFilter.jsx';

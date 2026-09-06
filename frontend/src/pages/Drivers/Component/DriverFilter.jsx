@@ -2,7 +2,7 @@
 // Extracted from DriversPage.jsx (WS0.7); markup preserved.
 import { Filter } from 'lucide-react';
 import NewButton from '@/components/ui/NewButton';
-import { FilterDropdown } from './driversComponents.jsx';
+import { FilterDropdown } from './DriverMenuExtras.jsx';
 
 export default function DriverFilter({
   isOpen,
