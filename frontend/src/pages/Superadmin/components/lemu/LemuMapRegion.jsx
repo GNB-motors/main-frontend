@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, ChevronDown, LayoutGrid, Power } from 'lucide-react';
+import { getPref, setPref } from '../../../../utils/session.js';
 
 /* Region wrapper for the System map. CODE / DATA / SCHEDULE are surface kinds,
    not semantic grouping of concerns.
 
    Each region collapses. The data surface alone runs to 129 rows, which buries
-   everything below it, so the open/closed choice is remembered per region in
-   localStorage. Storage is best-effort: a private window or blocked site data
-   throws on access, and the region must still render open in that case. */
+   everything below it, so the open/closed choice is remembered per region via
+   utils/session.js prefs. Storage is best-effort: an unreadable value means
+   the region renders open. */
 const REGION_HEADING = {
   code: 'Code surface',
   data: 'Data surface',
@@ -22,24 +23,15 @@ const REGION_ICON = {
 
 const storageKey = (kind) => `lemu.region.${kind}.collapsed`;
 
-const readCollapsed = (kind) => {
-  try {
-    return window.localStorage.getItem(storageKey(kind)) === '1';
-  } catch {
-    return false;
-  }
-};
+const readCollapsed = (kind) => getPref(storageKey(kind)) === '1';
 
 const LemuMapRegion = ({ kind, children, count }) => {
   const Icon = REGION_ICON[kind];
   const [collapsed, setCollapsed] = useState(() => readCollapsed(kind));
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(storageKey(kind), collapsed ? '1' : '0');
-    } catch {
-      /* storage unavailable — the toggle still works for this session */
-    }
+    // storage is best-effort — the toggle still works for this session
+    setPref(storageKey(kind), collapsed ? '1' : '0');
   }, [kind, collapsed]);
 
   const toggle = useCallback(() => setCollapsed((c) => !c), []);

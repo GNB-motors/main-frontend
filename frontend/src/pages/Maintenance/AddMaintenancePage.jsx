@@ -10,6 +10,7 @@ import AddOptionModal from './Component/AddOptionModal.jsx';
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { getToken } from '../../utils/session.js';
 import '../Profile/VehiclesPage.css';
 
 /**
@@ -59,7 +60,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = getToken();
     VehicleService.getAllVehicles(null, token, 1, 1000)
       .then((res) => setVehicles(Array.isArray(res?.data) ? res.data : []))
       .catch(() => setVehicles([]));
@@ -120,7 +121,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
     }
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const payload = {
         vehicleId: formData.vehicleId,
         recordType,

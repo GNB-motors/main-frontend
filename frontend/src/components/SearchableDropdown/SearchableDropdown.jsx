@@ -68,7 +68,18 @@ const SearchableDropdown = ({
 
     return (
         <div className="searchable-dropdown-container" ref={dropdownRef}>
-            <div className="searchable-dropdown-header" onClick={() => setIsOpen(!isOpen)}>
+            <div
+                className="searchable-dropdown-header"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setIsOpen(!isOpen);
+                    }
+                }}
+                onClick={() => setIsOpen(!isOpen)}
+            >
                 <div className="searchable-dropdown-content">
                     {selectedOptions && selectedOptions.length > 0
                         ? selectedOptions.map((tag) => (
@@ -76,7 +87,9 @@ const SearchableDropdown = ({
                                 {getOptionLabel(tag)}
                                 {onRemove && (
                                     <div className="searchable-remove-tag">
-                                        <span
+                                        <button
+                                            type="button"
+                                            style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onRemove(tag);
@@ -98,7 +111,7 @@ const SearchableDropdown = ({
                                                     strokeLinejoin="round"
                                                 />
                                             </svg>
-                                        </span>
+                                        </button>
                                     </div>
                                 )}
                             </span>
@@ -153,12 +166,14 @@ const SearchableDropdown = ({
                     </div>
                     <div className="searchable-options-list">
                         {canCreateNew && (
-                            <div
+                            <button
+                                type="button"
                                 className="searchable-dropdown-item searchable-add-new-option"
+                                style={{ background: 'none', border: 'none', padding: '0 12px', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}
                                 onClick={handleAddNewClick}
                             >
                                 {searchTerm ? `+ ${addNewLabel} "${searchTerm}"` : `+ ${addNewLabel}`}
-                            </div>
+                            </button>
                         )}
                         {filteredOptions.length === 0 && !canCreateNew ? (
                             <div className="searchable-dropdown-item searchable-no-results">
@@ -171,17 +186,19 @@ const SearchableDropdown = ({
                                     className="searchable-dropdown-item"
                                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                                 >
-                                    <span
-                                        style={{ flex: 1, cursor: 'pointer' }}
+                                    <button
+                                        type="button"
+                                        style={{ flex: 1, background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left' }}
                                         onClick={() => handleSelect(option)}
                                     >
                                         {getOptionLabel(option)}
-                                    </span>
+                                    </button>
                                     {onDeleteOption && (
-                                        <span
+                                        <button
+                                            type="button"
                                             className="searchable-delete-option"
                                             title="Delete location"
-                                            style={{ marginLeft: 8, cursor: 'pointer' }}
+                                            style={{ marginLeft: 8, background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 console.log('Delete icon clicked for option:', option);
@@ -191,7 +208,7 @@ const SearchableDropdown = ({
                                             <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
                                                 <path d="M2 4h10M4.5 4V3a1.5 1.5 0 011.5-1.5h2.5A1.5 1.5 0 0110 3v1m1 0v8a1.5 1.5 0 01-1.5 1.5h-5A1.5 1.5 0 013 12V4h8z" stroke="#D32F2F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                             </svg>
-                                        </span>
+                                        </button>
                                     )}
                                 </div>
                             ))

@@ -1,7 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- context provider exports its consumption hook alongside the component */
 import React, { createContext, useState, useEffect, useContext } from 'react';
 // Correct path for ProfileService relative to ProfileContext in the same folder
 import { ProfileService } from './ProfileService.jsx';
 import { validateTokenBeforeRequest, handleAuthError } from '../../utils/authUtils';
+import { getToken, setProfileField, setThemeColor } from '../../utils/session.js';
 
 // 1. Create the Context
 const ProfileContext = createContext(null);
@@ -26,18 +28,18 @@ export const ProfileProvider = ({ children }) => {
             setIsLoadingProfile(true);
             setProfileError(null);
             try {
-                const token = localStorage.getItem('authToken');
+                const token = getToken();
                 const data = await ProfileService.getProfile(token);
                 setProfile(data);
-                // Store individual profile fields in localStorage
-                if (data._id) localStorage.setItem('profile_id', data._id);
-                if (data.ownerEmail) localStorage.setItem('profile_owner_email', data.ownerEmail);
-                if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
-                if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
-                if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
+                // Store individual profile fields in session storage
+                if (data._id) setProfileField('id', data._id);
+                if (data.ownerEmail) setProfileField('owner_email', data.ownerEmail);
+                if (data.companyName) setProfileField('company_name', data.companyName);
+                if (data.gstin) setProfileField('gstin', data.gstin);
+                if (data.primaryThemeColor) setThemeColor(data.primaryThemeColor);
                 // Store business ref id if provided by backend (supports snake_case or camelCase)
-                if (data.business_ref_id) localStorage.setItem('profile_business_ref_id', data.business_ref_id);
-                else if (data.businessRefId) localStorage.setItem('profile_business_ref_id', data.businessRefId);
+                if (data.business_ref_id) setProfileField('business_ref_id', data.business_ref_id);
+                else if (data.businessRefId) setProfileField('business_ref_id', data.businessRefId);
                 console.log("ProfileContext: Profile data loaded:", data);
             } catch (error) {
                 console.error("ProfileContext: Failed to fetch profile:", error);
@@ -72,7 +74,7 @@ export const ProfileProvider = ({ children }) => {
 
     // Function to explicitly reload profile (e.g., after update)
     const reloadProfile = async () => {
-         const token = localStorage.getItem('authToken');
+         const token = getToken();
             if (!token) return; // Cannot reload without token
 
             setIsLoadingProfile(true);
@@ -80,15 +82,15 @@ export const ProfileProvider = ({ children }) => {
             try {
                 const data = await ProfileService.getProfile(token);
                 setProfile(data);
-                // Store individual profile fields in localStorage
-                if (data._id) localStorage.setItem('profile_id', data._id);
-                if (data.ownerEmail) localStorage.setItem('profile_owner_email', data.ownerEmail);
-                if (data.companyName) localStorage.setItem('profile_company_name', data.companyName);
-                if (data.gstin) localStorage.setItem('profile_gstin', data.gstin);
-                if (data.primaryThemeColor) localStorage.setItem('primaryThemeColor', data.primaryThemeColor);
+                // Store individual profile fields in session storage
+                if (data._id) setProfileField('id', data._id);
+                if (data.ownerEmail) setProfileField('owner_email', data.ownerEmail);
+                if (data.companyName) setProfileField('company_name', data.companyName);
+                if (data.gstin) setProfileField('gstin', data.gstin);
+                if (data.primaryThemeColor) setThemeColor(data.primaryThemeColor);
                     // Store business ref id if provided by backend (supports snake_case or camelCase)
-                    if (data.business_ref_id) localStorage.setItem('profile_business_ref_id', data.business_ref_id);
-                    else if (data.businessRefId) localStorage.setItem('profile_business_ref_id', data.businessRefId);
+                    if (data.business_ref_id) setProfileField('business_ref_id', data.business_ref_id);
+                    else if (data.businessRefId) setProfileField('business_ref_id', data.businessRefId);
             } catch (error) {
                  console.error("ProfileContext: Failed to reload profile:", error);
                  setProfileError(error?.detail || "Failed to reload profile data.");

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Alert } from '@mui/material';
 import dayjs from 'dayjs';
 import { AlertTriangle, CheckCircle2, Clock, Minus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +10,7 @@ import TableShimmer from '@/components/ui/TableShimmer';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 import apiClient from '../../../utils/axiosConfig';
+import useApi from '../../../hooks/useApi';
 import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
 
 const COLUMN_COUNT = 15;
@@ -73,7 +73,6 @@ const toEndOfDayIso = (dateStr) => {
 const MileageIntervalReport = () => {
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: PAGE_SIZE, totalPages: 0 });
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [startDate, setStartDate] = useState('');
@@ -86,65 +85,72 @@ const MileageIntervalReport = () => {
   const [driverOptions, setDriverOptions] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    const loadFilters = async () => {
-      try {
-        const [vehiclesRes, employees] = await Promise.all([
-          apiClient.get('api/vehicles', { params: { limit: 200 } }),
-          ReportsService.getEmployees({ limit: 200 }),
-        ]);
-        const vehicles = vehiclesRes.data?.data || vehiclesRes.data || [];
-        setVehicleOptions(
-          (Array.isArray(vehicles) ? vehicles : []).map((v) => ({
-            id: String(v._id || v.id),
-            label: v.registrationNumber || v.vehicleNumber || '—',
-          })).filter((v) => v.id && v.id !== 'undefined'),
-        );
-        setDriverOptions(
-          (Array.isArray(employees) ? employees : [])
-            .filter((d) => !d.role || d.role === 'DRIVER')
-            .map((d) => ({
-              id: String(d._id || d.id),
-              label: `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Unknown',
-            }))
-            .filter((d) => d.id && d.id !== 'undefined'),
-        );
-      } catch (err) {
-        console.error('Failed to load report filters:', err);
-      }
-    };
-    loadFilters();
-  }, []);
+  const { data: filterResponse, error: filtersError } = useApi(
+    (signal) => Promise.all([
+      apiClient.get('api/vehicles', { params: { limit: 200 }, signal }),
+      ReportsService.getEmployees({ limit: 200 }),
+    ]),
+    []
+  );
 
   useEffect(() => {
-    const fetchRows = async () => {
-      setIsLoading(true);
+    if (!filterResponse) return;
+    const [vehiclesRes, employees] = filterResponse;
+    const vehicles = vehiclesRes.data?.data || vehiclesRes.data || [];
+    setVehicleOptions(
+      (Array.isArray(vehicles) ? vehicles : []).map((v) => ({
+        id: String(v._id || v.id),
+        label: v.registrationNumber || v.vehicleNumber || '—',
+      })).filter((v) => v.id && v.id !== 'undefined'),
+    );
+    setDriverOptions(
+      (Array.isArray(employees) ? employees : [])
+        .filter((d) => !d.role || d.role === 'DRIVER')
+        .map((d) => ({
+          id: String(d._id || d.id),
+          label: `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Unknown',
+        }))
+        .filter((d) => d.id && d.id !== 'undefined'),
+    );
+  }, [filterResponse]);
+
+  useEffect(() => {
+    if (filtersError) console.error('Failed to load report filters:', filtersError);
+  }, [filtersError]);
+
+  const { data: rowsResponse, loading: isLoading, error: rowsError } = useApi(
+    () => {
+      const params = {
+        page: currentPage,
+        limit: PAGE_SIZE,
+      };
+      const startIso = toStartOfDayIso(startDate);
+      const endIso = toEndOfDayIso(endDate);
+      if (startIso) params.startDate = startIso;
+      if (endIso) params.endDate = endIso;
+      if (vehicleId && vehicleId !== 'all') params.vehicleId = String(vehicleId);
+      if (driverId && driverId !== 'all') params.driverId = String(driverId);
+
+      return ReportsService.getMileageIntervalReports(params);
+    },
+    [JSON.stringify({ currentPage, startDate, endDate, vehicleId, driverId })]
+  );
+
+  useEffect(() => {
+    if (rowsResponse) {
       setError(null);
-      try {
-        const params = {
-          page: currentPage,
-          limit: PAGE_SIZE,
-        };
-        const startIso = toStartOfDayIso(startDate);
-        const endIso = toEndOfDayIso(endDate);
-        if (startIso) params.startDate = startIso;
-        if (endIso) params.endDate = endIso;
-        if (vehicleId && vehicleId !== 'all') params.vehicleId = String(vehicleId);
-        if (driverId && driverId !== 'all') params.driverId = String(driverId);
+      setRows(Array.isArray(rowsResponse.data) ? rowsResponse.data : []);
+      setMeta(rowsResponse.meta || { total: 0, page: currentPage, limit: PAGE_SIZE, totalPages: 0 });
+    }
+  }, [rowsResponse, currentPage]);
 
-        const result = await ReportsService.getMileageIntervalReports(params);
-        setRows(Array.isArray(result.data) ? result.data : []);
-        setMeta(result.meta || { total: 0, page: currentPage, limit: PAGE_SIZE, totalPages: 0 });
-      } catch (err) {
-        console.error('Failed to fetch mileage interval reports:', err);
-        setError(err.detail || err.message || 'Could not load mileage report.');
-        setRows([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchRows();
-  }, [currentPage, startDate, endDate, vehicleId, driverId]);
+  useEffect(() => {
+    if (rowsError) {
+      console.error('Failed to fetch mileage interval reports:', rowsError);
+      setError(rowsError.detail || rowsError.message || 'Could not load mileage report.');
+      setRows([]);
+    }
+  }, [rowsError]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -220,7 +226,7 @@ const MileageIntervalReport = () => {
   };
 
   return (
-    <Box sx={{ padding: '24px' }}>
+    <div className="p-6">
       <div className="report-header-section">
         <div className="report-header-top">
           <h3 className="report-title">Mileage Report</h3>
@@ -332,7 +338,11 @@ const MileageIntervalReport = () => {
         </div>
       )}
 
-      {error && !isLoading && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
+      {error && !isLoading && (
+        <div role="alert" className="my-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {!isLoading && !error && (
         <div className="report-content">
@@ -457,7 +467,7 @@ const MileageIntervalReport = () => {
           )}
         </div>
       )}
-    </Box>
+    </div>
   );
 };
 

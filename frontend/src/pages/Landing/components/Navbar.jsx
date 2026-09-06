@@ -1,4 +1,5 @@
 import { useState } from 'react';
+// eslint-disable-next-line no-unused-vars -- motion is used in JSX tags below, which the core rule does not detect
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import ukoLogo from '../../../assets/uko-logo.png';
 import SpotlightCard from './SpotlightCard';

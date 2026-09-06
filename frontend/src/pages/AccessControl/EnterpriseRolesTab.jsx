@@ -7,6 +7,7 @@ import PermissionTreeView from './PermissionTreeView';
 import AssignRoleDrawer from './AssignRoleDrawer';
 import RoleFormModal from './RoleFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import { getUserRole } from '../../utils/session.js';
 
 /**
  * Enterprise Roles tab — the roles this enterprise can assign, who holds them,
@@ -33,7 +34,7 @@ const EnterpriseRolesTab = () => {
 
   // Defining roles is Owner-only on the API; hide the affordances for everyone
   // else rather than letting them fail on submit.
-  const canManageRoles = localStorage.getItem('user_role') === 'OWNER';
+  const canManageRoles = getUserRole() === 'OWNER';
   const navigate = useNavigate();
 
   const load = useCallback(async () => {

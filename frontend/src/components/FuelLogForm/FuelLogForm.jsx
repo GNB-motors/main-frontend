@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { CircularProgress } from '@mui/material';
 import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
+import useApi from '../../hooks/useApi';
 import { TripService, OCRService } from '../../pages/Trip/services';
 import LocationAutocomplete from '../LocationAutocomplete/LocationAutocomplete';
 import '../../pages/MileageTracking/MileageTracking.css';
@@ -47,7 +47,15 @@ const SlotUpload = ({ docType, title, label, inputId, required, doc, isScanning,
       <input type="file" id={inputId} accept="image/*" style={{ display: 'none' }}
         onChange={(e) => { if (e.target.files[0]) { onDrop(docType, [e.target.files[0]]); e.target.value = ''; } }} />
       {!hasData ? (
-        <div className={`slot-dropzone ${isDragging ? 'dragging' : ''}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+        <div
+          className={`slot-dropzone ${isDragging ? 'dragging' : ''}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById(inputId)?.click(); } }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <div className={`slot-dropzone-inner ${isDragging ? 'dragging' : ''}`}>
             {isDragging ? (
               <><div className="slot-dropzone-drag-icon">⬇️</div><p className="slot-dropzone-drag-text">Drop it here!</p></>
@@ -101,24 +109,19 @@ const FuelLogForm = ({
   const [showDriverDropdown, setShowDriverDropdown] = useState(false);
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
-  const [loadingVehicles, setLoadingVehicles] = useState(true);
-  const [loadingDrivers, setLoadingDrivers] = useState(true);
   const [lastOdometer, setLastOdometer] = useState(null);
-  const [loadingLastOdometer, setLoadingLastOdometer] = useState(false);
   const [formData, setFormData] = useState({ fuelType: 'DIESEL', fillingType: 'PARTIAL', litres: '', rate: '', odometerReading: '', location: '' });
   const [fixedDocs, setFixedDocs] = useState({ fuel: null, odometer: null });
   const [ocrScanning, setOcrScanning] = useState({ fuel: false, odometer: false });
 
-  useEffect(() => {
-    if (!selectedVehicle) { setLastOdometer(null); return; }
-    const fetchOdo = async () => {
-      setLoadingLastOdometer(true);
-      try { const res = await apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`); setLastOdometer(res.data?.data || null); }
-      catch (err) { console.error("Failed to fetch last odometer", err); }
-      finally { setLoadingLastOdometer(false); }
-    };
-    fetchOdo();
-  }, [selectedVehicle]);
+  const { data: odoResponse, loading: loadingLastOdometer, error: odoError } = useApi(
+    (signal) => apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`, { signal }),
+    [JSON.stringify({ vehicleId: selectedVehicle?.id })],
+    { enabled: !!selectedVehicle }
+  );
+  useEffect(() => { if (odoResponse) setLastOdometer(odoResponse.data?.data || null); }, [odoResponse]);
+  useEffect(() => { if (!selectedVehicle) setLastOdometer(null); }, [selectedVehicle]);
+  useEffect(() => { if (odoError) console.error('Failed to fetch last odometer', odoError); }, [odoError]);
 
   useEffect(() => {
     const handleClickOutside = () => { setShowVehicleDropdown(false); setShowDriverDropdown(false); };
@@ -126,20 +129,27 @@ const FuelLogForm = ({
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  const { data: depsResponse, loading: depsLoading, error: depsError } = useApi(
+    async () => {
+      const [vehRes, drvRes] = await Promise.all([
+        TripService.getVehicles({ limit: 100 }),
+        TripService.getDrivers({ limit: 100 }),
+      ]);
+      return { vehRes, drvRes };
+    },
+    []
+  );
+  const loadingVehicles = depsLoading;
+  const loadingDrivers = depsLoading;
   useEffect(() => {
-    const fetchDeps = async () => {
-      try {
-        const vehRes = await TripService.getVehicles({ limit: 100 });
-        const drvRes = await TripService.getDrivers({ limit: 100 });
-        const vList = vehRes?.data || [];
-        setVehicles(vList.map(v => ({ id: v._id, name: v.registrationNumber, registration: `${v.vehicleType} - ${v.model || 'N/A'}` })));
-        const dList = drvRes?.data || [];
-        setDrivers(dList.map(d => ({ id: d._id, name: `${d.firstName} ${d.lastName || ''}`.trim(), licenseNo: d.licenseNo || 'N/A' })));
-      } catch { toast.error('Failed to load drivers and vehicles'); }
-      finally { setLoadingVehicles(false); setLoadingDrivers(false); }
-    };
-    fetchDeps();
-  }, []);
+    if (!depsResponse) return;
+    const { vehRes, drvRes } = depsResponse;
+    const vList = vehRes?.data || [];
+    setVehicles(vList.map(v => ({ id: v._id, name: v.registrationNumber, registration: `${v.vehicleType} - ${v.model || 'N/A'}` })));
+    const dList = drvRes?.data || [];
+    setDrivers(dList.map(d => ({ id: d._id, name: `${d.firstName} ${d.lastName || ''}`.trim(), licenseNo: d.licenseNo || 'N/A' })));
+  }, [depsResponse]);
+  useEffect(() => { if (depsError) toast.error('Failed to load drivers and vehicles'); }, [depsError]);
 
   useEffect(() => {
     if (initialVehicleId && vehicles.length) {
@@ -418,7 +428,7 @@ const FuelLogForm = ({
         <div className="mileage-actions">
           <button type="button" className="mileage-btn mileage-btn-secondary" onClick={onCancel}>Cancel</button>
           <button type="submit" disabled={isLoading} className="mileage-btn mileage-btn-primary">
-            {isLoading ? <><CircularProgress size={16} color="inherit" style={{ marginRight: 8 }} /> Submitting</> : 'Submit Fuel Log'}
+            {isLoading ? <><Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} /> Submitting</> : 'Submit Fuel Log'}
           </button>
         </div>
       </form>

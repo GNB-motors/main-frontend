@@ -1,6 +1,7 @@
 /**
  * Authentication utilities for token management and auto-logout
  */
+import { clearSession, getToken } from './session.js';
 
 /**
  * Check if a JWT token is expired
@@ -38,32 +39,10 @@ export const getTokenExpiration = (token) => {
 };
 
 /**
- * Clear all authentication data from localStorage
+ * Clear all authentication data from the session store
  */
 export const clearAuthData = () => {
-    // Clear auth tokens
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('tokenType');
-    
-    // Clear user data (new API structure)
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('user_firstName');
-    localStorage.removeItem('user_lastName');
-    localStorage.removeItem('user_status');
-    localStorage.removeItem('user_mobileNumber');
-    localStorage.removeItem('user_orgId');
-    localStorage.removeItem('user_branchId');
-    localStorage.removeItem('onboardingCompleted');
-    
-    // Clear profile data
-    localStorage.removeItem('profile_id');
-    localStorage.removeItem('profile_owner_email');
-    localStorage.removeItem('profile_company_name');
-    localStorage.removeItem('profile_gstin');
-    localStorage.removeItem('primaryThemeColor');
-    
+    clearSession();
     console.log('Auth data cleared - user logged out');
 };
 
@@ -94,7 +73,7 @@ export const handleAuthError = (error, onLogout = null) => {
  * @returns {boolean} - True if token is valid, false if expired
  */
 export const validateTokenBeforeRequest = (onLogout = null) => {
-    const token = localStorage.getItem('authToken');
+    const token = getToken();
     
     if (!token) {
         console.log('No auth token found');

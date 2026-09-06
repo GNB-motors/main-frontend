@@ -1,4 +1,6 @@
+// eslint-disable-next-line no-unused-vars -- motion is used in JSX tags below, which the core rule does not detect
 import { motion } from 'framer-motion';
+import { Network, LineChart, Sparkles } from 'lucide-react';
 
 // The continuous glowing pipeline segment
 const NodeConnector = () => (
@@ -49,7 +51,7 @@ const SolutionsSection = () => {
                         className="order-2 lg:order-1 w-full lg:w-1/2 pl-12 sm:pl-20 lg:pl-0 lg:pr-32 text-left lg:text-right flex flex-col"
                     >
                         <div className="mb-6 flex justify-start lg:justify-end mt-8 lg:mt-0">
-                            <span className="material-symbols-outlined text-[60px] text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">hub</span>
+                            <Network className="lp-icon text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]" size={60} />
                         </div>
                         <span className="text-blue-500 text-xs uppercase tracking-[0.3em] font-bold block mb-4">
                             The GNB Edge Ecosystem
@@ -82,7 +84,7 @@ const SolutionsSection = () => {
                         className="order-2 lg:order-2 w-full lg:w-1/2 pl-12 sm:pl-20 lg:pl-32 text-left flex flex-col"
                     >
                         <div className="mb-6 mt-8 lg:mt-0">
-                            <span className="material-symbols-outlined text-[60px] text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">query_stats</span>
+                            <LineChart className="lp-icon text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]" size={60} />
                         </div>
                         <span className="text-blue-500 text-xs uppercase tracking-[0.3em] font-bold block mb-4">
                             Financial Intelligence
@@ -109,7 +111,7 @@ const SolutionsSection = () => {
                         className="order-2 lg:order-1 w-full lg:w-1/2 pl-12 sm:pl-20 lg:pl-0 lg:pr-32 text-left lg:text-right flex flex-col"
                     >
                         <div className="mb-6 flex justify-start lg:justify-end mt-8 lg:mt-0">
-                            <span className="material-symbols-outlined text-[60px] text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">auto_awesome</span>
+                            <Sparkles className="lp-icon text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]" size={60} />
                         </div>
                         <span className="text-blue-500 text-xs uppercase tracking-[0.3em] font-bold block mb-4">
                             Special Reports

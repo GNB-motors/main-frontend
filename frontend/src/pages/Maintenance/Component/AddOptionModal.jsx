@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { X } from 'lucide-react';
 import { MaintenanceService } from '../MaintenanceService.jsx';
+import { getToken } from '../../../utils/session.js';
 
 /**
  * Small modal that lives on top of the Add Service / Add Repair page. Saves a
@@ -32,7 +33,7 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
     }
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       await MaintenanceService.addOption(token, category, v);
       toast.success('Added');
       onSaved?.(v);
@@ -46,6 +47,7 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
 
   return (
     <div
+      role="presentation"
       onClick={onClose}
       style={{
         position: 'fixed',
@@ -59,6 +61,7 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
       }}
     >
       <div
+        role="presentation"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#fff',

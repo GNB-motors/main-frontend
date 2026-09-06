@@ -11,6 +11,25 @@
     background: #f1f5f9;
 }
 
+/* Visually-hidden until focused (keyboard users) — jumps past the sidebar nav. */
+.skip-to-content {
+    position: absolute;
+    top: -48px;
+    left: 16px;
+    z-index: 1000;
+    padding: 10px 16px;
+    background: var(--primary-color, #187A32);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: top 0.2s ease;
+}
+.skip-to-content:focus {
+    top: 12px;
+}
+
 .main-content {
     flex-grow: 1;
     display: flex;

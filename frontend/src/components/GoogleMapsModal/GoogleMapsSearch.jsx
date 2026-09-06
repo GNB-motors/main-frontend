@@ -111,13 +111,15 @@ const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionS
       {suggestions.length > 0 && (
         <div className="suggestions-dropdown">
           {suggestions.map((suggestion, index) => (
-            <div
+            <button
+              type="button"
               key={suggestion.place_id || index}
               className="suggestion-item"
+              style={{ background: 'none', border: 'none', padding: '12px 16px', font: 'inherit', cursor: 'pointer', textAlign: 'left', width: '100%' }}
               onClick={() => handleSuggestionClick(suggestion)}
             >
               {suggestion.description}
-            </div>
+            </button>
           ))}
         </div>
       )}

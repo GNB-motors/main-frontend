@@ -122,7 +122,8 @@ const LemuGraphTab = ({ manifest, liveness, jobHealth, topology, errorAttributio
      not data flow. */
   const [livePathOn, setLivePathOn] = useState(false);
   /* Theme (plan Task 14): dark is the design's default board; the choice
-     persists in localStorage (best-effort — see graphTheme.readStoredTheme). */
+     persists best-effort via graphTheme's storage layer — see
+     graphTheme.readStoredTheme. */
   const [theme, setTheme] = useState(readStoredTheme);
   const graphRootRef = useRef(null);
 

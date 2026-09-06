@@ -36,12 +36,9 @@ export const normalizePhone = (phone) => {
   if (!phoneStr) return null;
   
   // Remove all spaces, dashes, parentheses, dots
-  let cleaned = phoneStr.replace(/[\s\-\(\)\.]/g, '');
-  
-  // If already starts with +, keep it
-  if (cleaned.startsWith('+')) {
-    cleaned = cleaned;
-  } else if (/^[1-9]\d{9}$/.test(cleaned)) {
+  let cleaned = phoneStr.replace(/[\s\-().]/g, '');
+
+  if (/^[1-9]\d{9}$/.test(cleaned)) {
     // 10 digits starting with 1-9 -> assume India
     cleaned = `+91${cleaned}`;
   } else if (/^91[1-9]\d{9}$/.test(cleaned)) {

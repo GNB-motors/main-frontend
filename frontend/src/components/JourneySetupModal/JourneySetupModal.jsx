@@ -21,9 +21,6 @@ const JourneySetupModal = ({
   selectedDriver
 }) => {
 
-  // Don't render if not open
-  if (!isOpen) return null;
-
   const [journeyData, setJourneyData] = useState({
     startOdometer: 0,
     endOdometer: 0,
@@ -37,24 +34,6 @@ const JourneySetupModal = ({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [userEditedFields, setUserEditedFields] = useState(new Set());
-
-  console.log('🔍 JourneySetupModal render - Props:', {
-    isOpen,
-    selectedVehicle,
-    selectedDriver,
-    odometerOcrData,
-    fuelSlipData,
-    partialFuelData
-  });
-
-  console.log('🎯 JourneySetupModal rendering with state:', { journeyData, loading, errors });
-  console.log('📄 OCR Data detailed view:', {
-    'odometer.ocrData': odometerOcrData,
-    'fuel.ocrData': fuelSlipData,
-    'odometer.reading': odometerOcrData?.reading,
-    'odometer.extractedData': odometerOcrData?.extractedData,
-    'fuel.extractedData': fuelSlipData?.extractedData
-  });
 
   // Fetch start odometer from last fuel log
   useEffect(() => {
@@ -299,7 +278,7 @@ const JourneySetupModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="modal-overlay" role="presentation" onClick={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="modal">
         <div className="modal-header">
           <h2>Trip Setup</h2>

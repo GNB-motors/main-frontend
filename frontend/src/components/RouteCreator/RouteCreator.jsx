@@ -4,6 +4,7 @@ import { fetchLocations } from '../../utils/fetchLocations';
 import SearchableDropdown from '../SearchableDropdown/SearchableDropdown';
 import GoogleMapsModal from '../GoogleMapsModal/GoogleMapsModal';
 import { useLoadScript } from '@react-google-maps/api';
+import { toast } from 'react-toastify';
 import './RouteCreator.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
@@ -13,8 +14,8 @@ const DeleteLocationModal = ({ isOpen, onClose, onConfirm, location, isLoading: 
   if (!isOpen || !location) return null;
 
   return (
-    <div className="location-delete-modal-overlay" onClick={onClose}>
-      <div className="location-delete-modal-content" onClick={e => e.stopPropagation()}>
+    <div className="location-delete-modal-overlay" role="presentation" onClick={onClose}>
+      <div className="location-delete-modal-content" role="presentation" onClick={e => e.stopPropagation()}>
         <div className="location-delete-modal-header">
           <h4>Delete Location</h4>
           <button onClick={onClose} className="location-delete-modal-close-btn">&times;</button>
@@ -235,7 +236,7 @@ const RouteCreator = ({
 
       } catch (error) {
         console.error("Error processing location prediction:", error);
-        alert("Failed to fetch details for the selected location.");
+        toast.error("Failed to fetch details for the selected location.");
       }
     } else {
       // Handle Existing Location Selection
@@ -273,12 +274,6 @@ const RouteCreator = ({
     }
   };
 
-  // Called after map modal and API
-  const handleAddNewLocation = (locationType, locationObj) => {
-    setLocationOptions(prev => [...prev, locationObj]);
-    updateRouteData(locationType, locationObj);
-  };
-
   // Open map modal for add new (used by both dropdown and map button)
   const handleRequestAddNew = (locationType, clearSearch) => {
     setCurrentLocationType(locationType);
@@ -307,8 +302,8 @@ const RouteCreator = ({
       const created = await createLocation(payload);
       setLocationOptions(prev => [...prev, created]);
       updateRouteData(currentLocationType, created);
-    } catch (err) {
-      alert('Failed to add location. Please try again.');
+    } catch {
+      toast.error('Failed to add location. Please try again.');
     }
   };
 
@@ -339,14 +334,9 @@ const RouteCreator = ({
           destLocation: null,
         });
       }
-    } catch (err) {
-      alert('Failed to delete location.');
+    } catch {
+      toast.error('Failed to delete location.');
     }
-  };
-
-  const openMapsModal = (locationType) => {
-    setCurrentLocationType(locationType);
-    setIsMapsModalOpen(true);
   };
 
   const handleDistanceChange = (baseDistance) => {

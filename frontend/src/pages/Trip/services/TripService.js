@@ -1,4 +1,5 @@
 import apiClient from '../../../utils/axiosConfig';
+import { parseWith } from '../../../schemas/validate.js';
 
 class TripService {
   /**
@@ -130,7 +131,7 @@ class TripService {
       if (params.endDate) queryParams.append('endDate', params.endDate);
 
       const response = await apiClient.get(`/api/trips?${queryParams.toString()}`);
-      return response.data;
+      return response.data ? parseWith('tripListResponseSchema', () => import('../../../schemas/trip.schema.js'), response.data) : response.data;
     } catch (error) {
       console.error('Failed to fetch trips:', error);
       throw error.response?.data || error;

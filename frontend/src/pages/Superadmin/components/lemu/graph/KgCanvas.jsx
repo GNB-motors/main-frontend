@@ -277,7 +277,6 @@ const KgCanvas = ({
      infra layer also gets its column pin target (tx) and world radius (r),
      the code layer its loc-based radius (plan §0 C5: modules[].totalLoc). */
   useEffect(() => {
-    const pr = propsRef.current;
     const is3d = mode === '3d';
     const key = `${layer}|${mode}`;
     const layerChanged = prevKeyRef.current.split('|')[0] !== layer;
@@ -599,7 +598,6 @@ const KgCanvas = ({
   };
 
   const pickAt = (mx, my) => {
-    const pr = propsRef.current;
     const hostId = pickHostChip(chipsRef.current, mx, my);
     if (hostId) return { node: hostByIdRef.current.get(hostId) || null, hostId };
     const n = pickNode(simRef.current.nodes, (x) => projOfRef.current.get(x.id), mx, my, camRef.current.k);

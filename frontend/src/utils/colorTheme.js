@@ -15,9 +15,11 @@
  * so the calendar, badges and Shadcn buttons all pick up the user's colour.
  */
 
+import { getThemeColor } from './session.js';
+
 /** Read stored colour, fall back to indigo */
 export const getPrimaryColor = () =>
-    localStorage.getItem('primaryThemeColor') || '#4f46e5';
+    getThemeColor() || '#4f46e5';
 
 /** 50% opacity version for light backgrounds */
 export const getLightColor = (color) => {

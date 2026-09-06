@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars -- motion is used in JSX tags below, which the core rule does not detect
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { Grid3x3, ShieldCheck } from 'lucide-react';
 import ScrollReveal from './ScrollReveal';
 
 const InnovationSection = () => {
@@ -83,12 +85,12 @@ const InnovationSection = () => {
                                 {
                                     label: 'The Atomic Pattern',
                                     text: 'Our refactored Single Submission flow eliminates data fragmentation, ensuring every journey is an immutable, complete record from the moment of intake.',
-                                    icon: 'texture'
+                                    icon: Grid3x3
                                 },
                                 {
                                     label: 'AI Verification',
                                     text: 'Python-based OCR microservices translate physical complexity into digital precision, allowing your staff to manage by exception rather than entry.',
-                                    icon: 'policy'
+                                    icon: ShieldCheck
                                 },
                             ].map((item, index) => (
                                 <motion.div 
@@ -101,7 +103,7 @@ const InnovationSection = () => {
                                 >
                                     <div className="flex items-center gap-4 mb-6">
                                         <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                                            <motion.span style={{ color: iconColor }} className="material-symbols-outlined transition-colors duration-100">{item.icon}</motion.span>
+                                            <motion.span style={{ color: iconColor }} className="lp-icon transition-colors duration-100"><item.icon size={24} /></motion.span>
                                         </div>
                                         <motion.span style={{ color: labelColor }} className="text-sm uppercase tracking-[0.1em] font-bold transition-colors duration-100">
                                             {item.label}

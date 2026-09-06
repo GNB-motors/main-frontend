@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Eye, EyeOff } from 'lucide-react';
 import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.jsx';
 import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 import apiClient from '../../utils/axiosConfig.js';
+import { setSession, setOrgId } from '../../utils/session.js';
 
 // --- Carousel Data ---
 const slideData = [
@@ -38,7 +39,7 @@ const LoginPage = () => {
     const [emailOrMobile, setEmailOrMobile] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [, setError] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
 
     // --- Carousel State ---
@@ -81,34 +82,14 @@ const LoginPage = () => {
             const user = loginData.user;
             const organization = loginData.organization;
 
-            // Store the token immediately
-            localStorage.setItem('authToken', token);
-            localStorage.setItem('tokenType', 'Bearer');
+            // Store the token, user and org in one call. setSession also stores
+            // primaryThemeColor and fires themeColorChange when present, so
+            // Sidebar/Navbar use the correct colour immediately on login —
+            // without this it falls back to default blue because ProfilePage
+            // only mounts on /profile, not on app boot.
+            setSession({ token, user, organization });
 
-            // Store user data if available (new API structure)
             if (user) {
-                localStorage.setItem('user_id', user._id || user.id || '');
-                localStorage.setItem('user_email', user.email || '');
-                localStorage.setItem('user_role', user.role || '');
-                localStorage.setItem('user_firstName', user.firstName || '');
-                localStorage.setItem('user_lastName', user.lastName || '');
-                localStorage.setItem('user_status', user.status || '');
-                localStorage.setItem('user_mobileNumber', user.mobileNumber || '');
-
-                // Store primaryThemeColor so Sidebar/Navbar use the correct colour
-                // immediately on login — without this it falls back to default blue
-                // because ProfilePage only mounts on /profile, not on app boot
-                if (user.primaryThemeColor) {
-                    localStorage.setItem('primaryThemeColor', user.primaryThemeColor);
-                    // CustomEvent fires same-tab unlike window 'storage' event
-                    window.dispatchEvent(new CustomEvent('themeColorChange'));
-                }
-
-                // Store orgId if available
-                if (user.orgId) {
-                    localStorage.setItem('user_orgId', user.orgId);
-                }
-
                 // Default view after login is Enterprise (all locations) — no active
                 // location is seeded, so the user sees all data exactly as before.
                 // The BranchContext loads the location list; the header switcher lets
@@ -131,7 +112,7 @@ const LoginPage = () => {
                         const orgsRes = await apiClient.get('/api/me/orgs');
                         const orgs = orgsRes.data?.data || [];
                         if (orgs.length > 0) {
-                            localStorage.setItem('user_orgId', orgs[0].orgId);
+                            setOrgId(orgs[0].orgId);
                         }
                     } catch (err) {
                         console.error('Failed to fetch orgs for field agent', err);
@@ -226,12 +207,15 @@ const LoginPage = () => {
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                 />
-                                <div
+                                <button
+                                    type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="password-toggle-icon"
+                                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit' }}
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
                                 >
-                                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                                </div>
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
                             </div>
                         </div>
 
@@ -254,7 +238,7 @@ const LoginPage = () => {
                     {/* Background Images */}
                     {slideData.map((slide, index) => (
                         <img
-                            key={index}
+                            key={slide.title}
                             src={slide.image}
                             className={`slide-bg ${index === currentSlide ? "active" : ""}`}
                             alt={`Slide ${index + 1}`}
@@ -268,29 +252,41 @@ const LoginPage = () => {
                     <div className="vector-4"></div>
 
                     {/* Glass Card */}
-                    <div className="glass-card" onClick={nextSlide}>
+                    <div
+                        className="glass-card"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nextSlide(); } }}
+                        onClick={nextSlide}
+                    >
                         <div className="card-title">{slideData[currentSlide].title}</div>
                         <div className="card-desc">{slideData[currentSlide].desc}</div>
 
                         <div className="card-dots">
-                            {slideData.map((_, index) => (
-                                <div
-                                    key={index}
+                            {slideData.map((slide, index) => (
+                                <button
+                                    type="button"
+                                    key={slide.title}
                                     className={`card-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                    style={{ border: 'none', padding: 0, font: 'inherit' }}
+                                    aria-label={`Go to slide ${index + 1}`}
                                     onClick={(e) => goToSlide(index, e)}
-                                ></div>
+                                ></button>
                             ))}
                         </div>
                     </div>
 
                     {/* Bottom Navigation Pill */}
                     <div className="bottom-pill">
-                        {slideData.map((_, index) => (
-                            <div
-                                key={index}
+                        {slideData.map((slide, index) => (
+                            <button
+                                type="button"
+                                key={slide.title}
                                 className={`nav-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                style={{ border: 'none', padding: 0, font: 'inherit' }}
+                                aria-label={`Go to slide ${index + 1}`}
                                 onClick={(e) => goToSlide(index, e)}
-                            ></div>
+                            ></button>
                         ))}
                     </div>
                 </div>

@@ -6,11 +6,12 @@
  * task generation.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Building2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import PartyService from './PartyService';
+import useApi from '../../hooks/useApi';
 import '../../styles/erp.css';
 
 const EMPTY_FORM = {
@@ -30,67 +31,69 @@ const formatCurrency = (n) =>
 const PartiesPage = () => {
   const [parties, setParties] = useState([]);
   const [kams, setKams] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const fetchParties = useCallback(async (page = 1, search = '', status = '') => {
-    setLoading(true);
-    try {
-      const res = await PartyService.getParties({
+  const { data: partiesResponse, loading, error: partiesError, refetch: refetchParties } = useApi(
+    () =>
+      PartyService.getParties({
         page,
         limit: 20,
-        ...(search ? { search } : {}),
-        ...(status ? { status } : {}),
-      });
-      setParties(res.data || []);
-      setMeta(res.meta || { total: 0, page: 1, limit: 20, totalPages: 0 });
-    } catch (err) {
-      // The module 404s when the erpMasters flag is off — say so plainly.
-      if (err.status === 404) {
-        toast.error('ERP Masters is not enabled for your organization');
-      } else {
-        toast.error(err.message);
-      }
-      setParties([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        ...(searchTerm ? { search: searchTerm } : {}),
+        ...(statusFilter ? { status: statusFilter } : {}),
+      }),
+    [JSON.stringify({ page, search: searchTerm, status: statusFilter })],
+  );
 
   /** KAM dropdown. Only OWNER/MANAGER can read employees, so failure is silent. */
-  const fetchKams = useCallback(async () => {
-    try {
-      const res = await apiClient.get('/api/employees', {
+  const { data: kamsResponse } = useApi(
+    (signal) =>
+      apiClient.get('/api/employees', {
         params: { role: 'KAM', limit: 200 },
-      });
-      setKams(res.data?.data || []);
-    } catch {
-      setKams([]);
-    }
-  }, []);
+        signal,
+      }),
+    [],
+  );
 
   useEffect(() => {
-    fetchParties(1, '', '');
-    fetchKams();
-  }, [fetchParties, fetchKams]);
+    if (partiesResponse) {
+      setParties(partiesResponse.data || []);
+      setMeta(partiesResponse.meta || { total: 0, page: 1, limit: 20, totalPages: 0 });
+    }
+  }, [partiesResponse]);
+
+  useEffect(() => {
+    if (kamsResponse) setKams(kamsResponse.data?.data || []);
+  }, [kamsResponse]);
+
+  useEffect(() => {
+    if (!partiesError) return;
+    // The module 404s when the erpMasters flag is off — say so plainly.
+    if (partiesError.status === 404) {
+      toast.error('ERP Masters is not enabled for your organization');
+    } else {
+      toast.error(partiesError.message);
+    }
+    setParties([]);
+  }, [partiesError]);
 
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    fetchParties(1, value, statusFilter);
+    setPage(1);
   };
 
   const handleStatusFilter = (e) => {
     const value = e.target.value;
     setStatusFilter(value);
-    fetchParties(1, searchTerm, value);
+    setPage(1);
   };
 
   const openCreate = () => {
@@ -161,7 +164,7 @@ const PartiesPage = () => {
         toast.success('Party created');
       }
       setShowModal(false);
-      fetchParties(meta.page, searchTerm, statusFilter);
+      refetchParties();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -175,7 +178,7 @@ const PartiesPage = () => {
     try {
       await PartyService.deactivateParty(party._id);
       toast.success(`${party.name} deactivated`);
-      fetchParties(meta.page, searchTerm, statusFilter);
+      refetchParties();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -301,7 +304,7 @@ const PartiesPage = () => {
                 <button
                   className="btn btn-secondary"
                   disabled={meta.page === 1}
-                  onClick={() => fetchParties(meta.page - 1, searchTerm, statusFilter)}
+                  onClick={() => setPage(meta.page - 1)}
                 >
                   Previous
                 </button>
@@ -311,7 +314,7 @@ const PartiesPage = () => {
                 <button
                   className="btn btn-secondary"
                   disabled={meta.page === meta.totalPages}
-                  onClick={() => fetchParties(meta.page + 1, searchTerm, statusFilter)}
+                  onClick={() => setPage(meta.page + 1)}
                 >
                   Next
                 </button>
@@ -322,8 +325,12 @@ const PartiesPage = () => {
       </div>
 
       {showModal && (
-        <div className="erp-modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>{editingId ? 'Edit Party' : 'Add Party'}</h2>
               <button className="btn-icon" onClick={() => setShowModal(false)}>

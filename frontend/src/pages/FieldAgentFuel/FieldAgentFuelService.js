@@ -1,6 +1,7 @@
 import apiClient from '../../utils/axiosConfig';
+import { getUserRole } from '../../utils/session.js';
 
-const isFieldAgent = () => localStorage.getItem('user_role') === 'FIELD_AGENT';
+const isFieldAgent = () => getUserRole() === 'FIELD_AGENT';
 
 const unwrapList = (res) => {
   const data = res.data?.data ?? res.data ?? [];

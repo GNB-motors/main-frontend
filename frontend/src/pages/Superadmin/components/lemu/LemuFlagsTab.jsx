@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, ChevronRight, Inbox, Search, ToggleRight } from 'lucide-react';
 import apiClient from '../../../../utils/axiosConfig';
+import useApi from '../../../../hooks/useApi';
 
 /* Keys of an org's featureFlags map that are explicitly enabled. */
 const enabledFlags = (org) =>
@@ -16,25 +17,25 @@ const enabledFlags = (org) =>
 const LemuFlagsTab = () => {
   const navigate = useNavigate();
   const [orgs, setOrgs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
 
+  const { data: orgsResponse, loading, error: orgsError } = useApi(
+    (signal) => apiClient.get('/api/admin/organizations', { signal }),
+    []
+  );
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await apiClient.get('/api/admin/organizations');
-        setOrgs(res.data?.data ?? []);
-      } catch (e) {
-        setError(e.response?.data?.message || 'Failed to load organizations');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    if (loading) setError('');
+  }, [loading]);
+
+  useEffect(() => {
+    if (orgsResponse) setOrgs(orgsResponse.data?.data ?? []);
+  }, [orgsResponse]);
+
+  useEffect(() => {
+    if (orgsError) setError(orgsError.response?.data?.message || 'Failed to load organizations');
+  }, [orgsError]);
 
   const filtered = orgs.filter((o) => {
     if (!query) return true;

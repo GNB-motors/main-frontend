@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Scale, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UnloadingApi from './UnloadingService';
@@ -15,7 +15,6 @@ const money = (n) =>
 
 const UnloadingPage = ({ embedded = false, initialTab = null }) => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [tab, setTab] = useState(initialTab || 'pending');
   const [pending, setPending] = useState([]);

@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Grid, UserPlus, LogOut, ToggleRight, KeyRound, ShieldCheck, ScrollText, Database, Network } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
+import { clearSession } from '../../../utils/session';
 import './SuperAdminSidebar.css';
 
 const SuperAdminSidebar = ({ setSidebarOpen }) => {
@@ -9,7 +10,7 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
 
     const handleLogout = () => {
         // Clear all auth data
-        localStorage.clear();
+        clearSession();
         navigate('/login');
     };
 

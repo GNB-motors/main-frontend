@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Flag, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import TripCloseService from './TripCloseService';
 import '../../styles/erp.css';
 
@@ -16,7 +16,6 @@ const todayInput = () => new Date().toISOString().slice(0, 10);
 
 const TripClosePage = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [tab, setTab] = useState('pending');
   const [pending, setPending] = useState([]);
@@ -241,10 +240,13 @@ const TripClosePage = () => {
       )}
 
       {selected && (
-        <div className="erp-modal-backdrop" onClick={closeModal} role="presentation">
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
           <div
             className="erp-modal"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >

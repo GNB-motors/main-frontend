@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Box, CircularProgress, Alert, FormControl, Select, MenuItem
-} from '@mui/material';
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import {
     Fuel, AlertTriangle, CheckCircle2, Clock, RefreshCw,
-    Zap, Activity, XCircle, Flag
+    Zap, Activity, XCircle, Flag, Loader2
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -45,9 +45,26 @@ const formatDateRange = (from, to) => {
     return `${f} → ${t}`;
 };
 
+// ─── Local Alert (replaces MUI Alert) ─────────────────────────────────────────
+
+const ALERT_SEVERITY_CLASSES = {
+    error: 'border-red-200 bg-red-50 text-red-700',
+    warning: 'border-amber-200 bg-amber-50 text-amber-700',
+    info: 'border-blue-200 bg-blue-50 text-blue-700',
+    success: 'border-green-200 bg-green-50 text-green-700',
+};
+
+const Alert = ({ severity = 'info', className = '', children }) => (
+    <div role="alert" className={`rounded-md border px-3 py-2 ${ALERT_SEVERITY_CLASSES[severity] || ALERT_SEVERITY_CLASSES.info} ${className}`}>
+        {children}
+    </div>
+);
+
 // ─── Status KPI Card ──────────────────────────────────────────────────────────
 
-const StatusKpiCard = ({ icon: Icon, label, value, iconColor, bgColor, accent }) => (
+const StatusKpiCard = (props) => {
+    const { icon: Icon, label, value, iconColor, bgColor, accent } = props;
+    return (
     <div className="trip-ledger-kpi-card fuel-kpi-card" style={accent ? { outline: `2px solid ${accent}` } : {}}>
         <div className="trip-ledger-kpi-icon" style={{ background: bgColor || 'rgba(47,88,238,0.10)' }}>
             <Icon size={18} color={iconColor || '#2F58EE'} />
@@ -57,7 +74,8 @@ const StatusKpiCard = ({ icon: Icon, label, value, iconColor, bgColor, accent })
             <span className="trip-ledger-kpi-value">{value ?? '—'}</span>
         </div>
     </div>
-);
+    );
+};
 
 // ─── Sync Status Bar ──────────────────────────────────────────────────────────
 
@@ -65,10 +83,10 @@ const SyncStatusBar = ({ status, isLoading, error, onRefresh }) => {
     if (isLoading) {
         return (
             <div className="fuel-status-bar">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CircularProgress size={16} />
+                <div className="flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
                     <span style={{ fontSize: 13, color: '#5d5d5e' }}>Loading sync status…</span>
-                </Box>
+                </div>
             </div>
         );
     }
@@ -76,7 +94,7 @@ const SyncStatusBar = ({ status, isLoading, error, onRefresh }) => {
     if (error) {
         return (
             <div className="fuel-status-bar">
-                <Alert severity="warning" sx={{ py: 0.5, fontSize: 13 }}>{error}</Alert>
+                <Alert severity="warning" className="py-1 text-[13px]">{error}</Alert>
             </div>
         );
     }
@@ -179,15 +197,15 @@ const FlagBadge = ({ isFlagged }) => (
 const ComparisonTable = ({ records, isLoading, error, emptyMessage }) => {
     if (isLoading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
-                <CircularProgress />
+            <div className="flex items-center justify-center h-[300px]">
+                <Loader2 size={40} className="animate-spin" />
                 <span style={{ marginLeft: 12, color: '#5d5d5e', fontSize: 14 }}>Loading records…</span>
-            </Box>
+            </div>
         );
     }
 
     if (error) {
-        return <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>;
+        return <Alert severity="error" className="my-4">{error}</Alert>;
     }
 
     return (
@@ -439,7 +457,7 @@ const FuelComparisonReport = () => {
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
-        <Box sx={{ padding: '24px' }}>
+        <div className="p-6">
             {/* Header */}
             <div className="report-header-section">
                 <div className="report-header-top">
@@ -491,16 +509,18 @@ const FuelComparisonReport = () => {
                         <div className="report-filters" style={{ marginTop: 0 }}>
                             <div className="date-input-group">
                                 <label>Filter</label>
-                                <FormControl size="small" sx={{ minWidth: 160 }}>
-                                    <Select
-                                        value={flaggedOnly ? 'flagged' : 'all'}
-                                        onChange={(e) => setFlaggedOnly(e.target.value === 'flagged')}
-                                        displayEmpty
-                                    >
-                                        <MenuItem value="all">All Records</MenuItem>
-                                        <MenuItem value="flagged">Flagged Only</MenuItem>
-                                    </Select>
-                                </FormControl>
+                                <Select
+                                    value={flaggedOnly ? 'flagged' : 'all'}
+                                    onValueChange={(value) => setFlaggedOnly(value === 'flagged')}
+                                >
+                                    <SelectTrigger className="h-8 w-[160px] text-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent align="start">
+                                        <SelectItem value="all">All Records</SelectItem>
+                                        <SelectItem value="flagged">Flagged Only</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                     )}
@@ -559,7 +579,7 @@ const FuelComparisonReport = () => {
                     </>
                 )}
             </div>
-        </Box>
+        </div>
     );
 };
 

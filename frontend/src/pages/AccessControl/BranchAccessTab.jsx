@@ -5,6 +5,7 @@ import AccessControlApi from './accessControlService';
 import PermissionTreeView from './PermissionTreeView';
 import RoleFormModal from './RoleFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import { getUserRole } from '../../utils/session.js';
 
 const setsEqual = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
 
@@ -42,7 +43,7 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
   const [error, setError] = useState('');
 
   // Branch-scoped role creation + deletion (mirrors the enterprise tab).
-  const canManageRoles = localStorage.getItem('user_role') === 'OWNER';
+  const canManageRoles = getUserRole() === 'OWNER';
   const [roleFormOpen, setRoleFormOpen] = useState(false);
   const [deletingRole, setDeletingRole] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);

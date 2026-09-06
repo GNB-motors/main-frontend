@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { clearAuthData } from '../../../utils/authUtils';
+import { getToken, getUserFirstName, getUserLastName, getUserEmail, getUserMobileNumber, getUserId, getOrgId } from '../../../utils/session.js';
 
-const StepProfile = ({ onNext, onBack, onDataChange, formData }) => {
+const StepProfile = ({ onNext, onBack, onDataChange }) => {
     const navigate = useNavigate();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -16,7 +17,7 @@ const StepProfile = ({ onNext, onBack, onDataChange, formData }) => {
 
     useEffect(() => {
         // Check if token exists, if not logout
-        const token = localStorage.getItem('authToken');
+        const token = getToken();
         if (!token) {
             console.error('No auth token found. Redirecting to login.');
             toast.error('Session expired. Please login again.');
@@ -25,19 +26,19 @@ const StepProfile = ({ onNext, onBack, onDataChange, formData }) => {
             return;
         }
 
-        // Load user data from localStorage (stored during login)
+        // Load user data from session storage (stored during login)
         const loadUserData = () => {
             setIsLoading(true);
 
             try {
-                const userFirstName = localStorage.getItem('user_firstName') || '';
-                const userLastName = localStorage.getItem('user_lastName') || '';
-                const userEmail = localStorage.getItem('user_email') || '';
-                const userMobile = localStorage.getItem('user_mobileNumber') || '';
-                const userIdValue = localStorage.getItem('user_id') || '';
-                const userOrgId = localStorage.getItem('user_orgId') || '';
+                const userFirstName = getUserFirstName() || '';
+                const userLastName = getUserLastName() || '';
+                const userEmail = getUserEmail() || '';
+                const userMobile = getUserMobileNumber() || '';
+                const userIdValue = getUserId() || '';
+                const userOrgId = getOrgId() || '';
 
-                console.log('Loading user data from localStorage:', {
+                console.log('Loading user data from session storage:', {
                     firstName: userFirstName,
                     lastName: userLastName,
                     email: userEmail,
@@ -76,7 +77,7 @@ const StepProfile = ({ onNext, onBack, onDataChange, formData }) => {
                     toast.warning('Some profile data may be missing');
                 }
             } catch (error) {
-                console.error('Could not load user data from localStorage:', error);
+                console.error('Could not load user data from session storage:', error);
                 toast.error('Failed to load user information. Please log in again.');
             } finally {
                 setIsLoading(false);
@@ -103,7 +104,7 @@ const StepProfile = ({ onNext, onBack, onDataChange, formData }) => {
     }, [firstName, lastName, email, phone, userId, orgId, gstin, isLoading]);
 
     const handleSave = () => {
-        // User data is read-only from localStorage, just proceed to next step
+        // User data is read-only from session storage, just proceed to next step
         if (!firstName || !email) {
             toast.error('User data is incomplete. Please contact support.');
             return;

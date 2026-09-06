@@ -1,3 +1,4 @@
+import { ShieldCheck, Gauge, BadgeCheck, Lock } from 'lucide-react';
 import ScrollReveal from './ScrollReveal';
 import SpotlightButton from './SpotlightButton';
 
@@ -25,13 +26,13 @@ const ContactSection = () => {
                     <div className="mt-16 flex items-center gap-6">
                         <div className="flex -space-x-4">
                             <div className="w-12 h-12 rounded-full border border-blue-200 bg-white flex items-center justify-center shadow-md">
-                                <span className="material-symbols-outlined text-blue-600 text-sm">shield_locked</span>
+                                <ShieldCheck className="lp-icon text-blue-600" size={16} />
                             </div>
                             <div className="w-12 h-12 rounded-full border border-blue-200 bg-white flex items-center justify-center shadow-md">
-                                <span className="material-symbols-outlined text-blue-500 text-sm">speed</span>
+                                <Gauge className="lp-icon text-blue-500" size={16} />
                             </div>
                             <div className="w-12 h-12 rounded-full border border-blue-200 bg-[#0A192F] flex items-center justify-center shadow-md">
-                                <span className="material-symbols-outlined text-white text-sm">verified_user</span>
+                                <BadgeCheck className="lp-icon text-white" size={16} />
                             </div>
                         </div>
                         <div className="flex flex-col">
@@ -100,7 +101,7 @@ const ContactSection = () => {
                             </SpotlightButton>
                             
                             <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-2xl text-blue-500/80">lock</span>
+                                <Lock className="lp-icon text-2xl text-blue-500/80" size={24} />
                                 <p className="text-[10px] text-[#0A192F]/40 uppercase tracking-[0.1em] font-semibold leading-[1.4]">
                                     SEC Compliant <br/> &amp; Confidential
                                 </p>

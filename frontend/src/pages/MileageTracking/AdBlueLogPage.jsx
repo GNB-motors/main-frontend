@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { CircularProgress } from '@mui/material';
 import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle, ArrowLeft, Droplet } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -328,7 +327,7 @@ const AdBlueLogPage = () => {
           <div className="mileage-actions">
             <button type="button" className="mileage-btn mileage-btn-secondary" onClick={() => navigate('/adblue-tracking')}>Cancel</button>
             <button type="submit" disabled={isLoading} className="mileage-btn mileage-btn-primary">
-              {isLoading ? <><CircularProgress size={16} color="inherit" style={{ marginRight: 8 }} /> Submitting</> : 'Submit AdBlue'}
+              {isLoading ? <><Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} /> Submitting</> : 'Submit AdBlue'}
             </button>
           </div>
         </form>

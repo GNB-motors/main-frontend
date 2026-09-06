@@ -6,7 +6,7 @@
  * conditions are re-checked server-side.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, FileText, Search, X, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useLocation } from 'react-router-dom';
@@ -14,6 +14,7 @@ import apiClient from '../../utils/axiosConfig';
 import DeliveryOrderService from './DeliveryOrderService';
 import RateMasterService from '../ErpMasters/RateMasterService';
 import PartyService from '../ErpMasters/PartyService';
+import useApi from '../../hooks/useApi';
 import '../../styles/erp.css';
 
 const DO_TYPES = [
@@ -55,10 +56,10 @@ const DeliveryOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [parties, setParties] = useState([]);
   const [routes, setRoutes] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
 
   const [showModal, setShowModal] = useState(false);
@@ -66,49 +67,51 @@ const DeliveryOrdersPage = () => {
   const [rateInfo, setRateInfo] = useState(null);
   const [creditInfo, setCreditInfo] = useState(null);
 
-  const fetchOrders = useCallback(async (status = '', search = '', page = 1) => {
-    setLoading(true);
-    try {
-      const res = await DeliveryOrderService.getOrders({
-        ...(status ? { status } : {}),
-        ...(search ? { search } : {}),
+  const { data: ordersResponse, loading, error: ordersError, refetch: refetchOrders } = useApi(
+    () =>
+      DeliveryOrderService.getOrders({
+        ...(statusFilter ? { status: statusFilter } : {}),
+        ...(searchTerm ? { search: searchTerm } : {}),
         page,
         limit: 20,
-      });
-      setOrders(res.data || []);
-      setMeta(res.meta || { total: 0, page: 1, limit: 20, totalPages: 0 });
-    } catch (err) {
-      if (err.status === 404) {
-        toast.error('Delivery Orders is not enabled for your organization');
-      } else {
-        toast.error(err.message);
-      }
-      setOrders([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      }),
+    [JSON.stringify({ status: statusFilter, search: searchTerm, page })],
+  );
 
-  const fetchOptions = useCallback(async () => {
-    try {
-      const res = await PartyService.getParties({ status: 'ACTIVE', limit: 200 });
-      setParties(res.data || []);
-    } catch {
-      setParties([]);
-    }
-    try {
-      const res = await apiClient.get('/api/routes', { params: { limit: 200 } });
-      setRoutes(res.data?.data || []);
-    } catch {
-      setRoutes([]);
-    }
-  }, []);
+  const { data: partiesResponse } = useApi(
+    () => PartyService.getParties({ status: 'ACTIVE', limit: 200 }),
+    [],
+  );
+
+  const { data: routesResponse } = useApi(
+    (signal) => apiClient.get('/api/routes', { params: { limit: 200 }, signal }),
+    [],
+  );
 
   useEffect(() => {
-    fetchOrders(statusFilter, searchTerm);
-    fetchOptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchOrders, fetchOptions, statusFilter]);
+    if (ordersResponse) {
+      setOrders(ordersResponse.data || []);
+      setMeta(ordersResponse.meta || { total: 0, page: 1, limit: 20, totalPages: 0 });
+    }
+  }, [ordersResponse]);
+
+  useEffect(() => {
+    if (partiesResponse) setParties(partiesResponse.data || []);
+  }, [partiesResponse]);
+
+  useEffect(() => {
+    if (routesResponse) setRoutes(routesResponse.data?.data || []);
+  }, [routesResponse]);
+
+  useEffect(() => {
+    if (!ordersError) return;
+    if (ordersError.status === 404) {
+      toast.error('Delivery Orders is not enabled for your organization');
+    } else {
+      toast.error(ordersError.message);
+    }
+    setOrders([]);
+  }, [ordersError]);
 
   // Arriving from a Stage 1 "Sure Order" opens the form pre-filled.
   useEffect(() => {
@@ -217,7 +220,8 @@ const DeliveryOrdersPage = () => {
           : `${created.doNumber} created`,
       );
       setShowModal(false);
-      fetchOrders(statusFilter, searchTerm);
+      if (page === 1) refetchOrders();
+      else setPage(1);
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -228,7 +232,7 @@ const DeliveryOrdersPage = () => {
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    fetchOrders(statusFilter, value);
+    setPage(1);
   };
 
   const unitFor = (t) => DO_TYPES.find((d) => d.value === t)?.unit || '';
@@ -263,7 +267,10 @@ const DeliveryOrdersPage = () => {
         <select
           className="erp-filter"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="">All statuses</option>
           <option value="PENDING_APPROVAL">Awaiting approval</option>
@@ -347,7 +354,7 @@ const DeliveryOrdersPage = () => {
                 <button
                   className="btn btn-secondary"
                   disabled={meta.page === 1}
-                  onClick={() => fetchOrders(statusFilter, searchTerm, meta.page - 1)}
+                  onClick={() => setPage(meta.page - 1)}
                 >
                   Previous
                 </button>
@@ -357,7 +364,7 @@ const DeliveryOrdersPage = () => {
                 <button
                   className="btn btn-secondary"
                   disabled={meta.page === meta.totalPages}
-                  onClick={() => fetchOrders(statusFilter, searchTerm, meta.page + 1)}
+                  onClick={() => setPage(meta.page + 1)}
                 >
                   Next
                 </button>
@@ -368,8 +375,12 @@ const DeliveryOrdersPage = () => {
       </div>
 
       {showModal && (
-        <div className="erp-modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>New Delivery Order</h2>
               <button className="btn-icon" onClick={() => setShowModal(false)}>

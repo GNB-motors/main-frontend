@@ -6,13 +6,14 @@
  * party master — the schedule is the authority on who owns the relationship.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, CalendarDays, Edit2, Trash2, X, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import ErpCallService from './ErpCallService';
 import { WEEKDAYS } from './erpCall.constants';
 import PartyService from '../ErpMasters/PartyService';
+import useApi from '../../hooks/useApi';
 import '../../styles/erp.css';
 
 const EMPTY_FORM = { partyId: '', kamId: '', daysOfWeek: [], status: 'ACTIVE' };
@@ -21,7 +22,6 @@ const CallSchedulesPage = () => {
   const [schedules, setSchedules] = useState([]);
   const [parties, setParties] = useState([]);
   const [kams, setKams] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
@@ -29,44 +29,44 @@ const CallSchedulesPage = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const fetchSchedules = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await ErpCallService.getSchedules({ limit: 200 });
-      setSchedules(res.data || []);
-    } catch (err) {
-      if (err.status === 404) {
-        toast.error('Call Planning is not enabled for your organization');
-      } else {
-        toast.error(err.message);
-      }
-      setSchedules([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: schedulesResponse, loading, error: schedulesError, refetch: refetchSchedules } =
+    useApi(() => ErpCallService.getSchedules({ limit: 200 }), []);
 
-  const fetchOptions = useCallback(async () => {
-    try {
-      const res = await PartyService.getParties({ status: 'ACTIVE', limit: 200 });
-      setParties(res.data || []);
-    } catch {
-      setParties([]);
-    }
-    try {
-      const res = await apiClient.get('/api/employees', {
+  const { data: partiesResponse } = useApi(
+    () => PartyService.getParties({ status: 'ACTIVE', limit: 200 }),
+    [],
+  );
+
+  const { data: kamsResponse } = useApi(
+    (signal) =>
+      apiClient.get('/api/employees', {
         params: { role: 'KAM', limit: 200 },
-      });
-      setKams(res.data?.data || []);
-    } catch {
-      setKams([]);
-    }
-  }, []);
+        signal,
+      }),
+    [],
+  );
 
   useEffect(() => {
-    fetchSchedules();
-    fetchOptions();
-  }, [fetchSchedules, fetchOptions]);
+    if (schedulesResponse) setSchedules(schedulesResponse.data || []);
+  }, [schedulesResponse]);
+
+  useEffect(() => {
+    if (partiesResponse) setParties(partiesResponse.data || []);
+  }, [partiesResponse]);
+
+  useEffect(() => {
+    if (kamsResponse) setKams(kamsResponse.data?.data || []);
+  }, [kamsResponse]);
+
+  useEffect(() => {
+    if (!schedulesError) return;
+    if (schedulesError.status === 404) {
+      toast.error('Call Planning is not enabled for your organization');
+    } else {
+      toast.error(schedulesError.message);
+    }
+    setSchedules([]);
+  }, [schedulesError]);
 
   const openCreate = () => {
     setIsEditing(false);
@@ -115,7 +115,7 @@ const CallSchedulesPage = () => {
       });
       toast.success('Call schedule saved');
       setShowModal(false);
-      fetchSchedules();
+      refetchSchedules();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -129,7 +129,7 @@ const CallSchedulesPage = () => {
       await ErpCallService.deleteSchedule(deleteTarget._id);
       toast.success('Schedule deleted');
       setDeleteTarget(null);
-      fetchSchedules();
+      refetchSchedules();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -232,8 +232,12 @@ const CallSchedulesPage = () => {
       </div>
 
       {showModal && (
-        <div className="erp-modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>{isEditing ? 'Edit Call Schedule' : 'Add Call Schedule'}</h2>
               <button className="btn-icon" onClick={() => setShowModal(false)}>
@@ -355,11 +359,14 @@ const CallSchedulesPage = () => {
       )}
 
       {deleteTarget && (
-        <div className="erp-modal-backdrop" onClick={() => setDeleteTarget(null)}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
+        >
           <div
             className="erp-modal"
             style={{ maxWidth: 420 }}
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="erp-modal-header">
               <h2>Delete Schedule</h2>

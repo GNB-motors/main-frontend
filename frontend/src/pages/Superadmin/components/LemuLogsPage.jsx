@@ -27,6 +27,7 @@ import LemuChangeFeed from './lemu/LemuChangeFeed';
 import FuelIntegrityLineagePanel from './lemu/FuelIntegrityLineagePanel';
 import { useLemuGraphData, useLemuSelectedNode } from './lemu/graph/useLemuGraphData';
 import { relativeTime } from './lemu/utils';
+import { getUserRole, getUserEmail } from '../../../utils/session';
 import './lemu/LemuLogsPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -109,7 +110,7 @@ const LemuLogsPage = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);
@@ -305,7 +306,7 @@ const LemuLogsPage = () => {
     setResolvingFp(fp);
     setTrackersError('');
     try {
-      await LemuService.resolveError(fp, { resolvedBy: localStorage.getItem('user_email') || undefined });
+      await LemuService.resolveError(fp, { resolvedBy: getUserEmail() || undefined });
       setTrackers((prev) => prev.filter((t) => t.fingerprint !== fp));
       setErrorsSummary((prev) => prev && {
         ...prev,

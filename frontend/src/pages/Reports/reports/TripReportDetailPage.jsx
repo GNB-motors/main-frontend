@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleMap, useLoadScript, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import {
     ArrowLeft, Truck, MapPin, Calendar, User, Fuel, Route,

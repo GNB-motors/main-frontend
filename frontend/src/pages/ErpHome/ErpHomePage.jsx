@@ -38,7 +38,7 @@ const formatMoney = (val) => `₹${(val || 0).toLocaleString('en-IN')}`;
 const ErpHomePage = () => {
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
-  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [, setLoadingSummary] = useState(true);
 
   // Pending queue tab state
   const [queueTab, setQueueTab] = useState('cns'); // 'cns', 'tripClose', 'pods', 'unloading', 'saleBills'
@@ -152,9 +152,10 @@ const ErpHomePage = () => {
           </span>
         </div>
 
-        <div
+        <button
+          type="button"
           className="erp-card"
-          style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}
+          style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer', font: 'inherit', textAlign: 'left' }}
           onClick={() => navigate('/erp/approvals')}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b' }}>
@@ -167,7 +168,7 @@ const ErpHomePage = () => {
           <span style={{ fontSize: '12px', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>
             Review approvals <ArrowRight size={12} />
           </span>
-        </div>
+        </button>
 
         <div className="erp-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b' }}>
@@ -335,7 +336,7 @@ const ErpHomePage = () => {
               { header: 'Total Value', render: (r) => formatMoney(r.totalAmount || r.netReceivable) },
               {
                 header: 'Action',
-                render: (r) => (
+                render: () => (
                   <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => navigate('/erp/billing')}>
                     Go to Billing
                   </button>

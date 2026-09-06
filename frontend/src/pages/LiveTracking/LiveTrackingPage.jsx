@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GoogleMap, useLoadScript, MarkerF, InfoWindowF, PolylineF } from '@react-google-maps/api';
 import {
     Navigation, AlertTriangle, RefreshCw, Truck, WifiOff, CircleParking, Loader2
@@ -14,11 +14,22 @@ import {
     pinIcon,
 } from './liveTracking.shared.js';
 import { getThemeCSS } from '../../utils/colorTheme';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import ExportButton from '../../components/ui/ExportButton';
+import { footerSummary } from '../../lib/tableState';
 import '../FuelComparison/FuelComparison.css';
 import './LiveTracking.css';
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '560px', borderRadius: '0.75rem' };
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+const VEHICLE_EXPORT_COLUMNS = [
+    { key: 'registrationNumber', label: 'Registration' },
+    { key: 'status', label: 'Status' },
+    { key: 'speedKmph', label: 'Speed (km/h)', type: 'number' },
+    { key: 'lastUpdate', label: 'Last update' },
+];
 
 const KpiCard = ({ icon: Icon, label, value, colorClass }) => (
     <div className={`fc-kpi-card fc-kpi-${colorClass}`}>
@@ -44,6 +55,7 @@ const LiveTrackingPage = () => {
     const [trail, setTrail] = useState([]);
     const [trailLoading, setTrailLoading] = useState(false);
     const [trailError, setTrailError] = useState(null);
+    const [vehicleQuery, setVehicleQuery] = useState('');
 
     const mapRef = useRef(null);
     const fetchInFlightRef = useRef(false);
@@ -116,38 +128,71 @@ const LiveTrackingPage = () => {
     const offlineCount = positions.filter((p) => p.state === 'OFFLINE').length;
     const selectedVehicle = positions.find((p) => p.registrationNumber === selectedReg) || null;
 
+    // Client-side search over the whole fleet — the positions payload IS the
+    // entire fleet, so filtering it loses nothing.
+    const needle = vehicleQuery.trim().toLowerCase();
+    const filteredPositions = useMemo(() => {
+        if (!needle) return positions;
+        return positions.filter((v) => [v.registrationNumber, v.vin, getStateMeta(v.state).label]
+            .some((f) => String(f ?? '').toLowerCase().includes(needle)));
+    }, [positions, needle]);
+
+    const vehicleExportRows = filteredPositions.map((v) => ({
+        registrationNumber: v.registrationNumber || v.vin || '—',
+        status: `${getStateMeta(v.state).label}${v.isStale ? ' (stale)' : ''}`,
+        speedKmph: v.speed != null ? Math.round(v.speed) : null,
+        lastUpdate: v.eventDateTime ? formatIST(v.eventDateTime) : '—',
+    }));
+
     return (
         <div className="fc-page" style={themeColors}>
-            {/* Header */}
-            <div className="fc-header-bar">
-                <div className="fc-title-area">
-                    <div className="fc-icon-wrap">
-                        <Navigation size={24} color="#0f172a" />
-                    </div>
-                    <div>
-                        <h1 className="fc-title">Live Tracking</h1>
-                        <span className="fc-subtitle">
-                            Latest vehicle positions — auto-refreshes every 45s while this page is open
-                        </span>
-                    </div>
-                </div>
-                <div className="fc-header-actions">
-                    {lastPolledAt && (
-                        <span className="lt-last-poll">
-                            Updated {lastPolledAt.toLocaleTimeString('en-IN', { hour12: true, timeZone: IST_ZONE })} IST
-                        </span>
-                    )}
-                    <button
-                        className="fc-btn fc-btn-icon"
-                        onClick={() => fetchPositions()}
-                        disabled={isRefreshing}
-                        title="Refresh"
-                    >
-                        {isRefreshing ? <Loader2 size={18} className="fc-spin" /> : <RefreshCw size={18} />}
-                    </button>
-                </div>
-            </div>
-
+            <PageShell
+                title="Live Tracking"
+                subtitle="Latest vehicle positions — auto-refreshes every 45s while this page is open"
+                count={`${filteredPositions.length}/${positions.length}`}
+                freshnessAt={lastPolledAt}
+                actions={(
+                    <>
+                        {lastPolledAt && (
+                            <span className="lt-last-poll">
+                                Updated {lastPolledAt.toLocaleTimeString('en-IN', { hour12: true, timeZone: IST_ZONE })} IST
+                            </span>
+                        )}
+                        <button
+                            className="fc-btn fc-btn-icon"
+                            onClick={() => fetchPositions()}
+                            disabled={isRefreshing}
+                            title="Refresh"
+                        >
+                            {isRefreshing ? <Loader2 size={18} className="fc-spin" /> : <RefreshCw size={18} />}
+                        </button>
+                    </>
+                )}
+                filters={(
+                    <FilterBar
+                        searchValue={vehicleQuery}
+                        onSearchChange={setVehicleQuery}
+                        searchPlaceholder="Search registration or status…"
+                        activeCount={needle ? 1 : 0}
+                        onClear={() => setVehicleQuery('')}
+                        right={(
+                            <ExportButton
+                                rows={vehicleExportRows}
+                                columns={VEHICLE_EXPORT_COLUMNS}
+                                filename="live-vehicles"
+                                meta={{
+                                    generatedAt: new Date(),
+                                    filters: [
+                                        ...(needle ? [{ label: 'Search', value: vehicleQuery.trim() }] : []),
+                                        { label: 'Fleet', value: `${filteredPositions.length} of ${positions.length} vehicles` },
+                                    ],
+                                }}
+                            />
+                        )}
+                    />
+                )}
+                footer={footerSummary({ showing: filteredPositions.length, total: positions.length, activeFilters: needle ? 1 : 0 })}
+            >
             {error && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
                     <AlertTriangle size={14} /> {error}
@@ -173,9 +218,11 @@ const LiveTrackingPage = () => {
                         </div>
                     ) : positions.length === 0 ? (
                         <div className="fc-empty-state">No live positions yet. The backend live-tracking poll populates this.</div>
+                    ) : filteredPositions.length === 0 ? (
+                        <div className="fc-empty-state">No vehicles match “{vehicleQuery.trim()}”. Try another registration or status.</div>
                     ) : (
                         <ul className="lt-vehicle-list">
-                            {positions.map((v) => {
+                            {filteredPositions.map((v) => {
                                 const meta = getStateMeta(v.state);
                                 const isSelected = v.registrationNumber === selectedReg;
                                 return (
@@ -295,6 +342,7 @@ const LiveTrackingPage = () => {
                     )}
                 </div>
             </div>
+            </PageShell>
         </div>
     );
 };

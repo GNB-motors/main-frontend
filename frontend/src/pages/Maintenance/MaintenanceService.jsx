@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getBranchId } from '../../utils/session.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -7,7 +8,7 @@ const authHeader = (token) => ({ Authorization: `Bearer ${token}` });
 // This service uses raw axios (not the shared apiClient), so the X-Branch-Id
 // interceptor doesn't apply — pass the active location explicitly as a query param.
 // Omitted in the enterprise "All locations" view.
-const activeBranchId = () => localStorage.getItem('user_branchId') || null;
+const activeBranchId = () => getBranchId() || null;
 
 // Build a FormData payload for create/update. `attachments` is an array of File/Blob.
 const buildFormData = (payload, attachments) => {

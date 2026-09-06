@@ -177,12 +177,21 @@ const LocationAutocomplete = ({ value, onChange, onLocationSelect, placeholder =
           {value || placeholder}
         </span>
         {value && (
-          <span 
-            role="button" 
-            style={{ flex: 'none', lineHeight: 1, padding: '0 4px', color: '#94a3b8', fontSize: 16 }} 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              if (onChange) onChange(''); 
+          <span
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onChange) onChange('');
+                if (onLocationSelect) onLocationSelect(null);
+              }
+            }}
+            style={{ flex: 'none', lineHeight: 1, padding: '0 4px', color: '#94a3b8', fontSize: 16 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onChange) onChange('');
               if (onLocationSelect) onLocationSelect(null);
             }}
           >
@@ -250,9 +259,21 @@ const LocationAutocomplete = ({ value, onChange, onLocationSelect, placeholder =
                   googlePredictions.map((pred) => {
                     const isSavingThis = savingLocationId === pred.place_id;
                     return (
-                      <div 
-                        key={pred.place_id} 
+                      <div
+                        key={pred.place_id}
                         className="dropdown-item"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            if (allowCustomText) {
+                              handleSelect(pred.structured_formatting?.main_text || pred.description);
+                            } else {
+                              toast.warning("Please click 'Save' to use this new location.");
+                            }
+                          }
+                        }}
                         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', width: '100%', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
                         // If they click the item without saving, we can only emit the string name because we don't have an ID
                         // But if allowCustomText is false (e.g. for Source/Dest), we MUST require them to save it first to get an ID!

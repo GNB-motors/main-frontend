@@ -4,39 +4,37 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Search, Activity, MapPin, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Activity } from 'lucide-react';
 import { toast } from 'react-toastify';
-import RouteService from './RouteService';
 import { useNavigate } from 'react-router-dom';
+import RouteService from './RouteService';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import DataTable from '../../components/ui/DataTable';
+import ExportButton from '../../components/ui/ExportButton';
+import { useConfirm } from '../../components/ui/confirmContext';
 import './RoutesPage.css';
 
+const EXPORT_COLUMNS = [
+  { key: 'name', label: 'Route Name' },
+  { key: 'sourceCity', label: 'Source' },
+  { key: 'destCity', label: 'Destination' },
+  { key: 'distanceKm', label: 'Distance (km)', type: 'number' },
+  { key: 'status', label: 'Status' },
+];
+
 const RoutesPage = () => {
-  // State
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState(null);
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
 
-  // Form state - matches backend API structure
-  const [formData, setFormData] = useState({
-    name: '',
-    sourceLocation: { address: '', city: '', state: '', lat: null, lng: null },
-    destLocation: { address: '', city: '', state: '', lat: null, lng: null },
-    distanceKm: ''
-  });
-
-  // Fetch routes
   const fetchRoutes = useCallback(async (page = 1, search = '') => {
     setLoading(true);
     try {
-      const response = await RouteService.getRoutes({
-        page,
-        limit: 10,
-        search
-      });
+      const response = await RouteService.getRoutes({ page, limit: 10, search });
       setRoutes(response.data || []);
       setMeta(response.meta || { total: 0, page: 1, limit: 10, totalPages: 0 });
     } catch (error) {
@@ -48,247 +46,217 @@ const RoutesPage = () => {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchRoutes(1, '');
   }, [fetchRoutes]);
 
-  // Handle search
-  const handleSearch = useCallback((e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    fetchRoutes(1, value);
-  }, [fetchRoutes]);
+  const handleSearchChange = useCallback(
+    (value) => {
+      setSearchTerm(value);
+      fetchRoutes(1, value);
+    },
+    [fetchRoutes],
+  );
 
-  // Reset form
-  const resetForm = useCallback(() => {
-    setFormData({
-      name: '',
-      sourceLocation: { address: '', city: '', state: '', lat: null, lng: null },
-      destLocation: { address: '', city: '', state: '', lat: null, lng: null },
-      distanceKm: ''
-    });
-  }, []);
+  const openEditPage = useCallback(
+    (route) => {
+      navigate('/routes/add', { state: { editingRoute: route } });
+    },
+    [navigate],
+  );
 
-  // Handle form input change
-  const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  }, []);
-
-  // Handle location input change
-  const handleLocationChange = useCallback((locationType, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [locationType]: {
-        ...prev[locationType],
-        [field]: value
+  const handleDeleteRoute = useCallback(
+    async (route) => {
+      const ok = await confirm({
+        title: 'Delete this route?',
+        body: `"${route.name}" will be permanently removed. This action cannot be undone.`,
+        confirmLabel: 'Delete route',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await RouteService.deleteRoute(route._id);
+        toast.success('Route deleted successfully');
+        fetchRoutes(meta.page, searchTerm);
+      } catch (error) {
+        toast.error(error?.message || 'Failed to delete route');
       }
-    }));
-  }, []);
+    },
+    [confirm, fetchRoutes, meta.page, searchTerm],
+  );
 
+  const handleToggleStatus = useCallback(
+    async (route) => {
+      try {
+        const newStatus = route.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        await RouteService.updateRouteStatus(route._id, newStatus);
+        toast.success(`Route ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'}`);
+        fetchRoutes(meta.page, searchTerm);
+      } catch (error) {
+        toast.error(error?.message || 'Failed to update route status');
+      }
+    },
+    [fetchRoutes, meta.page, searchTerm],
+  );
 
-  // Navigate to edit page
-  const openEditPage = useCallback((route) => {
-    navigate('/routes/add', { state: { editingRoute: route } });
-  }, [navigate]);
+  const exportRows = routes.map((route) => ({
+    name: route.name,
+    sourceCity: `${route.sourceLocation.city}, ${route.sourceLocation.state}`,
+    destCity: `${route.destLocation.city}, ${route.destLocation.state}`,
+    distanceKm: route.distanceKm,
+    status: route.status,
+  }));
 
-  // Open delete modal
-  const openDeleteModal = useCallback((route) => {
-    setSelectedRoute(route);
-    setShowDeleteModal(true);
-  }, []);
-
-
-
-
-
-  // Delete route
-  const handleDeleteRoute = useCallback(async () => {
-    try {
-      await RouteService.deleteRoute(selectedRoute._id);
-      toast.success('Route deleted successfully');
-      setShowDeleteModal(false);
-      setSelectedRoute(null);
-      fetchRoutes(meta.page, searchTerm);
-    } catch (error) {
-      const errorMsg = error?.message || 'Failed to delete route';
-      toast.error(errorMsg);
-    }
-  }, [selectedRoute, fetchRoutes, meta.page, searchTerm]);
-
-  // Toggle status
-  const handleToggleStatus = useCallback(async (route) => {
-    try {
-      const newStatus = route.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      await RouteService.updateRouteStatus(route._id, newStatus);
-      toast.success(`Route ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'}`);
-      fetchRoutes(meta.page, searchTerm);
-    } catch (error) {
-      const errorMsg = error?.message || 'Failed to update route status';
-      toast.error(errorMsg);
-    }
-  }, [fetchRoutes, meta.page, searchTerm]);
+  const columns = [
+    { key: 'name', label: 'Route Name', render: (route) => route.name },
+    {
+      key: 'source',
+      label: 'Source',
+      render: (route) => (
+        <div className="location-info">
+          <strong>
+            {route.sourceLocation.city}, {route.sourceLocation.state}
+          </strong>
+          <span className="location-address">{route.sourceLocation.address}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'destination',
+      label: 'Destination',
+      render: (route) => (
+        <div className="location-info">
+          <strong>
+            {route.destLocation.city}, {route.destLocation.state}
+          </strong>
+          <span className="location-address">{route.destLocation.address}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'distanceKm',
+      label: 'Distance (KM)',
+      align: 'right',
+      render: (route) => `${route.distanceKm} km`,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (route) => (
+        <button
+          type="button"
+          className={`status-badge ${route.status.toLowerCase()}`}
+          onClick={() => handleToggleStatus(route)}
+          title={`Click to ${route.status === 'ACTIVE' ? 'deactivate' : 'activate'}`}
+        >
+          <Activity size={14} />
+          {route.status}
+        </button>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (route) => (
+        <div className="actions-cell">
+          <button
+            type="button"
+            className="btn-icon edit"
+            onClick={() => openEditPage(route)}
+            title="Edit route"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            type="button"
+            className="btn-icon delete"
+            onClick={() => handleDeleteRoute(route)}
+            title="Delete route"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="routes-page">
-      {/* Header */}
-      <div className="routes-header">
-        <h1>Routes Management</h1>
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate('/routes/add')}
-        >
-          <Plus size={18} />
-          Add Route
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="routes-search">
-        <Search size={18} className="search-icon" />
-        <input
-          type="text"
-          placeholder="Search routes by name, source, or destination..."
-          value={searchTerm}
-          onChange={handleSearch}
-          className="search-input"
-        />
-      </div>
-
-      {/* Routes Table */}
-      <div className="routes-container">
-        {loading ? (
-          <div className="loading-state">Loading routes...</div>
-        ) : routes.length === 0 ? (
-          <div className="empty-state">
-            <MapPin size={48} />
-            <p>No routes found</p>
-            <button className="btn btn-primary" onClick={() => navigate('/routes/add')}>
-              Create your first route
+      <PageShell
+        title="Routes Management"
+        count={meta.total}
+        actions={
+          <div className="flex items-center gap-2">
+            <ExportButton
+              rows={exportRows}
+              columns={EXPORT_COLUMNS}
+              filename="routes"
+              disabled={!routes.length}
+            />
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => navigate('/routes/add')}
+            >
+              <Plus size={18} />
+              Add Route
             </button>
           </div>
-        ) : (
-          <>
-            <table className="routes-table">
-              <thead>
-                <tr>
-                  <th>Route Name</th>
-                  <th>Source</th>
-                  <th>Destination</th>
-                  <th>Distance (KM)</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {routes.map(route => (
-                  <tr key={route._id}>
-                    <td className="route-name">{route.name}</td>
-                    <td className="location-cell">
-                      <div className="location-info">
-                        <strong>{route.sourceLocation.city}, {route.sourceLocation.state}</strong>
-                        <span className="location-address">{route.sourceLocation.address}</span>
-                      </div>
-                    </td>
-                    <td className="location-cell">
-                      <div className="location-info">
-                        <strong>{route.destLocation.city}, {route.destLocation.state}</strong>
-                        <span className="location-address">{route.destLocation.address}</span>
-                      </div>
-                    </td>
-                    <td className="distance-cell">{route.distanceKm} km</td>
-                    <td className="status-cell">
-                      <button
-                        className={`status-badge ${route.status.toLowerCase()}`}
-                        onClick={() => handleToggleStatus(route)}
-                        title={`Click to ${route.status === 'ACTIVE' ? 'deactivate' : 'activate'}`}
-                      >
-                        <Activity size={14} />
-                        {route.status}
-                      </button>
-                    </td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn-icon edit"
-                        onClick={() => openEditPage(route)}
-                        title="Edit route"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        className="btn-icon delete"
-                        onClick={() => openDeleteModal(route)}
-                        title="Delete route"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        }
+        filters={
+          <FilterBar
+            searchValue={searchTerm}
+            onSearchChange={handleSearchChange}
+            searchPlaceholder="Search routes by name, source, or destination…"
+          />
+        }
+        footer={
+          meta.totalPages > 1
+            ? `Page ${meta.page} of ${meta.totalPages} · ${meta.total} routes`
+            : null
+        }
+      >
+        <DataTable
+          columns={columns}
+          rows={routes}
+          rowKey={(route) => route._id}
+          loading={loading}
+          showing={routes.length}
+          total={meta.total}
+          emptyTitle="No routes found"
+          emptyAction={
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => navigate('/routes/add')}
+            >
+              Create your first route
+            </button>
+          }
+        />
 
-            {/* Pagination */}
-            {meta.totalPages > 1 && (
-              <div className="pagination">
-                <button
-                  disabled={meta.page === 1}
-                  onClick={() => fetchRoutes(meta.page - 1, searchTerm)}
-                >
-                  Previous
-                </button>
-                <span>{meta.page} of {meta.totalPages}</span>
-                <button
-                  disabled={meta.page === meta.totalPages}
-                  onClick={() => fetchRoutes(meta.page + 1, searchTerm)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-
-
-      {/* Delete Route Modal */}
-      {showDeleteModal && selectedRoute && (
-        <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="delete-modal-container" onClick={e => e.stopPropagation()}>
-            <div className="delete-modal-header">
-              <h2>Delete Route</h2>
-            </div>
-
-            <div className="delete-modal-content">
-              <p>Are you sure you want to delete the route <strong>{selectedRoute.name}</strong>?</p>
-              <p className="delete-modal-warning">
-                <AlertTriangle size={16} />
-                This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="delete-modal-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setSelectedRoute(null);
-                }}
-              >
-                Cancel
-              </button>
-              <button className="btn btn-danger" onClick={handleDeleteRoute}>
-                Delete Route
-              </button>
-            </div>
+        {meta.totalPages > 1 && (
+          <div className="pagination">
+            <button
+              type="button"
+              disabled={meta.page === 1}
+              onClick={() => fetchRoutes(meta.page - 1, searchTerm)}
+            >
+              Previous
+            </button>
+            <span>
+              {meta.page} of {meta.totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={meta.page === meta.totalPages}
+              onClick={() => fetchRoutes(meta.page + 1, searchTerm)}
+            >
+              Next
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </PageShell>
     </div>
   );
 };

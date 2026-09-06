@@ -118,8 +118,8 @@ const BulkUploadResultsSidePanel = ({
                   Errors
                 </h4>
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {uploadResult.errors.map((error, idx) => (
-                    <div key={idx} style={{
+                  {uploadResult.errors.map((error) => (
+                    <div key={error.index} style={{
                       padding: '12px',
                       marginBottom: '8px',
                       backgroundColor: '#fef2f2',

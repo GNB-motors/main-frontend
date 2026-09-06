@@ -7,6 +7,7 @@ import { useOrganization } from '../../contexts/FeatureFlagsContext.jsx';
 import { useActiveBranch } from '../../contexts/BranchContext.jsx';
 import { BranchService } from '../../services/branchService';
 import CompanyLogoUploader from '../../components/CompanyLogoUploader.jsx';
+import { setProfileField, setThemeColor } from '../../utils/session.js';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,7 +22,9 @@ import {
 
 // ── Field row ─────────────────────────────────────────────────────────────────
 
-const Field = ({ icon: Icon, label, value }) => (
+const Field = (props) => {
+    const { icon: Icon, label, value } = props;
+    return (
     <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white px-4 py-3.5 shadow-[0_1px_4px_rgba(41,64,211,0.06)] transition-shadow hover:shadow-[0_2px_10px_rgba(41,64,211,0.1)]">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             <Icon size={15} />
@@ -35,18 +38,22 @@ const Field = ({ icon: Icon, label, value }) => (
             </p>
         </div>
     </div>
-);
+    );
+};
 
 // ── Section header ────────────────────────────────────────────────────────────
 
-const SectionHeader = ({ icon: Icon, title }) => (
+const SectionHeader = (props) => {
+    const { icon: Icon, title } = props;
+    return (
     <div className="mb-3 flex items-center gap-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-50 text-blue-500">
             <Icon size={13} />
         </div>
         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{title}</p>
     </div>
-);
+    );
+};
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -379,16 +386,16 @@ const ProfilePage = () => {
                 setOrganizationData(organization);
 
                 if (user) {
-                    localStorage.setItem('profile_id', user.id);
-                    localStorage.setItem('profile_owner_email', user.email);
-                    localStorage.setItem('primaryThemeColor', user.primaryThemeColor || '#2940d3');
-                    // Dispatch so Sidebar/Navbar re-render with the loaded colour in the same tab
-                    window.dispatchEvent(new CustomEvent('themeColorChange'));
+                    setProfileField('id', user.id);
+                    setProfileField('owner_email', user.email);
+                    // setThemeColor dispatches themeColorChange itself, so
+                    // Sidebar/Navbar re-render with the loaded colour in the same tab
+                    setThemeColor(user.primaryThemeColor || '#2940d3');
                 }
                 if (organization) {
-                    localStorage.setItem('profile_company_name', organization.companyName);
-                    localStorage.setItem('profile_gstin', organization.gstin);
-                    localStorage.setItem('profile_owner_email', organization.ownerEmail);
+                    setProfileField('company_name', organization.companyName);
+                    setProfileField('gstin', organization.gstin);
+                    setProfileField('owner_email', organization.ownerEmail);
                 }
             } catch (err) {
                 console.error('Failed to load profile:', err);

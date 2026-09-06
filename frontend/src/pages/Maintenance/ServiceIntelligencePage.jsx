@@ -5,6 +5,9 @@ import { ArrowLeft, Paperclip, Plus, Search, Trash2, Wrench } from 'lucide-react
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
+import { getToken } from '../../utils/session.js';
+import StatusChip from '../../components/ui/StatusChip';
+import { useConfirm } from '../../components/ui/confirmContext';
 import '../Profile/VehiclesPage.css';
 
 const TABS = [
@@ -35,6 +38,7 @@ const ServiceIntelligencePage = () => {
   // add-page so the user lands on the tab they just contributed to.
   const navState = typeof window !== 'undefined' ? (window.history.state?.usr || {}) : {};
   const [activeTab, setActiveTab] = useState(navState.focusTab || 'SERVICE');
+  const confirm = useConfirm();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -58,7 +62,7 @@ const ServiceIntelligencePage = () => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const res = await MaintenanceService.listRecords(token, {
         recordType,
         search: q || undefined,
@@ -85,9 +89,15 @@ const ServiceIntelligencePage = () => {
   }, [search, activeTab, load]);
 
   const handleDelete = async (row) => {
-    if (!window.confirm(`Delete this ${activeTab.toLowerCase()} entry? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Delete this ${activeTab.toLowerCase()} entry?`,
+      body: 'This cannot be undone.',
+      confirmLabel: 'Delete entry',
+      danger: true,
+    });
+    if (!ok) return;
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       await MaintenanceService.deleteRecord(token, row._id);
       setRows((prev) => prev.filter((r) => r._id !== row._id));
       toast.success('Record deleted');
@@ -346,7 +356,7 @@ const RecordsTab = ({ activeTab, rows, loading, kpi, search, setSearch, onAdd, o
                       <td style={td}>{formatDate(r.date)}</td>
                       {isService && <td style={td}>{formatKm(r.currentKm)}</td>}
                       <td style={td}>{r.workshop}</td>
-                      <td style={td}>{r.type}</td>
+                      <td style={td}><StatusChip group="serviceType" value={r.type} /></td>
                       <td style={td}>{formatCurrency(r.amount)}</td>
                       <td style={{ ...td, maxWidth: 260, color: '#475569' }}>
                         {r.notes ? <span title={r.notes}>{r.notes.length > 60 ? `${r.notes.slice(0, 60)}…` : r.notes}</span> : '—'}

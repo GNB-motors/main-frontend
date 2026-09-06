@@ -16,7 +16,7 @@ const ImageCropper = ({
     isUploading = false,
 }) => {
     const [zoom, setZoom] = useState(100);
-    const [rotation, setRotation] = useState(0);
+    const [_rotation, setRotation] = useState(0);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [currentSrc, setCurrentSrc] = useState(src);
     const [pendingFile, setPendingFile] = useState(null);
@@ -140,7 +140,7 @@ const ImageCropper = ({
                 "image/jpeg",
                 0.8
             );
-        } catch (error) {
+        } catch {
             toast.error("An error occurred while processing the image. Please try again.");
         }
     };
@@ -178,7 +178,9 @@ const ImageCropper = ({
         if (pendingImageUrl) {
             try {
                 URL.revokeObjectURL(pendingImageUrl);
-            } catch {}
+            } catch {
+                // ignore URL.revokeObjectURL errors
+            }
         }
         setPendingFile(null);
         setPendingImageUrl(null);
@@ -245,7 +247,7 @@ const ImageCropper = ({
                     const imageData = cropperRef.current.cropper.getImageData();
                     const initialZoom = imageData?.zoom || 1;
                     setZoom(Math.round(initialZoom * 100));
-                } catch (e) {
+                } catch {
                     setZoom(100);
                 }
                 setImageLoaded(true);
@@ -339,7 +341,9 @@ const ImageCropper = ({
                                             if (imageData && imageData.zoom && !isNaN(imageData.zoom)) {
                                                 setZoom(Math.round(imageData.zoom * 100));
                                             }
-                                        } catch (error) {}
+                                        } catch {
+                                            // ignore transient getImageData errors during crop drag
+                                        }
                                     }
                                     if (circularCrop) setupCircularCropWithFourPoints();
                                 }}

@@ -12,8 +12,8 @@ import { searchEntities, getEntityById, ENTITY_LABELS } from './entityLookup.ser
  *
  * Hand-rolled rather than reusing SearchableDropdown (which filters a
  * pre-loaded array client-side, so it cannot page through a large master list)
- * or react-select (used by zero ERP pages; adding it introduces a second form
- * control language across the module).
+ * or an external select library (which would introduce a second form control
+ * language across the module).
  */
 const EntityPicker = ({
   type,
@@ -185,7 +185,7 @@ const EntityPicker = ({
       )}
 
       {open && (
-        <ul
+        <div
           id={listboxId}
           role="listbox"
           style={{
@@ -196,18 +196,19 @@ const EntityPicker = ({
           }}
         >
           {loading && (
-            <li style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>Searching…</li>
+            <div style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>Searching…</div>
           )}
           {!loading && options.length === 0 && (
-            <li style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>
+            <div style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>
               {query ? `No ${label} matches “${query}”` : `No ${label} records yet`}
-            </li>
+            </div>
           )}
           {!loading && options.map((row, idx) => (
-            <li
+            <div
               key={row.id}
               id={`${listboxId}-${idx}`}
               role="option"
+              tabIndex={-1}
               aria-selected={idx === highlight}
               onMouseEnter={() => setHighlight(idx)}
               onMouseDown={(e) => { e.preventDefault(); choose(row); }}
@@ -222,9 +223,9 @@ const EntityPicker = ({
                   {[row.code, row.meta].filter(Boolean).join(' · ')}
                 </div>
               )}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

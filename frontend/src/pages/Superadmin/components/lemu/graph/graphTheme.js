@@ -19,6 +19,9 @@
    at reduced saturation — #C98F5E in dark, #9E602E in light — keeping it
    distinct from mount in both themes. */
 
+import { getPref, setPref } from '../../../../../utils/session.js';
+
+
 export const KINDS = {
   host:      { c: '#8592AD', label: 'host' },
   source:    { c: '#FBBF24', label: 'source' },
@@ -259,24 +262,15 @@ export const nodeAppearance = (node, ctx = {}) => {
 
 export const THEME_STORAGE_KEY = 'lemu-graph-theme';
 
-/* localStorage is best-effort: private mode, disabled storage and sandboxed
-   iframes can all throw. Any unreadable value means dark (the design's
-   default board). */
-export const readStoredTheme = () => {
-  try {
-    const v = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return v === 'light' ? 'light' : 'dark';
-  } catch {
-    return 'dark';
-  }
-};
+/* Storage is best-effort (via utils/session.js prefs): private mode, disabled
+   storage and sandboxed iframes can all throw. Any unreadable value means dark
+   (the design's default board). */
+export const readStoredTheme = () =>
+  getPref(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
 
 export const writeStoredTheme = (theme) => {
-  try {
-    window.localStorage.setItem(THEME_STORAGE_KEY, theme === 'light' ? 'light' : 'dark');
-  } catch {
-    /* persistence is a convenience, not a requirement */
-  }
+  // persistence is a convenience, not a requirement
+  setPref(THEME_STORAGE_KEY, theme === 'light' ? 'light' : 'dark');
 };
 
 export const applyThemeVars = (el, theme) => {

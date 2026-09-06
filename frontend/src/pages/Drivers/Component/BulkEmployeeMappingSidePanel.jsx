@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Check } from "lucide-react";
 import ChevronIcon from "../../Trip/assets/ChevronIcon.jsx";
 import NewButton from "@/components/ui/NewButton";
+import { toast } from "react-toastify";
 import "./BulkEmployeeMappingSidePanel.css";
 
 const FIELD_TARGETS = [
@@ -73,7 +74,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
     const missing = requiredFields.filter((f) => !mapping[f.key]);
 
     if (missing.length > 0) {
-      alert(`Please map the following required fields: ${missing.map((f) => f.label).join(", ")}`);
+      toast.error(`Please map the following required fields: ${missing.map((f) => f.label).join(", ")}`);
       return;
     }
 
@@ -83,7 +84,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
   const getDisabledOptions = (currentFieldKey) => {
     return Object.entries(selectedOptions)
       .filter(([fieldKey, selected]) => fieldKey !== currentFieldKey && selected)
-      .map(([_, selected]) => selected);
+      .map(([, selected]) => selected);
   };
 
   const scrollToDropdown = (dropdownElement) => {

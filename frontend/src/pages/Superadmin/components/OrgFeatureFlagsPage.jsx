@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Building2, ChevronRight, Inbox, Trash2, AlertTriangle, X, Flame } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
+import useApi from '../../../hooks/useApi';
+import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -264,7 +266,6 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
 const OrgFeatureFlagsPage = () => {
   const navigate = useNavigate();
   const [orgs, setOrgs] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
 
@@ -272,26 +273,27 @@ const OrgFeatureFlagsPage = () => {
   const [orgToDelete, setOrgToDelete] = useState(null);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);
 
+  const { data: orgsResponse, loading, error: orgsError } = useApi(
+    (signal) => apiClient.get('/api/admin/organizations', { signal }),
+    []
+  );
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await apiClient.get('/api/admin/organizations');
-        setOrgs(res.data?.data ?? []);
-      } catch (e) {
-        setError(e.response?.data?.message || 'Failed to load organizations');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    if (loading) setError('');
+  }, [loading]);
+
+  useEffect(() => {
+    if (orgsResponse) setOrgs(orgsResponse.data?.data ?? []);
+  }, [orgsResponse]);
+
+  useEffect(() => {
+    if (orgsError) setError(orgsError.response?.data?.message || 'Failed to load organizations');
+  }, [orgsError]);
 
   const filtered = orgs.filter((o) => {
     if (!query) return true;

@@ -8,6 +8,7 @@ import '../PageStyles.css';
 import '../Trip/RefuelLogsPage.css';
 import './AdBlueTrackingPage.css';
 import apiClient from '../../utils/axiosConfig';
+import { useApi } from '../../hooks/useApi';
 import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 import DocumentService from '../Trip/services/DocumentService';
 
@@ -21,10 +22,10 @@ const formatCurrency = (value) => {
   })}`;
 };
 
-const fetchAdBlueLogs = async ({ page = 1, limit = PAGE_SIZE, search } = {}) => {
+const fetchAdBlueLogs = async ({ page = 1, limit = PAGE_SIZE, search, signal } = {}) => {
   const params = { page, limit };
   if (search) params.search = search;
-  const response = await apiClient.get('/api/adblue-logs', { params });
+  const response = await apiClient.get('/api/adblue-logs', { params, signal });
   if (response.data.status === 'success') {
     const mapped = (response.data.data || []).map((log) => ({
       id: log._id,
@@ -51,7 +52,6 @@ const AdBlueTrackingPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
@@ -72,28 +72,30 @@ const AdBlueTrackingPage = () => {
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  const loadLogs = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { logs: rows, total } = await fetchAdBlueLogs({
-        page: pagination.page,
-        limit: pagination.limit,
-        search: debouncedSearch,
-      });
-      setLogs(rows);
-      setPagination((p) => ({ ...p, total }));
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load AdBlue logs');
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: logsResult, loading, error: logsLoadError, refetch: refetchLogs } = useApi(
+    (signal) => fetchAdBlueLogs({
+      page: pagination.page,
+      limit: pagination.limit,
+      search: debouncedSearch,
+      signal,
+    }),
+    [JSON.stringify({ page: pagination.page, search: debouncedSearch })]
+  );
 
   useEffect(() => {
-    loadLogs();
-  }, [pagination.page, debouncedSearch]);
+    if (logsResult) {
+      setLogs(logsResult.logs);
+      setPagination((p) => ({ ...p, total: logsResult.total }));
+      setError(null);
+    }
+  }, [logsResult]);
+
+  useEffect(() => {
+    if (logsLoadError) {
+      setError(logsLoadError.response?.data?.message || 'Failed to load AdBlue logs');
+      setLogs([]);
+    }
+  }, [logsLoadError]);
 
   useEffect(() => {
     setPagination((p) => ({ ...p, page: 1 }));
@@ -142,7 +144,7 @@ const AdBlueTrackingPage = () => {
       });
       toast.success('AdBlue entry updated');
       setEditingLog(null);
-      await loadLogs();
+      refetchLogs();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update AdBlue entry');
     } finally {
@@ -157,7 +159,7 @@ const AdBlueTrackingPage = () => {
       await apiClient.delete(`/api/adblue-logs/${deletingLog.id}`);
       toast.success('AdBlue entry deleted');
       setDeletingLog(null);
-      await loadLogs();
+      refetchLogs();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete AdBlue entry');
     } finally {
