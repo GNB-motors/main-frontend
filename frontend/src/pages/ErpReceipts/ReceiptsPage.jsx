@@ -86,12 +86,14 @@ const ReceiptsPage = ({ embedded = false }) => {
 
   useEffect(() => {
     loadParties();
-  }, [loadParties]);
+    // Load the unadjusted queue up front so the summary tiles are populated on
+    // every tab, not only once the user opens "Adjust to bills".
+    loadUnadjusted();
+  }, [loadParties, loadUnadjusted]);
 
   useEffect(() => {
-    if (tab === 'adjust') loadUnadjusted();
     if (tab === 'report') loadReport();
-  }, [tab, loadUnadjusted, loadReport]);
+  }, [tab, loadReport]);
 
   const submitReceipt = async (e) => {
     e.preventDefault();
@@ -149,6 +151,12 @@ const ReceiptsPage = ({ embedded = false }) => {
     if (!selectedVoucherId || !selectedBillId || !context) return;
     const bill = context.bills.find((b) => b.billId === selectedBillId);
     if (!bill) return;
+    // Client-side guard mirrors the live footer; the backend also rejects
+    // over-allocation, but blocking here avoids a round-trip and a toast.
+    if (!canPost) {
+      toast.error('Fix the allocation before posting — it exceeds the receipt or the bill.');
+      return;
+    }
 
     const cnAllocations = (bill.cns || []).map((cn) => ({
       cnId: cn.cnId,
@@ -192,6 +200,18 @@ const ReceiptsPage = ({ embedded = false }) => {
 
   const selectedBill = context?.bills?.find((b) => b.billId === selectedBillId);
 
+  // Live allocation math — the "received / applied / remaining" the vision wants,
+  // with partial and overpayment (customer-advance) states made explicit.
+  const toAllocateTotal = unadjusted.reduce((s, v) => s + (v.unadjustedAmount || 0), 0);
+  const voucherUnadjusted = context?.voucher?.unadjustedAmount || 0;
+  const allocatingForBill = selectedBill
+    ? (selectedBill.cns || []).reduce((s, cn) => s + lineTotal(cnDraft[cn.cnId] || emptyCnRow()), 0)
+    : 0;
+  const remaining = voucherUnadjusted - allocatingForBill;
+  const overBill = !!selectedBill && allocatingForBill > (selectedBill.outstandingAmount || 0) + 0.001;
+  const overVoucher = remaining < -0.001;
+  const canPost = allocatingForBill > 0.001 && !overBill && !overVoucher;
+
   return (
     <PageShell
       embedded={embedded}
@@ -199,6 +219,17 @@ const ReceiptsPage = ({ embedded = false }) => {
       subtitle="Record party receipts first, then CN-wise bill allocation when details arrive."
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Receipts' }]}
     >
+
+      <div className="erp-buckets">
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{money(toAllocateTotal)}</span>
+          <span className="erp-bucket-label">To allocate</span>
+        </div>
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{unadjusted.length}</span>
+          <span className="erp-bucket-label">Unadjusted receipts</span>
+        </div>
+      </div>
 
       <div className="erp-tabs">
         {[
@@ -453,11 +484,42 @@ const ReceiptsPage = ({ embedded = false }) => {
                       </tbody>
                     </table>
                   </div>
+                  <div className="erp-alloc-foot">
+                    <div className="erp-alloc-cell">
+                      <span>Receipt available</span>
+                      <strong>{money(voucherUnadjusted)}</strong>
+                    </div>
+                    <div className="erp-alloc-cell">
+                      <span>Applying</span>
+                      <strong>{money(allocatingForBill)}</strong>
+                    </div>
+                    <div className={`erp-alloc-cell ${overVoucher ? 'neg' : ''}`}>
+                      <span>{remaining >= 0 ? 'Left unapplied' : 'Over-allocated'}</span>
+                      <strong>{money(remaining)}</strong>
+                    </div>
+                  </div>
+
+                  {overBill && (
+                    <p className="erp-alloc-warn">
+                      Allocation exceeds this bill&apos;s outstanding of {money(selectedBill.outstandingAmount)}.
+                    </p>
+                  )}
+                  {overVoucher && (
+                    <p className="erp-alloc-warn">
+                      Allocation exceeds the receipt&apos;s available balance.
+                    </p>
+                  )}
+                  {!overBill && !overVoucher && remaining > 0.001 && (
+                    <p className="erp-alloc-note">
+                      {money(remaining)} stays as a customer advance on this receipt — allocate it to another bill later.
+                    </p>
+                  )}
+
                   <div className="erp-form-actions">
                     <button
                       type="button"
                       className="erp-btn primary"
-                      disabled={busy}
+                      disabled={busy || !canPost}
                       onClick={submitAdjustment}
                     >
                       Post adjustment

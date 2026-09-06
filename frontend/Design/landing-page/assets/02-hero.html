@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge · Hero</title>
+<link rel="stylesheet" href="../../assets/ds/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400&display=swap">
+<style>
+  body { margin:0; background:#F4F5FA; -webkit-font-smoothing:antialiased; }
+  a { color: var(--nova-rage-600); text-decoration:none; }
+  a:hover { color: var(--nova-rage-700); }
+  @keyframes gnb-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -248; } }
+  @keyframes arch-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -200; } }
+  @keyframes arch-orb { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.14); opacity:.28; } }
+  @keyframes gnb-orb { 0%,100% { transform:scale(1); opacity:.5; } 50% { transform:scale(1.14); opacity:.28; } }
+  @keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+  @keyframes cap-run { from { offset-distance:0%; } to { offset-distance:100%; } }
+  @keyframes cap-draw { 0% { stroke-dashoffset:520; } 45%, 78% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-520; } }
+  @keyframes cap-flow { from { stroke-dashoffset:0; } to { stroke-dashoffset:-170; } }
+  @keyframes cap-geo { 0% { transform:scale(.6); opacity:.9; } 100% { transform:scale(1.25); opacity:0; } }
+  @keyframes cap-ring { 0% { transform:scale(.82); opacity:.85; } 100% { transform:scale(1.28); opacity:0; } }
+  @keyframes cap-glow { 0%,100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.08); } }
+  @keyframes cap-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
+  @keyframes cap-blink { 0%,100% { opacity:1; } 50% { opacity:.32; } }
+  @keyframes cap-spine { 0% { top:56px; opacity:0; } 12% { opacity:1; } 88% { opacity:1; } 100% { top:calc(100% - 62px); opacity:0; } }
+  @keyframes cap-bar { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+  @keyframes cap-fade { from { opacity:0; } to { opacity:1; } }
+  @keyframes cap-doc { 0% { transform:translateY(6px); opacity:.55; } 18%, 82% { transform:none; opacity:1; } 100% { transform:translateY(-6px); opacity:.55; } }
+  @keyframes cap-scan { 0% { top:-80px; } 100% { top:100%; } }
+  @keyframes cap-insight { 0%, 6% { opacity:.28; transform:translateY(6px); } 14%, 34% { opacity:1; transform:none; } 46%, 100% { opacity:.28; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; } }
+  body { transition: background-color 420ms cubic-bezier(.2,0,0,1); }
+  body[data-theme="dark"] { background:#0B0F20; }
+  [data-navshell] { transition: background-color 420ms cubic-bezier(.2,0,0,1), border-color 420ms cubic-bezier(.2,0,0,1); }
+  [data-navshell] a, [data-navshell] button, [data-navshell] span { transition: color 420ms cubic-bezier(.2,0,0,1), border-color 420ms cubic-bezier(.2,0,0,1); }
+  body[data-theme="dark"] [data-navshell] { background:rgba(11,15,32,.86) !important; border-bottom-color:rgba(255,255,255,.10) !important; }
+  body[data-theme="dark"] [data-navshell] a, body[data-theme="dark"] [data-navshell] button { color:rgba(255,255,255,.86) !important; }
+  body[data-theme="dark"] [data-navshell] [data-navcta] { color:#FFFFFF !important; }
+  @keyframes cap-plane { 0%,100% { transform:perspective(700px) rotateX(24deg) translateY(0); } 50% { transform:perspective(700px) rotateX(24deg) translateY(-5px); } }
+  @keyframes cap-drop { 0% { transform:translateY(0); opacity:0; } 15% { opacity:1; } 85% { opacity:1; } 100% { transform:translateY(210px); opacity:0; } }
+  @keyframes hero-swap { 0% { opacity:0; transform:translateY(18px) scale(.968); } 6% { opacity:1; transform:translateY(0) scale(1); } 50% { opacity:1; transform:translateY(0) scale(1); } 56% { opacity:0; transform:translateY(-18px) scale(.968); } 100% { opacity:0; transform:translateY(-18px) scale(.968); } }
+  @keyframes tile-draw { 0%, 7% { stroke-dashoffset:var(--d); } 34% { stroke-dashoffset:0; } 100% { stroke-dashoffset:0; } }
+  @keyframes tile-bar { 0%, 7% { transform:scaleX(0); } 32% { transform:scaleX(1); } 100% { transform:scaleX(1); } }
+  @keyframes tile-rise { 0%, 7% { opacity:0; transform:translateY(9px); } 24% { opacity:1; transform:translateY(0); } 100% { opacity:1; transform:translateY(0); } }
+  @keyframes tile-pop { 0%, 10% { opacity:0; transform:scale(.55); } 26% { opacity:1; transform:scale(1); } 100% { opacity:1; transform:scale(1); } }
+  @keyframes tile-ping { 0%, 100% { transform:scale(.7); opacity:.7; } 55% { transform:scale(2); opacity:0; } }
+  @media (prefers-reduced-motion:reduce) { [data-swaptile], [data-swaptile] * { animation:none !important; } [data-swapslot] > [data-swaptile]:first-child { opacity:1 !important; } }
+  @media (max-width:1140px) { [data-hero-grid] { grid-template-columns:minmax(0,1fr) !important; gap:56px !important; } [data-hero-mosaic] { justify-self:start; } }
+
+  [data-capscroll] { scrollbar-width:none; -ms-overflow-style:none; }
+  [data-capscroll]::-webkit-scrollbar { display:none; width:0; height:0; }
+  [data-dk-btn], [data-dk-rail], [data-capthumb] { transition: background 700ms cubic-bezier(.2,0,0,1), border-color 700ms cubic-bezier(.2,0,0,1), color 700ms cubic-bezier(.2,0,0,1); }
+  body:not([data-theme="dark"]) [data-dk-btn] { background:#FFFFFF !important; border-color:rgba(5,8,22,.12) !important; color:#050816 !important; }
+  body:not([data-theme="dark"]) [data-dk-rail] { background:rgba(5,8,22,.10) !important; }
+  body:not([data-theme="dark"]) [data-capthumb] { background:var(--nova-rage-400) !important; }
+  @keyframes cap-stamp { 0%, 42% { opacity:0; transform:scale(.7); } 52% { opacity:1; transform:scale(1.08); } 60%, 92% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(1); } }
+  [data-card], [data-card-body], [data-card-title], [data-card-desc], [data-dk-h], [data-dk-accent], [data-dk-p], [data-dk-eyebrow], [data-dk-mono], [data-dk-link], [data-dk-pill] { transition: background 700ms cubic-bezier(.2,0,0,1), border-color 700ms cubic-bezier(.2,0,0,1), color 700ms cubic-bezier(.2,0,0,1), box-shadow 700ms cubic-bezier(.2,0,0,1); }
+  body:not([data-theme="dark"]) [data-card] { background:#FFFFFF !important; border-color:rgba(5,8,22,.07) !important; box-shadow:0 10px 30px rgba(30,34,56,.10) !important; }
+  body:not([data-theme="dark"]) [data-card-body] { border-top-color:rgba(5,8,22,.07) !important; }
+  body:not([data-theme="dark"]) [data-card-title], body:not([data-theme="dark"]) [data-dk-h] { color:#050816 !important; }
+  body:not([data-theme="dark"]) [data-card-desc], body:not([data-theme="dark"]) [data-dk-p] { color:#5D5D5E !important; }
+  body:not([data-theme="dark"]) [data-dk-accent] { color:var(--nova-rage-400) !important; }
+  body:not([data-theme="dark"]) [data-dk-eyebrow], body:not([data-theme="dark"]) [data-dk-link] { color:var(--nova-rage-600) !important; }
+  body:not([data-theme="dark"]) [data-dk-pill] { background:rgba(68,105,240,.08) !important; border-color:rgba(68,105,240,.22) !important; }
+  body:not([data-theme="dark"]) [data-dk-mono] { color:#93939A !important; }
+</style>
+</head>
+<body>
+<div style="font-family:var(--font-ui); color:#050816; background:#F4F5FA; overflow-x:hidden">
+  <section id="top" data-screen-label="Hero" style="position:relative; background:#F4F5FA; padding:104px 40px">
+    <div data-hero-grid style="max-width:1280px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1fr) 620px; gap:72px; align-items:center">
+      <div data-reveal-group>
+        <h1 style="font-family:var(--font-display); font-weight:700; font-size:62px; line-height:1.06; letter-spacing:-2.2px; color:#050816; margin:0; text-wrap:pretty">The unified <span style="color:var(--nova-rage-400)">AI-native</span> platform for fleet operations.</h1>
+        <p style="font-size:18px; line-height:30px; color:#5D5D5E; margin:30px 0 0; max-width:560px; text-wrap:pretty">From GPS telemetry and trip dispatch to GST, e-way bills, ledgers, payments and reporting, GNB Edge brings every part of fleet operations together on one intelligent platform, on web, mobile and API, built for single owners, contract fleets and enterprise networks alike.</p>
+        <div style="display:flex; gap:32px; align-items:center; margin-top:44px">
+          <a href="#demo" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#FFFFFF; background:var(--nova-rage-400); border:1px solid var(--nova-rage-800); padding:18px 44px; border-radius:999px; transition:background 200ms cubic-bezier(.2,0,0,1)" style-hover="background:var(--nova-rage-700); color:#FFFFFF">Reach us</a>
+          <a href="#platform" style="font-family:var(--font-ui); font-size:16px; font-weight:600; color:#050816; display:flex; align-items:center; gap:9px" style-hover="color:var(--nova-rage-600)">See the platform <span style="color:var(--nova-rage-400)">→</span></a>
+        </div>
+      </div>
+
+      <div data-reveal data-hero-mosaic style="position:relative">
+        <div style="display:grid; grid-template-columns:repeat(3, 196px); gap:16px; align-items:start; width:620px">
+          <div style="display:flex; flex-direction:column; gap:16px; padding-top:0px">
+            <div data-swapslot style="position:relative; height:182px">
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:0s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Fleet live</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">30 s refresh</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="display:flex; align-items:baseline; gap:7px; min-width:0; overflow:hidden; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:0s"><span style="font-family:var(--font-display); font-weight:700; font-size:30px; letter-spacing:-1.3px">38</span><span style="font-size:11px; color:#93939A; white-space:nowrap">of 44 moving</span></div>
+                  <svg viewBox="0 0 212 46" preserveAspectRatio="none" style="width:100%; height:46px; display:block; overflow:visible"><path d="M2 36 C32 31 48 19 76 20 C110 21 128 10 162 11 C186 12 198 7 210 6" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" style="--d:232; stroke-dasharray:232; animation:tile-draw 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:0s"></path><circle cx="210" cy="6" r="3.4" fill="#4469F0" style="opacity:0; transform-origin:210px 6px; animation:tile-pop 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:0.9s"></circle></svg></div>
+              </div>
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-4.5s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Party ledger</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">Shree Traders</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="display:flex; flex-direction:column"><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-4.5s"><span style="font-size:10.5px; color:#5D5D5E">Invoiced</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">₹6.41L</span></span><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-4.39s"><span style="font-size:10.5px; color:#5D5D5E">Received</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">₹1.59L</span></span></div>
+                  <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding-top:9px; border-top:1px solid rgba(5,8,22,.09); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-4.2s"><span style="font-size:10.5px; font-weight:600">Balance</span><span style="font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:-.7px; color:var(--nova-rage-600)">₹4.82L</span></div></div>
+              </div>
+            </div>
+            <div data-swapslot style="position:relative; height:202px">
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-1.5s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Fuel gap</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">audit raised</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="display:flex; flex-direction:column; gap:8px">
+                    <span style="display:flex; align-items:center; gap:4px; height:19px"><span style="flex:1; height:100%; border-radius:5px; background:rgba(68,105,240,.42); transform-origin:left; animation:tile-bar 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-1.5s"></span></span>
+                    <span style="display:flex; align-items:center; gap:4px; height:19px; transform-origin:left; animation:tile-bar 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-1.34s"><span style="flex:0 0 84%; height:100%; border-radius:5px; background:rgba(68,105,240,.20)"></span><span style="flex:1; height:100%; border-radius:5px; background:repeating-linear-gradient(135deg, rgba(229,104,107,.36) 0 4px, rgba(229,104,107,.12) 4px 8px)"></span></span>
+                  </div>
+                  <div style="display:flex; align-items:baseline; gap:6px; min-width:0; overflow:hidden; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-1.08s"><span style="font-family:var(--font-display); font-weight:700; font-size:24px; letter-spacing:-.9px; color:#C4494C; white-space:nowrap">25.6 L</span><span style="font-size:10.5px; color:#93939A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">unaccounted</span></div></div>
+              </div>
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-6s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Proof of delivery</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">signed 12:41</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <svg viewBox="0 0 200 48" preserveAspectRatio="none" style="width:100%; height:48px; display:block; overflow:visible"><path d="M8 38 C24 8 34 42 48 26 C62 10 70 36 86 20 C102 4 112 32 130 22 C146 14 156 26 168 18 C178 12 186 20 194 14" fill="none" stroke="#050816" stroke-width="1.8" stroke-linecap="round" style="--d:330; stroke-dasharray:330; animation:tile-draw 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-6s"></path></svg>
+                  <div style="display:flex; gap:7px">
+                    <span style="flex:1; font-family:var(--font-mono); font-size:9px; color:#5D5D5E; padding:6px 0; text-align:center; border-radius:7px; background:#F4F5FA; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-5.25s">2 photos</span>
+                    <span style="flex:1; font-family:var(--font-mono); font-size:9px; color:#5D5D5E; padding:6px 0; text-align:center; border-radius:7px; background:#F4F5FA; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-5.12s">GPS stamped</span>
+                  </div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:16px; padding-top:30px">
+            <div data-swapslot style="position:relative; height:210px">
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-3s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Trip record</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">CN-40224</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="display:flex; flex-direction:column"><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-3s"><span style="font-size:10.5px; color:#5D5D5E">Vehicle</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">GJ-05-KT-1180</span></span><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-2.89s"><span style="font-size:10.5px; color:#5D5D5E">Driver</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">R. Sharma</span></span><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-2.78s"><span style="font-size:10.5px; color:#5D5D5E">Distance</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">588 km</span></span></div>
+                  <div style="display:flex; align-items:center; gap:7px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-2.6s"><span style="font-size:9px; font-weight:600; padding:3px 9px; border-radius:999px; background:rgba(68,105,240,.12); color:var(--nova-rage-600); white-space:nowrap">in transit</span><span style="margin-left:auto; display:flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:9.5px; color:#5D5D5E; white-space:nowrap">e-way <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#187A32" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" style="--d:24; stroke-dasharray:24; animation:tile-draw 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-2.45s"></path></svg></span></div></div>
+              </div>
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-7.5s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Service due</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">2 vehicles</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="display:flex; flex-direction:column"><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-7.5s"><span style="font-size:10.5px; color:#5D5D5E">MH-04-BR-2210</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">4,120 km over</span></span><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-7.39s"><span style="font-size:10.5px; color:#5D5D5E">GJ-05-KT-1180</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">due in 3 days</span></span></div>
+                  <div style="display:flex; align-items:baseline; gap:6px; min-width:0; overflow:hidden; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-7.2s"><span style="font-family:var(--font-display); font-weight:700; font-size:24px; letter-spacing:-.9px; color:#C4494C; white-space:nowrap">₹41,200</span><span style="font-size:10.5px; color:#93939A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">held up</span></div></div>
+              </div>
+            </div>
+            <div data-swapslot style="position:relative; height:182px">
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:linear-gradient(150deg, #2F58EE 0%, #213EA7 100%); border:1px solid rgba(146,168,255,.4); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-0.75s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.72); white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">AI recovery</span><span style="font-family:var(--font-mono); font-size:9.5px; color:rgba(255,255,255,.5); white-space:nowrap; flex:0 0 auto">this quarter</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <span style="width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,.18); display:grid; place-items:center; opacity:0; animation:tile-pop 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-0.75s"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path></svg></span>
+                  <div>
+                    <div style="font-family:var(--font-display); font-weight:700; font-size:28px; letter-spacing:-1.1px; color:#FFFFFF; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-0.57s">₹2.93L</div>
+                    <div style="font-size:10.5px; line-height:16px; color:rgba(255,255,255,.8); margin-top:5px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-0.43s">recoverable across 6 routes, found by AI</div>
+                  </div></div>
+              </div>
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-5.25s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Mileage drift</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">−13 %</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <svg viewBox="0 0 212 76" preserveAspectRatio="none" style="width:100%; height:76px; display:block; overflow:visible"><path d="M0 20 H212 M0 48 H212" stroke="rgba(5,8,22,.06)" stroke-width="1"></path><path d="M4 22 L44 27 L84 21 L124 38 L164 54 L208 62" fill="none" stroke="#4469F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--d:230; stroke-dasharray:230; animation:tile-draw 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-5.25s"></path><circle cx="208" cy="62" r="3.4" fill="#E5686B" style="opacity:0; transform-origin:208px 62px; animation:tile-pop 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-4.35s"></circle></svg>
+                  <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-4.25s"><span style="font-size:10.5px; color:#93939A">billed 4.0 km/l</span><span style="font-family:var(--font-mono); font-size:10px; color:var(--nova-rage-600)">sensor 4.6</span></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:16px; padding-top:12px">
+            <div data-swapslot style="position:relative; height:188px">
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-2.25s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Live route</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">ETA 14:20</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="flex:1; min-height:0; border-radius:10px; background:#F1F3FA; position:relative; overflow:hidden">
+                    <svg viewBox="0 0 212 110" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%"><path d="M0 28 H212 M0 62 H212 M52 0 V110 M148 0 V110" stroke="rgba(5,8,22,.05)" stroke-width="1"></path><path d="M18 92 C58 78 52 50 96 42 C136 35 152 22 196 16" fill="none" stroke="#4469F0" stroke-width="2.4" stroke-linecap="round" style="--d:215; stroke-dasharray:215; animation:tile-draw 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-2.25s"></path><circle cx="18" cy="92" r="4" fill="#FFFFFF" stroke="#4469F0" stroke-width="2.4"></circle><circle cx="96" cy="42" r="8" fill="rgba(68,105,240,.18)" style="transform-origin:96px 42px; animation:tile-ping 2.4s cubic-bezier(.2,0,0,1) infinite"></circle><circle cx="96" cy="42" r="3.6" fill="#4469F0"></circle><circle cx="196" cy="16" r="4" fill="#4469F0" style="opacity:0; transform-origin:196px 16px; animation:tile-pop 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-1.3s"></circle></svg>
+                  </div></div>
+              </div>
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-6.75s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">E-way bill</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">ack 3521</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px">
+                    <span style="font-family:var(--font-mono); font-size:15px; font-weight:500; letter-spacing:.5px; white-space:nowrap; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-6.75s">7418 2291</span>
+                    <span style="flex:0 0 auto; width:24px; height:24px; border-radius:999px; background:rgba(24,122,50,.10); display:grid; place-items:center; opacity:0; animation:tile-pop 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-6.4s"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#187A32" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+                  </div>
+                  <div style="font-family:var(--font-mono); font-size:9.5px; color:#93939A; line-height:16px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-6.25s">HSN 9965 · MP 23<br>filed 06:13 · valid 3 days</div></div>
+              </div>
+            </div>
+            <div data-swapslot style="position:relative; height:196px">
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-3.75s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Roster today</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">4 on duty</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between">
+                    <span style="display:flex; align-items:center; gap:8px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-3.75s"><span style="flex:0 0 auto; width:22px; height:22px; border-radius:999px; background:rgba(68,105,240,.14); display:grid; place-items:center; font-size:8.5px; font-weight:600; color:var(--nova-rage-600)">RS</span><span style="flex:1; font-size:10.5px; font-weight:500">Ravi S.</span><span style="font-size:8.5px; font-weight:600; padding:3px 7px; border-radius:999px; background:rgba(24,122,50,.10); color:#187A32; white-space:nowrap">free</span></span>
+                    <span style="display:flex; align-items:center; gap:8px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-3.65s"><span style="flex:0 0 auto; width:22px; height:22px; border-radius:999px; background:rgba(5,8,22,.06); display:grid; place-items:center; font-size:8.5px; font-weight:600; color:#5D5D5E">AK</span><span style="flex:1; font-size:10.5px; font-weight:500">Anil K.</span><span style="font-size:8.5px; font-weight:600; padding:3px 7px; border-radius:999px; background:rgba(229,104,107,.13); color:#C4494C; white-space:nowrap">docs expired</span></span>
+                    <span style="display:flex; align-items:center; gap:8px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-3.55s"><span style="flex:0 0 auto; width:22px; height:22px; border-radius:999px; background:rgba(5,8,22,.06); display:grid; place-items:center; font-size:8.5px; font-weight:600; color:#5D5D5E">SP</span><span style="flex:1; font-size:10.5px; font-weight:500">Suresh P.</span><span style="font-size:8.5px; font-weight:600; padding:3px 7px; border-radius:999px; background:rgba(68,105,240,.12); color:var(--nova-rage-600); white-space:nowrap">on trip</span></span>
+                    <span style="display:flex; align-items:center; gap:8px; opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-3.45s"><span style="flex:0 0 auto; width:22px; height:22px; border-radius:999px; background:rgba(5,8,22,.06); display:grid; place-items:center; font-size:8.5px; font-weight:600; color:#5D5D5E">MJ</span><span style="flex:1; font-size:10.5px; font-weight:500">Mahesh J.</span><span style="font-size:8.5px; font-weight:600; padding:3px 7px; border-radius:999px; background:rgba(24,122,50,.10); color:#187A32; white-space:nowrap">free</span></span>
+                  </div></div>
+              </div>
+              <div data-swaptile style="position:absolute; inset:0; box-sizing:border-box; border-radius:16px; background:#FFFFFF; border:1px solid rgba(5,8,22,.07); box-shadow:0 12px 32px rgba(30,34,56,.13); padding:14px 15px 15px; display:flex; flex-direction:column; overflow:hidden; pointer-events:none; opacity:0; will-change:opacity, transform; animation:hero-swap 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-8.25s">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px"><span style="font-family:var(--font-eyebrow); font-size:9px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#93939A; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis">Driver advance</span><span style="font-family:var(--font-mono); font-size:9.5px; color:#B6B6BC; white-space:nowrap; flex:0 0 auto">settled 09:20</span></div>
+                <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; padding-top:10px">
+                  <div style="display:flex; flex-direction:column"><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-8.25s"><span style="font-size:10.5px; color:#5D5D5E">Issued</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">₹8,000</span></span><span style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(5,8,22,.055); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-8.14s"><span style="font-size:10.5px; color:#5D5D5E">Spent on trip</span><span style="font-family:var(--font-mono); font-size:10px; color:#050816">₹6,350</span></span></div>
+                  <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding-top:9px; border-top:1px solid rgba(5,8,22,.09); opacity:0; animation:tile-rise 9s cubic-bezier(.2,0,0,1) infinite; animation-delay:-7.95s"><span style="font-size:10.5px; font-weight:600">Returned</span><span style="font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:-.7px; color:#187A32">₹1,650</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

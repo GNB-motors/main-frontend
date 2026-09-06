@@ -10,9 +10,6 @@ import {
   Navigation,
   PhoneCall,
   ClipboardList,
-  Receipt,
-  ReceiptText,
-  Banknote,
   Landmark,
   Settings,
   LayoutDashboard,
@@ -120,90 +117,86 @@ export const SIDE_NAV_ITEMS = [
     matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
   },
 
-  // ─── ISOCL ERP / CRM Hub-and-Spoke Architecture ────────────────────────────
+  // ─── ISOCL ERP / CRM — five workspaces ─────────────────────────────────────
+  // Ye list ab role ke hisaab se bani hai, feature ke hisaab se nahi: ERP ko
+  // chaar log chalate hain (planning, operations, accounts, approve karne wala
+  // owner) aur unme se har ek sirf apne workspace me rehta hai. Pehle yahan 11
+  // top-level entries thi, jinme se har user ke liye 8 shor thi.
+  //
+  // Ye sirf navigation ka regroup hai — na koi route badla hai, na koi page.
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
-  {
-    type: 'link',
-    key: 'erpOperations',
-    access: 'erp',
-    hoistWhenSole: 'erp',
-    to: '/erp',
-    label: 'ERP Home',
-    icon: LayoutDashboard,
-    end: true,
-  },
+  { type: 'link', key: 'erpOperations', access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
+  // CRM — the customer-facing workspace. "Accounts" used to mean both customer
+  // accounts AND accounting, which was the core sidebar confusion; the customer
+  // side now lives here (Customers = the party master) and the money side lives
+  // under "Finance" below.
   {
     type: 'group',
-    groupId: 'erpPlanning',
+    groupId: 'erpCrm',
     access: 'erp',
-    label: 'Planning',
+    label: 'CRM',
     icon: PhoneCall,
     children: [
+      { to: '/erp/parties', label: 'Customers', key: 'erpMasters' },
       { to: '/erp/call-tasks', label: 'Call Tasks', key: 'erpCallPlanning' },
       { to: '/erp/call-schedules', label: 'Call Schedules', key: 'erpCallPlanning' },
     ],
-    matchRoutes: ['/erp/call-tasks', '/erp/call-schedules'],
+    matchRoutes: ['/erp/parties', '/erp/call-tasks', '/erp/call-schedules'],
   },
+  // Operations — the trip pipeline (Delivery Orders / Placement / Trips are its
+  // tabs) plus inbound e-Way bills, which is a CN-updation / operations task.
   {
-    type: 'link',
-    key: 'erpApprovals',
+    type: 'group',
+    groupId: 'erpOperations',
     access: 'erp',
-    to: '/erp/approvals',
-    label: 'Approvals',
-    icon: FileCheck,
-    badgeKey: 'approvalsCount',
-  },
-  {
-    type: 'link',
-    key: 'erpApprovals',
-    access: 'erp',
-    to: '/erp/bill-approvals',
-    label: 'Bill Approvals',
-    icon: ReceiptText,
-    badgeKey: 'billApprovalsCount',
-  },
-  {
-    type: 'link',
-    key: 'erpOperations',
-    access: 'erp',
-    to: '/erp/pipeline',
-    label: 'Pipeline',
+    label: 'Operations',
     icon: ClipboardList,
+    children: [
+      { to: '/erp/pipeline', label: 'Trip Pipeline', key: 'erpOperations' },
+      { to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', key: 'erpCnUpdation' },
+    ],
+    matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb'],
   },
+  // Finance — the accounting side. Renamed from the ambiguous "Accounts".
   {
-    type: 'link',
-    key: 'erpBilling',
+    type: 'group',
+    groupId: 'erpAccounts',
     access: 'erp',
-    to: '/erp/billing',
-    label: 'Billing & Receivables',
-    icon: Receipt,
-  },
-  {
-    type: 'link',
-    key: 'erpAccounts',
-    access: 'erp',
-    to: '/erp/payables',
-    label: 'Payables',
-    icon: Banknote,
-  },
-  {
-    type: 'link',
-    key: 'erpAccounts',
-    access: 'erp',
-    to: '/erp/accounts',
-    label: 'Accounts & Ledger',
+    label: 'Finance',
     icon: Landmark,
+    children: [
+      { to: '/erp/billing', label: 'Billing & Receivables', key: 'erpBilling' },
+      { to: '/erp/payables', label: 'Payables', key: 'erpAccounts' },
+      { to: '/erp/accounts', label: 'Ledger', key: 'erpAccounts' },
+    ],
+    // `/erp/accounts` bina slash ke Account 360 aur voucher detail dono ko cover
+    // kar leta hai (isGroupActive prefix match karta hai).
+    matchRoutes: ['/erp/billing', '/erp/payables', '/erp/accounts'],
+  },
+  {
+    type: 'group',
+    groupId: 'erpApprovals',
+    access: 'erp',
+    label: 'Approval Center',
+    icon: FileCheck,
+    // Group parent par combined badge — pehle dono queues alag links thi aur
+    // dono apna count dikhati thi; collapse hone par wo count gayab na ho.
+    badgeKey: 'approvalsTotal',
+    children: [
+      { to: '/erp/approvals', label: 'Approvals', key: 'erpApprovals' },
+      { to: '/erp/bill-approvals', label: 'Bill Approvals', key: 'erpApprovals' },
+    ],
+    matchRoutes: ['/erp/approvals', '/erp/bill-approvals'],
   },
   {
     type: 'group',
     groupId: 'erpMasters',
     access: 'erp',
-    label: 'Masters & Settings',
+    label: 'Master Setting',
     icon: Settings,
     children: [
-      { to: '/erp/parties', label: 'Party Master', key: 'erpMasters' },
       { to: '/erp/rates', label: 'Rate Master', key: 'erpMasters' },
       { to: '/erp/vendors', label: 'Vendor Master', key: 'erpMasters' },
       { to: '/erp/material-compatibility', label: 'Material Compatibility', key: 'erpMasters' },
@@ -211,7 +204,6 @@ export const SIDE_NAV_ITEMS = [
       { to: '/erp/settings', label: 'ERP Settings', key: 'erpMasters' },
     ],
     matchRoutes: [
-      '/erp/parties',
       '/erp/rates',
       '/erp/vendors',
       '/erp/material-compatibility',
