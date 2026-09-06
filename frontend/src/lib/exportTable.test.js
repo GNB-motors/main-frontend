@@ -46,12 +46,27 @@ describe('cellValue', () => {
     expect(cellValue(null, 'text')).toBeNull();
     expect(cellValue(undefined, 'number')).toBeNull();
   });
+
+  it('neutralizes formula-leading text so Excel/Sheets never evaluates it', () => {
+    // CSV/XLSX injection: a cell value like `=1+1` or `=cmd|'/c calc'!A1`
+    // opened in Excel executes as a formula. A leading apostrophe forces
+    // the cell to render as literal text (Excel hides the apostrophe).
+    expect(cellValue('=1+1', 'text')).toBe("'=1+1");
+    expect(cellValue('+91 98765 43210', 'text')).toBe("'+91 98765 43210");
+    expect(cellValue('-5 days', 'text')).toBe("'-5 days");
+    expect(cellValue('@mention', 'text')).toBe("'@mention");
+    expect(cellValue('\t=evil', 'text')).toBe("'\t=evil");
+    expect(cellValue('WB25W1040', 'text')).toBe('WB25W1040');
+  });
 });
 
 describe('metaRows', () => {
   it('emits one row per filter plus generation time and a separator', () => {
     const rows = metaRows({
-      filters: [{ label: 'Period', value: '1–7 Sep' }, { label: 'Status', value: 'Moving' }],
+      filters: [
+        { label: 'Period', value: '1–7 Sep' },
+        { label: 'Status', value: 'Moving' },
+      ],
       generatedAt: new Date('2026-09-06T10:00:00+05:30'),
     });
     expect(rows[0][0]).toBe('Period: 1–7 Sep');
@@ -66,7 +81,10 @@ describe('metaRows', () => {
   });
 
   it('skips malformed filters and invalid dates', () => {
-    const rows = metaRows({ filters: [null, { value: 'no label' }, { label: 'OK', value: null }], generatedAt: 'garbage' });
+    const rows = metaRows({
+      filters: [null, { value: 'no label' }, { label: 'OK', value: null }],
+      generatedAt: 'garbage',
+    });
     expect(rows).toEqual([['OK: —']]);
   });
 });

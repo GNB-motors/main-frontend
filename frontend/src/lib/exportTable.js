@@ -27,6 +27,17 @@ export function escapeCsvCell(value) {
   return s;
 }
 
+/**
+ * A text cell whose first character is one Excel/Sheets treats as a formula
+ * lead-in (`= + - @` or a tab/CR that can hide one) executes on open — the
+ * classic CSV/XLSX injection. A leading apostrophe forces literal text;
+ * Excel hides it on display, so legitimate values (phone numbers, `-5 days`)
+ * are unaffected visually.
+ */
+function neutralizeFormula(s) {
+  return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+}
+
 /** Coerce a row value per its column type. Pure and total — never throws. */
 export function cellValue(value, type = 'text') {
   if (value === null || value === undefined || value === '') return null;
@@ -41,7 +52,7 @@ export function cellValue(value, type = 'text') {
       return Number.isNaN(d.getTime()) ? null : d;
     }
     default:
-      return String(value);
+      return neutralizeFormula(String(value));
   }
 }
 
@@ -128,7 +139,13 @@ async function buildXlsx(columns, rows, meta) {
   return XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 }
 
-export default async function exportTable({ rows = [], columns = [], filename = 'export', format = 'xlsx', meta = {} } = {}) {
+export default async function exportTable({
+  rows = [],
+  columns = [],
+  filename = 'export',
+  format = 'xlsx',
+  meta = {},
+} = {}) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const stamp = meta.generatedAt instanceof Date ? meta.generatedAt : new Date();
   const base = `${filename}-${stamp.toISOString().slice(0, 10)}`;
@@ -139,6 +156,11 @@ export default async function exportTable({ rows = [], columns = [], filename = 
   }
 
   const buffer = await buildXlsx(columns, safeRows, meta);
-  triggerDownload(buffer, `${base}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', true);
+  triggerDownload(
+    buffer,
+    `${base}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    true,
+  );
   return { format: 'xlsx', rows: safeRows.length };
 }
