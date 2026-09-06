@@ -4,10 +4,8 @@ import { AlertTriangle, Navigation, WifiOff, Maximize2 } from 'lucide-react';
 import { GoogleMap, useLoadScript, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Panel } from './overview.primitives.jsx';
-import { LiveTrackingService } from '../../LiveTracking/LiveTrackingService.jsx';
 import {
   INDIA_CENTER,
-  POLL_INTERVAL_MS,
   STATE_META,
   getStateMeta,
   formatIST,
@@ -15,38 +13,19 @@ import {
   withCoordinates,
   fitMapToPositions,
 } from '../../LiveTracking/liveTracking.shared.js';
+import { useLivePositions } from '../../../hooks/useLivePositions';
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '420px', borderRadius: '0.75rem' };
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 const LiveVehicleMap = () => {
-  const [positions, setPositions] = useState([]);
-  const [isFetching, setIsFetching] = useState(true);
-  const [error, setError] = useState(null);
+  // Shares the `positions` stream with LiveTrackingPage; the hook falls back to
+  // the old 45s poll on its own when the stream is unavailable (Workstream A).
+  const { positions, isLoading: isFetching, error: liveError } = useLivePositions();
   const [selectedReg, setSelectedReg] = useState(null);
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const mapRef = useRef(null);
-  const fetchInFlightRef = useRef(false);
-
-  const fetchPositions = useCallback(async () => {
-    if (fetchInFlightRef.current) return;
-    fetchInFlightRef.current = true;
-    try {
-      setPositions(await LiveTrackingService.getPositions());
-      setError(null);
-    } catch (err) {
-      setError(err.detail || 'Could not load live positions.');
-    } finally {
-      fetchInFlightRef.current = false;
-      setIsFetching(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPositions();
-    const intervalId = setInterval(fetchPositions, POLL_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, [fetchPositions]);
+  const error = liveError ? liveError.detail || 'Could not load live positions.' : null;
 
   const located = useMemo(() => withCoordinates(positions), [positions]);
 
