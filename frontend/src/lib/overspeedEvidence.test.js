@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { eventLine, totalOverMinutes, comparisonLine, comparisonFromCounts, sourcesDisagree } from './overspeedEvidence';
+import { eventLine, totalOverMinutes, comparisonLine, sourcesDisagree } from './overspeedEvidence';
 
 describe('eventLine', () => {
   it('reads "78 km/h for 6 minutes" — speed, duration', () => {

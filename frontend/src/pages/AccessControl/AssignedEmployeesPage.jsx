@@ -4,6 +4,12 @@ import { Building2, Shield, UserMinus, UserPlus } from 'lucide-react';
 import { PageHeader } from '../Drivers/Component';
 import AccessControlApi from './accessControlService';
 import { useConfirm } from '../../components/ui/confirmContext';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import DataTable from '../../components/ui/DataTable';
+import ExportButton from '../../components/ui/ExportButton';
+import { activeFilterCount, footerSummary } from '../../lib/tableState';
+import { humanise } from '../../lib/vocabulary';
 import '../Superadmin/components/FeatureFlags.css';
 import '../Superadmin/components/Rbac.css';
 import './AccessControl.css';
@@ -14,6 +20,9 @@ const employeeName = (e) =>
 /**
  * Assigned Employees — the full "who holds what" table, on its own page.
  * Reached from a button on the Employee Access Control screen.
+ *
+ * The assignments endpoint returns the whole list in one payload, so the
+ * search is client-side over the loaded assignments (name, role, mobile).
  */
 const AssignedEmployeesPage = () => {
   const [assignments, setAssignments] = useState([]);
@@ -22,6 +31,7 @@ const AssignedEmployeesPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [revokingId, setRevokingId] = useState(null);
+  const [q, setQ] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,6 +56,70 @@ const AssignedEmployeesPage = () => {
     () => new Map(employees.map((e) => [String(e._id || e.id), e])),
     [employees],
   );
+
+  // Flatten each assignment with the fields the table, the search and the
+  // export all read. baseRole is an UPPER_SNAKE enum — humanise it so it is
+  // never rendered raw.
+  const rows = useMemo(() => assignments.map((a) => {
+    const emp = employeeById.get(String(a.userId));
+    return {
+      ...a,
+      employeeNameText: employeeName(emp),
+      employeeMobile: emp?.mobileNumber || '',
+      roleName: a.roleId?.name || 'Deleted role',
+      baseRoleLabel: a.roleId?.baseRole ? humanise(a.roleId.baseRole) : '',
+      appliesTo: a.scope === 'BRANCH' ? (a.branchId?.name || 'Location') : 'Enterprise (no location selected)',
+    };
+  }), [assignments, employeeById]);
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((r) =>
+      [r.employeeNameText, r.roleName, r.employeeMobile]
+        .some((value) => value.toLowerCase().includes(needle))
+    );
+  }, [rows, q]);
+
+  const columns = [
+    { key: 'employeeNameText', label: 'Employee' },
+    {
+      key: 'roleName', label: 'Role',
+      render: (r) => (
+        <>
+          <Shield size={14} /> {r.roleName}
+          {r.baseRoleLabel && <span className="ac-chip ac-chip--inherited">{r.baseRoleLabel}</span>}
+        </>
+      ),
+    },
+    {
+      key: 'appliesTo', label: 'Applies to',
+      render: (r) => (r.scope === 'BRANCH'
+        ? <><Building2 size={14} /> {r.appliesTo}</>
+        : r.appliesTo),
+    },
+    {
+      key: '_revoke', label: '',
+      render: (r) => (
+        <button
+          type="button"
+          className="ff-btn ff-btn--ghost"
+          onClick={() => revoke(r)}
+          disabled={revokingId === r._id}
+        >
+          <UserMinus size={16} /> {revokingId === r._id ? 'Revoking…' : 'Revoke'}
+        </button>
+      ),
+    },
+  ];
+
+  const exportColumns = [
+    { key: 'employeeNameText', label: 'Employee' },
+    { key: 'employeeMobile', label: 'Mobile' },
+    { key: 'roleName', label: 'Role' },
+    { key: 'baseRoleLabel', label: 'Base role' },
+    { key: 'appliesTo', label: 'Applies to' },
+  ];
 
   const revoke = async (a) => {
     const who = employeeName(employeeById.get(String(a.userId)));
@@ -80,62 +154,55 @@ const AssignedEmployeesPage = () => {
 
       {error && <div className="ff-alert ff-alert--error" role="alert">{error}</div>}
 
-      <div className="ff-card ac-assignments">
-        <div className="ac-assignments__head">
-          <span className="ff-meta">
-            {loading ? 'Loading…' : <><strong>{assignments.length}</strong> assignment{assignments.length === 1 ? '' : 's'}</>}
-          </span>
-        </div>
-
-        {!loading && assignments.length === 0 ? (
+      <PageShell
+        title="Role assignments"
+        count={filtered.length}
+        filters={(
+          <FilterBar
+            searchValue={q}
+            onSearchChange={setQ}
+            searchPlaceholder="Search name, role or mobile…"
+            activeCount={activeFilterCount({ q })}
+            onClear={() => setQ('')}
+            right={(
+              <ExportButton
+                rows={filtered}
+                columns={exportColumns}
+                filename="assigned-employees"
+                meta={{
+                  filters: [{ label: 'Search', value: q.trim() || '—' }],
+                  generatedAt: new Date(),
+                }}
+              />
+            )}
+          />
+        )}
+        footer={footerSummary({
+          showing: filtered.length,
+          total: assignments.length,
+          activeFilters: activeFilterCount({ q }),
+        })}
+      >
+        {!loading && assignments.length === 0 && !error ? (
           <div className="ff-state">
             <div className="ff-state__icon"><UserPlus size={22} /></div>
             <div className="ff-state__title">Nobody has been assigned a role yet</div>
             <div>Assign roles from the Enterprise Roles tab.</div>
           </div>
         ) : (
-          <div className="ac-table__wrap">
-            <table className="ac-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Role</th>
-                  <th>Applies to</th>
-                  <th aria-label="Actions" />
-                </tr>
-              </thead>
-              <tbody>
-                {assignments.map((a) => (
-                  <tr key={a._id}>
-                    <td>{employeeName(employeeById.get(String(a.userId)))}</td>
-                    <td>
-                      <Shield size={14} /> {a.roleId?.name || 'Deleted role'}
-                      {a.roleId?.baseRole && <span className="ac-chip ac-chip--inherited">{a.roleId.baseRole}</span>}
-                    </td>
-                    <td>
-                      {a.scope === 'BRANCH' ? (
-                        <><Building2 size={14} /> {a.branchId?.name || 'Location'}</>
-                      ) : (
-                        'Enterprise (no location selected)'
-                      )}
-                    </td>
-                    <td className="ac-table__actions">
-                      <button
-                        type="button"
-                        className="ff-btn ff-btn--ghost"
-                        onClick={() => revoke(a)}
-                        disabled={revokingId === a._id}
-                      >
-                        <UserMinus size={16} /> {revokingId === a._id ? 'Revoking…' : 'Revoke'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={columns}
+            rows={filtered}
+            rowKey={(r) => r._id}
+            loading={loading && assignments.length === 0}
+            showing={filtered.length}
+            total={assignments.length}
+            activeFilters={activeFilterCount({ q })}
+            emptyTitle="No assignments match your search"
+            emptyHint="Try a different name, role or mobile number."
+          />
         )}
-      </div>
+      </PageShell>
     </div>
   );
 };

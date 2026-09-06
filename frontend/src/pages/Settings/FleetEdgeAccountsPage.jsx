@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { Plus, Pencil, Trash2, RefreshCw, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import {
@@ -11,6 +11,10 @@ import {
 } from '../Profile/FleetEdgeAccountService';
 import { getToken, getUserRole } from '../../utils/session.js';
 import { useConfirm } from '../../components/ui/confirmContext';
+import FilterBar from '../../components/ui/FilterBar';
+import DataTable from '../../components/ui/DataTable';
+import ExportButton from '../../components/ui/ExportButton';
+import { activeFilterCount } from '../../lib/tableState';
 
 const STATUS_STYLES = {
   ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
@@ -212,40 +216,100 @@ function DiscoverPanel({ account, onClose }) {
   );
 }
 
+const driftColumns = [
+  {
+    key: 'vehicleReg', label: 'Vehicle',
+    render: (r) => <span className="font-mono text-xs text-slate-700">{r.vehicleReg}</span>,
+  },
+  { key: 'fromLabel', label: 'From Account', render: (r) => <span className="text-slate-600">{r.fromLabel}</span> },
+  { key: 'toLabel', label: 'Arriving Account', render: (r) => <span className="text-slate-600">{r.toLabel}</span> },
+  {
+    key: 'detectedAt', label: 'Detected At', type: 'date',
+    render: (r) => <span className="text-slate-400">{r.detectedAt ? new Date(r.detectedAt).toLocaleString() : '—'}</span>,
+  },
+];
+
 function DriftTab() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [q, setQ] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
     const token = getToken();
-    getDrift(token).then(d => setRows(d.drift || [])).catch(() => toast.error('Failed to load drift log')).finally(() => setLoading(false));
+    getDrift(token)
+      .then(d => setRows(d.drift || []))
+      .catch((err) => {
+        setLoadError(err);
+        toast.error('Failed to load drift log');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="py-8 text-center text-sm text-slate-400">Loading…</p>;
-  if (!rows.length) return <p className="py-8 text-center text-sm text-slate-400">No mismatches detected.</p>;
+  useEffect(() => { load(); }, [load]);
+
+  // Client-side search over the loaded drift page (the endpoint has no text
+  // filter and paginates at 50/page).
+  const flatRows = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const all = rows.map((row) => ({
+      ...row,
+      vehicleReg: row.vehicleId?.registrationNumber || row.vehicleId?.fleetEdgeRegistration || '',
+      fromLabel: row.fromAccount?.friendlyName || row.fromAccount?.externalAccountId || '',
+      toLabel: row.toAccount?.friendlyName || row.toAccount?.externalAccountId || '',
+      detectedAt: row.createdAt,
+    }));
+    if (!needle) return all;
+    return all.filter((r) =>
+      [r.vehicleReg, r.fromLabel, r.toLabel]
+        .some((value) => value.toLowerCase().includes(needle))
+    );
+  }, [rows, q]);
+
+  const searching = q.trim() !== '';
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-          <tr>
-            <th className="px-4 py-3 text-left">Vehicle</th>
-            <th className="px-4 py-3 text-left">From Account</th>
-            <th className="px-4 py-3 text-left">Arriving Account</th>
-            <th className="px-4 py-3 text-left">Detected At</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {rows.map(row => (
-            <tr key={row._id} className="hover:bg-slate-50">
-              <td className="px-4 py-3 font-mono text-xs text-slate-700">{row.vehicleId?.registrationNumber || row.vehicleId?.fleetEdgeRegistration || '—'}</td>
-              <td className="px-4 py-3 text-slate-600">{row.fromAccount?.friendlyName || row.fromAccount?.externalAccountId || '—'}</td>
-              <td className="px-4 py-3 text-slate-600">{row.toAccount?.friendlyName || row.toAccount?.externalAccountId || '—'}</td>
-              <td className="px-4 py-3 text-slate-400">{row.createdAt ? new Date(row.createdAt).toLocaleString() : '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <FilterBar
+        searchValue={q}
+        onSearchChange={setQ}
+        searchPlaceholder="Search vehicle or account…"
+        activeCount={activeFilterCount({ q })}
+        onClear={() => setQ('')}
+        right={(
+          <ExportButton
+            rows={flatRows}
+            columns={driftColumns}
+            filename="fleetedge-drift-log"
+            meta={{
+              filters: [
+                { label: 'Search', value: q.trim() || '—' },
+                { label: 'Scope', value: 'Latest drift records (up to 50)' },
+              ],
+              generatedAt: new Date(),
+            }}
+          />
+        )}
+      />
+      <div className="mt-3">
+        <DataTable
+          columns={driftColumns}
+          rows={flatRows}
+          rowKey={(r) => r._id}
+          loading={loading && rows.length === 0}
+          error={loadError}
+          onRetry={load}
+          showing={flatRows.length}
+          total={rows.length}
+          activeFilters={activeFilterCount({ q })}
+          emptyTitle={searching ? 'No drift records match your search' : 'No mismatches detected'}
+          emptyHint={searching
+            ? 'Try a different vehicle registration or account name.'
+            : 'Vehicles appear here when they report through a different FleetEdge account than the one they are tagged to.'}
+        />
+      </div>
     </div>
   );
 }

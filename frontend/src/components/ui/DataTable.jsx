@@ -25,6 +25,7 @@ import {
  *     onSort={(key, order) => setParams({ sortBy: key, order })}
  *     showing={rows.length} total={pagination?.totalCount ?? rows.length}
  *     activeFilters={2}
+ *     onRowClick={(row) => navigate(`/trips/${row._id}`)}
  *     emptyTitle="No trips in this window" emptyHint="Widen the date range." emptyAction={...}
  *   />
  */
@@ -45,6 +46,7 @@ export default function DataTable({
   emptyTitle = 'Nothing here yet',
   emptyHint = null,
   emptyAction = null,
+  onRowClick = null,
   className = '',
 }) {
   const [hidden, setHidden] = useState(() => new Set());
@@ -165,7 +167,12 @@ export default function DataTable({
                   </tr>
                 ))
               : rows.map((row, i) => (
-                  <tr key={rowKey(row, i)} className="dt-row">
+                  <tr
+                    key={rowKey(row, i)}
+                    className="dt-row"
+                    onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                    style={onRowClick ? { cursor: 'pointer' } : undefined}
+                  >
                     {cols.map((col) => (
                       <td key={col.key} style={{ textAlign: col.align }} data-label={col.label}>
                         {col.render ? col.render(row, i) : row?.[col.key] ?? '—'}
