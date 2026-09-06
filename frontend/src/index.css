@@ -1243,6 +1243,29 @@ a.ov-kpi:hover {
   color: var(--ds-ink3);
   font-size: 12px;
 }
+/* Labelled dropdown filter (e.g. Khata ledger detail) — same 35px control as
+   the date inputs so mixed input types sit on one baseline inside the band. */
+.fbar-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.fbar-field > span {
+  font-size: 11px;
+  color: var(--ds-ink3);
+}
+.fbar-select {
+  height: 35px;
+  padding: 0 9px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 9px;
+  background: var(--color-white);
+  color: var(--ds-ink);
+  font-size: 12.5px;
+}
+.fbar-select:hover {
+  border-color: var(--ds-ink3);
+}
 .fbar-chips {
   display: inline-flex;
   align-items: center;
