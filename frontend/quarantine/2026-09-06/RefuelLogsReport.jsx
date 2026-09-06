@@ -32,7 +32,7 @@ const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search, 
   if (search) params.search = search;
   const response = await apiClient.get('api/fuel-logs', { params, signal });
   if (response.data.status === 'success') {
-    const mapped = response.data.data.map(log => ({
+    const mapped = response.data.data.map((log) => ({
       id: log._id,
       date: log.refuelTime ? toISTDateString(log.refuelTime) : null,
       time: log.refuelTime ? toISTTimeString(log.refuelTime) : null,
@@ -51,7 +51,11 @@ const fetchRefuelLogs = async ({ page = 1, limit = PAGE_SIZE, fuelType, search, 
       unitPrice: log.rate || null,
       totalAmount: log.totalAmount || '-',
       odometer: log.odometerReading || '-',
-      notes: log.fillingType ? (log.fillingType === 'FULL_TANK' ? 'Full Tank' : log.fillingType) : '-',
+      notes: log.fillingType
+        ? log.fillingType === 'FULL_TANK'
+          ? 'Full Tank'
+          : log.fillingType
+        : '-',
       tripId: log.tripId,
       documentId: log.documentId,
       odometerDocId: log.odometerDocId,
@@ -119,7 +123,12 @@ const RefuelLogsReport = () => {
     const el = tableContainerRef.current;
     if (!el || el.scrollWidth <= el.clientWidth) return;
     if (event.target.closest('button, a, input, select')) return;
-    tableDrag.current = { down: true, startX: event.pageX - el.offsetLeft, scrollLeft: el.scrollLeft, moved: false };
+    tableDrag.current = {
+      down: true,
+      startX: event.pageX - el.offsetLeft,
+      scrollLeft: el.scrollLeft,
+      moved: false,
+    };
     el.classList.add('is-dragging');
   };
 
@@ -127,7 +136,7 @@ const RefuelLogsReport = () => {
     const el = tableContainerRef.current;
     if (!el || !tableDrag.current.down) return;
     event.preventDefault();
-    const walk = (event.pageX - el.offsetLeft) - tableDrag.current.startX;
+    const walk = event.pageX - el.offsetLeft - tableDrag.current.startX;
     if (Math.abs(walk) > 4) tableDrag.current.moved = true;
     el.scrollLeft = tableDrag.current.scrollLeft - walk;
   };
@@ -150,14 +159,24 @@ const RefuelLogsReport = () => {
   useEffect(() => {
     const el = tableContainerRef.current;
     if (!el) return undefined;
-    const updateScrollable = () => { el.classList.toggle('is-scrollable', el.scrollWidth > el.clientWidth + 1); };
+    const updateScrollable = () => {
+      el.classList.toggle('is-scrollable', el.scrollWidth > el.clientWidth + 1);
+    };
     updateScrollable();
     window.addEventListener('resize', updateScrollable);
     return () => window.removeEventListener('resize', updateScrollable);
   }, [logs, loading]);
 
   const [editingLog, setEditingLog] = useState(null);
-  const [editForm, setEditForm] = useState({ fuelType: 'DIESEL', fillingType: 'PARTIAL', litres: '', rate: '', odometerReading: '', location: '', refuelTime: '' });
+  const [editForm, setEditForm] = useState({
+    fuelType: 'DIESEL',
+    fillingType: 'PARTIAL',
+    litres: '',
+    rate: '',
+    odometerReading: '',
+    location: '',
+    refuelTime: '',
+  });
   const [deletingLog, setDeletingLog] = useState(null);
 
   useEffect(() => {
@@ -168,15 +187,28 @@ const RefuelLogsReport = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const { data: logsResponse, loading, error: logsError, refetch: refetchLogs } = useApi(
-    (signal) => fetchRefuelLogs({
-      page: pagination.page,
-      limit: pagination.limit,
-      fuelType: TAB_TO_FUEL_TYPE[activeTab],
-      search: debouncedSearch,
-      signal,
-    }),
-    [JSON.stringify({ page: pagination.page, limit: pagination.limit, activeTab, debouncedSearch })]
+  const {
+    data: logsResponse,
+    loading,
+    error: logsError,
+    refetch: refetchLogs,
+  } = useApi(
+    (signal) =>
+      fetchRefuelLogs({
+        page: pagination.page,
+        limit: pagination.limit,
+        fuelType: TAB_TO_FUEL_TYPE[activeTab],
+        search: debouncedSearch,
+        signal,
+      }),
+    [
+      JSON.stringify({
+        page: pagination.page,
+        limit: pagination.limit,
+        activeTab,
+        debouncedSearch,
+      }),
+    ],
   );
 
   useEffect(() => {
@@ -211,7 +243,11 @@ const RefuelLogsReport = () => {
     } else {
       pages.push(1);
       if (pagination.page > 3) pages.push('...');
-      for (let i = Math.max(2, pagination.page - 1); i <= Math.min(totalPages - 1, pagination.page + 1); i++) {
+      for (
+        let i = Math.max(2, pagination.page - 1);
+        i <= Math.min(totalPages - 1, pagination.page + 1);
+        i++
+      ) {
         if (i !== 1 && i !== totalPages) pages.push(i);
       }
       if (pagination.page < totalPages - 2) pages.push('...');
@@ -233,7 +269,10 @@ const RefuelLogsReport = () => {
     });
   };
 
-  const handleEditClose = () => { setEditingLog(null); setSubmitting(false); };
+  const handleEditClose = () => {
+    setEditingLog(null);
+    setSubmitting(false);
+  };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -243,7 +282,8 @@ const RefuelLogsReport = () => {
       fillingType: editForm.fillingType,
       litres: editForm.litres !== '' ? Number(editForm.litres) : undefined,
       rate: editForm.rate !== '' ? Number(editForm.rate) : undefined,
-      odometerReading: editForm.odometerReading !== '' ? Number(editForm.odometerReading) : undefined,
+      odometerReading:
+        editForm.odometerReading !== '' ? Number(editForm.odometerReading) : undefined,
       location: editForm.location || undefined,
       refuelTime: fromDatetimeLocal(editForm.refuelTime) || undefined,
     };
@@ -260,8 +300,13 @@ const RefuelLogsReport = () => {
     }
   };
 
-  const handleDeleteClick = (log) => { setDeletingLog(log); };
-  const handleDeleteClose = () => { setDeletingLog(null); setSubmitting(false); };
+  const handleDeleteClick = (log) => {
+    setDeletingLog(log);
+  };
+  const handleDeleteClose = () => {
+    setDeletingLog(null);
+    setSubmitting(false);
+  };
 
   const handleDeleteConfirm = async () => {
     if (!deletingLog) return;
@@ -283,7 +328,12 @@ const RefuelLogsReport = () => {
       <div className="refuel-logs-header">
         <div className="refuel-tabs">
           {filterTabs.map((tab) => (
-            <button key={tab.id} type="button" className={`refuel-tab ${activeTab === tab.id ? 'active' : ''}`} onClick={() => handleTabChange(tab.id)}>
+            <button
+              key={tab.id}
+              type="button"
+              className={`refuel-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => handleTabChange(tab.id)}
+            >
               {tab.label}
             </button>
           ))}
@@ -291,14 +341,26 @@ const RefuelLogsReport = () => {
         <div className="refuel-header-actions">
           <div className="refuel-search">
             <Search size={16} />
-            <input type="text" placeholder="Search vehicle, driver, or location" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input
+              type="text"
+              placeholder="Search vehicle, driver, or location"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
       </div>
 
-      <div className="refuel-table-container" role="presentation" ref={tableContainerRef}
-        onMouseDown={handleTableMouseDown} onMouseMove={handleTableMouseMove}
-        onMouseUp={endTableDrag} onMouseLeave={endTableDrag} onClickCapture={handleTableClickCapture}>
+      <div
+        className="refuel-table-container"
+        role="presentation"
+        ref={tableContainerRef}
+        onMouseDown={handleTableMouseDown}
+        onMouseMove={handleTableMouseMove}
+        onMouseUp={endTableDrag}
+        onMouseLeave={endTableDrag}
+        onClickCapture={handleTableClickCapture}
+      >
         <table className="refuel-table">
           <thead>
             <tr>
@@ -317,19 +379,30 @@ const RefuelLogsReport = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={11} className="refuel-empty-state">Loading refuel logs...</td></tr>
+              <tr>
+                <td colSpan={11} className="refuel-empty-state">
+                  Loading refuel logs...
+                </td>
+              </tr>
             ) : error ? (
-              <tr><td colSpan={11} className="refuel-empty-state">{error}</td></tr>
+              <tr>
+                <td colSpan={11} className="refuel-empty-state">
+                  {error}
+                </td>
+              </tr>
             ) : logs.length === 0 ? (
               <tr>
                 <td colSpan={11} className="refuel-empty-state">
                   <div className="refuel-empty-state-inner">
                     <FileText size={48} color="#9ca3af" />
                     <p>No refuel logs found</p>
-                    {(searchTerm || activeTab !== 'all') ? (
+                    {searchTerm || activeTab !== 'all' ? (
                       <p className="refuel-empty-subtext">Try adjusting your search</p>
                     ) : (
-                      <button className="refuel-empty-action-btn" onClick={() => navigate('/mileage-tracking/new')}>
+                      <button
+                        className="refuel-empty-action-btn"
+                        onClick={() => navigate('/mileage-tracking/new')}
+                      >
                         <PlusCircle size={18} /> Add Refuel Log
                       </button>
                     )}
@@ -354,9 +427,13 @@ const RefuelLogsReport = () => {
                       <div className="cell-primary">{log.driverName || '-'}</div>
                       <div className="cell-secondary">{log.driverPhone || '--'}</div>
                     </td>
-                    <td><div className="cell-primary">{log.location || '-'}</div></td>
                     <td>
-                      <span className={`fuel-type-pill ${log.fuelType ? log.fuelType.toLowerCase() : 'unknown'}`}>
+                      <div className="cell-primary">{log.location || '-'}</div>
+                    </td>
+                    <td>
+                      <span
+                        className={`fuel-type-pill ${log.fuelType ? log.fuelType.toLowerCase() : 'unknown'}`}
+                      >
                         {log.fuelType || 'Unknown'}
                       </span>
                     </td>
@@ -367,16 +444,30 @@ const RefuelLogsReport = () => {
                     <td>{formatCurrency(log.unitPrice)}</td>
                     <td>{formatCurrency(log.totalAmount)}</td>
                     <td>
-                      <div className="cell-primary">{log.odometer ? `${log.odometer} km` : '-'}</div>
+                      <div className="cell-primary">
+                        {log.odometer ? `${log.odometer} km` : '-'}
+                      </div>
                       <div className="cell-secondary">Reading</div>
                     </td>
-                    <td><div className="cell-primary">{log.notes || '-'}</div></td>
+                    <td>
+                      <div className="cell-primary">{log.notes || '-'}</div>
+                    </td>
                     <td>
                       <div className="refuel-actions">
-                        <button type="button" className="refuel-action-btn edit" title="Edit" onClick={() => handleEditClick(log)}>
+                        <button
+                          type="button"
+                          className="refuel-action-btn edit"
+                          title="Edit"
+                          onClick={() => handleEditClick(log)}
+                        >
                           <Pencil size={14} />
                         </button>
-                        <button type="button" className="refuel-action-btn delete" title="Delete" onClick={() => handleDeleteClick(log)}>
+                        <button
+                          type="button"
+                          className="refuel-action-btn delete"
+                          title="Delete"
+                          onClick={() => handleDeleteClick(log)}
+                        >
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -391,109 +482,214 @@ const RefuelLogsReport = () => {
 
       {!loading && !error && pagination.total > 0 && (
         <div className="refuel-pagination-controls">
-          <button className="refuel-pagination-btn" onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1 || totalPages <= 1}>
+          <button
+            className="refuel-pagination-btn"
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page === 1 || totalPages <= 1}
+          >
             <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
           </button>
           {generatePageNumbers().map((page, index) => {
-            if (page === '...') return <div key={`overflow-${index}`} className="refuel-page-overflow"><span>...</span></div>;
+            if (page === '...')
+              return (
+                <div key={`overflow-${index}`} className="refuel-page-overflow">
+                  <span>...</span>
+                </div>
+              );
             return (
-              <button key={page} className={`refuel-page-number ${pagination.page === page ? 'refuel-page-number-current' : ''}`} onClick={() => handlePageChange(page)} disabled={totalPages <= 1}>
+              <button
+                key={page}
+                className={`refuel-page-number ${pagination.page === page ? 'refuel-page-number-current' : ''}`}
+                onClick={() => handlePageChange(page)}
+                disabled={totalPages <= 1}
+              >
                 <span>{page}</span>
               </button>
             );
           })}
-          <button className="refuel-pagination-btn" onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === totalPages || totalPages <= 1}>
+          <button
+            className="refuel-pagination-btn"
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page === totalPages || totalPages <= 1}
+          >
             <ChevronIcon size={12} style={{ transform: 'rotate(-90deg)' }} />
           </button>
         </div>
       )}
 
       {/* Edit Modal */}
-      {editingLog && createPortal(
-        <div className="refuel-modal-overlay" role="presentation" onClick={handleEditClose}>
-          <div className="refuel-modal refuel-edit-modal" role="presentation" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="refuel-modal-header">
-              <h2>Edit Fuel Log</h2>
-              <button type="button" className="refuel-modal-close" onClick={handleEditClose}><X size={20} /></button>
+      {editingLog &&
+        createPortal(
+          <div className="refuel-modal-overlay" role="presentation" onClick={handleEditClose}>
+            <div
+              className="refuel-modal refuel-edit-modal"
+              role="presentation"
+              style={{ maxWidth: '520px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="refuel-modal-header">
+                <h2>Edit Fuel Log</h2>
+                <button type="button" className="refuel-modal-close" onClick={handleEditClose}>
+                  <X size={20} />
+                </button>
+              </div>
+              <form onSubmit={handleEditSubmit}>
+                <div className="refuel-modal-body">
+                  <div className="refuel-form-row">
+                    <div className="form-group">
+                      <label>Fuel Type</label>
+                      <select
+                        value={editForm.fuelType}
+                        onChange={(e) => setEditForm({ ...editForm, fuelType: e.target.value })}
+                        required
+                      >
+                        {FUEL_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Filling Type</label>
+                      <select
+                        value={editForm.fillingType}
+                        onChange={(e) => setEditForm({ ...editForm, fillingType: e.target.value })}
+                        required
+                      >
+                        {FILLING_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type.replace('_', ' ')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="refuel-form-row">
+                    <div className="form-group">
+                      <label>Quantity (Litres)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editForm.litres}
+                        onChange={(e) => setEditForm({ ...editForm, litres: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Rate per Litre</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editForm.rate}
+                        onChange={(e) => setEditForm({ ...editForm, rate: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="refuel-form-row">
+                    <div className="form-group">
+                      <label>Odometer Reading (km)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={editForm.odometerReading}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, odometerReading: e.target.value })
+                        }
+                      />
+                      <span className="refuel-form-hint">
+                        Optional — FleetEdge can backfill later
+                      </span>
+                    </div>
+                    <div className="form-group">
+                      <label>Refuel Time</label>
+                      <input
+                        type="datetime-local"
+                        value={editForm.refuelTime}
+                        onChange={(e) => setEditForm({ ...editForm, refuelTime: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Location</label>
+                    <input
+                      type="text"
+                      value={editForm.location}
+                      onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                      placeholder="Enter location"
+                    />
+                  </div>
+                </div>
+                <div className="refuel-modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleEditClose}
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleEditSubmit}>
+          </div>,
+          document.body,
+        )}
+
+      {/* Delete Modal */}
+      {deletingLog &&
+        createPortal(
+          <div className="refuel-modal-overlay" role="presentation" onClick={handleDeleteClose}>
+            <div
+              className="refuel-modal refuel-delete-modal"
+              role="presentation"
+              style={{ maxWidth: '420px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="refuel-modal-header">
+                <h2>Delete Fuel Log</h2>
+                <button type="button" className="refuel-modal-close" onClick={handleDeleteClose}>
+                  <X size={20} />
+                </button>
+              </div>
               <div className="refuel-modal-body">
-                <div className="refuel-form-row">
-                  <div className="form-group">
-                    <label>Fuel Type</label>
-                    <select value={editForm.fuelType} onChange={(e) => setEditForm({ ...editForm, fuelType: e.target.value })} required>
-                      {FUEL_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Filling Type</label>
-                    <select value={editForm.fillingType} onChange={(e) => setEditForm({ ...editForm, fillingType: e.target.value })} required>
-                      {FILLING_TYPES.map((type) => <option key={type} value={type}>{type.replace('_', ' ')}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="refuel-form-row">
-                  <div className="form-group">
-                    <label>Quantity (Litres)</label>
-                    <input type="number" min="0" step="0.01" value={editForm.litres} onChange={(e) => setEditForm({ ...editForm, litres: e.target.value })} />
-                  </div>
-                  <div className="form-group">
-                    <label>Rate per Litre</label>
-                    <input type="number" min="0" step="0.01" value={editForm.rate} onChange={(e) => setEditForm({ ...editForm, rate: e.target.value })} />
-                  </div>
-                </div>
-                <div className="refuel-form-row">
-                  <div className="form-group">
-                    <label>Odometer Reading (km)</label>
-                    <input type="number" min="0" step="0.1" value={editForm.odometerReading} onChange={(e) => setEditForm({ ...editForm, odometerReading: e.target.value })} />
-                    <span className="refuel-form-hint">Optional — FleetEdge can backfill later</span>
-                  </div>
-                  <div className="form-group">
-                    <label>Refuel Time</label>
-                    <input type="datetime-local" value={editForm.refuelTime} onChange={(e) => setEditForm({ ...editForm, refuelTime: e.target.value })} />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Location</label>
-                  <input type="text" value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} placeholder="Enter location" />
+                <div className="refuel-delete-warning">
+                  <AlertTriangle size={40} color="#dc2626" />
+                  <p>Are you sure you want to delete this fuel log?</p>
+                  <p className="refuel-delete-subtext">
+                    This will rebuild the mileage intervals for vehicle{' '}
+                    <strong>{deletingLog.vehicleNo}</strong>. Any previously computed FleetEdge
+                    comparisons will be reset to pending.
+                  </p>
                 </div>
               </div>
               <div className="refuel-modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={handleEditClose} disabled={submitting}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Saving...' : 'Save Changes'}</button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Delete Modal */}
-      {deletingLog && createPortal(
-        <div className="refuel-modal-overlay" role="presentation" onClick={handleDeleteClose}>
-          <div className="refuel-modal refuel-delete-modal" role="presentation" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="refuel-modal-header">
-              <h2>Delete Fuel Log</h2>
-              <button type="button" className="refuel-modal-close" onClick={handleDeleteClose}><X size={20} /></button>
-            </div>
-            <div className="refuel-modal-body">
-              <div className="refuel-delete-warning">
-                <AlertTriangle size={40} color="#dc2626" />
-                <p>Are you sure you want to delete this fuel log?</p>
-                <p className="refuel-delete-subtext">
-                  This will rebuild the mileage intervals for vehicle <strong>{deletingLog.vehicleNo}</strong>.
-                  Any previously computed FleetEdge comparisons will be reset to pending.
-                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleDeleteClose}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDeleteConfirm}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
             </div>
-            <div className="refuel-modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={handleDeleteClose} disabled={submitting}>Cancel</button>
-              <button type="button" className="btn btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>{submitting ? 'Deleting...' : 'Delete'}</button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

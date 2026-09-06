@@ -10,7 +10,10 @@ export default defineConfig([
   // Design mockups and handoff notes, not application source — never imported
   // by src/. Their vendored/generated JS (canvas support scripts) isn't meant
   // to pass app lint rules.
-  globalIgnores(['dist', 'Design', 'amitansu-handoff']),
+  // quarantine/ holds unreachable pages kept for recovery, not for shipping —
+  // outside src/ so Vite never bundles them, and ignored here so dead code can't
+  // fail the gate. See quarantine/README.md.
+  globalIgnores(['dist', 'Design', 'amitansu-handoff', 'quarantine']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

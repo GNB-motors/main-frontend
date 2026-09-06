@@ -1,12 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
 import { AlertTriangle, CheckCircle2, Clock, Minus } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Pagination, PaginationContent, PaginationEllipsis,
-  PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 } from '@/components/ui/pagination';
 import TableShimmer from '@/components/ui/TableShimmer';
+import PageShell from '@/components/ui/PageShell';
 import { ReportsService } from '../ReportsService.jsx';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 import apiClient from '../../../utils/axiosConfig';
@@ -17,7 +29,9 @@ const COLUMN_COUNT = 15;
 const PAGE_SIZE = 10;
 
 const formatNumber = (value, digits = 0) =>
-  typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: digits }) : '—';
+  typeof value === 'number'
+    ? value.toLocaleString('en-IN', { maximumFractionDigits: digits })
+    : '—';
 
 const formatCurrency = (value) =>
   typeof value === 'number'
@@ -32,7 +46,16 @@ const AlertCell = ({ alert }) => {
 
   if (status === 'PENDING') {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#C56200', fontSize: 12, fontWeight: 500 }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          color: '#C56200',
+          fontSize: 12,
+          fontWeight: 500,
+        }}
+      >
         <Clock size={13} /> Pending
       </span>
     );
@@ -44,7 +67,15 @@ const AlertCell = ({ alert }) => {
     return (
       <span
         title={reasons.join('\n')}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#b91c1c', fontSize: 12, fontWeight: 500, cursor: 'help' }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          color: '#b91c1c',
+          fontSize: 12,
+          fontWeight: 500,
+          cursor: 'help',
+        }}
       >
         <AlertTriangle size={13} /> {reasons.length > 1 ? `${reasons.length} flags` : 'Flagged'}
       </span>
@@ -52,12 +83,25 @@ const AlertCell = ({ alert }) => {
   }
   if (status === 'OK') {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#187A32', fontSize: 12, fontWeight: 500 }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          color: '#187A32',
+          fontSize: 12,
+          fontWeight: 500,
+        }}
+      >
         <CheckCircle2 size={13} /> OK
       </span>
     );
   }
-  return <span style={{ color: '#9ca3af' }}><Minus size={13} /></span>;
+  return (
+    <span style={{ color: '#9ca3af' }}>
+      <Minus size={13} />
+    </span>
+  );
 };
 
 const toStartOfDayIso = (dateStr) => {
@@ -86,11 +130,12 @@ const MileageIntervalReport = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: filterResponse, error: filtersError } = useApi(
-    (signal) => Promise.all([
-      apiClient.get('api/vehicles', { params: { limit: 200 }, signal }),
-      ReportsService.getEmployees({ limit: 200 }),
-    ]),
-    []
+    (signal) =>
+      Promise.all([
+        apiClient.get('api/vehicles', { params: { limit: 200 }, signal }),
+        ReportsService.getEmployees({ limit: 200 }),
+      ]),
+    [],
   );
 
   useEffect(() => {
@@ -98,10 +143,12 @@ const MileageIntervalReport = () => {
     const [vehiclesRes, employees] = filterResponse;
     const vehicles = vehiclesRes.data?.data || vehiclesRes.data || [];
     setVehicleOptions(
-      (Array.isArray(vehicles) ? vehicles : []).map((v) => ({
-        id: String(v._id || v.id),
-        label: v.registrationNumber || v.vehicleNumber || '—',
-      })).filter((v) => v.id && v.id !== 'undefined'),
+      (Array.isArray(vehicles) ? vehicles : [])
+        .map((v) => ({
+          id: String(v._id || v.id),
+          label: v.registrationNumber || v.vehicleNumber || '—',
+        }))
+        .filter((v) => v.id && v.id !== 'undefined'),
     );
     setDriverOptions(
       (Array.isArray(employees) ? employees : [])
@@ -118,29 +165,32 @@ const MileageIntervalReport = () => {
     if (filtersError) console.error('Failed to load report filters:', filtersError);
   }, [filtersError]);
 
-  const { data: rowsResponse, loading: isLoading, error: rowsError } = useApi(
-    () => {
-      const params = {
-        page: currentPage,
-        limit: PAGE_SIZE,
-      };
-      const startIso = toStartOfDayIso(startDate);
-      const endIso = toEndOfDayIso(endDate);
-      if (startIso) params.startDate = startIso;
-      if (endIso) params.endDate = endIso;
-      if (vehicleId && vehicleId !== 'all') params.vehicleId = String(vehicleId);
-      if (driverId && driverId !== 'all') params.driverId = String(driverId);
+  const {
+    data: rowsResponse,
+    loading: isLoading,
+    error: rowsError,
+  } = useApi(() => {
+    const params = {
+      page: currentPage,
+      limit: PAGE_SIZE,
+    };
+    const startIso = toStartOfDayIso(startDate);
+    const endIso = toEndOfDayIso(endDate);
+    if (startIso) params.startDate = startIso;
+    if (endIso) params.endDate = endIso;
+    if (vehicleId && vehicleId !== 'all') params.vehicleId = String(vehicleId);
+    if (driverId && driverId !== 'all') params.driverId = String(driverId);
 
-      return ReportsService.getMileageIntervalReports(params);
-    },
-    [JSON.stringify({ currentPage, startDate, endDate, vehicleId, driverId })]
-  );
+    return ReportsService.getMileageIntervalReports(params);
+  }, [JSON.stringify({ currentPage, startDate, endDate, vehicleId, driverId })]);
 
   useEffect(() => {
     if (rowsResponse) {
       setError(null);
       setRows(Array.isArray(rowsResponse.data) ? rowsResponse.data : []);
-      setMeta(rowsResponse.meta || { total: 0, page: currentPage, limit: PAGE_SIZE, totalPages: 0 });
+      setMeta(
+        rowsResponse.meta || { total: 0, page: currentPage, limit: PAGE_SIZE, totalPages: 0 },
+      );
     }
   }, [rowsResponse, currentPage]);
 
@@ -226,17 +276,26 @@ const MileageIntervalReport = () => {
   };
 
   return (
-    <div className="p-6">
+    <PageShell title="Mileage Report" count={meta.total} className="p-6">
       <div className="report-header-section">
+        {/* Report toolbar sits below the PageShell header, not instead of it.
+            The old <h3> title was dropped — PageShell owns the title now. */}
         <div className="report-header-top">
-          <h3 className="report-title">Mileage Report</h3>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
             <button
               onClick={() => downloadCsv('csv')}
               disabled={isExporting}
-              style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
-              onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
+              style={{
+                ...exportBtnStyle,
+                opacity: isExporting ? 0.6 : 1,
+                cursor: isExporting ? 'wait' : 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                if (!isExporting) e.currentTarget.style.background = '#ECECEE';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#F8F8FB';
+              }}
               title="Export filtered rows to CSV"
             >
               <CsvIcon width={24} height={24} />
@@ -244,9 +303,17 @@ const MileageIntervalReport = () => {
             <button
               onClick={() => downloadCsv('xlsx')}
               disabled={isExporting}
-              style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
-              onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
+              style={{
+                ...exportBtnStyle,
+                opacity: isExporting ? 0.6 : 1,
+                cursor: isExporting ? 'wait' : 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                if (!isExporting) e.currentTarget.style.background = '#ECECEE';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#F8F8FB';
+              }}
               title="Export filtered rows to Excel"
             >
               <ExcelIcon width={22} height={22} />
@@ -284,7 +351,9 @@ const MileageIntervalReport = () => {
               <SelectContent align="start">
                 <SelectItem value="all">All Vehicles</SelectItem>
                 {vehicleOptions.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -298,7 +367,9 @@ const MileageIntervalReport = () => {
               <SelectContent align="start">
                 <SelectItem value="all">All Drivers</SelectItem>
                 {driverOptions.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -339,7 +410,10 @@ const MileageIntervalReport = () => {
       )}
 
       {error && !isLoading && (
-        <div role="alert" className="my-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="my-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {error}
         </div>
       )}
@@ -377,26 +451,46 @@ const MileageIntervalReport = () => {
                 ) : (
                   rows.map((row) => (
                     <tr key={row.id} className="trip-table-row">
-                      <td><div className="cell-primary">{formatDate(row.startDate || row.date)}</div></td>
+                      <td>
+                        <div className="cell-primary">{formatDate(row.startDate || row.date)}</div>
+                      </td>
                       <td>
                         <div className="cell-primary">
-                          {row.endDate ? formatDate(row.endDate) : (row.intervalStatus === 'ONGOING' ? '...' : '—')}
+                          {row.endDate
+                            ? formatDate(row.endDate)
+                            : row.intervalStatus === 'ONGOING'
+                              ? '...'
+                              : '—'}
                         </div>
                       </td>
-                      <td><div className="cell-primary">{row.vehicleNumber || '—'}</div></td>
-                      <td><div className="cell-primary">{row.driverName || '—'}</div></td>
-                      <td><div className="cell-primary">{row.pumpLocation || '—'}</div></td>
-                      <td><div className="cell-primary">{row.source?.name || '—'}</div></td>
-                      <td><div className="cell-primary">{row.destination?.name || '—'}</div></td>
+                      <td>
+                        <div className="cell-primary">{row.vehicleNumber || '—'}</div>
+                      </td>
+                      <td>
+                        <div className="cell-primary">{row.driverName || '—'}</div>
+                      </td>
+                      <td>
+                        <div className="cell-primary">{row.pumpLocation || '—'}</div>
+                      </td>
+                      <td>
+                        <div className="cell-primary">{row.source?.name || '—'}</div>
+                      </td>
+                      <td>
+                        <div className="cell-primary">{row.destination?.name || '—'}</div>
+                      </td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="cell-primary">{formatNumber(row.startOdo)}</div>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div className="cell-primary">{row.endOdo != null ? formatNumber(row.endOdo) : '...'}</div>
+                        <div className="cell-primary">
+                          {row.endOdo != null ? formatNumber(row.endOdo) : '...'}
+                        </div>
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="cell-primary">
-                          {typeof row.distanceKm === 'number' ? `${row.distanceKm.toFixed(1)} km` : '—'}
+                          {typeof row.distanceKm === 'number'
+                            ? `${row.distanceKm.toFixed(1)} km`
+                            : '—'}
                         </div>
                       </td>
                       <td style={{ textAlign: 'right' }}>
@@ -405,19 +499,34 @@ const MileageIntervalReport = () => {
                         </div>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div className="cell-primary" style={typeof row.mileageKmPerL === 'number' ? { color: '#2563eb', fontWeight: 600 } : undefined}>
-                          {typeof row.mileageKmPerL === 'number' ? row.mileageKmPerL.toFixed(2) : '—'}
+                        <div
+                          className="cell-primary"
+                          style={
+                            typeof row.mileageKmPerL === 'number'
+                              ? { color: '#2563eb', fontWeight: 600 }
+                              : undefined
+                          }
+                        >
+                          {typeof row.mileageKmPerL === 'number'
+                            ? row.mileageKmPerL.toFixed(2)
+                            : '—'}
                         </div>
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="cell-primary">
-                          {typeof row.defLiters === 'number' ? `${row.defLiters.toFixed(1)} L` : '—'}
+                          {typeof row.defLiters === 'number'
+                            ? `${row.defLiters.toFixed(1)} L`
+                            : '—'}
                         </div>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div className="cell-primary" style={{ fontWeight: 600 }}>{formatCurrency(row.cost)}</div>
+                        <div className="cell-primary" style={{ fontWeight: 600 }}>
+                          {formatCurrency(row.cost)}
+                        </div>
                       </td>
-                      <td><AlertCell alert={row.alert} /></td>
+                      <td>
+                        <AlertCell alert={row.alert} />
+                      </td>
                     </tr>
                   ))
                 )}
@@ -426,7 +535,10 @@ const MileageIntervalReport = () => {
           </div>
 
           {meta.total > 0 && (
-            <div className="pagination-wrapper" style={{ width: '100%', justifyContent: 'space-between' }}>
+            <div
+              className="pagination-wrapper"
+              style={{ width: '100%', justifyContent: 'space-between' }}
+            >
               <span style={{ fontSize: 13, color: '#6b7280', flexShrink: 0 }}>
                 {meta.total} record{meta.total === 1 ? '' : 's'}
               </span>
@@ -435,7 +547,9 @@ const MileageIntervalReport = () => {
                   <PaginationItem>
                     <PaginationPrevious
                       onClick={() => currentPage > 1 && setCurrentPage((p) => p - 1)}
-                      className={currentPage <= 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                      className={
+                        currentPage <= 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'
+                      }
                     />
                   </PaginationItem>
                   {renderPageItems().map((item, idx) =>
@@ -458,7 +572,11 @@ const MileageIntervalReport = () => {
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => currentPage < totalPages && setCurrentPage((p) => p + 1)}
-                      className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                      className={
+                        currentPage >= totalPages
+                          ? 'pointer-events-none opacity-40'
+                          : 'cursor-pointer'
+                      }
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -467,7 +585,7 @@ const MileageIntervalReport = () => {
           )}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 
