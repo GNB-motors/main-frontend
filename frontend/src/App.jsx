@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useLayoutEffect } from 'react';
 import LottieLoader from './components/LottieLoader';
-import DashboardLayout from './components/DashboardLayout';
 import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
 
 function RedirectWithState({ to }) {
@@ -23,15 +22,33 @@ function ScrollToTop() {
 }
 
 // Every route is lazy-loaded. Only the app shell, providers, ErrorBoundary,
-// and the Suspense fallback ship in the main chunk.
+// and the Suspense fallback ship in the main chunk. The dashboard layout is a
+// route like any other — lazy so public (marketing) pages never pay for the
+// authenticated shell: Sidebar/Navbar icons, base-ui dialogs, and axios all
+// leave the entry chunk.
+const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
 const LandingPageV2 = lazy(() => import('./pages/landing-page-v2/LandingPageV2.jsx'));
-const LiveFleetMapV2 = lazy(() => import('./pages/landing-page-v2/live-fleet-map-v2/LiveFleetMapV2.jsx'));
-const VehicleTrackingV2 = lazy(() => import('./pages/landing-page-v2/vehicle-tracking-v2/VehicleTrackingV2.jsx'));
-const TripManagementV2 = lazy(() => import('./pages/landing-page-v2/trip-management-v2/TripManagementV2.jsx'));
-const DriverManagementV2 = lazy(() => import('./pages/landing-page-v2/driver-management-v2/DriverManagementV2.jsx'));
-const FuelAndMileageV2 = lazy(() => import('./pages/landing-page-v2/fuel-and-mileage-v2/FuelAndMileageV2.jsx'));
-const SingleOwnersV2 = lazy(() => import('./pages/landing-page-v2/single-owners-v2/SingleOwnersV2.jsx'));
-const ContractFleetsV2 = lazy(() => import('./pages/landing-page-v2/contract-fleets-v2/ContractFleetsV2.jsx'));
+const LiveFleetMapV2 = lazy(
+  () => import('./pages/landing-page-v2/live-fleet-map-v2/LiveFleetMapV2.jsx'),
+);
+const VehicleTrackingV2 = lazy(
+  () => import('./pages/landing-page-v2/vehicle-tracking-v2/VehicleTrackingV2.jsx'),
+);
+const TripManagementV2 = lazy(
+  () => import('./pages/landing-page-v2/trip-management-v2/TripManagementV2.jsx'),
+);
+const DriverManagementV2 = lazy(
+  () => import('./pages/landing-page-v2/driver-management-v2/DriverManagementV2.jsx'),
+);
+const FuelAndMileageV2 = lazy(
+  () => import('./pages/landing-page-v2/fuel-and-mileage-v2/FuelAndMileageV2.jsx'),
+);
+const SingleOwnersV2 = lazy(
+  () => import('./pages/landing-page-v2/single-owners-v2/SingleOwnersV2.jsx'),
+);
+const ContractFleetsV2 = lazy(
+  () => import('./pages/landing-page-v2/contract-fleets-v2/ContractFleetsV2.jsx'),
+);
 const EnterpriseV2 = lazy(() => import('./pages/landing-page-v2/enterprise-v2/EnterpriseV2.jsx'));
 const AboutV2 = lazy(() => import('./pages/landing-page-v2/about-v2/AboutV2.jsx'));
 const ContactV2 = lazy(() => import('./pages/landing-page-v2/contact-v2/ContactV2.jsx'));
@@ -354,7 +371,10 @@ function App() {
             {/* Document detail — the "Source" links in Day Book / Account 360 /
                 Registers (documentRoutes.documentPathFor) point here. DocumentDetailPage
                 already handles each segment; these routes were simply never wired. */}
-            <Route path="/erp/billing/bill/:docId" element={<DocumentDetailPage segment="bill" />} />
+            <Route
+              path="/erp/billing/bill/:docId"
+              element={<DocumentDetailPage segment="bill" />}
+            />
             <Route
               path="/erp/payables/purchase-bill/:docId"
               element={<DocumentDetailPage segment="purchase-bill" />}
@@ -436,7 +456,10 @@ function App() {
               path="/erp/supplier-payments"
               element={<RedirectWithState to="/erp/payables?tab=supplier" />}
             />
-            <Route path="/erp/ledger" element={<RedirectWithState to="/erp/accounts?tab=ledger" />} />
+            <Route
+              path="/erp/ledger"
+              element={<RedirectWithState to="/erp/accounts?tab=ledger" />}
+            />
             <Route
               path="/erp/finance"
               element={<RedirectWithState to="/erp/accounts?tab=finance" />}
