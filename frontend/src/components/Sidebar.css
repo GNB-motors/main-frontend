@@ -1,4 +1,28 @@
 .sidebar {
+  /* ── Brand gradient ground (design system §H.3) ─────────────────────────
+     Two stacked layers cross-fade: orange in fleet sections, blue on ERP &
+     CRM routes (~350 ms). Text/icon colours are driven by the --sb-* vars
+     below so BOTH gradients keep WCAG AA:
+       fleet  : #1F2937 on #EE6126→#F2754A  (≈7.8:1 / 7.0:1)
+       erp    : #FFFFFF on #1E3A8A→#1E88E5  (≈10.4:1 / 3.9:1 at the light
+                end — the inset scrim on the blue layer darkens that band so
+                white stays ≥4.5:1 along the whole rail). */
+  --sb-text: #4b5563;
+  --sb-text-strong: #1f2937;
+  --sb-active-bg: rgba(255, 255, 255, 0.35);
+  --sb-active-text: #111827;
+  --sb-hover-bg: rgba(255, 255, 255, 0.22);
+  --sb-divider: rgba(31, 41, 55, 0.14);
+
+  /* Remap the tokens the existing nav rules already consume — no rule
+     rewrites needed, and .sidebar--erp flips them all at once. */
+  --color-grey-400: var(--sb-text);
+  --color-grey-800: var(--sb-text-strong);
+  --color-grey-200: var(--sb-divider);
+  --primary-light: var(--sb-hover-bg);
+  --primary-color: var(--sb-active-text);
+  --color-white: transparent;
+
   width: 120px;
   background-color: var(--color-white);
   padding: 8px !important;
@@ -20,10 +44,68 @@
   overflow: hidden; /* the nav scrolls, the shell never does */
 }
 
+/* Stacked gradient layers — content sits above via z-index in
+   .sidebar-content / .sidebar-footer. */
+.sidebar::before,
+.sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sidebar::before {
+  background: linear-gradient(180deg, #ee6126 0%, #f2754a 100%);
+}
+
+.sidebar::after {
+  background: linear-gradient(180deg, #1e3a8a 0%, #1e88e5 100%);
+  /* Darken the band near the light end so white text keeps AA there. */
+  box-shadow: inset 0 -140px 100px -60px rgba(7, 12, 26, 0.55);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.sidebar--erp {
+  --sb-text: rgba(255, 255, 255, 0.92);
+  --sb-text-strong: #ffffff;
+  --sb-active-bg: rgba(255, 255, 255, 0.22);
+  --sb-active-text: #ffffff;
+  --sb-hover-bg: rgba(255, 255, 255, 0.12);
+  --sb-divider: rgba(255, 255, 255, 0.22);
+}
+
+.sidebar--erp::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar::after {
+    transition: none;
+  }
+
+  /* Keep the structural transitions (collapse/expand) but make the
+     colour cross-fade instant. */
+  .nav-link,
+  .nav-parent {
+    transition:
+      color 0s linear,
+      background-color 0s linear,
+      gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
 .sidebar-content {
   display: flex;
   flex-direction: column;
   flex-grow: 1; /* Pushes footer down */
+  position: relative; /* sit above the ::before/::after gradient layers */
+  z-index: 1;
   /* Without min-height:0 a flex item refuses to shrink below its content
        height, so overflow-y never engages and the tail of the nav is unreachable. */
   min-height: 0;
@@ -64,7 +146,8 @@
   transition:
     opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.35s ease;
 }
 
 .logo-img {
@@ -98,7 +181,9 @@
   overflow: hidden;
   transition:
     gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.35s ease,
+    background-color 0.35s ease;
 }
 
 /* Gap only when sidebar is hovered */
@@ -117,7 +202,7 @@
 .nav-link svg {
   color: inherit;
   transition:
-    color 0.2s ease,
+    color 0.35s ease,
     width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -138,7 +223,8 @@
   padding-top: 12px;
   border-top: 1px solid var(--color-grey-200);
   flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
-  background-color: var(--color-white); /* Match sidebar bg so it looks solid */
+  position: relative; /* sit above the gradient layers */
+  z-index: 1;
 }
 
 .logout-btn {
@@ -257,6 +343,7 @@
   white-space: nowrap;
   overflow: hidden;
   user-select: none;
+  transition: color 0.35s ease;
 }
 
 .nav-section-label:first-child {
@@ -296,8 +383,8 @@
   transition:
     gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    background-color 0.2s ease,
-    color 0.2s ease;
+    color 0.35s ease,
+    background-color 0.35s ease;
 }
 
 .nav-parent-left {
@@ -311,7 +398,7 @@
   flex-shrink: 0;
   color: inherit;
   transition:
-    color 0.2s ease,
+    color 0.35s ease,
     width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
