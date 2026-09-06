@@ -1,16 +1,16 @@
 /**
  * TripCreationFlow Component
- * 
+ *
  * Main orchestrator for the 3-phase trip creation flow:
  * Phase 1: Intake (Document sorting and OCR preview)
  * Phase 2: Processing (Data entry and correction)
  * Phase 3: Verification (Final audit and submission)
- * 
+ *
  * NEW FLOW - Single Submission Pattern:
  * - Phase 1: Upload files, run OCR preview (no DB writes)
  * - Phase 2: User enters/corrects data for each weight slip
  * - Phase 3: Submit everything at once with atomic transaction
- * 
+ *
  * State Management:
  * - fixedDocs: { odometer: { file, ocrData }, fuel: { file, ocrData }, partialFuel: [] }
  * - weightSlips: Array of { file, tempId, ocrData, routeId, revenue, expenses, weights, materialType }
@@ -29,6 +29,8 @@ import ProcessingPhase from './phases/ProcessingPhase';
 import VerificationPhase from './phases/VerificationPhase';
 import JourneySetupModal from '../../components/JourneySetupModal/JourneySetupModal';
 import { useConfirm } from '../../components/ui/confirmContext';
+import { getPref, setPref, removePref } from '../../utils/session.js';
+import { TRIP_DRAFT_PREF_KEY, serializeTripDraft, parseTripDraft } from './tripDraft';
 
 const TripCreationFlow = () => {
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ const TripCreationFlow = () => {
     const steps = [
       'Step 1: Document Intake & OCR Preview',
       'Step 2: Data Entry & Correction',
-      'Step 3: Final Verification & Submit'
+      'Step 3: Final Verification & Submit',
     ];
     setStepName(steps[activeStep] || '');
 
@@ -57,14 +59,14 @@ const TripCreationFlow = () => {
   const [fixedDocs, setFixedDocs] = useState({
     odometer: null, // { file, ocrData: { tempId, extractedData, confidence } }
     fuel: null,
-    partialFuel: [] // Array of { file, ocrData: { tempId, extractedData } }
+    partialFuel: [], // Array of { file, ocrData: { tempId, extractedData } }
   });
 
   // Weight slips now include OCR preview data and user-entered data
   const [weightSlips, setWeightSlips] = useState([]);
-  // Structure: [{ 
-  //   file, 
-  //   tempId, 
+  // Structure: [{
+  //   file,
+  //   tempId,
   //   ocrData: { extractedData, confidence },
   //   materialType, weights, routeId, revenue, expenses, notes
   // }]
@@ -81,6 +83,27 @@ const TripCreationFlow = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isIntakeLoading] = useState(false);
 
+  // Draft restore (audit §7.16): selections and journey data survive a
+  // dropped connection / accidental reload. Photos cannot — the user
+  // re-attaches documents after the restore, so the flow restarts at intake.
+  useEffect(() => {
+    const draft = parseTripDraft(getPref(TRIP_DRAFT_PREF_KEY));
+    if (!draft) return;
+    if (draft.selectedVehicle) setSelectedVehicle(draft.selectedVehicle);
+    if (draft.selectedDriver) setSelectedDriver(draft.selectedDriver);
+    if (draft.journeyData) setJourneyData(draft.journeyData);
+    if (draft.selectedVehicle || draft.selectedDriver || draft.journeyData) {
+      const when = draft.savedAt ? new Date(draft.savedAt).toLocaleTimeString() : 'earlier';
+      toast.info(`Draft restored from ${when}. Document photos must be re-attached.`);
+    }
+  }, []);
+
+  // Persist the draft whenever the restorable slice changes.
+  useEffect(() => {
+    const raw = serializeTripDraft({ selectedVehicle, selectedDriver, journeyData });
+    if (raw) setPref(TRIP_DRAFT_PREF_KEY, raw);
+  }, [selectedVehicle, selectedDriver, journeyData]);
+
   /**
    * Move to processing phase after intake and OCR preview
    * New flow: No DB writes, just validate and move to next phase
@@ -90,13 +113,13 @@ const TripCreationFlow = () => {
       toast.error('Please upload an odometer image');
       return;
     }
-    
+
     // Validate fuel receipt: either full tank OR partial fill receipts required
     if (!fixedDocs.fuel && (!fixedDocs.partialFuel || fixedDocs.partialFuel.length === 0)) {
       toast.error('Please upload a fuel receipt (full tank or partial fill)');
       return;
     }
-    
+
     if (weightSlips.length === 0) {
       toast.error('Please upload at least one weight slip');
       return;
@@ -108,9 +131,6 @@ const TripCreationFlow = () => {
     }
 
     // Show journey setup modal instead of directly moving to processing
-    console.log('🚀 Starting processing - showing journey modal');
-    console.log('📊 Modal state before:', { showJourneyModal, selectedVehicle, selectedDriver });
-    console.log('📄 Fixed docs:', fixedDocs);
     setShowJourneyModal(true);
     setCurrentIndex(0);
     toast.success('Starting data entry phase...');
@@ -120,7 +140,7 @@ const TripCreationFlow = () => {
    * Update weight slip data
    */
   const updateWeightSlip = useCallback((index, data) => {
-    setWeightSlips(prev => {
+    setWeightSlips((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], ...data };
       return updated;
@@ -132,7 +152,7 @@ const TripCreationFlow = () => {
    */
   const handleNextSlip = useCallback(() => {
     if (currentIndex < weightSlips.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
     } else {
       // All slips processed, move to verification
       setActiveStep(2);
@@ -144,18 +164,21 @@ const TripCreationFlow = () => {
    */
   const handlePreviousSlip = useCallback(() => {
     if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex((prev) => prev - 1);
     }
   }, [currentIndex]);
 
   /**
    * Jump to specific weight slip by index
    */
-  const handleSelectSlip = useCallback((index) => {
-    if (index >= 0 && index < weightSlips.length) {
-      setCurrentIndex(index);
-    }
-  }, [weightSlips.length]);
+  const handleSelectSlip = useCallback(
+    (index) => {
+      if (index >= 0 && index < weightSlips.length) {
+        setCurrentIndex(index);
+      }
+    },
+    [weightSlips.length],
+  );
 
   /**
    * Go back to processing from verification
@@ -177,8 +200,6 @@ const TripCreationFlow = () => {
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      // Debug: Log the journey data structure
-      console.log('🎯 Journey data structure:', JSON.stringify(journeyData, null, 2));
       // 1. Prepare mileage data from journey setup modal
       const mileage = {
         startOdometer: journeyData?.mileageData?.startOdometer || 0,
@@ -194,7 +215,7 @@ const TripCreationFlow = () => {
 
       // 2. Prepare fuel logs from journey setup modal
       const fuelLogs = [];
-      
+
       if (journeyData?.fuelData?.litres && journeyData?.fuelData?.rate) {
         // Use the fuel data from journey setup modal
         fuelLogs.push({
@@ -213,7 +234,7 @@ const TripCreationFlow = () => {
               litres: journeyData.fuelData.litres,
               rate: journeyData.fuelData.rate,
               totalCost: journeyData.fuelData.litres * journeyData.fuelData.rate,
-            }
+            },
           },
           // For FULL_TANK, include the end odometer reading for mileage calculation
           odometerReading: journeyData.mileageData.endOdometer,
@@ -224,9 +245,10 @@ const TripCreationFlow = () => {
       if (fixedDocs.partialFuel && fixedDocs.partialFuel.length > 0) {
         fixedDocs.partialFuel.forEach((partialFuel, index) => {
           const fuelData = partialFuel.ocrData || {};
-          const litres = parseFloat(fuelData.volume || fuelData.litres || fuelData.extractedData?.litres) || 0;
+          const litres =
+            parseFloat(fuelData.volume || fuelData.litres || fuelData.extractedData?.litres) || 0;
           const rate = parseFloat(fuelData.rate || fuelData.extractedData?.rate) || 0;
-          
+
           fuelLogs.push({
             tempId: fuelData.tempId || `temp_fuel_${Date.now()}_${index}`,
             fuelType: 'DIESEL',
@@ -242,12 +264,31 @@ const TripCreationFlow = () => {
       // 3. Prepare weight slip trips
       const weightSlipTrips = weightSlips.map((slip) => {
         // Parse numeric values from form inputs with proper OCR fallbacks
-        const grossWeight = parseFloat(slip.grossWeight) || slip.weights?.grossWeight || slip.ocrData?.extractedData?.grossWeight || slip.ocrData?.grossWeight || 0;
-        const tareWeight = parseFloat(slip.tareWeight) || slip.weights?.tareWeight || slip.ocrData?.extractedData?.tareWeight || slip.ocrData?.tareWeight || 0;
-        const netWeight = parseFloat(slip.netWeight) || slip.weights?.netWeight || slip.ocrData?.extractedData?.netWeight || slip.ocrData?.netWeight || slip.ocrData?.finalWeight || 0;
-        
+        const grossWeight =
+          parseFloat(slip.grossWeight) ||
+          slip.weights?.grossWeight ||
+          slip.ocrData?.extractedData?.grossWeight ||
+          slip.ocrData?.grossWeight ||
+          0;
+        const tareWeight =
+          parseFloat(slip.tareWeight) ||
+          slip.weights?.tareWeight ||
+          slip.ocrData?.extractedData?.tareWeight ||
+          slip.ocrData?.tareWeight ||
+          0;
+        const netWeight =
+          parseFloat(slip.netWeight) ||
+          slip.weights?.netWeight ||
+          slip.ocrData?.extractedData?.netWeight ||
+          slip.ocrData?.netWeight ||
+          slip.ocrData?.finalWeight ||
+          0;
+
         return {
-          tempId: slip.tempId || slip.ocrData?.tempId || `temp_ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          tempId:
+            slip.tempId ||
+            slip.ocrData?.tempId ||
+            `temp_ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           materialType: slip.materialType || slip.ocrData?.extractedData?.materialType || 'Sand',
           weights: {
             grossWeight,
@@ -258,55 +299,102 @@ const TripCreationFlow = () => {
           tripType: slip.tripType || 'PICKUP_DROP', // Include trip type
           revenue: {
             // TripForm uses ratePerTon, backend expects ratePerTon
-            ratePerTon: parseFloat(slip.ratePerTon) || slip.revenue?.ratePerTon || slip.ocrData?.extractedData?.ratePerTon || 0,
+            ratePerTon:
+              parseFloat(slip.ratePerTon) ||
+              slip.revenue?.ratePerTon ||
+              slip.ocrData?.extractedData?.ratePerTon ||
+              0,
             // TripForm uses totalAmountReceived
-            actualAmountReceived: parseFloat(slip.totalAmountReceived) || slip.revenue?.actualAmountReceived || slip.ocrData?.extractedData?.totalAmount || 0,
+            actualAmountReceived:
+              parseFloat(slip.totalAmountReceived) ||
+              slip.revenue?.actualAmountReceived ||
+              slip.ocrData?.extractedData?.totalAmount ||
+              0,
           },
           expenses: {
             // TripForm uses flat property names
-            materialCost: parseFloat(slip.materialCost) || slip.expenses?.materialCost || slip.ocrData?.extractedData?.materialCost || 0,
-            toll: parseFloat(slip.toll) || slip.expenses?.toll || slip.ocrData?.extractedData?.toll || 0,
-            driverCost: parseFloat(slip.driverCost) || slip.expenses?.driverCost || slip.ocrData?.extractedData?.driverCost || 0,
-            driverTripExpense: parseFloat(slip.driverTripExpense) || slip.expenses?.driverTripExpense || slip.ocrData?.extractedData?.driverTripExpense || 0,
-            royalty: parseFloat(slip.royalty) || slip.expenses?.royalty || slip.ocrData?.extractedData?.royalty || 0,
-            otherExpenses: parseFloat(slip.otherExpenses) || slip.expenses?.otherExpenses || slip.ocrData?.extractedData?.otherExpenses || 0,
+            materialCost:
+              parseFloat(slip.materialCost) ||
+              slip.expenses?.materialCost ||
+              slip.ocrData?.extractedData?.materialCost ||
+              0,
+            toll:
+              parseFloat(slip.toll) ||
+              slip.expenses?.toll ||
+              slip.ocrData?.extractedData?.toll ||
+              0,
+            driverCost:
+              parseFloat(slip.driverCost) ||
+              slip.expenses?.driverCost ||
+              slip.ocrData?.extractedData?.driverCost ||
+              0,
+            driverTripExpense:
+              parseFloat(slip.driverTripExpense) ||
+              slip.expenses?.driverTripExpense ||
+              slip.ocrData?.extractedData?.driverTripExpense ||
+              0,
+            royalty:
+              parseFloat(slip.royalty) ||
+              slip.expenses?.royalty ||
+              slip.ocrData?.extractedData?.royalty ||
+              0,
+            otherExpenses:
+              parseFloat(slip.otherExpenses) ||
+              slip.expenses?.otherExpenses ||
+              slip.ocrData?.extractedData?.otherExpenses ||
+              0,
           },
           notes: slip.notes || '',
           // Update OCR data with corrected values
-          ocrData: slip.ocrData ? {
-            ...slip.ocrData,
-            extractedData: {
-              ...slip.ocrData.extractedData,
-              // Save corrected values back to OCR data for persistence
-              materialType: slip.materialType || slip.ocrData.extractedData?.materialType,
-              grossWeight: grossWeight,
-              tareWeight: tareWeight,
-              netWeight: netWeight,
-              ratePerTon: parseFloat(slip.ratePerTon) || slip.ocrData.extractedData?.ratePerTon,
-              totalAmount: parseFloat(slip.totalAmountReceived) || slip.ocrData.extractedData?.totalAmount,
-              materialCost: parseFloat(slip.materialCost) || slip.ocrData.extractedData?.materialCost,
-              toll: parseFloat(slip.toll) || slip.ocrData.extractedData?.toll,
-              driverCost: parseFloat(slip.driverCost) || slip.ocrData.extractedData?.driverCost,
-              driverTripExpense: parseFloat(slip.driverTripExpense) || slip.ocrData.extractedData?.driverTripExpense,
-              royalty: parseFloat(slip.royalty) || slip.ocrData.extractedData?.royalty,
-              otherExpenses: parseFloat(slip.otherExpenses) || slip.ocrData.extractedData?.otherExpenses,
-              // Track manual corrections
-              manuallyCorrected: {
-                materialType: slip.materialType !== slip.ocrData.extractedData?.materialType,
-                grossWeight: grossWeight !== slip.ocrData.extractedData?.grossWeight,
-                tareWeight: tareWeight !== slip.ocrData.extractedData?.tareWeight,
-                netWeight: netWeight !== slip.ocrData.extractedData?.netWeight,
-                ratePerTon: parseFloat(slip.ratePerTon) !== slip.ocrData.extractedData?.ratePerTon,
-                totalAmount: parseFloat(slip.totalAmountReceived) !== slip.ocrData.extractedData?.totalAmount,
-                materialCost: parseFloat(slip.materialCost) !== slip.ocrData.extractedData?.materialCost,
-                toll: parseFloat(slip.toll) !== slip.ocrData.extractedData?.toll,
-                driverCost: parseFloat(slip.driverCost) !== slip.ocrData.extractedData?.driverCost,
-                driverTripExpense: parseFloat(slip.driverTripExpense) !== slip.ocrData.extractedData?.driverTripExpense,
-                royalty: parseFloat(slip.royalty) !== slip.ocrData.extractedData?.royalty,
-                otherExpenses: parseFloat(slip.otherExpenses) !== slip.ocrData.extractedData?.otherExpenses,
+          ocrData: slip.ocrData
+            ? {
+                ...slip.ocrData,
+                extractedData: {
+                  ...slip.ocrData.extractedData,
+                  // Save corrected values back to OCR data for persistence
+                  materialType: slip.materialType || slip.ocrData.extractedData?.materialType,
+                  grossWeight: grossWeight,
+                  tareWeight: tareWeight,
+                  netWeight: netWeight,
+                  ratePerTon: parseFloat(slip.ratePerTon) || slip.ocrData.extractedData?.ratePerTon,
+                  totalAmount:
+                    parseFloat(slip.totalAmountReceived) || slip.ocrData.extractedData?.totalAmount,
+                  materialCost:
+                    parseFloat(slip.materialCost) || slip.ocrData.extractedData?.materialCost,
+                  toll: parseFloat(slip.toll) || slip.ocrData.extractedData?.toll,
+                  driverCost: parseFloat(slip.driverCost) || slip.ocrData.extractedData?.driverCost,
+                  driverTripExpense:
+                    parseFloat(slip.driverTripExpense) ||
+                    slip.ocrData.extractedData?.driverTripExpense,
+                  royalty: parseFloat(slip.royalty) || slip.ocrData.extractedData?.royalty,
+                  otherExpenses:
+                    parseFloat(slip.otherExpenses) || slip.ocrData.extractedData?.otherExpenses,
+                  // Track manual corrections
+                  manuallyCorrected: {
+                    materialType: slip.materialType !== slip.ocrData.extractedData?.materialType,
+                    grossWeight: grossWeight !== slip.ocrData.extractedData?.grossWeight,
+                    tareWeight: tareWeight !== slip.ocrData.extractedData?.tareWeight,
+                    netWeight: netWeight !== slip.ocrData.extractedData?.netWeight,
+                    ratePerTon:
+                      parseFloat(slip.ratePerTon) !== slip.ocrData.extractedData?.ratePerTon,
+                    totalAmount:
+                      parseFloat(slip.totalAmountReceived) !==
+                      slip.ocrData.extractedData?.totalAmount,
+                    materialCost:
+                      parseFloat(slip.materialCost) !== slip.ocrData.extractedData?.materialCost,
+                    toll: parseFloat(slip.toll) !== slip.ocrData.extractedData?.toll,
+                    driverCost:
+                      parseFloat(slip.driverCost) !== slip.ocrData.extractedData?.driverCost,
+                    driverTripExpense:
+                      parseFloat(slip.driverTripExpense) !==
+                      slip.ocrData.extractedData?.driverTripExpense,
+                    royalty: parseFloat(slip.royalty) !== slip.ocrData.extractedData?.royalty,
+                    otherExpenses:
+                      parseFloat(slip.otherExpenses) !== slip.ocrData.extractedData?.otherExpenses,
+                  },
+                },
               }
-            }
-          } : null,
+            : null,
         };
       });
 
@@ -319,16 +407,11 @@ const TripCreationFlow = () => {
         weightSlipTrips,
       };
 
-      // Debug: Log the data being submitted
-      console.log('📤 Submitting Journey Data:', JSON.stringify(submissionData, null, 2));
-      console.log('📁 Weight Slips State:', weightSlips);
-      console.log('📁 Fixed Docs State:', fixedDocs);
-
       // 5. Prepare files object with file references
       // Note: FixedDocs stores files as direct File objects (fixedDocs.odometer.file)
       //       WeightSlips stores files as { originalFile: File, preview: string }
       const files = {};
-      
+
       // Helper to extract actual File object from different structures
       const getFileObject = (fileRef) => {
         if (!fileRef) return null;
@@ -338,14 +421,12 @@ const TripCreationFlow = () => {
         if (fileRef.file?.originalFile instanceof File) return fileRef.file.originalFile;
         return null;
       };
-      
+
       // Add odometer image
-      const odometerFile = getFileObject(fixedDocs.odometer?.file) || getFileObject(fixedDocs.odometer);
+      const odometerFile =
+        getFileObject(fixedDocs.odometer?.file) || getFileObject(fixedDocs.odometer);
       if (odometerFile) {
         files.odometer_image = odometerFile;
-        console.log('📷 Odometer file:', odometerFile.name);
-      } else {
-        console.log('⚠️ No odometer file found');
       }
 
       // Add fuel slip files
@@ -357,9 +438,8 @@ const TripCreationFlow = () => {
         if (fuelLogs.length > 0) {
           fuelLogs[0].tempId = tempId;
         }
-        console.log('⛽ Fuel file:', tempId, fuelFile.name);
       }
-      
+
       fixedDocs.partialFuel?.forEach((partialFuel, index) => {
         const partialFile = getFileObject(partialFuel?.file) || getFileObject(partialFuel);
         if (partialFile) {
@@ -370,26 +450,13 @@ const TripCreationFlow = () => {
           if (fuelLogs[fuelLogIndex]) {
             fuelLogs[fuelLogIndex].tempId = tempId;
           }
-          console.log('⛽ Partial fuel file:', tempId, partialFile.name);
         }
       });
 
       // Add weight certificate files
-      console.log('🔍 Processing weight slips:', weightSlips.length, 'slips');
       weightSlips.forEach((slip, index) => {
-        console.log(`🔍 Weight slip ${index}:`, {
-          hasSlip: !!slip,
-          hasFile: !!slip?.file,
-          fileType: slip?.file ? typeof slip.file : 'N/A',
-          isFileObject: slip?.file instanceof File,
-          hasOriginalFile: !!slip?.file?.originalFile,
-          isOriginalFileObject: slip?.file?.originalFile instanceof File,
-          slipKeys: slip ? Object.keys(slip) : 'N/A'
-        });
-        
         const slipFile = getFileObject(slip?.file) || getFileObject(slip);
-        console.log(`🔍 Weight slip ${index} file extracted:`, slipFile ? `File: ${slipFile.name}` : 'null');
-        
+
         if (slipFile) {
           const tempId = slip.tempId || slip.ocrData?.tempId || `ws_${index}_${Date.now()}`;
           files[tempId] = slipFile;
@@ -397,25 +464,21 @@ const TripCreationFlow = () => {
           if (weightSlipTrips[index]) {
             weightSlipTrips[index].tempId = tempId;
           }
-          console.log('📄 Weight slip file:', tempId, slipFile.name);
-        } else {
-          console.log('⚠️ No file for weight slip', index, 'slip.file:', slip.file, 'slip.file?.originalFile:', slip.file?.originalFile);
         }
       });
-      
-      console.log('📁 Total files to upload:', Object.keys(files).length, Object.keys(files));
 
       // 6. Submit complete journey
       const response = await TripService.submitCompleteJourney(submissionData, files);
 
       toast.success('Journey submitted successfully!');
-      
+      removePref(TRIP_DRAFT_PREF_KEY);
+
       // Navigate to trip details page
-      navigate(`/trip/${response.data._id}`, { 
-        state: { 
+      navigate(`/trip/${response.data._id}`, {
+        state: {
           trip: response.data,
-          fromCreation: true 
-        }
+          fromCreation: true,
+        },
       });
     } catch (error) {
       console.error('Failed to submit journey:', error);
@@ -454,12 +517,13 @@ const TripCreationFlow = () => {
     });
     if (!ok) return;
     // Reset all state before navigating
+    removePref(TRIP_DRAFT_PREF_KEY);
     setActiveStep(0);
     setFixedDocs({
       odometer: null,
       fuel: null,
       partialFuel: [],
-      weightSlips: []
+      weightSlips: [],
     });
     setWeightSlips([]);
     setSelectedVehicle(null);
@@ -522,7 +586,7 @@ const TripCreationFlow = () => {
           selectedDriver={selectedDriver}
           odometerOcrData={fixedDocs.odometer?.ocrData}
           fuelSlipData={fixedDocs.fuel?.ocrData}
-          partialFuelData={fixedDocs.partialFuel?.map(pf => pf.ocrData)}
+          partialFuelData={fixedDocs.partialFuel?.map((pf) => pf.ocrData)}
           onSave={handleJourneySubmit}
           onCancel={handleJourneyCancel}
         />
