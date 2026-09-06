@@ -1,4 +1,13 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+// Extending dayjs is global and idempotent — safe to import from many modules.
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+/** Fleet operates in India; an arrival time means IST wherever it is read. */
+const IST_ZONE = 'Asia/Kolkata';
 
 /**
  * Corridor ETA helpers — pure, unit-tested.
@@ -9,12 +18,16 @@ import dayjs from 'dayjs';
 /** "Arriving Thu ~2–5 PM" — never a false-precision bare time. */
 export function formatBand(p25Hours, p75Hours, now = new Date()) {
   // Number(null) is 0 — absent bounds must not become a real band.
-  if (p25Hours === null || p25Hours === undefined || p75Hours === null || p75Hours === undefined) return null;
+  if (p25Hours === null || p25Hours === undefined || p75Hours === null || p75Hours === undefined)
+    return null;
   const p25 = Number(p25Hours);
   const p75 = Number(p75Hours);
   if (!Number.isFinite(p25) || !Number.isFinite(p75)) return null;
-  const a = dayjs(now).add(p25, 'hour');
-  const b = dayjs(now).add(p75, 'hour');
+  // Render in IST explicitly. Without a pinned zone the wall-clock output
+  // follows whatever timezone the runtime happens to be in — correct on an
+  // Indian browser, six hours wrong in a UTC CI container.
+  const a = dayjs(now).tz(IST_ZONE).add(p25, 'hour');
+  const b = dayjs(now).tz(IST_ZONE).add(p75, 'hour');
   const sameDay = a.format('ddd D MMM') === b.format('ddd D MMM');
   const time = (d) => d.format('h A').replace(' ', ''); // 2PM
   if (sameDay) return `Arriving ${a.format('ddd')} ~${time(a)}–${time(b)}`;
@@ -31,7 +44,8 @@ export function confidenceText(sampleSize) {
 
 /** Distribution line — more useful to a planner than any single number. */
 export function distributionText(stats) {
-  if (!stats || !Number.isFinite(Number(stats.p25)) || !Number.isFinite(Number(stats.p75))) return null;
+  if (!stats || !Number.isFinite(Number(stats.p25)) || !Number.isFinite(Number(stats.p75)))
+    return null;
   const n = (v) => Math.round(Number(v));
   const worst = Number.isFinite(Number(stats.max)) ? `, worst ${n(stats.max)} h` : '';
   return `Usually ${n(stats.p25)}–${n(stats.p75)} h${worst}.`;
@@ -39,7 +53,13 @@ export function distributionText(stats) {
 
 /** Delay surfaced against the prediction, not the plan. */
 export function delayVsUsual(actualHours, medianHours) {
-  if (actualHours === null || actualHours === undefined || medianHours === null || medianHours === undefined) return null;
+  if (
+    actualHours === null ||
+    actualHours === undefined ||
+    medianHours === null ||
+    medianHours === undefined
+  )
+    return null;
   const a = Number(actualHours);
   const m = Number(medianHours);
   if (!Number.isFinite(a) || !Number.isFinite(m) || m <= 0) return null;
