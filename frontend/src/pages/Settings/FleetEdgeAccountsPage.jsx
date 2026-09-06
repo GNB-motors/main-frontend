@@ -10,6 +10,7 @@ import {
   getDrift,
 } from '../Profile/FleetEdgeAccountService';
 import { getToken, getUserRole } from '../../utils/session.js';
+import { useConfirm } from '../../components/ui/confirmContext';
 
 const STATUS_STYLES = {
   ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
@@ -251,6 +252,7 @@ function DriftTab() {
 
 export default function FleetEdgeAccountsPage() {
   const [accounts, setAccounts] = useState([]);
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('accounts');
   const [showAdd, setShowAdd] = useState(false);
@@ -277,7 +279,13 @@ export default function FleetEdgeAccountsPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (account) => {
-    if (!window.confirm(`Delete account "${account.friendlyName || account.externalAccountId}"?`)) return;
+    const ok = await confirm({
+      title: `Delete account "${account.friendlyName || account.externalAccountId}"?`,
+      body: 'Live data from this FleetEdge account stops flowing in.',
+      confirmLabel: 'Delete account',
+      danger: true,
+    });
+    if (!ok) return;
     setDeletingId(account._id);
     try {
       const token = getToken();

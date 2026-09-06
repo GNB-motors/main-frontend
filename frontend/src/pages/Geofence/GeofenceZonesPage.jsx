@@ -13,6 +13,8 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import AddZoneDrawer from './AddZoneDrawer.jsx';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
 import { label } from '../../lib/vocabulary';
+import { useConfirm } from '../../components/ui/confirmContext';
+import { toast } from 'react-toastify';
 import './GeofenceZones.css';
 
 dayjs.extend(utc);
@@ -146,6 +148,7 @@ const MapLegend = () => (
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofenceZonesPage = () => {
   const [zones, setZones] = useState([]);
+  const confirm = useConfirm();
   const [alerts, setAlerts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [liveVehicles, setLiveVehicles] = useState([]);
@@ -228,10 +231,16 @@ const GeofenceZonesPage = () => {
   };
 
   const handleDelete = async (zoneId) => {
-    if (!window.confirm('Delete this custom zone?')) return;
+    const ok = await confirm({
+      title: 'Delete this custom zone?',
+      body: 'Vehicles inside it stop generating zone alerts until you recreate it.',
+      confirmLabel: 'Delete zone',
+      danger: true,
+    });
+    if (!ok) return;
     setDeletingId(zoneId);
     try { await GeofenceService.deleteZone(zoneId); fetchZones(); }
-    catch (err) { alert(err.message || 'Failed to delete'); }
+    catch (err) { toast.error(err.message || 'Failed to delete'); }
     finally { setDeletingId(null); }
   };
 

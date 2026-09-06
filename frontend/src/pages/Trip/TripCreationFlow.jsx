@@ -28,9 +28,11 @@ import { TripService, OCRService } from './services';
 import ProcessingPhase from './phases/ProcessingPhase';
 import VerificationPhase from './phases/VerificationPhase';
 import JourneySetupModal from '../../components/JourneySetupModal/JourneySetupModal';
+import { useConfirm } from '../../components/ui/confirmContext';
 
 const TripCreationFlow = () => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { setStepName } = useTripCreationContext();
   useFullPageLayout(); // Apply full-page layout
 
@@ -443,24 +445,29 @@ const TripCreationFlow = () => {
   /**
    * Handle cancel
    */
-  const handleCancel = useCallback(() => {
-    if (window.confirm('Are you sure? All unsaved data will be lost.')) {
-      // Reset all state before navigating
-      setActiveStep(0);
-      setFixedDocs({ 
-        odometer: null, 
-        fuel: null, 
-        partialFuel: [],
-        weightSlips: [] 
-      });
-      setWeightSlips([]);
-      setSelectedVehicle(null);
-      setSelectedDriver(null);
-      setShowJourneyModal(false);
-      setJourneyData(null);
-      navigate('/trip/management');
-    }
-  }, [navigate]);
+  const handleCancel = useCallback(async () => {
+    const ok = await confirm({
+      title: 'Leave without saving?',
+      body: 'All unsaved trip data will be lost.',
+      confirmLabel: 'Discard trip',
+      danger: true,
+    });
+    if (!ok) return;
+    // Reset all state before navigating
+    setActiveStep(0);
+    setFixedDocs({
+      odometer: null,
+      fuel: null,
+      partialFuel: [],
+      weightSlips: []
+    });
+    setWeightSlips([]);
+    setSelectedVehicle(null);
+    setSelectedDriver(null);
+    setShowJourneyModal(false);
+    setJourneyData(null);
+    navigate('/trip/management');
+  }, [confirm, navigate]);
 
   return (
     <div className="trip-creation-flow">

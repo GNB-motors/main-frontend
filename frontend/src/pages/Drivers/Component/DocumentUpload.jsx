@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from './DocumentCard';
+import { toast } from 'react-toastify';
 import './DocumentUpload.css';
 
 const DocumentUpload = ({
@@ -61,7 +62,7 @@ const DocumentUpload = ({
         const file = files[0];
 
         if (file.size > 5 * 1024 * 1024) {
-          alert('File size should be less than 5MB');
+          toast.error('File size should be less than 5MB');
           return;
         }
 

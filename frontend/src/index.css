@@ -1614,3 +1614,61 @@ a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--h
     background: color-mix(in srgb, var(--gnb-400) 8%, transparent);
     outline: none;
 }
+
+/* ConfirmDialog — window.confirm() replacement */
+.cdlg-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4, 8, 16, 0.55);
+    backdrop-filter: blur(2px);
+}
+.cdlg {
+    width: min(420px, calc(100vw - 48px));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--hairline);
+    background: var(--cluster-panel, var(--surface, #fff));
+    box-shadow: 0 18px 50px rgba(11, 18, 32, 0.28);
+}
+.cdlg-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.cdlg-warn {
+    color: var(--critical);
+    flex: 0 0 auto;
+}
+.cdlg-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cluster-text, var(--ink));
+}
+.cdlg-body {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--cluster-text-dim, var(--ink-3));
+}
+.cdlg-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+}
+.cdlg-confirm--danger {
+    background: var(--critical);
+    border-color: transparent;
+    color: #fff;
+}
+.cdlg-confirm--danger:hover {
+    background: color-mix(in srgb, var(--critical) 88%, black);
+}

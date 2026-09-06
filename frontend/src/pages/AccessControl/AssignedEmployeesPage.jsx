@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { Building2, Shield, UserMinus, UserPlus } from 'lucide-react';
 import { PageHeader } from '../Drivers/Component';
 import AccessControlApi from './accessControlService';
+import { useConfirm } from '../../components/ui/confirmContext';
 import '../Superadmin/components/FeatureFlags.css';
 import '../Superadmin/components/Rbac.css';
 import './AccessControl.css';
@@ -16,6 +17,7 @@ const employeeName = (e) =>
  */
 const AssignedEmployeesPage = () => {
   const [assignments, setAssignments] = useState([]);
+  const confirm = useConfirm();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -47,7 +49,13 @@ const AssignedEmployeesPage = () => {
 
   const revoke = async (a) => {
     const who = employeeName(employeeById.get(String(a.userId)));
-    if (!window.confirm(`Revoke "${a.roleId?.name}" from ${who}? They lose that access immediately.`)) return;
+    const ok = await confirm({
+      title: `Revoke "${a.roleId?.name}" from ${who}?`,
+      body: 'They lose that access immediately.',
+      confirmLabel: 'Revoke access',
+      danger: true,
+    });
+    if (!ok) return;
     setRevokingId(a._id);
     try {
       await AccessControlApi.revokeAssignment(a._id);

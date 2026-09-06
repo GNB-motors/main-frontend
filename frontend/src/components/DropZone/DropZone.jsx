@@ -7,6 +7,7 @@
 
 import React, { useRef, useState, useCallback } from 'react';
 import { Upload } from 'lucide-react';
+import { toast } from 'react-toastify';
 import './DropZone.css';
 
 const DropZone = ({
@@ -63,12 +64,12 @@ const DropZone = ({
       });
 
       if (validFiles.length === 0) {
-        alert('No valid files selected. Please upload images.');
+        toast.error('No valid files selected. Please upload images.');
         return;
       }
 
       if (!multiple && validFiles.length > maxFiles) {
-        alert(`Please upload no more than ${maxFiles} file(s)`);
+        toast.error(`Please upload no more than ${maxFiles} file(s)`);
         return;
       }
 

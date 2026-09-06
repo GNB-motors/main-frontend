@@ -10,6 +10,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
+import { toast } from 'react-toastify';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import './Geofence.css';
 
@@ -282,7 +283,7 @@ const GeofencePage = () => {
       await GeofenceService.resolveAnomalyLocation(id, note || null);
       fetchData();
     } catch (err) {
-      alert(err.message || 'Failed to resolve');
+      toast.error(err.message || 'Failed to resolve');
     } finally {
       setResolvingId(null);
     }

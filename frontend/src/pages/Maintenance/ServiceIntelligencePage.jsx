@@ -7,6 +7,7 @@ import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
 import { getToken } from '../../utils/session.js';
 import StatusChip from '../../components/ui/StatusChip';
+import { useConfirm } from '../../components/ui/confirmContext';
 import '../Profile/VehiclesPage.css';
 
 const TABS = [
@@ -37,6 +38,7 @@ const ServiceIntelligencePage = () => {
   // add-page so the user lands on the tab they just contributed to.
   const navState = typeof window !== 'undefined' ? (window.history.state?.usr || {}) : {};
   const [activeTab, setActiveTab] = useState(navState.focusTab || 'SERVICE');
+  const confirm = useConfirm();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -87,7 +89,13 @@ const ServiceIntelligencePage = () => {
   }, [search, activeTab, load]);
 
   const handleDelete = async (row) => {
-    if (!window.confirm(`Delete this ${activeTab.toLowerCase()} entry? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Delete this ${activeTab.toLowerCase()} entry?`,
+      body: 'This cannot be undone.',
+      confirmLabel: 'Delete entry',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const token = getToken();
       await MaintenanceService.deleteRecord(token, row._id);
