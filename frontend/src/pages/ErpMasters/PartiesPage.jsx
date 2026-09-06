@@ -12,6 +12,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import PartyService from './PartyService';
 import useApi from '../../hooks/useApi';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const EMPTY_FORM = {
@@ -25,8 +26,7 @@ const EMPTY_FORM = {
   contact: { person: '', phone: '', email: '' },
 };
 
-const formatCurrency = (n) =>
-  typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—';
+const formatCurrency = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
 
 const PartiesPage = () => {
   const [parties, setParties] = useState([]);
@@ -41,7 +41,12 @@ const PartiesPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const { data: partiesResponse, loading, error: partiesError, refetch: refetchParties } = useApi(
+  const {
+    data: partiesResponse,
+    loading,
+    error: partiesError,
+    refetch: refetchParties,
+  } = useApi(
     () =>
       PartyService.getParties({
         page,
@@ -194,22 +199,16 @@ const PartiesPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Party Master</h1>
-          <p className="erp-subtitle">
-            Customers, credit terms and account managers
-          </p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-primary" onClick={openCreate}>
-            <Plus size={18} />
-            Add Party
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      title="Party Master"
+      subtitle="Customers, credit terms and account managers"
+      actions={
+        <button className="btn btn-primary" onClick={openCreate}>
+          <Plus size={18} />
+          Add Party
+        </button>
+      }
+    >
       <div className="erp-toolbar">
         <div className="erp-search">
           <Search size={18} className="search-icon" />
@@ -328,7 +327,9 @@ const PartiesPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
@@ -480,7 +481,7 @@ const PartiesPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

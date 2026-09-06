@@ -10,13 +10,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ReceiptText, Check, X, Info, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import BillApprovalsService from './BillApprovalsService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const STATUS_TONE = { PENDING: 'warning', CONFIRMED: 'success', REJECTED: 'danger' };
 
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
 const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  d
+    ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
 const catLabel = (b) => (b.title || b.category || 'Bill').replace(/ bill$/i, '');
 
 const BillApprovalsPage = () => {
@@ -46,7 +49,8 @@ const BillApprovalsPage = () => {
         totalPages: res.totalPages || 0,
       });
     } catch (err) {
-      if (err.status === 404) toast.error('The bill approvals feature is not enabled for your organization');
+      if (err.status === 404)
+        toast.error('The bill approvals feature is not enabled for your organization');
       else toast.error(err.message);
       setBills([]);
     } finally {
@@ -85,7 +89,9 @@ const BillApprovalsPage = () => {
     try {
       if (decision === 'CONFIRMED') {
         await BillApprovalsService.confirm(active._id);
-        toast.success(`Confirmed — ${money(active.amount)} credited to ${active.driver?.name || 'the driver'}'s wallet`);
+        toast.success(
+          `Confirmed — ${money(active.amount)} credited to ${active.driver?.name || 'the driver'}'s wallet`,
+        );
       } else {
         await BillApprovalsService.reject(active._id, remarks.trim());
         toast.success('Rejected — the driver can see the reason and re-submit');
@@ -105,14 +111,7 @@ const BillApprovalsPage = () => {
       : 'Driver bills submitted from the app';
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Bill Approvals</h1>
-          <p className="erp-subtitle">{pendingText}</p>
-        </div>
-      </div>
-
+    <PageShell title="Bill Approvals" subtitle={pendingText}>
       <div className="erp-toolbar">
         <select
           className="erp-filter"
@@ -217,11 +216,15 @@ const BillApprovalsPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) closeReview(); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeReview();
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
-              <h2>{catLabel(active)} bill · {money(active.amount)}</h2>
+              <h2>
+                {catLabel(active)} bill · {money(active.amount)}
+              </h2>
               <button className="btn-icon" onClick={closeReview}>
                 <X size={20} />
               </button>
@@ -236,7 +239,12 @@ const BillApprovalsPage = () => {
                       <img
                         src={active.receiptUrl}
                         alt="Bill receipt"
-                        style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 8, border: '1px solid var(--border, #e5e7eb)' }}
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: 320,
+                          borderRadius: 8,
+                          border: '1px solid var(--border, #e5e7eb)',
+                        }}
                       />
                     </a>
                   </div>
@@ -318,7 +326,11 @@ const BillApprovalsPage = () => {
                         id="bill-remarks"
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
-                        placeholder={decision === 'REJECTED' ? 'Why is this rejected? (required)' : 'Optional notes'}
+                        placeholder={
+                          decision === 'REJECTED'
+                            ? 'Why is this rejected? (required)'
+                            : 'Optional notes'
+                        }
                       />
                     </div>
 
@@ -354,7 +366,11 @@ const BillApprovalsPage = () => {
                     className={`btn ${decision === 'REJECTED' ? 'btn-danger' : 'btn-primary'}`}
                     disabled={submitting || !decision}
                   >
-                    {submitting ? 'Saving...' : decision === 'REJECTED' ? 'Reject' : `Confirm ${money(active.amount)}`}
+                    {submitting
+                      ? 'Saving...'
+                      : decision === 'REJECTED'
+                        ? 'Reject'
+                        : `Confirm ${money(active.amount)}`}
                   </button>
                 )}
               </div>
@@ -362,7 +378,7 @@ const BillApprovalsPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

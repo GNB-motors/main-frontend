@@ -14,6 +14,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, FlaskConical, Trash2, X, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpMasterService from './ErpMasterService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const EMPTY_FORM = {
@@ -113,29 +114,23 @@ const MaterialCompatibilityPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Material Compatibility</h1>
-          <p className="erp-subtitle">
-            Which material may be loaded after which, in the same tanker
-          </p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-primary" onClick={openCreate}>
-            <Plus size={18} />
-            Add Rule
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      title="Material Compatibility"
+      subtitle="Which material may be loaded after which, in the same tanker"
+      actions={
+        <button className="btn btn-primary" onClick={openCreate}>
+          <Plus size={18} />
+          Add Rule
+        </button>
+      }
+    >
       {!loading && rules.length === 0 ? (
         <div className="erp-callout info" style={{ marginTop: 20 }}>
           <AlertTriangle size={16} />
           <span>
             <strong>No rules configured — compatibility is not being checked.</strong> Placement
-            allows any material combination while this list is empty. Adding the first rule
-            switches enforcement on, and any previous material without a rule is then refused.
+            allows any material combination while this list is empty. Adding the first rule switches
+            enforcement on, and any previous material without a rule is then refused.
           </span>
         </div>
       ) : (
@@ -143,8 +138,8 @@ const MaterialCompatibilityPage = () => {
           <div className="erp-callout success" style={{ marginTop: 20 }}>
             <Info size={16} />
             <span>
-              Enforcement is <strong>on</strong>. A tanker whose previous material has no rule
-              here cannot be placed.
+              Enforcement is <strong>on</strong>. A tanker whose previous material has no rule here
+              cannot be placed.
             </span>
           </div>
         )
@@ -232,7 +227,9 @@ const MaterialCompatibilityPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
@@ -324,12 +321,11 @@ const MaterialCompatibilityPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteTarget(null);
+          }}
         >
-          <div
-            className="erp-modal"
-            style={{ maxWidth: 420 }}
-          >
+          <div className="erp-modal" style={{ maxWidth: 420 }}>
             <div className="erp-modal-header">
               <h2>Delete Rule</h2>
               <button className="btn-icon" onClick={() => setDeleteTarget(null)}>
@@ -353,7 +349,7 @@ const MaterialCompatibilityPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

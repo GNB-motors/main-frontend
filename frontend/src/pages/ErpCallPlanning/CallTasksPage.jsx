@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PhoneCall, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import RowMenu from '../../components/Erp/RowMenu';
+import PageShell from '../../components/Erp/PageShell';
 import ErpCallService from './ErpCallService';
 import { getUserRole } from '../../utils/session.js';
 import RecordCallDrawer from './RecordCallDrawer';
@@ -113,9 +114,9 @@ const CallTasksPage = () => {
     if (!q) return tasks;
     return tasks.filter(
       (t) =>
-        (t.partyId?.name || '').toLowerCase().includes(q)
-        || (t.partyId?.code || '').toLowerCase().includes(q)
-        || kamName(t.kamId).toLowerCase().includes(q),
+        (t.partyId?.name || '').toLowerCase().includes(q) ||
+        (t.partyId?.code || '').toLowerCase().includes(q) ||
+        kamName(t.kamId).toLowerCase().includes(q),
     );
   }, [tasks, search]);
 
@@ -130,37 +131,33 @@ const CallTasksPage = () => {
   const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Call Tasks</h1>
-          <p className="erp-subtitle">
-            {isToday
-              ? "Today's customer calls. Record what happened on each one."
-              : `Calls for ${shortDate(date)}.`}
-          </p>
-        </div>
-        {canGenerate && (
-          <div className="erp-header-actions">
-            {/* Behind a menu, not a header button: this is the nightly job run by
-                hand. A KAM has no reason to press it, and one that looks like a
-                primary action invites pressing it when tasks appear to be
-                missing — which is a support question, not a KAM's job. */}
-            <RowMenu
-              label="Admin actions"
-              items={[
-                {
-                  key: 'generate',
-                  label: generating ? 'Generating…' : "Generate today's tasks",
-                  icon: RefreshCw,
-                  onSelect: handleGenerate,
-                },
-              ]}
-            />
-          </div>
-        )}
-      </div>
-
+    <PageShell
+      title="Call Tasks"
+      subtitle={
+        isToday
+          ? "Today's customer calls. Record what happened on each one."
+          : `Calls for ${shortDate(date)}.`
+      }
+      actions={
+        canGenerate && (
+          /* Behind a menu, not a header button: this is the nightly job run by
+           hand. A KAM has no reason to press it, and one that looks like a
+           primary action invites pressing it when tasks appear to be
+           missing — which is a support question, not a KAM's job. */
+          <RowMenu
+            label="Admin actions"
+            items={[
+              {
+                key: 'generate',
+                label: generating ? 'Generating…' : "Generate today's tasks",
+                icon: RefreshCw,
+                onSelect: handleGenerate,
+              },
+            ]}
+          />
+        )
+      }
+    >
       {stats.overdue > 0 && (
         <div className="erp-callout warning" style={{ marginTop: 16 }}>
           <AlertTriangle size={16} />
@@ -180,18 +177,22 @@ const CallTasksPage = () => {
       <div className="erp-progress-card">
         <div className="erp-progress-head">
           <div>
-            <span className="erp-progress-title">
-              {isToday ? "Today's progress" : 'Progress'}
-            </span>
+            <span className="erp-progress-title">{isToday ? "Today's progress" : 'Progress'}</span>
             <span className="erp-progress-count">
               {stats.completed} / {stats.total} calls recorded
             </span>
           </div>
           <div className="erp-progress-legend">
-            <span><b>{stats.open}</b> open</span>
-            <span><b>{stats.completed}</b> completed</span>
+            <span>
+              <b>{stats.open}</b> open
+            </span>
+            <span>
+              <b>{stats.completed}</b> completed
+            </span>
             {stats.notCalled > 0 && (
-              <span className="erp-progress-missed"><b>{stats.notCalled}</b> not called</span>
+              <span className="erp-progress-missed">
+                <b>{stats.notCalled}</b> not called
+              </span>
             )}
           </div>
         </div>
@@ -301,14 +302,11 @@ const CallTasksPage = () => {
               <tbody>
                 {filtered.map((task) => {
                   const state = taskState(task);
-                  const overdue = task.status === 'OPEN'
-                    && new Date(task.scheduledDate) < new Date(new Date().setHours(0, 0, 0, 0));
+                  const overdue =
+                    task.status === 'OPEN' &&
+                    new Date(task.scheduledDate) < new Date(new Date().setHours(0, 0, 0, 0));
                   return (
-                    <tr
-                      key={task._id}
-                      className="clickable"
-                      onClick={() => setActiveTask(task)}
-                    >
+                    <tr key={task._id} className="clickable" onClick={() => setActiveTask(task)}>
                       <td>
                         <div className="erp-cell-strong">{task.partyId?.name || '—'}</div>
                         {task.partyId?.code && (
@@ -376,7 +374,7 @@ const CallTasksPage = () => {
           onSaved={handleSaved}
         />
       )}
-    </div>
+    </PageShell>
   );
 };
 

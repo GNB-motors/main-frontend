@@ -6,15 +6,12 @@
  * and a single rejection cancels it outright.
  */
 
-import React, {
-  useState, useEffect, useCallback, useMemo,
-} from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ShieldCheck, Truck, Clock, User,
-} from 'lucide-react';
+import { ShieldCheck, Truck, Clock, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
+import PageShell from '../../components/Erp/PageShell';
 import ApprovalService from './ApprovalService';
 import ApprovalReviewDrawer from './ApprovalReviewDrawer';
 import {
@@ -29,7 +26,7 @@ import {
 import '../../styles/erp.css';
 
 const money = (n) =>
-  (typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : null);
+  typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : null;
 
 /** Compact "raised 2h ago" so the queue conveys urgency without a full date. */
 const relativeTime = (d) => {
@@ -43,7 +40,11 @@ const relativeTime = (d) => {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.round(hrs / 24);
   if (days < 30) return `${days}d ago`;
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 };
 
 const ApprovalsPage = () => {
@@ -117,7 +118,10 @@ const ApprovalsPage = () => {
   // Pending counts per family, from the summary the page already fetches.
   const bucketCounts = useMemo(() => {
     const counts = {
-      PLACEMENT: 0, BILLING: 0, PURCHASE: 0, PAYMENTS: 0,
+      PLACEMENT: 0,
+      BILLING: 0,
+      PURCHASE: 0,
+      PAYMENTS: 0,
     };
     (summary.byType || []).forEach((row) => {
       const type = row._id || row.type;
@@ -128,9 +132,11 @@ const ApprovalsPage = () => {
 
   // The current page's rows, split into the four families (order preserved).
   const grouped = useMemo(
-    () => APPROVAL_BUCKETS
-      .map((b) => ({ bucket: b, rows: approvals.filter((a) => bucketForType(a.type) === b.id) }))
-      .filter((g) => g.rows.length),
+    () =>
+      APPROVAL_BUCKETS.map((b) => ({
+        bucket: b,
+        rows: approvals.filter((a) => bucketForType(a.type) === b.id),
+      })).filter((g) => g.rows.length),
     [approvals],
   );
 
@@ -163,7 +169,11 @@ const ApprovalsPage = () => {
     if (!trip) {
       tripEl = <div className="appr-entity">{entityText}</div>;
     } else if (canOpenTrip) {
-      tripEl = <Link to={`/erp/trips/${trip.id}`} className="appr-trip">{tripInner}</Link>;
+      tripEl = (
+        <Link to={`/erp/trips/${trip.id}`} className="appr-trip">
+          {tripInner}
+        </Link>
+      );
     } else {
       tripEl = <div className="appr-trip appr-trip--static">{tripInner}</div>;
     }
@@ -181,7 +191,9 @@ const ApprovalsPage = () => {
           {chips.length > 0 && (
             <div className="appr-chips">
               {chips.map((c) => (
-                <span key={c} className="appr-chip">{c}</span>
+                <span key={c} className="appr-chip">
+                  {c}
+                </span>
               ))}
             </div>
           )}
@@ -189,8 +201,12 @@ const ApprovalsPage = () => {
           {why && <p className="appr-why">{why}</p>}
 
           <div className="appr-meta">
-            <span><User size={12} /> {requesterName(a)}</span>
-            <span><Clock size={12} /> {relativeTime(a.createdAt)}</span>
+            <span>
+              <User size={12} /> {requesterName(a)}
+            </span>
+            <span>
+              <Clock size={12} /> {relativeTime(a.createdAt)}
+            </span>
           </div>
         </div>
 
@@ -209,18 +225,14 @@ const ApprovalsPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Approval Center</h1>
-          <p className="erp-subtitle">
-            {summary.total > 0
-              ? `${summary.total} request${summary.total === 1 ? '' : 's'} waiting on a decision`
-              : 'Nothing waiting on a decision'}
-          </p>
-        </div>
-      </div>
-
+    <PageShell
+      title="Approval Center"
+      subtitle={
+        summary.total > 0
+          ? `${summary.total} request${summary.total === 1 ? '' : 's'} waiting on a decision`
+          : 'Nothing waiting on a decision'
+      }
+    >
       {/* Where the pending work sits, by family. */}
       <div className="erp-buckets">
         {APPROVAL_BUCKETS.map((b) => (
@@ -283,9 +295,7 @@ const ApprovalsPage = () => {
                   {g.bucket.label}
                   <span className="erp-group-count">{g.rows.length}</span>
                 </h2>
-                <div className="appr-list">
-                  {g.rows.map(renderCard)}
-                </div>
+                <div className="appr-list">{g.rows.map(renderCard)}</div>
               </section>
             ))}
 
@@ -319,7 +329,7 @@ const ApprovalsPage = () => {
         onClose={() => setActive(null)}
         onDecided={handleDecided}
       />
-    </div>
+    </PageShell>
   );
 };
 

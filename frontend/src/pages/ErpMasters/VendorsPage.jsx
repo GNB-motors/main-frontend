@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit2, Ban, ShieldCheck, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpMasterService from './ErpMasterService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const EMPTY_FORM = {
@@ -182,20 +183,16 @@ const VendorsPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Vendor Master</h1>
-          <p className="erp-subtitle">Market operators for hired tankers</p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-primary" onClick={openCreate}>
-            <Plus size={18} />
-            Add Vendor
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      title="Vendor Master"
+      subtitle="Market operators for hired tankers"
+      actions={
+        <button className="btn btn-primary" onClick={openCreate}>
+          <Plus size={18} />
+          Add Vendor
+        </button>
+      }
+    >
       <div className="erp-toolbar">
         <div className="erp-search">
           <Search size={18} className="search-icon" />
@@ -287,7 +284,9 @@ const VendorsPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
@@ -411,12 +410,11 @@ const VendorsPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setBlacklistTarget(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setBlacklistTarget(null);
+          }}
         >
-          <div
-            className="erp-modal"
-            style={{ maxWidth: 460 }}
-          >
+          <div className="erp-modal" style={{ maxWidth: 460 }}>
             <div className="erp-modal-header">
               <h2>
                 {blacklistTarget.isBlacklisted ? 'Remove from blacklist' : 'Blacklist vendor'}
@@ -443,8 +441,7 @@ const VendorsPage = () => {
                     <div className="erp-callout info">
                       <AlertTriangle size={16} />
                       <span>
-                        A blacklisted vendor cannot be placed at all — not even with an
-                        approval.
+                        A blacklisted vendor cannot be placed at all — not even with an approval.
                       </span>
                     </div>
                     <div className="erp-field full">
@@ -476,18 +473,14 @@ const VendorsPage = () => {
                   className={`btn ${blacklistTarget.isBlacklisted ? 'btn-primary' : 'btn-danger'}`}
                   disabled={saving}
                 >
-                  {saving
-                    ? 'Saving...'
-                    : blacklistTarget.isBlacklisted
-                      ? 'Remove'
-                      : 'Blacklist'}
+                  {saving ? 'Saving...' : blacklistTarget.isBlacklisted ? 'Remove' : 'Blacklist'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

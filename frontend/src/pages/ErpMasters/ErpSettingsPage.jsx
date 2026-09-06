@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Save, SlidersHorizontal, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpMasterService from './ErpMasterService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const NUMERIC_FIELDS = [
@@ -111,25 +112,18 @@ const ErpSettingsPage = () => {
 
   if (loading || !settings) {
     return (
-      <div className="erp-page">
+      <PageShell title="ERP Settings" subtitle="Thresholds that drive approvals and forecasts">
         <div className="erp-container">
           <div className="erp-state">
             <p>Loading settings...</p>
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>ERP Settings</h1>
-          <p className="erp-subtitle">Thresholds that drive approvals and forecasts</p>
-        </div>
-      </div>
-
+    <PageShell title="ERP Settings" subtitle="Thresholds that drive approvals and forecasts">
       <div className="erp-callout info" style={{ marginTop: 20 }}>
         <Info size={16} />
         <span>
@@ -172,8 +166,8 @@ const ErpSettingsPage = () => {
                 </option>
               </select>
               <span className="erp-field-hint">
-                <SlidersHorizontal size={12} style={{ verticalAlign: 'middle' }} /> Ask the
-                client which they meant — this is question A3 on the register.
+                <SlidersHorizontal size={12} style={{ verticalAlign: 'middle' }} /> Ask the client
+                which they meant — this is question A3 on the register.
               </span>
             </div>
           </div>
@@ -186,7 +180,7 @@ const ErpSettingsPage = () => {
           </div>
         </form>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

@@ -679,22 +679,32 @@
   gap: 24px;
   flex-wrap: wrap;
   /**
-   * `margin-top: auto` is what actually pins this to the bottom.
+   * `margin-top: auto` is what actually pins this to the bottom, which only
+   * does anything when the ancestor is a flex column — see the `:has()` rules
+   * below, which make that true on whichever ancestor actually wraps this bar
+   * (`.erp-page` standalone, `.erp-hub-panel` when embedded in a hub tab).
+   * With a short fleet the container does not scroll at all, so
+   * `position: sticky` has nothing to do and the bar just sat wherever the
+   * table ended — halfway up the screen, which is what read as "floating".
+   * `auto` eats the leftover column space and drops it to the bottom; sticky
+   * then takes over once the list is long enough to scroll.
    *
-   * `.erp-page` is a flex column with `min-height: 100vh`, and this bar is its
-   * last item. With a short fleet the page does not scroll at all, so
-   * `position: sticky` has nothing to do and the bar just sat wherever the table
-   * ended — halfway up the screen, which is what read as "floating". `auto`
-   * eats the leftover column space and drops it to the bottom; sticky then takes
-   * over once the list is long enough to scroll.
-   *
-   * Negative horizontal margins cancel `.erp-page`'s 32px padding so the bar
-   * spans the full width and reads as the page's own footer rather than a card.
+   * Negative horizontal margins cancel the ambient padding (32px on
+   * `.erp-page`, 20px on `.erp-hub-panel`) so the bar spans the full width and
+   * reads as the container's own footer rather than a card. Scoped below,
+   * since the two containers pad differently.
    */
   margin: auto -32px 0;
   padding: 14px 32px;
   background: #fff;
   border-top: 1px solid #e2e8f0;
+}
+
+/* Embedded in a hub tab (`.erp-hub-panel`, 20px padding) rather than standalone
+   (`.erp-page`, 32px padding) — cancel the smaller padding instead. */
+.erp-hub-panel > .erp-sticky-bar {
+  margin: auto -20px 0;
+  padding: 14px 20px;
 }
 
 .erp-coverage-done {
@@ -706,12 +716,23 @@
 }
 
 /* Room for the sticky bar, so the last table row is never hidden by it. Scoped
-   to the pages that actually have one — on `.erp-page` it would add 96px of
-   dead space to every ERP screen. A modifier class rather than `:has()` so the
-   spacing is deterministic. */
-.erp-page.has-sticky-bar {
+   to whichever container actually has one — on every other `.erp-page` /
+   `.erp-hub-panel` it would add 88px of dead space for nothing. `:has()`
+   targets exactly the container the bar is a direct child of, standalone or
+   embedded in a hub tab, without the page needing to compute a modifier class. */
+.erp-page:has(> .erp-sticky-bar),
+.erp-hub-panel:has(> .erp-sticky-bar) {
   /* Room to scroll the last table row clear of the pinned bar. */
   padding-bottom: 88px;
+}
+
+/* `.erp-hub-panel` is a plain block box for every other hub tab; only make it
+   a flex column — so `margin-top: auto` above can pin the bar to the
+   bottom — when this tab's sticky bar is actually present. */
+.erp-hub-panel:has(> .erp-sticky-bar) {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
 }
 
 .erp-more-row {
@@ -745,9 +766,15 @@
   font-weight: 600;
 }
 
-.erp-inline-verdict.is-ok { color: #15803d; }
-.erp-inline-verdict.is-warn { color: #b45309; }
-.erp-inline-verdict.is-no { color: #b91c1c; }
+.erp-inline-verdict.is-ok {
+  color: #15803d;
+}
+.erp-inline-verdict.is-warn {
+  color: #b45309;
+}
+.erp-inline-verdict.is-no {
+  color: #b91c1c;
+}
 
 /* ─── Two-step drawer progress ────────────────────────────────────────────── */
 .erp-steps {
@@ -774,7 +801,6 @@
   background: #1a202c;
   color: #fff;
 }
-
 
 /* ─── Section heading between page sections ───────────────────────────────── */
 .erp-section-heading {
@@ -1355,21 +1381,41 @@
 /* One tone per state, carried on both the card's left edge and its label, so a
    week reads as a column of coloured edges rather than a wall of badges. */
 .erp-calendar-item.tone-success,
-.erp-calendar-swatch.tone-success { border-left-color: #16a34a; }
+.erp-calendar-swatch.tone-success {
+  border-left-color: #16a34a;
+}
 .erp-calendar-item.tone-warning,
-.erp-calendar-swatch.tone-warning { border-left-color: #f59e0b; }
+.erp-calendar-swatch.tone-warning {
+  border-left-color: #f59e0b;
+}
 .erp-calendar-item.tone-danger,
-.erp-calendar-swatch.tone-danger { border-left-color: #dc2626; }
+.erp-calendar-swatch.tone-danger {
+  border-left-color: #dc2626;
+}
 .erp-calendar-item.tone-info,
-.erp-calendar-swatch.tone-info { border-left-color: #2563eb; }
+.erp-calendar-swatch.tone-info {
+  border-left-color: #2563eb;
+}
 .erp-calendar-item.tone-neutral,
-.erp-calendar-swatch.tone-neutral { border-left-color: #cbd5e0; }
+.erp-calendar-swatch.tone-neutral {
+  border-left-color: #cbd5e0;
+}
 
-.erp-calendar-item-state.tone-success { color: #15803d; }
-.erp-calendar-item-state.tone-warning { color: #b45309; }
-.erp-calendar-item-state.tone-danger { color: #b91c1c; }
-.erp-calendar-item-state.tone-info { color: #1d4ed8; }
-.erp-calendar-item-state.tone-neutral { color: #94a3b8; }
+.erp-calendar-item-state.tone-success {
+  color: #15803d;
+}
+.erp-calendar-item-state.tone-warning {
+  color: #b45309;
+}
+.erp-calendar-item-state.tone-danger {
+  color: #b91c1c;
+}
+.erp-calendar-item-state.tone-info {
+  color: #1d4ed8;
+}
+.erp-calendar-item-state.tone-neutral {
+  color: #94a3b8;
+}
 
 .erp-calendar-legend {
   display: flex;
@@ -1750,7 +1796,7 @@
   background: #fff;
   border-radius: 12px;
   padding: 16px 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
   overflow-x: auto;
 }
@@ -1819,30 +1865,50 @@
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideOutRight {
-  from { transform: translateX(0); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 /* Drives the ErpTable loading skeleton. Referenced by ErpTable.jsx since it was
    written; without this rule the shimmer bars render as frozen grey blocks. */
 @keyframes erpShimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ─── Stat tiles ──────────────────────────────────────────────────────────── */
@@ -1890,9 +1956,15 @@
   color: #64748b;
 }
 
-.erp-stat-sub.danger { color: #b91c1c; }
-.erp-stat-sub.warning { color: #b45309; }
-.erp-stat-sub.success { color: #15803d; }
+.erp-stat-sub.danger {
+  color: #b91c1c;
+}
+.erp-stat-sub.warning {
+  color: #b45309;
+}
+.erp-stat-sub.success {
+  color: #15803d;
+}
 
 .erp-stat-asof {
   margin-top: 10px;
@@ -1902,7 +1974,10 @@
 
 .erp-stat.clickable {
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .erp-stat.clickable:hover {
@@ -2058,7 +2133,9 @@
   color: #111827;
   font-variant-numeric: tabular-nums;
 }
-.erp-alloc-cell.neg strong { color: #b91c1c; }
+.erp-alloc-cell.neg strong {
+  color: #b91c1c;
+}
 .erp-alloc-warn {
   margin: 6px 0 0;
   font-size: 12.5px;
@@ -2074,7 +2151,9 @@
 /* ── Approval Center: context-rich request cards ────────────────────────────
    Each card answers what is being approved, FOR WHICH TRIP, for whom and how
    much — so an approver never has to open a document number to know what it is. */
-.appr-group { margin-bottom: 22px; }
+.appr-group {
+  margin-bottom: 22px;
+}
 .appr-group-head {
   display: flex;
   align-items: center;
@@ -2086,7 +2165,10 @@
   text-transform: uppercase;
   color: #6b7280;
 }
-.appr-list { display: grid; gap: 10px; }
+.appr-list {
+  display: grid;
+  gap: 10px;
+}
 .appr-card {
   display: flex;
   gap: 16px;
@@ -2103,8 +2185,16 @@
   flex-direction: column;
   gap: 7px;
 }
-.appr-card-head { display: flex; align-items: center; gap: 10px; }
-.appr-type { font-size: 15px; font-weight: 700; color: #111827; }
+.appr-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.appr-type {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
 .appr-trip {
   display: inline-flex;
   align-items: center;
@@ -2119,11 +2209,26 @@
   font-weight: 600;
   text-decoration: none;
 }
-.appr-trip:hover { background: #dbeafe; }
-.appr-trip-num { font-weight: 700; }
-.appr-trip-route { color: #3b5ba5; font-weight: 500; }
-.appr-entity { font-size: 13.5px; font-weight: 600; color: #374151; }
-.appr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.appr-trip:hover {
+  background: #dbeafe;
+}
+.appr-trip-num {
+  font-weight: 700;
+}
+.appr-trip-route {
+  color: #3b5ba5;
+  font-weight: 500;
+}
+.appr-entity {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #374151;
+}
+.appr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .appr-chip {
   padding: 2px 8px;
   border-radius: 6px;
@@ -2132,9 +2237,23 @@
   font-size: 12px;
   white-space: nowrap;
 }
-.appr-why { margin: 0; font-size: 12.5px; color: #6b7280; }
-.appr-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #9ca3af; }
-.appr-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.appr-why {
+  margin: 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+.appr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.appr-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 .appr-card-side {
   display: flex;
   flex-direction: column;
@@ -2160,7 +2279,9 @@
   color: #2f5fd0;
   text-decoration: none;
 }
-.appr-open-trip:hover { text-decoration: underline; }
+.appr-open-trip:hover {
+  text-decoration: underline;
+}
 .appr-trip-inline {
   display: inline-flex;
   align-items: center;
@@ -2169,9 +2290,13 @@
   font-weight: 600;
   text-decoration: none;
 }
-.appr-trip-inline:hover { text-decoration: underline; }
+.appr-trip-inline:hover {
+  text-decoration: underline;
+}
 @media (max-width: 640px) {
-  .appr-card { flex-direction: column; }
+  .appr-card {
+    flex-direction: column;
+  }
   .appr-card-side {
     align-items: flex-start;
     text-align: left;
@@ -2188,7 +2313,16 @@
   color: #111827;
   cursor: default;
 }
-.appr-trip--static:hover { background: #f3f4f6; }
-.appr-trip--static .appr-trip-route { color: #6b7280; }
-.appr-trip-inline--static { color: #111827; cursor: default; }
-.appr-trip-inline--static:hover { text-decoration: none; }
+.appr-trip--static:hover {
+  background: #f3f4f6;
+}
+.appr-trip--static .appr-trip-route {
+  color: #6b7280;
+}
+.appr-trip-inline--static {
+  color: #111827;
+  cursor: default;
+}
+.appr-trip-inline--static:hover {
+  text-decoration: none;
+}

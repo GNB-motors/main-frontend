@@ -13,6 +13,7 @@ import { FileCheck2, X, Info, AlertTriangle, RefreshCw, Truck } from 'lucide-rea
 import { toast } from 'react-toastify';
 import InboundEwbService from './InboundEwbService';
 import TripDashboardService from '../ErpTrips/TripDashboardService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const STATUS_TONE = {
@@ -173,22 +174,20 @@ const InboundEwbPage = () => {
   const placedTrips = trips.filter((t) => t.state === 'PLACED');
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Inbound e-Way Bills</h1>
-          <p className="erp-subtitle">
-            {pendingCount > 0
-              ? `${pendingCount} waybill${pendingCount === 1 ? '' : 's'} waiting to be matched to a trip`
-              : 'Nothing waiting to be matched'}
-          </p>
-        </div>
+    <PageShell
+      title="Inbound e-Way Bills"
+      subtitle={
+        pendingCount > 0
+          ? `${pendingCount} waybill${pendingCount === 1 ? '' : 's'} waiting to be matched to a trip`
+          : 'Nothing waiting to be matched'
+      }
+      actions={
         <button className="btn btn-secondary" onClick={handleSync} disabled={syncing}>
           <RefreshCw size={16} />
           {syncing ? 'Syncing…' : 'Sync from GST'}
         </button>
-      </div>
-
+      }
+    >
       <div className="erp-toolbar">
         <select
           className="erp-filter"
@@ -285,10 +284,7 @@ const InboundEwbPage = () => {
                               <button className="btn btn-primary" onClick={() => openReview(r)}>
                                 Review
                               </button>
-                              <button
-                                className="btn btn-secondary"
-                                onClick={() => handleIgnore(r)}
-                              >
+                              <button className="btn btn-secondary" onClick={() => handleIgnore(r)}>
                                 Ignore
                               </button>
                             </>
@@ -447,8 +443,8 @@ const InboundEwbPage = () => {
                   <div className="erp-callout warning" style={{ marginTop: 16 }}>
                     <AlertTriangle size={16} />
                     <span>
-                      The matcher could not tie this waybill to a trip. Check the vehicle number
-                      and pick the trip yourself before confirming.
+                      The matcher could not tie this waybill to a trip. Check the vehicle number and
+                      pick the trip yourself before confirming.
                     </span>
                   </div>
                 )}
@@ -466,7 +462,7 @@ const InboundEwbPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

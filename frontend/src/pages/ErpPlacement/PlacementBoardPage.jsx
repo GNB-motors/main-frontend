@@ -20,7 +20,15 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Truck, CheckCircle2, XCircle, CalendarClock, ArrowRight, ArrowLeft, AlertTriangle, Search, Plus,
+  Truck,
+  CheckCircle2,
+  XCircle,
+  CalendarClock,
+  ArrowRight,
+  ArrowLeft,
+  AlertTriangle,
+  Search,
+  Plus,
   Clock,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -30,6 +38,7 @@ import PlacementDrawer from './PlacementDrawer';
 import CancelPlacementDrawer from './CancelPlacementDrawer';
 import ErpMasterService from '../ErpMasters/ErpMasterService';
 import DeliveryOrderService from '../ErpDeliveryOrders/DeliveryOrderService';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const BOARD_STATE_LABEL = {
@@ -49,7 +58,7 @@ const BOARD_STATE_TONE = {
 const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
 const dateLabel = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '—');
 
-const PlacementBoardPage = () => {
+const PlacementBoardPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -171,22 +180,24 @@ const PlacementBoardPage = () => {
    * which is an exact match, so that is the default.
    */
   const atLoadingPoint = (t) =>
-    Boolean(order?.fromLocation)
-    && String(t.location || '').toLowerCase() === String(order.fromLocation).toLowerCase();
+    Boolean(order?.fromLocation) &&
+    String(t.location || '').toLowerCase() === String(order.fromLocation).toLowerCase();
 
   const visible = useMemo(() => {
     const q = vehicleSearch.trim().toLowerCase();
     const base = (showAll ? tankers : eligible)
       .filter((t) => !locFilter || t.location === locFilter)
       .filter(
-        (t) => !q
-          || (t.registrationNumber || '').toLowerCase().includes(q)
-          || (t.model || '').toLowerCase().includes(q),
+        (t) =>
+          !q ||
+          (t.registrationNumber || '').toLowerCase().includes(q) ||
+          (t.model || '').toLowerCase().includes(q),
       );
 
     return [...base].sort((a, b) => {
       if (sortBy === 'CAPACITY') return (b.capacity || 0) - (a.capacity || 0);
-      if (sortBy === 'LOCATION') return String(a.location || '').localeCompare(String(b.location || ''));
+      if (sortBy === 'LOCATION')
+        return String(a.location || '').localeCompare(String(b.location || ''));
       const av = atLoadingPoint(a) ? 0 : 1;
       const bv = atLoadingPoint(b) ? 0 : 1;
       if (av !== bv) return av - bv;
@@ -221,10 +232,11 @@ const PlacementBoardPage = () => {
   const queue = useMemo(() => {
     const q = queueSearch.trim().toLowerCase();
     const matched = orders.filter(
-      (o) => !q
-        || (o.doNumber || '').toLowerCase().includes(q)
-        || (o.partyId?.name || '').toLowerCase().includes(q)
-        || (o.material || '').toLowerCase().includes(q),
+      (o) =>
+        !q ||
+        (o.doNumber || '').toLowerCase().includes(q) ||
+        (o.partyId?.name || '').toLowerCase().includes(q) ||
+        (o.material || '').toLowerCase().includes(q),
     );
     return [...matched].sort((a, b) => {
       const ax = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
@@ -241,9 +253,12 @@ const PlacementBoardPage = () => {
 
   /** Whole days until a DO expires; negative once it has. */
   const daysToExpiry = (o) =>
-    (o.expiryDate
-      ? Math.ceil((new Date(o.expiryDate).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
-      : null);
+    o.expiryDate
+      ? Math.ceil(
+          (new Date(o.expiryDate).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) /
+            86400000,
+        )
+      : null;
 
   /**
    * What the branch's own tankers could still carry. Capacity is not a hard
@@ -301,18 +316,17 @@ const PlacementBoardPage = () => {
     return list;
   };
 
-  // The sticky fulfilment bar only exists once an order is selected.
+  // The sticky fulfilment bar only exists once an order is selected. Its
+  // padding-bottom / flex pinning is applied via `:has(> .erp-sticky-bar)` in
+  // erp.css, on whichever ancestor (`.erp-page` standalone, `.erp-hub-panel`
+  // embedded) actually renders — not a modifier class here, since embedded
+  // mode has no wrapper element of its own to put one on.
   return (
-    <div className={`erp-page ${showCoverageBar ? 'has-sticky-bar' : ''}`}>
-      <div className="erp-header">
-        <div>
-          <h1>Placement Board</h1>
-          <p className="erp-subtitle">
-            Assign fleet or hired vehicles to delivery orders
-          </p>
-        </div>
-      </div>
-
+    <PageShell
+      embedded={embedded}
+      title="Placement Board"
+      subtitle="Assign fleet or hired vehicles to delivery orders"
+    >
       {!selectedDoId ? (
         <>
           <h2 className="erp-section-heading">
@@ -393,7 +407,9 @@ const PlacementBoardPage = () => {
                             {o.fromLocation || '—'} → {o.toLocation || '—'}
                           </td>
                           <td>
-                            <div>{placedQty} / {total} {o.qtyUnit}</div>
+                            <div>
+                              {placedQty} / {total} {o.qtyUnit}
+                            </div>
                             <div className="erp-progress-track" style={{ marginTop: 4, height: 5 }}>
                               <span
                                 className="erp-progress-fill"
@@ -405,7 +421,9 @@ const PlacementBoardPage = () => {
                             {dte === null ? (
                               <span className="erp-cell-muted">—</span>
                             ) : (
-                              <span className={`erp-badge ${urgent ? 'danger' : dte <= 3 ? 'warning' : 'neutral'}`}>
+                              <span
+                                className={`erp-badge ${urgent ? 'danger' : dte <= 3 ? 'warning' : 'neutral'}`}
+                              >
                                 {urgent && <AlertTriangle size={11} />}
                                 {dte < 0
                                   ? 'expired'
@@ -457,7 +475,8 @@ const PlacementBoardPage = () => {
           {awaitingApproval.length > 0 && (
             <>
               <h2 className="erp-section-heading">
-                {awaitingApproval.length} order{awaitingApproval.length === 1 ? '' : 's'} awaiting approval
+                {awaitingApproval.length} order{awaitingApproval.length === 1 ? '' : 's'} awaiting
+                approval
                 <span className="erp-badge warning">
                   <Clock size={11} />
                   not placeable yet
@@ -488,7 +507,9 @@ const PlacementBoardPage = () => {
                           <td className="erp-cell-muted">
                             {o.fromLocation || '—'} → {o.toLocation || '—'}
                           </td>
-                          <td>{o.qty} {o.qtyUnit}</td>
+                          <td>
+                            {o.qty} {o.qtyUnit}
+                          </td>
                           <td className="erp-cell-muted">{dateLabel(o.doDate || o.createdAt)}</td>
                           <td>
                             <span className="erp-badge warning">
@@ -507,11 +528,15 @@ const PlacementBoardPage = () => {
         </>
       ) : loading ? (
         <div className="erp-container">
-          <div className="erp-state"><p>Loading…</p></div>
+          <div className="erp-state">
+            <p>Loading…</p>
+          </div>
         </div>
       ) : !order ? (
         <div className="erp-container">
-          <div className="erp-state"><p>That order could not be loaded.</p></div>
+          <div className="erp-state">
+            <p>That order could not be loaded.</p>
+          </div>
         </div>
       ) : (
         <>
@@ -567,11 +592,15 @@ const PlacementBoardPage = () => {
             <div className="erp-order-card-figures">
               <div>
                 <span className="erp-order-figure-label">Required</span>
-                <span className="erp-order-figure">{required} {order.qtyUnit}</span>
+                <span className="erp-order-figure">
+                  {required} {order.qtyUnit}
+                </span>
               </div>
               <div>
                 <span className="erp-order-figure-label">Placed</span>
-                <span className="erp-order-figure">{done} {order.qtyUnit}</span>
+                <span className="erp-order-figure">
+                  {done} {order.qtyUnit}
+                </span>
               </div>
               <div>
                 <span className="erp-order-figure-label">Remaining</span>
@@ -622,7 +651,9 @@ const PlacementBoardPage = () => {
                           <td className="erp-cell-muted">
                             {p.vehicleType === 'HIRE' ? 'Hired' : 'Own fleet'}
                           </td>
-                          <td className="erp-numeric">{p.plannedQty} {order.qtyUnit}</td>
+                          <td className="erp-numeric">
+                            {p.plannedQty} {order.qtyUnit}
+                          </td>
                           <td>
                             <span
                               className={`erp-badge ${p.status === 'PENDING_APPROVAL' ? 'warning' : 'open'}`}
@@ -681,7 +712,9 @@ const PlacementBoardPage = () => {
               >
                 <option value="">All locations</option>
                 {locations.map((l) => (
-                  <option key={l} value={l}>{l}</option>
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
                 ))}
               </select>
             )}
@@ -763,8 +796,8 @@ const PlacementBoardPage = () => {
                             )}
                             {t.expectedFreeAt && (
                               <div className="erp-cell-muted">
-                                <CalendarClock size={11} style={{ verticalAlign: '-1px' }} />{' '}
-                                free {dateLabel(t.expectedFreeAt)}
+                                <CalendarClock size={11} style={{ verticalAlign: '-1px' }} /> free{' '}
+                                {dateLabel(t.expectedFreeAt)}
                               </div>
                             )}
                           </td>
@@ -796,7 +829,9 @@ const PlacementBoardPage = () => {
                                 Assign {assignQty(t)} {order.qtyUnit}
                               </button>
                             ) : (
-                              <span className={`erp-badge ${BOARD_STATE_TONE[t.boardState] || 'neutral'}`}>
+                              <span
+                                className={`erp-badge ${BOARD_STATE_TONE[t.boardState] || 'neutral'}`}
+                              >
                                 {BOARD_STATE_LABEL[t.boardState] || t.boardState}
                               </span>
                             )}
@@ -814,75 +849,75 @@ const PlacementBoardPage = () => {
                  and the only route out of it would otherwise sit several
                  screens below the rows you are deciding between. ──────────── */}
           {showCoverageBar && (
-          <div className="erp-sticky-bar">
-            {remaining > 0 ? (
-              <>
-                <div className="erp-coverage-figures">
-                  {/* Three figures that subtract: remaining − available fleet =
+            <div className="erp-sticky-bar">
+              {remaining > 0 ? (
+                <>
+                  <div className="erp-coverage-figures">
+                    {/* Three figures that subtract: remaining − available fleet =
                       gap. The earlier labels ("still required" against "your
                       fleet can cover") described the same numbers but did not
                       read as arithmetic, so a 100 KL order with 95 KL of fleet
                       looked like it needed 100 and 5 at the same time. */}
-                  <div>
-                    <span className="erp-order-figure-label">Remaining</span>
-                    <span className="erp-order-figure is-remaining">
-                      {remaining} {order.qtyUnit}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="erp-order-figure-label">Available fleet</span>
-                    <span className="erp-order-figure is-small">
-                      {fleetCeiling} {order.qtyUnit}
-                      <span className="erp-cell-muted" style={{ fontWeight: 400 }}>
-                        {' '}· {eligible.length} tanker{eligible.length === 1 ? '' : 's'}
+                    <div>
+                      <span className="erp-order-figure-label">Remaining</span>
+                      <span className="erp-order-figure is-remaining">
+                        {remaining} {order.qtyUnit}
                       </span>
-                    </span>
+                    </div>
+                    <div>
+                      <span className="erp-order-figure-label">Available fleet</span>
+                      <span className="erp-order-figure is-small">
+                        {fleetCeiling} {order.qtyUnit}
+                        <span className="erp-cell-muted" style={{ fontWeight: 400 }}>
+                          {' '}
+                          · {eligible.length} tanker{eligible.length === 1 ? '' : 's'}
+                        </span>
+                      </span>
+                    </div>
+                    <div>
+                      <span className="erp-order-figure-label">Coverage gap</span>
+                      <span className="erp-order-figure is-small" style={{ color: '#b45309' }}>
+                        {externalNeeded} {order.qtyUnit}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="erp-order-figure-label">Coverage gap</span>
-                    <span className="erp-order-figure is-small" style={{ color: '#b45309' }}>
-                      {externalNeeded} {order.qtyUnit}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="erp-coverage-actions">
-                  {/* The gap is a number the operator should not have to work
+                  <div className="erp-coverage-actions">
+                    {/* The gap is a number the operator should not have to work
                       out, so the button carries it and pre-fills the form. */}
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => setTarget({ mode: 'HIRE', suggestedQty: externalNeeded })}
+                    >
+                      <Truck size={18} />
+                      Hire {externalNeeded} {order.qtyUnit}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <strong className="erp-coverage-done">
+                      <CheckCircle2 size={16} />
+                      Placement complete — {required} of {required} {order.qtyUnit} assigned
+                    </strong>
+                    <div className="erp-cell-muted">
+                      Every unit on {order.doNumber} has a vehicle against it.
+                    </div>
+                  </div>
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={() => setTarget({ mode: 'HIRE', suggestedQty: externalNeeded })}
+                    onClick={() => navigate('/erp/pipeline?tab=trips')}
                   >
-                    <Truck size={18} />
-                    Hire {externalNeeded} {order.qtyUnit}
+                    Go to trips
+                    <ArrowRight size={16} />
                   </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <strong className="erp-coverage-done">
-                    <CheckCircle2 size={16} />
-                    Placement complete — {required} of {required} {order.qtyUnit} assigned
-                  </strong>
-                  <div className="erp-cell-muted">
-                    Every unit on {order.doNumber} has a vehicle against it.
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => navigate('/erp/pipeline?tab=trips')}
-                >
-                  Go to trips
-                  <ArrowRight size={16} />
-                </button>
-              </>
-            )}
-          </div>
+                </>
+              )}
+            </div>
           )}
-
         </>
       )}
 
@@ -910,7 +945,7 @@ const PlacementBoardPage = () => {
           onPlaced={handlePlaced}
         />
       )}
-    </div>
+    </PageShell>
   );
 };
 

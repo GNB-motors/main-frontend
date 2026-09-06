@@ -12,6 +12,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import AdvanceService from './AdvanceService';
 import useApi from '../../hooks/useApi';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const TABS = [
@@ -35,14 +36,16 @@ const AdvanceMastersPage = () => {
     [],
   );
 
-  const { data: rowsResponse, loading, error: rowsError, refetch: refetchRows } = useApi(
-    () => {
-      if (tab === 'mileage') return AdvanceService.getMileage({ limit: 200 });
-      if (tab === 'fuel') return AdvanceService.getFuelRates();
-      return AdvanceService.getRouteBudgets({ limit: 200 });
-    },
-    [JSON.stringify({ tab })],
-  );
+  const {
+    data: rowsResponse,
+    loading,
+    error: rowsError,
+    refetch: refetchRows,
+  } = useApi(() => {
+    if (tab === 'mileage') return AdvanceService.getMileage({ limit: 200 });
+    if (tab === 'fuel') return AdvanceService.getFuelRates();
+    return AdvanceService.getRouteBudgets({ limit: 200 });
+  }, [JSON.stringify({ tab })]);
 
   useEffect(() => {
     if (routesResponse) setRoutes(routesResponse.data?.data || []);
@@ -135,20 +138,16 @@ const AdvanceMastersPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Advance Masters</h1>
-          <p className="erp-subtitle">What the advance calculator reads to cost a trip</p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-primary" onClick={openCreate}>
-            <Plus size={18} />
-            Add
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      title="Advance Masters"
+      subtitle="What the advance calculator reads to cost a trip"
+      actions={
+        <button className="btn btn-primary" onClick={openCreate}>
+          <Plus size={18} />
+          Add
+        </button>
+      }
+    >
       <div className="erp-toolbar">
         {TABS.map((t) => {
           const Icon = t.icon;
@@ -170,8 +169,8 @@ const AdvanceMastersPage = () => {
           <Info size={16} />
           <span>
             A trip&apos;s diesel is costed at the <strong>average</strong> of these across the
-            states its route crosses — not a single state&apos;s price. Every state on a route
-            needs a rate here.
+            states its route crosses — not a single state&apos;s price. Every state on a route needs
+            a rate here.
           </span>
         </div>
       )}
@@ -290,7 +289,9 @@ const AdvanceMastersPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
@@ -478,9 +479,7 @@ const AdvanceMastersPage = () => {
                         <select
                           id="b-empty"
                           value={form.emptyDieselOnly === false ? 'no' : 'yes'}
-                          onChange={(e) =>
-                            setField('emptyDieselOnly', e.target.value === 'yes')
-                          }
+                          onChange={(e) => setField('emptyDieselOnly', e.target.value === 'yes')}
                         >
                           <option value="yes">Diesel only</option>
                           <option value="no">Include all costs</option>
@@ -507,7 +506,7 @@ const AdvanceMastersPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

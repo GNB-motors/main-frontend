@@ -18,13 +18,24 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Plus, CalendarDays, List as ListIcon, Search, Pencil, Pause, Play,
-  History, Trash2, PhoneCall, CalendarCheck, CircleDot,
+  Plus,
+  CalendarDays,
+  List as ListIcon,
+  Search,
+  Pencil,
+  Pause,
+  Play,
+  History,
+  Trash2,
+  PhoneCall,
+  CalendarCheck,
+  CircleDot,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import StatTile from '../../components/Erp/StatTile';
 import RowMenu from '../../components/Erp/RowMenu';
+import PageShell from '../../components/Erp/PageShell';
 import ErpCallService from './ErpCallService';
 import CallScheduleDrawer from './CallScheduleDrawer';
 import ScheduleDetailDrawer from './ScheduleDetailDrawer';
@@ -35,7 +46,11 @@ import PartyService from '../ErpMasters/PartyService';
 import '../../styles/erp.css';
 
 const EMPTY_STATS = {
-  activeSchedules: 0, pausedSchedules: 0, callsThisWeek: 0, dueToday: 0, completedToday: 0,
+  activeSchedules: 0,
+  pausedSchedules: 0,
+  callsThisWeek: 0,
+  dueToday: 0,
+  completedToday: 0,
 };
 
 const CallSchedulesPage = () => {
@@ -119,9 +134,9 @@ const CallSchedulesPage = () => {
       if (dayFilter !== '' && !(s.daysOfWeek || []).includes(Number(dayFilter))) return false;
       if (!q) return true;
       return (
-        (s.partyId?.name || '').toLowerCase().includes(q)
-        || (s.partyId?.code || '').toLowerCase().includes(q)
-        || kamName(s.kamId).toLowerCase().includes(q)
+        (s.partyId?.name || '').toLowerCase().includes(q) ||
+        (s.partyId?.code || '').toLowerCase().includes(q) ||
+        kamName(s.kamId).toLowerCase().includes(q)
       );
     });
   }, [schedules, search, statusFilter, kamFilter, dayFilter]);
@@ -189,22 +204,16 @@ const CallSchedulesPage = () => {
   const filtersActive = search || kamFilter || statusFilter || dayFilter !== '';
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Account Calling Schedule</h1>
-          <p className="erp-subtitle">
-            Recurring customer follow-ups. Each calling day creates a task for the KAM.
-          </p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-primary" onClick={openCreate}>
-            <Plus size={18} />
-            Create Schedule
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      title="Account Calling Schedule"
+      subtitle="Recurring customer follow-ups. Each calling day creates a task for the KAM."
+      actions={
+        <button className="btn btn-primary" onClick={openCreate}>
+          <Plus size={18} />
+          Create Schedule
+        </button>
+      }
+    >
       <div className="erp-stat-grid" style={{ marginTop: 20 }}>
         <StatTile
           label="Active accounts"
@@ -321,7 +330,9 @@ const CallSchedulesPage = () => {
           ) : filtered.length === 0 ? (
             <div className="erp-state">
               <CalendarDays size={48} />
-              <p>{filtersActive ? 'No schedules match these filters' : 'No calling schedules yet'}</p>
+              <p>
+                {filtersActive ? 'No schedules match these filters' : 'No calling schedules yet'}
+              </p>
               <span className="erp-cell-muted">
                 {filtersActive
                   ? 'Clear a filter to see the rest.'
@@ -362,9 +373,7 @@ const CallSchedulesPage = () => {
                         <td>{kamName(s.kamId)}</td>
                         <td>
                           <div>{scheduleLabel(s.daysOfWeek)}</div>
-                          <div className="erp-cell-muted">
-                            {s.daysOfWeek?.length || 0}× / week
-                          </div>
+                          <div className="erp-cell-muted">{s.daysOfWeek?.length || 0}× / week</div>
                         </td>
                         <td>
                           {s.nextCallDate ? (
@@ -401,15 +410,31 @@ const CallSchedulesPage = () => {
                           <RowMenu
                             label={`Actions for ${s.partyId?.name || 'schedule'}`}
                             items={[
-                              { key: 'history', label: 'View call history', icon: History, onSelect: () => setDetail(s) },
-                              { key: 'edit', label: 'Edit schedule', icon: Pencil, onSelect: () => openEdit(s) },
+                              {
+                                key: 'history',
+                                label: 'View call history',
+                                icon: History,
+                                onSelect: () => setDetail(s),
+                              },
+                              {
+                                key: 'edit',
+                                label: 'Edit schedule',
+                                icon: Pencil,
+                                onSelect: () => openEdit(s),
+                              },
                               {
                                 key: 'status',
                                 label: paused ? 'Resume schedule' : 'Pause schedule',
                                 icon: paused ? Play : Pause,
                                 onSelect: () => handleToggleStatus(s),
                               },
-                              { key: 'delete', label: 'Delete schedule', icon: Trash2, tone: 'danger', onSelect: () => setDeleteTarget(s) },
+                              {
+                                key: 'delete',
+                                label: 'Delete schedule',
+                                icon: Trash2,
+                                tone: 'danger',
+                                onSelect: () => setDeleteTarget(s),
+                              },
                             ]}
                           />
                         </td>
@@ -435,11 +460,7 @@ const CallSchedulesPage = () => {
       />
 
       {detail && (
-        <ScheduleDetailDrawer
-          schedule={detail}
-          onClose={() => setDetail(null)}
-          onEdit={openEdit}
-        />
+        <ScheduleDetailDrawer schedule={detail} onClose={() => setDetail(null)} onEdit={openEdit} />
       )}
 
       {deleteTarget && (
@@ -469,7 +490,7 @@ const CallSchedulesPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

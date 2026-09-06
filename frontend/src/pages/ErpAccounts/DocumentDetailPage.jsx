@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  useParams, Link, useNavigate, useSearchParams,
-} from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileText, Clock, Receipt } from 'lucide-react';
 import { toast } from 'react-toastify';
-import PageHeader from '../../components/Erp/PageHeader';
+import PageShell from '../../components/Erp/PageShell';
 import StatusBadge from '../../components/Erp/StatusBadge';
 import EmptyState from '../../components/Erp/EmptyState';
 import FinanceHubApi from './FinanceHubService';
@@ -94,7 +92,9 @@ const DocumentDetailPage = ({ segment }) => {
     }
   }, [baseType, docId, knownType]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const doc = data?.document;
   const docType = data?.docType || baseType;
@@ -109,52 +109,59 @@ const DocumentDetailPage = ({ segment }) => {
   const party = doc?.partyId || doc?.supplierId || doc?.vendorId;
   const partyName = typeof party === 'object' ? party?.name : null;
   const partyId = typeof party === 'object' ? party?._id : party;
-  const accountType = docType === 'SALE_BILL' ? 'PARTY'
-    : docType === 'SUPPLIER_INVOICE' ? 'SUPPLIER'
-      : docType === 'PURCHASE_BILL' ? 'VENDOR'
-        : doc?.partyType || 'PARTY';
+  const accountType =
+    docType === 'SALE_BILL'
+      ? 'PARTY'
+      : docType === 'SUPPLIER_INVOICE'
+        ? 'SUPPLIER'
+        : docType === 'PURCHASE_BILL'
+          ? 'VENDOR'
+          : doc?.partyType || 'PARTY';
   const accountLink = accountPathFor(accountType, partyId);
 
   if (loading) {
     return (
-      <div className="erp-page">
-        <PageHeader title="Loading document…" breadcrumbs={[{ label: 'ERP', to: '/erp' }, crumb]} />
-      </div>
+      <PageShell title="Loading document…" breadcrumbs={[{ label: 'ERP', to: '/erp' }, crumb]} />
     );
   }
 
   if (error || !doc) {
     return (
-      <div className="erp-page">
-        <PageHeader
-          title="Document not found"
-          breadcrumbs={[{ label: 'ERP', to: '/erp' }, crumb, { label: 'Not found' }]}
-        />
+      <PageShell
+        title="Document not found"
+        breadcrumbs={[{ label: 'ERP', to: '/erp' }, crumb, { label: 'Not found' }]}
+      >
         <div className="erp-card">
           <EmptyState
             icon={FileText}
             text="We couldn't find that document"
             hint="It may have been cancelled, or the link is out of date."
-            cta={<button type="button" className="erp-btn" onClick={() => navigate(-1)}>Go back</button>}
+            cta={
+              <button type="button" className="erp-btn" onClick={() => navigate(-1)}>
+                Go back
+              </button>
+            }
           />
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="erp-page">
-      <PageHeader
-        title={<><FileText size={20} /> {number}</>}
-        subtitle={`${documentLabelFor(docType)}${date ? ` · ${formatDateIST(date)}` : ''}`}
-        breadcrumbs={[{ label: 'ERP', to: '/erp' }, crumb, { label: number }]}
-        actions={(
-          <button type="button" className="erp-btn" onClick={() => navigate(-1)}>
-            <ArrowLeft size={15} /> Back
-          </button>
-        )}
-      />
-
+    <PageShell
+      title={
+        <>
+          <FileText size={20} /> {number}
+        </>
+      }
+      subtitle={`${documentLabelFor(docType)}${date ? ` · ${formatDateIST(date)}` : ''}`}
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, crumb, { label: number }]}
+      actions={
+        <button type="button" className="erp-btn" onClick={() => navigate(-1)}>
+          <ArrowLeft size={15} /> Back
+        </button>
+      }
+    >
       {/* ── Header facts ─────────────────────────────────────────────── */}
       <div className="erp-stat-grid">
         <div className="erp-stat">
@@ -164,7 +171,10 @@ const DocumentDetailPage = ({ segment }) => {
         {outstanding !== undefined && (
           <div className="erp-stat">
             <div className="erp-stat-label">Outstanding</div>
-            <div className="erp-stat-value" style={{ color: outstanding > 0 ? '#b45309' : '#15803d' }}>
+            <div
+              className="erp-stat-value"
+              style={{ color: outstanding > 0 ? '#b45309' : '#15803d' }}
+            >
               {inr(outstanding)}
             </div>
             <div className="erp-stat-sub">{outstanding > 0 ? 'Not fully settled' : 'Settled'}</div>
@@ -177,7 +187,9 @@ const DocumentDetailPage = ({ segment }) => {
         </div>
         <div className="erp-stat">
           <div className="erp-stat-label">Status</div>
-          <div style={{ marginTop: 6 }}><StatusBadge status={doc.status} /></div>
+          <div style={{ marginTop: 6 }}>
+            <StatusBadge status={doc.status} />
+          </div>
           {accountLink && (
             <div className="erp-stat-sub" style={{ marginTop: 8 }}>
               <Link to={accountLink}>{partyName || 'View account'} →</Link>
@@ -198,7 +210,10 @@ const DocumentDetailPage = ({ segment }) => {
         )}
       </div>
 
-      <div className="erp-split" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+      <div
+        className="erp-split"
+        style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}
+      >
         {/* ── Ledger postings ────────────────────────────────────────── */}
         <div className="erp-card" style={{ padding: '18px 20px' }}>
           <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>Ledger postings</h3>
@@ -210,9 +225,11 @@ const DocumentDetailPage = ({ segment }) => {
             <EmptyState
               compact
               text="Nothing posted yet"
-              hint={doc.status === 'PENDING_APPROVAL'
-                ? 'Nothing reaches the ledger until this is approved.'
-                : 'No ledger entries reference this document.'}
+              hint={
+                doc.status === 'PENDING_APPROVAL'
+                  ? 'Nothing reaches the ledger until this is approved.'
+                  : 'No ledger entries reference this document.'
+              }
             />
           ) : (
             <>
@@ -234,9 +251,7 @@ const DocumentDetailPage = ({ segment }) => {
                           <td style={{ whiteSpace: 'nowrap' }}>{formatDateIST(e.entryDate)}</td>
                           <td>
                             {to ? <Link to={to}>{e.accountType}</Link> : e.accountType}
-                            {e.narration && (
-                              <div className="erp-field-hint">{e.narration}</div>
-                            )}
+                            {e.narration && <div className="erp-field-hint">{e.narration}</div>}
                           </td>
                           <td className="erp-numeric" style={{ textAlign: 'right' }}>
                             {e.debit ? inr(e.debit) : '—'}
@@ -250,9 +265,21 @@ const DocumentDetailPage = ({ segment }) => {
                   </tbody>
                 </table>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 20, marginTop: 12, fontSize: 13 }}>
-                <span>Dr <strong className="erp-numeric">{inr(data.ledgerTotals.debit)}</strong></span>
-                <span>Cr <strong className="erp-numeric">{inr(data.ledgerTotals.credit)}</strong></span>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 20,
+                  marginTop: 12,
+                  fontSize: 13,
+                }}
+              >
+                <span>
+                  Dr <strong className="erp-numeric">{inr(data.ledgerTotals.debit)}</strong>
+                </span>
+                <span>
+                  Cr <strong className="erp-numeric">{inr(data.ledgerTotals.credit)}</strong>
+                </span>
               </div>
             </>
           )}
@@ -281,10 +308,16 @@ const DocumentDetailPage = ({ segment }) => {
                 <tbody>
                   {data.settlements.map((s) => (
                     <tr key={s.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>{s.date ? formatDateIST(s.date) : '—'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {s.date ? formatDateIST(s.date) : '—'}
+                      </td>
                       <td>{s.number}</td>
-                      <td><StatusBadge status={s.status} /></td>
-                      <td className="erp-numeric" style={{ textAlign: 'right' }}>{inr(s.amount)}</td>
+                      <td>
+                        <StatusBadge status={s.status} />
+                      </td>
+                      <td className="erp-numeric" style={{ textAlign: 'right' }}>
+                        {inr(s.amount)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -297,7 +330,16 @@ const DocumentDetailPage = ({ segment }) => {
       {/* ── Timeline ─────────────────────────────────────────────────── */}
       {data.timeline.length > 0 && (
         <div className="erp-card" style={{ padding: '18px 20px', marginTop: 16 }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3
+            style={{
+              margin: '0 0 12px',
+              fontSize: 15,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
             <Clock size={16} /> Timeline
           </h3>
           <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap' }}>
@@ -307,15 +349,13 @@ const DocumentDetailPage = ({ segment }) => {
                   <div style={{ fontSize: 12, color: '#64748b' }}>{t.label}</div>
                   <div style={{ fontSize: 13.5, fontWeight: 600 }}>{formatDateIST(t.at)}</div>
                 </div>
-                {i < data.timeline.length - 1 && (
-                  <span style={{ color: '#cbd5e0' }}>→</span>
-                )}
+                {i < data.timeline.length - 1 && <span style={{ color: '#cbd5e0' }}>→</span>}
               </div>
             ))}
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import PageHeader from '../../components/Erp/PageHeader';
+import PageShell from '../../components/Erp/PageShell';
 import VendorPaymentsPage from '../ErpVendorPayments/VendorPaymentsPage';
 import SupplierPaymentsPage from '../ErpSupplierPayments/SupplierPaymentsPage';
 import UnloadingPage from '../ErpUnloading/UnloadingPage';
@@ -22,13 +22,11 @@ const ErpPayablesPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <PageHeader
-        title="Payables & Outgoing Payments"
-        subtitle="Manage Vendor Payments, Supplier Payments, and Purchase Bills"
-        breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables' }]}
-      />
-
+    <PageShell
+      title="Payables & Outgoing Payments"
+      subtitle="Manage Vendor Payments, Supplier Payments, and Purchase Bills"
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables' }]}
+    >
       <div className="erp-toolbar" style={{ marginTop: 0, marginBottom: '20px' }}>
         <div className="erp-tabs" style={{ margin: 0 }}>
           <button
@@ -57,7 +55,7 @@ const ErpPayablesPage = () => {
         {activeTab === 'supplier' && <SupplierPaymentsPage embedded={true} />}
         {activeTab === 'purchaseBills' && <UnloadingPage initialTab="bills" embedded={true} />}
       </div>
-    </div>
+    </PageShell>
   );
 };
 
