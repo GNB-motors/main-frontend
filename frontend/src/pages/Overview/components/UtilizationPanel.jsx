@@ -1,5 +1,6 @@
 import { Panel } from './overview.primitives.jsx';
 import EmptyState from '../../../components/cluster/EmptyState';
+import { UtilizationSkeleton } from './OverviewSkeletons.jsx';
 import { formatKm, formatInrCompact, formatPct } from '../../../utils/formatters';
 
 const TARGET_UTIL_PCT = 75; // configured fleet target (placeholder until a real target lands)
@@ -31,7 +32,7 @@ export default function UtilizationPanel({ utilization, loading }) {
   return (
     <Panel eyebrow="Utilization" question="How efficiently are vehicles used?" className="h-full">
       {loading && !utilization ? (
-        <div className="ov-inset h-40 animate-pulse" />
+        <UtilizationSkeleton />
       ) : !hasData ? (
         <EmptyState
           title="No distance data in this window"
@@ -41,15 +42,25 @@ export default function UtilizationPanel({ utilization, loading }) {
         <div className="flex flex-col gap-5">
           {/* loaded vs empty track */}
           <div>
-            <div className="ov-track" role="img" aria-label={`Loaded ${formatKm(fleet.loadedKm)}, empty ${formatKm(fleet.emptyKm)}`}>
+            <div
+              className="ov-track"
+              role="img"
+              aria-label={`Loaded ${formatKm(fleet.loadedKm)}, empty ${formatKm(fleet.emptyKm)}`}
+            >
               {loadedPct > 0 && (
-                <span style={{ width: `${loadedPct}%`, background: 'var(--ok)' }} title={`Loaded ${formatKm(fleet.loadedKm)}`}>
+                <span
+                  style={{ width: `${loadedPct}%`, background: 'var(--ok)' }}
+                  title={`Loaded ${formatKm(fleet.loadedKm)}`}
+                >
                   {loadedPct > 12 ? `Loaded ${Math.round(loadedPct)}%` : ''}
                 </span>
               )}
               {emptyPct > 0 && (
                 <span
-                  style={{ width: `${emptyPct}%`, background: emptyPct > 30 ? 'var(--critical)' : 'var(--caution)' }}
+                  style={{
+                    width: `${emptyPct}%`,
+                    background: emptyPct > 30 ? 'var(--critical)' : 'var(--caution)',
+                  }}
                   title={`Empty ${formatKm(fleet.emptyKm)}`}
                 >
                   {emptyPct > 12 ? `Empty ${Math.round(emptyPct)}%` : ''}
@@ -63,15 +74,26 @@ export default function UtilizationPanel({ utilization, loading }) {
           </div>
 
           {/* target / actual / variance + waste */}
-          <div className="grid grid-cols-4 gap-3 border-t pt-4" style={{ borderColor: 'var(--hairline)' }}>
+          <div
+            className="grid grid-cols-4 gap-3 border-t pt-4"
+            style={{ borderColor: 'var(--hairline)' }}
+          >
             <Metric label="Target" value={formatPct(TARGET_UTIL_PCT)} />
-            <Metric label="Actual" value={formatPct(actual)} color={actual < TARGET_UTIL_PCT ? 'var(--caution)' : 'var(--ok)'} />
+            <Metric
+              label="Actual"
+              value={formatPct(actual)}
+              color={actual < TARGET_UTIL_PCT ? 'var(--caution)' : 'var(--ok)'}
+            />
             <Metric
               label="Variance"
               value={`${variance > 0 ? '+' : ''}${variance}%`}
               color={variance < 0 ? 'var(--critical)' : 'var(--ok)'}
             />
-            <Metric label="Waste" value={formatInrCompact(fleet.emptyKmWasteInr)} color={fleet.emptyKmWasteInr > 0 ? 'var(--critical)' : 'var(--ok)'} />
+            <Metric
+              label="Waste"
+              value={formatInrCompact(fleet.emptyKmWasteInr)}
+              color={fleet.emptyKmWasteInr > 0 ? 'var(--critical)' : 'var(--ok)'}
+            />
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Panel, StatusPill } from './overview.primitives.jsx';
 import EmptyState from '../../../components/cluster/EmptyState';
+import { VehicleAttentionSkeleton } from './OverviewSkeletons.jsx';
 import { formatINR, formatPct } from '../../../utils/formatters';
 
 const TARGET_UTIL_PCT = 75;
@@ -76,7 +77,10 @@ const SORTS = {
  */
 export default function VehicleAttentionTable({ money, downtime, utilization, loading }) {
   const [sort, setSort] = useState('loss');
-  const merged = useMemo(() => mergeVehicles({ money, downtime, utilization }), [money, downtime, utilization]);
+  const merged = useMemo(
+    () => mergeVehicles({ money, downtime, utilization }),
+    [money, downtime, utilization],
+  );
   const rows = useMemo(() => [...merged].sort(SORTS[sort].fn).slice(0, 8), [merged, sort]);
 
   return (
@@ -86,7 +90,12 @@ export default function VehicleAttentionTable({ money, downtime, utilization, lo
       action={
         <div className="ov-seg" role="group" aria-label="Sort vehicles">
           {Object.entries(SORTS).map(([key, s]) => (
-            <button key={key} type="button" aria-pressed={sort === key} onClick={() => setSort(key)}>
+            <button
+              key={key}
+              type="button"
+              aria-pressed={sort === key}
+              onClick={() => setSort(key)}
+            >
               {s.label}
             </button>
           ))}
@@ -94,7 +103,7 @@ export default function VehicleAttentionTable({ money, downtime, utilization, lo
       }
     >
       {loading && !merged.length ? (
-        <div className="ov-inset h-40 animate-pulse" />
+        <VehicleAttentionSkeleton />
       ) : merged.length === 0 ? (
         <EmptyState
           title="No vehicle needs attention"
@@ -123,10 +132,21 @@ export default function VehicleAttentionTable({ money, downtime, utilization, lo
                     <StatusPill tone={r.tone}>{r.status}</StatusPill>
                   </td>
                   <td className="text-dim">{r.issue}</td>
-                  <td className="num text-right" style={{ color: r.util != null && r.util < TARGET_UTIL_PCT ? 'var(--caution)' : 'var(--cluster-text-dim)' }}>
+                  <td
+                    className="num text-right"
+                    style={{
+                      color:
+                        r.util != null && r.util < TARGET_UTIL_PCT
+                          ? 'var(--caution)'
+                          : 'var(--cluster-text-dim)',
+                    }}
+                  >
                     {r.util == null ? '—' : formatPct(r.util)}
                   </td>
-                  <td className="num text-right font-semibold" style={{ color: r.loss > 0 ? 'var(--critical)' : 'var(--cluster-text-dim)' }}>
+                  <td
+                    className="num text-right font-semibold"
+                    style={{ color: r.loss > 0 ? 'var(--critical)' : 'var(--cluster-text-dim)' }}
+                  >
                     {r.loss > 0 ? formatINR(r.loss) : '—'}
                   </td>
                   <td className="text-right">
