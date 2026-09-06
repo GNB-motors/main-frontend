@@ -4,7 +4,12 @@ import useApi from '../../hooks/useApi';
 import RouteIntelligenceService from './RouteIntelligenceService';
 import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import ExportButton from '../../components/ui/ExportButton';
 import PlaceLabel from '../../components/ui/PlaceLabel';
+import { footerSummary } from '../../lib/tableState';
+import { humanise, label } from '../../lib/vocabulary';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -23,14 +28,115 @@ import { formatDateTimeIST } from '../../utils/dateUtils';
 const PAGE_SIZE = 25;
 const ALL = 'ALL';
 
-function PageHeader() {
+/** Client-side search over the loaded page (the backend has no q param). */
+function matchesQ(q, values) {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  return values.some((v) => String(v ?? '').toLowerCase().includes(needle));
+}
+
+function siteMatches(q, site) {
+  return matchesQ(q, [site.key, site.siteType, site.status]);
+}
+
+function corridorMatches(q, c) {
+  return matchesQ(q, [
+    c.usableForDeviation ? 'usable' : 'unusable',
+    c.insightsDominated ? 'dominated' : '',
+    c.p90CellGapKm,
+    c.sampleTrackCount,
+  ]);
+}
+
+function deviationMatches(q, d) {
+  return matchesQ(q, [d.registrationNumber, d.status]);
+}
+
+function arrivalMatches(q, a) {
+  return matchesQ(q, [a.registrationNumber, a.siteId, a.status]);
+}
+
+// Export shapes — one set of columns per tab, rows mapped so no UPPER_SNAKE
+// or raw coordinate ever lands in the file.
+const SITES_EXPORT_COLUMNS = [
+  { key: 'key', label: 'Key' },
+  { key: 'siteType', label: 'Type' },
+  { key: 'status', label: 'Status' },
+  { key: 'radiusM', label: 'Radius (m)', type: 'number' },
+  { key: 'visitCount', label: 'Visits', type: 'number' },
+  { key: 'distinctVehicleCount', label: 'Vehicles', type: 'number' },
+];
+const siteExportRows = (records) =>
+  records.map((s) => ({
+    key: s.key,
+    siteType: humanise(s.siteType),
+    status: label('status', s.status),
+    radiusM: s.radiusM,
+    visitCount: s.visitCount,
+    distinctVehicleCount: s.distinctVehicleCount,
+  }));
+
+const CORRIDORS_EXPORT_COLUMNS = [
+  { key: 'sampleTrackCount', label: 'Sample tracks', type: 'number' },
+  { key: 'p90CellGapKm', label: 'p90 cell gap (km)', type: 'number' },
+  { key: 'usableForDeviation', label: 'Usable for deviation' },
+  { key: 'insightsDominated', label: 'Insights dominated' },
+];
+const corridorExportRows = (records) =>
+  records.map((c) => ({
+    sampleTrackCount: c.sampleTrackCount,
+    p90CellGapKm: c.p90CellGapKm,
+    usableForDeviation: c.usableForDeviation ? 'Yes' : 'No',
+    insightsDominated: c.insightsDominated ? 'Yes' : 'No',
+  }));
+
+const DEVIATIONS_EXPORT_COLUMNS = [
+  { key: 'registrationNumber', label: 'Vehicle' },
+  { key: 'detectedAt', label: 'Detected' },
+  { key: 'maxOffKm', label: 'Max off corridor (km)', type: 'number' },
+  { key: 'offCorridorPoints', label: 'Off points', type: 'number' },
+  { key: 'extraKmEstimate', label: 'Extra km', type: 'number' },
+  { key: 'status', label: 'Status' },
+];
+const deviationExportRows = (records) =>
+  records.map((d) => ({
+    registrationNumber: d.registrationNumber,
+    detectedAt: d.detectedAt ? new Date(d.detectedAt) : null,
+    maxOffKm: d.maxOffKm,
+    offCorridorPoints: d.offCorridorPoints,
+    extraKmEstimate: d.extraKmEstimate,
+    status: label('status', d.status),
+  }));
+
+const ARRIVALS_EXPORT_COLUMNS = [
+  { key: 'registrationNumber', label: 'Vehicle' },
+  { key: 'siteId', label: 'Site' },
+  { key: 'arrivedAt', label: 'Arrived' },
+  { key: 'departedAt', label: 'Departed' },
+  { key: 'dwellMin', label: 'Dwell (min)', type: 'number' },
+  { key: 'status', label: 'Status' },
+];
+const arrivalExportRows = (records) =>
+  records.map((a) => ({
+    registrationNumber: a.registrationNumber,
+    siteId: a.siteId,
+    arrivedAt: a.arrivedAt ? new Date(a.arrivedAt) : null,
+    departedAt: a.departedAt ? new Date(a.departedAt) : null,
+    dwellMin: a.dwellMin,
+    status: label('status', a.status),
+  }));
+
+/** One FilterBar + ExportButton row, mounted inside each tab panel. */
+function TabToolbar({ q, onQChange, activeFilters, exportProps }) {
   return (
-    <div>
-      <h1 className="cluster-title text-xl">Route Intelligence</h1>
-      <p className="text-dim mt-1 text-sm">
-        Where your trucks actually stop and the paths they drive between those stops.
-      </p>
-    </div>
+    <FilterBar
+      searchValue={q}
+      onSearchChange={onQChange}
+      searchPlaceholder="Search this page…"
+      activeCount={q.trim() ? activeFilters + 1 : activeFilters}
+      onClear={() => onQChange('')}
+      right={<ExportButton {...exportProps} />}
+    />
   );
 }
 
@@ -312,6 +418,12 @@ export default function RouteIntelligencePage() {
   const [deviationPage, setDeviationPage] = useState(1);
   const [arrivalPage, setArrivalPage] = useState(1);
   const [confirmingId, setConfirmingId] = useState(null);
+  // Client-side search per tab — the backend list endpoints accept no q param,
+  // so these narrow the records already on screen (the current page).
+  const [siteQ, setSiteQ] = useState('');
+  const [corridorQ, setCorridorQ] = useState('');
+  const [deviationQ, setDeviationQ] = useState('');
+  const [arrivalQ, setArrivalQ] = useState('');
 
   const siteParams = useMemo(
     () => ({
@@ -373,32 +485,52 @@ export default function RouteIntelligencePage() {
 
   if (any404) {
     return (
-      <div className="cluster-page space-y-5">
-        <PageHeader />
+      <PageShell
+        title="Route Intelligence"
+        subtitle="Where your trucks actually stop and the paths they drive between those stops."
+      >
         <div className="cluster-panel">
           <EmptyState
             title="Route Intelligence is not enabled for this organization."
             hint="Ask your administrator to turn on the Fleet Intelligence feature flag to see discovered sites, learned corridors and deviations."
           />
         </div>
-      </div>
+      </PageShell>
     );
   }
 
-  const siteRecords = sitesData?.records || [];
-  const corridorRecords = corridorsData?.records || [];
-  const deviationRecords = deviationsData?.records || [];
-  const arrivalRecords = arrivalsData?.records || [];
+  const siteRecords = (sitesData?.records || []).filter((s) => siteMatches(siteQ, s));
+  const corridorRecords = (corridorsData?.records || []).filter((c) => corridorMatches(corridorQ, c));
+  const deviationRecords = (deviationsData?.records || []).filter((d) => deviationMatches(deviationQ, d));
+  const arrivalRecords = (arrivalsData?.records || []).filter((a) => arrivalMatches(arrivalQ, a));
 
   const siteStatusOptions = [ALL, 'PROPOSED', 'CONFIRMED', 'REJECTED'];
   const siteTypeOptions = [ALL, 'LOADING', 'PARKING', 'FUEL_PUMP', 'WORKSHOP', 'SERVICE', 'UNEXPLAINED', 'UNKNOWN'];
 
   const resetSitePage = () => setSitePage(1);
 
-  return (
-    <div className="cluster-page space-y-5">
-      <PageHeader />
+  const tabTotals = {
+    sites: sitesData?.total,
+    corridors: corridorsData?.total,
+    deviations: deviationsData?.total,
+    arrivals: arrivalsData?.total,
+  };
+  const tabQueries = { sites: siteQ, corridors: corridorQ, deviations: deviationQ, arrivals: arrivalQ };
+  const tabFiltered = { sites: siteRecords, corridors: corridorRecords, deviations: deviationRecords, arrivals: arrivalRecords };
+  const activeTabFilters =
+    activeTab === 'sites' ? (siteStatus !== ALL ? 1 : 0) + (siteType !== ALL ? 1 : 0) : 0;
 
+  return (
+    <PageShell
+      title="Route Intelligence"
+      subtitle="Where your trucks actually stop and the paths they drive between those stops."
+      count={tabTotals[activeTab] ?? null}
+      footer={`${footerSummary({
+        showing: tabFiltered[activeTab].length,
+        total: tabTotals[activeTab] ?? tabFiltered[activeTab].length,
+        activeFilters: activeTabFilters + (tabQueries[activeTab].trim() ? 1 : 0),
+      })} on this page — search filters the loaded page`}
+    >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="sites" className="flex items-center gap-1.5">
@@ -440,6 +572,25 @@ export default function RouteIntelligencePage() {
               ))}
             </div>
 
+            <TabToolbar
+              q={siteQ}
+              onQChange={setSiteQ}
+              activeFilters={(siteStatus !== ALL ? 1 : 0) + (siteType !== ALL ? 1 : 0)}
+              exportProps={{
+                rows: siteExportRows(siteRecords),
+                columns: SITES_EXPORT_COLUMNS,
+                filename: 'route-sites',
+                meta: {
+                  generatedAt: new Date(),
+                  filters: [
+                    ...(siteQ.trim() ? [{ label: 'Search (this page)', value: siteQ.trim() }] : []),
+                    ...(siteStatus !== ALL ? [{ label: 'Status', value: humanise(siteStatus) }] : []),
+                    ...(siteType !== ALL ? [{ label: 'Type', value: humanise(siteType) }] : []),
+                  ],
+                },
+              }}
+            />
+
             <TableShell title="Discovered Sites" caption="Sites learned from vehicle stops. Confirm a proposed site so it can generate arrival events.">
               {sitesLoading && !sitesData ? (
                 <ListSkeleton />
@@ -449,7 +600,10 @@ export default function RouteIntelligencePage() {
                 </div>
               ) : siteRecords.length === 0 ? (
                 <div className="p-4">
-                  <EmptyState title="No sites discovered" hint="Vehicle stop clusters will appear here once the route-intelligence cron has run." />
+                  <EmptyState
+                    title={siteQ.trim() && (sitesData?.records?.length ?? 0) > 0 ? `No sites on this page match “${siteQ.trim()}”` : 'No sites discovered'}
+                    hint={siteQ.trim() && (sitesData?.records?.length ?? 0) > 0 ? 'Search narrows the loaded page only — try another term or clear the search.' : 'Vehicle stop clusters will appear here once the route-intelligence cron has run.'}
+                  />
                 </div>
               ) : (
                 <>
@@ -469,6 +623,20 @@ export default function RouteIntelligencePage() {
 
         <TabsContent value="corridors" className="space-y-4">
           <PanelErrorBoundary name="route-intelligence-corridors">
+            <TabToolbar
+              q={corridorQ}
+              onQChange={setCorridorQ}
+              activeFilters={0}
+              exportProps={{
+                rows: corridorExportRows(corridorRecords),
+                columns: CORRIDORS_EXPORT_COLUMNS,
+                filename: 'route-corridors',
+                meta: {
+                  generatedAt: new Date(),
+                  filters: corridorQ.trim() ? [{ label: 'Search (this page)', value: corridorQ.trim() }] : [],
+                },
+              }}
+            />
             <TableShell title="Learned Corridors" caption="Baseline paths between site pairs. Corridors with a wide p90 cell gap are not usable for deviation detection.">
               {corridorsLoading && !corridorsData ? (
                 <ListSkeleton />
@@ -478,7 +646,10 @@ export default function RouteIntelligencePage() {
                 </div>
               ) : corridorRecords.length === 0 ? (
                 <div className="p-4">
-                  <EmptyState title="No corridors learned" hint="Corridors appear once enough trips have been driven between discovered sites." />
+                  <EmptyState
+                    title={corridorQ.trim() && (corridorsData?.records?.length ?? 0) > 0 ? `No corridors on this page match “${corridorQ.trim()}”` : 'No corridors learned'}
+                    hint={corridorQ.trim() && (corridorsData?.records?.length ?? 0) > 0 ? 'Try “usable”, “unusable” or a number such as the p90 gap.' : 'Corridors appear once enough trips have been driven between discovered sites.'}
+                  />
                 </div>
               ) : (
                 <>
@@ -498,6 +669,20 @@ export default function RouteIntelligencePage() {
 
         <TabsContent value="deviations" className="space-y-4">
           <PanelErrorBoundary name="route-intelligence-deviations">
+            <TabToolbar
+              q={deviationQ}
+              onQChange={setDeviationQ}
+              activeFilters={0}
+              exportProps={{
+                rows: deviationExportRows(deviationRecords),
+                columns: DEVIATIONS_EXPORT_COLUMNS,
+                filename: 'route-deviations',
+                meta: {
+                  generatedAt: new Date(),
+                  filters: deviationQ.trim() ? [{ label: 'Search (this page)', value: deviationQ.trim() }] : [],
+                },
+              }}
+            />
             <TableShell title="Route Deviations" caption="Trips that left a learned corridor. A flag means 'please review', not an accusation.">
               {deviationsLoading && !deviationsData ? (
                 <ListSkeleton />
@@ -507,7 +692,10 @@ export default function RouteIntelligencePage() {
                 </div>
               ) : deviationRecords.length === 0 ? (
                 <div className="p-4">
-                  <EmptyState title="No deviations" hint="Vehicles are following the learned corridors, or no corridor has enough samples to compare against." />
+                  <EmptyState
+                    title={deviationQ.trim() && (deviationsData?.records?.length ?? 0) > 0 ? `No deviations on this page match “${deviationQ.trim()}”` : 'No deviations'}
+                    hint={deviationQ.trim() && (deviationsData?.records?.length ?? 0) > 0 ? 'Search narrows the loaded page only — try another term or clear the search.' : 'Vehicles are following the learned corridors, or no corridor has enough samples to compare against.'}
+                  />
                 </div>
               ) : (
                 <>
@@ -527,6 +715,20 @@ export default function RouteIntelligencePage() {
 
         <TabsContent value="arrivals" className="space-y-4">
           <PanelErrorBoundary name="route-intelligence-arrivals">
+            <TabToolbar
+              q={arrivalQ}
+              onQChange={setArrivalQ}
+              activeFilters={0}
+              exportProps={{
+                rows: arrivalExportRows(arrivalRecords),
+                columns: ARRIVALS_EXPORT_COLUMNS,
+                filename: 'route-arrivals',
+                meta: {
+                  generatedAt: new Date(),
+                  filters: arrivalQ.trim() ? [{ label: 'Search (this page)', value: arrivalQ.trim() }] : [],
+                },
+              }}
+            />
             <TableShell title="Arrival Events" caption="Vehicles entering confirmed sites and dwelling past the threshold.">
               {arrivalsLoading && !arrivalsData ? (
                 <ListSkeleton />
@@ -536,7 +738,10 @@ export default function RouteIntelligencePage() {
                 </div>
               ) : arrivalRecords.length === 0 ? (
                 <div className="p-4">
-                  <EmptyState title="No arrivals" hint="Arrivals appear once sites are confirmed and vehicles stop inside their radius." />
+                  <EmptyState
+                    title={arrivalQ.trim() && (arrivalsData?.records?.length ?? 0) > 0 ? `No arrivals on this page match “${arrivalQ.trim()}”` : 'No arrivals'}
+                    hint={arrivalQ.trim() && (arrivalsData?.records?.length ?? 0) > 0 ? 'Search narrows the loaded page only — try another term or clear the search.' : 'Arrivals appear once sites are confirmed and vehicles stop inside their radius.'}
+                  />
                 </div>
               ) : (
                 <>
@@ -554,6 +759,6 @@ export default function RouteIntelligencePage() {
           </PanelErrorBoundary>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }

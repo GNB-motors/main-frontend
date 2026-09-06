@@ -11,6 +11,11 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
 import { toast } from 'react-toastify';
+import { humanise } from '../../lib/vocabulary';
+import { footerSummary } from '../../lib/tableState';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import ExportButton from '../../components/ui/ExportButton';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import './Geofence.css';
 
@@ -177,6 +182,28 @@ const PIN = {
   LOW:    'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
 };
 
+// Export shape for the anomaly location table — humanised severity, resolved
+// place names where the backend has one, never raw coordinates.
+const LOCATION_EXPORT_COLUMNS = [
+  { key: 'address', label: 'Location' },
+  { key: 'severity', label: 'Severity' },
+  { key: 'occurrenceCount', label: 'Occurrences', type: 'number' },
+  { key: 'totalFuelDropLitres', label: 'Total fuel drop (L)', type: 'number' },
+  { key: 'vehiclesAffected', label: 'Vehicles affected', type: 'number' },
+  { key: 'lastSeenAt', label: 'Last seen' },
+  { key: 'status', label: 'Status' },
+];
+const locationExportRows = (records) =>
+  records.map((loc) => ({
+    address: loc.address || 'Unresolved location',
+    severity: humanise(loc.severity),
+    occurrenceCount: loc.occurrenceCount,
+    totalFuelDropLitres: loc.totalFuelDropLitres,
+    vehiclesAffected: (loc.vehiclesAffected || []).length,
+    lastSeenAt: loc.lastSeenAt ? formatIST(loc.lastSeenAt) : '—',
+    status: loc.isResolved ? 'Resolved' : 'Open',
+  }));
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofencePage = () => {
   const [locations,    setLocations]    = useState([]);
@@ -185,6 +212,7 @@ const GeofencePage = () => {
   const [error,        setError]        = useState(null);
   const [severityFilter, setSeverityFilter] = useState('');
   const [showResolved, setShowResolved] = useState(false);
+  const [locationQuery, setLocationQuery] = useState('');
   const [page,         setPage]         = useState(1);
   const [totalPages,   setTotalPages]   = useState(1);
   const [resolvingId,  setResolvingId]  = useState(null);
@@ -289,18 +317,24 @@ const GeofencePage = () => {
     }
   };
 
+  // Client-side search over the loaded page — the anomaly endpoint has no q param.
+  const locationNeedle = locationQuery.trim().toLowerCase();
+  const filteredLocations = locationNeedle
+    ? locations.filter((loc) =>
+        [loc.address, loc.severity, ...(loc.vehiclesAffected || []).map((v) => v.registrationNumber)]
+          .some((f) => String(f ?? '').toLowerCase().includes(locationNeedle)))
+    : locations;
+  const locationFilterCount =
+    (severityFilter ? 1 : 0) + (showResolved ? 1 : 0) + (locationNeedle ? 1 : 0);
+
   return (
-    <div className="gf-page">
-      {/* Header */}
-      <div className="gf-header-bar">
-        <div className="gf-title-area">
-          <div className="gf-icon-wrap"><MapPin size={22} color="var(--primary-color,#4f46e5)" /></div>
-          <div>
-            <h1 className="gf-title">Geofence Anomalies</h1>
-            <p className="gf-subtitle">Locations where vehicles stopped and unexplained fuel was lost</p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <PageShell
+      className="gf-page"
+      title="Geofence Anomalies"
+      subtitle="Locations where vehicles stopped and unexplained fuel was lost"
+      count={stats?.total ?? null}
+      actions={(
+        <>
           {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 10px', borderRadius: '12px', background: liveOnline ? '#ecfdf5' : '#f1f5f9', color: liveOnline ? '#059669' : '#64748b', fontWeight: 500 }}>
               {liveOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
@@ -315,8 +349,35 @@ const GeofencePage = () => {
             <RefreshCw size={15} className={loading ? 'gf-spin' : ''} />
             Refresh
           </button>
-        </div>
-      </div>
+        </>
+      )}
+      filters={(
+        <FilterBar
+          searchValue={locationQuery}
+          onSearchChange={(v) => { setLocationQuery(v); setPage(1); }}
+          searchPlaceholder="Search location or vehicle…"
+          activeCount={locationFilterCount}
+          onClear={() => { setLocationQuery(''); setSeverityFilter(''); setShowResolved(false); setPage(1); }}
+          right={(
+            <ExportButton
+              rows={locationExportRows(filteredLocations)}
+              columns={LOCATION_EXPORT_COLUMNS}
+              filename="geofence-anomalies"
+              disabled={loading || !!error}
+              meta={{
+                generatedAt: new Date(),
+                filters: [
+                  ...(locationNeedle ? [{ label: 'Search (this page)', value: locationQuery.trim() }] : []),
+                  { label: 'Severity', value: severityFilter ? humanise(severityFilter) : 'All severities' },
+                  { label: 'Status', value: showResolved ? 'Open + resolved' : 'Open only' },
+                ],
+              }}
+            />
+          )}
+        />
+      )}
+      footer={footerSummary({ showing: filteredLocations.length, total: locations.length, activeFilters: locationFilterCount }) + ' on this page'}
+    >
 
       {/* KPI Row */}
       {stats && (
@@ -426,6 +487,12 @@ const GeofencePage = () => {
           <p>No suspicious locations detected.</p>
           <span>Anomalies appear here after mileage intervals are computed from FleetEdge data.</span>
         </div>
+      ) : filteredLocations.length === 0 ? (
+        <div className="gf-empty">
+          <AlertTriangle size={40} color="#f59e0b" />
+          <p>No locations on this page match “{locationQuery.trim()}”.</p>
+          <span>Search narrows the loaded page only — try another term or clear the search.</span>
+        </div>
       ) : (
         <div className="gf-table-wrap">
           <table className="gf-table">
@@ -441,7 +508,7 @@ const GeofencePage = () => {
               </tr>
             </thead>
             <tbody>
-              {locations.map(loc => (
+              {filteredLocations.map(loc => (
                 <LocationRow key={loc._id} location={loc} onResolve={handleResolve} resolvingId={resolvingId} />
               ))}
             </tbody>
@@ -457,7 +524,7 @@ const GeofencePage = () => {
           <button className="gf-btn gf-btn-page" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</button>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 
