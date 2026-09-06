@@ -5,6 +5,7 @@ import PageShell from '../../components/ui/PageShell';
 import { OverviewService } from './OverviewService.jsx';
 import { useOwnerValueDigest } from './OwnerValueDigest.jsx';
 import KpiRail from './components/KpiRail.jsx';
+import OverviewWidgets from './components/OverviewWidgets.jsx';
 import FleetHealthPanel from './components/FleetHealthPanel.jsx';
 import FinancialImpactPanel from './components/FinancialImpactPanel.jsx';
 import ActionCenter from './components/ActionCenter.jsx';
@@ -176,6 +177,11 @@ const OverviewPage = () => {
             health={health}
             riskMoney={riskMoney}
           />
+
+          {/* MetricTile widget group — the five GNB Dashboard artboard tiles */}
+          <PanelErrorBoundary name="dashboard-widgets">
+            <OverviewWidgets />
+          </PanelErrorBoundary>
 
           {/* Command deck — health & financial exposure */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
