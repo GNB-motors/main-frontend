@@ -1,35 +1,33 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Plus, Upload } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { Search, Plus, Upload } from 'lucide-react';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { getToken, getBranchId, getProfileField } from '../../utils/session.js';
+import { getToken, getProfileField } from '../../utils/session.js';
 import LottieLoader from '../../components/LottieLoader.jsx';
-import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
 import NewButton from '@/components/ui/NewButton';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import {
   getInitials,
   formatRole,
-  FilterDropdown,
   EditDriverModal,
   DeleteDriverModal,
   DeactivateDriverModal,
   MoveEmployeeModal,
 } from './Component/driversComponents.jsx';
 import DriverTable from './Component/DriverTable.jsx';
+import DriversPagination from './Component/DriversPagination.jsx';
+import DriverFilter from './Component/DriverFilter.jsx';
 import {
   normalizeDriver,
   normalizeVehicleOption,
   filterAndSortDrivers,
   countActiveDrivers,
-  isCrossBranchMove,
   countActiveFilters,
-  generatePageNumbers,
 } from './driverList.js';
+import { useDriverActions } from './useDriverActions.js';
 
 // --- Main DriversPage Component ---
 const DriversPage = () => {
@@ -62,18 +60,6 @@ const DriversPage = () => {
     };
   }, []);
 
-  // Modal States
-  // isAddModalOpen removed -- Add Employee is now a separate page at /drivers/add
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingDriver, setEditingDriver] = useState(null); // Driver object to edit
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deletingDriver, setDeletingDriver] = useState(null); // Driver object to delete
-  // Employee about to be deactivated in their current branch (confirm modal).
-  const [deactivatingDriver, setDeactivatingDriver] = useState(null);
-  // Employee whose activation here would move them out of another branch (warn modal).
-  const [movingDriver, setMovingDriver] = useState(null);
-  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
-
   // Action Menu State
   const [openMenuDriverId, setOpenMenuDriverId] = useState(null);
   const [menuPosition, setMenuPosition] = useState(null); // {top, bottom, right} from getBoundingClientRect
@@ -96,8 +82,6 @@ const DriversPage = () => {
     role: '',
     vehicleAssignment: '',
   });
-
-  const [isSubmitting, setIsSubmitting] = useState(false); // Loading state for add/edit/delete actions
 
   const [totalPages, setTotalPages] = useState(1);
 
@@ -196,136 +180,37 @@ const DriversPage = () => {
 
   // --- Action Handlers ---
   // handleAddDriver removed -- Add Employee is now a separate page at /drivers/add
-
-  const handleOpenEditModal = (driver) => {
-    // Navigate to the Add Driver page but pass the driver to edit via location state
-    // so the same page can be used for editing with fields pre-filled.
-    setOpenMenuDriverId(null); // Close action menu
-    navigate('/drivers/add', { state: { editingDriver: driver } });
-  };
-
-  const handleOpenDeleteModal = (driver) => {
-    setDeletingDriver(driver);
-    setIsDeleteModalOpen(true);
-    setOpenMenuDriverId(null); // Close action menu
-  };
-
-  // Activate a deactivated employee in the current location. If they are still
-  // active in a DIFFERENT branch, activating here MOVES them (they get
-  // deactivated there) — warn with a modal first. If they were simply
-  // deactivated in this same branch, it's a plain re-enable, so run it directly.
-  const handleActivateHere = (driver) => {
-    setOpenMenuDriverId(null);
-    if (isCrossBranchMove(driver, getBranchId())) {
-      setMovingDriver(driver);
-    } else {
-      activateEmployee(driver);
-    }
-  };
-
-  // Perform the actual activate/import call (shared by the direct path and the
-  // "confirm move" modal). The active branch travels via X-Branch-Id (apiClient).
-  const activateEmployee = async (driver) => {
-    setIsActionSubmitting(true);
-    try {
-      await DriverService.importEmployee(driver.id);
-      toast.success('Employee activated in this location');
-      setMovingDriver(null);
-      fetchDrivers();
-    } catch (err) {
-      toast.error(err?.message || err?.detail || 'Could not activate employee here');
-    } finally {
-      setIsActionSubmitting(false);
-    }
-  };
-
-  // Open the confirm modal for deactivating an active employee in this branch.
-  const handleOpenDeactivate = (driver) => {
-    setOpenMenuDriverId(null);
-    setDeactivatingDriver(driver);
-  };
-
-  // Deactivate an active employee in their current branch (no move). Suspends
-  // their account and greys them out here until reactivated.
-  const handleConfirmDeactivate = async (driver) => {
-    setIsActionSubmitting(true);
-    try {
-      await DriverService.deactivateEmployee(driver.id);
-      toast.success('Employee deactivated');
-      setDeactivatingDriver(null);
-      fetchDrivers();
-    } catch (err) {
-      toast.error(err?.message || err?.detail || 'Could not deactivate employee');
-    } finally {
-      setIsActionSubmitting(false);
-    }
-  };
-
-  const handleUpdateDriver = async (driverId, updateData) => {
-    const token = getToken();
-    if (!token) {
-      throw new Error('Missing auth token. Please log in again.');
-    }
-    setIsSubmitting(true);
-    setActionError(null);
-    try {
-      const updatedDriver = await DriverService.updateDriver(businessRefId, driverId, updateData);
-      const ud = {
-        ...updatedDriver,
-        id: updatedDriver.id || updatedDriver._id || updatedDriver._id,
-        firstName: updatedDriver.firstName || updatedDriver.first_name || '',
-        lastName: updatedDriver.lastName || updatedDriver.last_name || '',
-        name:
-          updatedDriver.name ||
-          `${(updatedDriver.firstName || updatedDriver.first_name || '').trim()} ${(updatedDriver.lastName || updatedDriver.last_name || '').trim()}`.trim(),
-      };
-      setDrivers((prevDrivers) => prevDrivers.map((d) => (d.id === driverId ? ud : d)));
-      setIsEditModalOpen(false); // Close modal on success
-      setEditingDriver(null);
-      toast.success(`Employee "${updateData.name}" updated successfully!`);
-    } catch (apiError) {
-      console.error('Failed to update driver:', apiError);
-      // Re-throw error for modal display
-      throw apiError;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteDriver = async (driverId) => {
-    const token = getToken();
-    if (!token) {
-      setActionError('Authentication error. Please log in again.');
-      return;
-    }
-
-    // Find the driver to check if it's the superadmin (although backend should prevent it)
-    const driverToDelete = drivers.find((d) => d.id === driverId);
-    if (driverToDelete?.is_superadmin) {
-      setActionError('Cannot delete the Super Admin account.');
-      toast.error('Cannot delete the Super Admin account.');
-      setIsDeleteModalOpen(false);
-      setDeletingDriver(null);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setActionError(null);
-    try {
-      await DriverService.deleteDriver(businessRefId, driverId);
-      setDrivers((prev) => prev.filter((d) => d.id !== driverId)); // Update UI immediately
-      setIsDeleteModalOpen(false); // Close modal on success
-      setDeletingDriver(null);
-      toast.success('Employee deleted successfully!');
-    } catch (err) {
-      console.error('Failed to delete employee:', err);
-      const errorMessage = err.detail || err.message || 'Failed to delete employee.';
-      setActionError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    isEditModalOpen,
+    editingDriver,
+    isDeleteModalOpen,
+    deletingDriver,
+    deactivatingDriver,
+    movingDriver,
+    isActionSubmitting,
+    isSubmitting,
+    setIsEditModalOpen,
+    setIsDeleteModalOpen,
+    setDeletingDriver,
+    setDeactivatingDriver,
+    setMovingDriver,
+    handleOpenEditModal,
+    handleOpenDeleteModal,
+    handleActivateHere,
+    handleOpenDeactivate,
+    handleConfirmDeactivate,
+    handleUpdateDriver,
+    handleDeleteDriver,
+    activateEmployee,
+  } = useDriverActions({
+    navigate,
+    businessRefId,
+    drivers,
+    setDrivers,
+    fetchDrivers,
+    setOpenMenuDriverId,
+    setActionError,
+  });
 
   const handleSearchChange = (event) => {
     setSearchInput(event.target.value);
@@ -461,33 +346,18 @@ const DriversPage = () => {
             activeCount={activeFilterCount}
             onClear={handleClearFilters}
             right={
-              <div className="drivers-filter-container">
-                <NewButton
-                  variant="secondary"
-                  size="lg"
-                  iconOnly
-                  selected={activeFilterCount > 0}
-                  aria-label="Filter employees"
-                  onClick={toggleFilterDropdown}
-                >
-                  <Filter size={14} />
-                  {activeFilterCount > 0 && (
-                    <span className="drivers-filter-count-badge">{activeFilterCount}</span>
-                  )}
-                </NewButton>
-
-                <FilterDropdown
-                  isOpen={isFilterDropdownOpen}
-                  onClose={() => setIsFilterDropdownOpen(false)}
-                  filters={filters}
-                  tempFilters={tempFilters}
-                  onFilterChange={handleFilterChange}
-                  onApplyFilters={handleApplyFilters}
-                  onClearFilters={handleClearFilters}
-                  isLoading={false}
-                  drivers={drivers}
-                />
-              </div>
+              <DriverFilter
+                isOpen={isFilterDropdownOpen}
+                onToggle={toggleFilterDropdown}
+                onClose={() => setIsFilterDropdownOpen(false)}
+                filters={filters}
+                tempFilters={tempFilters}
+                onFilterChange={handleFilterChange}
+                onApplyFilters={handleApplyFilters}
+                onClearFilters={handleClearFilters}
+                activeFilterCount={activeFilterCount}
+                drivers={drivers}
+              />
             }
           />
         }
@@ -515,46 +385,11 @@ const DriversPage = () => {
         />
 
         {/* Pagination controls - server-side, always visible */}
-        <div className="drivers-pagination-controls">
-          {/* Left Arrow */}
-          <button
-            className="drivers-pagination-btn"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1 || totalPages <= 1}
-          >
-            <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
-          </button>
-
-          {/* Page Numbers */}
-          {generatePageNumbers(currentPage, totalPages).map((page, index) => {
-            if (page === '...') {
-              return (
-                <div key={`overflow-${index}`} className="drivers-page-overflow">
-                  <span>...</span>
-                </div>
-              );
-            }
-            return (
-              <button
-                key={page}
-                className={`drivers-page-number ${currentPage === page ? 'drivers-page-number-current' : ''}`}
-                onClick={() => handlePageChange(page)}
-                disabled={totalPages <= 1}
-              >
-                <span>{page}</span>
-              </button>
-            );
-          })}
-
-          {/* Right Arrow */}
-          <button
-            className="drivers-pagination-btn"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || totalPages <= 1}
-          >
-            <ChevronIcon size={12} style={{ transform: 'rotate(-90deg)' }} />
-          </button>
-        </div>
+        <DriversPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </PageShell>
 
       {/* Render Modals */}
