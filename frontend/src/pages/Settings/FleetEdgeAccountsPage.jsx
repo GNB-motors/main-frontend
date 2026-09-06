@@ -1,327 +1,24 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { Plus, Pencil, Trash2, RefreshCw, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import {
-  listAccounts,
-  createAccount,
-  updateAccount,
-  deleteAccount,
-  discoverVehicles,
-  getDrift,
-} from '../Profile/FleetEdgeAccountService';
+import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { listAccounts, updateAccount, deleteAccount } from '../Profile/FleetEdgeAccountService';
 import { getToken, getUserRole } from '../../utils/session.js';
 import { useConfirm } from '../../components/ui/confirmContext';
-import FilterBar from '../../components/ui/FilterBar';
-import DataTable from '../../components/ui/DataTable';
-import ExportButton from '../../components/ui/ExportButton';
-import { activeFilterCount } from '../../lib/tableState';
-
-const STATUS_STYLES = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-  DISABLED: 'bg-slate-100 text-slate-500 ring-1 ring-slate-200',
-  AUTH_FAILED: 'bg-red-50 text-red-600 ring-1 ring-red-200',
-};
-
-const STATUS_ICONS = {
-  ACTIVE: <CheckCircle size={12} />,
-  DISABLED: <XCircle size={12} />,
-  AUTH_FAILED: <AlertTriangle size={12} />,
-};
-
-function StatusBadge({ status }) {
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${STATUS_STYLES[status] || STATUS_STYLES.DISABLED}`}>
-      {STATUS_ICONS[status]}
-      {status}
-    </span>
-  );
-}
-
-function Modal({ title, onClose, children }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h3 className="text-sm font-bold text-slate-800">{title}</h3>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">✕</button>
-        </div>
-        <div className="px-6 py-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function AddAccountForm({ onSuccess, onClose }) {
-  const [form, setForm] = useState({ externalAccountId: '', friendlyName: '', clientId: '', clientSecret: '', baseUrl: '' });
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const token = getToken();
-      await createAccount(token, {
-        externalAccountId: form.externalAccountId.trim(),
-        friendlyName: form.friendlyName.trim() || undefined,
-        credentials: {
-          clientId: form.clientId.trim(),
-          clientSecret: form.clientSecret,
-          baseUrl: form.baseUrl.trim(),
-        },
-      });
-      toast.success('Account created and credentials validated');
-      onSuccess();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create account');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <label className="mb-1 block text-xs font-semibold text-slate-600">External Account ID *</label>
-          <input required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" value={form.externalAccountId} onChange={e => setForm(f => ({ ...f, externalAccountId: e.target.value }))} />
-        </div>
-        <div className="col-span-2">
-          <label className="mb-1 block text-xs font-semibold text-slate-600">Friendly Name</label>
-          <input className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" placeholder="e.g. Mumbai Fleet" value={form.friendlyName} onChange={e => setForm(f => ({ ...f, friendlyName: e.target.value }))} />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-600">Client ID *</label>
-          <input required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" value={form.clientId} onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))} />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-600">Client Secret *</label>
-          <input required type="password" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" value={form.clientSecret} onChange={e => setForm(f => ({ ...f, clientSecret: e.target.value }))} />
-        </div>
-        <div className="col-span-2">
-          <label className="mb-1 block text-xs font-semibold text-slate-600">Base URL *</label>
-          <input required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" placeholder="https://cvp.api.example.com" value={form.baseUrl} onChange={e => setForm(f => ({ ...f, baseUrl: e.target.value }))} />
-        </div>
-      </div>
-      <p className="text-[11px] text-slate-400">Credentials are validated live against FleetEdge before saving.</p>
-      <div className="flex justify-end gap-3 pt-1">
-        <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
-        <button type="submit" disabled={loading} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-          {loading ? 'Validating…' : 'Add Account'}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function RenameForm({ account, onSuccess, onClose }) {
-  const [name, setName] = useState(account.friendlyName || '');
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const token = getToken();
-      await updateAccount(token, account._id, { friendlyName: name.trim() });
-      toast.success('Name updated');
-      onSuccess();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to rename');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-600">Friendly Name</label>
-        <input required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" value={name} onChange={e => setName(e.target.value)} />
-      </div>
-      <div className="flex justify-end gap-3">
-        <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
-        <button type="submit" disabled={loading} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-          {loading ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function DiscoverPanel({ account, onClose }) {
-  const [candidates, setCandidates] = useState(null);
-  const [selected, setSelected] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [assigning, setAssigning] = useState(false);
-
-  const discover = async () => {
-    setLoading(true);
-    try {
-      const token = getToken();
-      const list = await discoverVehicles(token, account._id);
-      setCandidates(list);
-      setSelected([]);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Discover failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { discover(); }, []);
-
-  const toggle = (reg) => setSelected(s => s.includes(reg) ? s.filter(r => r !== reg) : [...s, reg]);
-
-  const assign = async () => {
-    if (!selected.length) return;
-    setAssigning(true);
-    try {
-      // For /assign we need vehicleIds, but candidates are registrations.
-      // Use a note to operator: they'll need to map regs to vehicle IDs.
-      // For now, surface the list — OWNER can confirm via the vehicles page.
-      toast.info(`Select vehicles on the Vehicles page and use reassign to tag them to this account. (${selected.length} registrations copied to clipboard)`);
-      navigator.clipboard?.writeText(selected.join(', '));
-    } finally {
-      setAssigning(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-slate-600">Vehicles found in FleetEdge for this account that are not yet tagged in this org:</p>
-      {loading && <p className="text-sm text-slate-400">Fetching from FleetEdge…</p>}
-      {candidates !== null && !loading && (
-        candidates.length === 0
-          ? <p className="text-sm text-slate-400">All vehicles are already tagged.</p>
-          : (
-            <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200">
-              {candidates.map(reg => (
-                <label key={reg} className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-2.5 hover:bg-slate-50">
-                  <input type="checkbox" checked={selected.includes(reg)} onChange={() => toggle(reg)} className="h-4 w-4 rounded" />
-                  <span className="text-sm font-mono text-slate-700">{reg}</span>
-                </label>
-              ))}
-            </div>
-          )
-      )}
-      <div className="flex justify-end gap-3">
-        <button onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Close</button>
-        {candidates?.length > 0 && (
-          <button onClick={assign} disabled={!selected.length || assigning} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-            Copy selected regs
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const driftColumns = [
-  {
-    key: 'vehicleReg', label: 'Vehicle',
-    render: (r) => <span className="font-mono text-xs text-slate-700">{r.vehicleReg}</span>,
-  },
-  { key: 'fromLabel', label: 'From Account', render: (r) => <span className="text-slate-600">{r.fromLabel}</span> },
-  { key: 'toLabel', label: 'Arriving Account', render: (r) => <span className="text-slate-600">{r.toLabel}</span> },
-  {
-    key: 'detectedAt', label: 'Detected At', type: 'date',
-    render: (r) => <span className="text-slate-400">{r.detectedAt ? new Date(r.detectedAt).toLocaleString() : '—'}</span>,
-  },
-];
-
-function DriftTab() {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [q, setQ] = useState('');
-
-  const load = useCallback(() => {
-    setLoading(true);
-    setLoadError(null);
-    const token = getToken();
-    getDrift(token)
-      .then(d => setRows(d.drift || []))
-      .catch((err) => {
-        setLoadError(err);
-        toast.error('Failed to load drift log');
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  // Client-side search over the loaded drift page (the endpoint has no text
-  // filter and paginates at 50/page).
-  const flatRows = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    const all = rows.map((row) => ({
-      ...row,
-      vehicleReg: row.vehicleId?.registrationNumber || row.vehicleId?.fleetEdgeRegistration || '',
-      fromLabel: row.fromAccount?.friendlyName || row.fromAccount?.externalAccountId || '',
-      toLabel: row.toAccount?.friendlyName || row.toAccount?.externalAccountId || '',
-      detectedAt: row.createdAt,
-    }));
-    if (!needle) return all;
-    return all.filter((r) =>
-      [r.vehicleReg, r.fromLabel, r.toLabel]
-        .some((value) => value.toLowerCase().includes(needle))
-    );
-  }, [rows, q]);
-
-  const searching = q.trim() !== '';
-
-  return (
-    <div>
-      <FilterBar
-        searchValue={q}
-        onSearchChange={setQ}
-        searchPlaceholder="Search vehicle or account…"
-        activeCount={activeFilterCount({ q })}
-        onClear={() => setQ('')}
-        right={(
-          <ExportButton
-            rows={flatRows}
-            columns={driftColumns}
-            filename="fleetedge-drift-log"
-            meta={{
-              filters: [
-                { label: 'Search', value: q.trim() || '—' },
-                { label: 'Scope', value: 'Latest drift records (up to 50)' },
-              ],
-              generatedAt: new Date(),
-            }}
-          />
-        )}
-      />
-      <div className="mt-3">
-        <DataTable
-          columns={driftColumns}
-          rows={flatRows}
-          rowKey={(r) => r._id}
-          loading={loading && rows.length === 0}
-          error={loadError}
-          onRetry={load}
-          showing={flatRows.length}
-          total={rows.length}
-          activeFilters={activeFilterCount({ q })}
-          emptyTitle={searching ? 'No drift records match your search' : 'No mismatches detected'}
-          emptyHint={searching
-            ? 'Try a different vehicle registration or account name.'
-            : 'Vehicles appear here when they report through a different FleetEdge account than the one they are tagged to.'}
-        />
-      </div>
-    </div>
-  );
-}
+import PageShell from '../../components/ui/PageShell';
+import StatusBadge from './fleetEdgeAccountsStatus';
+import Modal from './fleetEdgeAccountsModal';
+import AddAccountForm from './fleetEdgeAccountsAddForm';
+import RenameForm from './fleetEdgeAccountsRenameForm';
+import DiscoverPanel from './fleetEdgeAccountsDiscoverPanel';
+import DriftTab from './fleetEdgeAccountsDrift';
 
 export default function FleetEdgeAccountsPage() {
   const [accounts, setAccounts] = useState([]);
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('accounts');
-  const [showAdd, setShowAdd] = useState(false);
-  const [renaming, setRenaming] = useState(null);
-  const [discovering, setDiscovering] = useState(null);
+  // Modal is a discriminated union, never parallel booleans.
+  const [modal, setModal] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
   const userRole = getUserRole() || '';
@@ -340,7 +37,20 @@ export default function FleetEdgeAccountsPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // PageShell owns its padding — drop .page-content's default padding while mounted.
+  useEffect(() => {
+    const el = document.querySelector('.page-content');
+    if (el) el.classList.add('no-padding');
+    return () => {
+      if (el) el.classList.remove('no-padding');
+    };
+  }, []);
+
+  const closeModal = () => setModal(null);
 
   const handleDelete = async (account) => {
     const ok = await confirm({
@@ -376,115 +86,162 @@ export default function FleetEdgeAccountsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-5xl">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">FleetEdge Accounts</h1>
-            <p className="mt-0.5 text-sm text-slate-500">Manage the FleetEdge accounts supplying data to this organisation</p>
+    <PageShell
+      title="FleetEdge Accounts"
+      subtitle="Manage the FleetEdge accounts supplying data to this organisation"
+      count={activeTab === 'accounts' && !loading ? accounts.length : null}
+      actions={
+        isOwner ? (
+          <button
+            onClick={() => setModal({ kind: 'add' })}
+            className="pshell-btn pshell-btn--primary flex items-center gap-2"
+          >
+            <Plus size={15} />
+            Add PULL Account
+          </button>
+        ) : null
+      }
+      footer={
+        activeTab === 'accounts' && !loading && accounts.length > 0
+          ? `${accounts.length} account${accounts.length !== 1 ? 's' : ''}`
+          : null
+      }
+    >
+      {/* Tabs */}
+      <div className="mb-5 flex gap-1 rounded-xl bg-slate-100 p-1 w-fit">
+        {[
+          ['accounts', 'Accounts'],
+          ['drift', 'Drift Log'],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors ${activeTab === key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'drift' && <DriftTab />}
+
+      {activeTab === 'accounts' &&
+        (loading ? (
+          <p className="py-12 text-center text-sm text-slate-400">Loading…</p>
+        ) : accounts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
+            <p className="text-sm font-semibold text-slate-500">No FleetEdge accounts configured</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Add a PULL account to start syncing vehicle data automatically
+            </p>
           </div>
-          {isOwner && (
-            <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-              <Plus size={15} />
-              Add PULL Account
-            </button>
-          )}
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-5 flex gap-1 rounded-xl bg-slate-100 p-1 w-fit">
-          {[['accounts', 'Accounts'], ['drift', 'Drift Log']].map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors ${activeTab === key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'drift' && <DriftTab />}
-
-        {activeTab === 'accounts' && (
-          loading ? (
-            <p className="py-12 text-center text-sm text-slate-400">Loading…</p>
-          ) : accounts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
-              <p className="text-sm font-semibold text-slate-500">No FleetEdge accounts configured</p>
-              <p className="mt-1 text-xs text-slate-400">Add a PULL account to start syncing vehicle data automatically</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {accounts.map(account => (
-                <div key={account._id} className={`rounded-2xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md ${account.status === 'DISABLED' ? 'opacity-60' : ''}`}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-sm font-bold text-slate-800">{account.friendlyName || account.externalAccountId}</span>
-                        <StatusBadge status={account.status} />
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">{account.source}</span>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-400 font-mono">{account.externalAccountId}</p>
-                      <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
-                        <span>{account.vehicleCount} vehicle{account.vehicleCount !== 1 ? 's' : ''}</span>
-                        {account.lastSeenAt && <span>Last seen {new Date(account.lastSeenAt).toLocaleString()}</span>}
-                        {account.status === 'AUTH_FAILED' && account.lastErrorMessage && (
-                          <span className="text-red-500">{account.lastErrorMessage.slice(0, 80)}</span>
-                        )}
-                      </div>
+        ) : (
+          <div className="space-y-3">
+            {accounts.map((account) => (
+              <div
+                key={account._id}
+                className={`rounded-2xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md ${account.status === 'DISABLED' ? 'opacity-60' : ''}`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-sm font-bold text-slate-800">
+                        {account.friendlyName || account.externalAccountId}
+                      </span>
+                      <StatusBadge status={account.status} />
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">
+                        {account.source}
+                      </span>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button onClick={() => setRenaming(account)} title="Rename" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-                        <Pencil size={15} />
-                      </button>
-                      {isOwner && account.source === 'PULL' && (
-                        <button onClick={() => setDiscovering(account)} title="Discover vehicles" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-                          <RefreshCw size={15} />
-                        </button>
+                    <p className="mt-1 text-xs text-slate-400 font-mono">
+                      {account.externalAccountId}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
+                      <span>
+                        {account.vehicleCount} vehicle{account.vehicleCount !== 1 ? 's' : ''}
+                      </span>
+                      {account.lastSeenAt && (
+                        <span>Last seen {new Date(account.lastSeenAt).toLocaleString()}</span>
                       )}
-                      {isOwner && (
-                        <>
-                          <button
-                            onClick={() => handleToggleStatus(account)}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${account.status === 'ACTIVE' ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                          >
-                            {account.status === 'ACTIVE' ? 'Disable' : 'Enable'}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(account)}
-                            disabled={deletingId === account._id}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </>
+                      {account.status === 'AUTH_FAILED' && account.lastErrorMessage && (
+                        <span className="text-red-500">
+                          {account.lastErrorMessage.slice(0, 80)}
+                        </span>
                       )}
                     </div>
                   </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => setModal({ kind: 'rename', account })}
+                      title="Rename"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    {isOwner && account.source === 'PULL' && (
+                      <button
+                        onClick={() => setModal({ kind: 'discover', account })}
+                        title="Discover vehicles"
+                        className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      >
+                        <RefreshCw size={15} />
+                      </button>
+                    )}
+                    {isOwner && (
+                      <>
+                        <button
+                          onClick={() => handleToggleStatus(account)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${account.status === 'ACTIVE' ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                        >
+                          {account.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(account)}
+                          disabled={deletingId === account._id}
+                          className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )
-        )}
-      </div>
+              </div>
+            ))}
+          </div>
+        ))}
 
-      {showAdd && (
-        <Modal title="Add PULL FleetEdge Account" onClose={() => setShowAdd(false)}>
-          <AddAccountForm onSuccess={() => { setShowAdd(false); load(); }} onClose={() => setShowAdd(false)} />
+      {modal?.kind === 'add' && (
+        <Modal title="Add PULL FleetEdge Account" onClose={closeModal}>
+          <AddAccountForm
+            onSuccess={() => {
+              closeModal();
+              load();
+            }}
+            onClose={closeModal}
+          />
         </Modal>
       )}
-      {renaming && (
-        <Modal title="Rename Account" onClose={() => setRenaming(null)}>
-          <RenameForm account={renaming} onSuccess={() => { setRenaming(null); load(); }} onClose={() => setRenaming(null)} />
+      {modal?.kind === 'rename' && (
+        <Modal title="Rename Account" onClose={closeModal}>
+          <RenameForm
+            account={modal.account}
+            onSuccess={() => {
+              closeModal();
+              load();
+            }}
+            onClose={closeModal}
+          />
         </Modal>
       )}
-      {discovering && (
-        <Modal title={`Discover vehicles — ${discovering.friendlyName || discovering.externalAccountId}`} onClose={() => setDiscovering(null)}>
-          <DiscoverPanel account={discovering} onClose={() => setDiscovering(null)} />
+      {modal?.kind === 'discover' && (
+        <Modal
+          title={`Discover vehicles — ${modal.account.friendlyName || modal.account.externalAccountId}`}
+          onClose={closeModal}
+        >
+          <DiscoverPanel account={modal.account} onClose={closeModal} />
         </Modal>
       )}
-    </div>
+    </PageShell>
   );
 }
