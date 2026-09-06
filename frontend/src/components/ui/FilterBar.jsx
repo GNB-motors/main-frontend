@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 /**
  * FilterBar — the one filter row every fleet list uses (master plan C.2).
@@ -83,7 +83,7 @@ export default function FilterBar({
       <div className="fbar-right">
         {activeCount > 0 && onClear ? (
           <button type="button" className="fbar-clear" onClick={onClear}>
-            <X size={12} /> Clear all
+            Clear all
             <span className="fbar-chip-count num">{activeCount}</span>
           </button>
         ) : null}

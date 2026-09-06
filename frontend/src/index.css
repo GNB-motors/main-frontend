@@ -743,35 +743,40 @@ body {
   color: var(--critical);
 }
 
-/* Freshness badge — system-wide data-staleness contract */
+/* Freshness badge — system-wide data-staleness contract.
+   Artboard (GNB Components.dc.html §5): a pill on the sunk well with a
+   status dot; only the dead state tints the whole pill red. Light mode only. */
 .freshness {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--ds-line);
+  border-radius: 999px;
+  background: var(--ds-sunk);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--cluster-text-dim);
+  letter-spacing: 0.01em;
+  color: var(--ds-ink2);
 }
 .freshness::before {
   content: '';
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 99px;
-  background: var(--ok);
-}
-.freshness--stale {
-  color: var(--caution);
+  background: var(--ds-ok);
 }
 .freshness--stale::before {
-  background: var(--caution);
+  background: var(--ds-warn);
 }
 .freshness--dead {
-  color: var(--critical);
+  background: var(--ds-crit-tint);
+  border-color: color-mix(in srgb, var(--ds-crit) 35%, transparent);
+  color: var(--ds-crit-ink);
 }
 .freshness--dead::before {
-  background: var(--critical);
+  background: var(--ds-crit);
 }
 
 /* Keyboard focus — visible ring on both themes (4.5:1) */
@@ -1080,7 +1085,13 @@ a.ov-kpi:hover {
   opacity: 1;
 }
 
-/* ── Page chassis (PageShell / FilterBar / DataTable) ───────────────────── */
+/* ── Page chassis (PageShell / FilterBar / DataTable) ─────────────────────
+   Restyled to the GNB component artboard (GNB Components.dc.html §2/§5 +
+   GNB List Template.dc.html, 2026-09). Warm stone surfaces on --ds-*,
+   ink-on-cream selected filter chips, header well on --ds-sunk, row hover
+   = sunk, selected row = orange tint + 3px orange leading edge. Orange is
+   the primary-action accent only and never out-shouts status colours.
+   Light mode only — no .dark remapping below. */
 .pshell {
   display: flex;
   flex-direction: column;
@@ -1102,77 +1113,113 @@ a.ov-kpi:hover {
   flex-wrap: wrap;
 }
 .pshell-title {
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 600;
-  color: var(--cluster-text, var(--ink));
+  letter-spacing: -0.02em;
+  color: var(--ds-ink);
   margin: 0;
 }
+/* Artboard title row: the count is a plain mono numeral, not a pill */
 .pshell-count {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--cluster-text-dim, var(--ink-3));
-  background: color-mix(in srgb, var(--inert) 12%, transparent);
-  border-radius: 999px;
-  padding: 2px 10px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink3);
 }
 .pshell-subtitle {
   margin: 4px 0 0;
   font-size: 13px;
-  color: var(--cluster-text-dim, var(--ink-3));
+  color: var(--ds-ink3);
 }
 .pshell-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
+/* Secondary button (artboard §2): white on warm stone lines */
 .pshell-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--hairline);
-  background: var(--cluster-panel, var(--surface, #fff));
-  color: var(--cluster-text, var(--ink));
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 9px;
+  border: 1px solid var(--ds-line2);
+  background: var(--color-white);
+  color: var(--ds-ink2);
   cursor: pointer;
 }
+.pshell-btn:hover {
+  border-color: var(--ds-ink3);
+  background: var(--ds-sunk);
+  color: var(--ds-ink);
+}
+.pshell-btn:active {
+  background: var(--ds-line);
+}
+/* Primary: the AA-passing solid orange that carries white text */
 .pshell-btn--primary {
-  background: var(--gnb-400, #ee6126);
+  background: var(--orange-solid);
   border-color: transparent;
-  color: #fff;
+  color: #ffffff;
+  font-weight: 600;
+}
+.pshell-btn--primary:hover {
+  background: var(--orange-hover);
+  border-color: transparent;
+  color: #ffffff;
+}
+.pshell-btn--primary:active {
+  background: var(--orange-active);
 }
 .pshell-footer {
   font-size: 12px;
-  color: var(--cluster-text-dim, var(--ink-3));
+  color: var(--ds-ink3);
 }
 
-/* FilterBar */
+/* FilterBar — a self-contained band card (List Template filter bar) */
 .fbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--color-white);
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  box-shadow: var(--ds-shadow);
 }
 .fbar-search {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
-  background: var(--cluster-panel, var(--surface, #fff));
-  color: var(--cluster-text-dim, var(--ink-3));
-  min-width: 220px;
+  gap: 7px;
+  height: 35px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 9px;
+  background: var(--color-white);
+  color: var(--ds-ink3);
+  width: 230px;
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+.fbar-search:hover {
+  border-color: var(--ds-ink3);
 }
 .fbar-search input {
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--cluster-text, var(--ink));
+  color: var(--ds-ink);
   font-size: 13px;
   width: 100%;
+}
+.fbar-search input::placeholder {
+  color: var(--ds-disabled-ink);
 }
 .fbar-range {
   display: inline-flex;
@@ -1180,72 +1227,99 @@ a.ov-kpi:hover {
   gap: 6px;
 }
 .fbar-range input {
-  padding: 6px 8px;
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
-  background: var(--cluster-panel, var(--surface, #fff));
-  color: var(--cluster-text, var(--ink));
-  font-size: 12px;
+  height: 35px;
+  padding: 0 9px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 9px;
+  background: var(--color-white);
+  color: var(--ds-ink);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.fbar-range input:hover {
+  border-color: var(--ds-ink3);
 }
 .fbar-range-sep {
-  color: var(--cluster-text-dim, var(--ink-3));
+  color: var(--ds-ink3);
   font-size: 12px;
 }
 .fbar-chips {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex-wrap: wrap;
 }
 .fbar-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 500;
   border-radius: 999px;
-  border: 1px solid var(--hairline);
-  background: transparent;
-  color: var(--cluster-text-dim, var(--ink-3));
+  border: 1px solid var(--ds-line2);
+  background: var(--color-white);
+  color: var(--ds-ink2);
   cursor: pointer;
 }
+.fbar-chip:hover {
+  border-color: var(--ds-ink3);
+  color: var(--ds-ink);
+}
+/* Selected chip inverts to ink-on-cream (artboard §5) — neutral, so it
+   never competes with the status palette */
 .fbar-chip--on {
-  border-color: var(--gnb-400, #ee6126);
-  color: var(--gnb-400, #ee6126);
-  background: color-mix(in srgb, var(--gnb-400, #ee6126) 10%, transparent);
+  border-color: var(--ds-ink);
+  background: var(--ds-ink);
+  color: #fafaf9;
+  font-weight: 600;
+}
+.fbar-chip--on:hover {
+  border-color: var(--ds-ink);
+  color: #fafaf9;
 }
 .fbar-chip-count {
-  font-size: 11px;
-  background: color-mix(in srgb, var(--inert) 15%, transparent);
-  border-radius: 999px;
-  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  opacity: 0.75;
 }
 .fbar-right {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
+/* Clear all is a quiet link in the artboard link blue, not a red action —
+   clearing filters is recoverable, red is reserved for loss */
 .fbar-clear {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 5px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--critical);
+  color: var(--erp);
+  text-decoration: underline;
+  text-underline-offset: 2px;
   background: transparent;
   border: 0;
+  padding: 0;
   cursor: pointer;
+}
+.fbar-clear:hover {
+  color: var(--erp-ink);
 }
 
 /* DataTable */
 .dt {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--ds-line);
   border-radius: 12px;
-  background: var(--cluster-panel, var(--surface, #fff));
+  background: var(--color-white);
+  box-shadow: var(--ds-shadow);
   overflow: hidden;
 }
 .dt-tools {
@@ -1254,7 +1328,7 @@ a.ov-kpi:hover {
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--ds-line);
 }
 .dt-tools-right {
   display: inline-flex;
@@ -1264,16 +1338,17 @@ a.ov-kpi:hover {
 .dt-tool {
   display: inline-flex;
   align-items: center;
-  padding: 6px;
+  height: 30px;
+  padding: 0 7px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
-  color: var(--cluster-text-dim, var(--ink-3));
+  color: var(--ds-ink3);
   cursor: pointer;
 }
 .dt-tool:hover {
-  background: color-mix(in srgb, var(--inert) 10%, transparent);
-  color: var(--cluster-text, var(--ink));
+  background: var(--ds-sunk);
+  color: var(--ds-ink);
 }
 .dt-cols {
   position: relative;
@@ -1286,21 +1361,28 @@ a.ov-kpi:hover {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 160px;
-  padding: 8px;
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
-  background: var(--cluster-raised, var(--surface, #fff));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  min-width: 170px;
+  padding: 10px 11px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 10px;
+  background: var(--color-white);
+  box-shadow: var(--ds-shadow-lg);
 }
 .dt-cols-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  color: var(--cluster-text, var(--ink));
+  font-size: 12.5px;
+  color: var(--ds-ink2);
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 3px 4px;
+  border-radius: 6px;
+}
+.dt-cols-item:hover {
+  background: var(--ds-sunk);
+}
+.dt-cols-item input {
+  accent-color: var(--orange);
 }
 .dt-scroll {
   overflow-x: auto;
@@ -1311,19 +1393,18 @@ a.ov-kpi:hover {
   border-collapse: collapse;
   font-size: 13px;
 }
+/* Header well on sunk stone, rule below in the stronger control line */
 .dt-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
   text-align: left;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--cluster-text-dim, var(--ink-3));
-  background: var(--cluster-panel, var(--surface, #fff));
-  border-bottom: 1px solid var(--hairline);
-  padding: 10px 12px;
+  color: var(--ds-ink2);
+  background: var(--ds-sunk);
+  border-bottom: 1px solid var(--ds-line2);
+  padding: 9px 12px;
   white-space: nowrap;
 }
 .dt--compact .dt-table thead th {
@@ -1339,44 +1420,51 @@ a.ov-kpi:hover {
   color: inherit;
   cursor: pointer;
   padding: 0;
-  text-transform: inherit;
-  letter-spacing: inherit;
+}
+.dt-th-sort:hover {
+  color: var(--ds-ink);
 }
 .dt-th-sort--active {
-  color: var(--gnb-400, #ee6126);
+  color: var(--ds-ink);
 }
 .dt-table tbody td {
-  padding: 14px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--hairline) 60%, transparent);
-  color: var(--cluster-text, var(--ink));
+  padding: 12px;
+  border-bottom: 1px solid var(--ds-line);
+  color: var(--ds-ink2);
   vertical-align: middle;
 }
 .dt--compact .dt-table tbody td {
   padding: 8px 12px;
 }
+/* Row states (artboard §5): hover = sunk well; selected = orange tint with
+   a 3px orange leading edge */
 .dt-row:hover td {
-  background: color-mix(in srgb, var(--inert) 6%, transparent);
+  background: var(--ds-sunk);
+}
+.dt-row--selected {
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+.dt-row--selected td {
+  background: var(--orange-tint);
+}
+.dt-row--selected:hover td {
+  background: var(--orange-tint);
 }
 .dt-row--skeleton td {
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 .dt--compact .dt-row--skeleton td {
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 .dt-skel {
   display: block;
-  height: 12px;
+  height: 11px;
   border-radius: 4px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--inert) 12%, transparent) 25%,
-    color-mix(in srgb, var(--inert) 22%, transparent) 50%,
-    color-mix(in srgb, var(--inert) 12%, transparent) 75%
-  );
+  background: linear-gradient(90deg, var(--ds-sunk) 25%, var(--ds-line) 50%, var(--ds-sunk) 75%);
   background-size: 200% 100%;
-  animation: dt-shimmer 1.2s infinite;
+  animation: dt-shimmer 1.4s ease-in-out infinite;
 }
 @keyframes dt-shimmer {
   from {
@@ -1387,23 +1475,41 @@ a.ov-kpi:hover {
   }
 }
 .dt-empty {
-  padding: 32px 16px;
+  padding: 34px 24px;
 }
+/* Inline error banner (artboard §6): red-tint surface, red rule border */
 .dt-error {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  color: var(--critical);
+  margin: 12px;
+  padding: 13px 14px;
+  background: var(--ds-crit-tint);
+  border: 1px solid color-mix(in srgb, var(--ds-crit) 32%, transparent);
+  border-radius: 10px;
+  color: var(--ds-crit-ink);
   font-size: 13px;
+}
+.dt-error p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ds-ink);
 }
 .dt-foot {
   padding: 8px 12px;
-  border-top: 1px solid var(--hairline);
+  border-top: 1px solid var(--ds-line);
 }
 .dt-summary {
   font-size: 12px;
-  color: var(--cluster-text-dim, var(--ink-3));
+  color: var(--ds-ink3);
+}
+
+/* Chassis focus ring — the artboard --focus blue */
+.pshell :focus-visible,
+.fbar :focus-visible,
+.dt :focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
 }
 
 /* Stacked magnitude bar — 2px surface gaps between fills (dataviz spec) */

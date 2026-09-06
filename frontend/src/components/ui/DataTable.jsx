@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ArrowUp, ArrowDown, Columns3, SlidersHorizontal } from 'lucide-react';
 import EmptyState from '../cluster/EmptyState';
 import {
@@ -26,6 +26,7 @@ import {
  *     showing={rows.length} total={pagination?.totalCount ?? rows.length}
  *     activeFilters={2}
  *     onRowClick={(row) => navigate(`/trips/${row._id}`)}
+ *     rowClassName={(row) => row._id === selectedId ? 'dt-row--selected' : ''}
  *     emptyTitle="No trips in this window" emptyHint="Widen the date range." emptyAction={...}
  *   />
  */
@@ -33,6 +34,7 @@ export default function DataTable({
   columns = [],
   rows = [],
   rowKey = (r, i) => r?._id ?? i,
+  rowClassName = null,
   loading = false,
   error = null,
   onRetry = null,
@@ -86,7 +88,9 @@ export default function DataTable({
   return (
     <div className={`dt dt--${density} ${className}`.trim()}>
       <div className="dt-tools">
-        <span className="dt-summary" aria-live="polite">{summary}</span>
+        <span className="dt-summary" aria-live="polite">
+          {summary}
+        </span>
         <div className="dt-tools-right">
           <button
             type="button"
@@ -135,7 +139,13 @@ export default function DataTable({
                   <th
                     key={col.key}
                     style={{ width: col.width, textAlign: col.align }}
-                    aria-sort={active && sortOrder ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}
+                    aria-sort={
+                      active && sortOrder
+                        ? sortOrder === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : undefined
+                    }
                   >
                     {col.sortable && onSort ? (
                       <button
@@ -166,20 +176,23 @@ export default function DataTable({
                     ))}
                   </tr>
                 ))
-              : rows.map((row, i) => (
-                  <tr
-                    key={rowKey(row, i)}
-                    className="dt-row"
-                    onClick={onRowClick ? () => onRowClick(row, i) : undefined}
-                    style={onRowClick ? { cursor: 'pointer' } : undefined}
-                  >
-                    {cols.map((col) => (
-                      <td key={col.key} style={{ textAlign: col.align }} data-label={col.label}>
-                        {col.render ? col.render(row, i) : row?.[col.key] ?? '—'}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+              : rows.map((row, i) => {
+                  const extra = rowClassName ? rowClassName(row, i) : '';
+                  return (
+                    <tr
+                      key={rowKey(row, i)}
+                      className={`dt-row${extra ? ` ${extra}` : ''}`}
+                      onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                      style={onRowClick ? { cursor: 'pointer' } : undefined}
+                    >
+                      {cols.map((col) => (
+                        <td key={col.key} style={{ textAlign: col.align }} data-label={col.label}>
+                          {col.render ? col.render(row, i) : (row?.[col.key] ?? '—')}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
           </tbody>
         </table>
 
