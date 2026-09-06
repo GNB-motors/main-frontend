@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback } from 'react';
-import { MapPin, Route } from 'lucide-react';
+import { Fragment, useMemo, useState, useCallback } from 'react';
+import { MapPin, Route, ChevronRight, ChevronDown } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import RouteIntelligenceService from './RouteIntelligenceService';
 import EmptyState from '../../components/cluster/EmptyState';
@@ -8,6 +8,7 @@ import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import ExportButton from '../../components/ui/ExportButton';
 import PlaceLabel from '../../components/ui/PlaceLabel';
+import EtaBand from '../../components/ui/EtaBand';
 import { footerSummary } from '../../lib/tableState';
 import { humanise, label } from '../../lib/vocabulary';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
@@ -292,12 +293,55 @@ function SitesTable({ records, onConfirm, confirmingId }) {
   );
 }
 
+function CorridorEtaPanel({ corridor }) {
+  const originSiteId = corridor.originSiteId ?? null;
+  const destinationSiteId = corridor.destinationSiteId ?? null;
+  const enabled = Boolean(originSiteId && destinationSiteId);
+  const { data, loading, error } = useApi(
+    (signal) =>
+      RouteIntelligenceService.corridorEtaStats({ originSiteId, destinationSiteId }, { signal }),
+    [originSiteId, destinationSiteId],
+    { enabled }
+  );
+
+  if (!enabled) {
+    return (
+      <p className="text-xs" style={{ color: 'var(--cluster-text-dim)' }}>
+        Transit stats become available once both endpoints are confirmed sites.
+      </p>
+    );
+  }
+  if (loading) {
+    return <Skeleton className="h-8 w-full max-w-md" />;
+  }
+  if (error) {
+    return (
+      <p className="text-xs" style={{ color: 'var(--cluster-text-dim)' }}>
+        Transit stats unavailable — the estimate will appear once the corridor feed responds.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <EtaBand stats={data?.stats ?? null} />
+      {data?.windowDays != null && (
+        <span className="text-xs" style={{ color: 'var(--cluster-text-dim)' }}>
+          Window: last {data.windowDays} days
+        </span>
+      )}
+    </div>
+  );
+}
+
 function CorridorsTable({ records }) {
+  const [expandedId, setExpandedId] = useState(null);
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wider" style={{ color: 'var(--cluster-text-dim)', borderBottom: '1px solid var(--hairline)' }}>
+            <th className="px-2 py-3 font-semibold" aria-label="Expand" />
             <th className="px-4 py-3 font-semibold">Origin</th>
             <th className="px-4 py-3 font-semibold">Destination</th>
             <th className="px-4 py-3 font-semibold">Sample Tracks</th>
@@ -307,32 +351,55 @@ function CorridorsTable({ records }) {
           </tr>
         </thead>
         <tbody>
-          {records.map((c) => (
-            <tr key={c._id} style={{ borderBottom: '1px solid var(--hairline)' }}>
-              <td className="px-4 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <PlaceLabel lat={c.originLat} lng={c.originLng} showMap={false} />
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <PlaceLabel lat={c.destinationLat} lng={c.destinationLng} showMap={false} />
-                </div>
-              </td>
-              <td className="num px-4 py-3">{formatNum(c.sampleTrackCount)}</td>
-              <td className="num px-4 py-3">{c.p90CellGapKm != null ? `${c.p90CellGapKm.toFixed(2)} km` : '—'}</td>
-              <td className="px-4 py-3">
-                <Badge variant={c.usableForDeviation ? 'default' : 'destructive'}>
-                  {c.usableForDeviation ? 'Yes' : 'No'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3">
-                <Badge variant={c.insightsDominated ? 'secondary' : 'outline'}>
-                  {c.insightsDominated ? 'Yes' : 'No'}
-                </Badge>
-              </td>
-            </tr>
-          ))}
+          {records.map((c) => {
+            const expanded = expandedId === c._id;
+            return (
+              <Fragment key={c._id}>
+                <tr
+                  style={{ borderBottom: '1px solid var(--hairline)', cursor: 'pointer' }}
+                  onClick={() => setExpandedId(expanded ? null : c._id)}
+                >
+                  <td className="px-2 py-3" aria-hidden="true">
+                    {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <PlaceLabel lat={c.originLat} lng={c.originLng} showMap={false} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <PlaceLabel lat={c.destinationLat} lng={c.destinationLng} showMap={false} />
+                    </div>
+                  </td>
+                  <td className="num px-4 py-3">{formatNum(c.sampleTrackCount)}</td>
+                  <td className="num px-4 py-3">{c.p90CellGapKm != null ? `${c.p90CellGapKm.toFixed(2)} km` : '—'}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={c.usableForDeviation ? 'default' : 'destructive'}>
+                      {c.usableForDeviation ? 'Yes' : 'No'}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant={c.insightsDominated ? 'secondary' : 'outline'}>
+                      {c.insightsDominated ? 'Yes' : 'No'}
+                    </Badge>
+                  </td>
+                </tr>
+                {expanded && (
+                  <tr style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--cluster-surface-alt, transparent)' }}>
+                    <td colSpan={7} className="px-4 py-3">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--cluster-text-dim)' }}>
+                          Typical transit time
+                        </span>
+                        <CorridorEtaPanel corridor={c} />
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

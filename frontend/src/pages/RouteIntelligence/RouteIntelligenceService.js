@@ -34,6 +34,14 @@ export const RouteIntelligenceService = {
     return response.data?.data ?? response.data;
   },
 
+  corridorEtaStats: async ({ originSiteId, destinationSiteId } = {}, { signal } = {}) => {
+    const response = await apiClient.get('/api/corridor-eta/stats', {
+      params: { originSiteId, destinationSiteId },
+      signal,
+    });
+    return response.data?.data ?? response.data;
+  },
+
   listDeviations: async (
     { vehicle, from, to, status, page = 1, limit = 25 } = {},
     { signal } = {}
