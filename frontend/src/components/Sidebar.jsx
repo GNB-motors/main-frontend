@@ -195,6 +195,11 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <div className="nav-parent-left">
                         <Icon size={20} />
                         <span>{item.label}</span>
+                        {item.badgeKey === 'approvalsTotal' && approvalsCount + billApprovalsCount > 0 && (
+                          <span className="erp-badge warning" style={{ fontSize: '11px', padding: '2px 7px' }}>
+                            {approvalsCount + billApprovalsCount}
+                          </span>
+                        )}
                     </div>
                     <ChevronIcon
                         size={16}

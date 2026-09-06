@@ -2,11 +2,13 @@
  * Vendor payment dashboard (ISOCL ERP Stage 13)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Truck, Send } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
 import VendorPaymentApi from './VendorPaymentService';
 import PageShell from '../../components/Erp/PageShell';
+import StatusBadge from '../../components/Erp/StatusBadge';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -16,6 +18,11 @@ const VendorPaymentsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('outstanding');
   const [groups, setGroups] = useState([]);
   const [pending, setPending] = useState([]);
+  /* Payments raised but not yet approved. They belong to neither existing tab:
+     `outstanding` lists bills, `release` lists APPROVED payments only. Without
+     this the operator submits for approval and the payment vanishes until an
+     approver acts on it. */
+  const [awaitingApproval, setAwaitingApproval] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -45,6 +52,16 @@ const VendorPaymentsPage = ({ embedded = false }) => {
     }
   }, []);
 
+  const loadAwaitingApproval = useCallback(async () => {
+    try {
+      const res = await VendorPaymentApi.list({ status: 'PENDING_APPROVAL', limit: 100 });
+      setAwaitingApproval(res.data || []);
+    } catch {
+      // A missing approval queue must not blank the page's main tabs.
+      setAwaitingApproval([]);
+    }
+  }, []);
+
   const loadPending = useCallback(async () => {
     setLoading(true);
     try {
@@ -58,10 +75,13 @@ const VendorPaymentsPage = ({ embedded = false }) => {
     }
   }, []);
 
+  // Load both queues up front so the KPI tiles are accurate regardless of the
+  // open tab; switching tabs then just reveals already-loaded data.
   useEffect(() => {
-    if (tab === 'outstanding') loadOutstanding();
-    else loadPending();
-  }, [tab, loadOutstanding, loadPending]);
+    loadOutstanding();
+    loadPending();
+    loadAwaitingApproval();
+  }, [loadOutstanding, loadPending, loadAwaitingApproval]);
 
   // The vendor list no longer ships every vendor's bills — that payload was
   // unbounded and only the totals were rendered. Bills are fetched for the one
@@ -103,6 +123,13 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       toast.error('Select at least one bill');
       return;
     }
+    // The vendor row (from getOutstanding) already carries onAccountAvailable, so
+    // only fetch the voucher list when there is a balance to apply. createPayment
+    // re-validates any selected vouchers server-side regardless.
+    if (!(selectedVendor.onAccountAvailable > 0)) {
+      await submitPayment([]);
+      return;
+    }
     try {
       const res = await VendorPaymentApi.checkOnAccount(selectedVendor.vendorId);
       setOnAccount(res.data);
@@ -128,6 +155,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       setShowOnAccountPopup(false);
       setSelectedVendor(null);
       loadOutstanding();
+      loadPending();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -147,12 +175,42 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       toast.success('Payment released');
       setReleaseTarget(null);
       loadPending();
+      loadOutstanding();
     } catch (err) {
       toast.error(err.message);
     } finally {
       setBusy(false);
     }
   };
+
+  const readyToPay = groups.reduce((s, g) => s + (g.totalOutstanding || 0), 0);
+  const awaitingRelease = pending.reduce((s, p) => s + (p.netPayable || 0), 0);
+  const selectedTotal = selectedVendor
+    ? (selectedVendor.bills || [])
+      .filter((b) => selectedBillIds.has(b.purchaseBillId))
+      .reduce((s, b) => s + (b.netAmount || 0), 0)
+    : 0;
+
+  /**
+   * Bills already committed to an in-flight payment, mapped to the payment that
+   * holds them. The server refuses a second payment against these
+   * (_assertDocumentsAvailable), so offering them as selectable produced a hard
+   * "Document already in payment VPMT-xxxx" naming a payment the UI never showed.
+   */
+  const billsInFlight = useMemo(() => {
+    const m = new Map();
+    for (const p of awaitingApproval) {
+      for (const a of p.billAllocations || []) {
+        if (a.documentId) m.set(String(a.documentId), p.paymentNumber);
+      }
+    }
+    return m;
+  }, [awaitingApproval]);
+
+  const awaitingApprovalTotal = awaitingApproval.reduce(
+    (sum, p) => sum + (p.netPayable || 0),
+    0,
+  );
 
   return (
     <PageShell
@@ -162,8 +220,31 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Vendor Payments' }]}
     >
 
+      <div className="erp-buckets">
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{money(readyToPay)}</span>
+          <span className="erp-bucket-label">Ready to pay</span>
+        </div>
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{groups.length}</span>
+          <span className="erp-bucket-label">Vendors</span>
+        </div>
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{money(awaitingRelease)}</span>
+          <span className="erp-bucket-label">Awaiting release</span>
+        </div>
+        <div className="erp-bucket">
+          <span className="erp-bucket-count">{pending.length}</span>
+          <span className="erp-bucket-label">To release</span>
+        </div>
+      </div>
+
       <div className="erp-tabs">
-        {[['outstanding', 'Outstanding bills'], ['release', 'Pending release']].map(
+        {[
+          ['outstanding', 'Outstanding bills'],
+          ['approval', `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`],
+          ['release', 'Pending release'],
+        ].map(
           ([key, label]) => (
             <button
               key={key}
@@ -210,39 +291,129 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                       <th />
                       <th>Bill</th>
                       <th>Trip</th>
-                      <th>Vehicle</th>
+                      <th>Route</th>
                       <th>Net</th>
                       <th>Due</th>
+                      <th>Ageing</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedVendor.bills.map((b) => (
-                      <tr key={b.purchaseBillId}>
+                    {selectedVendor.bills.map((b) => {
+                      const heldBy = billsInFlight.get(String(b.purchaseBillId));
+                      return (
+                      <tr key={b.purchaseBillId} className={heldBy ? 'erp-row-muted' : ''}>
                         <td>
                           <input
                             type="checkbox"
                             checked={selectedBillIds.has(b.purchaseBillId)}
                             onChange={() => toggleBill(b.purchaseBillId)}
+                            disabled={Boolean(heldBy)}
+                            title={heldBy ? `Already in payment ${heldBy}` : undefined}
                           />
                         </td>
-                        <td>{b.billNumber}</td>
+                        <td>
+                          <div className="erp-cell-strong">{b.billNumber}</div>
+                          <div className="erp-cell-muted">
+                            {heldBy ? `In payment ${heldBy}` : b.vehicleNumber}
+                          </div>
+                        </td>
                         <td>{b.tripNumber}</td>
-                        <td>{b.vehicleNumber}</td>
+                        <td className="erp-cell-muted">{b.route || '—'}</td>
                         <td>{money(b.netAmount)}</td>
                         <td>{b.dueDate?.slice?.(0, 10) || '—'}</td>
+                        <td>
+                          {b.ageingBucket
+                            ? <StatusBadge status={b.ageingBucket} label={`${b.overdueDays ?? 0}d`} />
+                            : '—'}
+                        </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
+
+              {selectedBillIds.size > 0 && (
+                <div className="erp-alloc-foot">
+                  <div className="erp-alloc-cell">
+                    <span>Bills selected</span>
+                    <strong>{selectedBillIds.size}</strong>
+                  </div>
+                  <div className="erp-alloc-cell">
+                    <span>Payment amount</span>
+                    <strong>{money(selectedTotal)}</strong>
+                  </div>
+                  {selectedVendor.onAccountAvailable > 0 && (
+                    <div className="erp-alloc-cell">
+                      <span>On-account available</span>
+                      <strong>{money(selectedVendor.onAccountAvailable)}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="erp-form-actions">
-                <button type="button" className="erp-btn primary" disabled={busy} onClick={prepareSubmit}>
+                <button type="button" className="erp-btn primary" disabled={busy || selectedBillIds.size === 0} onClick={prepareSubmit}>
                   <Send size={14} /> Submit for approval
                 </button>
               </div>
             </section>
           )}
         </div>
+      )}
+
+      {/* Raised, not yet approved. Read-only by design: nothing here can be
+          released until an approver acts, so the page offers no action beyond
+          seeing that the payment exists. */}
+      {tab === 'approval' && (
+        <section className="erp-card">
+          <h3>Submitted — awaiting approval</h3>
+          {awaitingApproval.length === 0 ? (
+            <p className="erp-muted">
+              Nothing is waiting on approval. Payments appear here between
+              &ldquo;Submit for approval&rdquo; and an approver&rsquo;s decision.
+            </p>
+          ) : (
+            <>
+              <div className="erp-table-wrap">
+                <table className="erp-table compact">
+                  <thead>
+                    <tr>
+                      <th>Payment</th>
+                      <th>Raised</th>
+                      <th>Bills</th>
+                      <th>Net payable</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {awaitingApproval.map((p) => (
+                      <tr key={p._id}>
+                        <td className="erp-cell-strong">{p.paymentNumber}</td>
+                        <td className="erp-cell-muted">
+                          {p.paymentDate?.slice?.(0, 10) || '—'}
+                        </td>
+                        <td>{p.billAllocations?.length ?? 0}</td>
+                        <td>{money(p.netPayable)}</td>
+                        <td><StatusBadge status={p.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="erp-alloc-foot">
+                <div className="erp-alloc-cell">
+                  <span>Awaiting approval</span>
+                  <strong>{money(awaitingApprovalTotal)}</strong>
+                </div>
+                <div className="erp-alloc-cell">
+                  <span>Decisions are made in</span>
+                  <strong><Link to="/erp/approvals">Approvals</Link></strong>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
       )}
 
       {tab === 'release' && (

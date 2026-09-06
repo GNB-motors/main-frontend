@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  useParams, Link, useNavigate, useSearchParams,
+} from 'react-router-dom';
 import { ArrowLeft, FileText, Clock, Receipt } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PageHeader from '../../components/Erp/PageHeader';
@@ -45,6 +47,9 @@ const HUB_BREADCRUMB = {
 const DocumentDetailPage = ({ segment }) => {
   const { docId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Links now carry the voucher subtype (?type=RECEIPT); older links may not.
+  const knownType = searchParams.get('type');
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,11 +61,14 @@ const DocumentDetailPage = ({ segment }) => {
     setLoading(true);
     setError(null);
     try {
-      // A voucher's real type (RECEIPT / PAYMENT / ON_ACCOUNT / JOURNAL) is not
-      // in the URL, so try the common one and fall back across the rest.
-      const candidates = baseType === 'VOUCHER'
-        ? ['RECEIPT', 'PAYMENT', 'ON_ACCOUNT', 'JOURNAL']
-        : [baseType];
+      // A voucher's real type is normally carried in the URL (?type=) so we make
+      // exactly one call; only a legacy link with no type falls back to probing.
+      let candidates;
+      if (baseType === 'VOUCHER') {
+        candidates = knownType ? [knownType] : ['RECEIPT', 'PAYMENT', 'ON_ACCOUNT', 'JOURNAL'];
+      } else {
+        candidates = [baseType];
+      }
 
       let last = null;
       for (const type of candidates) {
@@ -84,7 +92,7 @@ const DocumentDetailPage = ({ segment }) => {
     } finally {
       setLoading(false);
     }
-  }, [baseType, docId]);
+  }, [baseType, docId, knownType]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -176,6 +184,18 @@ const DocumentDetailPage = ({ segment }) => {
             </div>
           )}
         </div>
+        {Array.isArray(data.trips) && data.trips.length > 0 && (
+          <div className="erp-stat">
+            <div className="erp-stat-label">{data.trips.length > 1 ? 'Trips' : 'Trip'}</div>
+            <div className="erp-stat-sub" style={{ marginTop: 6 }}>
+              {data.trips.map((t) => (
+                <div key={t.tripId}>
+                  <Link to={`/erp/trips/${t.tripId}`}>{t.tripNumber || 'View trip'} →</Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="erp-split" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>

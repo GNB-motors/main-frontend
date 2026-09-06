@@ -54,6 +54,11 @@
   transition: all 0.2s ease;
 }
 
+.erp-page .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
 .erp-page .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -118,6 +123,15 @@
   flex-wrap: wrap;
 }
 
+/* Trailing actions in a toolbar — pushed right as a group so the set does not
+   re-align every time one of its buttons is conditionally hidden. */
+.erp-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .erp-tabs {
   display: inline-flex;
   gap: 4px;
@@ -129,6 +143,9 @@
 
 .erp-tabs button,
 .erp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
   padding: 8px 14px;
@@ -562,6 +579,827 @@
   color: #6b21a8;
 }
 
+/* ─── Order requirement card (placement board) ────────────────────────────── */
+.erp-order-card {
+  margin-top: 20px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #00c896;
+  border-radius: 12px;
+}
+
+.erp-order-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.erp-order-card-party {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-order-card-figures {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin: 16px 0 12px;
+}
+
+.erp-order-figure-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.erp-order-figure {
+  display: block;
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+/* The number the operator is working down to. */
+.erp-order-figure.is-remaining {
+  color: #00a37a;
+}
+
+.erp-order-figure.is-small {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* ─── Per-vehicle eligibility reasons ─────────────────────────────────────── */
+.erp-reasons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.erp-reasons li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.erp-reasons li.is-ok {
+  color: #15803d;
+}
+
+.erp-reasons li.is-no {
+  color: #b45309;
+}
+
+/* ─── Sticky fulfilment bar (placement board) ─────────────────────────────── */
+/* Sticks to the bottom of the scroller so the shortfall and the hire action stay
+   reachable through a long fleet list. Only this bar is sticky — a sticky table
+   header as well would eat a laptop screen. `.erp-page` gets bottom padding so
+   the last row is never parked underneath it. */
+.erp-sticky-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  /**
+   * `margin-top: auto` is what actually pins this to the bottom.
+   *
+   * `.erp-page` is a flex column with `min-height: 100vh`, and this bar is its
+   * last item. With a short fleet the page does not scroll at all, so
+   * `position: sticky` has nothing to do and the bar just sat wherever the table
+   * ended — halfway up the screen, which is what read as "floating". `auto`
+   * eats the leftover column space and drops it to the bottom; sticky then takes
+   * over once the list is long enough to scroll.
+   *
+   * Negative horizontal margins cancel `.erp-page`'s 32px padding so the bar
+   * spans the full width and reads as the page's own footer rather than a card.
+   */
+  margin: auto -32px 0;
+  padding: 14px 32px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.erp-coverage-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  color: #065f46;
+}
+
+/* Room for the sticky bar, so the last table row is never hidden by it. Scoped
+   to the pages that actually have one — on `.erp-page` it would add 96px of
+   dead space to every ERP screen. A modifier class rather than `:has()` so the
+   spacing is deterministic. */
+.erp-page.has-sticky-bar {
+  /* Room to scroll the last table row clear of the pinned bar. */
+  padding-bottom: 88px;
+}
+
+.erp-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.erp-coverage-figures {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.erp-coverage-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ─── Verdict shown against the field that produced it ────────────────────── */
+.erp-inline-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.erp-inline-verdict.is-ok { color: #15803d; }
+.erp-inline-verdict.is-warn { color: #b45309; }
+.erp-inline-verdict.is-no { color: #b91c1c; }
+
+/* ─── Two-step drawer progress ────────────────────────────────────────────── */
+.erp-steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.erp-step {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.erp-step.done {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.erp-step.active {
+  background: #1a202c;
+  color: #fff;
+}
+
+
+/* ─── Section heading between page sections ───────────────────────────────── */
+.erp-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 28px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Credit status (delivery-order drawer) ───────────────────────────────── */
+.erp-credit {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.erp-credit-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.erp-credit-figure {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-credit-detail {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ─── Vertical lifecycle (one delivery order's position in the pipeline) ──── */
+.erp-lifecycle {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.erp-lifecycle-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 18px 0;
+}
+
+/* The connector is drawn from the dot downwards, so the last step has none. */
+.erp-lifecycle-step::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 22px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.erp-lifecycle-step:last-child {
+  padding-bottom: 0;
+}
+
+.erp-lifecycle-step:last-child::before {
+  display: none;
+}
+
+.erp-lifecycle-step.is-done::before {
+  background: #00c896;
+}
+
+.erp-lifecycle-dot {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.erp-lifecycle-step.is-done .erp-lifecycle-dot {
+  background: #00c896;
+  color: #fff;
+}
+
+.erp-lifecycle-step.is-current .erp-lifecycle-dot {
+  background: #1a202c;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(26, 32, 44, 0.1);
+}
+
+.erp-lifecycle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.erp-lifecycle-step.is-done .erp-lifecycle-label,
+.erp-lifecycle-step.is-current .erp-lifecycle-label {
+  color: #1a202c;
+}
+
+.erp-lifecycle-now {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* A row whose subject is committed elsewhere and cannot be acted on here —
+   an outstanding bill already held by an in-flight payment, for instance. It
+   stays readable: this is "spoken for", not "disabled" or "in error". */
+.erp-row-muted {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+/* ─── Sure-order capture (material + quantity on the call) ────────────────── */
+.erp-order-capture {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.erp-order-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.9fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+@media (max-width: 560px) {
+  .erp-order-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Work-owed queue (sure orders awaiting a delivery order) ─────────────── */
+.erp-queue {
+  margin-top: 20px;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #f59e0b;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* Amber on the edge and the heading only. A fully amber panel reads as an alert,
+   but a confirmed order waiting for release is the normal state of this page —
+   it is work queued, not something broken. */
+.erp-queue-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.erp-queue-head strong {
+  display: block;
+  font-size: 14px;
+}
+
+.erp-queue-head .erp-cell-muted {
+  display: block;
+  margin-top: 2px;
+}
+
+.erp-queue-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.erp-queue-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(160px, 1fr) minmax(0, 1.6fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  background: #fff;
+  border-top: 1px solid #fef3c7;
+}
+
+.erp-queue-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* The KAM's remark is why the order was won — it belongs next to the button,
+   not hidden behind a click, because it is what operations prices against. */
+.erp-queue-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .erp-queue-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* ─── Daily progress card ─────────────────────────────────────────────────── */
+.erp-progress-card {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.erp-progress-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.erp-progress-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.erp-progress-count {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-progress-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.erp-progress-legend b {
+  color: #1a202c;
+}
+
+.erp-progress-missed b {
+  color: #b45309;
+}
+
+.erp-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.erp-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #00c896;
+  transition: width 0.3s ease;
+}
+
+/* Count sits inside the tab, so "Open 18" reads as one label rather than a
+   number floating beside it. */
+.erp-tab-count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #cbd5e0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.erp-tab.active .erp-tab-count {
+  background: #1a202c;
+  color: #fff;
+}
+
+/* ─── Row action menu ─────────────────────────────────────────────────────── */
+/* Rendered into document.body by RowMenu.jsx — see the note there on why an
+   absolutely-positioned panel cannot work inside `.erp-container`. Position is
+   set inline from the trigger's viewport rect. */
+.erp-rowmenu-panel {
+  position: fixed;
+  /* Above the app chrome (navbar/sidebar top out at 1004) but below the modal
+     and drawer backdrops at 1100 — a menu must never float over a dialog. */
+  z-index: 1050;
+  min-width: 190px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.erp-rowmenu-panel button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  color: #1a202c;
+  text-align: left;
+  cursor: pointer;
+}
+
+.erp-rowmenu-panel button:hover {
+  background: #f1f5f9;
+}
+
+.erp-rowmenu-panel button.danger {
+  color: #b91c1c;
+}
+
+.erp-rowmenu-panel button.danger:hover {
+  background: #fee2e2;
+}
+
+/* ─── Frequency presets ───────────────────────────────────────────────────── */
+.erp-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.erp-preset {
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.erp-preset:hover {
+  border-color: #cbd5e0;
+  background: #f8fafc;
+}
+
+.erp-preset.selected {
+  border-color: #00c896;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.erp-field-sublabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* ─── Drawer detail rows ──────────────────────────────────────────────────── */
+.erp-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 16px;
+}
+
+.erp-detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.erp-detail-label {
+  flex: 0 0 130px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.erp-detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.erp-detail-audit {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.erp-detail-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+/* ─── Week calendar ───────────────────────────────────────────────────────── */
+.erp-calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.erp-calendar-range {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a202c;
+  min-width: 150px;
+}
+
+.erp-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(130px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.erp-calendar-day {
+  display: flex;
+  flex-direction: column;
+  /* Tall enough that a light week does not leave the card floating in white
+     space, capped so a 27" monitor does not get a column of nothing. */
+  min-height: clamp(360px, 54vh, 640px);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.erp-calendar-day.is-today {
+  border-color: #00c896;
+  background: #f0fdf9;
+}
+
+.erp-calendar-day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.erp-calendar-dow {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.erp-calendar-date {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.erp-calendar-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.erp-calendar-day-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  /* The busiest day must not set the height of all seven. `min-height: 0` is
+     what actually lets a flex child shrink below its content so `auto` can
+     scroll — without it the column grows to fit and the cap above is ignored. */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.erp-calendar-empty {
+  font-size: 12px;
+  color: #cbd5e0;
+}
+
+/* Left border carries the outcome, so a week reads as a column of coloured
+   edges rather than a wall of badges competing with the account names. */
+.erp-calendar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 9px;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #cbd5e0;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.erp-calendar-item:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.erp-calendar-item-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.erp-calendar-item-name {
+  flex: 1;
+  font-weight: 600;
+  color: #1a202c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erp-calendar-item-kam {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+
+.erp-calendar-item-state {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* One tone per state, carried on both the card's left edge and its label, so a
+   week reads as a column of coloured edges rather than a wall of badges. */
+.erp-calendar-item.tone-success,
+.erp-calendar-swatch.tone-success { border-left-color: #16a34a; }
+.erp-calendar-item.tone-warning,
+.erp-calendar-swatch.tone-warning { border-left-color: #f59e0b; }
+.erp-calendar-item.tone-danger,
+.erp-calendar-swatch.tone-danger { border-left-color: #dc2626; }
+.erp-calendar-item.tone-info,
+.erp-calendar-swatch.tone-info { border-left-color: #2563eb; }
+.erp-calendar-item.tone-neutral,
+.erp-calendar-swatch.tone-neutral { border-left-color: #cbd5e0; }
+
+.erp-calendar-item-state.tone-success { color: #15803d; }
+.erp-calendar-item-state.tone-warning { color: #b45309; }
+.erp-calendar-item-state.tone-danger { color: #b91c1c; }
+.erp-calendar-item-state.tone-info { color: #1d4ed8; }
+.erp-calendar-item-state.tone-neutral { color: #94a3b8; }
+
+.erp-calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.erp-calendar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.erp-calendar-swatch {
+  width: 3px;
+  height: 14px;
+  border-left: 3px solid #cbd5e0;
+}
+
+@media (max-width: 900px) {
+  .erp-calendar-grid {
+    grid-template-columns: repeat(7, 150px);
+  }
+}
+
 /* ─── States ──────────────────────────────────────────────────────────────── */
 .erp-state {
   display: flex;
@@ -606,7 +1444,9 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  z-index: 1000;
+  /* Above the app chrome: navbar 1001, sidebar-hover scrim 1002, mobile navbar
+     1003, sidebar rail 1004 (DashboardLayout.css / Navbar.css / Sidebar.css). */
+  z-index: 1100;
 }
 
 .erp-modal {
@@ -659,7 +1499,8 @@
   gap: 6px;
 }
 
-.erp-field.full {
+.erp-field.full,
+.erp-form-grid > .full {
   grid-column: 1 / -1;
 }
 
@@ -801,6 +1642,22 @@
   margin-top: 1px;
 }
 
+/* Inline text button inside a sentence (e.g. "… — override manually"). Not
+   .btn-icon: three other page stylesheets redefine that class globally as a
+   36x36 display:flex box, which breaks the label onto its own line. */
+.erp-inline-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .erp-page {
@@ -826,7 +1683,8 @@
   bottom: 0;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(2px);
-  z-index: 1000;
+  /* Above the app chrome, same as .erp-modal-backdrop — see note there. */
+  z-index: 1100;
   display: flex;
   justify-content: flex-end;
   animation: fadeIn 0.2s ease-out forwards;
@@ -1116,3 +1974,221 @@
   border-radius: 2px;
   flex-shrink: 0;
 }
+
+/* ── Approval Center: family tiles + grouped queue ──────────────────────────
+   Shows where the pending work sits (Placement / Billing / Purchase / Payments)
+   and groups the queue by family. Counts come from the pending-summary the page
+   already fetches — no extra request. */
+.erp-buckets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.erp-bucket {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 12px 14px;
+}
+.erp-bucket-count {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+.erp-bucket-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.erp-group-row td {
+  background: #f8fafc;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.erp-group-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── Receipt allocation footer: received / applied / remaining ──────────────
+   Makes the allocation math visible as the user types — partial payments show
+   a positive "left unapplied" (a customer advance), over-allocation goes red. */
+.erp-alloc-foot {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.erp-alloc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.erp-alloc-cell span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.erp-alloc-cell strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+.erp-alloc-cell.neg strong { color: #b91c1c; }
+.erp-alloc-warn {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+.erp-alloc-note {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+/* ── Approval Center: context-rich request cards ────────────────────────────
+   Each card answers what is being approved, FOR WHICH TRIP, for whom and how
+   much — so an approver never has to open a document number to know what it is. */
+.appr-group { margin-bottom: 22px; }
+.appr-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.appr-list { display: grid; gap: 10px; }
+.appr-card {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+}
+.appr-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.appr-card-head { display: flex; align-items: center; gap: 10px; }
+.appr-type { font-size: 15px; font-weight: 700; color: #111827; }
+.appr-trip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 4px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.appr-trip:hover { background: #dbeafe; }
+.appr-trip-num { font-weight: 700; }
+.appr-trip-route { color: #3b5ba5; font-weight: 500; }
+.appr-entity { font-size: 13.5px; font-weight: 600; color: #374151; }
+.appr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.appr-chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.appr-why { margin: 0; font-size: 12.5px; color: #6b7280; }
+.appr-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #9ca3af; }
+.appr-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.appr-card-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 128px;
+  text-align: right;
+}
+.appr-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+.appr-open-trip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2f5fd0;
+  text-decoration: none;
+}
+.appr-open-trip:hover { text-decoration: underline; }
+.appr-trip-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #2f5fd0;
+  font-weight: 600;
+  text-decoration: none;
+}
+.appr-trip-inline:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .appr-card { flex-direction: column; }
+  .appr-card-side {
+    align-items: flex-start;
+    text-align: left;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+/* Trip shown as plain text (no operations access → not a link). */
+.appr-trip--static {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #111827;
+  cursor: default;
+}
+.appr-trip--static:hover { background: #f3f4f6; }
+.appr-trip--static .appr-trip-route { color: #6b7280; }
+.appr-trip-inline--static { color: #111827; cursor: default; }
+.appr-trip-inline--static:hover { text-decoration: none; }

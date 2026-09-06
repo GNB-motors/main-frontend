@@ -193,7 +193,12 @@ const Account360Page = () => {
             return to ? <Link to={to}>{r.billNumber}</Link> : r.billNumber;
           },
         },
-        { header: 'Trip', render: (r) => r.tripNumber || '—' },
+        {
+          header: 'Trip',
+          render: (r) => (r.tripId
+            ? <Link to={`/erp/trips/${r.tripId}`}>{r.tripNumber || 'View'}</Link>
+            : (r.tripNumber || '—')),
+        },
         { header: 'Vehicle', render: (r) => r.vehicleNumber || '—' },
         { header: 'Due', render: (r) => (r.dueDate ? formatDateIST(r.dueDate) : '—') },
         { header: 'Ageing', render: (r) => <StatusBadge status={r.ageingBucket} label={r.overdueDays ? `${r.overdueDays}d` : undefined} /> },

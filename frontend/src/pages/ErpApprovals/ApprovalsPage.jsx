@@ -6,18 +6,45 @@
  * and a single rejection cancels it outright.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ShieldCheck, Check, X, Info, AlertTriangle } from 'lucide-react';
+import React, {
+  useState, useEffect, useCallback, useMemo,
+} from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ShieldCheck, Truck, Clock, User,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import ApprovalService from './ApprovalService';
+import ApprovalReviewDrawer from './ApprovalReviewDrawer';
 import {
   APPROVAL_TYPE_LABELS,
   ENTITY_TYPE_LABELS,
   STATUS_TONE,
   ACTIVE_APPROVAL_TYPES,
+  APPROVAL_BUCKETS,
+  bucketForType,
   formatReason,
 } from './approval.constants';
 import '../../styles/erp.css';
+
+const money = (n) =>
+  (typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : null);
+
+/** Compact "raised 2h ago" so the queue conveys urgency without a full date. */
+const relativeTime = (d) => {
+  if (!d) return '—';
+  const t = new Date(d).getTime();
+  if (Number.isNaN(t)) return '—';
+  const mins = Math.round((Date.now() - t) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 const ApprovalsPage = () => {
   const [approvals, setApprovals] = useState([]);
@@ -28,9 +55,11 @@ const ApprovalsPage = () => {
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
 
   const [active, setActive] = useState(null);
-  const [decision, setDecision] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+
+  // Only users who can actually work operations get a link into the trip screen;
+  // for everyone else the trip is shown as plain text, not a dead-end link.
+  const { canAccess } = useFeatureFlags();
+  const canOpenTrip = canAccess('erpOperations');
 
   const fetchApprovals = useCallback(async (status, type, page = 1) => {
     setLoading(true);
@@ -64,71 +93,142 @@ const ApprovalsPage = () => {
     }
   }, []);
 
+  // The bucket-count summary is filter-independent — fetch it once on mount
+  // (and after a decision, via handleDecided), not on every filter change.
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
+
+  // The queue reacts to the status + type filters.
   useEffect(() => {
     fetchApprovals(statusFilter, typeFilter);
+  }, [fetchApprovals, statusFilter, typeFilter]);
+
+  const handleDecided = useCallback(() => {
+    fetchApprovals(statusFilter, typeFilter, meta.page);
     fetchSummary();
-  }, [fetchApprovals, fetchSummary, statusFilter, typeFilter]);
-
-  const openDecision = (approval) => {
-    setActive(approval);
-    setDecision('');
-    setRemarks('');
-  };
-
-  const closeDecision = () => {
-    setActive(null);
-    setDecision('');
-    setRemarks('');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!decision) {
-      toast.error('Approve or reject?');
-      return;
-    }
-    if (decision === 'REJECTED' && remarks.trim().length < 3) {
-      toast.error('Remarks are required when rejecting');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await ApprovalService.decide(active._id, {
-        status: decision,
-        remarks: remarks.trim() || undefined,
-      });
-      toast.success(
-        decision === 'APPROVED'
-          ? 'Approved — the entity is released once all its requests clear'
-          : 'Rejected — the entity has been cancelled',
-      );
-      closeDecision();
-      fetchApprovals(statusFilter, typeFilter, meta.page);
-      fetchSummary();
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [fetchApprovals, fetchSummary, statusFilter, typeFilter, meta.page]);
 
   const requesterName = (a) =>
     a.requestedBy
       ? `${a.requestedBy.firstName || ''} ${a.requestedBy.lastName || ''}`.trim() || '—'
       : '—';
 
+  // Pending counts per family, from the summary the page already fetches.
+  const bucketCounts = useMemo(() => {
+    const counts = {
+      PLACEMENT: 0, BILLING: 0, PURCHASE: 0, PAYMENTS: 0,
+    };
+    (summary.byType || []).forEach((row) => {
+      const type = row._id || row.type;
+      counts[bucketForType(type)] += row.count || 0;
+    });
+    return counts;
+  }, [summary]);
+
+  // The current page's rows, split into the four families (order preserved).
+  const grouped = useMemo(
+    () => APPROVAL_BUCKETS
+      .map((b) => ({ bucket: b, rows: approvals.filter((a) => bucketForType(a.type) === b.id) }))
+      .filter((g) => g.rows.length),
+    [approvals],
+  );
+
+  const renderCard = (a) => {
+    const ctx = a.context || {};
+    const { trip } = ctx;
+    const pending = a.status === 'PENDING';
+    const why = formatReason(a.reason)
+      .slice(0, 2)
+      .map((r) => `${r.label}: ${r.value}`)
+      .join(' · ');
+    const entityText = `${ENTITY_TYPE_LABELS[a.entityType] || a.entityType}${a.entityLabel ? ` · ${a.entityLabel}` : ''}`;
+    const chips = [
+      trip ? entityText : null, // when no trip, entity is the sub-line below instead
+      ctx.partyName,
+      ctx.vehicle,
+      ctx.doNumber ? `DO ${ctx.doNumber}` : null,
+    ].filter(Boolean);
+
+    // The trip identity is always shown; it is a link into the trip screen only
+    // for users with operations access, otherwise plain (non-clickable) text.
+    const tripInner = trip && (
+      <>
+        <Truck size={14} />
+        <span className="appr-trip-num">{trip.tripNumber}</span>
+        {trip.route && <span className="appr-trip-route">{trip.route}</span>}
+      </>
+    );
+    let tripEl;
+    if (!trip) {
+      tripEl = <div className="appr-entity">{entityText}</div>;
+    } else if (canOpenTrip) {
+      tripEl = <Link to={`/erp/trips/${trip.id}`} className="appr-trip">{tripInner}</Link>;
+    } else {
+      tripEl = <div className="appr-trip appr-trip--static">{tripInner}</div>;
+    }
+
+    return (
+      <article key={a._id} className="appr-card">
+        <div className="appr-card-body">
+          <div className="appr-card-head">
+            <span className="appr-type">{APPROVAL_TYPE_LABELS[a.type] || a.type}</span>
+            <span className={`erp-badge ${STATUS_TONE[a.status] || 'neutral'}`}>{a.status}</span>
+          </div>
+
+          {tripEl}
+
+          {chips.length > 0 && (
+            <div className="appr-chips">
+              {chips.map((c) => (
+                <span key={c} className="appr-chip">{c}</span>
+              ))}
+            </div>
+          )}
+
+          {why && <p className="appr-why">{why}</p>}
+
+          <div className="appr-meta">
+            <span><User size={12} /> {requesterName(a)}</span>
+            <span><Clock size={12} /> {relativeTime(a.createdAt)}</span>
+          </div>
+        </div>
+
+        <div className="appr-card-side">
+          {ctx.amount != null && <div className="appr-amount">{money(ctx.amount)}</div>}
+          <button
+            type="button"
+            className={`btn ${pending ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActive(a)}
+          >
+            {pending ? 'Review' : 'Details'}
+          </button>
+        </div>
+      </article>
+    );
+  };
+
   return (
     <div className="erp-page">
       <div className="erp-header">
         <div>
-          <h1>Approvals</h1>
+          <h1>Approval Center</h1>
           <p className="erp-subtitle">
             {summary.total > 0
               ? `${summary.total} request${summary.total === 1 ? '' : 's'} waiting on a decision`
               : 'Nothing waiting on a decision'}
           </p>
         </div>
+      </div>
+
+      {/* Where the pending work sits, by family. */}
+      <div className="erp-buckets">
+        {APPROVAL_BUCKETS.map((b) => (
+          <div key={b.id} className="erp-bucket">
+            <span className="erp-bucket-count">{bucketCounts[b.id]}</span>
+            <span className="erp-bucket-label">{b.label}</span>
+          </div>
+        ))}
       </div>
 
       <div className="erp-toolbar">
@@ -148,10 +248,15 @@ const ApprovalsPage = () => {
           onChange={(e) => setTypeFilter(e.target.value)}
         >
           <option value="">All types</option>
-          {ACTIVE_APPROVAL_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {APPROVAL_TYPE_LABELS[t]}
-            </option>
+          {APPROVAL_BUCKETS.map((b) => (
+            <optgroup key={b.id} label={b.label}>
+              {b.types.map((t) => (
+                <option key={t} value={t}>
+                  {APPROVAL_TYPE_LABELS[t] || t}
+                  {ACTIVE_APPROVAL_TYPES.includes(t) ? '' : ' · soon'}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
@@ -172,58 +277,17 @@ const ApprovalsPage = () => {
           </div>
         ) : (
           <>
-            <div className="erp-table-scroll">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>Reference</th>
-                    <th>Trigger</th>
-                    <th>Why</th>
-                    <th>Raised by</th>
-                    <th>Status</th>
-                    <th aria-label="Actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {approvals.map((a) => (
-                    <tr key={a._id}>
-                      <td>
-                        <div className="erp-cell-strong">{a.entityLabel || '—'}</div>
-                        <div className="erp-cell-muted">
-                          {ENTITY_TYPE_LABELS[a.entityType] || a.entityType}
-                        </div>
-                      </td>
-                      <td>{APPROVAL_TYPE_LABELS[a.type] || a.type}</td>
-                      <td className="erp-cell-muted">
-                        {formatReason(a.reason)
-                          .slice(0, 2)
-                          .map((r) => `${r.label}: ${r.value}`)
-                          .join(' · ') || '—'}
-                      </td>
-                      <td className="erp-cell-muted">{requesterName(a)}</td>
-                      <td>
-                        <span className={`erp-badge ${STATUS_TONE[a.status] || 'neutral'}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="erp-actions">
-                          {a.status === 'PENDING' ? (
-                            <button className="btn btn-primary" onClick={() => openDecision(a)}>
-                              Review
-                            </button>
-                          ) : (
-                            <button className="btn btn-secondary" onClick={() => openDecision(a)}>
-                              Details
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {grouped.map((g) => (
+              <section key={g.bucket.id} className="appr-group">
+                <h2 className="appr-group-head">
+                  {g.bucket.label}
+                  <span className="erp-group-count">{g.rows.length}</span>
+                </h2>
+                <div className="appr-list">
+                  {g.rows.map(renderCard)}
+                </div>
+              </section>
+            ))}
 
             {meta.totalPages > 1 && (
               <div className="erp-pagination">
@@ -250,146 +314,11 @@ const ApprovalsPage = () => {
         )}
       </div>
 
-      {active && (
-        <div
-          className="erp-modal-backdrop"
-          role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) closeDecision(); }}
-        >
-          <div className="erp-modal">
-            <div className="erp-modal-header">
-              <h2>{APPROVAL_TYPE_LABELS[active.type] || active.type}</h2>
-              <button className="btn-icon" onClick={closeDecision}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="erp-modal-body">
-                <div className="erp-callout info">
-                  <Info size={16} />
-                  <span>
-                    {ENTITY_TYPE_LABELS[active.entityType] || active.entityType}{' '}
-                    <strong>{active.entityLabel}</strong> is held until every request on it
-                    clears. Rejecting cancels it and closes any sibling requests.
-                  </span>
-                </div>
-
-                <div className="erp-field full" style={{ marginBottom: 16 }}>
-                  <label>Why this was raised</label>
-                  <table className="erp-table" style={{ minWidth: 0 }}>
-                    <tbody>
-                      {formatReason(active.reason).map((r) => (
-                        <tr key={r.key}>
-                          <td className="erp-cell-muted">{r.label}</td>
-                          <td className="erp-cell-strong erp-numeric">{r.value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {active.requestPayload && Object.keys(active.requestPayload).length > 0 && (
-                  <div className="erp-field full" style={{ marginBottom: 16 }}>
-                    <label>Snapshot at request time</label>
-                    <table className="erp-table" style={{ minWidth: 0 }}>
-                      <tbody>
-                        {formatReason(active.requestPayload).map((r) => (
-                          <tr key={r.key}>
-                            <td className="erp-cell-muted">{r.label}</td>
-                            <td>{r.value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {active.status === 'PENDING' ? (
-                  <>
-                    <div className="erp-field full" style={{ marginBottom: 16 }}>
-                      <label>
-                        Decision <span className="required">*</span>
-                      </label>
-                      <div className="erp-outcomes">
-                        <button
-                          type="button"
-                          className={`erp-outcome ${decision === 'APPROVED' ? 'selected' : ''}`}
-                          onClick={() => setDecision('APPROVED')}
-                        >
-                          <Check size={16} /> Approve
-                          <small>Releases once all requests clear</small>
-                        </button>
-                        <button
-                          type="button"
-                          className={`erp-outcome ${decision === 'REJECTED' ? 'selected' : ''}`}
-                          onClick={() => setDecision('REJECTED')}
-                        >
-                          <X size={16} /> Reject
-                          <small>Cancels the entity</small>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="erp-field full">
-                      <label htmlFor="approval-remarks">
-                        Remarks
-                        {decision === 'REJECTED' && <span className="required"> *</span>}
-                      </label>
-                      <textarea
-                        id="approval-remarks"
-                        value={remarks}
-                        onChange={(e) => setRemarks(e.target.value)}
-                        placeholder={
-                          decision === 'REJECTED' ? 'Why? (required)' : 'Optional notes'
-                        }
-                      />
-                    </div>
-
-                    {decision === 'REJECTED' && (
-                      <div className="erp-callout info" style={{ marginTop: 16 }}>
-                        <AlertTriangle size={16} />
-                        <span>This cancels {active.entityLabel} and cannot be undone.</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="erp-field full">
-                    <label>Decision</label>
-                    <p style={{ margin: 0 }}>
-                      <span className={`erp-badge ${STATUS_TONE[active.status]}`}>
-                        {active.status}
-                      </span>
-                      {active.remarks && (
-                        <span className="erp-cell-muted"> — {active.remarks}</span>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="erp-modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeDecision}>
-                  Close
-                </button>
-                {active.status === 'PENDING' && (
-                  <button
-                    type="submit"
-                    className={`btn ${decision === 'REJECTED' ? 'btn-danger' : 'btn-primary'}`}
-                    disabled={submitting || !decision}
-                  >
-                    {submitting
-                      ? 'Saving...'
-                      : decision === 'REJECTED'
-                        ? 'Reject'
-                        : 'Approve'}
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ApprovalReviewDrawer
+        approval={active}
+        onClose={() => setActive(null)}
+        onDecided={handleDecided}
+      />
     </div>
   );
 };

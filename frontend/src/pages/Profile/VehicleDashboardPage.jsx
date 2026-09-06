@@ -1,126 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Search, Truck } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Truck } from 'lucide-react';
 import { VehicleService } from './VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import NewButton from '@/components/ui/NewButton';
 import { getToken } from '../../utils/session.js';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import DataTable from '../../components/ui/DataTable';
+import { computeVehicleDashboardKpis } from './vehicleDashboardLogic';
+import { StatCard, LegendDot } from './vehicleDashboardCells';
+import { buildVehicleDashboardColumns } from './vehicleDashboardColumns';
 import './VehiclesPage.css';
-
-// Document type → display label (must match backend Vehicle.DOCUMENT_TYPES).
-const DOC_COLS = [
-  { key: 'RC', label: 'RC' },
-  { key: 'INSURANCE', label: 'Insurance' },
-  { key: 'FITNESS', label: 'Fitness' },
-  { key: 'PERMIT', label: 'Permit' },
-  { key: 'NATIONAL_PERMIT', label: 'Nat. Permit' },
-];
-
-// Pure: days between today (00:00) and the given Date — negative if past.
-const daysUntil = (d) => {
-  if (!d) return null;
-  const target = new Date(d);
-  if (Number.isNaN(target.getTime())) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  target.setHours(0, 0, 0, 0);
-  return Math.round((target - today) / 86400000);
-};
-
-// Bucket a doc into one of: 'missing' | 'expired' | 'critical' | 'warning' | 'healthy'.
-const bucketFor = (docEntry) => {
-  if (!docEntry?.uploaded) return 'missing';
-  const days = daysUntil(docEntry.expiryDate);
-  if (days === null) return 'missing';     // uploaded but expiry not yet known (OCR pending)
-  if (days < 0) return 'expired';
-  if (days < 15) return 'critical';
-  if (days <= 30) return 'warning';
-  return 'healthy';
-};
-
-const BUCKET_STYLES = {
-  missing:  { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8', label: 'Missing' },
-  expired:  { bg: '#fee2e2', fg: '#991b1b', dot: '#dc2626', label: 'Expired' },
-  critical: { bg: '#fee2e2', fg: '#991b1b', dot: '#dc2626', label: '< 15 days' },
-  warning:  { bg: '#fef3c7', fg: '#92400e', dot: '#f59e0b', label: '15-30 days' },
-  healthy:  { bg: '#dcfce7', fg: '#166534', dot: '#16a34a', label: 'Healthy' },
-};
-
-const DocBadge = ({ docEntry }) => {
-  const bucket = bucketFor(docEntry);
-  const style = BUCKET_STYLES[bucket];
-  const days = daysUntil(docEntry?.expiryDate);
-
-  const text = (() => {
-    if (bucket === 'missing') return docEntry?.uploaded ? 'OCR pending' : 'Not uploaded';
-    if (bucket === 'expired') return `Expired ${Math.abs(days)}d ago`;
-    return `${days}d left`;
-  })();
-
-  return (
-    <span
-      title={docEntry?.expiryDate ? new Date(docEntry.expiryDate).toLocaleDateString() : ''}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        background: style.bg,
-        color: style.fg,
-        border: `1px solid ${style.dot}33`,
-        padding: '4px 10px',
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: style.dot }} />
-      {text}
-    </span>
-  );
-};
-
-const StatCard = ({ title, value, subtext, icon, accent }) => (
-  <div
-    style={{
-      flex: '1 1 220px',
-      minWidth: 200,
-      background: '#fff',
-      border: '1px solid #e2e8f0',
-      borderRadius: 12,
-      padding: '16px 18px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 14,
-      boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-    }}
-  >
-    <div
-      style={{
-        width: 44,
-        height: 44,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 10,
-        background: `${accent}1a`,
-        color: accent,
-      }}
-    >
-      {icon}
-    </div>
-    <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{value}</div>
-      {subtext && (
-        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{subtext}</div>
-      )}
-    </div>
-  </div>
-);
 
 const VehicleDashboardPage = () => {
   const navigate = useNavigate();
@@ -169,39 +61,9 @@ const VehicleDashboardPage = () => {
     return () => clearTimeout(t);
   }, [search, load]);
 
-  // ---- KPI rollups (document-level counts across the whole fleet) ----
-  const kpis = useMemo(() => {
-    let expired = 0;
-    let critical = 0; // <15 days
-    let warning = 0;  // 15-30 days
-    let healthy = 0;  // >30 days
-    let missing = 0;
-    let totalDocSlots = 0;
+  const kpis = useMemo(() => computeVehicleDashboardKpis(rows), [rows]);
 
-    rows.forEach((v) => {
-      DOC_COLS.forEach(({ key }) => {
-        totalDocSlots++;
-        const bucket = bucketFor(v.documents?.[key]);
-        if (bucket === 'expired') expired++;
-        else if (bucket === 'critical') critical++;
-        else if (bucket === 'warning') warning++;
-        else if (bucket === 'healthy') healthy++;
-        else missing++;
-      });
-    });
-
-    return {
-      total: rows.length,
-      expired,
-      critical,
-      warning,
-      healthy,
-      missing,
-      totalDocSlots,
-    };
-  }, [rows]);
-
-  const goEdit = (row) => {
+  const goEdit = (row) =>
     navigate('/vehicles/add', {
       state: {
         editingVehicle: {
@@ -213,7 +75,8 @@ const VehicleDashboardPage = () => {
         },
       },
     });
-  };
+
+  const columns = buildVehicleDashboardColumns({ onManage: goEdit });
 
   return (
     <div className="vehicles-page-container" style={themeColors}>
@@ -221,223 +84,104 @@ const VehicleDashboardPage = () => {
         className="vehicles-content-wrapper"
         style={{ paddingBottom: 48, alignItems: 'stretch' }}
       >
-        {/* Left-aligned header (replaces PageHeader, which is centred + 920px) */}
-        <div style={{ padding: '4px 24px 16px' }}>
-          <NewButton
-            variant="link"
-            size="xs"
-            style={{ marginBottom: 8 }}
-            text="Vehicles"
-            prependIcon={<ArrowLeft size={14} />}
-            prependGap={6}
-            onClick={() => navigate('/vehicles')}
-          />
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-            Vehicle Dashboard
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-            Fleet-wide document expiry status. Badges update automatically based on each document's expiry date.
-          </p>
-        </div>
-
-        {/* KPIs */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0 24px 20px' }}>
-          <StatCard
-            title="Total Vehicles"
-            value={kpis.total}
-            subtext={`${kpis.totalDocSlots} document slots`}
-            accent="#3b82f6"
-            icon={<Truck size={20} />}
-          />
-          <StatCard
-            title="Expired / Critical"
-            value={kpis.expired + kpis.critical}
-            subtext={`${kpis.expired} expired · ${kpis.critical} < 15d`}
-            accent="#dc2626"
-            icon={<AlertTriangle size={20} />}
-          />
-          <StatCard
-            title="Expiring 15-30 days"
-            value={kpis.warning}
-            subtext="Plan renewals soon"
-            accent="#f59e0b"
-            icon={<Clock size={20} />}
-          />
-          <StatCard
-            title="Healthy"
-            value={kpis.healthy}
-            subtext={`${kpis.missing} not uploaded yet`}
-            accent="#16a34a"
-            icon={<CheckCircle2 size={20} />}
-          />
-        </div>
-
-        {/* Search */}
-        <div style={{ padding: '0 24px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                background: '#fff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: '8px 12px',
-                minWidth: 280,
-              }}
-            >
-              <Search size={16} color="#94a3b8" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search registration or chassis number"
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: 13,
-                  color: '#0f172a',
-                  width: '100%',
-                  background: 'transparent',
-                }}
-              />
-            </div>
-            {loading && rows.length > 0 && (
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>Updating…</span>
-            )}
+        <PageShell
+          title="Vehicle Dashboard"
+          subtitle="Fleet-wide document expiry status. Badges update automatically based on each document's expiry date."
+          actions={
+            <NewButton
+              variant="link"
+              size="xs"
+              text="Vehicles"
+              prependIcon={<ArrowLeft size={14} />}
+              prependGap={6}
+              onClick={() => navigate('/vehicles')}
+            />
+          }
+          filters={
+            <FilterBar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Search registration or chassis number"
+              right={
+                loading && rows.length > 0 ? (
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>Updating…</span>
+                ) : null
+              }
+            />
+          }
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+            <StatCard
+              title="Total Vehicles"
+              value={kpis.total}
+              subtext={`${kpis.totalDocSlots} document slots`}
+              accent="#3b82f6"
+              icon={<Truck size={20} />}
+            />
+            <StatCard
+              title="Expired / Critical"
+              value={kpis.expired + kpis.critical}
+              subtext={`${kpis.expired} expired · ${kpis.critical} < 15d`}
+              accent="#dc2626"
+              icon={<AlertTriangle size={20} />}
+            />
+            <StatCard
+              title="Expiring 15-30 days"
+              value={kpis.warning}
+              subtext="Plan renewals soon"
+              accent="#f59e0b"
+              icon={<Clock size={20} />}
+            />
+            <StatCard
+              title="Healthy"
+              value={kpis.healthy}
+              subtext={`${kpis.missing} not uploaded yet`}
+              accent="#16a34a"
+              icon={<CheckCircle2 size={20} />}
+            />
           </div>
-        </div>
 
-        {/* Table */}
-        <div style={{ padding: '0 24px' }}>
+          <DataTable
+            columns={columns}
+            rows={rows}
+            rowKey={(row) => row._id}
+            loading={loading}
+            emptyTitle="No vehicles found"
+            emptyAction={
+              <button
+                onClick={() => navigate('/vehicles/add')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563eb',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                Add one
+              </button>
+            }
+          />
+
           <div
             style={{
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 12,
-              overflow: 'hidden',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 16,
+              marginTop: 16,
+              fontSize: 12,
+              color: '#64748b',
             }}
           >
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                    <th style={th}>Vehicle #</th>
-                    <th style={th}>Owner</th>
-                    <th style={th}>Model</th>
-                    <th style={th}>Chassis #</th>
-                    {DOC_COLS.map((d) => (
-                      <th key={d.key} style={th}>{d.label}</th>
-                    ))}
-                    <th style={{ ...th, textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && rows.length === 0 && (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <SkeletonRow key={`sk-${i}`} widthSeed={i + 1} />
-                    ))
-                  )}
-                  {!loading && rows.length === 0 && (
-                    <tr>
-                      <td colSpan={5 + DOC_COLS.length} style={emptyCell}>
-                        No vehicles found. <button
-                          onClick={() => navigate('/vehicles/add')}
-                          style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
-                        >Add one</button>.
-                      </td>
-                    </tr>
-                  )}
-                  {rows.map((row) => (
-                    <tr key={row._id} style={{ borderTop: '1px solid #f1f5f9' }}>
-                      <td style={td}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.registrationNumber}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{row.manufacturer || '—'}</div>
-                      </td>
-                      <td style={td}>{row.ownerName || '—'}</td>
-                      <td style={td}>{row.model || '—'}</td>
-                      <td style={{ ...td, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12 }}>
-                        {row.chassisNumber}
-                      </td>
-                      {DOC_COLS.map(({ key }) => (
-                        <td key={key} style={td}>
-                          <DocBadge docEntry={row.documents?.[key]} />
-                        </td>
-                      ))}
-                      <td style={{ ...td, textAlign: 'right' }}>
-                        <NewButton
-                          variant="secondary"
-                          size="xs"
-                          text="Manage"
-                          onClick={() => goEdit(row)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <LegendDot color="#16a34a" label=">30 days" />
+            <LegendDot color="#f59e0b" label="15-30 days" />
+            <LegendDot color="#dc2626" label="<15 days or expired" />
+            <LegendDot color="#94a3b8" label="Not uploaded / OCR pending" />
           </div>
-        </div>
-
-        {/* Legend */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 16,
-            padding: '16px 24px 0',
-            fontSize: 12,
-            color: '#64748b',
-          }}
-        >
-          <LegendDot color="#16a34a" label=">30 days" />
-          <LegendDot color="#f59e0b" label="15-30 days" />
-          <LegendDot color="#dc2626" label="<15 days or expired" />
-          <LegendDot color="#94a3b8" label="Not uploaded / OCR pending" />
-        </div>
+        </PageShell>
       </div>
     </div>
   );
 };
-
-// Skeleton row for the table while data is loading. Mirrors the real row's
-// column count so layout doesn't jump when data arrives.
-const SkeletonRow = ({ widthSeed = 0 }) => {
-  // Use the seed so different rows render different bar widths (more realistic).
-  const w = (base, jitter) => `${base + ((widthSeed * 7) % jitter)}%`;
-  return (
-    <tr style={{ borderTop: '1px solid #f1f5f9' }}>
-      <td style={td}>
-        <span className="vd-skeleton" style={{ width: w(70, 20) }} />
-        <div style={{ marginTop: 6 }}>
-          <span className="vd-skeleton" style={{ width: w(40, 15), height: 10 }} />
-        </div>
-      </td>
-      <td style={td}><span className="vd-skeleton" style={{ width: w(60, 25) }} /></td>
-      <td style={td}><span className="vd-skeleton" style={{ width: w(50, 25) }} /></td>
-      <td style={td}><span className="vd-skeleton" style={{ width: w(80, 15) }} /></td>
-      {DOC_COLS.map((d) => (
-        <td key={d.key} style={td}>
-          <span className="vd-skeleton vd-skeleton-pill" />
-        </td>
-      ))}
-      <td style={{ ...td, textAlign: 'right' }}>
-        <span className="vd-skeleton vd-skeleton-btn" />
-      </td>
-    </tr>
-  );
-};
-
-const LegendDot = ({ color, label }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-    <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-    {label}
-  </span>
-);
-
-const th = { padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' };
-const td = { padding: '12px', color: '#1e293b', verticalAlign: 'middle' };
-const emptyCell = { padding: 28, textAlign: 'center', color: '#94a3b8' };
 
 export default VehicleDashboardPage;
