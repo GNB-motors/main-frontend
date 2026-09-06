@@ -108,22 +108,26 @@
   --border: oklch(0.931 0 0); /* Slightly softer than Shadcn's default     */
 
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: #1a1a1a;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: #1a1a1a;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.433 0.231 264.1);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.02 264);
-  --secondary-foreground: oklch(0.433 0.231 264.1);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: #1a1a1a;
+  /* Restyled to the GNB component artboard (GNB Components.dc.html,
+     2026-09): orange is the primary action colour, never a warning;
+     focus ring is the artboard --focus blue; controls sit on warm
+     stone lines. Light only — .dark is not re-mapped. */
+  --primary: var(--orange-solid);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ds-sunk);
+  --secondary-foreground: var(--ds-ink2);
+  --muted: var(--ds-sunk);
+  --muted-foreground: var(--ds-ink3);
+  --accent: var(--ds-sunk);
+  --accent-foreground: var(--ds-ink);
+  --destructive: var(--ds-crit-solid);
+  --input: var(--ds-line2);
+  --ring: var(--ds-focus);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -528,6 +532,7 @@ body {
   --orange: #ee6126; /* brand accent: edges, chips, logo mark   */
   --orange-solid: #b8460f; /* solid fills that carry white text       */
   --orange-hover: #9e3b0b;
+  --orange-active: #86320a; /* pressed state of solid orange fills     */
   --orange-tint: #fdf1eb; /* active-item background                  */
   --accent-ink: #b8460f; /* orange TEXT and icons — AA on white     */
 
@@ -536,7 +541,34 @@ body {
   --erp-ink: #16296b;
 
   --ds-line: #e7e5e4; /* warm hairline, distinct from --hairline */
+  --ds-line2: #d6d3d1; /* control borders (inputs, buttons)       */
   --ds-sunk: #f5f5f4; /* recessed well                           */
+
+  --ds-ink: #1a1a1a; /* primary text                            */
+  --ds-ink2: #44403c; /* secondary text                          */
+  --ds-ink3: #6b645e; /* tertiary text, placeholders             */
+  --ds-disabled-ink: #a8a29e; /* disabled text                         */
+
+  --ds-focus: #1e88e5; /* focus outline                           */
+  --ds-info-tint: #eaf4fd;
+
+  /* Status palette (artboard §5). Status always out-shouts brand:
+     solid fills use the *-ink shade so white text passes AA. */
+  --ds-ok: #4caf50;
+  --ds-ok-ink: #2e7d32;
+  --ds-ok-tint: #edf7ee;
+  --ds-warn: #f59e0b;
+  --ds-warn-ink: #8a5a00;
+  --ds-warn-tint: #fef6e7;
+  --ds-crit: #f44336;
+  --ds-crit-ink: #c62828;
+  --ds-crit-tint: #fef0ef;
+  --ds-crit-solid: #c62828;
+  --ds-crit-solid-hover: #a81e1e;
+  --ds-crit-solid-active: #8e1616;
+  --ds-neutral: #94a3b8;
+  --ds-neutral-ink: #566275;
+  --ds-neutral-tint: #f1f2f4;
 
   --ds-radius-sm: 8px;
   --ds-radius-md: 12px;
@@ -544,6 +576,15 @@ body {
 
   --ds-shadow: 0 1px 2px rgba(28, 20, 14, 0.06);
   --ds-shadow-lg: 0 18px 40px -22px rgba(28, 20, 14, 0.35);
+}
+
+@keyframes gnb-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .dark {
