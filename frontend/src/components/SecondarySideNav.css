@@ -4,159 +4,194 @@
  * borders #e8ecee, tree spine #c3c3c9, active fill #f1f1f1.
  */
 .secondary-side-nav {
-    position: fixed;
-    top: var(--navbar-height, 64px); /* directly under the 64px global header */
-    left: 64px; /* beside the collapsed primary icon rail */
-    width: 220px; /* base; the reports variant widens it */
-    height: calc(100vh - var(--navbar-height, 64px));
-    background: #fff;
-    border-right: 1px solid #e8ecee;
-    transition: width 0.5s ease-in-out;
-    z-index: 900; /* under the fixed navbar (1001), over page content */
-    color: #262626;
-    font-size: 14px;
+  position: fixed;
+  top: var(--navbar-height, 64px); /* directly under the 64px global header */
+  left: 100px; /* beside the collapsed primary icon rail (100px on desktop) */
+  width: 220px; /* base; the reports variant widens it */
+  height: calc(100vh - var(--navbar-height, 64px));
+  background: #fff;
+  border-right: 1px solid #e8ecee;
+  transition: width 0.5s ease-in-out;
+  z-index: 900; /* under the fixed navbar (1001), over page content */
+  color: #262626;
+  font-size: 14px;
 }
 
 /* Width variants */
-.ssn--reports { width: 246px; }
-.ssn--collapse { width: 90px; }
-.ssn--large { width: 256px; }
+.ssn--reports {
+  width: 246px;
+}
+.ssn--collapse {
+  width: 90px;
+}
+.ssn--large {
+  width: 256px;
+}
 
 /* Scroll area: gutter hidden until hovered, on its OWN element (not the fixed
    container) so the list doesn't sit under a permanent scrollbar. */
 .ssn-scroll {
-    height: 100%;
-    overflow-y: hidden;
+  height: 100%;
+  overflow-y: hidden;
 }
 .ssn-scroll:hover {
-    overflow-y: auto;
+  overflow-y: auto;
 }
-.ssn-scroll::-webkit-scrollbar { width: 6px; }
-.ssn-scroll::-webkit-scrollbar-thumb { background: #d7d7dd; border-radius: 4px; }
-.ssn-scroll::-webkit-scrollbar-track { background: transparent; }
+.ssn-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.ssn-scroll::-webkit-scrollbar-thumb {
+  background: #d7d7dd;
+  border-radius: 4px;
+}
+.ssn-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
 
 /* Body */
 .ssn-list {
-    list-style: none;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    height: 100%;
-    padding: 8px 0;
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  padding: 8px 0;
 }
 
 /* ── Group wrapper ─────────────────────────────────────────────── */
 .ssn-group {
-    list-style: none;
-    border-bottom: 1px solid #e8ecee;
-    padding: 12px 12px;
+  list-style: none;
+  border-bottom: 1px solid #e8ecee;
+  padding: 12px 12px;
 }
 
 /* Group header — a toggle, not a target (transparent hover). */
 .ssn-group__header {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin: 0;
-    padding: 8px 0;
-    font-size: 14px;
-    font-weight: 500;
-    text-transform: uppercase;
-    user-select: none;
-    color: #262626;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  user-select: none;
+  color: #262626;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
 }
-.ssn-group__header:hover { background: transparent; }
-.ssn-group__header > svg { flex-shrink: 0; color: #6b6b73; }
+.ssn-group__header:hover {
+  background: transparent;
+}
+.ssn-group__header > svg {
+  flex-shrink: 0;
+  color: #6b6b73;
+}
 
 /* Children list — the vertical tree spine. */
 .ssn-children {
-    list-style: none;
-    margin: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    padding-left: 0;
-    border-left: 1px solid #c3c3c9;
+  list-style: none;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 0;
+  border-left: none;
 }
 
 .ssn-child {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 8px 0 8px 20px;
-    margin: 4px 0;
-    font-size: 14px;
-    font-weight: 400;
-    color: #262626;
-    background: none;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border-radius: 6px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 0 8px 20px;
+  margin: 4px 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: #262626;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 6px;
 }
-.ssn-child:hover { background-color: #f6f6f6; }
-.ssn-child.active { font-weight: 500; }
+.ssn-child:hover {
+  background-color: #f6f6f6;
+}
+.ssn-child.active {
+  font-weight: 500;
+}
 
 /* ── Flat row (top-level item with no children) ────────────────── */
 .ssn-flat-wrap {
-    list-style: none;
-    padding: 0 12px;
+  list-style: none;
+  padding: 0 12px;
 }
 .ssn-flat {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 14px;
-    font-weight: 400;
-    color: #262626;
-    background: none;
-    border: none;
-    cursor: pointer;
-    border-radius: 6px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #262626;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
 }
-.ssn-flat:hover { background-color: #f4f4f4; }
-.ssn-flat.active { font-weight: 500; background-color: #f1f1f1; }
+.ssn-flat:hover {
+  background-color: #f4f4f4;
+}
+.ssn-flat.active {
+  font-weight: 500;
+  background-color: #f1f1f1;
+}
 
 /* ── Pinned filter header (optional) ───────────────────────────── */
 .ssn-filter {
-    position: fixed;
-    top: var(--navbar-height, 64px);
-    left: 64px;
-    width: 245px;
-    background: #fff;
-    z-index: 2;
-    box-sizing: border-box;
+  position: fixed;
+  top: var(--navbar-height, 64px);
+  left: 100px;
+  width: 245px;
+  background: #fff;
+  z-index: 2;
+  box-sizing: border-box;
 }
 
 /* Focus visibility */
 .ssn-group__header:focus-visible,
 .ssn-child:focus-visible,
 .ssn-flat:focus-visible {
-    outline: 2px solid var(--primary-color, #2e5bd6);
-    outline-offset: -2px;
-    border-radius: 6px;
+  outline: 2px solid var(--primary-color, #2e5bd6);
+  outline-offset: -2px;
+  border-radius: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .secondary-side-nav { transition: none; }
+  .secondary-side-nav {
+    transition: none;
+  }
 }
 
 /* On small screens the primary rail becomes a drawer, so drop the 64px offset
    and let the secondary rail span the width (rather than leaving a fixed 246px
    strip over the content). */
 @media (max-width: 992px) {
-    .secondary-side-nav,
-    .secondary-side-nav.ssn--reports,
-    .secondary-side-nav.ssn--large,
-    .secondary-side-nav.ssn--collapse { left: 0; width: 100%; }
-    .ssn-filter { left: 0; width: 100%; }
+  .secondary-side-nav,
+  .secondary-side-nav.ssn--reports,
+  .secondary-side-nav.ssn--large,
+  .secondary-side-nav.ssn--collapse {
+    left: 0;
+    width: 100%;
+  }
+  .ssn-filter {
+    left: 0;
+    width: 100%;
+  }
 }

@@ -1,115 +1,114 @@
 /* Reports Sidebar Styles */
 /* Portal-rendered to document.body to avoid parent transforms/filters */
 .reports-sidebar {
-    width: 250px;
-    background-color: var(--color-white);
-    border-right: 1px solid #DFDFE2;
-    height: calc(100vh - var(--navbar-height, 72px));
-    position: fixed;
-    left: 64px; /* Position after the collapsed icon-rail (64px) */
-    top: var(--navbar-height, 72px); /* Start exactly where fixed navbar ends (72px from top) */
-    z-index: 999; /* Below navbar (1001) and main sidebar (1002) */
-    display: flex;
-    flex-direction: column;
-    box-shadow: none;
-    overflow-y: auto;
-    overflow-x: hidden;
-    margin: 0;
-    padding: 0;
+  width: 250px;
+  background-color: var(--color-white);
+  border-right: 1px solid #dfdfe2;
+  height: calc(100vh - var(--navbar-height, 72px));
+  position: fixed;
+  left: 100px; /* Position after the collapsed icon-rail (100px on desktop) */
+  top: var(--navbar-height, 72px); /* Start exactly where fixed navbar ends (72px from top) */
+  z-index: 999; /* Below navbar (1001) and main sidebar (1002) */
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
-
 .reports-sidebar-content {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
 }
 
 .report-category {
-    margin-bottom: 0;
-    display: flex;
-    flex-direction: column;
-    border-bottom: none;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: none;
 }
 
 .category-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 12px 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 14px;
-    color: #262626;
-    text-align: left;
-    transition: all 0.2s ease;
-    letter-spacing: 0;
-    justify-content: space-between;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #262626;
+  text-align: left;
+  transition: all 0.2s ease;
+  letter-spacing: 0;
+  justify-content: space-between;
 }
 
 .category-header:hover {
-    background-color: transparent;
+  background-color: transparent;
 }
 
 .report-list {
-    margin-top: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .report-item {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    width: 100%;
-    padding: 12px 16px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 400;
-    color: #262626;
-    text-align: left;
-    border-radius: 8px;
-    position: relative;
-    min-height: auto;
-    justify-content: flex-start;
-    margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #262626;
+  text-align: left;
+  border-radius: 8px;
+  position: relative;
+  min-height: auto;
+  justify-content: flex-start;
+  margin-bottom: 0;
 }
 
 .report-item:hover {
-    background-color: #F5F5F5;
+  background-color: #f5f5f5;
 }
 
 .report-item.active {
-    background-color: #EBEBEB;
-    color: #262626;
-    font-weight: 600;
+  background-color: #ebebeb;
+  color: #262626;
+  font-weight: 600;
 }
 
 .report-item.active:hover {
-    background-color: #E0E0E0;
+  background-color: #e0e0e0;
 }
 
 .report-item span {
-    display: block;
-    line-height: 1.4;
+  display: block;
+  line-height: 1.4;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 1200px) {
-    .reports-sidebar {
-        left: 0;
-        width: 100%;
-        top: var(--navbar-height, 72px); /* Still respect navbar height on mobile */
-        height: calc(100vh - var(--navbar-height, 72px)); /* Adjust height for mobile */
-        z-index: 1000; /* Below navbar but above content */
-    }
+  .reports-sidebar {
+    left: 0;
+    width: 100%;
+    top: var(--navbar-height, 72px); /* Still respect navbar height on mobile */
+    height: calc(100vh - var(--navbar-height, 72px)); /* Adjust height for mobile */
+    z-index: 1000; /* Below navbar but above content */
+  }
 }
