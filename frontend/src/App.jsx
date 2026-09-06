@@ -62,6 +62,7 @@ const FuelComparisonPage = lazy(() => import('./pages/FuelComparison/FuelCompari
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
 const RouteDeviationPage = lazy(() => import('./pages/RouteDeviation/RouteDeviationPage.jsx'));
 const RouteProfitabilityPage = lazy(() => import('./pages/RouteProfitability/RouteProfitabilityPage.jsx'));
+const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('./pages/OwnerAlerts/OwnerAlertsPage.jsx'));
 const GeofencePage = lazy(() => import('./pages/Geofence/GeofencePage.jsx'));
@@ -163,6 +164,7 @@ function App() {
           <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
           <Route path="/route-deviation" element={<RouteDeviationPage />} />
           <Route path="/route-profitability" element={<RouteProfitabilityPage />} />
+          <Route path="/hotspots" element={<HotspotsPage />} />
           <Route path="/live-tracking" element={<LiveTrackingPage />} />
           <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
           <Route path="/geofence" element={<GeofencePage />} />

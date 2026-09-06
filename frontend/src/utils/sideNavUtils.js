@@ -197,6 +197,7 @@ export const SIDE_NAV_ITEMS = [
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
       { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
       { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
+      { to: '/hotspots', label: 'Theft Hotspots', key: 'fleetIntelligence' },
       { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
