@@ -180,7 +180,7 @@ const OverviewPage = () => {
 
           {/* MetricTile widget group — the five GNB Dashboard artboard tiles */}
           <PanelErrorBoundary name="dashboard-widgets">
-            <OverviewWidgets />
+            <OverviewWidgets selectedDays={selectedDays} />
           </PanelErrorBoundary>
 
           {/* Command deck — health & financial exposure */}

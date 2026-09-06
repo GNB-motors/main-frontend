@@ -17,26 +17,48 @@
 
 import { getThemeColor } from './session.js';
 
+/** id of the single <style> element applyThemeToRoot manages */
+const THEME_STYLE_ID = 'gnb-theme-primary';
+
 /** Read stored colour, fall back to indigo */
-export const getPrimaryColor = () =>
-    getThemeColor() || '#4f46e5';
+export const getPrimaryColor = () => getThemeColor() || '#4f46e5';
+
+/**
+ * Readable foreground for a given background colour, as an oklch triple so it
+ * sits alongside shadcn's own tokens. Uses WCAG relative luminance: light
+ * backgrounds get near-black text, dark ones near-white. Without this the
+ * foreground keeps whatever the previous theme left behind, which is how an
+ * orange --primary ended up carrying near-black text.
+ */
+export const getContrastForeground = (hex) => {
+  const h = hex.replace('#', '');
+  const channel = (c) => {
+    const v = parseInt(c, 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const luminance =
+    0.2126 * channel(h.substr(0, 2)) +
+    0.7152 * channel(h.substr(2, 2)) +
+    0.0722 * channel(h.substr(4, 2));
+  return luminance > 0.45 ? 'oklch(0.205 0 0)' : 'oklch(0.985 0 0)';
+};
 
 /** 50% opacity version for light backgrounds */
 export const getLightColor = (color) => {
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    return `rgba(${r}, ${g}, ${b}, 0.12)`;
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.12)`;
 };
 
 /** Darker shade (subtract 40 from each channel) */
 export const getDarkColor = (color) => {
-    const hex = color.replace('#', '');
-    const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - 40);
-    const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - 40);
-    const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - 40);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  const hex = color.replace('#', '');
+  const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - 40);
+  const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - 40);
+  const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - 40);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
 /**
@@ -46,34 +68,36 @@ export const getDarkColor = (color) => {
  * for UI theming purposes.
  */
 const hexToOklch = (hex) => {
-    const h = hex.replace('#', '');
-    const r = parseInt(h.substr(0, 2), 16) / 255;
-    const g = parseInt(h.substr(2, 2), 16) / 255;
-    const b = parseInt(h.substr(4, 2), 16) / 255;
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substr(0, 2), 16) / 255;
+  const g = parseInt(h.substr(2, 2), 16) / 255;
+  const b = parseInt(h.substr(4, 2), 16) / 255;
 
-    // sRGB → linear
-    const toLinear = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    const lr = toLinear(r), lg = toLinear(g), lb = toLinear(b);
+  // sRGB → linear
+  const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const lr = toLinear(r),
+    lg = toLinear(g),
+    lb = toLinear(b);
 
-    // linear RGB → XYZ (D65)
-    const x = 0.4124 * lr + 0.3576 * lg + 0.1805 * lb;
-    const y = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-    const z = 0.0193 * lr + 0.1192 * lg + 0.9505 * lb;
+  // linear RGB → XYZ (D65)
+  const x = 0.4124 * lr + 0.3576 * lg + 0.1805 * lb;
+  const y = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  const z = 0.0193 * lr + 0.1192 * lg + 0.9505 * lb;
 
-    // XYZ → OKLab
-    const l_ = Math.cbrt(0.8189 * x + 0.3618 * y - 0.1288 * z);
-    const m_ = Math.cbrt(0.0329 * x + 0.9293 * y + 0.0361 * z);
-    const s_ = Math.cbrt(0.0482 * x + 0.2643 * y + 0.6337 * z);
-    const L = 0.2104 * l_ + 0.7936 * m_ - 0.0040 * s_;
-    const a = 1.9780 * l_ - 2.4285 * m_ + 0.4505 * s_;
-    const bk = 0.0259 * l_ + 0.7827 * m_ - 0.8086 * s_;
+  // XYZ → OKLab
+  const l_ = Math.cbrt(0.8189 * x + 0.3618 * y - 0.1288 * z);
+  const m_ = Math.cbrt(0.0329 * x + 0.9293 * y + 0.0361 * z);
+  const s_ = Math.cbrt(0.0482 * x + 0.2643 * y + 0.6337 * z);
+  const L = 0.2104 * l_ + 0.7936 * m_ - 0.004 * s_;
+  const a = 1.978 * l_ - 2.4285 * m_ + 0.4505 * s_;
+  const bk = 0.0259 * l_ + 0.7827 * m_ - 0.8086 * s_;
 
-    // OKLab → OKLch
-    const C = Math.sqrt(a * a + bk * bk);
-    const H = (Math.atan2(bk, a) * 180) / Math.PI;
-    const hue = H < 0 ? H + 360 : H;
+  // OKLab → OKLch
+  const C = Math.sqrt(a * a + bk * bk);
+  const H = (Math.atan2(bk, a) * 180) / Math.PI;
+  const hue = H < 0 ? H + 360 : H;
 
-    return `oklch(${L.toFixed(4)} ${C.toFixed(4)} ${hue.toFixed(2)})`;
+  return `oklch(${L.toFixed(4)} ${C.toFixed(4)} ${hue.toFixed(2)})`;
 };
 
 /**
@@ -81,37 +105,57 @@ const hexToOklch = (hex) => {
  * our custom CSS, Tailwind, Shadcn — pick up the user's theme colour.
  */
 export const applyThemeToRoot = () => {
-    const primary = getPrimaryColor();
-    const light   = getLightColor(primary);
-    const dark    = getDarkColor(primary);
-    const oklch   = hexToOklch(primary);
+  const primary = getPrimaryColor();
+  const light = getLightColor(primary);
+  const dark = getDarkColor(primary);
+  const oklch = hexToOklch(primary);
 
-    const root = document.documentElement;
+  const root = document.documentElement;
 
-    // Our own tokens (used by most CSS files)
-    root.style.setProperty('--primary-color',   primary);
-    root.style.setProperty('--primary-light',   light);
-    root.style.setProperty('--primary-dark',    dark);
+  // Our own tokens (used by most CSS files)
+  root.style.setProperty('--primary-color', primary);
+  root.style.setProperty('--primary-light', light);
+  root.style.setProperty('--primary-dark', dark);
 
-    // Used by Reports slider, BulkUpload, etc.
-    root.style.setProperty('--color-primary-500', primary);
-    root.style.setProperty('--color-primary-600', dark);
-    root.style.setProperty('--color-primary-100', light);
+  // Used by Reports slider, BulkUpload, etc.
+  root.style.setProperty('--color-primary-500', primary);
+  root.style.setProperty('--color-primary-600', dark);
+  root.style.setProperty('--color-primary-100', light);
 
-    // Shadcn's own token — drives Calendar, Button component, Badge, etc.
-    // Tailwind maps bg-primary → var(--primary)
-    root.style.setProperty('--primary', oklch);
+  // Shadcn's own token — drives Calendar, Button component, Badge, etc.
+  // Tailwind maps bg-primary → var(--primary).
+  //
+  // This MUST NOT be an inline style on :root. An inline style outranks every
+  // stylesheet rule, so it also overrode `.dark { --primary: <near-white> }`,
+  // leaving dark mode with an orange --primary against the dark theme's
+  // near-black --primary-foreground: unreadable maroon surfaces on every
+  // bg-primary element. Emitting a real rule scoped to :not(.dark) instead
+  // lets dark mode keep its own primary, and needs no toggle listener.
+  //
+  // --primary-foreground is derived from the chosen colour's luminance rather
+  // than left at whatever the previous theme set, so text stays legible for
+  // any colour the user picks.
+  // Clear the inline override a previous build may have left on this element.
+  root.style.removeProperty('--primary');
+
+  let styleEl = document.getElementById(THEME_STYLE_ID);
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = THEME_STYLE_ID;
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `:root:not(.dark){--primary:${oklch};--primary-foreground:${getContrastForeground(primary)};}`;
 };
 
 /** Legacy: returns object for style={} props (kept for backward compat) */
 export const getThemeCSS = () => ({
-    '--primary-color': getPrimaryColor(),
-    '--primary-light': getLightColor(getPrimaryColor()),
-    '--primary-dark':  getDarkColor(getPrimaryColor()),
+  '--primary-color': getPrimaryColor(),
+  '--primary-light': getLightColor(getPrimaryColor()),
+  '--primary-dark': getDarkColor(getPrimaryColor()),
 });
 
 /** Apply to a specific DOM element (legacy helper) */
 export const applyThemeToElement = (element) => {
-    if (!element) return;
-    Object.entries(getThemeCSS()).forEach(([k, v]) => element.style.setProperty(k, v));
+  if (!element) return;
+  Object.entries(getThemeCSS()).forEach(([k, v]) => element.style.setProperty(k, v));
 };

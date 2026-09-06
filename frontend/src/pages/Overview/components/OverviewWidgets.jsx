@@ -22,26 +22,29 @@ const THIRTY_DAYS_MS = 30 * 24 * 3600 * 1000;
  *
  * The page itself is route-level lazy, so this group costs no eager JS.
  */
-const OverviewWidgets = () => {
-  // Artboard windows ("30 days") pinned to a mount-time range; the aggregate
-  // tiles (idling, fuel) are not re-cut by the page's 7/30-day switcher.
+const OverviewWidgets = ({ selectedDays = 30 }) => {
+  // The aggregate tiles (idling, fuel) follow the page's range switcher. They
+  // used to pin their own 30-day window, which read as "no data" whenever the
+  // fleet's most recent records fell outside it while the panels below — on the
+  // page's own range — showed spend for the same fleet. Two contradictory
+  // answers on one screen; the window was wrong, not the data.
   const windowParams = useMemo(() => {
     const to = new Date();
-    const from = new Date(to.getTime() - THIRTY_DAYS_MS);
+    const from = new Date(to.getTime() - selectedDays * 24 * 3600 * 1000);
     const startDate = from.toISOString();
     const endDate = to.toISOString();
     return { idling: { startDate, endDate }, fuel: { from: startDate, to: endDate } };
-  }, []);
+  }, [selectedDays]);
 
   const fleet = useApi((signal) => OverviewWidgetsService.getFleetPositions({ signal }), []);
   const needs = useApi((signal) => OverviewWidgetsService.getNeedsToday({ signal }), []);
   const idling = useApi(
     (signal) => OverviewWidgetsService.getIdlingSummary(windowParams.idling, { signal }),
-    [],
+    [windowParams],
   );
   const fuel = useApi(
     (signal) => OverviewWidgetsService.getFuelSpendSummary(windowParams.fuel, { signal }),
-    [],
+    [windowParams],
   );
 
   // First paint of a tile: skeleton. After that the mapper owns the state —
