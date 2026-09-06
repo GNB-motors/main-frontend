@@ -24,6 +24,55 @@
   color: var(--p-ink);
 }
 
+/* ── Not in the pipeline yet ──────────────────────────────────────────────────
+   Placements held at approval. Warm on the edge and the header only: this is
+   work queued behind a decision, not an error, and a fully amber panel above
+   the real pipeline would out-shout it. */
+.trippipe-pending {
+  margin-bottom: 16px;
+  border: 1px solid var(--p-line);
+  border-left: 3px solid var(--p-warn);
+  border-radius: 10px;
+  background: var(--p-surface);
+  overflow: hidden;
+}
+
+.trippipe-pending-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--p-line);
+  background: var(--p-warn-soft);
+  color: var(--p-warn);
+}
+
+.trippipe-pending-head strong {
+  display: block;
+  font-size: 14px;
+}
+
+.trippipe-pending-head .erp-cell-muted {
+  display: block;
+  margin-top: 2px;
+}
+
+.trippipe-pending-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-accent);
+  text-decoration: none;
+}
+
+.trippipe-pending-link:hover {
+  text-decoration: underline;
+}
+
 /* ── Summary strip: statistics that are also filters ──────────────────────── */
 .trippipe-summary {
   display: grid;

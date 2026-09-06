@@ -21,6 +21,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Truck, CheckCircle2, XCircle, CalendarClock, ArrowRight, ArrowLeft, AlertTriangle, Search, Plus,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +53,12 @@ const PlacementBoardPage = () => {
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
   const [orders, setOrders] = useState([]);
+  /* Orders still in an approval queue. Kept out of `orders` on purpose: they
+     cannot be placed yet (placement.service rejects anything not PENDING or
+     PARTIAL), so they must not reach the queue, the counts, or the change-order
+     dropdown. They are shown only so that raising a DO does not look like
+     nothing happened. */
+  const [awaitingApproval, setAwaitingApproval] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [placed, setPlaced] = useState([]);
   const [selectedDoId, setSelectedDoId] = useState('');
@@ -84,13 +91,16 @@ const PlacementBoardPage = () => {
 
   const fetchOptions = useCallback(async () => {
     try {
-      const [pending, partial] = await Promise.all([
+      const [pending, partial, awaiting] = await Promise.all([
         DeliveryOrderService.getOrders({ status: 'PENDING', limit: 100 }),
         DeliveryOrderService.getOrders({ status: 'PARTIAL', limit: 100 }),
+        DeliveryOrderService.getOrders({ status: 'PENDING_APPROVAL', limit: 100 }),
       ]);
       setOrders([...(pending.data || []), ...(partial.data || [])]);
+      setAwaitingApproval(awaiting.data || []);
     } catch {
       setOrders([]);
+      setAwaitingApproval([]);
     }
     try {
       const res = await ErpMasterService.getVendors({ status: 'ACTIVE', limit: 200 });
@@ -333,11 +343,19 @@ const PlacementBoardPage = () => {
             {queue.length === 0 ? (
               <div className="erp-state">
                 <Truck size={48} />
-                <p>{queueSearch ? 'Nothing matches that search' : 'Nothing to place'}</p>
+                <p>
+                  {queueSearch
+                    ? 'Nothing matches that search'
+                    : awaitingApproval.length > 0
+                      ? 'Nothing to place yet'
+                      : 'Nothing to place'}
+                </p>
                 <span className="erp-cell-muted">
                   {queueSearch
                     ? 'Clear the search to see the rest.'
-                    : 'Orders arrive here once a delivery order is raised and approved.'}
+                    : awaitingApproval.length > 0
+                      ? `${awaitingApproval.length} order${awaitingApproval.length === 1 ? ' is' : 's are'} waiting on approval below. They move into this queue once approved.`
+                      : 'Orders arrive here once a delivery order is raised and approved.'}
                 </span>
               </div>
             ) : (
@@ -432,6 +450,60 @@ const PlacementBoardPage = () => {
               </div>
             )}
           </div>
+
+          {/* Awaiting approval. Read-only by design: these orders exist, so the
+              board must account for them, but nothing here can be placed until
+              an approver releases them. No row click, no placement button. */}
+          {awaitingApproval.length > 0 && (
+            <>
+              <h2 className="erp-section-heading">
+                {awaitingApproval.length} order{awaitingApproval.length === 1 ? '' : 's'} awaiting approval
+                <span className="erp-badge warning">
+                  <Clock size={11} />
+                  not placeable yet
+                </span>
+              </h2>
+
+              <div className="erp-container">
+                <div className="erp-table-scroll">
+                  <table className="erp-table">
+                    <thead>
+                      <tr>
+                        <th>Order</th>
+                        <th>Route</th>
+                        <th>Requirement</th>
+                        <th>Raised</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {awaitingApproval.map((o) => (
+                        <tr key={o._id}>
+                          <td>
+                            <div className="erp-cell-strong">{o.partyId?.name || '—'}</div>
+                            <div className="erp-cell-muted">
+                              {o.doNumber} · {o.material}
+                            </div>
+                          </td>
+                          <td className="erp-cell-muted">
+                            {o.fromLocation || '—'} → {o.toLocation || '—'}
+                          </td>
+                          <td>{o.qty} {o.qtyUnit}</td>
+                          <td className="erp-cell-muted">{dateLabel(o.doDate || o.createdAt)}</td>
+                          <td>
+                            <span className="erp-badge warning">
+                              <Clock size={11} />
+                              Approval pending
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
         </>
       ) : loading ? (
         <div className="erp-container">

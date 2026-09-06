@@ -898,13 +898,21 @@
   color: #64748b;
 }
 
+/* A row whose subject is committed elsewhere and cannot be acted on here —
+   an outstanding bill already held by an in-flight payment, for instance. It
+   stays readable: this is "spoken for", not "disabled" or "in error". */
+.erp-row-muted {
+  background: #f8fafc;
+  color: #64748b;
+}
+
 /* ─── Sure-order capture (material + quantity on the call) ────────────────── */
 .erp-order-capture {
   margin-top: 18px;
   padding: 14px;
-  border: 1px solid #a7f3d0;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  background: #f0fdf9;
+  background: #f8fafc;
 }
 
 .erp-order-grid {

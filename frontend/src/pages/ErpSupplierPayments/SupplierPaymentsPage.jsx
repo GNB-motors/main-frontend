@@ -2,11 +2,13 @@
  * Supplier invoices & payments (ISOCL ERP Stage 14)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Package, Send } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
 import { SupplierInvoiceApi, SupplierPaymentApi } from './SupplierPaymentService';
 import PageShell from '../../components/Erp/PageShell';
+import StatusBadge from '../../components/Erp/StatusBadge';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -24,6 +26,9 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
   const [invoices, setInvoices] = useState([]);
   const [groups, setGroups] = useState([]);
   const [pending, setPending] = useState([]);
+  /* Raised but not yet approved — invisible before this: `pay` lists invoices
+     and `release` lists APPROVED payments only. */
+  const [awaitingApproval, setAwaitingApproval] = useState([]);
 
   const [invoiceForm, setInvoiceForm] = useState({
     supplierId: '',
@@ -77,6 +82,15 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
     }
   }, []);
 
+  const loadAwaitingApproval = useCallback(async () => {
+    try {
+      const res = await SupplierPaymentApi.list({ status: 'PENDING_APPROVAL', limit: 100 });
+      setAwaitingApproval(res.data || []);
+    } catch {
+      setAwaitingApproval([]);
+    }
+  }, []);
+
   const loadPending = useCallback(async () => {
     setLoading(true);
     try {
@@ -93,8 +107,14 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
   useEffect(() => {
     if (tab === 'invoices') loadInvoices();
     else if (tab === 'pay') loadOutstanding();
-    else loadPending();
+    else if (tab === 'release') loadPending();
   }, [tab, loadInvoices, loadOutstanding, loadPending]);
+
+  // Needed by the `pay` tab too (to mark committed invoices), so it is not
+  // gated on the approval tab being open.
+  useEffect(() => {
+    loadAwaitingApproval();
+  }, [loadAwaitingApproval, tab]);
 
   const submitInvoice = async (e) => {
     e.preventDefault();
@@ -216,6 +236,23 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
       }),
   ).values()];
 
+
+  /** Invoices already committed to an in-flight payment → the payment holding them. */
+  const invoicesInFlight = useMemo(() => {
+    const m = new Map();
+    for (const p of awaitingApproval) {
+      for (const a of p.billAllocations || []) {
+        if (a.documentId) m.set(String(a.documentId), p.paymentNumber);
+      }
+    }
+    return m;
+  }, [awaitingApproval]);
+
+  const awaitingApprovalTotal = awaitingApproval.reduce(
+    (sum, p) => sum + (p.netPayable || 0),
+    0,
+  );
+
   return (
     <PageShell
       embedded={embedded}
@@ -228,6 +265,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
         {[
           ['invoices', 'New invoice'],
           ['pay', 'Pay suppliers'],
+          ['approval', `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`],
           ['release', 'Pending release'],
         ].map(([key, label]) => (
           <button key={key} type="button" className={`erp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
@@ -414,22 +452,32 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedSupplier.invoices.map((inv) => (
-                      <tr key={inv.documentId}>
+                    {selectedSupplier.invoices.map((inv) => {
+                      const heldBy = invoicesInFlight.get(String(inv.documentId));
+                      return (
+                      <tr key={inv.documentId} className={heldBy ? 'erp-row-muted' : ''}>
                         <td>
                           <input
                             type="checkbox"
                             checked={selectedInvoiceIds.has(inv.documentId)}
                             onChange={() => toggleInvoice(inv.documentId)}
+                            disabled={Boolean(heldBy)}
+                            title={heldBy ? `Already in payment ${heldBy}` : undefined}
                           />
                         </td>
-                        <td>{inv.refNumber}</td>
+                        <td>
+                          {inv.refNumber}
+                          {heldBy && (
+                            <div className="erp-cell-muted">In payment {heldBy}</div>
+                          )}
+                        </td>
                         <td>{inv.invoiceNumber}</td>
                         <td>{money(inv.grossAmount)}</td>
                         <td>{money(inv.tdsAmount)}</td>
                         <td>{money(inv.netAmount)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -441,6 +489,59 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             </section>
           )}
         </div>
+      )}
+
+      {/* Raised, not yet approved. Read-only — nothing is releasable until an
+          approver decides. */}
+      {tab === 'approval' && (
+        <section className="erp-card">
+          <h3>Submitted — awaiting approval</h3>
+          {awaitingApproval.length === 0 ? (
+            <p className="erp-muted">
+              Nothing is waiting on approval. Payments appear here between
+              &ldquo;Submit for approval&rdquo; and an approver&rsquo;s decision.
+            </p>
+          ) : (
+            <>
+              <div className="erp-table-wrap">
+                <table className="erp-table compact">
+                  <thead>
+                    <tr>
+                      <th>Payment</th>
+                      <th>Raised</th>
+                      <th>Invoices</th>
+                      <th>Net payable</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {awaitingApproval.map((p) => (
+                      <tr key={p._id}>
+                        <td className="erp-cell-strong">{p.paymentNumber}</td>
+                        <td className="erp-cell-muted">
+                          {p.paymentDate?.slice?.(0, 10) || '—'}
+                        </td>
+                        <td>{p.billAllocations?.length ?? 0}</td>
+                        <td>{money(p.netPayable)}</td>
+                        <td><StatusBadge status={p.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="erp-alloc-foot">
+                <div className="erp-alloc-cell">
+                  <span>Awaiting approval</span>
+                  <strong>{money(awaitingApprovalTotal)}</strong>
+                </div>
+                <div className="erp-alloc-cell">
+                  <span>Decisions are made in</span>
+                  <strong><Link to="/erp/approvals">Approvals</Link></strong>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
       )}
 
       {tab === 'release' && (

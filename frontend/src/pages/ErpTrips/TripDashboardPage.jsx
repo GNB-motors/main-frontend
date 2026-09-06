@@ -10,6 +10,7 @@ import {
   Rows3,
 } from 'lucide-react';
 import TripDashboardService from './TripDashboardService';
+import PlacementService from '../ErpPlacement/PlacementService';
 import ErpDashboardService from '../ErpHome/ErpDashboardService';
 import '../../styles/erp.css';
 import './TripPipeline.css';
@@ -184,6 +185,12 @@ const TripDashboardPage = () => {
   const [search, setSearch] = useState('');
   const [submittedSearch, setSubmittedSearch] = useState('');
   const [state, setState] = useState('');
+  /* Placements held at approval. There is deliberately no trip row for these:
+     _createTrip runs on approval, not on placement, so the trip document does
+     not exist yet. They are shown as a separate pre-pipeline strip rather than
+     synthesised as trips, which would corrupt the stage counts and the
+     lifecycle bar below. */
+  const [pendingPlacements, setPendingPlacements] = useState([]);
 
   const fetchTrips = useCallback(
     async (page = 1) => {
@@ -215,6 +222,12 @@ const TripDashboardPage = () => {
     ErpDashboardService.getSummary()
       .then((res) => setSummary(res?.data ?? res ?? null))
       .catch(() => setSummary(null));
+  }, []);
+
+  useEffect(() => {
+    PlacementService.getPlacements({ status: 'PENDING_APPROVAL', limit: 50 })
+      .then((res) => setPendingPlacements(res?.data || []))
+      .catch(() => setPendingPlacements([]));
   }, []);
 
   const stats = useMemo(() => {
@@ -328,6 +341,70 @@ const TripDashboardPage = () => {
             ))}
           </div>
         </>
+      )}
+
+      {/* ── Not in the pipeline yet ──
+          A placement waiting on approval has no trip row, so without this the
+          operator raises a placement and the pipeline looks unchanged. Kept out
+          of `stats` and the stage filters on purpose: these are not trips. */}
+      {pendingPlacements.length > 0 && (
+        <section className="trippipe-pending">
+          <header className="trippipe-pending-head">
+            <Clock size={15} />
+            <div>
+              <strong>
+                {pendingPlacements.length} placement
+                {pendingPlacements.length === 1 ? '' : 's'} awaiting approval
+              </strong>
+              <span className="erp-cell-muted">
+                These have no trip yet — one is created the moment approval clears.
+              </span>
+            </div>
+            <Link to="/erp/approvals" className="trippipe-pending-link">
+              Review approvals
+              <ArrowRight size={14} />
+            </Link>
+          </header>
+
+          <div className="erp-table-scroll">
+            <table className="erp-table compact">
+              <thead>
+                <tr>
+                  <th>Placement</th>
+                  <th>Delivery order</th>
+                  <th>Vehicle / vendor</th>
+                  <th>Planned</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingPlacements.map((p) => (
+                  <tr key={p._id}>
+                    <td className="erp-cell-strong">{p.placementNumber}</td>
+                    <td>
+                      <div>{p.doId?.doNumber || '—'}</div>
+                      <div className="erp-cell-muted">{p.doId?.material || ''}</div>
+                    </td>
+                    <td className="erp-cell-muted">
+                      {p.vehicleId?.registrationNumber
+                        || p.vendorId?.name
+                        || '—'}
+                    </td>
+                    <td>
+                      {p.plannedQty ?? '—'} {p.qtyUnit || ''}
+                    </td>
+                    <td>
+                      <span className="erp-badge warning">
+                        <Clock size={11} />
+                        Awaiting approval
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* ── Filters ── */}
