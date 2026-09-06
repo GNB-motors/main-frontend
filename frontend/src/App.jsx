@@ -54,6 +54,8 @@ const RbacPermissionsPage = lazy(() => import('./pages/Superadmin/components/Rba
 const RbacRolesPage = lazy(() => import('./pages/Superadmin/components/RbacRolesPage.jsx'));
 const LemuLogsPage = lazy(() => import('./pages/Superadmin/components/LemuLogsPage.jsx'));
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
+const ReceiptApprovalPage = lazy(() => import('./pages/Superadmin/components/ReceiptApprovalPage.jsx'));
+const ReceiptApprovalDetailPage = lazy(() => import('./pages/Superadmin/components/ReceiptApprovalDetailPage.jsx'));
 import VehiclesPage from './pages/Profile/VehiclesPage.jsx';
 import AddVehiclePage from './pages/Profile/AddVehiclePage.jsx';
 import VehicleDashboardPage from './pages/Profile/VehicleDashboardPage.jsx';
@@ -179,6 +181,9 @@ function App() {
         <Route path="rbac/roles" element={<Suspense fallback={null}><RbacRolesPage /></Suspense>} />
         <Route path="lemu" element={<Suspense fallback={null}><LemuLogsPage /></Suspense>} />
         <Route path="warehouse" element={<Suspense fallback={null}><WarehousePage /></Suspense>} />
+        {/* WhatsApp fuel-receipt review + approval */}
+        <Route path="receipts" element={<Suspense fallback={null}><ReceiptApprovalPage /></Suspense>} />
+        <Route path="receipts/:id" element={<Suspense fallback={null}><ReceiptApprovalDetailPage /></Suspense>} />
       </Route>
 
       {/* Protected Routes inside DashboardLayout */}
@@ -203,6 +208,8 @@ function App() {
         <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
         <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
         <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
+        <Route path="/whatsapp-approvals" element={<Suspense fallback={null}><ReceiptApprovalPage /></Suspense>} />
+        <Route path="/whatsapp-approvals/:id" element={<Suspense fallback={null}><ReceiptApprovalDetailPage /></Suspense>} />
         <Route path="/route-deviation" element={<RouteDeviationPage />} />
         <Route path="/live-tracking" element={<LiveTrackingPage />} />
         <Route path="/owner-alerts" element={<OwnerAlertsPage />} />

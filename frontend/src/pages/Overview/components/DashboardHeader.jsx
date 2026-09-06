@@ -1,4 +1,5 @@
-import { CalendarDays, RefreshCw, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CalendarDays, RefreshCw, Download, ReceiptText } from 'lucide-react';
 import { timeAgo } from '../../../utils/formatters';
 
 const RANGES = [
@@ -21,6 +22,10 @@ export default function DashboardHeader({ selectedDays, onRangeChange, onRefresh
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Link to="/whatsapp-approvals" className="ov-btn gap-2" style={{ textDecoration: 'none' }}>
+          <ReceiptText size={15} />
+          WhatsApp Approvals
+        </Link>
         {lastUpdated && (
           <span className="text-dim mr-1 hidden text-xs sm:inline">
             Updated {timeAgo(lastUpdated)}

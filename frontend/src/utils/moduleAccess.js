@@ -39,6 +39,7 @@ export const FLEET_FLAG_KEYS = [
   'khataLedger',
   'dailyMileageReport',
   'geofence',
+  'whatsappMileage',
 ];
 
 /**

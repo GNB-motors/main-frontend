@@ -153,8 +153,9 @@ export const SIDE_NAV_ITEMS = [
   },
 
   // ─── Fleet operations ───────────────────────────────────────────────────────
-  { type: 'section', label: 'Fleet', access: 'fleet' },
+  { type: 'section', label: 'Fleet' },
   { type: 'link', key: 'overview', access: 'fleet', hoistWhenSole: 'fleet', to: '/overview', label: 'Fleet Operations', icon: Grid },
+  { type: 'link', to: '/whatsapp-approvals', label: 'WhatsApp Approvals', icon: ReceiptText },
   {
     type: 'group',
     groupId: 'fuelManagement',
@@ -163,6 +164,7 @@ export const SIDE_NAV_ITEMS = [
     icon: Fuel,
     children: [
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
+      { to: '/whatsapp-approvals', label: 'WhatsApp Approvals' },
       { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
       // Live-map-refresh / warehouse branch additions.
@@ -173,6 +175,7 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: [
       '/mileage-tracking',
+      '/whatsapp-approvals',
       '/adblue-tracking',
       '/fuel-comparison',
       '/fuel-integrity',
