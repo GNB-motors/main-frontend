@@ -1868,3 +1868,29 @@ a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--h
     font-size: 13px;
     color: var(--cluster-text-dim, var(--ink-3));
 }
+
+/* EtaBand — corridor arrival estimate (always a band, always with n) */
+.etab {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: var(--cluster-text-dim, var(--ink-3));
+}
+.etab-band {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cluster-text, var(--ink));
+}
+.etab-basis {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.etab-basis svg { color: var(--gnb-400); }
+.etab--none {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    color: var(--inert);
+}
