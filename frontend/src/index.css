@@ -1894,3 +1894,45 @@ a.ov-action:hover { border-color: color-mix(in srgb, var(--gnb-400) 40%, var(--h
     gap: 8px;
     color: var(--inert);
 }
+
+/* VehicleMarker — the mandatory 2-D directional fallback for map trucks */
+.vm {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+.vm-body {
+    fill: currentColor;
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-width: 1;
+}
+.vm--ok { color: var(--ok); }
+.vm--critical { color: var(--critical); }
+.vm--caution { color: var(--caution); }
+.vm--inert { color: var(--inert); }
+.vm--selected .vm-body {
+    stroke: var(--cluster-text, #0e1726);
+    stroke-width: 1.6;
+}
+.vm-label {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    translate: -50% 0;
+    margin-top: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--cluster-text, var(--ink));
+    background: color-mix(in srgb, var(--cluster-panel, #fff) 85%, transparent);
+    padding: 1px 5px;
+    border-radius: 4px;
+    pointer-events: none;
+}
