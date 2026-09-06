@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Truck, MapPin, ReceiptText, CheckCircle2, Fuel } from 'lucide-react';
 import SlideOver from '../../components/cluster/SlideOver.jsx';
+import PlaceLabel from '../../components/ui/PlaceLabel';
 import { formatINR, formatLitres } from '../../utils/formatters';
 
 const STATUS_TONE = {
@@ -97,7 +98,11 @@ export default function EventInvestigationDrawer({ open, onClose, event, context
             full
             tone={event.billFlag ? 'var(--caution)' : undefined}
           />
-          <Cell label="Location" value={hasLoc ? `${event.lat.toFixed(4)}, ${event.lng.toFixed(4)}` : 'Not recorded'} full />
+          <Cell
+            label="Location"
+            value={hasLoc ? <PlaceLabel lat={event.lat} lng={event.lng} /> : 'Not recorded'}
+            full
+          />
           <Cell label="Reason for flag" value={reasonForFlag} full tone={event.billFlag ? 'var(--caution)' : undefined} />
         </div>
 

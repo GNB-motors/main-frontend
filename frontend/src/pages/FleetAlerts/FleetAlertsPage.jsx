@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, MapPin } from 'lucide-react';
+import { Download } from 'lucide-react';
 import FleetDataService from '../../services/FleetDataService';
 import useApi from '../../hooks/useApi';
 import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import StatusChip from '../../components/ui/StatusChip';
+import PlaceLabel from '../../components/ui/PlaceLabel';
 import { formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import { buildCsvString, triggerFileDownload } from '../../utils/reportCsvExport';
@@ -188,15 +189,7 @@ export default function FleetAlertsPage() {
                       </span>
                     ) : null}
                     {a.latitude != null && a.longitude != null ? (
-                      <a
-                        href={`https://www.google.com/maps?q=${a.latitude},${a.longitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 text-[11px] font-semibold transition-opacity hover:opacity-75"
-                        style={{ color: 'var(--gnb-400)' }}
-                      >
-                        <MapPin size={11} /> Map
-                      </a>
+                      <PlaceLabel lat={a.latitude} lng={a.longitude} />
                     ) : null}
                     <span className="num text-dim ml-auto text-[11px]">{formatDateTimeIST(a.eventDateTime)}</span>
                   </div>

@@ -4,6 +4,7 @@ import useApi from '../../hooks/useApi';
 import RouteIntelligenceService from './RouteIntelligenceService';
 import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
+import PlaceLabel from '../../components/ui/PlaceLabel';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -144,8 +145,8 @@ function SitesTable({ records, onConfirm, confirmingId }) {
                 </span>
               </td>
               <td className="px-4 py-3">{site.key}</td>
-              <td className="num px-4 py-3 whitespace-nowrap">
-                {site.centroidLat?.toFixed(5) ?? '—'}, {site.centroidLng?.toFixed(5) ?? '—'}
+              <td className="px-4 py-3">
+                <PlaceLabel lat={site.centroidLat} lng={site.centroidLng} />
               </td>
               <td className="num px-4 py-3">{formatNum(site.radiusM)} m</td>
               <td className="num px-4 py-3">{formatNum(site.visitCount)}</td>
@@ -204,18 +205,12 @@ function CorridorsTable({ records }) {
             <tr key={c._id} style={{ borderBottom: '1px solid var(--hairline)' }}>
               <td className="px-4 py-3">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs">{c.originKey}</span>
-                  <span className="num text-dim text-[10px]">
-                    {c.originLat != null ? `${c.originLat.toFixed(5)}, ${c.originLng.toFixed(5)}` : '—'}
-                  </span>
+                  <PlaceLabel lat={c.originLat} lng={c.originLng} showMap={false} />
                 </div>
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs">{c.destinationKey}</span>
-                  <span className="num text-dim text-[10px]">
-                    {c.destinationLat != null ? `${c.destinationLat.toFixed(5)}, ${c.destinationLng.toFixed(5)}` : '—'}
-                  </span>
+                  <PlaceLabel lat={c.destinationLat} lng={c.destinationLng} showMap={false} />
                 </div>
               </td>
               <td className="num px-4 py-3">{formatNum(c.sampleTrackCount)}</td>

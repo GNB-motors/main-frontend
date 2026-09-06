@@ -829,6 +829,50 @@ a.ov-kpi:hover {
 .status-chip--ok       { color: var(--ok);       background: color-mix(in srgb, var(--ok) 12%, transparent); }
 .status-chip--inert    { color: var(--inert);    background: color-mix(in srgb, var(--inert) 12%, transparent); }
 
+/* Place label — places are named, never shown as coordinates */
+.place-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+.place-label--pending {
+    color: var(--inert);
+}
+.place-label-icon {
+    color: var(--inert);
+    flex: 0 0 auto;
+}
+.place-label-text {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.25;
+    min-width: 0;
+}
+.place-label-main {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cluster-text, var(--ink));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.place-label-sub {
+    font-size: 10px;
+    color: var(--cluster-text-dim, var(--ink-3));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.place-label-map {
+    color: var(--gnb-400);
+    display: inline-flex;
+    flex: 0 0 auto;
+    opacity: 0.8;
+}
+.place-label-map:hover { opacity: 1; }
+
+
 /* Stacked magnitude bar — 2px surface gaps between fills (dataviz spec) */
 .ov-stack {
     display: flex;

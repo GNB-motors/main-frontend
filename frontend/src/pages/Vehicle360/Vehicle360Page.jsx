@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Wrench, Fuel, Droplets, FileWarning, Activity } from 'lucide-react';
+import { ArrowLeft, Wrench, Fuel, Droplets, FileWarning, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import EmptyState from '../../components/cluster/EmptyState';
 import FreshnessBadge from '../../components/cluster/FreshnessBadge';
+import PlaceLabel from '../../components/ui/PlaceLabel';
 import { DataArcGauge, DataValue } from '../../components/data-state';
 import { formatINR, formatKm, formatLitres, formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
@@ -211,15 +212,7 @@ export default function Vehicle360Page() {
               eyebrow="Position"
               right={
                 p.livePosition?.latitude != null ? (
-                  <a
-                    href={`https://www.google.com/maps?q=${p.livePosition.latitude},${p.livePosition.longitude}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold"
-                    style={{ color: 'var(--gnb-400)' }}
-                  >
-                    <MapPin size={11} /> Map
-                  </a>
+                  <PlaceLabel lat={p.livePosition.latitude} lng={p.livePosition.longitude} />
                 ) : null
               }
             >

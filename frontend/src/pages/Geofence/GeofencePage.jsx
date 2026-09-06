@@ -10,6 +10,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
+import PlaceLabel from '../../components/ui/PlaceLabel';
 import './Geofence.css';
 
 dayjs.extend(utc);
@@ -125,7 +126,7 @@ const LocationRow = ({ location, onResolve, resolvingId }) => {
           <div className="gf-location-cell">
             <MapPin size={13} className="gf-pin-icon" />
             <span className="gf-address">
-              {location.address || `${location.lat?.toFixed(5)}, ${location.lng?.toFixed(5)}`}
+              {location.address || <PlaceLabel lat={location.lat} lng={location.lng} showMap={false} />}
             </span>
           </div>
         </td>
@@ -369,7 +370,9 @@ const GeofencePage = () => {
               >
                 <div className="gf-infowindow">
                   <p className="gf-iw-title">
-                    {selectedLoc.address || `${selectedLoc.lat?.toFixed(5)}, ${selectedLoc.lng?.toFixed(5)}`}
+                    {selectedLoc.address || (
+                      <PlaceLabel lat={selectedLoc.lat} lng={selectedLoc.lng} showMap={false} />
+                    )}
                   </p>
                   <p className="gf-iw-stat">
                     <strong>{selectedLoc.occurrenceCount}</strong> occurrence{selectedLoc.occurrenceCount !== 1 ? 's' : ''}
