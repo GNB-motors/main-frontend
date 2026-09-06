@@ -24,13 +24,27 @@ import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useTripCreationContext } from '../../contexts/TripCreationContext';
 import './TripCreationFlow.css';
 import IntakePhase from './phases/IntakePhase';
-import { TripService, OCRService } from './services';
+import { TripService } from './services';
 import ProcessingPhase from './phases/ProcessingPhase';
 import VerificationPhase from './phases/VerificationPhase';
 import JourneySetupModal from '../../components/JourneySetupModal/JourneySetupModal';
+import PageShell from '../../components/ui/PageShell';
+import NewButton from '../../components/ui/NewButton';
 import { useConfirm } from '../../components/ui/confirmContext';
 import { getPref, setPref, removePref } from '../../utils/session.js';
 import { TRIP_DRAFT_PREF_KEY, serializeTripDraft, parseTripDraft } from './tripDraft';
+import {
+  buildMileagePayload,
+  buildFuelLogs,
+  buildWeightSlipTrips,
+  buildSubmissionFiles,
+} from './tripCreationSubmit';
+
+const STEP_NAMES = [
+  'Step 1: Document Intake & OCR Preview',
+  'Step 2: Data Entry & Correction',
+  'Step 3: Final Verification & Submit',
+];
 
 const TripCreationFlow = () => {
   const navigate = useNavigate();
@@ -44,12 +58,7 @@ const TripCreationFlow = () => {
 
   // Update navbar with step name whenever activeStep changes
   useEffect(() => {
-    const steps = [
-      'Step 1: Document Intake & OCR Preview',
-      'Step 2: Data Entry & Correction',
-      'Step 3: Final Verification & Submit',
-    ];
-    setStepName(steps[activeStep] || '');
+    setStepName(STEP_NAMES[activeStep] || '');
 
     // Cleanup: Clear step name when component unmounts
     return () => setStepName('');
@@ -200,272 +209,31 @@ const TripCreationFlow = () => {
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      // 1. Prepare mileage data from journey setup modal
-      const mileage = {
-        startOdometer: journeyData?.mileageData?.startOdometer || 0,
-        endOdometer: journeyData?.mileageData?.endOdometer || 0,
-        totalDistanceKm: journeyData?.mileageData?.totalDistanceKm || 0,
-        vehicleId: selectedVehicle?.id, // Pass vehicleId for validation
-        ocrData: {
-          ...fixedDocs.odometer?.ocrData,
-          reading: journeyData?.mileageData?.endOdometer || 0, // Save the journey end odometer
-          correctedReading: journeyData?.mileageData?.endOdometer || 0, // Mark as journey-level data
-        },
-      };
+      const now = Date.now();
 
-      // 2. Prepare fuel logs from journey setup modal
-      const fuelLogs = [];
+      // 1-3. Prepare mileage, fuel logs and weight slip trips
+      const mileage = buildMileagePayload(
+        journeyData,
+        fixedDocs.odometer?.ocrData,
+        selectedVehicle,
+      );
+      const fuelLogs = buildFuelLogs(fixedDocs, journeyData, now);
+      const weightSlipTrips = buildWeightSlipTrips(weightSlips, now);
 
-      if (journeyData?.fuelData?.litres && journeyData?.fuelData?.rate) {
-        // Use the fuel data from journey setup modal
-        fuelLogs.push({
-          tempId: fixedDocs.fuel?.ocrData?.tempId || `temp_fuel_journey_${Date.now()}`,
-          fuelType: 'DIESEL',
-          fillingType: 'FULL_TANK',
-          litres: journeyData.fuelData.litres,
-          rate: journeyData.fuelData.rate,
-          totalCost: journeyData.fuelData.litres * journeyData.fuelData.rate,
-          location: fixedDocs.fuel?.ocrData?.extractedData?.location || '',
-          // Include original OCR data for reference
-          ocrData: {
-            ...fixedDocs.fuel?.ocrData,
-            // Mark as journey-level corrected data
-            correctedData: {
-              litres: journeyData.fuelData.litres,
-              rate: journeyData.fuelData.rate,
-              totalCost: journeyData.fuelData.litres * journeyData.fuelData.rate,
-            },
-          },
-          // For FULL_TANK, include the end odometer reading for mileage calculation
-          odometerReading: journeyData.mileageData.endOdometer,
-        });
-      }
+      // 4-5. Prepare files and align payload tempIds with the file keys
+      const {
+        files,
+        fuelLogs: finalFuelLogs,
+        weightSlipTrips: finalTrips,
+      } = buildSubmissionFiles(fixedDocs, weightSlips, fuelLogs, weightSlipTrips, now);
 
-      // Add partial fuel receipts
-      if (fixedDocs.partialFuel && fixedDocs.partialFuel.length > 0) {
-        fixedDocs.partialFuel.forEach((partialFuel, index) => {
-          const fuelData = partialFuel.ocrData || {};
-          const litres =
-            parseFloat(fuelData.volume || fuelData.litres || fuelData.extractedData?.litres) || 0;
-          const rate = parseFloat(fuelData.rate || fuelData.extractedData?.rate) || 0;
-
-          fuelLogs.push({
-            tempId: fuelData.tempId || `temp_fuel_${Date.now()}_${index}`,
-            fuelType: 'DIESEL',
-            fillingType: 'PARTIAL',
-            litres,
-            rate,
-            location: fuelData.location || fuelData.extractedData?.location || '',
-            ocrData: partialFuel.ocrData || null, // Include OCR data
-          });
-        });
-      }
-
-      // 3. Prepare weight slip trips
-      const weightSlipTrips = weightSlips.map((slip) => {
-        // Parse numeric values from form inputs with proper OCR fallbacks
-        const grossWeight =
-          parseFloat(slip.grossWeight) ||
-          slip.weights?.grossWeight ||
-          slip.ocrData?.extractedData?.grossWeight ||
-          slip.ocrData?.grossWeight ||
-          0;
-        const tareWeight =
-          parseFloat(slip.tareWeight) ||
-          slip.weights?.tareWeight ||
-          slip.ocrData?.extractedData?.tareWeight ||
-          slip.ocrData?.tareWeight ||
-          0;
-        const netWeight =
-          parseFloat(slip.netWeight) ||
-          slip.weights?.netWeight ||
-          slip.ocrData?.extractedData?.netWeight ||
-          slip.ocrData?.netWeight ||
-          slip.ocrData?.finalWeight ||
-          0;
-
-        return {
-          tempId:
-            slip.tempId ||
-            slip.ocrData?.tempId ||
-            `temp_ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          materialType: slip.materialType || slip.ocrData?.extractedData?.materialType || 'Sand',
-          weights: {
-            grossWeight,
-            tareWeight,
-            netWeight,
-          },
-          routeData: slip.routeData || {}, // Use embedded route data
-          tripType: slip.tripType || 'PICKUP_DROP', // Include trip type
-          revenue: {
-            // TripForm uses ratePerTon, backend expects ratePerTon
-            ratePerTon:
-              parseFloat(slip.ratePerTon) ||
-              slip.revenue?.ratePerTon ||
-              slip.ocrData?.extractedData?.ratePerTon ||
-              0,
-            // TripForm uses totalAmountReceived
-            actualAmountReceived:
-              parseFloat(slip.totalAmountReceived) ||
-              slip.revenue?.actualAmountReceived ||
-              slip.ocrData?.extractedData?.totalAmount ||
-              0,
-          },
-          expenses: {
-            // TripForm uses flat property names
-            materialCost:
-              parseFloat(slip.materialCost) ||
-              slip.expenses?.materialCost ||
-              slip.ocrData?.extractedData?.materialCost ||
-              0,
-            toll:
-              parseFloat(slip.toll) ||
-              slip.expenses?.toll ||
-              slip.ocrData?.extractedData?.toll ||
-              0,
-            driverCost:
-              parseFloat(slip.driverCost) ||
-              slip.expenses?.driverCost ||
-              slip.ocrData?.extractedData?.driverCost ||
-              0,
-            driverTripExpense:
-              parseFloat(slip.driverTripExpense) ||
-              slip.expenses?.driverTripExpense ||
-              slip.ocrData?.extractedData?.driverTripExpense ||
-              0,
-            royalty:
-              parseFloat(slip.royalty) ||
-              slip.expenses?.royalty ||
-              slip.ocrData?.extractedData?.royalty ||
-              0,
-            otherExpenses:
-              parseFloat(slip.otherExpenses) ||
-              slip.expenses?.otherExpenses ||
-              slip.ocrData?.extractedData?.otherExpenses ||
-              0,
-          },
-          notes: slip.notes || '',
-          // Update OCR data with corrected values
-          ocrData: slip.ocrData
-            ? {
-                ...slip.ocrData,
-                extractedData: {
-                  ...slip.ocrData.extractedData,
-                  // Save corrected values back to OCR data for persistence
-                  materialType: slip.materialType || slip.ocrData.extractedData?.materialType,
-                  grossWeight: grossWeight,
-                  tareWeight: tareWeight,
-                  netWeight: netWeight,
-                  ratePerTon: parseFloat(slip.ratePerTon) || slip.ocrData.extractedData?.ratePerTon,
-                  totalAmount:
-                    parseFloat(slip.totalAmountReceived) || slip.ocrData.extractedData?.totalAmount,
-                  materialCost:
-                    parseFloat(slip.materialCost) || slip.ocrData.extractedData?.materialCost,
-                  toll: parseFloat(slip.toll) || slip.ocrData.extractedData?.toll,
-                  driverCost: parseFloat(slip.driverCost) || slip.ocrData.extractedData?.driverCost,
-                  driverTripExpense:
-                    parseFloat(slip.driverTripExpense) ||
-                    slip.ocrData.extractedData?.driverTripExpense,
-                  royalty: parseFloat(slip.royalty) || slip.ocrData.extractedData?.royalty,
-                  otherExpenses:
-                    parseFloat(slip.otherExpenses) || slip.ocrData.extractedData?.otherExpenses,
-                  // Track manual corrections
-                  manuallyCorrected: {
-                    materialType: slip.materialType !== slip.ocrData.extractedData?.materialType,
-                    grossWeight: grossWeight !== slip.ocrData.extractedData?.grossWeight,
-                    tareWeight: tareWeight !== slip.ocrData.extractedData?.tareWeight,
-                    netWeight: netWeight !== slip.ocrData.extractedData?.netWeight,
-                    ratePerTon:
-                      parseFloat(slip.ratePerTon) !== slip.ocrData.extractedData?.ratePerTon,
-                    totalAmount:
-                      parseFloat(slip.totalAmountReceived) !==
-                      slip.ocrData.extractedData?.totalAmount,
-                    materialCost:
-                      parseFloat(slip.materialCost) !== slip.ocrData.extractedData?.materialCost,
-                    toll: parseFloat(slip.toll) !== slip.ocrData.extractedData?.toll,
-                    driverCost:
-                      parseFloat(slip.driverCost) !== slip.ocrData.extractedData?.driverCost,
-                    driverTripExpense:
-                      parseFloat(slip.driverTripExpense) !==
-                      slip.ocrData.extractedData?.driverTripExpense,
-                    royalty: parseFloat(slip.royalty) !== slip.ocrData.extractedData?.royalty,
-                    otherExpenses:
-                      parseFloat(slip.otherExpenses) !== slip.ocrData.extractedData?.otherExpenses,
-                  },
-                },
-              }
-            : null,
-        };
-      });
-
-      // 4. Prepare submission data
       const submissionData = {
         vehicleId: selectedVehicle.id,
         driverId: selectedDriver.id,
         mileage,
-        fuelLogs,
-        weightSlipTrips,
+        fuelLogs: finalFuelLogs,
+        weightSlipTrips: finalTrips,
       };
-
-      // 5. Prepare files object with file references
-      // Note: FixedDocs stores files as direct File objects (fixedDocs.odometer.file)
-      //       WeightSlips stores files as { originalFile: File, preview: string }
-      const files = {};
-
-      // Helper to extract actual File object from different structures
-      const getFileObject = (fileRef) => {
-        if (!fileRef) return null;
-        if (fileRef instanceof File) return fileRef;
-        if (fileRef.originalFile instanceof File) return fileRef.originalFile;
-        if (fileRef.file instanceof File) return fileRef.file;
-        if (fileRef.file?.originalFile instanceof File) return fileRef.file.originalFile;
-        return null;
-      };
-
-      // Add odometer image
-      const odometerFile =
-        getFileObject(fixedDocs.odometer?.file) || getFileObject(fixedDocs.odometer);
-      if (odometerFile) {
-        files.odometer_image = odometerFile;
-      }
-
-      // Add fuel slip files
-      const fuelFile = getFileObject(fixedDocs.fuel?.file) || getFileObject(fixedDocs.fuel);
-      if (fuelFile) {
-        const tempId = fixedDocs.fuel.ocrData?.tempId || `fuel_full_${Date.now()}`;
-        files[tempId] = fuelFile;
-        // Also update the tempId in fuelLogs array to match
-        if (fuelLogs.length > 0) {
-          fuelLogs[0].tempId = tempId;
-        }
-      }
-
-      fixedDocs.partialFuel?.forEach((partialFuel, index) => {
-        const partialFile = getFileObject(partialFuel?.file) || getFileObject(partialFuel);
-        if (partialFile) {
-          const tempId = partialFuel.ocrData?.tempId || `fuel_partial_${index}_${Date.now()}`;
-          files[tempId] = partialFile;
-          // Update corresponding fuelLog tempId
-          const fuelLogIndex = fixedDocs.fuel ? index + 1 : index;
-          if (fuelLogs[fuelLogIndex]) {
-            fuelLogs[fuelLogIndex].tempId = tempId;
-          }
-        }
-      });
-
-      // Add weight certificate files
-      weightSlips.forEach((slip, index) => {
-        const slipFile = getFileObject(slip?.file) || getFileObject(slip);
-
-        if (slipFile) {
-          const tempId = slip.tempId || slip.ocrData?.tempId || `ws_${index}_${Date.now()}`;
-          files[tempId] = slipFile;
-          // Update the tempId in weightSlipTrips array to match
-          if (weightSlipTrips[index]) {
-            weightSlipTrips[index].tempId = tempId;
-          }
-        }
-      });
 
       // 6. Submit complete journey
       const response = await TripService.submitCompleteJourney(submissionData, files);
@@ -534,7 +302,12 @@ const TripCreationFlow = () => {
   }, [confirm, navigate]);
 
   return (
-    <div className="trip-creation-flow">
+    <PageShell
+      className="trip-creation-flow"
+      title="New Trip"
+      subtitle={STEP_NAMES[activeStep]}
+      actions={<NewButton variant="ghost" size="sm" text="Cancel" onClick={handleCancel} />}
+    >
       {activeStep === 0 && (
         <IntakePhase
           fixedDocs={fixedDocs}
@@ -591,7 +364,7 @@ const TripCreationFlow = () => {
           onCancel={handleJourneyCancel}
         />
       )}
-    </div>
+    </PageShell>
   );
 };
 
