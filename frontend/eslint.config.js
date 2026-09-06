@@ -1,13 +1,16 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import react from 'eslint-plugin-react'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import jsxA11y from 'eslint-plugin-jsx-a11y'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import js from '@eslint/js';
+import globals from 'globals';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Design mockups and handoff notes, not application source — never imported
+  // by src/. Their vendored/generated JS (canvas support scripts) isn't meant
+  // to pass app lint rules.
+  globalIgnores(['dist', 'Design', 'amitansu-handoff']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -39,19 +42,21 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
       // localStorage is touched ONLY by utils/session.js — direct access,
       // including window.localStorage, is a build error.
-      'no-restricted-syntax': ['error',
+      'no-restricted-syntax': [
+        'error',
         {
           selector: "CallExpression[callee.object.name='localStorage']",
           message: 'Use utils/session.js instead of direct localStorage access.',
         },
         {
-          selector: "CallExpression[callee.object.object.name='window'][callee.object.property.name='localStorage']",
+          selector:
+            "CallExpression[callee.object.object.name='window'][callee.object.property.name='localStorage']",
           message: 'Use utils/session.js instead of direct localStorage access.',
         },
       ],
       // Accessibility violations — Phase 7 remediates these; warn until then
       ...Object.fromEntries(
-        Object.entries(jsxA11y.configs.recommended.rules).map(([rule]) => [rule, 'warn'])
+        Object.entries(jsxA11y.configs.recommended.rules).map(([rule]) => [rule, 'warn']),
       ),
       // Deprecated by jsx-a11y in favour of label-has-associated-control; keeping
       // it double-reports every label. Off, not suppressed.
@@ -85,4 +90,4 @@ export default defineConfig([
       'no-restricted-syntax': 'off',
     },
   },
-])
+]);
