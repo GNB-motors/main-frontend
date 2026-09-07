@@ -13,6 +13,7 @@ import apiClient from '../../utils/axiosConfig';
 import RateMasterService from './RateMasterService';
 import PartyService from './PartyService';
 import useApi from '../../hooks/useApi';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const UNITS = [
@@ -44,7 +45,12 @@ const RatesPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const { data: ratesResponse, loading, error: ratesError, refetch: refetchRates } = useApi(
+  const {
+    data: ratesResponse,
+    loading,
+    error: ratesError,
+    refetch: refetchRates,
+  } = useApi(
     () =>
       RateMasterService.getRates({
         rateType: 'SB',
@@ -142,22 +148,16 @@ const RatesPage = () => {
   const dateLabel = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '—');
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Rate Master</h1>
-          <p className="erp-subtitle">
-            Sale rates by party, route and material — delivery orders resolve against these
-          </p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-primary" onClick={openCreate}>
-            <Plus size={18} />
-            Add Rate
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      title="Rate Master"
+      subtitle="Sale rates by party, route and material — delivery orders resolve against these"
+      actions={
+        <button className="btn btn-primary" onClick={openCreate}>
+          <Plus size={18} />
+          Add Rate
+        </button>
+      }
+    >
       <div className="erp-toolbar">
         <select
           className="erp-filter"
@@ -273,7 +273,9 @@ const RatesPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
@@ -288,8 +290,8 @@ const RatesPage = () => {
                 <div className="erp-callout info">
                   <Info size={16} />
                   <span>
-                    Adding a rate for a combination that already has one closes the older rate
-                    on this date. Orders already raised keep the rate they were created with.
+                    Adding a rate for a combination that already has one closes the older rate on
+                    this date. Orders already raised keep the rate they were created with.
                   </span>
                 </div>
 
@@ -414,7 +416,7 @@ const RatesPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

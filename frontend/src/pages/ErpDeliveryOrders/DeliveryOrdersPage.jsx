@@ -27,11 +27,12 @@ import DeliveryOrderDrawer from './DeliveryOrderDrawer';
 import DeliveryOrderDetailDrawer from './DeliveryOrderDetailDrawer';
 import { EMPTY_FORM, formFromCall, money, stageOf } from './deliveryOrder.constants';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const EMPTY_COUNTS = { ready: 0, inProgress: 0, awaitingApproval: 0 };
 
-const DeliveryOrdersPage = () => {
+const DeliveryOrdersPage = ({ embedded = false }) => {
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
@@ -174,7 +175,7 @@ const DeliveryOrdersPage = () => {
   };
 
   const kamName = (kam) =>
-    (kam ? `${kam.firstName || ''} ${kam.lastName || ''}`.trim() || '—' : '—');
+    kam ? `${kam.firstName || ''} ${kam.lastName || ''}`.trim() || '—' : '—';
 
   const oldestWait = useMemo(
     () => (pendingCalls.length ? Math.max(...pendingCalls.map(waitingDays)) : 0),
@@ -182,22 +183,17 @@ const DeliveryOrdersPage = () => {
   );
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Delivery Orders</h1>
-          <p className="erp-subtitle">
-            Release confirmed orders, then place vehicles against them
-          </p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-secondary" onClick={openManual}>
-            <Plus size={18} />
-            Manual DO
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      embedded={embedded}
+      title="Delivery Orders"
+      subtitle="Release confirmed orders, then place vehicles against them"
+      actions={
+        <button className="btn btn-secondary" onClick={openManual}>
+          <Plus size={18} />
+          Manual DO
+        </button>
+      }
+    >
       <div className="erp-stat-grid" style={{ marginTop: 20 }}>
         <StatTile
           label="Awaiting a DO"
@@ -270,13 +266,13 @@ const DeliveryOrdersPage = () => {
                           <div className="erp-cell-muted erp-queue-note">{task.remarks}</div>
                         )}
                       </td>
-                      <td>
-                        {task.orderMaterial || <span className="erp-cell-muted">—</span>}
-                      </td>
+                      <td>{task.orderMaterial || <span className="erp-cell-muted">—</span>}</td>
                       <td className="erp-numeric">
-                        {task.orderQty != null
-                          ? `${task.orderQty} ${task.orderQtyUnit || ''}`
-                          : <span className="erp-cell-muted">not captured</span>}
+                        {task.orderQty != null ? (
+                          `${task.orderQty} ${task.orderQtyUnit || ''}`
+                        ) : (
+                          <span className="erp-cell-muted">not captured</span>
+                        )}
                       </td>
                       <td>{kamName(task.kamId)}</td>
                       <td>
@@ -340,7 +336,11 @@ const DeliveryOrdersPage = () => {
         ) : orders.length === 0 ? (
           <div className="erp-state">
             <FileText size={48} />
-            <p>{statusFilter || searchTerm ? 'Nothing matches this filter' : 'No delivery orders yet'}</p>
+            <p>
+              {statusFilter || searchTerm
+                ? 'Nothing matches this filter'
+                : 'No delivery orders yet'}
+            </p>
             <span className="erp-cell-muted">
               {statusFilter || searchTerm
                 ? 'Clear the filter to see the rest.'
@@ -381,7 +381,9 @@ const DeliveryOrdersPage = () => {
                         </td>
                         <td>{o.material}</td>
                         <td className="erp-numeric">
-                          <div>{o.qty} {o.qtyUnit}</div>
+                          <div>
+                            {o.qty} {o.qtyUnit}
+                          </div>
                           {o.liftedQty > 0 && (
                             <div className="erp-cell-muted">{o.balanceQty} left</div>
                           )}
@@ -448,7 +450,7 @@ const DeliveryOrdersPage = () => {
           }}
         />
       )}
-    </div>
+    </PageShell>
   );
 };
 

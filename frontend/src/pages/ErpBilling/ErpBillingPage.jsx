@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import PageHeader from '../../components/Erp/PageHeader';
+import PageShell from '../../components/Erp/PageShell';
 import SaleBillsPage from '../ErpSaleBills/SaleBillsPage';
 import OutstandingPage from '../ErpOutstanding/OutstandingPage';
 import ReceiptsPage from '../ErpReceipts/ReceiptsPage';
@@ -22,13 +22,11 @@ const ErpBillingPage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <PageHeader
-        title="Billing & Receivables"
-        subtitle="Manage Sale Bills, Customer Outstanding, and Payment Receipts"
-        breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing' }]}
-      />
-
+    <PageShell
+      title="Billing & Receivables"
+      subtitle="Manage Sale Bills, Customer Outstanding, and Payment Receipts"
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing' }]}
+    >
       <div className="erp-toolbar" style={{ marginTop: 0, marginBottom: '20px' }}>
         <div className="erp-tabs" style={{ margin: 0 }}>
           <button
@@ -57,7 +55,7 @@ const ErpBillingPage = () => {
         {activeTab === 'outstanding' && <OutstandingPage embedded={true} />}
         {activeTab === 'receipts' && <ReceiptsPage embedded={true} />}
       </div>
-    </div>
+    </PageShell>
   );
 };
 

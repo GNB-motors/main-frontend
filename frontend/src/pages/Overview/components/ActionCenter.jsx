@@ -8,6 +8,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Panel } from './overview.primitives.jsx';
+import { ActionCenterSkeleton } from './OverviewSkeletons.jsx';
 import { formatInrCompact, formatPct, formatNum } from '../../../utils/formatters';
 
 const TONE_COLOR = {
@@ -85,7 +86,14 @@ function buildItems({ utilization, downtime, money }) {
           cta: 'Investigate',
           to: '/fuel-integrity',
         }
-      : { id: 'theft', tone: 'ok', icon: ShieldCheck, title: 'No theft detected', detail: 'Fuel telemetry within expected bounds', cta: null },
+      : {
+          id: 'theft',
+          tone: 'ok',
+          icon: ShieldCheck,
+          title: 'No theft detected',
+          detail: 'Fuel telemetry within expected bounds',
+          cta: null,
+        },
   );
   items.push(
     fraud > 0
@@ -98,7 +106,14 @@ function buildItems({ utilization, downtime, money }) {
           cta: 'Review bills',
           to: '/fuel-integrity',
         }
-      : { id: 'fraud', tone: 'ok', icon: ShieldCheck, title: 'No suspected bill fraud', detail: 'Fuel bills reconcile cleanly', cta: null },
+      : {
+          id: 'fraud',
+          tone: 'ok',
+          icon: ShieldCheck,
+          title: 'No suspected bill fraud',
+          detail: 'Fuel bills reconcile cleanly',
+          cta: null,
+        },
   );
 
   // Warnings first, all-clears last
@@ -111,7 +126,10 @@ function ActionRow({ item }) {
   const color = TONE_COLOR[item.tone];
   const inner = (
     <>
-      <span className="ov-action-icon" style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}>
+      <span
+        className="ov-action-icon"
+        style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
+      >
         <Icon size={17} strokeWidth={2.2} />
       </span>
       <div className="min-w-0 flex-1">
@@ -121,7 +139,10 @@ function ActionRow({ item }) {
         <div className="num text-dim mt-0.5 text-xs">{item.detail}</div>
       </div>
       {item.cta && (
-        <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold" style={{ color: 'var(--gnb-400)' }}>
+        <span
+          className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold"
+          style={{ color: 'var(--gnb-400)' }}
+        >
           {item.cta}
           <ChevronRight size={14} />
         </span>
@@ -156,7 +177,10 @@ export default function ActionCenter({ utilization, downtime, money, loading }) 
           className="ov-pill"
           style={
             openCount > 0
-              ? { color: 'var(--caution)', background: 'color-mix(in srgb, var(--caution) 14%, transparent)' }
+              ? {
+                  color: 'var(--caution)',
+                  background: 'color-mix(in srgb, var(--caution) 14%, transparent)',
+                }
               : { color: 'var(--ok)', background: 'color-mix(in srgb, var(--ok) 12%, transparent)' }
           }
         >
@@ -165,11 +189,7 @@ export default function ActionCenter({ utilization, downtime, money, loading }) 
       }
     >
       {loading && !utilization && !downtime && !money ? (
-        <div className="flex flex-col gap-2.5">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="ov-inset h-14 animate-pulse" />
-          ))}
-        </div>
+        <ActionCenterSkeleton />
       ) : (
         <div className="flex flex-col gap-2.5">
           {items.map((item) => (

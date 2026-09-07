@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { Panel } from './overview.primitives.jsx';
 import EmptyState from '../../../components/cluster/EmptyState';
+import { FinancialImpactSkeleton } from './OverviewSkeletons.jsx';
 import { formatINR, formatInrCompact, formatPct } from '../../../utils/formatters';
 
 /**
@@ -33,7 +34,11 @@ const KIND_COLOR = {
  */
 export default function FinancialImpactPanel({ money, loading, error }) {
   const m = money?.money || {};
-  const rows = LINES.map((l) => ({ ...l, value: Number(m[l.key] || 0), color: KIND_COLOR[l.kind] }));
+  const rows = LINES.map((l) => ({
+    ...l,
+    value: Number(m[l.key] || 0),
+    color: KIND_COLOR[l.kind],
+  }));
   const total = rows.reduce((s, r) => s + r.value, 0);
   const wasteExposure = money?.totalWasteInr || 0;
   const ranked = [...rows].sort((a, b) => b.value - a.value);
@@ -42,22 +47,34 @@ export default function FinancialImpactPanel({ money, loading, error }) {
   return (
     <Panel eyebrow="Financial Impact" question="Where is my fleet losing money?" className="h-full">
       {loading && !money ? (
-        <div className="ov-inset h-40 animate-pulse" />
+        <FinancialImpactSkeleton />
       ) : error && !money ? (
-        <EmptyState title="Cost rollup unavailable" hint="Estimated ₹ figures appear once telemetry and fuel data have been processed." />
+        <EmptyState
+          title="Cost rollup unavailable"
+          hint="Estimated ₹ figures appear once telemetry and fuel data have been processed."
+        />
       ) : total === 0 ? (
-        <EmptyState title="No cost data in this window" hint="Fuel, DEF and waste figures populate as trips run and fuel slips are processed." />
+        <EmptyState
+          title="No cost data in this window"
+          hint="Fuel, DEF and waste figures populate as trips run and fuel slips are processed."
+        />
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <div className="num text-3xl font-bold leading-none" style={{ color: 'var(--cluster-text)' }}>
+              <div
+                className="num text-3xl font-bold leading-none"
+                style={{ color: 'var(--cluster-text)' }}
+              >
                 {formatInrCompact(total)}
               </div>
               <div className="text-dim mt-1 text-xs">total tracked cost this period</div>
             </div>
             <div className="text-right">
-              <div className="num text-xl font-bold leading-none" style={{ color: wasteExposure > 0 ? 'var(--critical)' : 'var(--ok)' }}>
+              <div
+                className="num text-xl font-bold leading-none"
+                style={{ color: wasteExposure > 0 ? 'var(--critical)' : 'var(--ok)' }}
+              >
                 {formatInrCompact(wasteExposure)}
               </div>
               <div className="text-dim mt-1 text-xs">recoverable waste</div>
@@ -88,21 +105,39 @@ export default function FinancialImpactPanel({ money, loading, error }) {
                   className="group flex items-center gap-3 border-t py-2.5 first:border-t-0"
                   style={{ borderColor: 'var(--hairline)' }}
                 >
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: r.color }} />
-                  <span className="flex-1 text-sm" style={{ color: 'var(--cluster-text)', fontWeight: isTop ? 700 : 500 }}>
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                    style={{ background: r.color }}
+                  />
+                  <span
+                    className="flex-1 text-sm"
+                    style={{ color: 'var(--cluster-text)', fontWeight: isTop ? 700 : 500 }}
+                  >
                     {r.label}
-                    {isTop && <span className="text-dim ml-2 text-[11px] font-medium">largest</span>}
+                    {isTop && (
+                      <span className="text-dim ml-2 text-[11px] font-medium">largest</span>
+                    )}
                   </span>
-                  <span className="num text-xs text-dim">{total > 0 ? formatPct((r.value / total) * 100) : '—'}</span>
-                  <span className="num w-20 text-right text-sm font-semibold" style={{ color: r.value > 0 ? r.color : 'var(--cluster-text-dim)' }}>
+                  <span className="num text-xs text-dim">
+                    {total > 0 ? formatPct((r.value / total) * 100) : '—'}
+                  </span>
+                  <span
+                    className="num w-20 text-right text-sm font-semibold"
+                    style={{ color: r.value > 0 ? r.color : 'var(--cluster-text-dim)' }}
+                  >
                     {formatInrCompact(r.value)}
                   </span>
-                  <ArrowUpRight size={13} className="shrink-0 text-transparent transition-colors group-hover:text-[var(--cluster-text-dim)]" />
+                  <ArrowUpRight
+                    size={13}
+                    className="shrink-0 text-transparent transition-colors group-hover:text-[var(--cluster-text-dim)]"
+                  />
                 </Link>
               );
             })}
           </div>
-          {money?.disclaimer && <p className="text-dim text-[11px] leading-relaxed">{money.disclaimer}</p>}
+          {money?.disclaimer && (
+            <p className="text-dim text-[11px] leading-relaxed">{money.disclaimer}</p>
+          )}
         </div>
       )}
     </Panel>

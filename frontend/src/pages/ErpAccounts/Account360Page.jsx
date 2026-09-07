@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import PageHeader from '../../components/Erp/PageHeader';
+import PageShell from '../../components/Erp/PageShell';
 import ErpTable from '../../components/Erp/ErpTable';
 import StatusBadge from '../../components/Erp/StatusBadge';
 import DateRangeFilter from '../../components/Erp/DateRangeFilter';
@@ -78,8 +78,12 @@ const Account360Page = () => {
         setAccount(entity);
         setBalance(bal?.data || null);
       })
-      .finally(() => { if (active) setHeadLoading(false); });
-    return () => { active = false; };
+      .finally(() => {
+        if (active) setHeadLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [accountType, accountId, isValid]);
 
   /* ── Statement tab ─────────────────────────────────────────────────────── */
@@ -95,21 +99,30 @@ const Account360Page = () => {
   });
 
   /* ── Open items tab ────────────────────────────────────────────────────── */
-  const openFetcher = useCallback(async (params) => {
-    if (accountType === 'PARTY') {
-      return OutstandingApi.list({ ...params, partyId: accountId, view: 'ALL' });
-    }
-    if (accountType === 'VENDOR') {
-      const res = await VendorPaymentApi.getOutstanding({ vendorId: accountId, includeBills: true });
-      return { data: res.data?.[0]?.bills || [], meta: null };
-    }
-    if (accountType === 'SUPPLIER') {
-      const res = await SupplierPaymentApi.getOutstanding({ supplierId: accountId, includeInvoices: true });
-      return { data: res.data?.[0]?.invoices || [], meta: null };
-    }
-    // Drivers have no open-item document type — shortages post straight to the ledger.
-    return { data: [], meta: null };
-  }, [accountType, accountId]);
+  const openFetcher = useCallback(
+    async (params) => {
+      if (accountType === 'PARTY') {
+        return OutstandingApi.list({ ...params, partyId: accountId, view: 'ALL' });
+      }
+      if (accountType === 'VENDOR') {
+        const res = await VendorPaymentApi.getOutstanding({
+          vendorId: accountId,
+          includeBills: true,
+        });
+        return { data: res.data?.[0]?.bills || [], meta: null };
+      }
+      if (accountType === 'SUPPLIER') {
+        const res = await SupplierPaymentApi.getOutstanding({
+          supplierId: accountId,
+          includeInvoices: true,
+        });
+        return { data: res.data?.[0]?.invoices || [], meta: null };
+      }
+      // Drivers have no open-item document type — shortages post straight to the ledger.
+      return { data: [], meta: null };
+    },
+    [accountType, accountId],
+  );
 
   const openItems = useErpList(openFetcher, {
     initial: { page: 1, limit: 25 },
@@ -119,53 +132,78 @@ const Account360Page = () => {
 
   const bal = balance ? drCr(balance.balance) : null;
   const creditLimit = account?.creditLimit ?? 0;
-  const utilisation = creditLimit > 0 && balance ? pct(Math.max(0, balance.balance), creditLimit) : null;
+  const utilisation =
+    creditLimit > 0 && balance ? pct(Math.max(0, balance.balance), creditLimit) : null;
   const overLimit = creditLimit > 0 && balance && balance.balance > creditLimit;
 
-  const statementColumns = useMemo(() => [
-    { header: 'Date', cellStyle: { whiteSpace: 'nowrap' }, render: (e) => formatDateIST(e.entryDate) },
-    {
-      header: 'Source',
-      render: (e) => {
-        const to = documentPathFor(e.sourceType, e.sourceId, { tripId: e.tripId });
-        return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <StatusBadge status={e.sourceType} />
-            {e.sourceLabel && (to
-              ? <Link to={to}>{e.sourceLabel}</Link>
-              : <span className="erp-muted">{e.sourceLabel}</span>)}
-            {e.reversedByEntryId && <StatusBadge status="REVERSED" />}
-          </span>
-        );
+  const statementColumns = useMemo(
+    () => [
+      {
+        header: 'Date',
+        cellStyle: { whiteSpace: 'nowrap' },
+        render: (e) => formatDateIST(e.entryDate),
       },
-    },
-    {
-      header: 'Narration',
-      render: (e) => (
-        <span style={e.reversedByEntryId ? { textDecoration: 'line-through', color: '#94a3b8' } : undefined}>
-          {e.narration || '—'}
-        </span>
-      ),
-    },
-    {
-      header: 'Debit',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (e) => (e.debit ? <span className="erp-numeric">{inr(e.debit)}</span> : <span className="erp-muted">—</span>),
-    },
-    {
-      header: 'Credit',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (e) => (e.credit ? <span className="erp-numeric">{inr(e.credit)}</span> : <span className="erp-muted">—</span>),
-    },
-    {
-      header: 'Balance',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (e) => <span className="erp-numeric">{drCr(e.runningBalance).text}</span>,
-    },
-  ], []);
+      {
+        header: 'Source',
+        render: (e) => {
+          const to = documentPathFor(e.sourceType, e.sourceId, { tripId: e.tripId });
+          return (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <StatusBadge status={e.sourceType} />
+              {e.sourceLabel &&
+                (to ? (
+                  <Link to={to}>{e.sourceLabel}</Link>
+                ) : (
+                  <span className="erp-muted">{e.sourceLabel}</span>
+                ))}
+              {e.reversedByEntryId && <StatusBadge status="REVERSED" />}
+            </span>
+          );
+        },
+      },
+      {
+        header: 'Narration',
+        render: (e) => (
+          <span
+            style={
+              e.reversedByEntryId ? { textDecoration: 'line-through', color: '#94a3b8' } : undefined
+            }
+          >
+            {e.narration || '—'}
+          </span>
+        ),
+      },
+      {
+        header: 'Debit',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (e) =>
+          e.debit ? (
+            <span className="erp-numeric">{inr(e.debit)}</span>
+          ) : (
+            <span className="erp-muted">—</span>
+          ),
+      },
+      {
+        header: 'Credit',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (e) =>
+          e.credit ? (
+            <span className="erp-numeric">{inr(e.credit)}</span>
+          ) : (
+            <span className="erp-muted">—</span>
+          ),
+      },
+      {
+        header: 'Balance',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (e) => <span className="erp-numeric">{drCr(e.runningBalance).text}</span>,
+      },
+    ],
+    [],
+  );
 
   const openColumns = useMemo(() => {
     if (accountType === 'PARTY') {
@@ -179,9 +217,31 @@ const Account360Page = () => {
         },
         { header: 'Date', render: (r) => formatDateIST(r.billDate) },
         { header: 'Due', render: (r) => (r.dueDate ? formatDateIST(r.dueDate) : '—') },
-        { header: 'Ageing', render: (r) => <StatusBadge status={r.ageingBucket} label={r.overdueDays ? `${r.overdueDays}d` : undefined} /> },
-        { header: 'Bill total', headerStyle: { textAlign: 'right' }, cellStyle: { textAlign: 'right' }, render: (r) => <span className="erp-numeric">{inr(r.netAmount)}</span> },
-        { header: 'Outstanding', headerStyle: { textAlign: 'right' }, cellStyle: { textAlign: 'right' }, render: (r) => <span className="erp-numeric"><strong>{inr(r.outstandingAmount)}</strong></span> },
+        {
+          header: 'Ageing',
+          render: (r) => (
+            <StatusBadge
+              status={r.ageingBucket}
+              label={r.overdueDays ? `${r.overdueDays}d` : undefined}
+            />
+          ),
+        },
+        {
+          header: 'Bill total',
+          headerStyle: { textAlign: 'right' },
+          cellStyle: { textAlign: 'right' },
+          render: (r) => <span className="erp-numeric">{inr(r.netAmount)}</span>,
+        },
+        {
+          header: 'Outstanding',
+          headerStyle: { textAlign: 'right' },
+          cellStyle: { textAlign: 'right' },
+          render: (r) => (
+            <span className="erp-numeric">
+              <strong>{inr(r.outstandingAmount)}</strong>
+            </span>
+          ),
+        },
       ];
     }
     if (accountType === 'VENDOR') {
@@ -195,14 +255,34 @@ const Account360Page = () => {
         },
         {
           header: 'Trip',
-          render: (r) => (r.tripId
-            ? <Link to={`/erp/trips/${r.tripId}`}>{r.tripNumber || 'View'}</Link>
-            : (r.tripNumber || '—')),
+          render: (r) =>
+            r.tripId ? (
+              <Link to={`/erp/trips/${r.tripId}`}>{r.tripNumber || 'View'}</Link>
+            ) : (
+              r.tripNumber || '—'
+            ),
         },
         { header: 'Vehicle', render: (r) => r.vehicleNumber || '—' },
         { header: 'Due', render: (r) => (r.dueDate ? formatDateIST(r.dueDate) : '—') },
-        { header: 'Ageing', render: (r) => <StatusBadge status={r.ageingBucket} label={r.overdueDays ? `${r.overdueDays}d` : undefined} /> },
-        { header: 'Net', headerStyle: { textAlign: 'right' }, cellStyle: { textAlign: 'right' }, render: (r) => <span className="erp-numeric"><strong>{inr(r.netAmount)}</strong></span> },
+        {
+          header: 'Ageing',
+          render: (r) => (
+            <StatusBadge
+              status={r.ageingBucket}
+              label={r.overdueDays ? `${r.overdueDays}d` : undefined}
+            />
+          ),
+        },
+        {
+          header: 'Net',
+          headerStyle: { textAlign: 'right' },
+          cellStyle: { textAlign: 'right' },
+          render: (r) => (
+            <span className="erp-numeric">
+              <strong>{inr(r.netAmount)}</strong>
+            </span>
+          ),
+        },
       ];
     }
     if (accountType === 'SUPPLIER') {
@@ -211,14 +291,35 @@ const Account360Page = () => {
           header: 'Ref',
           render: (r) => {
             const to = documentPathFor('SUPPLIER_INVOICE', r.supplierInvoiceId);
-            return to ? <Link to={to}>{r.refNumber || r.invoiceNumber}</Link> : (r.refNumber || r.invoiceNumber);
+            return to ? (
+              <Link to={to}>{r.refNumber || r.invoiceNumber}</Link>
+            ) : (
+              r.refNumber || r.invoiceNumber
+            );
           },
         },
         { header: 'Invoice #', render: (r) => r.invoiceNumber || '—' },
         { header: 'Type', render: (r) => <StatusBadge status={r.supplyType} /> },
         { header: 'Due', render: (r) => (r.dueDate ? formatDateIST(r.dueDate) : '—') },
-        { header: 'Ageing', render: (r) => <StatusBadge status={r.ageingBucket} label={r.overdueDays ? `${r.overdueDays}d` : undefined} /> },
-        { header: 'Net', headerStyle: { textAlign: 'right' }, cellStyle: { textAlign: 'right' }, render: (r) => <span className="erp-numeric"><strong>{inr(r.netAmount)}</strong></span> },
+        {
+          header: 'Ageing',
+          render: (r) => (
+            <StatusBadge
+              status={r.ageingBucket}
+              label={r.overdueDays ? `${r.overdueDays}d` : undefined}
+            />
+          ),
+        },
+        {
+          header: 'Net',
+          headerStyle: { textAlign: 'right' },
+          cellStyle: { textAlign: 'right' },
+          render: (r) => (
+            <span className="erp-numeric">
+              <strong>{inr(r.netAmount)}</strong>
+            </span>
+          ),
+        },
       ];
     }
     return [];
@@ -254,7 +355,9 @@ const Account360Page = () => {
         <p className="erp-muted">
           Unknown account type “{rawType}”. Expected one of: {VALID_TYPES.join(', ')}.
         </p>
-        <Link to="/erp/accounts" className="erp-link-btn">← Back to Accounts</Link>
+        <Link to="/erp/accounts" className="erp-link-btn">
+          ← Back to Accounts
+        </Link>
       </div>
     );
   }
@@ -262,34 +365,35 @@ const Account360Page = () => {
   const statementTotals = statement.raw || {};
 
   return (
-    <div className="erp-page">
-      <PageHeader
-        title={headLoading ? 'Loading…' : (account?.name || 'Account')}
-        subtitle={`${accountType} account`}
-        breadcrumbs={[
-          { label: 'ERP', to: '/erp' },
-          { label: 'Accounts', to: '/erp/accounts' },
-          { label: account?.name || accountType },
-        ]}
-        actions={(
-          <>
-            <Link to="/erp/accounts" className="erp-btn">
-              <ArrowLeft size={15} /> Accounts
-            </Link>
-            <button type="button" className="erp-btn" onClick={exportStatement}>
-              <Download size={15} /> Statement CSV
-            </button>
-          </>
-        )}
-      />
-
+    <PageShell
+      title={headLoading ? 'Loading…' : account?.name || 'Account'}
+      subtitle={`${accountType} account`}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Accounts', to: '/erp/accounts' },
+        { label: account?.name || accountType },
+      ]}
+      actions={
+        <>
+          <Link to="/erp/accounts" className="erp-btn">
+            <ArrowLeft size={15} /> Accounts
+          </Link>
+          <button type="button" className="erp-btn" onClick={exportStatement}>
+            <Download size={15} /> Statement CSV
+          </button>
+        </>
+      }
+    >
       {/* Header card — balance as Dr/Cr, credit exposure. */}
       <div className="erp-card" style={{ padding: '20px', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
             <div className="erp-stat-label">Balance</div>
-            <div className="erp-stat-value" style={{ fontSize: 30, color: bal?.tone === 'credit' ? '#15803d' : '#1a202c' }}>
-              {headLoading ? '…' : (bal ? bal.text : '—')}
+            <div
+              className="erp-stat-value"
+              style={{ fontSize: 30, color: bal?.tone === 'credit' ? '#15803d' : '#1a202c' }}
+            >
+              {headLoading ? '…' : bal ? bal.text : '—'}
             </div>
             {balance && (
               <div className="erp-stat-sub">
@@ -315,13 +419,24 @@ const Account360Page = () => {
           {creditLimit > 0 && (
             <div style={{ minWidth: 200 }}>
               <div className="erp-stat-label">Credit limit</div>
-              <div style={{ fontSize: 15, fontWeight: 600 }} className="erp-numeric">{inr(creditLimit)}</div>
-              <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
-                <div style={{
-                  width: `${Math.min(100, utilisation || 0)}%`,
-                  height: '100%',
-                  background: overLimit ? '#dc2626' : '#00c896',
+              <div style={{ fontSize: 15, fontWeight: 600 }} className="erp-numeric">
+                {inr(creditLimit)}
+              </div>
+              <div
+                style={{
+                  height: 6,
+                  background: '#f1f5f9',
+                  borderRadius: 3,
+                  marginTop: 8,
+                  overflow: 'hidden',
                 }}
+              >
+                <div
+                  style={{
+                    width: `${Math.min(100, utilisation || 0)}%`,
+                    height: '100%',
+                    background: overLimit ? '#dc2626' : '#00c896',
+                  }}
                 />
               </div>
               <div className="erp-stat-sub" style={{ marginTop: 6 }}>
@@ -356,29 +471,51 @@ const Account360Page = () => {
 
       {tab === 'statement' && (
         <>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 12,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              marginBottom: 14,
+            }}
+          >
             <DateRangeFilter
               value={{ from: statement.params.from, to: statement.params.to }}
               onChange={(r) => statement.setParams({ from: r.from, to: r.to })}
             />
           </div>
 
-          <div className="erp-stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: 16 }}>
+          <div
+            className="erp-stat-grid"
+            style={{
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              marginBottom: 16,
+            }}
+          >
             <div className="erp-stat">
               <div className="erp-stat-label">Opening</div>
-              <div className="erp-stat-value" style={{ fontSize: 18 }}>{drCr(statementTotals.openingBalance || 0).text}</div>
+              <div className="erp-stat-value" style={{ fontSize: 18 }}>
+                {drCr(statementTotals.openingBalance || 0).text}
+              </div>
             </div>
             <div className="erp-stat">
               <div className="erp-stat-label">Period debit</div>
-              <div className="erp-stat-value" style={{ fontSize: 18 }}>{inr(statementTotals.totals?.debit || 0)}</div>
+              <div className="erp-stat-value" style={{ fontSize: 18 }}>
+                {inr(statementTotals.totals?.debit || 0)}
+              </div>
             </div>
             <div className="erp-stat">
               <div className="erp-stat-label">Period credit</div>
-              <div className="erp-stat-value" style={{ fontSize: 18 }}>{inr(statementTotals.totals?.credit || 0)}</div>
+              <div className="erp-stat-value" style={{ fontSize: 18 }}>
+                {inr(statementTotals.totals?.credit || 0)}
+              </div>
             </div>
             <div className="erp-stat">
               <div className="erp-stat-label">Closing</div>
-              <div className="erp-stat-value" style={{ fontSize: 18 }}>{drCr(statementTotals.closingBalance || 0).text}</div>
+              <div className="erp-stat-value" style={{ fontSize: 18 }}>
+                {drCr(statementTotals.closingBalance || 0).text}
+              </div>
             </div>
           </div>
 
@@ -401,9 +538,19 @@ const Account360Page = () => {
             </p>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, flexWrap: 'wrap', gap: 12 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: 12,
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}
+              >
                 <span className="erp-muted">
-                  {num(openItems.rows.length)} open {accountType === 'SUPPLIER' ? 'invoices' : 'bills'}
+                  {num(openItems.rows.length)} open{' '}
+                  {accountType === 'SUPPLIER' ? 'invoices' : 'bills'}
                 </span>
                 <span style={{ fontSize: 15 }}>
                   Total <strong className="erp-numeric">{inr(openTotal)}</strong>
@@ -421,7 +568,7 @@ const Account360Page = () => {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 };
 

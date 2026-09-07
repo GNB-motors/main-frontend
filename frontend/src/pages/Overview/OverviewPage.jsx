@@ -175,6 +175,7 @@ const OverviewPage = () => {
             trips={trips}
             kilometers={kilometers}
             health={health}
+            healthLoading={healthLoading}
             riskMoney={riskMoney}
           />
 

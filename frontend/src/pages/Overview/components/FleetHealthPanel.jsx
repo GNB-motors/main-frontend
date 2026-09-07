@@ -1,5 +1,6 @@
 import { Panel, StatusPill } from './overview.primitives.jsx';
 import EmptyState from '../../../components/cluster/EmptyState';
+import { FleetHealthSkeleton } from './OverviewSkeletons.jsx';
 import { gradeSignal } from '../../../utils/formatters';
 
 const SIGNAL = {
@@ -17,8 +18,20 @@ function ScoreRing({ score = 0, grade = 'D', color }) {
   const pct = Math.max(0, Math.min(100, score)) / 100;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} role="img" aria-label={`Fleet health ${Math.round(score)} of 100, grade ${grade}`}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--hairline)" strokeWidth={stroke} />
+      <svg
+        width={size}
+        height={size}
+        role="img"
+        aria-label={`Fleet health ${Math.round(score)} of 100, grade ${grade}`}
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="var(--hairline)"
+          strokeWidth={stroke}
+        />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -34,7 +47,10 @@ function ScoreRing({ score = 0, grade = 'D', color }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="num text-3xl font-bold leading-none" style={{ color: 'var(--cluster-text)' }}>
+        <span
+          className="num text-3xl font-bold leading-none"
+          style={{ color: 'var(--cluster-text)' }}
+        >
           {Math.round(score)}
         </span>
         <span className="text-dim text-[10px] font-medium">/ 100</span>
@@ -52,13 +68,29 @@ function ComponentBar({ name, comp }) {
   const color = SIGNAL[tone];
   return (
     <div className="flex items-center gap-3" title={comp?.detail || ''}>
-      <span className="w-20 shrink-0 text-xs font-medium capitalize" style={{ color: 'var(--cluster-text-dim)' }}>
+      <span
+        className="w-20 shrink-0 text-xs font-medium capitalize"
+        style={{ color: 'var(--cluster-text-dim)' }}
+      >
         {name}
       </span>
-      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--hairline)' }}>
-        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.max(pct, penalty > 0 ? 6 : 0)}%`, background: color, transition: 'width 0.6s ease' }} />
+      <div
+        className="relative h-1.5 flex-1 overflow-hidden rounded-full"
+        style={{ background: 'var(--hairline)' }}
+      >
+        <div
+          className="absolute inset-y-0 left-0 rounded-full"
+          style={{
+            width: `${Math.max(pct, penalty > 0 ? 6 : 0)}%`,
+            background: color,
+            transition: 'width 0.6s ease',
+          }}
+        />
       </div>
-      <span className="num w-10 shrink-0 text-right text-xs font-semibold" style={{ color: penalty > 0 ? color : 'var(--cluster-text-dim)' }}>
+      <span
+        className="num w-10 shrink-0 text-right text-xs font-semibold"
+        style={{ color: penalty > 0 ? color : 'var(--cluster-text-dim)' }}
+      >
         {penalty > 0 ? `−${Number(penalty).toFixed(1)}` : '0'}
       </span>
     </div>
@@ -81,13 +113,19 @@ export default function FleetHealthPanel({ health, loading, error }) {
     .sort((a, b) => b[1].penalty - a[1].penalty)[0];
 
   return (
-    <Panel eyebrow="Fleet Health" question="How healthy is my fleet?" className="h-full" id="fleet-health">
+    <Panel
+      eyebrow="Fleet Health"
+      question="How healthy is my fleet?"
+      className="h-full"
+      id="fleet-health"
+    >
       {loading && !health ? (
-        <div className="flex h-48 items-center justify-center">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: 'var(--gnb-400)' }} />
-        </div>
+        <FleetHealthSkeleton />
       ) : error && !health ? (
-        <EmptyState title="Health score unavailable" hint="The score computes from telemetry, compliance and mileage — it appears once those pipelines have run." />
+        <EmptyState
+          title="Health score unavailable"
+          hint="The score computes from telemetry, compliance and mileage — it appears once those pipelines have run."
+        />
       ) : (
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-5">
@@ -107,7 +145,10 @@ export default function FleetHealthPanel({ health, loading, error }) {
               </p>
             </div>
           </div>
-          <div className="flex flex-col gap-2.5 border-t pt-4" style={{ borderColor: 'var(--hairline)' }}>
+          <div
+            className="flex flex-col gap-2.5 border-t pt-4"
+            style={{ borderColor: 'var(--hairline)' }}
+          >
             {Object.entries(components).map(([name, comp]) => (
               <ComponentBar key={name} name={name} comp={comp} />
             ))}

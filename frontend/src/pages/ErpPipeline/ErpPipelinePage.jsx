@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import PageHeader from '../../components/Erp/PageHeader';
+import PageShell from '../../components/Erp/PageShell';
 import DeliveryOrdersPage from '../ErpDeliveryOrders/DeliveryOrdersPage';
 import PlacementBoardPage from '../ErpPlacement/PlacementBoardPage';
 import TripDashboardPage from '../ErpTrips/TripDashboardPage';
@@ -22,13 +22,11 @@ const ErpPipelinePage = () => {
   };
 
   return (
-    <div className="erp-page">
-      <PageHeader
-        title="Operations Pipeline"
-        subtitle="Release orders, assign vehicles, and follow every trip to payment"
-        breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Pipeline' }]}
-      />
-
+    <PageShell
+      title="Operations Pipeline"
+      subtitle="Release orders, assign vehicles, and follow every trip to payment"
+      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Pipeline' }]}
+    >
       <div className="erp-toolbar" style={{ marginTop: 0, marginBottom: '20px' }}>
         <div className="erp-tabs" style={{ margin: 0 }}>
           <button
@@ -57,7 +55,7 @@ const ErpPipelinePage = () => {
         {activeTab === 'placement' && <PlacementBoardPage embedded={true} />}
         {activeTab === 'trips' && <TripDashboardPage embedded={true} />}
       </div>
-    </div>
+    </PageShell>
   );
 };
 
