@@ -70,7 +70,12 @@ const TripReportDetailPage = () => {
 
       {/* Main Content - Map Left, Details Right */}
       <div className="trip-detail-body">
-        <TripReportRouteMap startLoc={fields.startLoc} endLoc={fields.endLoc} />
+        <TripReportRouteMap
+          startLoc={fields.startLoc}
+          endLoc={fields.endLoc}
+          vehicleReg={fields.vehicleReg}
+          trip={trip}
+        />
 
         <div className="trip-detail-info-section">
           <TripOverviewCard
