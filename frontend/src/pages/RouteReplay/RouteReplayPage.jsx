@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GoogleMap, useLoadScript, MarkerF, PolylineF } from '@react-google-maps/api';
 import { Play, Pause, RotateCcw, AlertTriangle, Route as RouteIcon, Gauge } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -8,7 +8,11 @@ import PageShell from '../../components/ui/PageShell';
 import useApi from '../../hooks/useApi';
 import apiClient from '../../utils/axiosConfig';
 import { toFrames, replayStats, positionAt, toLatLngPath } from './routeReplay.js';
+import Truck3DErrorBoundary from './truck3d/Truck3DErrorBoundary.jsx';
+import { isWebGLAvailable } from './truck3d/truck3dMaths.js';
 import './RouteReplay.css';
+
+const Truck3DLayer = lazy(() => import('./truck3d/Truck3DLayer.jsx'));
 
 const MAP_STYLE = { width: '100%', height: '540px', borderRadius: '0.75rem' };
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -39,6 +43,7 @@ const fmtDuration = (ms) => {
 const RouteReplayPage = () => {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const mapRef = useRef(null);
+  const [map, setMap] = useState(null);
 
   const [reg, setReg] = useState('');
   const [from, setFrom] = useState(dayjs().subtract(7, 'day').format('YYYY-MM-DD'));
@@ -68,6 +73,11 @@ const RouteReplayPage = () => {
   const stats = useMemo(() => replayStats(frames), [frames]);
   const path = useMemo(() => toLatLngPath(frames), [frames]);
   const head = useMemo(() => positionAt(frames, progress), [frames, progress]);
+
+  // 3-D truck state: only attempted when WebGL exists; the 2-D heading marker
+  // stays mounted until the model is actually standing on the map.
+  const webglOk = useMemo(() => isWebGLAvailable(), []);
+  const [truckReady, setTruckReady] = useState(false);
 
   const loadTrail = useCallback(async () => {
     if (!reg) return;
@@ -148,6 +158,7 @@ const RouteReplayPage = () => {
       title="Route Replay"
       subtitle="Play back the ground a vehicle actually covered — distance and speed measured from the breadcrumb trail, not from a plan"
       count={stats.pointCount || null}
+      footer="3D truck: Indian Truck by AFJAL ANSARI (CC-BY)"
       filters={
         <div className="rr-filters">
           <label className="rr-field">
@@ -294,8 +305,9 @@ const RouteReplayPage = () => {
           mapContainerStyle={MAP_STYLE}
           center={path[0] || INDIA_CENTER}
           zoom={path.length ? 9 : 5}
-          onLoad={(map) => {
-            mapRef.current = map;
+          onLoad={(m) => {
+            mapRef.current = m;
+            setMap(m);
           }}
           options={{ streetViewControl: false, mapTypeControl: false }}
         >
@@ -317,10 +329,18 @@ const RouteReplayPage = () => {
               />
             </>
           )}
-          {head && (
+          {head && !truckReady && (
             <MarkerF position={{ lat: head.lat, lng: head.lng }} icon={truckIcon} zIndex={99} />
           )}
         </GoogleMap>
+      )}
+
+      {webglOk && map && head && (
+        <Truck3DErrorBoundary>
+          <Suspense fallback={null}>
+            <Truck3DLayer map={map} head={head} onReady={() => setTruckReady(true)} />
+          </Suspense>
+        </Truck3DErrorBoundary>
       )}
     </PageShell>
   );

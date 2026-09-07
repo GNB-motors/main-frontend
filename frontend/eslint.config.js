@@ -13,7 +13,8 @@ export default defineConfig([
   // quarantine/ holds unreachable pages kept for recovery, not for shipping —
   // outside src/ so Vite never bundles them, and ignored here so dead code can't
   // fail the gate. See quarantine/README.md.
-  globalIgnores(['dist', 'Design', 'amitansu-handoff', 'quarantine']),
+  // public/draco/ is the vendored Draco decoder (served verbatim, never bundled).
+  globalIgnores(['dist', 'Design', 'amitansu-handoff', 'quarantine', 'public/draco']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
