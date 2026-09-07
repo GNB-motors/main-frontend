@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Bell, Fuel, Wrench, CalendarClock, RefreshCw } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import OwnerValueService from '../../services/OwnerValueService';
@@ -6,14 +7,14 @@ import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import PageShell from '../../components/ui/PageShell';
-import { formatInrCompact, formatNum } from '../../utils/formatters';
+import { formatInrCompact, formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateLongIST } from '../../utils/dateUtils';
 import {
   startOfTodayIST,
   buildActionItems,
   buildActivityItems,
   buildUpcomingItems,
-  nextServiceLabel,
+  summarizeActionSeverity,
 } from './dailyDigestLogic';
 import {
   SectionHeader,
@@ -27,7 +28,7 @@ import {
 /**
  * DailyDigest — "Here is the current state of my fleet, what needs my attention,
  * and what to do next." Composed entirely from existing endpoints; every item
- * links to its evidence. Priority: Action required → Overview → Activity → Upcoming.
+ * links to its evidence. Priority: Needs attention → Overview → Activity → Upcoming.
  */
 export default function DailyDigestPage() {
   const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -50,6 +51,17 @@ export default function DailyDigestPage() {
   const loading =
     money$.loading || compliance$.loading || downtime$.loading || alerts$.loading || fuel$.loading;
 
+  const [lastUpdated, setLastUpdated] = useState(() => Date.now());
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (!loading) setLastUpdated(Date.now());
+  }, [loading]);
+  // Re-render every 30s purely so the "Updated Xm ago" text stays current.
+  useEffect(() => {
+    const id = setInterval(() => forceTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleRefresh = () => {
     [money$, compliance$, downtime$, alerts$, fuel$, fleetAlerts$].forEach((h) => h.refetch?.());
   };
@@ -57,6 +69,7 @@ export default function DailyDigestPage() {
   const m = money?.money;
   const documents = compliance?.documents || [];
   const serviceVehicles = downtime?.vehicles || [];
+  const overdueCount = serviceVehicles.filter((v) => v.risk === 'OVERDUE').length;
 
   const actions = buildActionItems({
     totals: fuelSummary?.totals,
@@ -68,7 +81,6 @@ export default function DailyDigestPage() {
   });
   const activity = buildActivityItems(m);
   const upcoming = buildUpcomingItems({ serviceVehicles, documents });
-  const { nextSvc, label: nextSvcLabel } = nextServiceLabel(serviceVehicles);
 
   return (
     <PageShell
@@ -76,11 +88,13 @@ export default function DailyDigestPage() {
       subtitle={`${formatDateLongIST(todayIST)} · Your fleet at a glance`}
       actions={
         <button
-          className="ov-btn self-start sm:self-auto"
+          className="text-dim flex items-center gap-1.5 self-start text-xs sm:self-auto"
           onClick={handleRefresh}
           disabled={loading}
+          title="Refresh"
         >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+          Updated {timeAgo(lastUpdated)}
         </button>
       }
     >
@@ -111,9 +125,9 @@ export default function DailyDigestPage() {
                 />
                 <KpiCard
                   icon={Bell}
-                  label={actions.length === 1 ? 'Alert' : 'Alerts'}
+                  label="Needs attention"
                   value={formatNum(actions.length)}
-                  sub="Needs review"
+                  sub={summarizeActionSeverity(actions)}
                   to="/owner-alerts"
                   accent="var(--critical)"
                   emphasis={actions.length > 0}
@@ -122,31 +136,32 @@ export default function DailyDigestPage() {
                   icon={CalendarClock}
                   label="Upcoming"
                   value={formatNum(upcoming.length)}
-                  sub="Service & docs"
+                  sub="Next 14 days"
                   accent="var(--caution)"
                   emphasis={upcoming.length > 0}
                 />
                 <KpiCard
                   icon={Wrench}
-                  label="Next service"
-                  value={nextSvcLabel}
-                  sub={nextSvc != null && nextSvc < 0 ? 'Overdue' : 'Due soon'}
-                  accent="var(--caution)"
-                  emphasis={nextSvc != null && nextSvc < 3}
+                  label="Overdue service"
+                  value={formatNum(overdueCount)}
+                  sub={overdueCount > 0 ? 'Needs immediate action' : 'None overdue'}
+                  to="/vehicles/service-intelligence"
+                  accent="var(--critical)"
+                  emphasis={overdueCount > 0}
                 />
               </div>
             </section>
 
             <section className="mt-8">
               <SectionHeader
-                label="Action required"
+                label="Needs your attention"
                 count={actions.length}
                 countTone={actions.length ? 'var(--critical)' : undefined}
               />
               {actions.length === 0 ? (
                 <SectionEmpty
                   title="You're all caught up"
-                  hint="No issues require your attention today."
+                  hint="No critical issues need your attention today — everything is operating normally."
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -158,7 +173,7 @@ export default function DailyDigestPage() {
             </section>
 
             <section className="mt-8">
-              <SectionHeader label="Today" />
+              <SectionHeader label="Today's operations" />
               {activity.length === 0 ? (
                 <SectionEmpty
                   icon={Fuel}

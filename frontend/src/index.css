@@ -162,7 +162,7 @@ body {
 
 body {
   font-family: 'Montserrat', sans-serif;
-  background-color: #f1f5f9;
+  background-color: #ffffff;
   color: var(--color-grey-700);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -514,27 +514,23 @@ body {
   --font-cluster-display: 'Archivo', 'Space Grotesk', 'DM Sans', sans-serif;
 
   /* ── Design system (Application Shell canvas, 2026-09-06) ───────────
-       Brand orange is an ACCENT, not a surface. The canvas floods the nav
-       rail with #EE6126 under a .38 near-black scrim, which composites to
-       #9B411A — the "weirdly dark" maroon rail. We do not port that scrim.
-       Instead the rail stays neutral and orange appears only on the active
-       item, the logo and the mode indicator (owner decision, 2026-09-06).
+       Brand accent is BLUE, not a surface. The rail stays neutral and the
+       accent appears only on the active item, the logo and the mode
+       indicator (owner decision, 2026-09-06). --orange and --erp were
+       unified to the same blue on 2026-09-07 so the accent no longer
+       changes between fleet and ERP routes.
 
-       Why two oranges: #EE6126 on white is ~3.4:1 — fine for a 3px edge or
-       a chip, but it FAILS AA for body text. --accent-ink (#B8460F, ~5.8:1)
-       is the one to use for orange text and icons. Never set label text in
-       --orange on a light surface.
-
-       Orange also sits between --critical (#D13A40) and --caution (#D98E13)
-       in hue. Brand must never out-shout the two colours that mean a truck
-       needs attention, which is the functional reason the rail is neutral.
+       Why two tokens (--orange / --accent-ink): #1E3A8A on white is
+       ~10.3:1, comfortably AA/AAA for both a 3px edge/chip and body text,
+       but --accent-ink stays the dedicated ink token so label text never
+       reads directly off the edge/chip token.
        ─────────────────────────────────────────────────────────────────── */
-  --orange: #ee6126; /* brand accent: edges, chips, logo mark   */
-  --orange-solid: #b8460f; /* solid fills that carry white text       */
-  --orange-hover: #9e3b0b;
-  --orange-active: #86320a; /* pressed state of solid orange fills     */
-  --orange-tint: #fdf1eb; /* active-item background                  */
-  --accent-ink: #b8460f; /* orange TEXT and icons — AA on white     */
+  --orange: #1e3a8a; /* brand accent: edges, chips, logo mark   */
+  --orange-solid: #16296b; /* solid fills that carry white text       */
+  --orange-hover: #1a2f78;
+  --orange-active: #122559; /* pressed state of solid accent fills     */
+  --orange-tint: #eef2fb; /* active-item background                  */
+  --accent-ink: #16296b; /* accent TEXT and icons — AA on white      */
 
   --erp: #1e3a8a; /* ERP mode accent; mirrors orange exactly */
   --erp-tint: #eef2fb;

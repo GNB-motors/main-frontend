@@ -9,6 +9,12 @@ import { SEV } from './dailyDigestLogic';
  * never both (rule 15).
  */
 
+// .ov-panel/.ov-kpi already carry a 1px border, but --hairline is only ~10-12%
+// opacity — too faint for a scan-heavy digest where an odd card in a grid
+// needs to read as its own bounded block. Scoped to these cards only; the
+// shared --hairline token stays untouched for the other 48 pages built on it.
+const CARD_BORDER = '1px solid color-mix(in srgb, var(--cluster-text) 16%, transparent)';
+
 export function SeverityPill({ sev }) {
   const s = SEV[sev] || SEV.MEDIUM;
   return <span className={`ov-pill ov-pill--${s.tone}`}>{sev}</span>;
@@ -45,11 +51,13 @@ export function KpiCard(props) {
     </>
   );
   return to ? (
-    <Link to={to} className="ov-kpi">
+    <Link to={to} className="ov-kpi" style={{ border: CARD_BORDER }}>
       {body}
     </Link>
   ) : (
-    <div className="ov-kpi">{body}</div>
+    <div className="ov-kpi" style={{ border: CARD_BORDER }}>
+      {body}
+    </div>
   );
 }
 
@@ -57,7 +65,10 @@ export function ActionCard({ item }) {
   const s = SEV[item.sev] || SEV.MEDIUM;
   const Icon = item.icon || Bell;
   return (
-    <div className="ov-panel p-4" style={{ borderLeft: `3px solid ${s.color}` }}>
+    <div
+      className="ov-panel p-4"
+      style={{ border: CARD_BORDER, borderLeft: `3px solid ${s.color}` }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span
@@ -91,7 +102,11 @@ export function ActionCard({ item }) {
 export function ActivityCard({ item }) {
   const Icon = item.icon || Fuel;
   return (
-    <Link to={item.to} className="ov-panel group flex items-center gap-4 p-4">
+    <Link
+      to={item.to}
+      className="ov-panel group flex items-center gap-4 p-4"
+      style={{ border: CARD_BORDER }}
+    >
       <span
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
         style={{
@@ -127,7 +142,11 @@ export function ActivityCard({ item }) {
 export function UpcomingRow({ item }) {
   const Icon = item.icon || Wrench;
   return (
-    <Link to={item.to} className="ov-panel group flex items-center gap-3 px-4 py-3">
+    <Link
+      to={item.to}
+      className="ov-panel group flex items-center gap-3 px-4 py-3"
+      style={{ border: CARD_BORDER }}
+    >
       <span
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
         style={{
@@ -151,7 +170,7 @@ export function UpcomingRow({ item }) {
 export function SectionEmpty(props) {
   const { icon: Icon = CheckCircle2, title, hint } = props;
   return (
-    <div className="ov-panel flex items-center gap-3 p-4">
+    <div className="ov-panel flex items-center gap-3 p-4" style={{ border: CARD_BORDER }}>
       <span
         className="flex h-9 w-9 items-center justify-center rounded-lg"
         style={{ background: 'color-mix(in srgb, var(--ok) 12%, transparent)', color: 'var(--ok)' }}

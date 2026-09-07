@@ -17,12 +17,20 @@ export function startOfTodayIST() {
   return new Date(istNow.getTime() - 5.5 * 3600 * 1000).toISOString();
 }
 
+// HIGH shares the --caution tone with MEDIUM (not --critical) so red stays
+// reserved for genuinely CRITICAL items — the design system only defines
+// ok/caution/critical/inert, so severity within a tone is told apart by the
+// SeverityPill text, not a 5th colour.
 export const SEV = {
   CRITICAL: { rank: 3, tone: 'critical', color: 'var(--critical)' },
-  HIGH: { rank: 2, tone: 'critical', color: 'var(--critical)' },
+  HIGH: { rank: 2, tone: 'caution', color: 'var(--caution)' },
   MEDIUM: { rank: 1, tone: 'caution', color: 'var(--caution)' },
   LOW: { rank: 0, tone: 'inert', color: 'var(--inert)' },
 };
+
+// Above this many same-type items, collapse them into one grouped card
+// instead of one card per item — keeps the section bounded as fleet size grows.
+export const GROUP_THRESHOLD = 3;
 
 // Owner-alert type → { severity, title, icon }
 export const ALERT_META = {
@@ -86,24 +94,47 @@ export function buildActionItems({
     });
   }
 
-  // Owner alerts (unacknowledged)
+  // Owner alerts (unacknowledged), grouped per alert type once a type grows large
   const unack = alerts?.records?.filter((a) => !a.acknowledged) || [];
-  for (const a of unack.slice(0, 6)) {
+  const alertGroups = new Map();
+  for (const a of unack) {
     const meta = ALERT_META[a.type] || {
       sev: 'MEDIUM',
       title: ALERT_TYPE_LABELS[a.type] || a.type,
       icon: Bell,
     };
-    actions.push({
-      id: `alert-${a.id}`,
-      sev: meta.sev,
-      icon: meta.icon,
-      title: meta.title,
-      desc: cleanMsg(a.message) || meta.title,
-      meta: a.at ? `Detected ${formatDateIST(a.at)}` : null,
-      to: a.vehicleNumber ? `/vehicles/${encodeURIComponent(a.vehicleNumber)}` : '/owner-alerts',
-      cta: a.vehicleNumber ? 'Review vehicle' : 'Review alert',
-    });
+    if (!alertGroups.has(a.type)) alertGroups.set(a.type, { meta, records: [] });
+    alertGroups.get(a.type).records.push(a);
+  }
+  for (const { meta, records } of alertGroups.values()) {
+    if (records.length > GROUP_THRESHOLD) {
+      const vehicles = records.map((a) => a.vehicleNumber).filter(Boolean);
+      const sample = vehicles.slice(0, 3).join(', ');
+      actions.push({
+        id: `alert-group-${records[0].type}`,
+        sev: meta.sev,
+        icon: meta.icon,
+        title: meta.title,
+        desc: `${formatNum(records.length)} vehicles affected${sample ? ` — including ${sample}${vehicles.length > 3 ? ' and more' : ''}` : ''}.`,
+        to: '/owner-alerts',
+        cta: 'Review alerts',
+      });
+    } else {
+      for (const a of records) {
+        actions.push({
+          id: `alert-${a.id}`,
+          sev: meta.sev,
+          icon: meta.icon,
+          title: meta.title,
+          desc: cleanMsg(a.message) || meta.title,
+          meta: a.at ? `Detected ${formatDateIST(a.at)}` : null,
+          to: a.vehicleNumber
+            ? `/vehicles/${encodeURIComponent(a.vehicleNumber)}`
+            : '/owner-alerts',
+          cta: a.vehicleNumber ? 'Review vehicle' : 'Review alert',
+        });
+      }
+    }
   }
 
   // Native FleetEdge critical alerts
@@ -121,30 +152,60 @@ export function buildActionItems({
     });
   }
 
-  // Expired documents
-  for (const d of (documents || []).filter((x) => x.daysLeft < 0).slice(0, 4)) {
+  // Expired documents — grouped once more than GROUP_THRESHOLD are expired
+  const expiredDocs = (documents || []).filter((x) => x.daysLeft < 0);
+  if (expiredDocs.length > GROUP_THRESHOLD) {
+    const sample = expiredDocs.slice(0, 3).map((d) => d.registrationNumber);
     actions.push({
-      id: `doc-${d.registrationNumber}-${d.docType}`,
+      id: 'doc-group',
       sev: 'HIGH',
       icon: FileWarning,
-      title: `${d.docType} expired`,
-      desc: `${d.registrationNumber} — ${d.docType} expired ${formatNum(-d.daysLeft)} days ago.`,
+      title: 'Documents expired',
+      desc: `${formatNum(expiredDocs.length)} vehicle documents have expired, including ${sample.join(', ')}${expiredDocs.length > sample.length ? ' and more' : ''}.`,
       to: '/compliance',
-      cta: 'Review document',
+      cta: 'Review documents',
     });
+  } else {
+    for (const d of expiredDocs) {
+      actions.push({
+        id: `doc-${d.registrationNumber}-${d.docType}`,
+        sev: 'HIGH',
+        icon: FileWarning,
+        title: `${d.docType} expired`,
+        desc: `${d.registrationNumber} — ${d.docType} expired ${formatNum(-d.daysLeft)} days ago.`,
+        to: '/compliance',
+        cta: 'Review document',
+      });
+    }
   }
 
-  // Overdue service
-  for (const v of (serviceVehicles || []).filter((x) => x.risk === 'OVERDUE').slice(0, 3)) {
+  // Overdue service — grouped once more than GROUP_THRESHOLD vehicles are overdue
+  const overdueVehicles = (serviceVehicles || []).filter((x) => x.risk === 'OVERDUE');
+  if (overdueVehicles.length > GROUP_THRESHOLD) {
+    const worst = [...overdueVehicles].sort(
+      (a, b) => (a.daysUntilDue ?? 0) - (b.daysUntilDue ?? 0),
+    )[0];
     actions.push({
-      id: `svc-${v.registrationNumber}`,
+      id: 'svc-group',
       sev: 'HIGH',
       icon: Wrench,
       title: 'Service overdue',
-      desc: `${v.registrationNumber} is overdue for service by ${formatNum(Math.abs(v.daysUntilDue ?? 0))} days.`,
-      to: `/vehicles/${encodeURIComponent(v.registrationNumber)}`,
-      cta: 'Review vehicle',
+      desc: `${formatNum(overdueVehicles.length)} vehicles are overdue for service — worst is ${worst.registrationNumber} at ${formatNum(Math.abs(worst.daysUntilDue ?? 0))} days.`,
+      to: '/vehicles/service-intelligence',
+      cta: 'Review maintenance',
     });
+  } else {
+    for (const v of overdueVehicles) {
+      actions.push({
+        id: `svc-${v.registrationNumber}`,
+        sev: 'HIGH',
+        icon: Wrench,
+        title: 'Service overdue',
+        desc: `${v.registrationNumber} is overdue for service by ${formatNum(Math.abs(v.daysUntilDue ?? 0))} days.`,
+        to: `/vehicles/${encodeURIComponent(v.registrationNumber)}`,
+        cta: 'Review vehicle',
+      });
+    }
   }
 
   actions.sort((a, b) => (SEV[b.sev]?.rank || 0) - (SEV[a.sev]?.rank || 0));
@@ -209,11 +270,12 @@ export function buildUpcomingItems({ serviceVehicles, documents }) {
   return upcoming;
 }
 
-export function nextServiceLabel(serviceVehicles) {
-  const nextSvc = (serviceVehicles || [])
-    .map((v) => v.daysUntilDue)
-    .filter((n) => n != null)
-    .sort((a, b) => a - b)[0];
-  const label = nextSvc == null ? '—' : nextSvc < 0 ? 'Overdue' : `${formatNum(nextSvc)} days`;
-  return { nextSvc, label };
+// Breakdown for the "Needs your attention" KPI sub-line, e.g. "2 critical · 1 to review".
+export function summarizeActionSeverity(actions) {
+  const critical = actions.filter((a) => a.sev === 'CRITICAL').length;
+  const rest = actions.length - critical;
+  if (actions.length === 0) return 'All clear';
+  if (critical === 0) return `${formatNum(rest)} to review`;
+  if (rest === 0) return `${formatNum(critical)} critical`;
+  return `${formatNum(critical)} critical · ${formatNum(rest)} to review`;
 }
