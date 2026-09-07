@@ -26,6 +26,8 @@ import {
  *     showing={rows.length} total={pagination?.totalCount ?? rows.length}
  *     activeFilters={2}
  *     onRowClick={(row) => navigate(`/trips/${row._id}`)}
+ *     onRowMouseEnter={(row) => setHoveredId(row._id)}
+ *     onRowMouseLeave={() => setHoveredId(null)}
  *     rowClassName={(row) => row._id === selectedId ? 'dt-row--selected' : ''}
  *     emptyTitle="No trips in this window" emptyHint="Widen the date range." emptyAction={...}
  *   />
@@ -49,6 +51,8 @@ export default function DataTable({
   emptyHint = null,
   emptyAction = null,
   onRowClick = null,
+  onRowMouseEnter = null,
+  onRowMouseLeave = null,
   className = '',
 }) {
   const [hidden, setHidden] = useState(() => new Set());
@@ -183,6 +187,8 @@ export default function DataTable({
                       key={rowKey(row, i)}
                       className={`dt-row${extra ? ` ${extra}` : ''}`}
                       onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                      onMouseEnter={onRowMouseEnter ? () => onRowMouseEnter(row, i) : undefined}
+                      onMouseLeave={onRowMouseLeave ? () => onRowMouseLeave(row, i) : undefined}
                       style={onRowClick ? { cursor: 'pointer' } : undefined}
                     >
                       {cols.map((col) => (

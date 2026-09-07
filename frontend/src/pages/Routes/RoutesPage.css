@@ -738,10 +738,10 @@
 }
 
 .location-section {
-  background: var(--core-morning-fog-solids-morning-fog-900, #F8F8FB);
+  background: var(--core-morning-fog-solids-morning-fog-900, #f8f8fb);
   box-shadow: 2px 2px 0px white inset;
   border-radius: 24px;
-  outline: 1px var(--core-morning-fog-solids-morning-fog-700, #DFDFE2) solid;
+  outline: 1px var(--core-morning-fog-solids-morning-fog-700, #dfdfe2) solid;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -802,7 +802,7 @@
 }
 
 .location-grid .form-group label {
-  color: var(--alias-type-type-secondary, #5D5D5E);
+  color: var(--alias-type-type-secondary, #5d5d5e);
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
@@ -814,14 +814,16 @@
   padding: 12px 16px;
   background: var(--core-semantics-universal-white, white);
   border-radius: 8px;
-  border: 1px solid var(--core-morning-fog-solids-morning-fog-700, #DFDFE2);
+  border: 1px solid var(--core-morning-fog-solids-morning-fog-700, #dfdfe2);
   color: var(--alias-type-type-primary, #121214);
   font-size: 16px;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   line-height: 24px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
 }
 
@@ -1019,4 +1021,13 @@
   .delete-modal-actions .btn {
     width: 100%;
   }
+}
+
+/* Map panel above the routes list — one path per route with captured geometry */
+.routes-map-panel {
+  margin-bottom: 16px;
+}
+
+.routes-map-panel > div {
+  border: 1px solid #e2e8f0;
 }

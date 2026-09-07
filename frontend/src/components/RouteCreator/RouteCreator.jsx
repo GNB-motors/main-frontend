@@ -5,6 +5,7 @@ import SearchableDropdown from '../SearchableDropdown/SearchableDropdown';
 import GoogleMapsModal from '../GoogleMapsModal/GoogleMapsModal';
 import { useLoadScript } from '@react-google-maps/api';
 import { toast } from 'react-toastify';
+import { buildRouteGeometry } from './routeGeometry';
 import './RouteCreator.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
@@ -15,16 +16,25 @@ const DeleteLocationModal = ({ isOpen, onClose, onConfirm, location, isLoading: 
 
   return (
     <div className="location-delete-modal-overlay" role="presentation" onClick={onClose}>
-      <div className="location-delete-modal-content" role="presentation" onClick={e => e.stopPropagation()}>
+      <div
+        className="location-delete-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="location-delete-modal-header">
           <h4>Delete Location</h4>
-          <button onClick={onClose} className="location-delete-modal-close-btn">&times;</button>
+          <button onClick={onClose} className="location-delete-modal-close-btn">
+            &times;
+          </button>
         </div>
 
         <div className="location-delete-content">
           <div className="location-delete-warning">
             <div className="location-delete-warning-icon">⚠️</div>
-            <p>This action cannot be undone. The location will be permanently removed from the system.</p>
+            <p>
+              This action cannot be undone. The location will be permanently removed from the
+              system.
+            </p>
           </div>
 
           <div className="location-delete-location-info">
@@ -65,7 +75,7 @@ const RouteCreator = ({
   routeData = {},
   tripType = 'PICKUP_DROP',
   onRouteUpdate,
-  onTripTypeChange
+  onTripTypeChange,
 }) => {
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
   const [currentLocationType, setCurrentLocationType] = useState(null);
@@ -136,7 +146,7 @@ const RouteCreator = ({
         lng: locationData.lng,
         city: locationData.city || '',
         state: locationData.state || '',
-      }
+      },
     };
 
     if (onRouteUpdate && typeof onRouteUpdate === 'function') {
@@ -161,18 +171,20 @@ const RouteCreator = ({
         },
         (predictions, status) => {
           if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-            setPredictions(predictions.map(p => ({
-              ...p,
-              name: p.description, // Map description to name for SearchableDropdown
-              isPrediction: true,
-            })));
+            setPredictions(
+              predictions.map((p) => ({
+                ...p,
+                name: p.description, // Map description to name for SearchableDropdown
+                isPrediction: true,
+              })),
+            );
           } else {
             setPredictions([]);
           }
-        }
+        },
       );
     } catch (error) {
-      console.error("Error fetching predictions:", error);
+      console.error('Error fetching predictions:', error);
       setPredictions([]);
     }
   };
@@ -200,7 +212,7 @@ const RouteCreator = ({
         let state = '';
         let pincode = '';
 
-        results.address_components?.forEach(component => {
+        results.address_components?.forEach((component) => {
           if (component.types.includes('locality')) city = component.long_name;
           if (component.types.includes('administrative_area_level_1')) state = component.long_name;
           if (component.types.includes('postal_code')) pincode = component.long_name;
@@ -220,11 +232,11 @@ const RouteCreator = ({
           state,
           pincode,
           lat,
-          lng
+          lng,
         });
 
         // Add to options and select
-        setLocationOptions(prev => [...prev, newLocation]);
+        setLocationOptions((prev) => [...prev, newLocation]);
 
         updateRouteData(locationType, newLocation);
 
@@ -233,10 +245,9 @@ const RouteCreator = ({
           sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
         }
         setPredictions([]);
-
       } catch (error) {
-        console.error("Error processing location prediction:", error);
-        toast.error("Failed to fetch details for the selected location.");
+        console.error('Error processing location prediction:', error);
+        toast.error('Failed to fetch details for the selected location.');
       }
     } else {
       // Handle Existing Location Selection
@@ -267,7 +278,7 @@ const RouteCreator = ({
         city: locObj.city,
         state: locObj.state,
         id: locObj._id || locObj.id,
-      }
+      },
     };
     if (onRouteUpdate && typeof onRouteUpdate === 'function') {
       onRouteUpdate(updates);
@@ -300,7 +311,7 @@ const RouteCreator = ({
         lng: locationData.lng,
       };
       const created = await createLocation(payload);
-      setLocationOptions(prev => [...prev, created]);
+      setLocationOptions((prev) => [...prev, created]);
       updateRouteData(currentLocationType, created);
     } catch {
       toast.error('Failed to add location. Please try again.');
@@ -339,7 +350,7 @@ const RouteCreator = ({
     }
   };
 
-  const handleDistanceChange = (baseDistance) => {
+  const handleDistanceChange = (baseDistance, geometry) => {
     const multiplier = tripType === 'ROUND_TRIP' ? 2 : 1;
     const actualDistance = baseDistance * multiplier;
 
@@ -348,6 +359,9 @@ const RouteCreator = ({
       baseDistanceKm: parseFloat(baseDistance) || 0,
       actualDistanceKm: actualDistance,
     };
+    if (geometry !== undefined) {
+      updates.geometry = geometry;
+    }
 
     if (onRouteUpdate && typeof onRouteUpdate === 'function') {
       onRouteUpdate(updates);
@@ -373,51 +387,73 @@ const RouteCreator = ({
 
   // Calculate distance when both source and destination are set
   useEffect(() => {
+    const dropStaleGeometry = () => {
+      if (routeData.geometry && onRouteUpdate && typeof onRouteUpdate === 'function') {
+        onRouteUpdate({ ...routeData, geometry: null });
+      }
+    };
+
     const calculateDistance = async () => {
       const source = routeData.sourceLocation;
       const dest = routeData.destLocation;
 
-      if (source?.lat && source?.lng && dest?.lat && dest?.lng && window.google?.maps?.DirectionsService) {
-        setIsCalculatingDistance(true);
-        try {
-          const directionsService = new window.google.maps.DirectionsService();
-          const results = await new Promise((resolve, reject) => {
-            directionsService.route(
-              {
-                origin: { lat: source.lat, lng: source.lng },
-                destination: { lat: dest.lat, lng: dest.lng },
-                travelMode: window.google.maps.TravelMode.DRIVING,
-              },
-              (result, status) => {
-                if (status === window.google.maps.DirectionsStatus.OK) {
-                  resolve(result);
-                } else {
-                  reject(status);
-                }
-              }
-            );
-          });
+      if (!(source?.lat && source?.lng && dest?.lat && dest?.lng)) {
+        dropStaleGeometry();
+        return;
+      }
 
-          if (results.routes && results.routes[0] && results.routes[0].legs && results.routes[0].legs[0]) {
-            const distanceMeters = results.routes[0].legs[0].distance.value;
-            const distanceKm = (distanceMeters / 1000).toFixed(1);
-            handleDistanceChange(distanceKm);
-          }
-        } catch (error) {
-          console.error("Error calculating routes distance:", error);
-        } finally {
-          setIsCalculatingDistance(false);
+      if (!window.google?.maps?.DirectionsService) return;
+
+      setIsCalculatingDistance(true);
+      try {
+        const directionsService = new window.google.maps.DirectionsService();
+        const results = await new Promise((resolve, reject) => {
+          directionsService.route(
+            {
+              origin: { lat: source.lat, lng: source.lng },
+              destination: { lat: dest.lat, lng: dest.lng },
+              travelMode: window.google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+              if (status === window.google.maps.DirectionsStatus.OK) {
+                resolve(result);
+              } else {
+                reject(status);
+              }
+            },
+          );
+        });
+
+        const route = results.routes?.[0];
+        const distanceMeters = route?.legs?.[0]?.distance?.value;
+        if (route && distanceMeters != null) {
+          const distanceKm = (distanceMeters / 1000).toFixed(1);
+          handleDistanceChange(distanceKm, buildRouteGeometry(route, { distanceMeters }));
+        } else {
+          dropStaleGeometry();
         }
+      } catch (error) {
+        console.error('Error calculating routes distance:', error);
+        dropStaleGeometry();
+      } finally {
+        setIsCalculatingDistance(false);
       }
     };
 
     calculateDistance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeData.sourceLocation?.lat, routeData.sourceLocation?.lng, routeData.destLocation?.lat, routeData.destLocation?.lng]);
+  }, [
+    routeData.sourceLocation?.lat,
+    routeData.sourceLocation?.lng,
+    routeData.destLocation?.lat,
+    routeData.destLocation?.lng,
+  ]);
 
   // Merge saved locations with predictions
   const getOptions = (type) => {
-    const saved = locationOptions.filter(l => l.type === (type === 'source' ? 'SOURCE' : 'DESTINATION'));
+    const saved = locationOptions.filter(
+      (l) => l.type === (type === 'source' ? 'SOURCE' : 'DESTINATION'),
+    );
     return [...predictions, ...saved];
   };
 
@@ -456,9 +492,13 @@ const RouteCreator = ({
               selectedOption={routeData.sourceLocation?.address || ''}
               onSelect={(location) => handleLocationDropdownSelect('source', location)}
               onSearchChange={handleSearchChange}
-              onRequestAddNew={(searchTerm, clearSearch) => handleRequestAddNew('source', clearSearch)}
+              onRequestAddNew={(searchTerm, clearSearch) =>
+                handleRequestAddNew('source', clearSearch)
+              }
               onDeleteOption={handleDeleteLocation}
-              placeholder={loadingLocations ? 'Loading...' : 'Select source location or search Google Maps'}
+              placeholder={
+                loadingLocations ? 'Loading...' : 'Select source location or search Google Maps'
+              }
               addNewLabel="Add new location"
             />
           </div>
@@ -467,15 +507,22 @@ const RouteCreator = ({
             onClick={() => handleRequestAddNew('source')}
             className="map-select-btn"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                fill="currentColor"
+              />
             </svg>
           </button>
         </div>
         {routeData.sourceLocation?.city && (
-          <small className="location-details">
-            {routeData.sourceLocation.city}
-          </small>
+          <small className="location-details">{routeData.sourceLocation.city}</small>
         )}
       </div>
 
@@ -489,9 +536,15 @@ const RouteCreator = ({
               selectedOption={routeData.destLocation?.address || ''}
               onSelect={(location) => handleLocationDropdownSelect('dest', location)}
               onSearchChange={handleSearchChange}
-              onRequestAddNew={(searchTerm, clearSearch) => handleRequestAddNew('dest', clearSearch)}
+              onRequestAddNew={(searchTerm, clearSearch) =>
+                handleRequestAddNew('dest', clearSearch)
+              }
               onDeleteOption={handleDeleteLocation}
-              placeholder={loadingLocations ? 'Loading...' : 'Select destination location or search Google Maps'}
+              placeholder={
+                loadingLocations
+                  ? 'Loading...'
+                  : 'Select destination location or search Google Maps'
+              }
               addNewLabel="Add new location"
             />
           </div>
@@ -500,15 +553,22 @@ const RouteCreator = ({
             onClick={() => handleRequestAddNew('dest')}
             className="map-select-btn"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                fill="currentColor"
+              />
             </svg>
           </button>
         </div>
         {routeData.destLocation?.city && (
-          <small className="location-details">
-            {routeData.destLocation.city}
-          </small>
+          <small className="location-details">{routeData.destLocation.city}</small>
         )}
       </div>
 
@@ -537,8 +597,7 @@ const RouteCreator = ({
         <small className="distance-calculation">
           {tripType === 'ROUND_TRIP'
             ? `Total Distance: ${(routeData.actualDistanceKm || 0).toFixed(1)} km (2x base distance)`
-            : `Total Distance: ${(routeData.actualDistanceKm || 0).toFixed(1)} km`
-          }
+            : `Total Distance: ${(routeData.actualDistanceKm || 0).toFixed(1)} km`}
         </small>
       </div>
 
@@ -550,9 +609,10 @@ const RouteCreator = ({
             setIsMapsModalOpen(false);
             setIsAddingLocation(false);
           }}
-          onApply={isAddingLocation
-            ? handleMapAddNewLocation
-            : (locationData) => handleLocationSelect(currentLocationType, locationData)
+          onApply={
+            isAddingLocation
+              ? handleMapAddNewLocation
+              : (locationData) => handleLocationSelect(currentLocationType, locationData)
           }
           initialLocation={routeData[`${currentLocationType}Location`]}
         />

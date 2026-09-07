@@ -7,13 +7,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Activity } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import { useLoadScript } from '@react-google-maps/api';
 import RouteService from './RouteService';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
+import RoutesMapPanel from './Component/RoutesMapPanel';
 import { useConfirm } from '../../components/ui/confirmContext';
 import './RoutesPage.css';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const GMAPS_LIBS = ['places', 'geometry'];
 
 const EXPORT_COLUMNS = [
   { key: 'name', label: 'Route Name' },
@@ -30,6 +35,12 @@ const RoutesPage = () => {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
+  const [hoveredRouteId, setHoveredRouteId] = useState(null);
+
+  const { isLoaded: isMapLoaded } = useLoadScript({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: GMAPS_LIBS,
+  });
 
   const fetchRoutes = useCallback(async (page = 1, search = '') => {
     setLoading(true);
@@ -108,7 +119,18 @@ const RoutesPage = () => {
   }));
 
   const columns = [
-    { key: 'name', label: 'Route Name', render: (route) => route.name },
+    {
+      key: 'name',
+      label: 'Route Name',
+      render: (route) => (
+        <div className="location-info">
+          <strong>{route.name}</strong>
+          {!route.geometry?.encodedPolyline && (
+            <span className="location-address">Path not captured</span>
+          )}
+        </div>
+      ),
+    },
     {
       key: 'source',
       label: 'Source',
@@ -216,6 +238,8 @@ const RoutesPage = () => {
             : null
         }
       >
+        <RoutesMapPanel routes={routes} highlightedId={hoveredRouteId} isLoaded={isMapLoaded} />
+
         <DataTable
           columns={columns}
           rows={routes}
@@ -223,6 +247,8 @@ const RoutesPage = () => {
           loading={loading}
           showing={routes.length}
           total={meta.total}
+          onRowMouseEnter={(route) => setHoveredRouteId(route._id)}
+          onRowMouseLeave={() => setHoveredRouteId(null)}
           emptyTitle="No routes found"
           emptyAction={
             <button

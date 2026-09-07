@@ -2,12 +2,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { MapPin } from 'lucide-react';
-import RouteService from "./RouteService";
+import { useLoadScript } from '@react-google-maps/api';
+import RouteService from './RouteService';
 import GoogleMapsModal from '../../components/GoogleMapsModal/GoogleMapsModal';
+import { buildRouteGeometry } from '../../components/RouteCreator/routeGeometry';
 import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import FormFooter from './Component/FormFooter.jsx';
 import './RoutesPage.css';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 const AddRoutePage = () => {
   const navigate = useNavigate();
@@ -19,6 +23,10 @@ const AddRoutePage = () => {
   const [initialFormData, setInitialFormData] = useState({});
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
   const [currentLocationType, setCurrentLocationType] = useState(null); // 'source' or 'destination'
+  const [geometry, setGeometry] = useState(null);
+  const endpointsTouchedRef = useRef(false);
+
+  const { isLoaded: isMapsLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
 
   // Location data state
   const [locationData, setLocationData] = useState({
@@ -37,11 +45,25 @@ const AddRoutePage = () => {
         distanceKm: editing.distanceKm || '',
       };
       const locationData = {
-        sourceLocation: editing.sourceLocation || { address: '', city: '', state: '', lat: null, lng: null },
-        destLocation: editing.destLocation || { address: '', city: '', state: '', lat: null, lng: null },
+        sourceLocation: editing.sourceLocation || {
+          address: '',
+          city: '',
+          state: '',
+          lat: null,
+          lng: null,
+        },
+        destLocation: editing.destLocation || {
+          address: '',
+          city: '',
+          state: '',
+          lat: null,
+          lng: null,
+        },
       };
       setInitialFormData(formData);
       setLocationData(locationData);
+      setGeometry(editing.geometry || null);
+      endpointsTouchedRef.current = false;
     } else {
       // Reset to add mode when no editing route
       setIsEdit(false);
@@ -51,16 +73,63 @@ const AddRoutePage = () => {
         sourceLocation: { address: '', city: '', state: '', lat: null, lng: null },
         destLocation: { address: '', city: '', state: '', lat: null, lng: null },
       });
+      setGeometry(null);
+      endpointsTouchedRef.current = false;
     }
   }, [location?.state?.editingRoute]);
 
+  // Fetch the driven path whenever both endpoints have coordinates. A new
+  // result replaces the previous geometry; a failed result after the user
+  // changed an endpoint drops it so a stale polyline is never saved.
+  useEffect(() => {
+    if (!isMapsLoaded || !window.google?.maps?.DirectionsService) return;
+
+    const source = locationData.sourceLocation;
+    const dest = locationData.destLocation;
+    if (!(source?.lat && source?.lng && dest?.lat && dest?.lng)) {
+      setGeometry(null);
+      return;
+    }
+
+    let cancelled = false;
+    const directionsService = new window.google.maps.DirectionsService();
+    directionsService.route(
+      {
+        origin: { lat: source.lat, lng: source.lng },
+        destination: { lat: dest.lat, lng: dest.lng },
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (cancelled) return;
+        const route = result?.routes?.[0];
+        if (status === window.google.maps.DirectionsStatus.OK && route) {
+          setGeometry(
+            buildRouteGeometry(route, { distanceMeters: route.legs?.[0]?.distance?.value ?? null }),
+          );
+        } else if (endpointsTouchedRef.current) {
+          setGeometry(null);
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isMapsLoaded,
+    locationData.sourceLocation?.lat,
+    locationData.sourceLocation?.lng,
+    locationData.destLocation?.lat,
+    locationData.destLocation?.lng,
+  ]);
+
   const handleLocationChange = (locationType, field, value) => {
-    setLocationData(prev => ({
+    setLocationData((prev) => ({
       ...prev,
       [locationType]: {
         ...prev[locationType],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -71,15 +140,16 @@ const AddRoutePage = () => {
 
   const handleApplyLocation = (locationDataFromMap) => {
     const locationType = currentLocationType === 'source' ? 'sourceLocation' : 'destLocation';
-    setLocationData(prev => ({
+    endpointsTouchedRef.current = true;
+    setLocationData((prev) => ({
       ...prev,
       [locationType]: {
         address: locationDataFromMap.address,
         city: locationDataFromMap.city,
         state: locationDataFromMap.state,
         lat: locationDataFromMap.lat,
-        lng: locationDataFromMap.lng
-      }
+        lng: locationDataFromMap.lng,
+      },
     }));
   };
 
@@ -108,6 +178,7 @@ const AddRoutePage = () => {
         sourceLocation: locationData.sourceLocation,
         destLocation: locationData.destLocation,
         distanceKm: parseFloat(basicFormData.distanceKm) || 0,
+        geometry,
       };
 
       if (isEdit) {
@@ -139,9 +210,13 @@ const AddRoutePage = () => {
       <PageHeader
         backLabel="Routes"
         backPath="/routes"
-        currentLabel={isEdit ? "Edit Route" : "Add Route"}
-        title={isEdit ? "Edit Route" : "Add New Route"}
-        description={isEdit ? "Update route information" : "Create a new route with source and destination locations"}
+        currentLabel={isEdit ? 'Edit Route' : 'Add Route'}
+        title={isEdit ? 'Edit Route' : 'Add New Route'}
+        description={
+          isEdit
+            ? 'Update route information'
+            : 'Create a new route with source and destination locations'
+        }
       />
 
       <div style={{ paddingBottom: '80px' }}>
