@@ -127,7 +127,16 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'ERP & CRM', access: 'erp' },
   // `end` so ERP Home is active only on exactly /erp — without it the NavLink
   // matches every /erp/* route and stays highlighted alongside the open group.
-  { type: 'link', key: 'erpOperations', access: 'erp', hoistWhenSole: 'erp', to: '/erp', label: 'ERP Home', icon: LayoutDashboard, end: true },
+  {
+    type: 'link',
+    key: 'erpOperations',
+    access: 'erp',
+    hoistWhenSole: 'erp',
+    to: '/erp',
+    label: 'ERP Home',
+    icon: LayoutDashboard,
+    end: true,
+  },
   // CRM — the customer-facing workspace. "Accounts" used to mean both customer
   // accounts AND accounting, which was the core sidebar confusion; the customer
   // side now lives here (Customers = the party master) and the money side lives
@@ -264,6 +273,7 @@ export const SIDE_NAV_ITEMS = [
       { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
       { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
+      { to: '/route-replay', label: 'Route Replay', key: 'fleetIntelligence' },
       { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
       { to: '/overspeed', label: 'Overspeed', key: 'fleetIntelligence' },
       { to: '/hotspots', label: 'Theft Hotspots', key: 'fleetIntelligence' },
@@ -276,6 +286,7 @@ export const SIDE_NAV_ITEMS = [
       '/audit-trail',
       '/route-intelligence',
       '/route-deviation',
+      '/route-replay',
       '/owner-alerts',
     ],
   },
