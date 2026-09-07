@@ -2,7 +2,15 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
-  Plus, Save, RotateCcw, ChevronDown, ChevronRight, Shield, Lock, X, ShieldCheck,
+  Plus,
+  Save,
+  RotateCcw,
+  ChevronDown,
+  ChevronRight,
+  Shield,
+  Lock,
+  X,
+  ShieldCheck,
 } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import RbacApi from './rbacService';
@@ -13,9 +21,23 @@ import './Rbac.css';
 // Preferred order for permission groups; anything else sorts alphabetically after.
 // Group order mirrors the sidebar (the catalog is one group per sidebar item).
 const GROUP_ORDER = [
-  'Overview', 'Vehicles', 'Workforce', 'ERP Home', 'Planning', 'Approvals', 'Pipeline',
-  'Billing & Receivables', 'Payables', 'Accounts & Ledger', 'Masters & Settings',
-  'Fleet Operations', 'Fuel Management', 'Locations', 'Geofence', 'Khata Ledger', 'Reports',
+  'Overview',
+  'Vehicles',
+  'Workforce',
+  'ERP Home',
+  'Planning',
+  'Approvals',
+  'Pipeline',
+  'Billing & Receivables',
+  'Payables',
+  'Accounts & Ledger',
+  'Masters & Settings',
+  'Fleet Operations',
+  'Fuel Management',
+  'Locations',
+  'Geofence',
+  'Khata Ledger',
+  'Reports',
 ];
 const BASE_ROLE_OPTIONS = ['MANAGER', 'DRIVER', 'FIELD_AGENT'];
 
@@ -58,7 +80,9 @@ const keysOfRole = (role) => {
   if (!role) return [];
   if (Array.isArray(role.permissionKeys)) return role.permissionKeys;
   // Fallback for roles stored only as a { key: bool } map.
-  return Object.entries(role.permissions || {}).filter(([, v]) => v === true).map(([k]) => k);
+  return Object.entries(role.permissions || {})
+    .filter(([, v]) => v === true)
+    .map(([k]) => k);
 };
 
 const RbacRolesPage = () => {
@@ -97,7 +121,10 @@ const RbacRolesPage = () => {
     setLoading(true);
     setError('');
     try {
-      const [rolesData, permsData] = await Promise.all([RbacApi.listRoles(), RbacApi.listPermissions()]);
+      const [rolesData, permsData] = await Promise.all([
+        RbacApi.listRoles(),
+        RbacApi.listPermissions(),
+      ]);
       setRoles(rolesData || []);
       setPermissions(permsData || []);
       if (rolesData?.length) {
@@ -245,31 +272,47 @@ const RbacRolesPage = () => {
         description="Define global roles and assign permissions. These roles are reused across every enterprise."
       />
 
-      {error && <div className="ff-alert ff-alert--error" role="alert">{error}</div>}
+      {error && (
+        <div className="ff-alert ff-alert--error" role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="rbac-layout">
         {/* ── Master: role list ── */}
         <div className="rbac-master">
-          {loading && <div className="ff-state"><div className="ff-spinner" /></div>}
-          {!loading && roles.map((role) => (
-            <button
-              key={role._id}
-              type="button"
-              className={`rbac-role ${role._id === selectedId ? 'rbac-role--active' : ''}`}
-              onClick={() => selectRole(role)}
-            >
-              <span className="rbac-role__name">
-                {role.baseRole === 'OWNER' ? <ShieldCheck size={15} /> : <Shield size={15} />}
-                {role.name}
-                {role.isImmutable && <Lock size={12} style={{ color: '#a2a8bd' }} />}
-              </span>
-              <span className="rbac-role__meta">
-                {role.baseRole}
-                {role.isSystem ? ' · system' : role.isImmutable ? ' · built-in' : ' · custom'}
-              </span>
-            </button>
-          ))}
-          <button type="button" className="rbac-fab" onClick={() => { setAddError(''); setAddOpen(true); }}>
+          {loading && (
+            <div className="ff-state">
+              <div className="ff-spinner" />
+            </div>
+          )}
+          {!loading &&
+            roles.map((role) => (
+              <button
+                key={role._id}
+                type="button"
+                className={`rbac-role ${role._id === selectedId ? 'rbac-role--active' : ''}`}
+                onClick={() => selectRole(role)}
+              >
+                <span className="rbac-role__name">
+                  {role.baseRole === 'OWNER' ? <ShieldCheck size={15} /> : <Shield size={15} />}
+                  {role.name}
+                  {role.isImmutable && <Lock size={12} style={{ color: '#a2a8bd' }} />}
+                </span>
+                <span className="rbac-role__meta">
+                  {role.baseRole}
+                  {role.isSystem ? ' · system' : role.isImmutable ? ' · built-in' : ' · custom'}
+                </span>
+              </button>
+            ))}
+          <button
+            type="button"
+            className="rbac-fab"
+            onClick={() => {
+              setAddError('');
+              setAddOpen(true);
+            }}
+          >
             <Plus size={16} /> Add role
           </button>
         </div>
@@ -290,19 +333,26 @@ const RbacRolesPage = () => {
                 {selectedRole.isImmutable && <Lock size={14} style={{ color: '#a2a8bd' }} />}
               </div>
               <div className="rbac-detail__sub">
-                {selectedRole.description || 'No description.'} · maps to <strong>{selectedRole.baseRole}</strong>
+                {selectedRole.description || 'No description.'} · maps to{' '}
+                <strong>{selectedRole.baseRole}</strong>
               </div>
 
               {readOnly ? (
                 <div className="rbac-banner">
                   <ShieldCheck size={16} />
-                  The Owner is a system role with full access to every permission. It cannot be edited here.
+                  The Owner is a system role with full access to every permission. It cannot be
+                  edited here.
                 </div>
               ) : (
                 <>
                   <div className="rbac-detail__sub" style={{ marginTop: -8 }}>
-                    <strong>{grantedCount}</strong> of <strong>{permissions.length}</strong> permissions granted
-                    {dirty && <span className="ff-badge ff-badge--brand" style={{ marginLeft: 10 }}>Unsaved changes</span>}
+                    <strong>{grantedCount}</strong> of <strong>{permissions.length}</strong>{' '}
+                    permissions granted
+                    {dirty && (
+                      <span className="ff-badge ff-badge--brand" style={{ marginLeft: 10 }}>
+                        Unsaved changes
+                      </span>
+                    )}
                   </div>
 
                   {groups.map(({ group, items }) => {
@@ -311,37 +361,67 @@ const RbacRolesPage = () => {
                     const onCount = items.filter((p) => granted.has(p.key)).length;
                     return (
                       <div className="rbac-group" key={group}>
-                        <div className="rbac-group__head" onClick={() => toggleCollapse(group)}>
+                        <div
+                          className="rbac-group__head"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggleCollapse(group)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleCollapse(group);
+                            }
+                          }}
+                        >
                           <span className="rbac-group__title">
                             {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                             {group}
-                            <span className="rbac-group__count">{onCount}/{items.length}</span>
+                            <span className="rbac-group__count">
+                              {onCount}/{items.length}
+                            </span>
                           </span>
-                          <GroupCheck state={state} onToggle={() => toggleGroup(items)} disabled={readOnly} />
+                          <GroupCheck
+                            state={state}
+                            onToggle={() => toggleGroup(items)}
+                            disabled={readOnly}
+                          />
                         </div>
-                        {!isCollapsed && items.map((p) => (
-                          <div className="rbac-perm" key={p.key}>
-                            <div>
-                              <div className="rbac-perm__label">{p.label || p.key}</div>
-                              <div className="rbac-perm__desc">{p.description || <span className="rbac-perm__key">{p.key}</span>}</div>
+                        {!isCollapsed &&
+                          items.map((p) => (
+                            <div className="rbac-perm" key={p.key}>
+                              <div>
+                                <div className="rbac-perm__label">{p.label || p.key}</div>
+                                <div className="rbac-perm__desc">
+                                  {p.description || <span className="rbac-perm__key">{p.key}</span>}
+                                </div>
+                              </div>
+                              <Toggle
+                                checked={granted.has(p.key)}
+                                onChange={() => toggleKey(p.key)}
+                                disabled={readOnly}
+                                label={`Toggle ${p.label || p.key}`}
+                              />
                             </div>
-                            <Toggle
-                              checked={granted.has(p.key)}
-                              onChange={() => toggleKey(p.key)}
-                              disabled={readOnly}
-                              label={`Toggle ${p.label || p.key}`}
-                            />
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     );
                   })}
 
                   <div className="rbac-detail__footer">
-                    <button type="button" className="ff-btn ff-btn--secondary" onClick={reset} disabled={!dirty || saving}>
+                    <button
+                      type="button"
+                      className="ff-btn ff-btn--secondary"
+                      onClick={reset}
+                      disabled={!dirty || saving}
+                    >
                       <RotateCcw size={16} /> Cancel
                     </button>
-                    <button type="button" className="ff-btn ff-btn--primary" onClick={save} disabled={!dirty || saving}>
+                    <button
+                      type="button"
+                      className="ff-btn ff-btn--primary"
+                      onClick={save}
+                      disabled={!dirty || saving}
+                    >
                       <Save size={16} /> {saving ? 'Saving…' : 'Save'}
                     </button>
                   </div>
@@ -354,8 +434,23 @@ const RbacRolesPage = () => {
 
       {/* Create-role modal */}
       {addOpen && (
-        <div className="ff-modal-overlay" onClick={() => !adding && setAddOpen(false)}>
-          <div className="ff-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div
+          className="ff-modal-overlay"
+          role="button"
+          tabIndex={-1}
+          aria-label="Close dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !adding) setAddOpen(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (!adding) setAddOpen(false);
+            }
+          }}
+        >
+          <div className="ff-modal" role="dialog" aria-modal="true">
             <div className="ff-modal__header">
               <div>
                 <h2 className="ff-modal__title">Create a global role</h2>
@@ -363,14 +458,26 @@ const RbacRolesPage = () => {
                   Reusable across all enterprises. Assign permissions after creating it.
                 </p>
               </div>
-              <button type="button" className="ff-icon-btn" onClick={() => setAddOpen(false)} disabled={adding} aria-label="Close">
+              <button
+                type="button"
+                className="ff-icon-btn"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+                aria-label="Close"
+              >
                 <X size={20} />
               </button>
             </div>
             <div className="ff-modal__body">
-              {addError && <div className="ff-alert ff-alert--error" role="alert">{addError}</div>}
+              {addError && (
+                <div className="ff-alert ff-alert--error" role="alert">
+                  {addError}
+                </div>
+              )}
               <div className="ff-field">
-                <label className="ff-field__label" htmlFor="rbac-new-name">Role name</label>
+                <label className="ff-field__label" htmlFor="rbac-new-name">
+                  Role name
+                </label>
                 <input
                   id="rbac-new-name"
                   className="ff-input"
@@ -382,21 +489,29 @@ const RbacRolesPage = () => {
                 />
               </div>
               <div className="ff-field">
-                <label className="ff-field__label" htmlFor="rbac-new-base">Base role (compatibility)</label>
+                <label className="ff-field__label" htmlFor="rbac-new-base">
+                  Base role (compatibility)
+                </label>
                 <select
                   id="rbac-new-base"
                   className="rbac-select"
                   value={newBaseRole}
                   onChange={(e) => setNewBaseRole(e.target.value)}
                 >
-                  {BASE_ROLE_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  {BASE_ROLE_OPTIONS.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
                 </select>
                 <span className="ff-field__help">
                   Maps this role onto an existing access tier so legacy route guards keep working.
                 </span>
               </div>
               <div className="ff-field">
-                <label className="ff-field__label" htmlFor="rbac-new-desc">Description <span className="ff-muted">(optional)</span></label>
+                <label className="ff-field__label" htmlFor="rbac-new-desc">
+                  Description <span className="ff-muted">(optional)</span>
+                </label>
                 <textarea
                   id="rbac-new-desc"
                   className="ff-textarea"
@@ -408,10 +523,20 @@ const RbacRolesPage = () => {
               </div>
             </div>
             <div className="ff-modal__footer">
-              <button type="button" className="ff-btn ff-btn--ghost" onClick={() => setAddOpen(false)} disabled={adding}>
+              <button
+                type="button"
+                className="ff-btn ff-btn--ghost"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+              >
                 Cancel
               </button>
-              <button type="button" className="ff-btn ff-btn--primary" onClick={submitAdd} disabled={adding}>
+              <button
+                type="button"
+                className="ff-btn ff-btn--primary"
+                onClick={submitAdd}
+                disabled={adding}
+              >
                 {adding ? 'Creating…' : 'Create role'}
               </button>
             </div>

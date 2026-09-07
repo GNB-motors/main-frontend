@@ -18,7 +18,14 @@ const RbacPermissionsPage = () => {
   const [error, setError] = useState('');
 
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ key: '', group: '', action: '', label: '', description: '', featureFlag: '' });
+  const [form, setForm] = useState({
+    key: '',
+    group: '',
+    action: '',
+    label: '',
+    description: '',
+    featureFlag: '',
+  });
   const [addError, setAddError] = useState('');
   const [adding, setAdding] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
@@ -40,7 +47,9 @@ const RbacPermissionsPage = () => {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const groups = useMemo(() => {
     const byGroup = new Map();
@@ -119,24 +128,48 @@ const RbacPermissionsPage = () => {
 
       <div className="ff-toolbar">
         <span className="ff-meta">
-          {loading ? 'Loading…' : <><strong>{permissions.length}</strong> permission{permissions.length === 1 ? '' : 's'}</>}
+          {loading ? (
+            'Loading…'
+          ) : (
+            <>
+              <strong>{permissions.length}</strong> permission{permissions.length === 1 ? '' : 's'}
+            </>
+          )}
         </span>
         <div className="ff-toolbar__actions">
-          <button type="button" className="ff-btn ff-btn--secondary" onClick={seed} disabled={seeding}>
+          <button
+            type="button"
+            className="ff-btn ff-btn--secondary"
+            onClick={seed}
+            disabled={seeding}
+          >
             <RefreshCw size={16} /> {seeding ? 'Syncing…' : 'Sync system permissions'}
           </button>
-          <button type="button" className="ff-btn ff-btn--primary" onClick={() => { setAddError(''); setAddOpen(true); }}>
+          <button
+            type="button"
+            className="ff-btn ff-btn--primary"
+            onClick={() => {
+              setAddError('');
+              setAddOpen(true);
+            }}
+          >
             <Plus size={16} /> New permission
           </button>
         </div>
       </div>
 
-      {error && <div className="ff-alert ff-alert--error" role="alert">{error}</div>}
+      {error && (
+        <div className="ff-alert ff-alert--error" role="alert">
+          {error}
+        </div>
+      )}
 
       {!loading && permissions.length === 0 && (
         <div className="ff-card">
           <div className="ff-state">
-            <div className="ff-state__icon"><Inbox size={22} /></div>
+            <div className="ff-state__icon">
+              <Inbox size={22} />
+            </div>
             <div className="ff-state__title">No permissions yet</div>
             <div>Click “Sync system permissions” to seed from the feature-flag catalog.</div>
           </div>
@@ -146,7 +179,9 @@ const RbacPermissionsPage = () => {
       {groups.map(([group, items]) => (
         <div className="ff-card" key={group} style={{ marginBottom: 16 }}>
           <div className="rbac-group__head" style={{ cursor: 'default' }}>
-            <span className="rbac-group__title"><KeyRound size={16} /> {group}</span>
+            <span className="rbac-group__title">
+              <KeyRound size={16} /> {group}
+            </span>
             <span className="rbac-group__count">{items.length}</span>
           </div>
           <div className="ff-table-wrap">
@@ -163,11 +198,17 @@ const RbacPermissionsPage = () => {
               <tbody>
                 {items.map((p) => (
                   <tr key={p._id}>
-                    <td><span className="ff-feature__label">{p.label || p.key}</span></td>
-                    <td><span className="ff-mono">{p.key}</span></td>
+                    <td>
+                      <span className="ff-feature__label">{p.label || p.key}</span>
+                    </td>
+                    <td>
+                      <span className="ff-mono">{p.key}</span>
+                    </td>
                     <td className="ff-center">{p.action || '—'}</td>
                     <td className="ff-center">
-                      <span className="ff-badge ff-badge--outline">{p.isSystem ? 'System' : 'Custom'}</span>
+                      <span className="ff-badge ff-badge--outline">
+                        {p.isSystem ? 'System' : 'Custom'}
+                      </span>
                     </td>
                     <td className="ff-right" style={{ width: 56 }}>
                       {!p.isSystem && (
@@ -191,49 +232,133 @@ const RbacPermissionsPage = () => {
 
       {/* New permission modal */}
       {addOpen && (
-        <div className="ff-modal-overlay" onClick={() => !adding && setAddOpen(false)}>
-          <div className="ff-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div
+          className="ff-modal-overlay"
+          role="button"
+          tabIndex={-1}
+          aria-label="Close dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !adding) setAddOpen(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (!adding) setAddOpen(false);
+            }
+          }}
+        >
+          <div className="ff-modal" role="dialog" aria-modal="true">
             <div className="ff-modal__header">
               <div>
                 <h2 className="ff-modal__title">New permission</h2>
-                <p className="ff-modal__subtitle">Custom permissions can be assigned to any global role.</p>
+                <p className="ff-modal__subtitle">
+                  Custom permissions can be assigned to any global role.
+                </p>
               </div>
-              <button type="button" className="ff-icon-btn" onClick={() => setAddOpen(false)} disabled={adding} aria-label="Close">
+              <button
+                type="button"
+                className="ff-icon-btn"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+                aria-label="Close"
+              >
                 <X size={20} />
               </button>
             </div>
             <div className="ff-modal__body">
-              {addError && <div className="ff-alert ff-alert--error" role="alert">{addError}</div>}
+              {addError && (
+                <div className="ff-alert ff-alert--error" role="alert">
+                  {addError}
+                </div>
+              )}
               <div className="ff-field">
                 <label className="ff-field__label">Key</label>
-                <input className="ff-input ff-mono" value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} placeholder="e.g. crm.edit" maxLength={80} autoFocus />
+                <input
+                  className="ff-input ff-mono"
+                  value={form.key}
+                  onChange={(e) => setForm({ ...form, key: e.target.value })}
+                  placeholder="e.g. crm.edit"
+                  maxLength={80}
+                  autoFocus
+                />
               </div>
               <div className="ff-field">
                 <label className="ff-field__label">Group</label>
-                <input className="ff-input" value={form.group} onChange={(e) => setForm({ ...form, group: e.target.value })} placeholder="e.g. CRM" maxLength={60} />
+                <input
+                  className="ff-input"
+                  value={form.group}
+                  onChange={(e) => setForm({ ...form, group: e.target.value })}
+                  placeholder="e.g. CRM"
+                  maxLength={60}
+                />
               </div>
               <div className="ff-field">
                 <label className="ff-field__label">Action</label>
-                <select className="rbac-select" value={form.action} onChange={(e) => setForm({ ...form, action: e.target.value })}>
-                  {ACTIONS.map((a) => <option key={a} value={a}>{a || '(none)'}</option>)}
+                <select
+                  className="rbac-select"
+                  value={form.action}
+                  onChange={(e) => setForm({ ...form, action: e.target.value })}
+                >
+                  {ACTIONS.map((a) => (
+                    <option key={a} value={a}>
+                      {a || '(none)'}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="ff-field">
                 <label className="ff-field__label">Label</label>
-                <input className="ff-input" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="e.g. Edit CRM" maxLength={120} />
+                <input
+                  className="ff-input"
+                  value={form.label}
+                  onChange={(e) => setForm({ ...form, label: e.target.value })}
+                  placeholder="e.g. Edit CRM"
+                  maxLength={120}
+                />
               </div>
               <div className="ff-field">
-                <label className="ff-field__label">Description <span className="ff-muted">(optional)</span></label>
-                <textarea className="ff-textarea" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} maxLength={300} />
+                <label className="ff-field__label">
+                  Description <span className="ff-muted">(optional)</span>
+                </label>
+                <textarea
+                  className="ff-textarea"
+                  rows={2}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  maxLength={300}
+                />
               </div>
               <div className="ff-field">
-                <label className="ff-field__label">Feature flag <span className="ff-muted">(optional entitlement gate)</span></label>
-                <input className="ff-input ff-mono" value={form.featureFlag} onChange={(e) => setForm({ ...form, featureFlag: e.target.value })} placeholder="e.g. insurance" maxLength={80} />
+                <label className="ff-field__label">
+                  Feature flag <span className="ff-muted">(optional entitlement gate)</span>
+                </label>
+                <input
+                  className="ff-input ff-mono"
+                  value={form.featureFlag}
+                  onChange={(e) => setForm({ ...form, featureFlag: e.target.value })}
+                  placeholder="e.g. insurance"
+                  maxLength={80}
+                />
               </div>
             </div>
             <div className="ff-modal__footer">
-              <button type="button" className="ff-btn ff-btn--ghost" onClick={() => setAddOpen(false)} disabled={adding}>Cancel</button>
-              <button type="button" className="ff-btn ff-btn--primary" onClick={submitAdd} disabled={adding}>{adding ? 'Creating…' : 'Create'}</button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--ghost"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--primary"
+                onClick={submitAdd}
+                disabled={adding}
+              >
+                {adding ? 'Creating…' : 'Create'}
+              </button>
             </div>
           </div>
         </div>
@@ -241,15 +366,48 @@ const RbacPermissionsPage = () => {
 
       {/* Remove confirm */}
       {removeTarget && (
-        <div className="ff-modal-overlay" onClick={() => !removing && setRemoveTarget(null)}>
-          <div className="ff-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div
+          className="ff-modal-overlay"
+          role="button"
+          tabIndex={-1}
+          aria-label="Close dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !removing) setRemoveTarget(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (!removing) setRemoveTarget(null);
+            }
+          }}
+        >
+          <div className="ff-modal" role="dialog" aria-modal="true">
             <div className="ff-modal__header">
-              <div><h2 className="ff-modal__title">Delete “{removeTarget.key}”?</h2>
-                <p className="ff-modal__subtitle">Any role referencing this key will drop it on next save.</p></div>
+              <div>
+                <h2 className="ff-modal__title">Delete “{removeTarget.key}”?</h2>
+                <p className="ff-modal__subtitle">
+                  Any role referencing this key will drop it on next save.
+                </p>
+              </div>
             </div>
             <div className="ff-modal__footer">
-              <button type="button" className="ff-btn ff-btn--ghost" onClick={() => setRemoveTarget(null)} disabled={removing}>Cancel</button>
-              <button type="button" className="ff-btn ff-btn--danger" onClick={confirmRemove} disabled={removing}>{removing ? 'Removing…' : 'Delete'}</button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--ghost"
+                onClick={() => setRemoveTarget(null)}
+                disabled={removing}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--danger"
+                onClick={confirmRemove}
+                disabled={removing}
+              >
+                {removing ? 'Removing…' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

@@ -1,9 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit2, AlertCircle, Calendar, User, Truck, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Edit2,
+  AlertCircle,
+  Calendar,
+  User,
+  Truck,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
 import AssignmentFormModal from './AssignmentFormModal';
@@ -86,7 +104,7 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
     const vId = a.vehicleId?._id || a.vehicleId;
     const driver = drivers.find((d) => d._id === dId) || a.driverId;
     const vehicle = vehicles.find((v) => v._id === vId) || a.vehicleId;
-    
+
     return {
       ...a,
       driverName: getDriverName(driver) || a.driverName || 'Unknown',
@@ -100,7 +118,9 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Driver-Truck Assignments</h2>
-          <p className="text-sm text-muted-foreground">Manage which driver is assigned to which truck over time</p>
+          <p className="text-sm text-muted-foreground">
+            Manage which driver is assigned to which truck over time
+          </p>
         </div>
         <button
           onClick={() => {
@@ -121,7 +141,8 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
           <div>
             <p className="text-sm font-medium text-foreground">Historical entries stay unchanged</p>
             <p className="text-sm text-muted-foreground">
-              Creating, editing, or ending an assignment only affects future transactions. Past ledger entries keep their original driver/vehicle attribution.
+              Creating, editing, or ending an assignment only affects future transactions. Past
+              ledger entries keep their original driver/vehicle attribution.
             </p>
           </div>
         </CardContent>
@@ -131,7 +152,10 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none"
                 placeholder="Search driver or vehicle..."
@@ -197,17 +221,22 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
                       <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-muted-foreground" />
                         <Badge variant="outline" className="text-xs">
-                          {formatDate(a.startDate)} — {a.endDate ? formatDate(a.endDate) : 'Present'}
+                          {formatDate(a.startDate)} —{' '}
+                          {a.endDate ? formatDate(a.endDate) : 'Present'}
                         </Badge>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={`text-xs ${STATUS_COLORS[a.status] || STATUS_COLORS.ACTIVE}`}>
+                      <Badge
+                        className={`text-xs ${STATUS_COLORS[a.status] || STATUS_COLORS.ACTIVE}`}
+                      >
                         {a.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <p className="max-w-xs truncate text-sm text-muted-foreground">{a.notes || '-'}</p>
+                      <p className="max-w-xs truncate text-sm text-muted-foreground">
+                        {a.notes || '-'}
+                      </p>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -260,14 +289,27 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
       />
 
       {endTarget && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={() => setEndTarget(null)}>
-          <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
+          role="presentation"
+          onClick={() => setEndTarget(null)}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl"
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-semibold">End Assignment</h3>
             <p className="mt-2 text-sm text-gray-600">
-              End the assignment for <strong>{endTarget.driverName}</strong> on <strong>{endTarget.vehicleLabel}</strong>? This will set the effective end date to today.
+              End the assignment for <strong>{endTarget.driverName}</strong> on{' '}
+              <strong>{endTarget.vehicleLabel}</strong>? This will set the effective end date to
+              today.
             </p>
             <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => setEndTarget(null)} className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <button
+                onClick={() => setEndTarget(null)}
+                className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
                 Cancel
               </button>
               <button
@@ -282,17 +324,33 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={() => setDeleteTarget(null)}>
-          <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
+          role="presentation"
+          onClick={() => setDeleteTarget(null)}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl"
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-semibold">Delete Assignment</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Remove the assignment for <strong>{deleteTarget.driverName}</strong> on <strong>{deleteTarget.vehicleLabel}</strong>? Historical transactions will not be affected.
+              Remove the assignment for <strong>{deleteTarget.driverName}</strong> on{' '}
+              <strong>{deleteTarget.vehicleLabel}</strong>? Historical transactions will not be
+              affected.
             </p>
             <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
                 Cancel
               </button>
-              <button onClick={handleDelete} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+              <button
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
                 Delete
               </button>
             </div>

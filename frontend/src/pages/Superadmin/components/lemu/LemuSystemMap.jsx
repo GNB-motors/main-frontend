@@ -6,7 +6,14 @@ import LemuMapNode from './LemuMapNode';
 import LemuMapEmpty from './LemuMapEmpty';
 import LemuStatusChip from './LemuStatusChip';
 import { LemuService } from '../LemuService';
-import { deriveRouteModule, fullRoutePath, heatFromCount, jobStatusToTrio, nodeId, relativeTime } from './utils';
+import {
+  deriveRouteModule,
+  fullRoutePath,
+  heatFromCount,
+  jobStatusToTrio,
+  nodeId,
+  relativeTime,
+} from './utils';
 
 const SORT_OPTIONS = [
   { id: 'activity', label: 'Activity' },
@@ -15,7 +22,18 @@ const SORT_OPTIONS = [
   { id: 'state', label: 'State' },
 ];
 
-const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, onSelectNode, selectedNodeId, jobHealth, onRebuild }) => {
+const LemuSystemMap = ({
+  manifest,
+  pulse,
+  liveness,
+  status,
+  sort,
+  onSortChange,
+  onSelectNode,
+  selectedNodeId,
+  jobHealth,
+  onRebuild,
+}) => {
   const boardRef = useRef(null);
   /* Text filter across route plates — 40+ modules flat is not browsable. */
   const [routeFilter, setRouteFilter] = useState('');
@@ -38,12 +56,16 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
       }
     };
     loadWarehouse();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const functionsByName = useMemo(() => {
     const map = {};
-    (manifest?.functions || []).forEach((fn) => { map[fn.functionName] = fn; });
+    (manifest?.functions || []).forEach((fn) => {
+      map[fn.functionName] = fn;
+    });
     return map;
   }, [manifest]);
 
@@ -51,7 +73,9 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
     const latestBucket = pulse?.buckets?.[0];
     const pulseCollections = latestBucket?.collections || [];
     const map = {};
-    pulseCollections.forEach((c) => { map[c.name] = c; });
+    pulseCollections.forEach((c) => {
+      map[c.name] = c;
+    });
     return map;
   }, [pulse]);
 
@@ -79,11 +103,19 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
 
     Object.keys(groups).forEach((moduleName) => {
       if (!modules.find((m) => m.name === moduleName)) {
-        modules.push({ name: moduleName, fileCount: 0, totalLoc: 0, functionCount: 0, routes: groups[moduleName] });
+        modules.push({
+          name: moduleName,
+          fileCount: 0,
+          totalLoc: 0,
+          functionCount: 0,
+          routes: groups[moduleName],
+        });
       }
     });
 
-    return modules.filter((m) => m.routes.length > 0).sort((a, b) => (b.totalLoc || 0) - (a.totalLoc || 0));
+    return modules
+      .filter((m) => m.routes.length > 0)
+      .sort((a, b) => (b.totalLoc || 0) - (a.totalLoc || 0));
   }, [manifest, functionsByName]);
 
   const visiblePlates = useMemo(() => {
@@ -95,41 +127,52 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
         if (module.name.toLowerCase().includes(query)) return module;
         return {
           ...module,
-          routes: module.routes.filter((r) => `${r.method} ${fullRoutePath(r)}`.toLowerCase().includes(query)),
+          routes: module.routes.filter((r) =>
+            `${r.method} ${fullRoutePath(r)}`.toLowerCase().includes(query),
+          ),
         };
       })
       .filter((module) => module.routes.length > 0);
   }, [plates, routeFilter]);
 
   const models = useMemo(() => {
-    return (manifest?.models || []).map((model) => {
-      const pulseColl = collectionPulseMap[model.collectionName] || {};
-      const sum = (pulseColl.find || 0) + (pulseColl.insert || 0) + (pulseColl.update || 0) + (pulseColl.del || 0) + (pulseColl.agg || 0);
-      const id = nodeId.model(model);
-      // Wide-window liveness: a collection with no traffic in 24h is not the
-      // same as one quiet this hour. Only condemn when liveness actually
-      // loaded — its absence means "unknown", never "dead".
-      const live = liveness?.collections?.[model.collectionName];
-      const noSignal = liveness ? !live : false;
-      return {
-        id,
-        model,
-        heat: heatFromCount(sum),
-        state: noSignal ? 'off' : 'nothing',
-        hasFinding: findingIds.has(id) || findingIds.has(`collection:${model.collectionName}`),
-        extra: {
-          ...pulseColl,
-          lastSeen: live?.lastSeen || null,
-          noSignal,
-          stateLabel: noSignal ? 'no traffic 24h' : undefined,
-        },
-      };
-    }).sort((a, b) => (b.model.estimatedDocs || 0) - (a.model.estimatedDocs || 0));
+    return (manifest?.models || [])
+      .map((model) => {
+        const pulseColl = collectionPulseMap[model.collectionName] || {};
+        const sum =
+          (pulseColl.find || 0) +
+          (pulseColl.insert || 0) +
+          (pulseColl.update || 0) +
+          (pulseColl.del || 0) +
+          (pulseColl.agg || 0);
+        const id = nodeId.model(model);
+        // Wide-window liveness: a collection with no traffic in 24h is not the
+        // same as one quiet this hour. Only condemn when liveness actually
+        // loaded — its absence means "unknown", never "dead".
+        const live = liveness?.collections?.[model.collectionName];
+        const noSignal = liveness ? !live : false;
+        return {
+          id,
+          model,
+          heat: heatFromCount(sum),
+          state: noSignal ? 'off' : 'nothing',
+          hasFinding: findingIds.has(id) || findingIds.has(`collection:${model.collectionName}`),
+          extra: {
+            ...pulseColl,
+            lastSeen: live?.lastSeen || null,
+            noSignal,
+            stateLabel: noSignal ? 'no traffic 24h' : undefined,
+          },
+        };
+      })
+      .sort((a, b) => (b.model.estimatedDocs || 0) - (a.model.estimatedDocs || 0));
   }, [manifest, collectionPulseMap, findingIds, liveness]);
 
   const jobs = useMemo(() => {
     const healthMap = {};
-    (jobHealth || []).forEach((j) => { healthMap[j.job] = j; });
+    (jobHealth || []).forEach((j) => {
+      healthMap[j.job] = j;
+    });
     return (manifest?.jobs || []).map((job) => {
       const health = healthMap[job.name] || {};
       const id = nodeId.job(job);
@@ -155,13 +198,16 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
     let next = idx;
     if (e.key === 'Home') next = 0;
     else if (e.key === 'End') next = nodes.length - 1;
-    else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = Math.min(nodes.length - 1, idx + 1);
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowRight')
+      next = Math.min(nodes.length - 1, idx + 1);
     else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = Math.max(0, idx - 1);
     else return;
 
     if (next !== idx) {
       e.preventDefault();
-      nodes.forEach((n, i) => { n.tabIndex = i === next ? 0 : -1; });
+      nodes.forEach((n, i) => {
+        n.tabIndex = i === next ? 0 : -1;
+      });
       nodes[next]?.focus();
     }
   }, []);
@@ -182,7 +228,9 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
         </div>
         <div className="lemu-system-map__controls">
           <div className="lemu-search lemu-search--compact">
-            <span className="lemu-search__icon"><Search size={14} /></span>
+            <span className="lemu-search__icon">
+              <Search size={14} />
+            </span>
             <input
               type="text"
               placeholder="Filter routes or modules…"
@@ -191,14 +239,20 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
               aria-label="Filter routes or modules"
             />
           </div>
-          <label className="lemu-meta" htmlFor="lemu-sort">Sort</label>
+          <label className="lemu-meta" htmlFor="lemu-sort">
+            Sort
+          </label>
           <select
             id="lemu-sort"
             className="lemu-select lemu-select--small"
             value={sort}
             onChange={(e) => onSortChange(e.target.value)}
           >
-            {SORT_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
           </select>
           <div className="lemu-meta" title="Layout select is module-only per spec">
             <SlidersHorizontal size={14} /> module
@@ -208,15 +262,27 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
 
       {isStale && (
         <div className="lemu-alert lemu-alert--warn" role="status">
-          Structure v{manifest?.version} · {manifest?.createdAt ? new Date(manifest.createdAt).toLocaleDateString() : '—'}.
-          Pulse tint frozen — last bucket {newestBucket ? `${Math.round((Date.now() - new Date(newestBucket).getTime()) / 60000)}m` : '—'} ago, flush timer may be off.
+          Structure v{manifest?.version} ·{' '}
+          {manifest?.createdAt ? new Date(manifest.createdAt).toLocaleDateString() : '—'}. Pulse
+          tint frozen — last bucket{' '}
+          {newestBucket
+            ? `${Math.round((Date.now() - new Date(newestBucket).getTime()) / 60000)}m`
+            : '—'}{' '}
+          ago, flush timer may be off.
         </div>
       )}
 
-      <div className="lemu-system-map__board" ref={boardRef} onKeyDown={handleKeyDown}>
+      <div
+        className="lemu-system-map__board"
+        ref={boardRef}
+        role="presentation"
+        onKeyDown={handleKeyDown}
+      >
         <LemuMapRegion kind="code" count={visiblePlates.length}>
           {visiblePlates.length === 0 && (
-            <div className="lemu-meta lemu-system-map__no-match">No routes or modules match “{routeFilter}”.</div>
+            <div className="lemu-meta lemu-system-map__no-match">
+              No routes or modules match “{routeFilter}”.
+            </div>
           )}
           <div className="lemu-plates">
             {visiblePlates.map((module) => (
@@ -324,12 +390,16 @@ const LemuSystemMap = ({ manifest, pulse, liveness, status, sort, onSortChange, 
                           {metrics.liveness != null ? `${metrics.liveness}m` : '—'}
                         </td>
                         <td className="lemu-right">
-                          <span className={`lemu-pill ${metrics.completeness ? 'lemu-pill--ok' : 'lemu-pill--stalled'}`}>
+                          <span
+                            className={`lemu-pill ${metrics.completeness ? 'lemu-pill--ok' : 'lemu-pill--stalled'}`}
+                          >
                             {metrics.completeness ? 'ok' : 'fail'}
                           </span>
                         </td>
                         <td className="lemu-right">
-                          <span className={`lemu-pill ${metrics.correctness ? 'lemu-pill--ok' : 'lemu-pill--stalled'}`}>
+                          <span
+                            className={`lemu-pill ${metrics.correctness ? 'lemu-pill--ok' : 'lemu-pill--stalled'}`}
+                          >
                             {metrics.correctness ? 'ok' : 'fail'}
                           </span>
                         </td>

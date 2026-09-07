@@ -27,13 +27,18 @@ const COLS = [
 const STATE_TONE = {
   measured: { background: DARK.okBg, color: DARK.okT, border: `1px solid ${DARK.okBd}` },
   declared: { background: DARK.sunk, color: DARK.t3, border: `1px dashed ${DARK.hollow2}` },
-  unreachable: { background: DARK.faultBg, color: DARK.faultT, border: `1px solid ${DARK.faultBd}` },
+  unreachable: {
+    background: DARK.faultBg,
+    color: DARK.faultT,
+    border: `1px solid ${DARK.faultBd}`,
+  },
 };
 
 /* Row left marker: diagonal hatch for declared, solid fault for
    unreachable, transparent for measured (design line ~1410). */
 const markerFor = (s) => {
-  if (s === 'declared') return `repeating-linear-gradient(135deg, ${DARK.hollow2} 0 2px, transparent 2px 5px)`;
+  if (s === 'declared')
+    return `repeating-linear-gradient(135deg, ${DARK.hollow2} 0 2px, transparent 2px 5px)`;
   if (s === 'unreachable') return DARK.fault;
   return 'transparent';
 };
@@ -143,10 +148,16 @@ const LemuGraphTable = ({
           selectRow(activeIndex);
           return;
         case '/':
-          if (onFocusSearch) { e.preventDefault(); onFocusSearch(); }
+          if (onFocusSearch) {
+            e.preventDefault();
+            onFocusSearch();
+          }
           return;
         case 'Escape':
-          if (onClear) { e.preventDefault(); onClear(); }
+          if (onClear) {
+            e.preventDefault();
+            onClear();
+          }
           return;
         case '1':
         case '2':
@@ -177,10 +188,9 @@ const LemuGraphTable = ({
       <div className="lemu-graph3d__table-strip">
         <div className="lemu-graph3d__table-title">TABLE VIEW</div>
         <div className="lemu-graph3d__table-shortcuts">
-          keyboard equivalent of the canvas ·{' '}
-          <span style={kbd}>&#8597;&#65039;</span> move · <span style={kbd}>&#8629;</span> open ·{' '}
-          <span style={kbd}>/</span> search · <span style={kbd}>1-4</span> hops ·{' '}
-          <span style={kbd}>esc</span> clear
+          keyboard equivalent of the canvas · <span style={kbd}>&#8597;&#65039;</span> move ·{' '}
+          <span style={kbd}>&#8629;</span> open · <span style={kbd}>/</span> search ·{' '}
+          <span style={kbd}>1-4</span> hops · <span style={kbd}>esc</span> clear
         </div>
         <div className="lemu-graph3d__table-count">
           {nf(rows.length)} of {nf(total)} nodes
@@ -189,6 +199,7 @@ const LemuGraphTable = ({
       <div
         ref={scrollRef}
         className="lemu-graph3d__table-scroll"
+        role="presentation"
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
@@ -204,12 +215,18 @@ const LemuGraphTable = ({
                     key={c.key}
                     scope="col"
                     aria-sort={activeCol ? (sort.dir > 0 ? 'ascending' : 'descending') : 'none'}
-                    style={{ textAlign: c.align || 'left', color: activeCol ? DARK.acText : DARK.t5 }}
-                    onClick={() => setSort((p) => (p.key === c.key
-                      ? { key: c.key, dir: -p.dir }
-                      : { key: c.key, dir: 1 }))}
+                    style={{
+                      textAlign: c.align || 'left',
+                      color: activeCol ? DARK.acText : DARK.t5,
+                    }}
+                    onClick={() =>
+                      setSort((p) =>
+                        p.key === c.key ? { key: c.key, dir: -p.dir } : { key: c.key, dir: 1 },
+                      )
+                    }
                   >
-                    {c.label}{activeCol ? (sort.dir > 0 ? ' ↑' : ' ↓') : ''}
+                    {c.label}
+                    {activeCol ? (sort.dir > 0 ? ' ↑' : ' ↓') : ''}
                   </th>
                 );
               })}
@@ -228,37 +245,57 @@ const LemuGraphTable = ({
               return (
                 <tr
                   key={node.id}
-                  onClick={() => { setActiveIndex(i); onSelectNode?.(node.id); }}
+                  onClick={() => {
+                    setActiveIndex(i);
+                    onSelectNode?.(node.id);
+                  }}
                   style={{
                     cursor: 'pointer',
                     background: isSel ? DARK.acBg2 : active ? DARK.f4 : 'transparent',
                     boxShadow: active ? `inset 0 0 0 1px ${DARK.acBd}` : 'none',
                   }}
                 >
-                  <td aria-hidden="true" style={{ padding: 0, width: 3, background: markerFor(s) }} />
+                  <td
+                    aria-hidden="true"
+                    style={{ padding: 0, width: 3, background: markerFor(s) }}
+                  />
                   <td style={{ borderBottom: `1px solid ${DARK.l2}` }}>
                     <div className="lemu-graph3d__table-node">
                       <span className="lemu-graph3d__table-dot" style={dotFor(node, s, hue)} />
-                      <span style={{ fontFamily: 'var(--lg-mono)', fontSize: 11.5, color: s === 'declared' ? DARK.t4 : DARK.t2 }}>
+                      <span
+                        style={{
+                          fontFamily: 'var(--lg-mono)',
+                          fontSize: 11.5,
+                          color: s === 'declared' ? DARK.t4 : DARK.t2,
+                        }}
+                      >
                         {node.label || node.id}
                       </span>
                     </div>
                   </td>
-                  <td style={{ borderBottom: `1px solid ${DARK.l2}`, fontFamily: 'var(--lg-mono)', fontSize: 10.5, color: hue }}>
+                  <td
+                    style={{
+                      borderBottom: `1px solid ${DARK.l2}`,
+                      fontFamily: 'var(--lg-mono)',
+                      fontSize: 10.5,
+                      color: hue,
+                    }}
+                  >
                     {node.kind}
                   </td>
                   <td style={{ borderBottom: `1px solid ${DARK.l2}` }}>
-                    <span style={{
-                      fontFamily: 'var(--lg-mono)',
-                      fontSize: 10,
-                      letterSpacing: '.06em',
-                      padding: '2px 7px',
-                      borderRadius: 4,
-                      whiteSpace: 'nowrap',
-                      background: tone.background,
-                      color: tone.color,
-                      border: tone.border,
-                    }}
+                    <span
+                      style={{
+                        fontFamily: 'var(--lg-mono)',
+                        fontSize: 10,
+                        letterSpacing: '.06em',
+                        padding: '2px 7px',
+                        borderRadius: 4,
+                        whiteSpace: 'nowrap',
+                        background: tone.background,
+                        color: tone.color,
+                        border: tone.border,
+                      }}
                     >
                       {s === 'declared' ? 'NO MEASUREMENT' : s.toUpperCase()}
                     </span>
