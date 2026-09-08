@@ -1,21 +1,32 @@
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
-import EmptyState from '../../components/cluster/EmptyState';
-import FreshnessBadge from '../../components/cluster/FreshnessBadge';
-import PageShell from '../../components/ui/PageShell';
-import { HealthPanel, IdentityPanel, PositionPanel, DefLedgerPanel } from './vehicle360PanelsA';
+import { Breadcrumbs, IdentityStrip, HeroRow, Tabs } from './vehicle360Header';
+import { OverviewPanel } from './vehicle360PanelsA';
 import {
-  ServicePredictionPanel,
+  ServicePanel,
+  FuelPanel,
   DocumentsPanel,
-  EngineTrendPanel,
-  FuelLogsPanel,
+  TelemetryPanel,
+  TripsPanel,
 } from './vehicle360PanelsB';
+import './vehicle360.css';
+
+/**
+ * Vehicle 360 — the canonical page for one vehicle, built to the
+ * "GNB Vehicle Detail v2" design.
+ *
+ * Shape: breadcrumb → identity strip → hero (orbitable 3-D truck, its live
+ * readings, three rings, registry) → tabs. Every figure is traceable to a
+ * reading; where a reading is missing the card says so rather than filling the
+ * space with a plausible-looking dial.
+ */
 
 export default function Vehicle360Page() {
   const { registrationNumber } = useParams();
   const reg = decodeURIComponent(registrationNumber || '').toUpperCase();
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data, loading, error } = useApi(
     (signal) => FleetDataService.getVehicleProfile(reg, signal),
@@ -27,31 +38,7 @@ export default function Vehicle360Page() {
     { enabled: Boolean(data?.health) },
   );
 
-  if (error?.statusCode === 404 || error?.status === 404) {
-    return (
-      <div className="cluster-page">
-        <PageShell
-          title={reg}
-          actions={
-            <Link
-              to="/vehicles"
-              className="text-dim inline-flex items-center gap-1.5 text-xs hover:opacity-70"
-            >
-              <ArrowLeft size={13} /> All vehicles
-            </Link>
-          }
-        >
-          <EmptyState
-            title={`Nothing on record for ${reg}`}
-            hint="This vehicle isn't in the fleet master, the FleetEdge directory, or the live-status feed. Check the registration, or add the vehicle to the fleet first."
-          />
-        </PageShell>
-      </div>
-    );
-  }
-
   const p = data || {};
-  const health = p.health;
   const history = (healthDetail?.history || []).map((h) => ({
     t: h.pulledAt
       ? new Date(h.pulledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -60,64 +47,106 @@ export default function Vehicle360Page() {
     odo: h.canOdo,
   }));
 
-  return (
-    <div className="cluster-page">
-      <PageShell
-        title={
-          <>
-            <span className="reg-plate text-base">{reg}</span>
-            {p.fleetMaster?.status ? (
-              <span
-                className={`lamp ${p.fleetMaster.status === 'ON_TRIP' ? 'lamp--caution' : 'lamp--ok'}`}
-                style={{ marginLeft: 10 }}
-              >
-                {String(p.fleetMaster.status).replace('_', ' ').toLowerCase()}
-              </span>
-            ) : null}
-          </>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <Link
-              to="/vehicles"
-              className="text-dim inline-flex items-center gap-1.5 text-xs hover:opacity-70"
-            >
-              <ArrowLeft size={13} /> Fleet
+  const TABS = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'service', label: 'Service' },
+    { id: 'fuel', label: 'Fuel', count: p.recentFuelLogs?.length ?? null },
+    { id: 'documents', label: 'Documents', count: p.fleetMaster?.documents?.length ?? null },
+    { id: 'trips', label: 'Trips' },
+    { id: 'telemetry', label: 'Telemetry' },
+  ];
+
+  // Tab lives in the URL so a vehicle view is shareable and the back button works.
+  const requested = searchParams.get('tab');
+  const active = TABS.some((t) => t.id === requested) ? requested : 'overview';
+  const setActive = (id) => {
+    const next = new URLSearchParams(searchParams);
+    if (id === 'overview') next.delete('tab');
+    else next.set('tab', id);
+    setSearchParams(next, { replace: true });
+  };
+
+  if (error?.statusCode === 404 || error?.status === 404) {
+    return (
+      <div className="v360">
+        <Breadcrumbs reg={reg} />
+        <section className="v360-card">
+          <p className="v360-card-title">Nothing on record for {reg}</p>
+          <p className="v360-card-lede">
+            This registration is not in the fleet master, the FleetEdge directory, or the
+            live-status feed. Check the plate, or add the vehicle to the fleet first.
+          </p>
+          <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
+            <Link to="/vehicles" className="v360-btn v360-btn--primary">
+              All vehicles
             </Link>
-            {p.coverage && (
-              <span className="text-dim text-[11px]">
-                {[
-                  p.coverage.inFleetMaster ? 'fleet master' : null,
-                  p.coverage.inFleetEdge ? 'FleetEdge' : null,
-                  p.coverage.hasLiveStatus ? 'live status' : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ') || 'no sources'}
-              </span>
-            )}
-            {health ? <FreshnessBadge at={health.pulledAt} always prefix="Telemetry" /> : null}
+            <Link to="/vehicles/add" className="v360-btn">
+              Add a vehicle
+            </Link>
           </div>
-        }
-      >
-        {loading && !data ? (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="cluster-panel h-52 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <HealthPanel health={health} />
-            <IdentityPanel fleetMaster={p.fleetMaster} fleetEdge={p.fleetEdge} />
-            <PositionPanel livePosition={p.livePosition} />
-            <DefLedgerPanel defBalance={p.defBalance} />
-            <ServicePredictionPanel prediction={p.prediction} />
-            <DocumentsPanel documents={p.fleetMaster?.documents} />
-            <EngineTrendPanel history={history} />
-            <FuelLogsPanel recentFuelLogs={p.recentFuelLogs} />
-          </div>
-        )}
-      </PageShell>
+        </section>
+      </div>
+    );
+  }
+
+  if (loading && !data) {
+    return (
+      <div className="v360">
+        <Breadcrumbs reg={reg} />
+        <div className="v360-idstrip" style={{ height: 88 }} />
+        <div className="v360-hero">
+          <div className="v360-modelcard" style={{ height: 424 }} />
+          <div className="v360-registry" style={{ height: 424 }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="v360">
+      <Breadcrumbs reg={reg} />
+
+      <IdentityStrip
+        reg={reg}
+        fleetMaster={p.fleetMaster}
+        fleetEdge={p.fleetEdge}
+        livePosition={p.livePosition}
+        prediction={p.prediction}
+      />
+
+      <HeroRow
+        reg={reg}
+        fleetMaster={p.fleetMaster}
+        fleetEdge={p.fleetEdge}
+        health={p.health}
+        prediction={p.prediction}
+        coverage={p.coverage}
+        history={history}
+      />
+
+      <Tabs tabs={TABS} active={active} onChange={setActive} />
+
+      {active === 'overview' ? (
+        <OverviewPanel
+          history={history}
+          health={p.health}
+          prediction={p.prediction}
+          documents={p.fleetMaster?.documents}
+          recentFuelLogs={p.recentFuelLogs}
+          onGoTab={setActive}
+        />
+      ) : null}
+      {active === 'service' ? (
+        <ServicePanel prediction={p.prediction} health={p.health} history={history} />
+      ) : null}
+      {active === 'fuel' ? (
+        <FuelPanel recentFuelLogs={p.recentFuelLogs} defBalance={p.defBalance} />
+      ) : null}
+      {active === 'documents' ? <DocumentsPanel documents={p.fleetMaster?.documents} /> : null}
+      {active === 'trips' ? <TripsPanel /> : null}
+      {active === 'telemetry' ? (
+        <TelemetryPanel health={p.health} livePosition={p.livePosition} history={history} />
+      ) : null}
     </div>
   );
 }

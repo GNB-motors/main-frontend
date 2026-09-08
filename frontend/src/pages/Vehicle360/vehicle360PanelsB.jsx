@@ -1,176 +1,445 @@
 import { Link } from 'react-router-dom';
-import { Wrench, FileWarning, Activity, Fuel } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
-import { formatINR, formatKm, formatLitres, formatNum } from '../../utils/formatters';
-import { formatDateIST } from '../../utils/dateUtils';
-import { Panel, KV } from './vehicle360Atoms';
-import { riskLamp } from './vehicle360Logic';
+import PlaceLabel from '../../components/ui/PlaceLabel';
+import { formatINR, formatKm, formatLitres, formatNum, timeAgo } from '../../utils/formatters';
+import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
+import {
+  serviceState,
+  documentSummary,
+  buildSignals,
+  daysSince,
+  hasDefLedgerData,
+} from './vehicle360Logic';
 
-/** Predicted next-service window from odometer-history trend. */
-export const ServicePredictionPanel = ({ prediction }) => (
-  <PanelErrorBoundary name="vehicle-prediction">
-    <Panel
-      eyebrow="Service forecast"
-      right={<Wrench size={13} style={{ color: 'var(--cluster-text-dim)' }} />}
-    >
-      {prediction ? (
-        <div>
-          <span className={`lamp ${riskLamp(prediction.risk)}`}>
-            {String(prediction.risk || 'OK')
-              .replace('_', ' ')
-              .toLowerCase()}
+function Empty({ title, hint, action }) {
+  return (
+    <div className="v360-empty">
+      <span className="v360-empty-title">{title}</span>
+      {hint ? <span className="v360-empty-hint">{hint}</span> : null}
+      {action}
+    </div>
+  );
+}
+
+/**
+ * Service tab — the standing, stated plainly, with the reasoning spelled out.
+ * A frozen odometer means the overdue distance cannot grow, which is worth
+ * saying: it changes when the workshop visit should be booked.
+ */
+export function ServicePanel({ prediction, health, history }) {
+  const svc = serviceState(prediction);
+  const stalled = (history || []).length > 1 && daysSince(health?.pulledAt) >= 1;
+
+  if (svc.level === 'none') {
+    return (
+      <PanelErrorBoundary name="vehicle-service">
+        <div className="v360-panel--single v360-panel">
+          <section className="v360-card">
+            <p className="v360-card-title">Service</p>
+            <Empty
+              title="No service forecast yet"
+              hint="A projection appears once the predictive sweep has enough odometer history for this vehicle."
+            />
+          </section>
+        </div>
+      </PanelErrorBoundary>
+    );
+  }
+
+  return (
+    <PanelErrorBoundary name="vehicle-service">
+      <div className="v360-panel v360-panel--halves">
+        <section className={`v360-card ${svc.overdue ? 'v360-card--alert' : ''}`.trim()}>
+          <span className={`v360-pill v360-pill--${svc.overdue ? 'crit' : 'warn'}`}>
+            <span className="v360-pill-dot" aria-hidden="true" />
+            {svc.label}
           </span>
-          <div className="mt-2">
-            <KV
-              k="Km until due"
-              v={prediction.kmUntilDue != null ? formatKm(prediction.kmUntilDue) : '—'}
-            />
-            <KV
-              k="Days until due"
-              v={prediction.daysUntilDue != null ? formatNum(prediction.daysUntilDue) : '—'}
-            />
-            <KV
-              k="Projected due"
-              v={
-                prediction.projectedServiceDueDate
-                  ? formatDateIST(prediction.projectedServiceDueDate)
-                  : '—'
-              }
-            />
-            <KV
-              k="Basis"
-              v={String(prediction.basis || '')
-                .replace(/_/g, ' ')
-                .toLowerCase()}
-            />
+
+          <p className="v360-figure">
+            <span
+              className={`v360-figure-value v360-figure-value--lg ${svc.overdue ? 'v360-figure-value--crit' : ''}`.trim()}
+            >
+              {svc.km != null ? formatKm(svc.km) : `${formatNum(svc.days ?? 0)} days`}
+            </span>
+            <span className="v360-figure-note">
+              {svc.overdue ? 'past the service interval' : 'until the service is due'}
+            </span>
+          </p>
+
+          <p className="v360-card-lede">
+            {svc.projectedAt ? `Due ${formatDateIST(svc.projectedAt)}` : 'Due date not projected'}
+            {svc.days != null
+              ? ` — ${formatNum(svc.days)} days ${svc.overdue ? 'ago' : 'away'}.`
+              : '.'}
+            {stalled && svc.overdue
+              ? ' The odometer has not moved since the last reading, so the overdue distance is frozen — it will not grow until the truck runs again.'
+              : ''}
+          </p>
+
+          <dl className="v360-kv">
+            {svc.days != null ? (
+              <>
+                <dt>{svc.overdue ? 'Days overdue' : 'Days until due'}</dt>
+                <dd className={svc.overdue ? 'is-crit' : undefined}>{formatNum(svc.days)} days</dd>
+              </>
+            ) : null}
+            <dt>Projected due</dt>
+            <dd>{svc.projectedAt ? formatDateIST(svc.projectedAt) : '—'}</dd>
+            {health?.nextServiceKm != null ? (
+              <>
+                <dt>Next service at</dt>
+                <dd>{formatKm(health.nextServiceKm)}</dd>
+              </>
+            ) : null}
+            {health?.canOdo != null ? (
+              <>
+                <dt>Odometer at last reading</dt>
+                <dd>{formatKm(health.canOdo)}</dd>
+              </>
+            ) : null}
+            {svc.basis ? (
+              <>
+                <dt>Basis</dt>
+                <dd className="is-dim">{String(svc.basis).replace(/_/g, ' ').toLowerCase()}</dd>
+              </>
+            ) : null}
+          </dl>
+
+          <div style={{ display: 'flex', gap: 9, marginTop: 14, flexWrap: 'wrap' }}>
+            <Link
+              to="/vehicles/service-intelligence/add-service"
+              className="v360-btn v360-btn--primary"
+            >
+              Create service record
+            </Link>
+            <Link to="/vehicles/service-intelligence" className="v360-btn">
+              Service history
+            </Link>
           </div>
-        </div>
-      ) : (
-        <EmptyState
-          title="No forecast"
-          hint="A service projection appears after the predictive sweep sees odometer history for this vehicle."
-        />
-      )}
-    </Panel>
-  </PanelErrorBoundary>
-);
+        </section>
 
-/** Document expiry list from the fleet master record. */
-export const DocumentsPanel = ({ documents }) => (
-  <PanelErrorBoundary name="vehicle-docs">
-    <Panel
-      eyebrow="Documents"
-      right={<FileWarning size={13} style={{ color: 'var(--cluster-text-dim)' }} />}
-    >
-      {documents?.length ? (
-        <div>
-          {documents.map((d) => (
-            <KV
-              key={d.docType}
-              k={d.docType}
-              v={d.expiryDate ? formatDateIST(d.expiryDate) : 'no expiry'}
+        <section className="v360-card">
+          <p className="v360-card-title">How this was worked out</p>
+          <p className="v360-card-lede">
+            The forecast comes from the predictive sweep, which projects the next service from the
+            odometer trend rather than from a fixed calendar date.
+          </p>
+          <dl className="v360-kv">
+            <dt>Source</dt>
+            <dd className="is-dim">predictive maintenance sweep</dd>
+            <dt>Readings used</dt>
+            <dd>{formatNum((history || []).length)}</dd>
+            <dt>Last telemetry</dt>
+            <dd className="is-dim">{health?.pulledAt ? timeAgo(health.pulledAt) : 'never'}</dd>
+          </dl>
+        </section>
+      </div>
+    </PanelErrorBoundary>
+  );
+}
+
+export function FuelPanel({ recentFuelLogs, defBalance }) {
+  const logs = recentFuelLogs || [];
+
+  return (
+    <PanelErrorBoundary name="vehicle-fuel">
+      <div className="v360-panel v360-panel--halves">
+        <section className="v360-card">
+          <div className="v360-card-head">
+            <p className="v360-card-title">Fuel bills</p>
+            <Link to="/fuel-spend" className="v360-link">
+              All fuel spend →
+            </Link>
+          </div>
+          {logs.length === 0 ? (
+            <Empty
+              title="No fuel logs"
+              hint="Uploaded fuel bills for this vehicle appear here once they are processed."
             />
-          ))}
-          <Link
-            to="/compliance"
-            className="mt-2 inline-block text-[11px] font-semibold"
-            style={{ color: 'var(--gnb-400)' }}
-          >
-            Open compliance screen →
-          </Link>
-        </div>
-      ) : (
-        <EmptyState
-          title="No documents on record"
-          hint="Upload RC, insurance, fitness and permits on the vehicle profile to track expiries here."
-        />
-      )}
-    </Panel>
-  </PanelErrorBoundary>
-);
+          ) : (
+            <table className="v360-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th className="is-num">Litres</th>
+                  <th className="is-num">Rate</th>
+                  <th className="is-num">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((l) => (
+                  <tr key={l.id}>
+                    <td>{formatDateIST(l.refuelTime)}</td>
+                    <td className="is-num">{formatLitres(l.litres)}</td>
+                    <td className="is-num">{l.rate != null ? `${formatINR(l.rate)}/L` : '—'}</td>
+                    <td className="is-num">{formatINR(l.totalAmount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
 
-/** 30-day engine-hours area chart. */
-export const EngineTrendPanel = ({ history }) => (
-  <PanelErrorBoundary name="vehicle-trend">
-    <Panel
-      eyebrow="Engine hours — 30d"
-      className="lg:col-span-2"
-      right={<Activity size={13} style={{ color: 'var(--cluster-text-dim)' }} />}
-    >
-      {history.length > 1 ? (
-        <div style={{ height: 200 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={history} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <XAxis dataKey="t" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-                domain={['auto', 'auto']}
-                width={60}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: 'var(--cluster-panel)',
-                  border: '1px solid var(--hairline)',
-                  borderRadius: 10,
-                  fontSize: 12,
-                }}
-                formatter={(v) => [`${formatNum(v, { decimals: 1 })} h`, 'engine hours']}
-              />
-              <Area
-                type="monotone"
-                dataKey="engineHours"
-                stroke="var(--gnb-400)"
-                fill="var(--gnb-400)"
-                fillOpacity={0.15}
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <EmptyState
-          title="Not enough history"
-          hint="The engine-hours trend needs at least two live-status readings in the window."
-        />
-      )}
-    </Panel>
-  </PanelErrorBoundary>
-);
-
-/** Recent uploaded fuel bills. */
-export const FuelLogsPanel = ({ recentFuelLogs }) => (
-  <PanelErrorBoundary name="vehicle-fuel-logs">
-    <Panel
-      eyebrow="Recent fuel logs"
-      right={<Fuel size={13} style={{ color: 'var(--cluster-text-dim)' }} />}
-    >
-      {recentFuelLogs?.length ? (
-        <div>
-          {recentFuelLogs.map((l) => (
-            <KV
-              key={l.id}
-              k={formatDateIST(l.refuelTime)}
-              v={`${formatLitres(l.litres)} · ${formatINR(l.totalAmount)}`}
+        <section className="v360-card">
+          <div className="v360-card-head">
+            <p className="v360-card-title">DEF ledger</p>
+            <Link to="/def-ledger" className="v360-link">
+              DEF ledger →
+            </Link>
+          </div>
+          {hasDefLedgerData(defBalance) ? (
+            <dl className="v360-kv">
+              <dt>Claimed (bills)</dt>
+              <dd>{formatLitres(defBalance.claimedAdblueL)}</dd>
+              <dt>Consumed (telemetry)</dt>
+              <dd>{formatLitres(defBalance.telemetryDefL)}</dd>
+              <dt>Expected balance</dt>
+              <dd>{formatLitres(defBalance.expectedBalanceL)}</dd>
+              <dt>Flags</dt>
+              <dd className={defBalance.flagCount > 0 ? 'is-crit' : undefined}>
+                {formatNum(defBalance.flagCount ?? 0)}
+              </dd>
+            </dl>
+          ) : (
+            <Empty
+              title="No DEF ledger row"
+              hint="Claimed versus consumed DEF appears once both bills and CAN data exist for this vehicle."
             />
-          ))}
-          <Link
-            to="/fuel-spend"
-            className="mt-2 inline-block text-[11px] font-semibold"
-            style={{ color: 'var(--gnb-400)' }}
-          >
-            All fuel spend →
-          </Link>
-        </div>
-      ) : (
-        <EmptyState
-          title="No fuel logs"
-          hint="Uploaded fuel bills for this vehicle show up here."
-        />
-      )}
-    </Panel>
-  </PanelErrorBoundary>
-);
+          )}
+        </section>
+      </div>
+    </PanelErrorBoundary>
+  );
+}
+
+export function DocumentsPanel({ documents }) {
+  const rows = documents || [];
+  const summary = documentSummary(rows);
+
+  return (
+    <PanelErrorBoundary name="vehicle-docs">
+      <div className="v360-panel v360-panel--halves">
+        <section className={`v360-card ${summary.expired > 0 ? 'v360-card--alert' : ''}`.trim()}>
+          <div className="v360-card-head">
+            <p className="v360-card-title">Documents</p>
+            <Link to="/compliance" className="v360-link">
+              Compliance →
+            </Link>
+          </div>
+          {rows.length === 0 ? (
+            <Empty
+              title="No documents on record"
+              hint="RC, insurance, fitness and permits have never been uploaded, so nothing can be checked for expiry."
+            />
+          ) : (
+            <>
+              <span
+                className={`v360-pill v360-pill--${summary.expired > 0 ? 'crit' : summary.expiring > 0 ? 'warn' : 'ok'}`}
+              >
+                <span className="v360-pill-dot" aria-hidden="true" />
+                {summary.expired > 0
+                  ? `${summary.expired} expired`
+                  : summary.expiring > 0
+                    ? `${summary.expiring} expiring soon`
+                    : 'All current'}
+              </span>
+              <table className="v360-table">
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th className="is-num">Expires</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((d) => (
+                    <tr key={d.docType}>
+                      <td>{d.docType}</td>
+                      <td className="is-num">
+                        {d.expiryDate ? formatDateIST(d.expiryDate) : 'no expiry recorded'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </section>
+
+        <section className="v360-card">
+          <p className="v360-card-title">Why these matter</p>
+          <dl className="v360-kv">
+            <dt>Registration</dt>
+            <dd className="is-dim">Proves the truck is yours and legally on the road</dd>
+            <dt>Insurance</dt>
+            <dd className="is-dim">Without it a claim cannot be filed at all</dd>
+            <dt>Fitness</dt>
+            <dd className="is-dim">Checked at every state border</dd>
+            <dt>Permit</dt>
+            <dd className="is-dim">Covers the routes this truck is allowed to run</dd>
+          </dl>
+        </section>
+      </div>
+    </PanelErrorBoundary>
+  );
+}
+
+function Trend({ data, dataKey, format }) {
+  return (
+    <div style={{ height: 170 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+          <XAxis dataKey="t" fontSize={10} tickLine={false} axisLine={false} />
+          <YAxis
+            fontSize={10}
+            tickLine={false}
+            axisLine={false}
+            domain={['auto', 'auto']}
+            width={58}
+          />
+          <Tooltip
+            contentStyle={{
+              background: 'var(--card)',
+              border: '1px solid var(--line2)',
+              borderRadius: 9,
+              fontSize: 12,
+            }}
+            formatter={(v) => [format(v), '']}
+          />
+          <Area
+            type="monotone"
+            dataKey={dataKey}
+            stroke="var(--erp)"
+            fill="var(--erp)"
+            fillOpacity={0.14}
+            strokeWidth={2}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/**
+ * Telemetry tab — which signals are actually arriving.
+ *
+ * The list only names signals this payload covers. Tyre pressure and brake
+ * fluid are absent on purpose: the API has no such fields, and showing a dial
+ * for a sensor that may not exist is how a fleet page starts lying.
+ */
+export function TelemetryPanel({ health, livePosition, history }) {
+  const signals = buildSignals(health, livePosition);
+  const enough = (history || []).length > 1;
+
+  return (
+    <PanelErrorBoundary name="vehicle-telemetry">
+      <div className="v360-panel v360-panel--halves">
+        <section className="v360-card">
+          <div className="v360-card-head">
+            <p className="v360-card-title">Signals</p>
+            <Link to="/fleet-coverage" className="v360-link">
+              Coverage →
+            </Link>
+          </div>
+          <div className="v360-signals">
+            {signals.map((s) => (
+              <div key={s.name} className={`v360-signal v360-signal--${s.tone}`}>
+                <span className="v360-signal-dot" aria-hidden="true" />
+                <span className="v360-signal-name">{s.name}</span>
+                <span className="v360-signal-state">{s.state}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="v360-card">
+          <div className="v360-card-head">
+            <p className="v360-card-title">Location</p>
+            <Link to="/live-tracking" className="v360-link">
+              Live tracking →
+            </Link>
+          </div>
+          {livePosition ? (
+            <>
+              {livePosition.latitude != null ? (
+                <div style={{ marginTop: 10, fontSize: 13 }}>
+                  <PlaceLabel lat={livePosition.latitude} lng={livePosition.longitude} />
+                </div>
+              ) : null}
+              <dl className="v360-kv">
+                <dt>Region</dt>
+                <dd>{livePosition.state || '—'}</dd>
+                <dt>Speed</dt>
+                <dd>
+                  {livePosition.speed != null ? `${formatNum(livePosition.speed)} km/h` : '—'}
+                </dd>
+                <dt>Last event</dt>
+                <dd className="is-dim">
+                  {livePosition.eventDateTime
+                    ? `${formatDateTimeIST(livePosition.eventDateTime)} · ${timeAgo(livePosition.eventDateTime)}`
+                    : '—'}
+                </dd>
+              </dl>
+            </>
+          ) : (
+            <Empty
+              title="No live position"
+              hint="Positions appear once live tracking polls this vehicle."
+            />
+          )}
+        </section>
+
+        <section className="v360-card" style={{ gridColumn: '1 / -1' }}>
+          <p className="v360-card-title">Odometer & engine hours</p>
+          {enough ? (
+            <div className="v360-panel" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 10 }}>
+              <div>
+                <p className="v360-card-lede" style={{ marginTop: 0 }}>
+                  Odometer
+                </p>
+                <Trend data={history} dataKey="odo" format={(v) => formatKm(v)} />
+              </div>
+              <div>
+                <p className="v360-card-lede" style={{ marginTop: 0 }}>
+                  Engine hours
+                </p>
+                <Trend
+                  data={history}
+                  dataKey="engineHours"
+                  format={(v) => `${formatNum(v, { decimals: 1 })} h`}
+                />
+              </div>
+            </div>
+          ) : (
+            <Empty
+              title="Not enough history yet"
+              hint={`A trend needs at least two live-status readings in the window — ${(history || []).length === 1 ? 'only one is' : 'none are'} available.`}
+            />
+          )}
+        </section>
+      </div>
+    </PanelErrorBoundary>
+  );
+}
+
+/** Trips are not in this payload — say so rather than render an empty table. */
+export function TripsPanel() {
+  return (
+    <PanelErrorBoundary name="vehicle-trips">
+      <div className="v360-panel v360-panel--single">
+        <section className="v360-card">
+          <div className="v360-card-head">
+            <p className="v360-card-title">Trips</p>
+            <Link to="/trip-management" className="v360-link">
+              Trip management →
+            </Link>
+          </div>
+          <Empty
+            title="Trip history is not wired into this page yet"
+            hint="The trips API is vehicle-scoped and ready; this tab needs to be pointed at it. Until then, open trip management for the fleet-wide list."
+          />
+        </section>
+      </div>
+    </PanelErrorBoundary>
+  );
+}

@@ -3,7 +3,8 @@
 // Extracted from VehiclesPage.jsx (WS0.7) — markup preserved byte-identically.
 import ReactDOM from 'react-dom';
 import React from 'react';
-import { Edit, Trash2, MoreHorizontal, ToggleRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Edit, Trash2, MoreHorizontal, ToggleRight, Eye } from 'lucide-react';
 import NewButton from '@/components/ui/NewButton';
 
 // --- Delete Vehicle Modal Component ---
@@ -89,9 +90,19 @@ export function VehicleActionMenu({
   onActivateHere,
 }) {
   const btnRef = React.useRef(null);
+  const navigate = useNavigate();
   // A vehicle deactivated here (moved to another location) can't be edited here —
   // the only action is to activate it back into this location.
   const isDeactivatedHere = vehicle?.branchStatus === 'DEACTIVATED';
+
+  // Viewing the profile stays available either way — a vehicle deactivated at
+  // this location still has telemetry, service and document history worth reading.
+  const viewProfile = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
+    navigate(`/vehicles/${encodeURIComponent(vehicle.registration_no)}`);
+  };
 
   return (
     <div className="vehicle-action-menu-container">
@@ -105,6 +116,9 @@ export function VehicleActionMenu({
         <MoreHorizontal size={18} />
       </button>
       <PortalDropdown triggerRef={btnRef} isOpen={isOpen} onClose={onClose}>
+        <button type="button" onClick={viewProfile} disabled={isSubmitting}>
+          <Eye size={16} /> View profile
+        </button>
         {isDeactivatedHere ? (
           <button
             type="button"

@@ -212,18 +212,10 @@ export function buildActionItems({
   return actions;
 }
 
+// Fuel spend is deliberately left out — it already headlines the "Today at a
+// glance" KPI row, and repeating it here just duplicates that figure.
 export function buildActivityItems(m) {
   const activity = [];
-  if (m?.fuelCostInr > 0) {
-    activity.push({
-      id: 'fuel',
-      icon: Fuel,
-      label: 'Fuel spend',
-      value: formatInrCompact(m.fuelCostInr),
-      sub: 'Fuel spend today',
-      to: '/fuel-spend',
-    });
-  }
   if (m?.idlingWasteInr > 0) {
     activity.push({
       id: 'idle',
@@ -254,6 +246,9 @@ export function buildUpcomingItems({ serviceVehicles, documents }) {
       id: `up-svc-${v.registrationNumber}`,
       icon: Wrench,
       tone: 'var(--caution)',
+      days: v.daysUntilDue ?? 0,
+      registrationNumber: v.registrationNumber,
+      kind: 'Service',
       text: `${v.registrationNumber} is due for service in ${formatNum(v.daysUntilDue ?? 0)} days.`,
       to: `/vehicles/${encodeURIComponent(v.registrationNumber)}`,
     });
@@ -263,11 +258,25 @@ export function buildUpcomingItems({ serviceVehicles, documents }) {
       id: `up-doc-${d.registrationNumber}-${d.docType}`,
       icon: FileWarning,
       tone: 'var(--caution)',
+      days: d.daysLeft,
+      registrationNumber: d.registrationNumber,
+      kind: d.docType,
       text: `${d.registrationNumber} — ${d.docType} expires in ${formatNum(d.daysLeft)} days.`,
       to: '/compliance',
     });
   }
   return upcoming;
+}
+
+// Buckets upcoming items by days-until-due, ascending — lets the section
+// header carry "7 days" once instead of repeating "due in 7 days" per row.
+export function groupUpcomingByDays(upcoming) {
+  const byDays = new Map();
+  for (const item of upcoming) {
+    if (!byDays.has(item.days)) byDays.set(item.days, []);
+    byDays.get(item.days).push(item);
+  }
+  return [...byDays.entries()].sort(([a], [b]) => a - b).map(([days, items]) => ({ days, items }));
 }
 
 // Breakdown for the "Needs your attention" KPI sub-line, e.g. "2 critical · 1 to review".

@@ -4,6 +4,7 @@ import {
   buildActionItems,
   buildActivityItems,
   buildUpcomingItems,
+  groupUpcomingByDays,
   summarizeActionSeverity,
 } from './dailyDigestLogic';
 
@@ -109,12 +110,12 @@ describe('summarizeActionSeverity', () => {
 describe('buildActivityItems', () => {
   it('returns nothing when every money figure is 0 or absent', () => {
     expect(buildActivityItems(undefined)).toEqual([]);
-    expect(buildActivityItems({ fuelCostInr: 0 })).toEqual([]);
+    expect(buildActivityItems({ idlingWasteInr: 0, detourWasteInr: 0 })).toEqual([]);
   });
 
-  it('includes only the money lines that are actually positive', () => {
+  it('includes only the money lines that are actually positive, and never fuel spend (it already headlines the KPI row)', () => {
     const items = buildActivityItems({ fuelCostInr: 100, idlingWasteInr: 0, detourWasteInr: 50 });
-    expect(items.map((i) => i.id)).toEqual(['fuel', 'detour']);
+    expect(items.map((i) => i.id)).toEqual(['detour']);
   });
 });
 
@@ -131,5 +132,36 @@ describe('buildUpcomingItems', () => {
       ],
     });
     expect(items.map((i) => i.id)).toEqual(['up-svc-A', 'up-doc-C-RC']);
+  });
+
+  it('carries the day count, registration number and kind for grouping/display', () => {
+    const items = buildUpcomingItems({
+      serviceVehicles: [{ registrationNumber: 'A', risk: 'DUE_SOON', daysUntilDue: 7 }],
+      documents: [{ registrationNumber: 'C', docType: 'RC', daysLeft: 10 }],
+    });
+    expect(items).toEqual([
+      expect.objectContaining({ days: 7, registrationNumber: 'A', kind: 'Service' }),
+      expect.objectContaining({ days: 10, registrationNumber: 'C', kind: 'RC' }),
+    ]);
+  });
+});
+
+describe('groupUpcomingByDays', () => {
+  it('buckets items by day count, sorted ascending', () => {
+    const groups = groupUpcomingByDays([
+      { id: 'a', days: 10 },
+      { id: 'b', days: 7 },
+      { id: 'c', days: 7 },
+    ]);
+    expect(groups).toEqual([
+      {
+        days: 7,
+        items: [
+          { id: 'b', days: 7 },
+          { id: 'c', days: 7 },
+        ],
+      },
+      { days: 10, items: [{ id: 'a', days: 10 }] },
+    ]);
   });
 });

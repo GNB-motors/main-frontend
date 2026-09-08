@@ -156,8 +156,12 @@ export function UpcomingRow({ item }) {
       >
         <Icon size={15} />
       </span>
-      <span className="flex-1 text-sm" style={{ color: 'var(--cluster-text)' }}>
-        {item.text}
+      <span
+        className="flex flex-1 items-center justify-between gap-3 text-sm"
+        style={{ color: 'var(--cluster-text)' }}
+      >
+        <span className="font-semibold">{item.registrationNumber}</span>
+        <span className="text-dim">{item.kind}</span>
       </span>
       <ChevronRight
         size={15}
@@ -167,10 +171,29 @@ export function UpcomingRow({ item }) {
   );
 }
 
-export function SectionEmpty(props) {
-  const { icon: Icon = CheckCircle2, title, hint } = props;
+// Groups Upcoming rows under a "Due in N days" header so the day count is
+// stated once per bucket instead of repeated in every row's sentence.
+export function UpcomingDayGroup({ days, items }) {
+  const label = days <= 0 ? 'Due today' : days === 1 ? 'Due in 1 day' : `Due in ${days} days`;
   return (
-    <div className="ov-panel flex items-center gap-3 p-4" style={{ border: CARD_BORDER }}>
+    <div>
+      <div className="text-dim mb-2 text-[11px] font-semibold uppercase tracking-wide">{label}</div>
+      <div className="flex flex-col gap-2">
+        {items.map((item) => (
+          <UpcomingRow key={item.id} item={item} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function SectionEmpty(props) {
+  const { icon: Icon = CheckCircle2, title, hint, className = '' } = props;
+  return (
+    <div
+      className={`ov-panel flex items-center gap-3 p-4 ${className}`.trim()}
+      style={{ border: CARD_BORDER }}
+    >
       <span
         className="flex h-9 w-9 items-center justify-center rounded-lg"
         style={{ background: 'color-mix(in srgb, var(--ok) 12%, transparent)', color: 'var(--ok)' }}

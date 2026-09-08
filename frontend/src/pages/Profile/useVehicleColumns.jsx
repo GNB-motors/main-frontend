@@ -1,6 +1,7 @@
 // DataTable column definitions for the Vehicles page.
 // Extracted from VehiclesPage.jsx (WS0.7) to keep the page under the file-size rule;
 // cell markup preserved byte-identically.
+import { Link } from 'react-router-dom';
 import { describeFleetEdgeAccount } from './vehicleList.js';
 import { VehicleActionMenu } from './VehicleModals.jsx';
 
@@ -19,7 +20,16 @@ export function useVehicleColumns({
       label: 'Vehicle No',
       render: (vehicle) => (
         <>
-          <span style={{ fontWeight: 600 }}>{vehicle.registration_no}</span>
+          {/* The registration is the way into the vehicle's 360 page. The row
+              itself still opens the edit form, so stop propagation here. */}
+          <Link
+            to={`/vehicles/${encodeURIComponent(vehicle.registration_no)}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{ fontWeight: 600, color: 'var(--gnb-400)' }}
+            title={`Open ${vehicle.registration_no} profile`}
+          >
+            {vehicle.registration_no}
+          </Link>
           {vehicle.branchStatus === 'DEACTIVATED' && (
             <span
               className="vehicle-badge"

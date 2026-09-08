@@ -14,6 +14,7 @@ import {
   buildActionItems,
   buildActivityItems,
   buildUpcomingItems,
+  groupUpcomingByDays,
   summarizeActionSeverity,
 } from './dailyDigestLogic';
 import {
@@ -21,14 +22,14 @@ import {
   KpiCard,
   ActionCard,
   ActivityCard,
-  UpcomingRow,
+  UpcomingDayGroup,
   SectionEmpty,
 } from './dailyDigestCards';
 
 /**
  * DailyDigest — "Here is the current state of my fleet, what needs my attention,
  * and what to do next." Composed entirely from existing endpoints; every item
- * links to its evidence. Priority: Needs attention → Overview → Activity → Upcoming.
+ * links to its evidence. Priority: Needs attention → Upcoming → Operations.
  */
 export default function DailyDigestPage() {
   const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -81,141 +82,145 @@ export default function DailyDigestPage() {
   });
   const activity = buildActivityItems(m);
   const upcoming = buildUpcomingItems({ serviceVehicles, documents });
+  const upcomingByDay = groupUpcomingByDays(upcoming);
 
   return (
-    <PageShell
-      title="Daily Digest"
-      subtitle={`${formatDateLongIST(todayIST)} · Your fleet at a glance`}
-      actions={
-        <button
-          className="text-dim flex items-center gap-1.5 self-start text-xs sm:self-auto"
-          onClick={handleRefresh}
-          disabled={loading}
-          title="Refresh"
-        >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          Updated {timeAgo(lastUpdated)}
-        </button>
-      }
-    >
-      <div className="mx-auto space-y-8" style={{ maxWidth: 1160 }}>
-        {loading && !money ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="ov-inset h-20 animate-pulse rounded-2xl" />
+    <div className="mx-auto" style={{ maxWidth: 1400 }}>
+      <PageShell
+        title="Daily Digest"
+        subtitle={`${formatDateLongIST(todayIST)} · Your fleet at a glance`}
+        actions={
+          <button
+            className="text-dim flex items-center gap-1.5 self-start text-xs sm:self-auto"
+            onClick={handleRefresh}
+            disabled={loading}
+            title="Refresh"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            Updated {timeAgo(lastUpdated)}
+          </button>
+        }
+      >
+        <div>
+          {loading && !money ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="ov-inset h-20 animate-pulse rounded-2xl" />
+                ))}
+              </div>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="ov-inset h-24 animate-pulse rounded-2xl" />
               ))}
             </div>
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="ov-inset h-24 animate-pulse rounded-2xl" />
-            ))}
-          </div>
-        ) : (
-          <PanelErrorBoundary name="digest">
-            <section>
-              <SectionHeader label="Today at a glance" />
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <KpiCard
-                  icon={Fuel}
-                  label="Fuel spend"
-                  value={formatInrCompact(m?.fuelCostInr || 0)}
-                  sub="Today"
-                  to="/fuel-spend"
-                  accent="var(--gnb-400)"
-                />
-                <KpiCard
-                  icon={Bell}
-                  label="Needs attention"
-                  value={formatNum(actions.length)}
-                  sub={summarizeActionSeverity(actions)}
-                  to="/owner-alerts"
-                  accent="var(--critical)"
-                  emphasis={actions.length > 0}
-                />
-                <KpiCard
-                  icon={CalendarClock}
-                  label="Upcoming"
-                  value={formatNum(upcoming.length)}
-                  sub="Next 14 days"
-                  accent="var(--caution)"
-                  emphasis={upcoming.length > 0}
-                />
-                <KpiCard
-                  icon={Wrench}
-                  label="Overdue service"
-                  value={formatNum(overdueCount)}
-                  sub={overdueCount > 0 ? 'Needs immediate action' : 'None overdue'}
-                  to="/vehicles/service-intelligence"
-                  accent="var(--critical)"
-                  emphasis={overdueCount > 0}
-                />
-              </div>
-            </section>
-
-            <section className="mt-8">
-              <SectionHeader
-                label="Needs your attention"
-                count={actions.length}
-                countTone={actions.length ? 'var(--critical)' : undefined}
-              />
-              {actions.length === 0 ? (
-                <SectionEmpty
-                  title="You're all caught up"
-                  hint="No critical issues need your attention today — everything is operating normally."
-                />
-              ) : (
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {actions.map((item) => (
-                    <ActionCard key={item.id} item={item} />
-                  ))}
+          ) : (
+            <PanelErrorBoundary name="digest">
+              <section>
+                <SectionHeader label="Today at a glance" />
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5 mt-4">
+                  <KpiCard
+                    icon={Fuel}
+                    label="Fuel spend"
+                    value={formatInrCompact(m?.fuelCostInr || 0)}
+                    sub="Today"
+                    to="/fuel-spend"
+                    accent="var(--gnb-400)"
+                  />
+                  <KpiCard
+                    icon={Bell}
+                    label="Needs attention"
+                    value={formatNum(actions.length)}
+                    sub={summarizeActionSeverity(actions)}
+                    to="/owner-alerts"
+                    accent="var(--critical)"
+                    emphasis={actions.length > 0}
+                  />
+                  <KpiCard
+                    icon={CalendarClock}
+                    label="Upcoming"
+                    value={formatNum(upcoming.length)}
+                    sub="Next 14 days"
+                    accent="var(--caution)"
+                    emphasis={upcoming.length > 0}
+                  />
+                  <KpiCard
+                    icon={Wrench}
+                    label="Overdue service"
+                    value={formatNum(overdueCount)}
+                    sub={overdueCount > 0 ? 'Needs immediate action' : 'None overdue'}
+                    to="/vehicles/service-intelligence"
+                    accent="var(--critical)"
+                    emphasis={overdueCount > 0}
+                  />
                 </div>
-              )}
-            </section>
+              </section>
 
-            <section className="mt-8">
-              <SectionHeader label="Today's operations" />
-              {activity.length === 0 ? (
-                <SectionEmpty
-                  icon={Fuel}
-                  title="No activity recorded today"
-                  hint="Fuel spend and other daily figures appear here as telemetry arrives."
+              <section className="mt-6 mb-4">
+                <SectionHeader
+                  label="Needs your attention"
+                  count={actions.length}
+                  countTone={actions.length ? 'var(--critical)' : undefined}
                 />
-              ) : (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {activity.map((item) => (
-                    <ActivityCard key={item.id} item={item} />
-                  ))}
-                </div>
-              )}
-            </section>
+                {actions.length === 0 ? (
+                  <SectionEmpty
+                    className="mt-4"
+                    title="You're all caught up"
+                    hint="No critical issues need your attention today — everything is operating normally."
+                  />
+                ) : (
+                  <div className="flex flex-col gap-3 mt-4">
+                    {actions.map((item) => (
+                      <ActionCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                )}
+              </section>
 
-            <section className="mt-8">
-              <SectionHeader label="Upcoming" count={upcoming.length || null} />
-              {upcoming.length === 0 ? (
-                <SectionEmpty
-                  title="No upcoming service items"
-                  hint="Service and document reminders will surface here as due dates approach."
-                />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {upcoming.map((item) => (
-                    <UpcomingRow key={item.id} item={item} />
-                  ))}
-                </div>
-              )}
-            </section>
+              <section className="mt-12">
+                <SectionHeader label="Upcoming" count={upcoming.length || null} />
+                {upcoming.length === 0 ? (
+                  <SectionEmpty
+                    title="No upcoming service items"
+                    hint="Service and document reminders will surface here as due dates approach."
+                  />
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {upcomingByDay.map((group) => (
+                      <UpcomingDayGroup key={group.days} days={group.days} items={group.items} />
+                    ))}
+                  </div>
+                )}
+              </section>
 
-            {money?.disclaimer && (
-              <p
-                className="text-dim mt-8 border-t pt-4 text-[11px] leading-relaxed"
-                style={{ borderColor: 'var(--hairline)' }}
-              >
-                {money.disclaimer}
-              </p>
-            )}
-          </PanelErrorBoundary>
-        )}
-      </div>
-    </PageShell>
+              <section className="mt-8">
+                <SectionHeader label="Today's operations" />
+                {activity.length === 0 ? (
+                  <SectionEmpty
+                    icon={Fuel}
+                    title="No other activity recorded today"
+                    hint="Idling and detour waste figures appear here as telemetry arrives."
+                  />
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {activity.map((item) => (
+                      <ActivityCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {money?.disclaimer && (
+                <p
+                  className="text-dim mt-8 border-t pt-4 text-[11px] leading-relaxed"
+                  style={{ borderColor: 'var(--hairline)' }}
+                >
+                  {money.disclaimer}
+                </p>
+              )}
+            </PanelErrorBoundary>
+          )}
+        </div>
+      </PageShell>
+    </div>
   );
 }
