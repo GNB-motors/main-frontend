@@ -1,8 +1,69 @@
-/* WhatsApp fuel-receipt approval — super-admin review inbox.
-   Namespaced `ra-` to avoid clashing with the feature-flags `ff-` styles. */
+/* WhatsApp fuel-receipt approval — review inbox + detail.
+   Namespaced `ra-` to avoid clashing with the feature-flags `ff-` styles.
+   Uses the app design tokens (index.css) so it tracks the theme colour and
+   flips correctly under `.dark`. Avoid hardcoded hex for surfaces/text/accent. */
 
 .ra-page {
   padding: 4px 2px 40px;
+  color: var(--foreground);
+}
+
+/* ── Header (left-aligned, full-width — matches the app's list pages) ── */
+.ra-header {
+  margin-bottom: 20px;
+}
+
+.ra-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.ra-header__back:hover {
+  color: var(--primary-color);
+}
+
+.ra-header__bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ra-header__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ra-header__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.ra-header__subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted-foreground);
 }
 
 /* ── Toolbar: status tabs + search ── */
@@ -18,7 +79,7 @@
 .ra-tabs {
   display: inline-flex;
   gap: 4px;
-  background: #f1f3f5;
+  background: var(--secondary);
   padding: 4px;
   border-radius: 10px;
 }
@@ -30,7 +91,7 @@
   border-radius: 7px;
   font-size: 13px;
   font-weight: 600;
-  color: #64707d;
+  color: var(--muted-foreground);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -39,20 +100,20 @@
 }
 
 .ra-tab:hover {
-  color: #2b3742;
+  color: var(--foreground);
 }
 
 .ra-tab.is-active {
-  background: #ffffff;
-  color: #1a73e8;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background: var(--card);
+  color: var(--primary-color);
+  box-shadow: var(--shadow-card);
 }
 
 .ra-tab__count {
   font-size: 11px;
   font-weight: 700;
-  background: #e3e8ee;
-  color: #55606c;
+  background: color-mix(in srgb, var(--muted-foreground) 18%, transparent);
+  color: var(--muted-foreground);
   border-radius: 20px;
   padding: 1px 7px;
   min-width: 18px;
@@ -60,8 +121,8 @@
 }
 
 .ra-tab.is-active .ra-tab__count {
-  background: #e8f0fe;
-  color: #1a73e8;
+  background: color-mix(in srgb, var(--primary-color) 15%, transparent);
+  color: var(--primary-color);
 }
 
 .ra-search {
@@ -74,32 +135,38 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9aa4af;
+  color: var(--muted-foreground);
   display: flex;
 }
 
 .ra-search input {
   width: 100%;
   padding: 9px 12px 9px 34px;
-  border: 1px solid #dce1e7;
+  border: 1px solid var(--border);
   border-radius: 9px;
   font-size: 13px;
   outline: none;
+  background: var(--card);
+  color: var(--foreground);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.ra-search input::placeholder {
+  color: var(--muted-foreground);
+}
+
 .ra-search input:focus {
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
 }
 
 /* ── Card / table ── */
 .ra-card {
-  background: #fff;
-  border: 1px solid #eceff2;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .ra-table-wrap {
@@ -115,20 +182,20 @@
 .ra-table thead th {
   text-align: left;
   padding: 13px 18px;
-  background: #fafbfc;
-  color: #6b7783;
+  background: color-mix(in srgb, var(--muted) 60%, var(--card));
+  color: var(--muted-foreground);
   font-weight: 600;
   font-size: 12px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  border-bottom: 1px solid #eef1f4;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 .ra-table tbody td {
   padding: 14px 18px;
-  border-bottom: 1px solid #f2f4f6;
-  color: #2b3742;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
   vertical-align: middle;
 }
 
@@ -142,7 +209,7 @@
 }
 
 .ra-clickable:hover {
-  background: #f7fafd;
+  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
 }
 
 .ra-center {
@@ -154,12 +221,12 @@
 }
 
 .ra-muted {
-  color: #8a94a0;
+  color: var(--muted-foreground);
 }
 
 .ra-strong {
   font-weight: 700;
-  color: #1a2530;
+  color: var(--foreground);
 }
 
 .ra-veh {
@@ -173,8 +240,8 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: #eef4ff;
-  color: #1a73e8;
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -182,11 +249,11 @@
 }
 
 .ra-chevron {
-  color: #b6bfc9;
+  color: var(--muted-foreground);
   display: inline-flex;
 }
 
-/* ── Badges ── */
+/* ── Badges ── (semantic status hues; translucent bg reads on light + dark) */
 .ra-badge {
   display: inline-flex;
   align-items: center;
@@ -206,28 +273,41 @@
 }
 
 .ra-badge--ready {
-  background: #fff4e5;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
   color: #b26a00;
 }
 
 .ra-badge--published {
-  background: #e6f4ea;
+  background: color-mix(in srgb, #10b981 16%, transparent);
   color: #1e7e34;
 }
 
 .ra-badge--rejected {
-  background: #fdecec;
+  background: color-mix(in srgb, #ef4444 16%, transparent);
   color: #c62828;
 }
 
 .ra-badge--cleared {
-  background: #eceff1;
-  color: #607d8b;
+  background: color-mix(in srgb, var(--muted-foreground) 18%, transparent);
+  color: var(--muted-foreground);
 }
 
 .ra-badge--confidence {
-  background: #e8f0fe;
-  color: #1a73e8;
+  background: color-mix(in srgb, var(--primary-color) 15%, transparent);
+  color: var(--primary-color);
+}
+
+/* Brighten status text on dark so it stays legible on the dark card. */
+.dark .ra-badge--ready {
+  color: #fbbf24;
+}
+
+.dark .ra-badge--published {
+  color: #34d399;
+}
+
+.dark .ra-badge--rejected {
+  color: #f87171;
 }
 
 /* ── States ── */
@@ -237,7 +317,7 @@
   align-items: center;
   gap: 8px;
   padding: 48px 20px;
-  color: #8a94a0;
+  color: var(--muted-foreground);
   text-align: center;
 }
 
@@ -245,23 +325,23 @@
   width: 46px;
   height: 46px;
   border-radius: 12px;
-  background: #f1f4f7;
+  background: var(--muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #aab4bf;
+  color: var(--muted-foreground);
 }
 
 .ra-state__title {
   font-weight: 600;
-  color: #55606c;
+  color: var(--foreground);
 }
 
 .ra-spinner {
   width: 26px;
   height: 26px;
-  border: 3px solid #e3e8ee;
-  border-top-color: #1a73e8;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: ra-spin 0.7s linear infinite;
 }
@@ -280,15 +360,23 @@
 }
 
 .ra-alert--error {
-  background: #fdecec;
+  background: color-mix(in srgb, #ef4444 14%, transparent);
   color: #c62828;
-  border: 1px solid #f7c5c5;
+  border: 1px solid color-mix(in srgb, #ef4444 32%, transparent);
+}
+
+.dark .ra-alert--error {
+  color: #f87171;
 }
 
 .ra-alert--success {
-  background: #e6f4ea;
+  background: color-mix(in srgb, #10b981 14%, transparent);
   color: #1e7e34;
-  border: 1px solid #b6dfc2;
+  border: 1px solid color-mix(in srgb, #10b981 32%, transparent);
+}
+
+.dark .ra-alert--success {
+  color: #34d399;
 }
 
 /* ── Detail layout ── */
@@ -306,19 +394,19 @@
 }
 
 .ra-panel {
-  background: #fff;
-  border: 1px solid #eceff2;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
 .ra-panel__head {
   padding: 14px 18px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--border);
   font-weight: 700;
   font-size: 13px;
-  color: #46525e;
+  color: var(--foreground);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -332,7 +420,7 @@
 
 /* Receipt image */
 .ra-image-wrap {
-  background: #f4f6f8;
+  background: var(--muted);
   border-radius: 10px;
   padding: 10px;
   display: flex;
@@ -348,7 +436,7 @@
 
 .ra-image-empty {
   padding: 40px;
-  color: #9aa4af;
+  color: var(--muted-foreground);
   text-align: center;
   font-size: 13px;
 }
@@ -356,7 +444,7 @@
 .ra-image-sub {
   margin-top: 12px;
   font-size: 12px;
-  color: #8a94a0;
+  color: var(--muted-foreground);
   text-align: center;
 }
 
@@ -375,12 +463,12 @@
 
 .ra-field {
   padding: 10px 0;
-  border-bottom: 1px solid #f4f6f8;
+  border-bottom: 1px solid var(--border);
 }
 
 .ra-field__label {
   font-size: 11.5px;
-  color: #8a94a0;
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   margin-bottom: 3px;
@@ -389,7 +477,7 @@
 .ra-field__value {
   font-size: 14.5px;
   font-weight: 600;
-  color: #1a2530;
+  color: var(--foreground);
 }
 
 .ra-field--full {
@@ -435,29 +523,33 @@
 }
 
 .ra-btn--reject {
-  background: #fdecec;
+  background: color-mix(in srgb, #ef4444 16%, transparent);
   color: #c62828;
 }
 
+.dark .ra-btn--reject {
+  color: #f87171;
+}
+
 .ra-btn--clear {
-  background: #eceff1;
-  color: #55606c;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
 }
 
 .ra-btn--ghost {
-  background: #fff;
-  border: 1px solid #dce1e7;
-  color: #46525e;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
 }
 
 .ra-published-note {
   margin-top: 18px;
   padding: 14px 16px;
   border-radius: 10px;
-  background: #f7fafc;
-  border: 1px solid #eceff2;
+  background: var(--muted);
+  border: 1px solid var(--border);
   font-size: 13px;
-  color: #55606c;
+  color: var(--muted-foreground);
 }
 
 /* Modal (reject / clear reason) */
@@ -473,7 +565,8 @@
 }
 
 .ra-modal {
-  background: #fff;
+  background: var(--card);
+  color: var(--foreground);
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
@@ -483,10 +576,10 @@
 
 .ra-modal__head {
   padding: 18px 20px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--border);
   font-weight: 700;
   font-size: 16px;
-  color: #1a2530;
+  color: var(--foreground);
 }
 
 .ra-modal__body {
@@ -495,7 +588,7 @@
 
 .ra-modal__body textarea {
   width: 100%;
-  border: 1px solid #dce1e7;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
@@ -503,11 +596,13 @@
   resize: vertical;
   min-height: 88px;
   outline: none;
+  background: var(--card);
+  color: var(--foreground);
 }
 
 .ra-modal__body textarea:focus {
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
 }
 
 .ra-modal__foot {
@@ -521,7 +616,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #1a73e8;
+  color: var(--primary-color);
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
@@ -529,4 +624,78 @@
   border: none;
   padding: 0;
   margin-bottom: 4px;
+}
+
+/* ── Odometer capture mode (org WhatsApp settings, inline) ── */
+.ra-odo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 16px 0 4px;
+  box-shadow: var(--shadow-card);
+}
+
+.ra-odo__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+
+.ra-odo__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.ra-odo__hint {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.ra-odo__seg {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--secondary);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.ra-odo__btn {
+  border: none;
+  background: transparent;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ra-odo__btn:hover:not(:disabled) {
+  color: var(--foreground);
+}
+
+.ra-odo__btn.is-active {
+  background: var(--card);
+  color: var(--primary-color);
+  box-shadow: var(--shadow-card);
+}
+
+.ra-odo__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
 }
