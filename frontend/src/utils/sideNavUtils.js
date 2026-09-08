@@ -17,6 +17,7 @@ import {
   Gauge,
   ShieldAlert,
   CalendarClock,
+  ReceiptText,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -233,6 +234,13 @@ export const SIDE_NAV_ITEMS = [
     icon: Grid,
   },
   {
+    type: 'link',
+    access: 'fleet',
+    to: '/whatsapp-approvals',
+    label: 'WhatsApp Approvals',
+    icon: ReceiptText,
+  },
+  {
     type: 'group',
     groupId: 'fuelManagement',
     access: 'fleet',
@@ -240,6 +248,7 @@ export const SIDE_NAV_ITEMS = [
     icon: Fuel,
     children: [
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
+      { to: '/whatsapp-approvals', label: 'WhatsApp Approvals' },
       { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
       // Live-map-refresh / warehouse branch additions.
@@ -250,6 +259,7 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: [
       '/mileage-tracking',
+      '/whatsapp-approvals',
       '/adblue-tracking',
       '/fuel-comparison',
       '/fuel-integrity',

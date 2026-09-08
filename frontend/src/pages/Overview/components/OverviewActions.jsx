@@ -1,4 +1,5 @@
-import { CalendarDays, RefreshCw, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CalendarDays, RefreshCw, Download, ReceiptText } from 'lucide-react';
 
 const RANGES = [
   { value: 7, label: 'Last 7 days' },
@@ -21,6 +22,10 @@ export default function OverviewActions({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Link to="/whatsapp-approvals" className="ov-btn gap-2" style={{ textDecoration: 'none' }}>
+        <ReceiptText size={15} />
+        WhatsApp Approvals
+      </Link>
       <label className="ov-btn cursor-pointer gap-2 pr-2">
         <CalendarDays size={15} className="text-dim" />
         <select

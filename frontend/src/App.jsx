@@ -91,6 +91,12 @@ const LemuGraphPage = lazy(
   () => import('./pages/Superadmin/components/lemu/graph/LemuGraphPage.jsx'),
 );
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
+const ReceiptApprovalPage = lazy(
+  () => import('./pages/Superadmin/components/ReceiptApprovalPage.jsx'),
+);
+const ReceiptApprovalDetailPage = lazy(
+  () => import('./pages/Superadmin/components/ReceiptApprovalDetailPage.jsx'),
+);
 const VehiclesPage = lazy(() => import('./pages/Profile/VehiclesPage.jsx'));
 const AddVehiclePage = lazy(() => import('./pages/Profile/AddVehiclePage.jsx'));
 const VehicleDashboardPage = lazy(() => import('./pages/Profile/VehicleDashboardPage.jsx'));
@@ -287,6 +293,23 @@ function App() {
                 </Suspense>
               }
             />
+            {/* WhatsApp fuel-receipt review + approval */}
+            <Route
+              path="receipts"
+              element={
+                <Suspense fallback={null}>
+                  <ReceiptApprovalPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="receipts/:id"
+              element={
+                <Suspense fallback={null}>
+                  <ReceiptApprovalDetailPage />
+                </Suspense>
+              }
+            />
           </Route>
 
           {/* Protected Routes inside DashboardLayout */}
@@ -312,6 +335,22 @@ function App() {
             <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
             <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
             <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
+            <Route
+              path="/whatsapp-approvals"
+              element={
+                <Suspense fallback={null}>
+                  <ReceiptApprovalPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/whatsapp-approvals/:id"
+              element={
+                <Suspense fallback={null}>
+                  <ReceiptApprovalDetailPage />
+                </Suspense>
+              }
+            />
             <Route path="/route-deviation" element={<RouteDeviationPage />} />
             <Route path="/route-replay" element={<RouteReplayPage />} />
             <Route path="/route-profitability" element={<RouteProfitabilityPage />} />
