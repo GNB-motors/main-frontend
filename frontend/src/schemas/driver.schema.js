@@ -4,7 +4,8 @@
  */
 import { z } from 'zod';
 
-export const driverSchema = z.object({
+export const driverSchema = z
+  .object({
     _id: z.string().optional(),
     id: z.string().optional(),
     name: z.string().optional(),
@@ -14,23 +15,40 @@ export const driverSchema = z.object({
     phone: z.string().optional(),
     licenseNumber: z.string().optional(),
     status: z.string().optional(),
-    branchId: z.string().optional(),
-}).passthrough();
+    // The list endpoint populates branchId to { _id, name } for a branch-scoped
+    // employee, and it's null for an enterprise-level one — never a bare string
+    // in practice, but accept one too since other endpoints may send the raw id.
+    branchId: z
+      .union([
+        z.string(),
+        z.object({ _id: z.string().optional(), name: z.string().optional() }).passthrough(),
+        z.null(),
+      ])
+      .optional(),
+  })
+  .passthrough();
 
 export const driverListSchema = z.array(driverSchema);
 
-export const driverListResponseSchema = z.object({
+export const driverListResponseSchema = z
+  .object({
     status: z.string().optional(),
     data: z.union([driverListSchema, driverSchema]),
-    meta: z.object({
+    meta: z
+      .object({
         total: z.number().optional(),
         page: z.number().optional(),
         limit: z.number().optional(),
         totalPages: z.number().optional(),
-    }).passthrough().optional(),
-}).passthrough();
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
 
-export const driverResponseSchema = z.object({
+export const driverResponseSchema = z
+  .object({
     status: z.string().optional(),
     data: driverSchema,
-}).passthrough();
+  })
+  .passthrough();

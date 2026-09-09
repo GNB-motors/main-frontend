@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
+import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -52,8 +53,12 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
     driverId: '',
   });
   const [saving, setSaving] = useState(false);
+  const [driverAutoFilled, setDriverAutoFilled] = useState(false);
+  const [driverTouchedByUser, setDriverTouchedByUser] = useState(false);
 
   useEffect(() => {
+    setDriverAutoFilled(false);
+    setDriverTouchedByUser(false);
     if (editingExpense) {
       setForm({
         title: editingExpense.title || '',
@@ -82,6 +87,36 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
   }, [editingExpense, isOpen]);
 
   if (!isOpen) return null;
+
+  /**
+   * Suggest the vehicle's currently-assigned driver when a vehicle is picked.
+   * Never overrides a driver already hand-picked in this form, and never
+   * writes anything back — a suggestion for this one expense, not a sync.
+   */
+  const handleVehicleChange = async (vehicleId) => {
+    setForm((prev) => ({ ...prev, vehicleId }));
+    if (!vehicleId || driverTouchedByUser) return;
+    try {
+      const assignment = await DriverVehicleAssignmentService.getActiveAssignment({
+        vehicleId,
+        activeOn: form.expenseDate,
+      });
+      if (!assignment) return;
+      const suggestedId = DriverVehicleAssignmentService.idOf(assignment.driverId);
+      if (drivers.some((d) => d._id === suggestedId)) {
+        setForm((prev) => ({ ...prev, driverId: suggestedId }));
+        setDriverAutoFilled(true);
+      }
+    } catch (err) {
+      if (err?.response?.status !== 404) console.warn('Failed to resolve active assignment', err);
+    }
+  };
+
+  const handleDriverChange = (driverId) => {
+    setForm((prev) => ({ ...prev, driverId }));
+    setDriverTouchedByUser(true);
+    setDriverAutoFilled(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -210,7 +245,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
                 <select
                   className={inputClass}
                   value={form.vehicleId}
-                  onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
+                  onChange={(e) => handleVehicleChange(e.target.value)}
                 >
                   <option value="">None</option>
                   {vehicles.map((v) => (
@@ -225,7 +260,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
                 <select
                   className={inputClass}
                   value={form.driverId}
-                  onChange={(e) => setForm({ ...form, driverId: e.target.value })}
+                  onChange={(e) => handleDriverChange(e.target.value)}
                 >
                   <option value="">None</option>
                   {drivers.map((d) => (
@@ -234,6 +269,12 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
                     </option>
                   ))}
                 </select>
+                {driverAutoFilled && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Auto-filled from vehicle&apos;s assigned driver — change if a different driver
+                    made this trip.
+                  </p>
+                )}
               </div>
             </div>
           </div>
