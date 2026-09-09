@@ -11,6 +11,7 @@ import { START_MARKER_SVG, END_MARKER_SVG } from './tripReportDetailMapIcons';
 import { toFrames, toLatLngPath } from '../../RouteReplay/routeReplay';
 import { trailWindowForTrip } from './tripReportTrailWindow';
 import { LiveTrackingService } from '../../LiveTracking/LiveTrackingService.jsx';
+import { formatIST } from '../../LiveTracking/liveTracking.shared.js';
 
 const GOOGLE_MAPS_LIBRARIES = ['places', 'directions'];
 
@@ -25,6 +26,9 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
   const [directions, setDirections] = useState(null);
   const [mapPoints, setMapPoints] = useState({ start: null, end: null });
   const [trailPath, setTrailPath] = useState(null);
+  // When the server capped the trail, how many points the window really held —
+  // the drawn path is the oldest N, not the whole trip.
+  const [trailTruncated, setTrailTruncated] = useState(null);
   const mapRef = useRef(null);
 
   const { isLoaded, loadError } = useLoadScript({
@@ -76,6 +80,9 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
     })
       .then((trail) => {
         if (cancelled) return;
+        setTrailTruncated(
+          trail?.truncated ? { totalCount: trail.totalCount, coveredTo: trail.coveredTo } : null,
+        );
         const path = toLatLngPath(toFrames(trail?.points));
         if (path.length >= 2) {
           setTrailPath(path);
@@ -187,6 +194,14 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
             <span className="route-value">{endLoc}</span>
           </div>
         </div>
+        {trailTruncated && (
+          <div className="route-point">
+            <span style={{ fontSize: 11, color: '#b45309' }}>
+              Trail shows the oldest {trailPath?.length ?? '…'} of {trailTruncated.totalCount}{' '}
+              points (up to {formatIST(trailTruncated.coveredTo)}) — the trip may extend further.
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

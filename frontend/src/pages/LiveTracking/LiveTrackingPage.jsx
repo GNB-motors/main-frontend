@@ -60,6 +60,10 @@ const LiveTrackingPage = () => {
   const [trail, setTrail] = useState([]);
   const [trailLoading, setTrailLoading] = useState(false);
   const [trailError, setTrailError] = useState(null);
+  // Set when the server capped the trail: how many points the window really
+  // held and how far back the returned ones reach — "Trail: N points" used to
+  // silently mean "the oldest N".
+  const [trailTruncated, setTrailTruncated] = useState(null);
   const [vehicleQuery, setVehicleQuery] = useState('');
 
   const mapRef = useRef(null);
@@ -85,6 +89,7 @@ const LiveTrackingPage = () => {
     if (!selectedReg) {
       setTrail([]);
       setTrailError(null);
+      setTrailTruncated(null);
       return;
     }
     let cancelled = false;
@@ -94,6 +99,9 @@ const LiveTrackingPage = () => {
       try {
         const data = await LiveTrackingService.getTrail(selectedReg);
         if (cancelled) return;
+        setTrailTruncated(
+          data.truncated ? { totalCount: data.totalCount, coveredTo: data.coveredTo } : null,
+        );
         const points = (data.points || [])
           .filter((p) => p.latitude != null && p.longitude != null)
           .map((p) => ({ lat: p.latitude, lng: p.longitude }));
@@ -107,6 +115,7 @@ const LiveTrackingPage = () => {
         if (!cancelled) {
           setTrail([]);
           setTrailError(err.detail || 'Could not load the vehicle trail.');
+          setTrailTruncated(null);
         }
       } finally {
         if (!cancelled) setTrailLoading(false);
@@ -399,6 +408,13 @@ const LiveTrackingPage = () => {
                       {!trailLoading && !trailError && trail.length > 1 && (
                         <p style={{ fontSize: 11, color: '#2563eb', margin: '4px 0' }}>
                           Trail: {trail.length} points
+                          {trailTruncated && ` of ${trailTruncated.totalCount}`}
+                        </p>
+                      )}
+                      {!trailLoading && trailTruncated && (
+                        <p style={{ fontSize: 11, color: '#b45309', margin: '4px 0' }}>
+                          Oldest points only — trail continues to{' '}
+                          {formatIST(trailTruncated.coveredTo)}. Narrow the window for the rest.
                         </p>
                       )}
                     </div>

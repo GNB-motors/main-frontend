@@ -46,9 +46,24 @@ export function bearingDeg(a, b) {
 }
 
 /**
+ * GPS failure modes that must not reach the map:
+ *  - the null island — a fix at exactly (0°, 0°) is a receiver cold-start
+ *    artifact, not a position (no fleet operates at the equator/prime
+ *    meridian intersection), and it used to pass both the null and the
+ *    isFinite checks downstream;
+ *  - teleports — a single glitched fix implying an impossible speed between
+ *    two real fixes. It would draw a spike leg and poison every cumulative
+ *    figure after it, and (once map-matching lands) poison match requests.
+ * Trucks are governed far below this; anything implying more is bad data.
+ */
+export const MAX_IMPLIED_KMPH = 250;
+const isNullIsland = (lat, lng) => lat === 0 && lng === 0;
+
+/**
  * Trail rows → replay frames: drop fixes without coordinates or a usable
- * timestamp, sort chronologically, and annotate each frame with the distance
- * and ground speed since the previous fix.
+ * timestamp, sort chronologically, reject null-island and teleport fixes,
+ * and annotate each surviving frame with the distance and ground speed
+ * since the previous accepted fix.
  *
  * A trail can arrive unsorted (the history collection is append-only across
  * multiple ingest paths), and a single out-of-order fix would otherwise draw a
@@ -69,9 +84,22 @@ export function toFrames(points) {
     .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && Number.isFinite(p.at))
     .sort((a, b) => a.at - b.at);
 
+  const accepted = [];
+  for (const p of clean) {
+    if (isNullIsland(p.lat, p.lng)) continue;
+    const prev = accepted[accepted.length - 1];
+    if (prev) {
+      const implied = groundSpeedKmph(haversineKm(prev, p), p.at - prev.at);
+      // implied is null when no time elapsed (two fixes, one timestamp) —
+      // that says nothing about speed, so the fix is kept.
+      if (implied != null && implied > MAX_IMPLIED_KMPH) continue;
+    }
+    accepted.push(p);
+  }
+
   let cumulativeKm = 0;
-  return clean.map((p, i) => {
-    const prev = i === 0 ? null : clean[i - 1];
+  return accepted.map((p, i) => {
+    const prev = i === 0 ? null : accepted[i - 1];
     const legKm = prev ? haversineKm(prev, p) : 0;
     const legMs = prev ? p.at - prev.at : 0;
     cumulativeKm += legKm;

@@ -208,6 +208,14 @@ const RouteReplayPage = () => {
         </div>
       )}
 
+      {!error && trail?.truncated && (
+        <div role="status" className="rr-alert">
+          <AlertTriangle size={15} /> Showing the oldest {frames.length} of {trail.totalCount}{' '}
+          points in this window (up to {dayjs(trail.coveredTo).format('DD MMM, hh:mm A')}) — narrow
+          the dates to see the rest.
+        </div>
+      )}
+
       {!error && trail && frames.length < 2 && (
         <div className="rr-empty">
           <RouteIcon size={26} />
