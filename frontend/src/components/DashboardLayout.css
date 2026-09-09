@@ -8,7 +8,7 @@
   display: flex;
   min-height: 100vh;
   position: relative;
-  background: #ffffff;
+  background: var(--canvas, #f4f6fb);
 }
 
 /* Visually-hidden until focused (keyboard users) — jumps past the sidebar nav. */
@@ -49,6 +49,7 @@
   flex-grow: 1;
   height: 100%;
   box-sizing: border-box;
+  background: var(--canvas, #f4f6fb);
 }
 
 .page-content.no-padding {

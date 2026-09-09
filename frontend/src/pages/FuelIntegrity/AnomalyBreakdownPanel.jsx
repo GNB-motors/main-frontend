@@ -3,7 +3,11 @@ import { Panel } from '../Overview/components/overview.primitives.jsx';
 
 export default function AnomalyBreakdownPanel({ defCount, billCount, lossL, affected, onDrill }) {
   return (
-    <Panel eyebrow="Anomaly breakdown" question="What kind of anomaly, and where?">
+    <Panel
+      className="min-w-0"
+      eyebrow="Anomaly breakdown"
+      question="What kind of anomaly, and where?"
+    >
       <div className="grid grid-cols-3 gap-2">
         <div className="ov-inset flex flex-col items-center gap-0.5 py-3">
           <span

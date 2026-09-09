@@ -1,5 +1,14 @@
 import { Fragment, useMemo, useState, useCallback } from 'react';
-import { MapPin, Route, ChevronRight, ChevronDown } from 'lucide-react';
+import {
+  MapPin,
+  Route,
+  ChevronRight,
+  ChevronDown,
+  AlertTriangle,
+  Clock,
+  Check,
+  Loader2,
+} from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import RouteIntelligenceService from './RouteIntelligenceService';
 import EmptyState from '../../components/cluster/EmptyState';
@@ -25,6 +34,7 @@ import {
 } from '../../components/ui/pagination';
 import { formatNum } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
+import '../OwnerAlerts/OwnerAlerts.css';
 
 const PAGE_SIZE = 25;
 const ALL = 'ALL';
@@ -33,7 +43,11 @@ const ALL = 'ALL';
 function matchesQ(q, values) {
   const needle = q.trim().toLowerCase();
   if (!needle) return true;
-  return values.some((v) => String(v ?? '').toLowerCase().includes(needle));
+  return values.some((v) =>
+    String(v ?? '')
+      .toLowerCase()
+      .includes(needle),
+  );
 }
 
 function siteMatches(q, site) {
@@ -128,7 +142,7 @@ const arrivalExportRows = (records) =>
   }));
 
 /** One FilterBar + ExportButton row, mounted inside each tab panel. */
-function TabToolbar({ q, onQChange, activeFilters, exportProps }) {
+function TabToolbar({ q, onQChange, activeFilters, exportProps, children = null }) {
   return (
     <FilterBar
       searchValue={q}
@@ -136,17 +150,26 @@ function TabToolbar({ q, onQChange, activeFilters, exportProps }) {
       searchPlaceholder="Search this page…"
       activeCount={q.trim() ? activeFilters + 1 : activeFilters}
       onClear={() => onQChange('')}
-      right={<ExportButton {...exportProps} />}
+      right={
+        <div className="flex items-center gap-2">
+          {children}
+          <ExportButton {...exportProps} />
+        </div>
+      }
     />
   );
 }
 
 function TableShell({ title, caption, children }) {
   return (
-    <div className="cluster-panel overflow-hidden">
-      <div className="px-4 pt-4 pb-2">
-        <h2 className="cluster-title text-sm">{title}</h2>
-        {caption ? <p className="text-dim mt-1 text-xs leading-relaxed">{caption}</p> : null}
+    <div className="oa-table-wrapper">
+      <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+          {caption ? (
+            <p className="text-slate-500 mt-0.5 text-xs leading-relaxed">{caption}</p>
+          ) : null}
+        </div>
       </div>
       {children}
     </div>
@@ -166,25 +189,25 @@ function ListSkeleton({ rows = 6 }) {
 function SimplePagination({ page, totalPages, total, onChange, label = 'items' }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="mt-3 flex items-center justify-between px-4 pb-4">
+    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50">
       <button
         type="button"
         disabled={page <= 1}
         onClick={() => onChange((p) => Math.max(1, p - 1))}
-        className="cluster-inset px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75 disabled:opacity-40"
-        style={{ color: 'var(--cluster-text-dim)' }}
+        className="ov-btn"
+        style={{ padding: '4px 10px', fontSize: 12 }}
       >
         Prev
       </button>
-      <span className="num text-dim text-xs">
+      <span className="num text-slate-600 text-xs font-medium">
         Page {formatNum(page)} of {formatNum(totalPages)} · {formatNum(total ?? 0)} {label}
       </span>
       <button
         type="button"
         disabled={page >= totalPages}
         onClick={() => onChange((p) => p + 1)}
-        className="cluster-inset px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75 disabled:opacity-40"
-        style={{ color: 'var(--cluster-text-dim)' }}
+        className="ov-btn"
+        style={{ padding: '4px 10px', fontSize: 12 }}
       >
         Next
       </button>
@@ -195,94 +218,113 @@ function SimplePagination({ page, totalPages, total, onChange, label = 'items' }
 function statusTone(status) {
   switch (status) {
     case 'CONFIRMED':
-      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300';
+      return 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold';
     case 'PROPOSED':
-      return 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300';
+      return 'bg-amber-50 text-amber-900 border border-amber-300 font-bold';
     case 'REJECTED':
-      return 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300';
+      return 'bg-rose-50 text-rose-800 border border-rose-300 font-bold';
     default:
-      return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+      return 'bg-slate-100 text-slate-700 border border-slate-300 font-medium';
   }
 }
 
 function typeTone(type) {
   switch (type) {
     case 'LOADING':
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
+      return 'bg-blue-50 text-blue-800 border border-blue-300 font-semibold';
     case 'PARKING':
-      return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300';
+      return 'bg-purple-50 text-purple-800 border border-purple-300 font-semibold';
     case 'FUEL_PUMP':
-      return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300';
+      return 'bg-amber-50 text-amber-900 border border-amber-300 font-semibold';
     case 'WORKSHOP':
     case 'SERVICE':
-      return 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300';
+      return 'bg-indigo-50 text-indigo-800 border border-indigo-300 font-semibold';
     default:
-      return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+      return 'bg-slate-100 text-slate-700 border border-slate-300 font-medium';
   }
 }
 
 function SitesTable({ records, onConfirm, confirmingId }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[840px] text-sm">
+      <table className="oa-table">
         <thead>
-          <tr className="text-left text-[11px] uppercase tracking-wider" style={{ color: 'var(--cluster-text-dim)', borderBottom: '1px solid var(--hairline)' }}>
-            <th className="px-4 py-3 font-semibold">Status</th>
-            <th className="px-4 py-3 font-semibold">Type</th>
-            <th className="px-4 py-3 font-semibold">Key</th>
-            <th className="px-4 py-3 font-semibold">Centroid</th>
-            <th className="px-4 py-3 font-semibold">Radius</th>
-            <th className="px-4 py-3 font-semibold">Visits</th>
-            <th className="px-4 py-3 font-semibold">Vehicles</th>
-            <th className="px-4 py-3 font-semibold">Evidence</th>
-            <th className="px-4 py-3 font-semibold" />
+          <tr>
+            <th style={{ width: 110 }}>Status</th>
+            <th style={{ width: 110 }}>Type</th>
+            <th>Key</th>
+            <th>Centroid</th>
+            <th>Radius</th>
+            <th>Visits</th>
+            <th>Vehicles</th>
+            <th>Evidence</th>
+            <th style={{ textAlign: 'right', width: 110 }}>Action</th>
           </tr>
         </thead>
         <tbody>
           {records.map((site) => (
-            <tr key={site._id} style={{ borderBottom: '1px solid var(--hairline)' }}>
-              <td className="px-4 py-3">
-                <span className={`num inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusTone(site.status)}`}>
+            <tr key={site._id}>
+              <td>
+                <span
+                  className={`num inline-flex items-center rounded-md px-2 py-0.5 text-[10px] uppercase tracking-wide ${statusTone(site.status)}`}
+                >
                   {site.status}
                 </span>
               </td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${typeTone(site.siteType)}`}>
+              <td>
+                <span
+                  className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] uppercase tracking-wide ${typeTone(site.siteType)}`}
+                >
                   {site.siteType || 'UNKNOWN'}
                 </span>
               </td>
-              <td className="px-4 py-3">{site.key}</td>
-              <td className="px-4 py-3">
+              <td>
+                <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  {site.key}
+                </span>
+              </td>
+              <td>
                 <PlaceLabel lat={site.centroidLat} lng={site.centroidLng} />
               </td>
-              <td className="num px-4 py-3">{formatNum(site.radiusM)} m</td>
-              <td className="num px-4 py-3">{formatNum(site.visitCount)}</td>
-              <td className="num px-4 py-3">{formatNum(site.distinctVehicleCount)}</td>
-              <td className="px-4 py-3">
+              <td className="num font-mono">{formatNum(site.radiusM)} m</td>
+              <td className="num font-mono font-bold text-slate-800">
+                {formatNum(site.visitCount)}
+              </td>
+              <td className="num font-mono font-bold text-slate-800">
+                {formatNum(site.distinctVehicleCount)}
+              </td>
+              <td>
                 {site.evidence?.length ? (
                   <details>
-                    <summary className="cursor-pointer text-xs font-semibold" style={{ color: 'var(--gnb-400)' }}>
+                    <summary className="cursor-pointer text-xs font-bold text-blue-600 hover:text-blue-800">
                       {site.evidence.length} sample{site.evidence.length === 1 ? '' : 's'}
                     </summary>
-                    <ul className="mt-2 max-w-xs list-disc pl-4 text-[11px] text-muted-foreground">
+                    <ul className="mt-2 max-w-xs list-disc pl-4 text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-200">
                       {site.evidence.slice(0, 5).map((e, i) => (
-                        <li key={i} className="break-words">{e}</li>
+                        <li key={i} className="break-words">
+                          {e}
+                        </li>
                       ))}
                     </ul>
                   </details>
                 ) : (
-                  <span className="text-dim text-xs">—</span>
+                  <span className="text-slate-400 text-xs">—</span>
                 )}
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="text-right">
                 {site.status === 'PROPOSED' ? (
-                  <Button
-                    size="sm"
+                  <button
+                    className="oa-ack-action"
                     disabled={confirmingId === site._id}
                     onClick={() => onConfirm(site._id)}
                   >
-                    {confirmingId === site._id ? 'Confirming…' : 'Confirm'}
-                  </Button>
+                    {confirmingId === site._id ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Check size={13} />
+                    )}{' '}
+                    Confirm
+                  </button>
                 ) : null}
               </td>
             </tr>
@@ -301,7 +343,7 @@ function CorridorEtaPanel({ corridor }) {
     (signal) =>
       RouteIntelligenceService.corridorEtaStats({ originSiteId, destinationSiteId }, { signal }),
     [originSiteId, destinationSiteId],
-    { enabled }
+    { enabled },
   );
 
   if (!enabled) {
@@ -338,16 +380,16 @@ function CorridorsTable({ records }) {
   const [expandedId, setExpandedId] = useState(null);
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-sm">
+      <table className="oa-table">
         <thead>
-          <tr className="text-left text-[11px] uppercase tracking-wider" style={{ color: 'var(--cluster-text-dim)', borderBottom: '1px solid var(--hairline)' }}>
-            <th className="px-2 py-3 font-semibold" aria-label="Expand" />
-            <th className="px-4 py-3 font-semibold">Origin</th>
-            <th className="px-4 py-3 font-semibold">Destination</th>
-            <th className="px-4 py-3 font-semibold">Sample Tracks</th>
-            <th className="px-4 py-3 font-semibold">p90 Cell Gap</th>
-            <th className="px-4 py-3 font-semibold">Usable for Deviation</th>
-            <th className="px-4 py-3 font-semibold">Insights Dominated</th>
+          <tr>
+            <th style={{ width: 44, textAlign: 'center' }} aria-label="Expand" />
+            <th>Origin</th>
+            <th>Destination</th>
+            <th>Sample Tracks</th>
+            <th>p90 Cell Gap</th>
+            <th>Usable for Deviation</th>
+            <th>Insights Dominated</th>
           </tr>
         </thead>
         <tbody>
@@ -356,41 +398,53 @@ function CorridorsTable({ records }) {
             return (
               <Fragment key={c._id}>
                 <tr
-                  style={{ borderBottom: '1px solid var(--hairline)', cursor: 'pointer' }}
+                  style={{ cursor: 'pointer' }}
                   onClick={() => setExpandedId(expanded ? null : c._id)}
                 >
-                  <td className="px-2 py-3" aria-hidden="true">
-                    {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <td style={{ textAlign: 'center' }} aria-hidden="true">
+                    {expanded ? (
+                      <ChevronDown size={14} className="text-blue-600" />
+                    ) : (
+                      <ChevronRight size={14} className="text-slate-400" />
+                    )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <div className="flex flex-col gap-0.5">
                       <PlaceLabel lat={c.originLat} lng={c.originLng} showMap={false} />
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <div className="flex flex-col gap-0.5">
                       <PlaceLabel lat={c.destinationLat} lng={c.destinationLng} showMap={false} />
                     </div>
                   </td>
-                  <td className="num px-4 py-3">{formatNum(c.sampleTrackCount)}</td>
-                  <td className="num px-4 py-3">{c.p90CellGapKm != null ? `${c.p90CellGapKm.toFixed(2)} km` : '—'}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={c.usableForDeviation ? 'default' : 'destructive'}>
-                      {c.usableForDeviation ? 'Yes' : 'No'}
-                    </Badge>
+                  <td className="num font-mono font-bold text-slate-800">
+                    {formatNum(c.sampleTrackCount)}
                   </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={c.insightsDominated ? 'secondary' : 'outline'}>
+                  <td className="num font-mono">
+                    {c.p90CellGapKm != null ? `${c.p90CellGapKm.toFixed(2)} km` : '—'}
+                  </td>
+                  <td>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${c.usableForDeviation ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}
+                    >
+                      {c.usableForDeviation ? 'Yes' : 'No'}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${c.insightsDominated ? 'bg-indigo-50 text-indigo-800 border-indigo-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}
+                    >
                       {c.insightsDominated ? 'Yes' : 'No'}
-                    </Badge>
+                    </span>
                   </td>
                 </tr>
                 {expanded && (
-                  <tr style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--cluster-surface-alt, transparent)' }}>
-                    <td colSpan={7} className="px-4 py-3">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--cluster-text-dim)' }}>
-                          Typical transit time
+                  <tr>
+                    <td colSpan={7} className="p-4 bg-slate-50/80 border-b border-slate-200">
+                      <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          Typical Transit Time & Statistics
                         </span>
                         <CorridorEtaPanel corridor={c} />
                       </div>
@@ -409,27 +463,44 @@ function CorridorsTable({ records }) {
 function DeviationsTable({ records }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="oa-table">
         <thead>
-          <tr className="text-left text-[11px] uppercase tracking-wider" style={{ color: 'var(--cluster-text-dim)', borderBottom: '1px solid var(--hairline)' }}>
-            <th className="px-4 py-3 font-semibold">Vehicle</th>
-            <th className="px-4 py-3 font-semibold">Detected</th>
-            <th className="px-4 py-3 font-semibold">Max Off Corridor</th>
-            <th className="px-4 py-3 font-semibold">Off Points</th>
-            <th className="px-4 py-3 font-semibold">Extra km</th>
-            <th className="px-4 py-3 font-semibold">Status</th>
+          <tr>
+            <th>Vehicle</th>
+            <th>Detected</th>
+            <th>Max Off Corridor</th>
+            <th>Off Points</th>
+            <th>Extra km</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           {records.map((d) => (
-            <tr key={d._id} style={{ borderBottom: '1px solid var(--hairline)' }}>
-              <td className="px-4 py-3"><span className="reg-plate">{d.registrationNumber}</span></td>
-              <td className="num px-4 py-3 whitespace-nowrap">{formatDateTimeIST(d.detectedAt)}</td>
-              <td className="num px-4 py-3">{d.maxOffKm != null ? `${d.maxOffKm.toFixed(2)} km` : '—'}</td>
-              <td className="num px-4 py-3">{formatNum(d.offCorridorPoints)}</td>
-              <td className="num px-4 py-3">{d.extraKmEstimate != null ? `${d.extraKmEstimate.toFixed(2)} km` : '—'}</td>
-              <td className="px-4 py-3">
-                <span className={`num inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusTone(d.status === 'OPEN' ? 'PROPOSED' : 'CONFIRMED')}`}>
+            <tr key={d._id}>
+              <td>
+                <span className="reg-plate font-mono font-bold text-slate-900">
+                  {d.registrationNumber}
+                </span>
+              </td>
+              <td className="num font-mono text-slate-600 whitespace-nowrap">
+                {formatDateTimeIST(d.detectedAt)}
+              </td>
+              <td
+                className="num font-mono font-semibold"
+                style={{ color: d.maxOffKm > 5 ? '#e11d48' : '#0f172a' }}
+              >
+                {d.maxOffKm != null ? `${d.maxOffKm.toFixed(2)} km` : '—'}
+              </td>
+              <td className="num font-mono font-bold text-slate-800">
+                {formatNum(d.offCorridorPoints)}
+              </td>
+              <td className="num font-mono">
+                {d.extraKmEstimate != null ? `${d.extraKmEstimate.toFixed(2)} km` : '—'}
+              </td>
+              <td>
+                <span
+                  className={`num inline-flex items-center rounded-md px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusTone(d.status === 'OPEN' ? 'PROPOSED' : 'CONFIRMED')}`}
+                >
                   {d.status}
                 </span>
               </td>
@@ -444,27 +515,43 @@ function DeviationsTable({ records }) {
 function ArrivalsTable({ records }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="oa-table">
         <thead>
-          <tr className="text-left text-[11px] uppercase tracking-wider" style={{ color: 'var(--cluster-text-dim)', borderBottom: '1px solid var(--hairline)' }}>
-            <th className="px-4 py-3 font-semibold">Vehicle</th>
-            <th className="px-4 py-3 font-semibold">Site</th>
-            <th className="px-4 py-3 font-semibold">Arrived</th>
-            <th className="px-4 py-3 font-semibold">Departed</th>
-            <th className="px-4 py-3 font-semibold">Dwell</th>
-            <th className="px-4 py-3 font-semibold">Status</th>
+          <tr>
+            <th>Vehicle</th>
+            <th>Site</th>
+            <th>Arrived</th>
+            <th>Departed</th>
+            <th>Dwell</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           {records.map((a) => (
-            <tr key={a._id} style={{ borderBottom: '1px solid var(--hairline)' }}>
-              <td className="px-4 py-3"><span className="reg-plate">{a.registrationNumber}</span></td>
-              <td className="num px-4 py-3 text-xs">{a.siteId}</td>
-              <td className="num px-4 py-3 whitespace-nowrap">{formatDateTimeIST(a.arrivedAt)}</td>
-              <td className="num px-4 py-3 whitespace-nowrap">{a.departedAt ? formatDateTimeIST(a.departedAt) : '—'}</td>
-              <td className="num px-4 py-3">{a.dwellMin != null ? `${a.dwellMin.toFixed(0)} min` : '—'}</td>
-              <td className="px-4 py-3">
-                <span className={`num inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusTone(a.status === 'OPEN' ? 'PROPOSED' : 'CONFIRMED')}`}>
+            <tr key={a._id}>
+              <td>
+                <span className="reg-plate font-mono font-bold text-slate-900">
+                  {a.registrationNumber}
+                </span>
+              </td>
+              <td>
+                <span className="font-mono text-xs font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  {a.siteId}
+                </span>
+              </td>
+              <td className="num font-mono text-slate-600 whitespace-nowrap">
+                {formatDateTimeIST(a.arrivedAt)}
+              </td>
+              <td className="num font-mono text-slate-600 whitespace-nowrap">
+                {a.departedAt ? formatDateTimeIST(a.departedAt) : '—'}
+              </td>
+              <td className="num font-mono font-bold text-slate-800">
+                {a.dwellMin != null ? `${a.dwellMin.toFixed(0)} min` : '—'}
+              </td>
+              <td>
+                <span
+                  className={`num inline-flex items-center rounded-md px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusTone(a.status === 'OPEN' ? 'PROPOSED' : 'CONFIRMED')}`}
+                >
                   {a.status}
                 </span>
               </td>
@@ -513,19 +600,34 @@ export default function RouteIntelligencePage() {
     data: corridorsData,
     loading: corridorsLoading,
     error: corridorsError,
-  } = useApi((signal) => RouteIntelligenceService.listCorridors({ page: corridorPage, limit: PAGE_SIZE }, { signal }), [corridorPage]);
+  } = useApi(
+    (signal) =>
+      RouteIntelligenceService.listCorridors({ page: corridorPage, limit: PAGE_SIZE }, { signal }),
+    [corridorPage],
+  );
 
   const {
     data: deviationsData,
     loading: deviationsLoading,
     error: deviationsError,
-  } = useApi((signal) => RouteIntelligenceService.listDeviations({ page: deviationPage, limit: PAGE_SIZE }, { signal }), [deviationPage]);
+  } = useApi(
+    (signal) =>
+      RouteIntelligenceService.listDeviations(
+        { page: deviationPage, limit: PAGE_SIZE },
+        { signal },
+      ),
+    [deviationPage],
+  );
 
   const {
     data: arrivalsData,
     loading: arrivalsLoading,
     error: arrivalsError,
-  } = useApi((signal) => RouteIntelligenceService.listArrivals({ page: arrivalPage, limit: PAGE_SIZE }, { signal }), [arrivalPage]);
+  } = useApi(
+    (signal) =>
+      RouteIntelligenceService.listArrivals({ page: arrivalPage, limit: PAGE_SIZE }, { signal }),
+    [arrivalPage],
+  );
 
   const handleConfirm = useCallback(
     async (id) => {
@@ -566,13 +668,95 @@ export default function RouteIntelligencePage() {
     );
   }
 
+  function RouteIntelligenceSummary({
+    sitesCount,
+    corridorsCount,
+    deviationsCount,
+    arrivalsCount,
+    proposedSitesCount,
+  }) {
+    return (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #2563eb' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Discovered Sites</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+              <MapPin size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value">{formatNum(sitesCount ?? 0)}</span>
+          <span className="ov-kpi-sub">
+            {proposedSitesCount > 0 ? (
+              <span className="text-amber-700 font-semibold">
+                {proposedSitesCount} proposed to confirm
+              </span>
+            ) : (
+              'all learned stops'
+            )}
+          </span>
+        </div>
+
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #4f46e5' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Learned Corridors</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+              <Route size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value">{formatNum(corridorsCount ?? 0)}</span>
+          <span className="ov-kpi-sub">baseline paths between sites</span>
+        </div>
+
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #d97706' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Route Deviations</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+              <AlertTriangle size={14} />
+            </span>
+          </div>
+          <span
+            className="ov-kpi-value"
+            style={{ color: deviationsCount > 0 ? '#b45309' : undefined }}
+          >
+            {formatNum(deviationsCount ?? 0)}
+          </span>
+          <span className="ov-kpi-sub">off-corridor trips detected</span>
+        </div>
+
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #059669' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Arrival Events</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+              <Clock size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value">{formatNum(arrivalsCount ?? 0)}</span>
+          <span className="ov-kpi-sub">site arrivals & dwells</span>
+        </div>
+      </div>
+    );
+  }
+
   const siteRecords = (sitesData?.records || []).filter((s) => siteMatches(siteQ, s));
-  const corridorRecords = (corridorsData?.records || []).filter((c) => corridorMatches(corridorQ, c));
-  const deviationRecords = (deviationsData?.records || []).filter((d) => deviationMatches(deviationQ, d));
+  const corridorRecords = (corridorsData?.records || []).filter((c) =>
+    corridorMatches(corridorQ, c),
+  );
+  const deviationRecords = (deviationsData?.records || []).filter((d) =>
+    deviationMatches(deviationQ, d),
+  );
   const arrivalRecords = (arrivalsData?.records || []).filter((a) => arrivalMatches(arrivalQ, a));
 
   const siteStatusOptions = [ALL, 'PROPOSED', 'CONFIRMED', 'REJECTED'];
-  const siteTypeOptions = [ALL, 'LOADING', 'PARKING', 'FUEL_PUMP', 'WORKSHOP', 'SERVICE', 'UNEXPLAINED', 'UNKNOWN'];
+  const siteTypeOptions = [
+    ALL,
+    'LOADING',
+    'PARKING',
+    'FUEL_PUMP',
+    'WORKSHOP',
+    'SERVICE',
+    'UNEXPLAINED',
+    'UNKNOWN',
+  ];
 
   const resetSitePage = () => setSitePage(1);
 
@@ -582,10 +766,23 @@ export default function RouteIntelligencePage() {
     deviations: deviationsData?.total,
     arrivals: arrivalsData?.total,
   };
-  const tabQueries = { sites: siteQ, corridors: corridorQ, deviations: deviationQ, arrivals: arrivalQ };
-  const tabFiltered = { sites: siteRecords, corridors: corridorRecords, deviations: deviationRecords, arrivals: arrivalRecords };
+  const tabQueries = {
+    sites: siteQ,
+    corridors: corridorQ,
+    deviations: deviationQ,
+    arrivals: arrivalQ,
+  };
+  const tabFiltered = {
+    sites: siteRecords,
+    corridors: corridorRecords,
+    deviations: deviationRecords,
+    arrivals: arrivalRecords,
+  };
   const activeTabFilters =
     activeTab === 'sites' ? (siteStatus !== ALL ? 1 : 0) + (siteType !== ALL ? 1 : 0) : 0;
+  const proposedSitesCount = (sitesData?.records || []).filter(
+    (s) => s.status === 'PROPOSED',
+  ).length;
 
   return (
     <PageShell
@@ -598,234 +795,366 @@ export default function RouteIntelligencePage() {
         activeFilters: activeTabFilters + (tabQueries[activeTab].trim() ? 1 : 0),
       })} on this page — search filters the loaded page`}
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="sites" className="flex items-center gap-1.5">
-            <MapPin size={14} /> Sites
-          </TabsTrigger>
-          <TabsTrigger value="corridors" className="flex items-center gap-1.5">
-            <Route size={14} /> Corridors
-          </TabsTrigger>
-          <TabsTrigger value="deviations">Deviations</TabsTrigger>
-          <TabsTrigger value="arrivals">Arrivals</TabsTrigger>
-        </TabsList>
+      <div className="space-y-5">
+        <RouteIntelligenceSummary
+          sitesCount={tabTotals.sites}
+          corridorsCount={tabTotals.corridors}
+          deviationsCount={tabTotals.deviations}
+          arrivalsCount={tabTotals.arrivals}
+          proposedSitesCount={proposedSitesCount}
+        />
 
-        <TabsContent value="sites" className="space-y-4">
-          <PanelErrorBoundary name="route-intelligence-sites">
-            <div className="flex flex-wrap items-center gap-2">
-              {siteStatusOptions.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => { setSiteStatus(s); resetSitePage(); }}
-                  className="cluster-inset px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75"
-                  style={siteStatus === s ? { borderColor: 'var(--gnb-400)', color: 'var(--gnb-400)' } : { color: 'var(--cluster-text-dim)' }}
-                >
-                  {s === ALL ? 'All' : s}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {siteTypeOptions.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => { setSiteType(t); resetSitePage(); }}
-                  className="cluster-inset px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75"
-                  style={siteType === t ? { borderColor: 'var(--gnb-400)', color: 'var(--gnb-400)' } : { color: 'var(--cluster-text-dim)' }}
-                >
-                  {t === ALL ? 'All types' : t}
-                </button>
-              ))}
-            </div>
-
-            <TabToolbar
-              q={siteQ}
-              onQChange={setSiteQ}
-              activeFilters={(siteStatus !== ALL ? 1 : 0) + (siteType !== ALL ? 1 : 0)}
-              exportProps={{
-                rows: siteExportRows(siteRecords),
-                columns: SITES_EXPORT_COLUMNS,
-                filename: 'route-sites',
-                meta: {
-                  generatedAt: new Date(),
-                  filters: [
-                    ...(siteQ.trim() ? [{ label: 'Search (this page)', value: siteQ.trim() }] : []),
-                    ...(siteStatus !== ALL ? [{ label: 'Status', value: humanise(siteStatus) }] : []),
-                    ...(siteType !== ALL ? [{ label: 'Type', value: humanise(siteType) }] : []),
-                  ],
-                },
-              }}
-            />
-
-            <TableShell title="Discovered Sites" caption="Sites learned from vehicle stops. Confirm a proposed site so it can generate arrival events.">
-              {sitesLoading && !sitesData ? (
-                <ListSkeleton />
-              ) : sitesError && !sitesData ? (
-                <div className="p-4">
-                  <EmptyState title="Sites unavailable" hint="Route site discovery data could not be loaded." />
-                </div>
-              ) : siteRecords.length === 0 ? (
-                <div className="p-4">
-                  <EmptyState
-                    title={siteQ.trim() && (sitesData?.records?.length ?? 0) > 0 ? `No sites on this page match “${siteQ.trim()}”` : 'No sites discovered'}
-                    hint={siteQ.trim() && (sitesData?.records?.length ?? 0) > 0 ? 'Search narrows the loaded page only — try another term or clear the search.' : 'Vehicle stop clusters will appear here once the route-intelligence cron has run.'}
-                  />
-                </div>
-              ) : (
-                <>
-                  <SitesTable records={siteRecords} onConfirm={handleConfirm} confirmingId={confirmingId} />
-                  <SimplePagination
-                    page={sitesData?.page || sitePage}
-                    totalPages={sitesData?.totalPages || 1}
-                    total={sitesData?.total}
-                    onChange={setSitePage}
-                    label="sites"
-                  />
-                </>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="flex items-center gap-1.5 p-1.5 bg-white border border-slate-300 rounded-xl shadow-sm w-full md:w-auto overflow-x-auto">
+            <TabsTrigger
+              value="sites"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 hover:text-slate-900"
+            >
+              <MapPin size={14} />
+              <span>Sites</span>
+              {tabTotals.sites != null && (
+                <span className="ml-1 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold bg-slate-100 text-slate-700 data-[state=active]:bg-slate-800 data-[state=active]:text-white">
+                  {tabTotals.sites}
+                </span>
               )}
-            </TableShell>
-          </PanelErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="corridors" className="space-y-4">
-          <PanelErrorBoundary name="route-intelligence-corridors">
-            <TabToolbar
-              q={corridorQ}
-              onQChange={setCorridorQ}
-              activeFilters={0}
-              exportProps={{
-                rows: corridorExportRows(corridorRecords),
-                columns: CORRIDORS_EXPORT_COLUMNS,
-                filename: 'route-corridors',
-                meta: {
-                  generatedAt: new Date(),
-                  filters: corridorQ.trim() ? [{ label: 'Search (this page)', value: corridorQ.trim() }] : [],
-                },
-              }}
-            />
-            <TableShell title="Learned Corridors" caption="Baseline paths between site pairs. Corridors with a wide p90 cell gap are not usable for deviation detection.">
-              {corridorsLoading && !corridorsData ? (
-                <ListSkeleton />
-              ) : corridorsError && !corridorsData ? (
-                <div className="p-4">
-                  <EmptyState title="Corridors unavailable" hint="Learned corridor data could not be loaded." />
-                </div>
-              ) : corridorRecords.length === 0 ? (
-                <div className="p-4">
-                  <EmptyState
-                    title={corridorQ.trim() && (corridorsData?.records?.length ?? 0) > 0 ? `No corridors on this page match “${corridorQ.trim()}”` : 'No corridors learned'}
-                    hint={corridorQ.trim() && (corridorsData?.records?.length ?? 0) > 0 ? 'Try “usable”, “unusable” or a number such as the p90 gap.' : 'Corridors appear once enough trips have been driven between discovered sites.'}
-                  />
-                </div>
-              ) : (
-                <>
-                  <CorridorsTable records={corridorRecords} />
-                  <SimplePagination
-                    page={corridorsData?.page || corridorPage}
-                    totalPages={corridorsData?.totalPages || 1}
-                    total={corridorsData?.total}
-                    onChange={setCorridorPage}
-                    label="corridors"
-                  />
-                </>
+            </TabsTrigger>
+            <TabsTrigger
+              value="corridors"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 hover:text-slate-900"
+            >
+              <Route size={14} />
+              <span>Corridors</span>
+              {tabTotals.corridors != null && (
+                <span className="ml-1 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold bg-slate-100 text-slate-700 data-[state=active]:bg-slate-800 data-[state=active]:text-white">
+                  {tabTotals.corridors}
+                </span>
               )}
-            </TableShell>
-          </PanelErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="deviations" className="space-y-4">
-          <PanelErrorBoundary name="route-intelligence-deviations">
-            <TabToolbar
-              q={deviationQ}
-              onQChange={setDeviationQ}
-              activeFilters={0}
-              exportProps={{
-                rows: deviationExportRows(deviationRecords),
-                columns: DEVIATIONS_EXPORT_COLUMNS,
-                filename: 'route-deviations',
-                meta: {
-                  generatedAt: new Date(),
-                  filters: deviationQ.trim() ? [{ label: 'Search (this page)', value: deviationQ.trim() }] : [],
-                },
-              }}
-            />
-            <TableShell title="Route Deviations" caption="Trips that left a learned corridor. A flag means 'please review', not an accusation.">
-              {deviationsLoading && !deviationsData ? (
-                <ListSkeleton />
-              ) : deviationsError && !deviationsData ? (
-                <div className="p-4">
-                  <EmptyState title="Deviations unavailable" hint="Deviation data could not be loaded." />
-                </div>
-              ) : deviationRecords.length === 0 ? (
-                <div className="p-4">
-                  <EmptyState
-                    title={deviationQ.trim() && (deviationsData?.records?.length ?? 0) > 0 ? `No deviations on this page match “${deviationQ.trim()}”` : 'No deviations'}
-                    hint={deviationQ.trim() && (deviationsData?.records?.length ?? 0) > 0 ? 'Search narrows the loaded page only — try another term or clear the search.' : 'Vehicles are following the learned corridors, or no corridor has enough samples to compare against.'}
-                  />
-                </div>
-              ) : (
-                <>
-                  <DeviationsTable records={deviationRecords} />
-                  <SimplePagination
-                    page={deviationsData?.page || deviationPage}
-                    totalPages={deviationsData?.totalPages || 1}
-                    total={deviationsData?.total}
-                    onChange={setDeviationPage}
-                    label="deviations"
-                  />
-                </>
+            </TabsTrigger>
+            <TabsTrigger
+              value="deviations"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 hover:text-slate-900"
+            >
+              <AlertTriangle size={14} />
+              <span>Deviations</span>
+              {tabTotals.deviations != null && (
+                <span className="ml-1 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold bg-slate-100 text-slate-700 data-[state=active]:bg-slate-800 data-[state=active]:text-white">
+                  {tabTotals.deviations}
+                </span>
               )}
-            </TableShell>
-          </PanelErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="arrivals" className="space-y-4">
-          <PanelErrorBoundary name="route-intelligence-arrivals">
-            <TabToolbar
-              q={arrivalQ}
-              onQChange={setArrivalQ}
-              activeFilters={0}
-              exportProps={{
-                rows: arrivalExportRows(arrivalRecords),
-                columns: ARRIVALS_EXPORT_COLUMNS,
-                filename: 'route-arrivals',
-                meta: {
-                  generatedAt: new Date(),
-                  filters: arrivalQ.trim() ? [{ label: 'Search (this page)', value: arrivalQ.trim() }] : [],
-                },
-              }}
-            />
-            <TableShell title="Arrival Events" caption="Vehicles entering confirmed sites and dwelling past the threshold.">
-              {arrivalsLoading && !arrivalsData ? (
-                <ListSkeleton />
-              ) : arrivalsError && !arrivalsData ? (
-                <div className="p-4">
-                  <EmptyState title="Arrivals unavailable" hint="Arrival event data could not be loaded." />
-                </div>
-              ) : arrivalRecords.length === 0 ? (
-                <div className="p-4">
-                  <EmptyState
-                    title={arrivalQ.trim() && (arrivalsData?.records?.length ?? 0) > 0 ? `No arrivals on this page match “${arrivalQ.trim()}”` : 'No arrivals'}
-                    hint={arrivalQ.trim() && (arrivalsData?.records?.length ?? 0) > 0 ? 'Search narrows the loaded page only — try another term or clear the search.' : 'Arrivals appear once sites are confirmed and vehicles stop inside their radius.'}
-                  />
-                </div>
-              ) : (
-                <>
-                  <ArrivalsTable records={arrivalRecords} />
-                  <SimplePagination
-                    page={arrivalsData?.page || arrivalPage}
-                    totalPages={arrivalsData?.totalPages || 1}
-                    total={arrivalsData?.total}
-                    onChange={setArrivalPage}
-                    label="arrivals"
-                  />
-                </>
+            </TabsTrigger>
+            <TabsTrigger
+              value="arrivals"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 hover:text-slate-900"
+            >
+              <Clock size={14} />
+              <span>Arrivals</span>
+              {tabTotals.arrivals != null && (
+                <span className="ml-1 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold bg-slate-100 text-slate-700 data-[state=active]:bg-slate-800 data-[state=active]:text-white">
+                  {tabTotals.arrivals}
+                </span>
               )}
-            </TableShell>
-          </PanelErrorBoundary>
-        </TabsContent>
-      </Tabs>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sites" className="space-y-4 mt-4">
+            <PanelErrorBoundary name="route-intelligence-sites">
+              <TabToolbar
+                q={siteQ}
+                onQChange={setSiteQ}
+                activeFilters={(siteStatus !== ALL ? 1 : 0) + (siteType !== ALL ? 1 : 0)}
+                exportProps={{
+                  rows: siteExportRows(siteRecords),
+                  columns: SITES_EXPORT_COLUMNS,
+                  filename: 'route-sites',
+                  meta: {
+                    generatedAt: new Date(),
+                    filters: [
+                      ...(siteQ.trim()
+                        ? [{ label: 'Search (this page)', value: siteQ.trim() }]
+                        : []),
+                      ...(siteStatus !== ALL
+                        ? [{ label: 'Status', value: humanise(siteStatus) }]
+                        : []),
+                      ...(siteType !== ALL ? [{ label: 'Type', value: humanise(siteType) }] : []),
+                    ],
+                  },
+                }}
+              >
+                <div className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 p-1">
+                  {siteStatusOptions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        setSiteStatus(s);
+                        resetSitePage();
+                      }}
+                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                        siteStatus === s
+                          ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {s === ALL ? 'All Statuses' : humanise(s)}
+                    </button>
+                  ))}
+                </div>
+                <div className="fi-field">
+                  <select
+                    value={siteType}
+                    onChange={(e) => {
+                      setSiteType(e.target.value);
+                      resetSitePage();
+                    }}
+                    aria-label="Filter site type"
+                  >
+                    <option value={ALL}>All Types</option>
+                    {siteTypeOptions
+                      .filter((t) => t !== ALL)
+                      .map((t) => (
+                        <option key={t} value={t}>
+                          {humanise(t)}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </TabToolbar>
+
+              <TableShell
+                title="Discovered Sites"
+                caption="Sites learned from vehicle stops. Confirm a proposed site so it can generate arrival events."
+              >
+                {sitesLoading && !sitesData ? (
+                  <ListSkeleton />
+                ) : sitesError && !sitesData ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title="Sites unavailable"
+                      hint="Route site discovery data could not be loaded."
+                    />
+                  </div>
+                ) : siteRecords.length === 0 ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title={
+                        siteQ.trim() && (sitesData?.records?.length ?? 0) > 0
+                          ? `No sites on this page match “${siteQ.trim()}”`
+                          : 'No sites discovered'
+                      }
+                      hint={
+                        siteQ.trim() && (sitesData?.records?.length ?? 0) > 0
+                          ? 'Search narrows the loaded page only — try another term or clear the search.'
+                          : 'Vehicle stop clusters will appear here once the route-intelligence cron has run.'
+                      }
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <SitesTable
+                      records={siteRecords}
+                      onConfirm={handleConfirm}
+                      confirmingId={confirmingId}
+                    />
+                    <SimplePagination
+                      page={sitesData?.page || sitePage}
+                      totalPages={sitesData?.totalPages || 1}
+                      total={sitesData?.total}
+                      onChange={setSitePage}
+                      label="sites"
+                    />
+                  </>
+                )}
+              </TableShell>
+            </PanelErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="corridors" className="space-y-4">
+            <PanelErrorBoundary name="route-intelligence-corridors">
+              <TabToolbar
+                q={corridorQ}
+                onQChange={setCorridorQ}
+                activeFilters={0}
+                exportProps={{
+                  rows: corridorExportRows(corridorRecords),
+                  columns: CORRIDORS_EXPORT_COLUMNS,
+                  filename: 'route-corridors',
+                  meta: {
+                    generatedAt: new Date(),
+                    filters: corridorQ.trim()
+                      ? [{ label: 'Search (this page)', value: corridorQ.trim() }]
+                      : [],
+                  },
+                }}
+              />
+              <TableShell
+                title="Learned Corridors"
+                caption="Baseline paths between site pairs. Corridors with a wide p90 cell gap are not usable for deviation detection."
+              >
+                {corridorsLoading && !corridorsData ? (
+                  <ListSkeleton />
+                ) : corridorsError && !corridorsData ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title="Corridors unavailable"
+                      hint="Learned corridor data could not be loaded."
+                    />
+                  </div>
+                ) : corridorRecords.length === 0 ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title={
+                        corridorQ.trim() && (corridorsData?.records?.length ?? 0) > 0
+                          ? `No corridors on this page match “${corridorQ.trim()}”`
+                          : 'No corridors learned'
+                      }
+                      hint={
+                        corridorQ.trim() && (corridorsData?.records?.length ?? 0) > 0
+                          ? 'Try “usable”, “unusable” or a number such as the p90 gap.'
+                          : 'Corridors appear once enough trips have been driven between discovered sites.'
+                      }
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <CorridorsTable records={corridorRecords} />
+                    <SimplePagination
+                      page={corridorsData?.page || corridorPage}
+                      totalPages={corridorsData?.totalPages || 1}
+                      total={corridorsData?.total}
+                      onChange={setCorridorPage}
+                      label="corridors"
+                    />
+                  </>
+                )}
+              </TableShell>
+            </PanelErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="deviations" className="space-y-4">
+            <PanelErrorBoundary name="route-intelligence-deviations">
+              <TabToolbar
+                q={deviationQ}
+                onQChange={setDeviationQ}
+                activeFilters={0}
+                exportProps={{
+                  rows: deviationExportRows(deviationRecords),
+                  columns: DEVIATIONS_EXPORT_COLUMNS,
+                  filename: 'route-deviations',
+                  meta: {
+                    generatedAt: new Date(),
+                    filters: deviationQ.trim()
+                      ? [{ label: 'Search (this page)', value: deviationQ.trim() }]
+                      : [],
+                  },
+                }}
+              />
+              <TableShell
+                title="Route Deviations"
+                caption="Trips that left a learned corridor. A flag means 'please review', not an accusation."
+              >
+                {deviationsLoading && !deviationsData ? (
+                  <ListSkeleton />
+                ) : deviationsError && !deviationsData ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title="Deviations unavailable"
+                      hint="Deviation data could not be loaded."
+                    />
+                  </div>
+                ) : deviationRecords.length === 0 ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title={
+                        deviationQ.trim() && (deviationsData?.records?.length ?? 0) > 0
+                          ? `No deviations on this page match “${deviationQ.trim()}”`
+                          : 'No deviations'
+                      }
+                      hint={
+                        deviationQ.trim() && (deviationsData?.records?.length ?? 0) > 0
+                          ? 'Search narrows the loaded page only — try another term or clear the search.'
+                          : 'Vehicles are following the learned corridors, or no corridor has enough samples to compare against.'
+                      }
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <DeviationsTable records={deviationRecords} />
+                    <SimplePagination
+                      page={deviationsData?.page || deviationPage}
+                      totalPages={deviationsData?.totalPages || 1}
+                      total={deviationsData?.total}
+                      onChange={setDeviationPage}
+                      label="deviations"
+                    />
+                  </>
+                )}
+              </TableShell>
+            </PanelErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="arrivals" className="space-y-4">
+            <PanelErrorBoundary name="route-intelligence-arrivals">
+              <TabToolbar
+                q={arrivalQ}
+                onQChange={setArrivalQ}
+                activeFilters={0}
+                exportProps={{
+                  rows: arrivalExportRows(arrivalRecords),
+                  columns: ARRIVALS_EXPORT_COLUMNS,
+                  filename: 'route-arrivals',
+                  meta: {
+                    generatedAt: new Date(),
+                    filters: arrivalQ.trim()
+                      ? [{ label: 'Search (this page)', value: arrivalQ.trim() }]
+                      : [],
+                  },
+                }}
+              />
+              <TableShell
+                title="Arrival Events"
+                caption="Vehicles entering confirmed sites and dwelling past the threshold."
+              >
+                {arrivalsLoading && !arrivalsData ? (
+                  <ListSkeleton />
+                ) : arrivalsError && !arrivalsData ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title="Arrivals unavailable"
+                      hint="Arrival event data could not be loaded."
+                    />
+                  </div>
+                ) : arrivalRecords.length === 0 ? (
+                  <div className="p-4">
+                    <EmptyState
+                      title={
+                        arrivalQ.trim() && (arrivalsData?.records?.length ?? 0) > 0
+                          ? `No arrivals on this page match “${arrivalQ.trim()}”`
+                          : 'No arrivals'
+                      }
+                      hint={
+                        arrivalQ.trim() && (arrivalsData?.records?.length ?? 0) > 0
+                          ? 'Search narrows the loaded page only — try another term or clear the search.'
+                          : 'Arrivals appear once sites are confirmed and vehicles stop inside their radius.'
+                      }
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <ArrivalsTable records={arrivalRecords} />
+                    <SimplePagination
+                      page={arrivalsData?.page || arrivalPage}
+                      totalPages={arrivalsData?.totalPages || 1}
+                      total={arrivalsData?.total}
+                      onChange={setArrivalPage}
+                      label="arrivals"
+                    />
+                  </>
+                )}
+              </TableShell>
+            </PanelErrorBoundary>
+          </TabsContent>
+        </Tabs>
+      </div>
     </PageShell>
   );
 }

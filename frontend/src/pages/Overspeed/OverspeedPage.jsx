@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Truck, RefreshCw, Search, AlertTriangle, CheckCircle2, MapPinOff } from 'lucide-react';
+import {
+  Truck,
+  RefreshCw,
+  Search,
+  AlertTriangle,
+  CheckCircle2,
+  MapPinOff,
+  Gauge,
+  Clock,
+  Calendar,
+  ShieldAlert,
+  RotateCcw,
+} from 'lucide-react';
 import { OverspeedService } from './OverspeedService';
 import { humanise } from '../../lib/vocabulary';
 import { sourcesDisagree } from '../../lib/overspeedEvidence';
@@ -17,14 +29,12 @@ import {
 import { coordKey, resolvePlace } from '../../services/PlaceService';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import ApiError from '../../errors/ApiError';
-import PageShell from '../../components/ui/PageShell';
-import FilterBar from '../../components/ui/FilterBar';
-import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 import TableShimmer from '../../components/ui/TableShimmer';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import OverspeedEvidenceCard from '../../components/ui/OverspeedEvidenceCard';
 import SearchableDropdown from '../../components/SearchableDropdown/SearchableDropdown';
+import { formatNum } from '../../utils/formatters';
 import './Overspeed.css';
 
 const DEFAULT_FILTERS = () => ({
@@ -34,8 +44,6 @@ const DEFAULT_FILTERS = () => ({
   windowHours: 24,
 });
 
-// FleetEdge alerts are a sampler, not a source (audit §3.1) — the provenance
-// is stated on every row, never a raw enum.
 const FLEETEDGE_PROVENANCE = 'FleetEdge alert — sampler, not a source';
 
 const EVENT_EXPORT_COLUMNS = [
@@ -47,45 +55,10 @@ const EVENT_EXPORT_COLUMNS = [
   { key: 'place', label: 'Place' },
 ];
 
-const CORROBORATING_COLUMNS = [
-  {
-    key: 'eventDateTime',
-    label: 'Time',
-    render: (row) => (row.eventDateTime ? formatDateTimeIST(row.eventDateTime) : '—'),
-  },
-  { key: 'speedKph', label: 'Speed (km/h)', type: 'number', align: 'right' },
-  { key: 'durationSeconds', label: 'Duration (s)', type: 'number', align: 'right' },
-  {
-    key: 'place',
-    label: 'Place',
-    render: (row) => {
-      const loc = row.location;
-      const lat = Number(loc?.lat ?? loc?.latitude);
-      const lng = Number(loc?.lng ?? loc?.longitude);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        return <PlaceLabel lat={lat} lng={lng} showMap={false} />;
-      }
-      return loc && typeof loc === 'object' && loc.name ? loc.name : '—';
-    },
-  },
-  { key: 'type', label: 'Type', render: (row) => (row.type ? humanise(row.type) : '—') },
-  {
-    key: 'provenance',
-    label: 'Source',
-    render: () => <span className="osp-provenance">{FLEETEDGE_PROVENANCE}</span>,
-  },
-];
-
-const filterCount = (f) =>
-  (f.vehicleId ? 1 : 0) +
-  (clampSpeed(f.speedKmh) !== SPEED_DEFAULT ? 1 : 0) +
-  (clampDurationMinutes(f.durationMin) !== DURATION_DEFAULT_MINUTES ? 1 : 0) +
-  (normaliseWindowHours(f.windowHours) !== 24 ? 1 : 0);
-
-const OverspeedPage = () => {
+export default function OverspeedPage() {
   const [vehicles, setVehicles] = useState([]);
-  const [draft, setDraft] = useState(DEFAULT_FILTERS); // editable inputs
-  const [committed, setCommitted] = useState(DEFAULT_FILTERS); // drives the query
+  const [draft, setDraft] = useState(DEFAULT_FILTERS);
+  const [committed, setCommitted] = useState(DEFAULT_FILTERS);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -130,6 +103,7 @@ const OverspeedPage = () => {
       windowHours: normaliseWindowHours(draft.windowHours),
     });
   };
+
   const clearFilters = () => {
     setDraft(DEFAULT_FILTERS());
     setCommitted(DEFAULT_FILTERS());
@@ -142,9 +116,6 @@ const OverspeedPage = () => {
   const selectedVehicle = vehicleById(committed.vehicleId);
   const reg = selectedVehicle?.registrationNumber || data?.registrationNumber || null;
 
-  // Export resolves every event's start coordinate to a place first, so the
-  // file carries names, never coordinates. resolvePlace batches through the
-  // PlaceService cache — the cards' PlaceLabels usually warm it already.
   const exportAllRows = async () => {
     const entries = await Promise.all(
       events.map(async (e) => {
@@ -160,26 +131,28 @@ const OverspeedPage = () => {
   const exportDisabled =
     loading || !!error || !committed.vehicleId || (data && events.length === 0);
 
+  const isDirty =
+    draft.vehicleId !== committed.vehicleId ||
+    draft.speedKmh !== committed.speedKmh ||
+    draft.durationMin !== committed.durationMin ||
+    draft.windowHours !== committed.windowHours;
+
   const renderBody = () => {
     if (!committed.vehicleId) {
       return (
         <div className="osp-state" role="status">
-          <Truck size={36} strokeWidth={1.5} aria-hidden="true" />
-          <p className="osp-state-title">Select a vehicle to check for sustained overspeed</p>
+          <Truck size={42} strokeWidth={1.5} className="text-slate-400" />
+          <p className="osp-state-title">Select a vehicle to audit sustained overspeed</p>
           <span>
-            Events are recomputed from position history against your thresholds — pick a truck, set
-            “over X km/h for more than Y minutes”, and choose a window.
+            Events are recomputed from raw position history against your exact thresholds — select a
+            truck above, set your speed limit and duration, and click “Run Audit”.
           </span>
         </div>
       );
     }
     if (loading) {
       return (
-        <div
-          className="osp-state osp-state--plain"
-          role="status"
-          aria-label="Computing overspeed events"
-        >
+        <div className="osp-state" role="status" aria-label="Computing overspeed events">
           <p className="osp-state-title">Computing from position history…</p>
           <TableShimmer columns={4} rows={6} />
         </div>
@@ -188,11 +161,11 @@ const OverspeedPage = () => {
     if (status === 422) {
       return (
         <div className="osp-state osp-state--missing" role="alert">
-          <MapPinOff size={36} strokeWidth={1.5} aria-hidden="true" />
-          <p className="osp-state-title">No position data for this vehicle in the window</p>
+          <MapPinOff size={42} strokeWidth={1.5} />
+          <p className="osp-state-title">No GPS telemetry pings in this window</p>
           <span>
-            Overspeed cannot be computed without position pings. This is missing data, not an
-            all-clear — widen the window or check that the device is reporting.
+            Overspeed cannot be computed without position pings. This indicates missing device data,
+            not an all-clear — check device connectivity or widen the analysis window.
           </span>
         </div>
       );
@@ -200,7 +173,7 @@ const OverspeedPage = () => {
     if (error) {
       return (
         <div className="osp-state osp-state--error" role="alert">
-          <AlertTriangle size={36} strokeWidth={1.5} aria-hidden="true" />
+          <AlertTriangle size={42} strokeWidth={1.5} />
           <p className="osp-state-title">
             {error.displayMessage || 'Failed to compute overspeed events'}
           </p>
@@ -211,19 +184,17 @@ const OverspeedPage = () => {
       );
     }
     if (data && events.length === 0) {
-      // The all-clear is only reachable with pings in the window (422 covers
-      // the no-pings case) — "no sustained overspeed" means the truck moved
-      // and never held over the threshold.
       return (
         <>
           <div className="osp-state osp-state--clear" role="status">
-            <CheckCircle2 size={36} strokeWidth={1.5} aria-hidden="true" />
-            <p className="osp-state-title">No sustained overspeed in this window</p>
+            <CheckCircle2 size={42} strokeWidth={1.5} />
+            <p className="osp-state-title">No sustained overspeed detected in this window</p>
             <span>
-              {reg || 'This vehicle'} stayed at or under{' '}
+              {reg || 'This vehicle'} stayed under{' '}
               {data.thresholdsUsed?.speedThresholdKmh ?? committed.speedKmh} km/h for less than{' '}
               {Math.round((data.thresholdsUsed?.durationSec ?? committed.durationMin * 60) / 60)}{' '}
-              minutes at a time, across {pingCount.toLocaleString('en-IN')} position pings.
+              minutes continuously, verified across {pingCount.toLocaleString('en-IN')} raw
+              telemetry fixes.
             </span>
           </div>
           {corroborating.length > 0 && (
@@ -231,18 +202,60 @@ const OverspeedPage = () => {
               <h2 className="osp-section-title">FleetEdge device alerts — corroboration only</h2>
               <p className="osp-section-sub">
                 The device fired on {corroborating.length} instantaneous sample
-                {corroborating.length === 1 ? '' : 's'} while our computation found none — the
-                sampler records a second of throttle as an offence. Shown with provenance, never
-                merged.
+                {corroborating.length === 1 ? '' : 's'} while our computation found no sustained
+                violations. Shown with independent provenance.
               </p>
-              <DataTable
-                columns={CORROBORATING_COLUMNS}
-                rows={corroborating}
-                rowKey={(r, i) => r._id ?? r.eventDateTime ?? i}
-                showing={corroborating.length}
-                total={corroborating.length}
-                emptyTitle="No FleetEdge alerts in this window"
-              />
+              <div className="oa-table-wrapper">
+                <table className="oa-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th style={{ textAlign: 'right' }}>Speed</th>
+                      <th style={{ textAlign: 'right' }}>Duration</th>
+                      <th>Place</th>
+                      <th>Type</th>
+                      <th>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {corroborating.map((row, i) => (
+                      <tr key={row._id ?? row.eventDateTime ?? i}>
+                        <td className="num font-mono text-xs text-slate-800">
+                          {row.eventDateTime ? formatDateTimeIST(row.eventDateTime) : '—'}
+                        </td>
+                        <td
+                          style={{ textAlign: 'right' }}
+                          className="num font-mono font-bold text-rose-600"
+                        >
+                          {row.speedKph != null ? `${Math.round(row.speedKph)} km/h` : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right' }} className="num font-mono text-slate-600">
+                          {row.durationSeconds != null ? `${row.durationSeconds}s` : '—'}
+                        </td>
+                        <td>
+                          {row.location?.lat != null ? (
+                            <PlaceLabel
+                              lat={Number(row.location.lat)}
+                              lng={Number(row.location.lng)}
+                              showMap={false}
+                            />
+                          ) : (
+                            row.location?.name || '—'
+                          )}
+                        </td>
+                        <td>
+                          <span className="num text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {row.type ? humanise(row.type) : '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="osp-provenance">{FLEETEDGE_PROVENANCE}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
           )}
         </>
@@ -252,7 +265,6 @@ const OverspeedPage = () => {
       const disagree = sourcesDisagree(events, corroborating);
       return (
         <>
-          {/* Summary — both sources with provenance, never averaged (audit §3.3). */}
           <OverspeedEvidenceCard
             event={null}
             computedTotal={events.length}
@@ -264,15 +276,17 @@ const OverspeedPage = () => {
           />
           {disagree && (
             <p className="osp-disagree-note" role="note">
-              <AlertTriangle size={13} aria-hidden="true" />
-              Our calculation and the device alerts disagree — shown side by side with their
-              provenance so you can decide, never averaged.
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span>
+                Our calculation and hardware device alerts disagree — displayed side by side with
+                provenance so you make the informed operational call.
+              </span>
             </p>
           )}
 
           <section className="osp-section">
             <h2 className="osp-section-title">
-              Our calculation — recomputed from position history
+              Calculated Incidents — Recomputed from Position History
             </h2>
             <div className="osp-cards">
               {events.map((event, i) => (
@@ -281,22 +295,66 @@ const OverspeedPage = () => {
             </div>
           </section>
 
-          <section className="osp-section">
-            <h2 className="osp-section-title">FleetEdge device alerts — corroboration only</h2>
-            <p className="osp-section-sub">
-              {FLEETEDGE_PROVENANCE} — it fires on an instantaneous sample, so it cannot see a
-              sustained violation. Kept beside our computation, never merged into it.
-            </p>
-            <DataTable
-              columns={CORROBORATING_COLUMNS}
-              rows={corroborating}
-              rowKey={(r, i) => r._id ?? r.eventDateTime ?? i}
-              showing={corroborating.length}
-              total={corroborating.length}
-              emptyTitle="No FleetEdge alerts in this window"
-              emptyHint="The device reported nothing here — our computation stands on its own."
-            />
-          </section>
+          {corroborating.length > 0 && (
+            <section className="osp-section">
+              <h2 className="osp-section-title">FleetEdge Device Alerts — Corroboration Only</h2>
+              <p className="osp-section-sub">
+                {FLEETEDGE_PROVENANCE} — fires on instantaneous samples, so it cannot distinguish
+                sustained violations. Kept beside our audit, never merged.
+              </p>
+              <div className="oa-table-wrapper">
+                <table className="oa-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th style={{ textAlign: 'right' }}>Speed</th>
+                      <th style={{ textAlign: 'right' }}>Duration</th>
+                      <th>Place</th>
+                      <th>Type</th>
+                      <th>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {corroborating.map((row, i) => (
+                      <tr key={row._id ?? row.eventDateTime ?? i}>
+                        <td className="num font-mono text-xs text-slate-800">
+                          {row.eventDateTime ? formatDateTimeIST(row.eventDateTime) : '—'}
+                        </td>
+                        <td
+                          style={{ textAlign: 'right' }}
+                          className="num font-mono font-bold text-rose-600"
+                        >
+                          {row.speedKph != null ? `${Math.round(row.speedKph)} km/h` : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right' }} className="num font-mono text-slate-600">
+                          {row.durationSeconds != null ? `${row.durationSeconds}s` : '—'}
+                        </td>
+                        <td>
+                          {row.location?.lat != null ? (
+                            <PlaceLabel
+                              lat={Number(row.location.lat)}
+                              lng={Number(row.location.lng)}
+                              showMap={false}
+                            />
+                          ) : (
+                            row.location?.name || '—'
+                          )}
+                        </td>
+                        <td>
+                          <span className="num text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {row.type ? humanise(row.type) : '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="osp-provenance">{FLEETEDGE_PROVENANCE}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </>
       );
     }
@@ -304,51 +362,110 @@ const OverspeedPage = () => {
   };
 
   return (
-    <PageShell
-      className="osp-page"
-      title="Overspeed"
-      subtitle="Sustained overspeed recomputed from position history — device alerts shown separately as corroboration"
-      count={data ? events.length : null}
-      freshnessAt={data?.computedAt || null}
-      actions={
-        <button
-          type="button"
-          className="osp-btn"
-          onClick={fetchEvents}
-          disabled={loading || !committed.vehicleId}
-        >
-          <RefreshCw size={14} className={loading ? 'osp-spin' : ''} aria-hidden="true" />
-          Refresh
-        </button>
-      }
-      filters={
-        <FilterBar
-          activeCount={filterCount(committed)}
-          onClear={clearFilters}
-          right={
-            <ExportButton
-              rows={eventsExportRows(events)}
-              columns={EVENT_EXPORT_COLUMNS}
-              filename="overspeed-events"
-              fetchAll={exportAllRows}
-              disabled={exportDisabled}
-              meta={{
-                generatedAt: new Date(),
-                filters: exportMeta({
-                  registrationNumber: reg,
-                  windowHours: committed.windowHours,
-                  speedKmh: committed.speedKmh,
-                  durationMin: committed.durationMin,
-                }),
-              }}
-            />
-          }
-        />
-      }
-    >
+    <div className="pshell min-h-screen">
+      {/* Header */}
+      <header className="pshell-head mb-6">
+        <div className="pshell-head-main">
+          <div className="flex items-center gap-3">
+            <h1 className="pshell-title text-2xl font-bold text-slate-900 tracking-tight">
+              Overspeed Audit
+            </h1>
+            {data && (
+              <span className="num inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                {events.length} violations
+              </span>
+            )}
+          </div>
+          <p className="pshell-subtitle text-sm text-slate-500 mt-1">
+            Sustained overspeed mathematically recomputed from high-resolution position history —
+            eliminating instantaneous false triggers.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="ov-btn"
+            onClick={fetchEvents}
+            disabled={loading || !committed.vehicleId}
+            title="Recompute overspeed audit"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+          <ExportButton
+            rows={eventsExportRows(events)}
+            columns={EVENT_EXPORT_COLUMNS}
+            filename="overspeed-events"
+            fetchAll={exportAllRows}
+            disabled={exportDisabled}
+            meta={{
+              generatedAt: new Date(),
+              filters: exportMeta({
+                registrationNumber: reg,
+                windowHours: committed.windowHours,
+                speedKmh: committed.speedKmh,
+                durationMin: committed.durationMin,
+              }),
+            }}
+          />
+        </div>
+      </header>
+
+      {/* Operations KPI Rail */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* 1. Speed Threshold */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Speed Threshold</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+              <Gauge size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">&gt; {committed.speedKmh} km/h</span>
+          <span className="ov-kpi-sub">sustained speed cutoff</span>
+        </div>
+
+        {/* 2. Sustained Duration */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #3b82f6' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Min Duration</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+              <Clock size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">{committed.durationMin} mins</span>
+          <span className="ov-kpi-sub">consecutive overspeed filter</span>
+        </div>
+
+        {/* 3. Monitored Window */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #6366f1' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Audit Window</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+              <Calendar size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">{committed.windowHours} Hours</span>
+          <span className="ov-kpi-sub">telematics lookback span</span>
+        </div>
+
+        {/* 4. Fleet Vehicles */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #10b981' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Fleet Coverage</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+              <Truck size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">{formatNum(vehicles.length)}</span>
+          <span className="ov-kpi-sub">connected fleet vehicles</span>
+        </div>
+      </div>
+
+      {/* Unified Filter Toolbar */}
       <div className="osp-filters">
         <div className="osp-field osp-field--vehicle">
-          <label htmlFor="osp-vehicle">Vehicle</label>
+          <label htmlFor="osp-vehicle">Select Vehicle</label>
           <SearchableDropdown
             options={vehicles.map((v) => v.registrationNumber).filter(Boolean)}
             selectedOption={vehicleById(draft.vehicleId)?.registrationNumber || ''}
@@ -356,11 +473,12 @@ const OverspeedPage = () => {
               const vehicle = vehicles.find((v) => v.registrationNumber === regNum);
               setDraft((d) => ({ ...d, vehicleId: vehicle?._id || '' }));
             }}
-            placeholder="Select vehicle"
+            placeholder="Search vehicle number (e.g. WB25R9540)…"
           />
         </div>
+
         <div className="osp-field">
-          <label htmlFor="osp-speed">Over speed (km/h)</label>
+          <label htmlFor="osp-speed">Over Speed (km/h)</label>
           <input
             id="osp-speed"
             type="number"
@@ -370,46 +488,60 @@ const OverspeedPage = () => {
             onChange={(e) => setDraft((d) => ({ ...d, speedKmh: e.target.value }))}
           />
         </div>
+
         <div className="osp-field">
-          <label htmlFor="osp-duration">For at least (minutes)</label>
+          <label htmlFor="osp-duration">Min Duration (min)</label>
           <input
             id="osp-duration"
             type="number"
             min={1}
-            max={10}
+            max={120}
             value={draft.durationMin}
             onChange={(e) => setDraft((d) => ({ ...d, durationMin: e.target.value }))}
           />
         </div>
+
         <div className="osp-field">
-          <label htmlFor="osp-window">Window</label>
+          <label htmlFor="osp-window">Time Window</label>
           <select
             id="osp-window"
             value={draft.windowHours}
             onChange={(e) => setDraft((d) => ({ ...d, windowHours: Number(e.target.value) }))}
           >
-            {WINDOW_OPTIONS.map((w) => (
-              <option key={w.hours} value={w.hours}>
-                {w.label}
+            {WINDOW_OPTIONS.map((opt) => (
+              <option key={opt.hours} value={opt.hours}>
+                {opt.label}
               </option>
             ))}
           </select>
         </div>
+
         <div className="osp-filter-actions">
           <button
             type="button"
             className="osp-btn osp-btn--primary"
             onClick={applyFilters}
-            disabled={loading}
+            disabled={!draft.vehicleId || loading}
           >
-            <Search size={14} aria-hidden="true" /> Apply
+            <Gauge size={14} />
+            <span>Run Audit</span>
           </button>
+          {isDirty && (
+            <button
+              type="button"
+              className="osp-btn"
+              onClick={clearFilters}
+              title="Reset to default thresholds"
+            >
+              <RotateCcw size={13} />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Main Body */}
       {renderBody()}
-    </PageShell>
+    </div>
   );
-};
-
-export default OverspeedPage;
+}

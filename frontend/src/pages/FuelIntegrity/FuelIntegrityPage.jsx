@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import dayjs from 'dayjs';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -11,8 +11,7 @@ import FleetStatusBanner from './FleetStatusBanner.jsx';
 import KpiStrip from './KpiStrip.jsx';
 import FuelActivityPanel from './FuelActivityPanel.jsx';
 import AnomalyBreakdownPanel from './AnomalyBreakdownPanel.jsx';
-import EventsFeedPanel from './EventsFeedPanel.jsx';
-import VehicleRiskPanel from './VehicleRiskPanel.jsx';
+import FuelIntegrityTables from './FuelIntegrityTables.jsx';
 import VehicleDrilldownPanel from './VehicleDrilldownPanel.jsx';
 import { IST_ZONE, formatRelativeIST } from './fiDates.js';
 import {
@@ -237,138 +236,135 @@ const FuelIntegrityPage = () => {
         </>
       }
       filters={
-        <FilterBar
-          searchValue={vehicleQuery}
-          onSearchChange={setVehicleQuery}
-          searchPlaceholder="Search vehicle (e.g. WB25R9540)…"
-          from={inputFromDate}
-          to={inputToDate}
-          onRangeChange={(patch) => {
-            if (patch.from !== undefined) setInputFromDate(patch.from);
-            if (patch.to !== undefined) setInputToDate(patch.to);
-          }}
-          chips={chipDefs}
-          selectedKeys={[chip]}
-          onToggleChip={setChip}
-          activeCount={activeFilterCount}
-          onClear={resetFilters}
-          right={
-            <>
-              <div className="fi-field">
-                <select
-                  value={eventType}
-                  onChange={(e) => setEventType(e.target.value)}
-                  aria-label="Event type"
-                >
-                  <option value="all">All events</option>
-                  <option value="fill">Fills</option>
-                  <option value="loss">Losses</option>
-                  <option value="def">DEF anomalies</option>
-                </select>
-              </div>
-              <div className="fi-field">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  aria-label="Status"
-                >
-                  <option value="all">Any status</option>
-                  <option value="ESTIMATED">Estimated</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="REJECTED">Rejected</option>
-                </select>
-              </div>
-              <button className="ov-btn ov-btn--primary" onClick={applyFilter}>
-                Apply
-              </button>
-              <button className="ov-btn" onClick={resetFilters}>
-                <X size={14} /> Reset
-              </button>
-            </>
-          }
-        />
+        <div className="fi-filters">
+          <FilterBar
+            searchValue={vehicleQuery}
+            onSearchChange={setVehicleQuery}
+            searchPlaceholder="Search vehicle (e.g. WB25R9540)…"
+            from={inputFromDate}
+            to={inputToDate}
+            onRangeChange={(patch) => {
+              if (patch.from !== undefined) setInputFromDate(patch.from);
+              if (patch.to !== undefined) setInputToDate(patch.to);
+            }}
+            chips={chipDefs}
+            selectedKeys={[chip]}
+            onToggleChip={(key) => setChip((cur) => (cur === key ? 'all' : key))}
+            activeCount={activeFilterCount}
+            onClear={resetFilters}
+            right={
+              <>
+                <div className="fi-field">
+                  <select
+                    value={eventType}
+                    onChange={(e) => setEventType(e.target.value)}
+                    aria-label="Event type"
+                  >
+                    <option value="all">All events</option>
+                    <option value="fill">Fills</option>
+                    <option value="loss">Losses</option>
+                    <option value="def">DEF anomalies</option>
+                  </select>
+                </div>
+                <div className="fi-field">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    aria-label="Status"
+                  >
+                    <option value="all">Any status</option>
+                    <option value="ESTIMATED">Estimated</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                </div>
+                <button className="ov-btn ov-btn--primary" onClick={applyFilter}>
+                  Apply
+                </button>
+              </>
+            }
+          />
+        </div>
       }
     >
-      {error && (
-        <div className="fi-banner fi-banner--crit">
-          <span
-            className="fi-banner-icon"
-            style={{
-              background: 'color-mix(in srgb, var(--critical) 12%, transparent)',
-              color: 'var(--critical)',
-            }}
-          >
-            <AlertTriangle size={20} />
-          </span>
-          <div>
-            <div className="fi-banner-title">Could not load data</div>
-            <p className="text-dim text-sm">{error}</p>
+      <div className="fi-stack">
+        {error && (
+          <div className="fi-banner fi-banner--crit">
+            <span
+              className="fi-banner-icon"
+              style={{
+                background: 'color-mix(in srgb, var(--critical) 12%, transparent)',
+                color: 'var(--critical)',
+              }}
+            >
+              <AlertTriangle size={20} />
+            </span>
+            <div>
+              <div className="fi-banner-title">Could not load data</div>
+              <p className="text-dim text-sm">{error}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <FleetStatusBanner
-        banner={banner}
-        defCount={defCount}
-        onReviewDef={() => {
-          setChip('def');
-          document.getElementById('fi-events')?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
-
-      <KpiStrip
-        totals={totals}
-        windowDays={windowDays}
-        lossL={lossL}
-        billCount={billCount}
-        defCount={defCount}
-        pricePerL={pricePerL}
-      />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <FuelActivityPanel
-          isLoading={isLoading}
-          chartData={chartData}
-          chartMetric={chartMetric}
-          onMetricChange={setChartMetric}
-          rangeDays={rangeDays}
-          onRangeChange={applyRange}
-        />
-        <AnomalyBreakdownPanel
+        <FleetStatusBanner
+          banner={banner}
           defCount={defCount}
-          billCount={billCount}
+          onReviewDef={() => {
+            setChip('def');
+            document.getElementById('fi-events')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+
+        <KpiStrip
+          totals={totals}
+          windowDays={windowDays}
           lossL={lossL}
-          affected={affected}
+          billCount={billCount}
+          defCount={defCount}
+          pricePerL={pricePerL}
+        />
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <FuelActivityPanel
+            isLoading={isLoading}
+            chartData={chartData}
+            chartMetric={chartMetric}
+            onMetricChange={setChartMetric}
+            rangeDays={rangeDays}
+            onRangeChange={applyRange}
+          />
+          <AnomalyBreakdownPanel
+            defCount={defCount}
+            billCount={billCount}
+            lossL={lossL}
+            affected={affected}
+            onDrill={setDrillVehicle}
+          />
+        </div>
+
+        <FuelIntegrityTables
+          isLoading={isLoading}
+          filteredCount={filteredEvents.length}
+          pageEvents={pageEvents}
+          page={page}
+          totalPages={totalPages}
+          reviewed={reviewed}
+          onOpenEvent={openEvent}
+          onPageChange={setPage}
+          riskVehicles={riskVehicles}
           onDrill={setDrillVehicle}
         />
+
+        {drillVehicle && !isLoading && (
+          <VehicleDrilldownPanel
+            vehicle={drillVehicle}
+            chartData={drillChartData}
+            windows={drillWindows}
+            onClose={() => setDrillVehicle(null)}
+            onShowWorking={setEvidenceWindow}
+          />
+        )}
       </div>
-
-      <EventsFeedPanel
-        isLoading={isLoading}
-        filteredCount={filteredEvents.length}
-        pageEvents={pageEvents}
-        page={page}
-        totalPages={totalPages}
-        reviewed={reviewed}
-        onOpenEvent={openEvent}
-        onPageChange={setPage}
-      />
-
-      <VehicleRiskPanel
-        isLoading={isLoading}
-        riskVehicles={riskVehicles}
-        onDrill={setDrillVehicle}
-      />
-
-      {drillVehicle && !isLoading && (
-        <VehicleDrilldownPanel
-          vehicle={drillVehicle}
-          chartData={drillChartData}
-          windows={drillWindows}
-          onClose={() => setDrillVehicle(null)}
-          onShowWorking={setEvidenceWindow}
-        />
-      )}
 
       <EvidenceDrawer
         open={!!evidenceWindow}

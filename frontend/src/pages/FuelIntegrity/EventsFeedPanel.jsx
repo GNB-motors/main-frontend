@@ -1,6 +1,7 @@
 import { TrendingUp, TrendingDown, Droplets, MapPin } from 'lucide-react';
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { Panel, StatusPill } from '../Overview/components/overview.primitives.jsx';
+import TablePager from './TablePager.jsx';
 import { formatIST, formatRelativeIST, mapsLink } from './fiDates.js';
 
 const SKELETON_ROWS = ['fi-sk-1', 'fi-sk-2', 'fi-sk-3', 'fi-sk-4', 'fi-sk-5', 'fi-sk-6'];
@@ -14,14 +15,12 @@ export default function EventsFeedPanel({
   reviewed,
   onOpenEvent,
   onPageChange,
+  // When embedded in the shared tables panel the parent supplies the card
+  // chrome (eyebrow + segmented tabs), so we render just the body.
+  bare = false,
 }) {
-  return (
-    <Panel
-      id="fi-events"
-      eyebrow="Recent fuel events"
-      question="Which event should I investigate first?"
-      action={<span className="text-dim text-xs">{filteredCount} events · newest first</span>}
-    >
+  const body = (
+    <>
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {SKELETON_ROWS.map((key) => (
@@ -32,7 +31,7 @@ export default function EventsFeedPanel({
         <div className="text-dim py-10 text-center text-sm">No events match these filters.</div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="fi-table-scroll">
             <table className="ov-table">
               <thead>
                 <tr>
@@ -151,33 +150,22 @@ export default function EventsFeedPanel({
               </tbody>
             </table>
           </div>
-          {totalPages > 1 && (
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-dim text-xs">
-                Page {page} of {totalPages}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  className="ov-btn"
-                  disabled={page === 1}
-                  onClick={() => onPageChange((p) => Math.max(1, p - 1))}
-                  style={page === 1 ? { opacity: 0.5 } : undefined}
-                >
-                  Prev
-                </button>
-                <button
-                  className="ov-btn"
-                  disabled={page === totalPages}
-                  onClick={() => onPageChange((p) => Math.min(totalPages, p + 1))}
-                  style={page === totalPages ? { opacity: 0.5 } : undefined}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          <TablePager page={page} totalPages={totalPages} onPageChange={onPageChange} />
         </>
       )}
+    </>
+  );
+
+  if (bare) return body;
+
+  return (
+    <Panel
+      id="fi-events"
+      eyebrow="Recent fuel events"
+      question="Which event should I investigate first?"
+      action={<span className="text-dim text-xs">{filteredCount} events · newest first</span>}
+    >
+      {body}
     </Panel>
   );
 }

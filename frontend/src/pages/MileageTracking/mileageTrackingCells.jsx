@@ -60,7 +60,7 @@ export const AvgMileageCell = ({ value }) =>
   value ? <span style={{ color: '#2563eb', fontWeight: 600 }}>{value.toFixed(2)}</span> : '-';
 
 export const ViewLogsButton = ({ onClick }) => (
-  <button className="view-details-btn" onClick={onClick}>
+  <button type="button" className="mt-viewlogs" onClick={onClick}>
     View logs <ChevronRight size={14} />
   </button>
 );

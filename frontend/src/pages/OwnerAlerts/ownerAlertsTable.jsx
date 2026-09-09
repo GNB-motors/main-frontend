@@ -30,7 +30,7 @@ export default function OwnerAlertsTable({
 }) {
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="ov-panel flex flex-col gap-2 p-4">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="ov-inset h-12 animate-pulse" />
         ))}
@@ -40,7 +40,7 @@ export default function OwnerAlertsTable({
 
   if (view.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+      <div className="ov-panel flex flex-col items-center justify-center gap-2 py-12 text-center">
         <span
           className="flex h-12 w-12 items-center justify-center rounded-full"
           style={{
@@ -61,115 +61,117 @@ export default function OwnerAlertsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="ov-table">
-        <thead>
-          <tr>
-            <th style={{ width: 34 }}>
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={toggleAll}
-                aria-label="Select all"
-                disabled={selectableIds.length === 0}
-              />
-            </th>
-            <th>Alert</th>
-            <th>Vehicle</th>
-            <th>Detected</th>
-            <th>Status</th>
-            <th aria-label="Action" />
-          </tr>
-        </thead>
-        <tbody>
-          {view.map((a) => {
-            const Icon = SEV_ICON[a.severity] || AlertTriangle;
-            const color =
-              a.severity === 'CRITICAL'
-                ? 'var(--critical)'
-                : a.severity === 'INFO'
-                  ? 'var(--gnb-400)'
-                  : 'var(--caution)';
-            return (
-              <tr
-                key={a.id}
-                className={`fi-row-click ${a.acknowledged ? 'oa-row--acked' : SEV_ROWCLASS[a.severity]}`}
-                onClick={() => onSelectAlert(a)}
-              >
-                <td onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(a.id)}
-                    onChange={() => toggleOne(a.id)}
-                    disabled={a.acknowledged}
-                    aria-label={`Select ${a.title}`}
-                  />
-                </td>
-                <td>
-                  <div className="flex items-start gap-2.5">
-                    <Icon size={16} style={{ color, marginTop: 2, flex: '0 0 auto' }} />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="text-sm font-semibold"
-                          style={{ color: 'var(--cluster-text)' }}
-                        >
-                          {a.title}
-                        </span>
-                        <StatusChip group="severity" value={a.severity} />
-                        {a.inrEstimate != null && (
-                          <span className="num text-xs" style={{ color }}>
-                            {formatINR(a.inrEstimate)}
-                          </span>
-                        )}
+    <div className="oa-table-wrapper">
+      <div className="overflow-x-auto">
+        <table className="oa-table">
+          <thead>
+            <tr>
+              <th style={{ width: 44, textAlign: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  aria-label="Select all"
+                  disabled={selectableIds.length === 0}
+                  className="rounded border-slate-300"
+                />
+              </th>
+              <th>Alert</th>
+              <th>Vehicle</th>
+              <th>Detected</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {view.map((a) => {
+              const Icon = SEV_ICON[a.severity] || AlertTriangle;
+              const color =
+                a.severity === 'CRITICAL'
+                  ? '#e11d48'
+                  : a.severity === 'INFO'
+                    ? '#2563eb'
+                    : '#d97706';
+              return (
+                <tr
+                  key={a.id}
+                  className={`fi-row-click ${a.acknowledged ? 'oa-row--acked' : SEV_ROWCLASS[a.severity]}`}
+                  onClick={() => onSelectAlert(a)}
+                >
+                  <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(a.id)}
+                      onChange={() => toggleOne(a.id)}
+                      disabled={a.acknowledged}
+                      aria-label={`Select ${a.title}`}
+                      className="rounded border-slate-300"
+                    />
+                  </td>
+                  <td>
+                    <div className="flex items-start gap-2.5">
+                      <Icon size={16} style={{ color, marginTop: 2, flex: '0 0 auto' }} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-slate-900">{a.title}</span>
+                          <StatusChip group="severity" value={a.severity} />
+                          {a.inrEstimate != null && (
+                            <span className="num text-xs font-semibold" style={{ color }}>
+                              {formatINR(a.inrEstimate)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="oa-clamp text-slate-500 mt-0.5 text-xs">
+                          {cleanMsg(a.message)}
+                        </div>
                       </div>
-                      <div className="oa-clamp text-dim mt-0.5 text-xs">{cleanMsg(a.message)}</div>
                     </div>
-                  </div>
-                </td>
-                <td>
-                  {a.vehicleNumber ? (
-                    <span className="reg-plate">{a.vehicleNumber}</span>
-                  ) : (
-                    <span className="text-dim text-xs">Fleet-wide</span>
-                  )}
-                </td>
-                <td className="num text-dim" title={a.detectedAbs}>
-                  {a.detectedRel || '—'}
-                </td>
-                <td>
-                  {a.acknowledged ? (
-                    <StatusPill tone="ok">Acknowledged</StatusPill>
-                  ) : (
-                    <StatusPill tone="caution">To review</StatusPill>
-                  )}
-                </td>
-                <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                  {a.acknowledged ? (
-                    <span className="inline-flex items-center gap-1 text-xs text-dim">
-                      <Check size={13} /> Done
-                    </span>
-                  ) : (
-                    <button
-                      className="ov-btn"
-                      style={{ padding: '5px 10px', fontSize: 12 }}
-                      disabled={ackingId === a.id}
-                      onClick={() => handleAck(a.id)}
-                    >
-                      {ackingId === a.id ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <Check size={13} />
-                      )}{' '}
-                      Acknowledge
-                    </button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  </td>
+                  <td>
+                    {a.vehicleNumber ? (
+                      <span className="reg-plate font-mono font-bold text-slate-900">
+                        {a.vehicleNumber}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs font-medium">Fleet-wide</span>
+                    )}
+                  </td>
+                  <td className="num text-slate-600 text-xs font-medium" title={a.detectedAbs}>
+                    {a.detectedRel || '—'}
+                  </td>
+                  <td>
+                    {a.acknowledged ? (
+                      <StatusPill tone="ok">Acknowledged</StatusPill>
+                    ) : (
+                      <StatusPill tone="caution">To review</StatusPill>
+                    )}
+                  </td>
+                  <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                    {a.acknowledged ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        <Check size={14} /> Done
+                      </span>
+                    ) : (
+                      <button
+                        className="oa-ack-action"
+                        disabled={ackingId === a.id}
+                        onClick={() => handleAck(a.id)}
+                      >
+                        {ackingId === a.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Check size={13} />
+                        )}{' '}
+                        Acknowledge
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
