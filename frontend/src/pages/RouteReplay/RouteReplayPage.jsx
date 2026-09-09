@@ -73,6 +73,13 @@ const RouteReplayPage = () => {
   const stats = useMemo(() => replayStats(frames), [frames]);
   const path = useMemo(() => toLatLngPath(frames), [frames]);
   const head = useMemo(() => positionAt(frames, progress), [frames, progress]);
+  // Display-only corridor snap: same fixes, projected onto learned corridors
+  // where one lies within ~150 m. Stats and playback stay on measured frames.
+  const snapPath = useMemo(
+    () => (trail?.snap?.path || []).map((p) => ({ lat: p.lat, lng: p.lng })),
+    [trail],
+  );
+  const snapInfo = trail?.snap || null;
 
   // 3-D truck state: only attempted when WebGL exists; the 2-D heading marker
   // stays mounted until the model is actually standing on the map.
@@ -90,6 +97,7 @@ const RouteReplayPage = () => {
         from: dayjs(from).startOf('day').toISOString(),
         to: dayjs(to).endOf('day').toISOString(),
         limit: 5000,
+        snap: 'corridor',
       });
       setTrail(data);
     } catch (err) {
@@ -216,6 +224,16 @@ const RouteReplayPage = () => {
         </div>
       )}
 
+      {!error && snapInfo && snapInfo.snappedCount > 0 && (
+        <div className="rr-readout" role="note">
+          <span>
+            <span style={{ color: '#7c3aed' }}>- - -</span> snapped to a learned corridor (
+            {snapInfo.snappedCount} of {snapInfo.path.length} fixes, display only — fixes beyond
+            ~150 m of a corridor stay measured)
+          </span>
+        </div>
+      )}
+
       {!error && trail && frames.length < 2 && (
         <div className="rr-empty">
           <RouteIcon size={26} />
@@ -319,6 +337,28 @@ const RouteReplayPage = () => {
           }}
           options={{ streetViewControl: false, mapTypeControl: false }}
         >
+          {/* Corridor-matched display path (dashed purple): the same observed
+              fixes projected onto learned corridors where one is within
+              ~150 m. Fixes beyond tolerance stay measured and draw solid
+              below. Display only — never feeds the stats or playback. */}
+          {snapPath.length > 1 && snapInfo?.snappedCount > 0 && (
+            <PolylineF
+              path={snapPath}
+              options={{
+                strokeColor: '#7c3aed',
+                strokeOpacity: 0,
+                icons: [
+                  {
+                    icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, scale: 2 },
+                    offset: '0',
+                    repeat: '10px',
+                  },
+                ],
+                strokeWeight: 4,
+                zIndex: 1,
+              }}
+            />
+          )}
           {path.length > 1 && (
             <>
               {/* Full route, then the portion already played on top of it. */}

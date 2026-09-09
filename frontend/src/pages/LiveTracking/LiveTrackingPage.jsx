@@ -64,6 +64,9 @@ const LiveTrackingPage = () => {
   // held and how far back the returned ones reach — "Trail: N points" used to
   // silently mean "the oldest N".
   const [trailTruncated, setTrailTruncated] = useState(null);
+  // Display-only corridor-matched path (dashed on the map): same observed
+  // fixes projected onto learned corridors where one lies within ~150 m.
+  const [snapPath, setSnapPath] = useState([]);
   const [vehicleQuery, setVehicleQuery] = useState('');
 
   const mapRef = useRef(null);
@@ -90,6 +93,7 @@ const LiveTrackingPage = () => {
       setTrail([]);
       setTrailError(null);
       setTrailTruncated(null);
+      setSnapPath([]);
       return;
     }
     let cancelled = false;
@@ -97,10 +101,15 @@ const LiveTrackingPage = () => {
       setTrailLoading(true);
       setTrailError(null);
       try {
-        const data = await LiveTrackingService.getTrail(selectedReg);
+        const data = await LiveTrackingService.getTrail(selectedReg, { snap: 'corridor' });
         if (cancelled) return;
         setTrailTruncated(
           data.truncated ? { totalCount: data.totalCount, coveredTo: data.coveredTo } : null,
+        );
+        setSnapPath(
+          (data.snap?.path || [])
+            .filter((p) => p.provenance === 'snapped')
+            .map((p) => ({ lat: p.lat, lng: p.lng })),
         );
         const points = (data.points || [])
           .filter((p) => p.latitude != null && p.longitude != null)
@@ -116,6 +125,7 @@ const LiveTrackingPage = () => {
           setTrail([]);
           setTrailError(err.detail || 'Could not load the vehicle trail.');
           setTrailTruncated(null);
+          setSnapPath([]);
         }
       } finally {
         if (!cancelled) setTrailLoading(false);
@@ -345,6 +355,25 @@ const LiveTrackingPage = () => {
                     options={{ strokeColor: '#2563EB', strokeOpacity: 0.9, strokeWeight: 4 }}
                   />
                 )}
+                {/* Corridor-matched fixes, dashed: display only. */}
+                {snapPath.length > 1 && (
+                  <PolylineF
+                    path={snapPath}
+                    options={{
+                      strokeColor: '#7c3aed',
+                      strokeOpacity: 0,
+                      icons: [
+                        {
+                          icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, scale: 2 },
+                          offset: '0',
+                          repeat: '10px',
+                        },
+                      ],
+                      strokeWeight: 4,
+                      zIndex: 1,
+                    }}
+                  />
+                )}
                 {trail.length > 0 && (
                   <MarkerF
                     position={trail[0]}
@@ -409,6 +438,7 @@ const LiveTrackingPage = () => {
                         <p style={{ fontSize: 11, color: '#2563eb', margin: '4px 0' }}>
                           Trail: {trail.length} points
                           {trailTruncated && ` of ${trailTruncated.totalCount}`}
+                          {snapPath.length > 1 && ` · ${snapPath.length} snapped to corridor`}
                         </p>
                       )}
                       {!trailLoading && trailTruncated && (

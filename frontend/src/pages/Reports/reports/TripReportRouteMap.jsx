@@ -29,6 +29,8 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
   // When the server capped the trail, how many points the window really held —
   // the drawn path is the oldest N, not the whole trip.
   const [trailTruncated, setTrailTruncated] = useState(null);
+  // Display-only corridor-matched fixes (dashed purple under the measured path).
+  const [snapPath, setSnapPath] = useState(null);
   const mapRef = useRef(null);
 
   const { isLoaded, loadError } = useLoadScript({
@@ -77,11 +79,17 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
       from: window_.fromIso,
       to: window_.toIso,
       limit: 5000,
+      snap: 'corridor',
     })
       .then((trail) => {
         if (cancelled) return;
         setTrailTruncated(
           trail?.truncated ? { totalCount: trail.totalCount, coveredTo: trail.coveredTo } : null,
+        );
+        setSnapPath(
+          (trail?.snap?.path || [])
+            .filter((p) => p.provenance === 'snapped')
+            .map((p) => ({ lat: p.lat, lng: p.lng })),
         );
         const path = toLatLngPath(toFrames(trail?.points));
         if (path.length >= 2) {
@@ -143,6 +151,25 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
                 options={{
                   polylineOptions: { strokeColor: '#1a73e8', strokeWeight: 4, strokeOpacity: 0.8 },
                   suppressMarkers: true,
+                }}
+              />
+            )}
+            {/* Corridor-matched fixes, dashed: display only. */}
+            {snapPath && snapPath.length > 1 && (
+              <PolylineF
+                path={snapPath}
+                options={{
+                  strokeColor: '#7c3aed',
+                  strokeOpacity: 0,
+                  icons: [
+                    {
+                      icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, scale: 2 },
+                      offset: '0',
+                      repeat: '10px',
+                    },
+                  ],
+                  strokeWeight: 4,
+                  zIndex: 1,
                 }}
               />
             )}
