@@ -8,6 +8,13 @@ import PageShell from '../../components/ui/PageShell';
 import useApi from '../../hooks/useApi';
 import apiClient from '../../utils/axiosConfig';
 import { toFrames, replayStats, positionAt, toLatLngPath } from './routeReplay.js';
+import {
+  detectGaps,
+  estimateGap,
+  habitualHalts,
+  spliceTrail,
+  toRenderSegments,
+} from './gapRepair.js';
 import Truck3DErrorBoundary from './truck3d/Truck3DErrorBoundary.jsx';
 import { isWebGLAvailable } from './truck3d/truck3dMaths.js';
 import './RouteReplay.css';
@@ -69,10 +76,42 @@ const RouteReplayPage = () => {
       .filter(Boolean);
   }, [vehiclesRes]);
 
-  const frames = useMemo(() => toFrames(trail?.points), [trail]);
+  // Learned corridors for gap repair (corridor splice of moving gaps only).
+  const { data: corridorsRes } = useApi(
+    (signal) =>
+      apiClient.get('api/route-intelligence/corridors', { params: { limit: 100 }, signal }),
+    [],
+  );
+  const corridors = useMemo(() => corridorsRes?.data?.data?.records || [], [corridorsRes]);
+
+  // Gap repair pipeline: detect holes, classify (stationary / inter-trip /
+  // moving), splice corridor geometry for moving gaps only, and render
+  // estimated legs dashed. Estimated frames never feed the stats — the
+  // measured/estimated split lives in replayStats.
+  const repaired = useMemo(() => {
+    const base = toFrames(trail?.points);
+    if (base.length < 2) return { frames: base, segments: [], estimates: [] };
+    const halts = habitualHalts(base);
+    const gaps = detectGaps(base);
+    const estimates = gaps.map((g) => ({
+      ...estimateGap(g, base, { corridors, halts }),
+      fromAt: base[g.fromIndex].at,
+      toAt: base[g.toIndex].at,
+    }));
+    const { frames: spliced, breaks } = spliceTrail(base, estimates);
+    return { frames: spliced, segments: toRenderSegments(spliced, breaks), estimates };
+  }, [trail, corridors]);
+
+  const frames = repaired.frames;
   const stats = useMemo(() => replayStats(frames), [frames]);
   const path = useMemo(() => toLatLngPath(frames), [frames]);
   const head = useMemo(() => positionAt(frames, progress), [frames, progress]);
+  // The played overlay, cut at inter-trip breaks so playback never draws a
+  // line across a broken (separate-trip) gap.
+  const playedSegments = useMemo(() => {
+    const upTo = (head?.index ?? 0) + 1;
+    return toRenderSegments(frames.slice(0, upTo), []);
+  }, [frames, head]);
   // Display-only corridor snap: same fixes, projected onto learned corridors
   // where one lies within ~150 m. Stats and playback stay on measured frames.
   const snapPath = useMemo(
@@ -234,6 +273,16 @@ const RouteReplayPage = () => {
         </div>
       )}
 
+      {!error && stats.estimatedKm > 0 && (
+        <div className="rr-readout" role="note">
+          <span>
+            <span style={{ color: '#d97706' }}>- - -</span> estimated gap repair (no signal —
+            inferred from a learned corridor; measured and estimated figures are kept apart in the
+            stats above)
+          </span>
+        </div>
+      )}
+
       {!error && trail && frames.length < 2 && (
         <div className="rr-empty">
           <RouteIcon size={26} />
@@ -252,7 +301,10 @@ const RouteReplayPage = () => {
             <div className="rr-stat">
               <span className="rr-stat-label">Ground covered</span>
               <span className="rr-stat-value num">{fmtKm(stats.distanceKm)}</span>
-              <span className="rr-stat-sub">measured between fixes</span>
+              <span className="rr-stat-sub">
+                measured between fixes
+                {stats.estimatedKm > 0 && ` · +${fmtKm(stats.estimatedKm)} estimated`}
+              </span>
             </div>
             <div className="rr-stat">
               <span className="rr-stat-label">Duration</span>
@@ -262,14 +314,44 @@ const RouteReplayPage = () => {
             <div className="rr-stat">
               <span className="rr-stat-label">Average speed</span>
               <span className="rr-stat-value num">{fmtSpeed(stats.avgSpeedKmph)}</span>
-              <span className="rr-stat-sub">distance ÷ elapsed</span>
+              <span className="rr-stat-sub">measured legs only</span>
             </div>
             <div className="rr-stat">
               <span className="rr-stat-label">Peak leg speed</span>
               <span className="rr-stat-value num">{fmtSpeed(stats.maxSpeedKmph)}</span>
-              <span className="rr-stat-sub">fastest single leg</span>
+              <span className="rr-stat-sub">fastest measured leg</span>
             </div>
           </div>
+
+          {repaired.estimates.length > 0 && (
+            <div className="rr-gaps" role="complementary" aria-label="Gaps in this window">
+              <p className="rr-gaps-title">
+                {repaired.estimates.length} gap{repaired.estimates.length === 1 ? '' : 's'} in this
+                window — how each was handled
+              </p>
+              <ul className="rr-gaps-list">
+                {repaired.estimates.map((g, i) => (
+                  <li key={i} className="rr-gaps-item">
+                    <span className="rr-gaps-when">
+                      {dayjs(g.fromAt).format('DD MMM, hh:mm A')} →{' '}
+                      {dayjs(g.toAt).format('hh:mm A')}
+                      {' · '}
+                      {fmtDuration(g.gapMs)}
+                    </span>
+                    <span className="rr-gaps-kind" data-kind={g.kind}>
+                      {g.kind === 'intertrip' ? 'break between trips' : g.kind}
+                    </span>
+                    <span className="rr-gaps-label">{g.label}</span>
+                    {g.unexplainedMs > 60_000 && (
+                      <span className="rr-gaps-unexplained">
+                        unexplained: {fmtDuration(g.unexplainedMs)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="rr-controls">
             <button className="rr-btn" onClick={togglePlay} title={playing ? 'Pause' : 'Play'}>
@@ -320,6 +402,7 @@ const RouteReplayPage = () => {
               {head?.reportedSpeed != null && (
                 <span className="rr-reported"> · device says {fmtSpeed(head.reportedSpeed)}</span>
               )}
+              {head?.estimated && <span className="rr-reported"> · estimated (corridor)</span>}
             </span>
             <span>{fmtKm(head?.cumulativeKm)} travelled</span>
           </div>
@@ -361,15 +444,47 @@ const RouteReplayPage = () => {
           )}
           {path.length > 1 && (
             <>
-              {/* Full route, then the portion already played on top of it. */}
-              <PolylineF
-                path={path}
-                options={{ strokeColor: '#94a3b8', strokeOpacity: 0.9, strokeWeight: 4 }}
-              />
-              <PolylineF
-                path={path.slice(0, (head?.index ?? 0) + 1)}
-                options={{ strokeColor: '#B8460F', strokeOpacity: 1, strokeWeight: 5 }}
-              />
+              {/* Repaired trail: measured runs solid, estimated corridor
+                  splices dashed amber, inter-trip gaps break the polyline
+                  (no line is ever drawn between two real trips). */}
+              {repaired.segments.map((seg, i) =>
+                seg.estimated ? (
+                  <PolylineF
+                    key={`est-${i}`}
+                    path={seg.path}
+                    options={{
+                      strokeColor: '#d97706',
+                      strokeOpacity: 0,
+                      icons: [
+                        {
+                          icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, scale: 2.5 },
+                          offset: '0',
+                          repeat: '9px',
+                        },
+                      ],
+                      strokeWeight: 5,
+                      zIndex: 2,
+                    }}
+                  />
+                ) : (
+                  <PolylineF
+                    key={`meas-${i}`}
+                    path={seg.path}
+                    options={{ strokeColor: '#94a3b8', strokeOpacity: 0.9, strokeWeight: 4 }}
+                  />
+                ),
+              )}
+              {/* Portion already played, on top (measured runs only — the
+                  overlay is cut at inter-trip breaks too). */}
+              {playedSegments.map((seg, i) =>
+                seg.estimated ? null : (
+                  <PolylineF
+                    key={`played-${i}`}
+                    path={seg.path}
+                    options={{ strokeColor: '#B8460F', strokeOpacity: 1, strokeWeight: 5 }}
+                  />
+                ),
+              )}
               <MarkerF position={path[0]} label={{ text: 'S', color: '#fff', fontSize: '11px' }} />
               <MarkerF
                 position={path[path.length - 1]}

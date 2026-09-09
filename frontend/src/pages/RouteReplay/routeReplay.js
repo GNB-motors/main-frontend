@@ -124,22 +124,57 @@ export function groundSpeedKmph(legKm, legMs) {
   return legKm / (legMs / 3600000);
 }
 
-/** Rollup for the replay's stats strip. Distance is ground truth, not planned. */
+/**
+ * Rollup for the replay's stats strip. Distance is ground truth, not planned.
+ *
+ * Honesty rule (gap repair): legs touching an estimated frame are split out
+ * into estimatedKm and NEVER enter distanceKm/avg/maxSpeed — an estimated
+ * kilometre must not appear inside a "ground covered" number unlabeled.
+ */
 export function replayStats(frames) {
   if (!frames || frames.length === 0) {
-    return { pointCount: 0, distanceKm: 0, durationMs: 0, avgSpeedKmph: null, maxSpeedKmph: null };
+    return {
+      pointCount: 0,
+      measuredKm: 0,
+      estimatedKm: 0,
+      distanceKm: 0,
+      durationMs: 0,
+      avgSpeedKmph: null,
+      maxSpeedKmph: null,
+    };
+  }
+  let measuredKm = 0;
+  let estimatedKm = 0;
+  let measuredMs = 0;
+  let maxSpeedKmph = null;
+  for (let i = 1; i < frames.length; i += 1) {
+    const a = frames[i - 1];
+    const b = frames[i];
+    const legKm = haversineKm(a, b);
+    const legMs = b.at - a.at;
+    if (a.estimated || b.estimated) {
+      estimatedKm += legKm;
+      continue;
+    }
+    measuredKm += legKm;
+    measuredMs += legMs;
+    if (b.groundSpeedKmph != null) {
+      maxSpeedKmph =
+        maxSpeedKmph == null ? b.groundSpeedKmph : Math.max(maxSpeedKmph, b.groundSpeedKmph);
+    }
   }
   const durationMs = frames[frames.length - 1].at - frames[0].at;
-  const distanceKm = frames[frames.length - 1].cumulativeKm;
-  const speeds = frames.map((f) => f.groundSpeedKmph).filter((s) => s != null);
   return {
     pointCount: frames.length,
-    distanceKm,
+    measuredKm,
+    estimatedKm,
+    // distanceKm stays the measured "ground covered" figure for the stats
+    // strip; estimatedKm is reported alongside it, labeled.
+    distanceKm: measuredKm,
     durationMs,
-    // Average over the whole window, not the mean of per-leg speeds — legs are
-    // unequal in duration, so averaging them would over-weight brief bursts.
-    avgSpeedKmph: durationMs > 0 ? distanceKm / (durationMs / 3600000) : null,
-    maxSpeedKmph: speeds.length ? Math.max(...speeds) : null,
+    // Averages over measured legs only, weighted by their own elapsed time.
+    avgSpeedKmph: measuredMs > 0 ? measuredKm / (measuredMs / 3600000) : null,
+    maxSpeedKmph,
   };
 }
 

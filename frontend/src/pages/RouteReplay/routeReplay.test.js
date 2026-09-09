@@ -170,6 +170,8 @@ describe('replayStats', () => {
   it('reports zeroed stats for an empty trail', () => {
     expect(replayStats([])).toEqual({
       pointCount: 0,
+      measuredKm: 0,
+      estimatedKm: 0,
       distanceKm: 0,
       durationMs: 0,
       avgSpeedKmph: null,
@@ -190,10 +192,49 @@ describe('replayStats', () => {
     );
     const stats = replayStats(frames);
     expect(stats.pointCount).toBe(3);
+    expect(stats.measuredKm).toBeCloseTo(2, 0);
+    expect(stats.estimatedKm).toBe(0);
     expect(stats.distanceKm).toBeCloseTo(2, 0);
     expect(stats.durationMs).toBe(2 * 3600000 + 60000);
     expect(stats.avgSpeedKmph).toBeCloseTo(1, 0);
     expect(stats.maxSpeedKmph).toBeCloseTo(60, 0);
+  });
+
+  it('keeps estimated legs out of every measured figure', () => {
+    // Two measured fixes 1 km apart, then an estimated corridor leg of
+    // ~21.5 km spliced in, then another measured fix.
+    const frames = [
+      ...toFrames(
+        trail([
+          [12, 77, '2026-09-06T10:00:00Z'],
+          [12.009, 77, '2026-09-06T10:01:00Z'],
+        ]),
+      ),
+      {
+        lat: 12,
+        lng: 77.1,
+        at: Date.parse('2026-09-06T10:31:00Z'),
+        estimated: true,
+        provenance: 'CORRIDOR',
+        groundSpeedKmph: 43,
+      },
+      ...toFrames(
+        trail([
+          [12.009, 77.1, '2026-09-06T10:32:00Z'],
+          [12.018, 77.1, '2026-09-06T10:33:00Z'],
+        ]),
+      ),
+    ];
+    const stats = replayStats(frames);
+    expect(stats.measuredKm).toBeCloseTo(2, 0);
+    // Both legs touching the estimated frame count as estimated (~10.8 km
+    // into it, ~1 km out of it).
+    expect(stats.estimatedKm).toBeCloseTo(11.8, 0);
+    expect(stats.distanceKm).toBe(stats.measuredKm);
+    // The 43 km/h estimated speed never enters maxSpeedKmph; the average is
+    // over measured legs only (2 km in 2 minutes).
+    expect(stats.maxSpeedKmph).toBeCloseTo(60, 0);
+    expect(stats.avgSpeedKmph).toBeCloseTo(60, 0);
   });
 });
 
