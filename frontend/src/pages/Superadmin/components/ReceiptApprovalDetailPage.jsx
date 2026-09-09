@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
   ArrowLeft,
   Receipt,
@@ -108,9 +109,12 @@ const ReceiptApprovalDetailPage = () => {
     try {
       await apiClient.post(`/api/whatsapp/admin/drafts/${id}/publish`);
       setBanner('Receipt published to the fuel ledger.');
+      toast.success('Receipt published to the fuel ledger.');
       await load();
     } catch (e) {
-      setError(e.response?.data?.message || 'Publish failed');
+      const msg = e.response?.data?.message || 'Publish failed';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setActionBusy(false);
     }
@@ -122,11 +126,15 @@ const ReceiptApprovalDetailPage = () => {
     try {
       const body = kind === 'reject' ? { reason: note } : { note };
       await apiClient.post(`/api/whatsapp/admin/drafts/${id}/${kind}`, body);
-      setBanner(kind === 'reject' ? 'Receipt rejected.' : 'Receipt cleared from the inbox.');
+      const msg = kind === 'reject' ? 'Receipt rejected.' : 'Receipt cleared from the inbox.';
+      setBanner(msg);
+      toast.success(msg);
       setModal(null);
       await load();
     } catch (e) {
-      setError(e.response?.data?.message || `${kind} failed`);
+      const msg = e.response?.data?.message || `${kind} failed`;
+      setError(msg);
+      toast.error(msg);
     } finally {
       setActionBusy(false);
     }
