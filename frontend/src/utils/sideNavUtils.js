@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   CalendarClock,
   ReceiptText,
+  Radar,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -232,6 +233,13 @@ export const SIDE_NAV_ITEMS = [
     to: '/overview',
     label: 'Fleet Operations',
     icon: Grid,
+  },
+  {
+    type: 'link',
+    access: 'fleet',
+    to: '/live-tracking',
+    label: 'Track',
+    icon: Radar,
   },
   {
     type: 'link',
