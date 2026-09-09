@@ -8,8 +8,6 @@ import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 import './Rbac.css';
 
-const ACTIONS = ['', 'VIEW', 'CREATE', 'EDIT', 'DELETE', 'MANAGE'];
-
 const RbacPermissionsPage = () => {
   const navigate = useNavigate();
   const [permissions, setPermissions] = useState([]);
@@ -21,7 +19,6 @@ const RbacPermissionsPage = () => {
   const [form, setForm] = useState({
     key: '',
     group: '',
-    action: '',
     label: '',
     description: '',
     featureFlag: '',
@@ -84,14 +81,13 @@ const RbacPermissionsPage = () => {
       const body = {
         key: form.key.trim(),
         group: form.group.trim() || undefined,
-        action: form.action || undefined,
         label: form.label.trim() || undefined,
         description: form.description.trim() || undefined,
         featureFlag: form.featureFlag.trim() || undefined,
       };
       await RbacApi.createPermission(body);
       setAddOpen(false);
-      setForm({ key: '', group: '', action: '', label: '', description: '', featureFlag: '' });
+      setForm({ key: '', group: '', label: '', description: '', featureFlag: '' });
       toast.success(`Created "${body.key}"`);
       await load();
     } catch (e) {
@@ -190,7 +186,6 @@ const RbacPermissionsPage = () => {
                 <tr>
                   <th>Label</th>
                   <th>Key</th>
-                  <th className="ff-center">Action</th>
                   <th className="ff-center">Source</th>
                   <th aria-label="Actions" />
                 </tr>
@@ -204,7 +199,6 @@ const RbacPermissionsPage = () => {
                     <td>
                       <span className="ff-mono">{p.key}</span>
                     </td>
-                    <td className="ff-center">{p.action || '—'}</td>
                     <td className="ff-center">
                       <span className="ff-badge ff-badge--outline">
                         {p.isSystem ? 'System' : 'Custom'}
@@ -278,7 +272,7 @@ const RbacPermissionsPage = () => {
                   className="ff-input ff-mono"
                   value={form.key}
                   onChange={(e) => setForm({ ...form, key: e.target.value })}
-                  placeholder="e.g. crm.edit"
+                  placeholder="e.g. crm"
                   maxLength={80}
                   autoFocus
                 />
@@ -294,26 +288,12 @@ const RbacPermissionsPage = () => {
                 />
               </div>
               <div className="ff-field">
-                <label className="ff-field__label">Action</label>
-                <select
-                  className="rbac-select"
-                  value={form.action}
-                  onChange={(e) => setForm({ ...form, action: e.target.value })}
-                >
-                  {ACTIONS.map((a) => (
-                    <option key={a} value={a}>
-                      {a || '(none)'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="ff-field">
                 <label className="ff-field__label">Label</label>
                 <input
                   className="ff-input"
                   value={form.label}
                   onChange={(e) => setForm({ ...form, label: e.target.value })}
-                  placeholder="e.g. Edit CRM"
+                  placeholder="e.g. CRM"
                   maxLength={120}
                 />
               </div>

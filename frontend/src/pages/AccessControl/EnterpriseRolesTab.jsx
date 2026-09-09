@@ -12,9 +12,15 @@ import { getUserRole } from '../../utils/session.js';
 /**
  * Enterprise Roles tab — the roles this enterprise can assign, who holds them,
  * and the roles it defines itself.
- *  - Platform roles come from SuperAdmin availability and are read-only here.
- *  - Enterprise roles are created on this screen and are fully editable.
- * Assignment to employees happens here for both.
+ *  - Platform (GLOBAL) roles come from SuperAdmin availability and are
+ *    read-only here — shared across every enterprise.
+ *  - Default roles (Manager/Field Agent/Driver) are seeded for this org alone,
+ *    so their permissions ARE editable here; only their name/access tier is
+ *    locked. Owner is never editable (always full-access).
+ *  - Custom roles this enterprise created are fully editable.
+ * `role.canEditPermissions` (from the API) is the single source of truth for
+ * which of these applies — see accessControl.service.js.
+ * Assignment to employees happens here for all of them.
  */
 const EnterpriseRolesTab = () => {
   const [roles, setRoles] = useState([]);
@@ -60,11 +66,12 @@ const EnterpriseRolesTab = () => {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const selectedRole = roles.find((r) => r._id === selectedId) || null;
   const granted = useMemo(() => new Set(selectedRole?.permissionKeys || []), [selectedRole]);
-
 
   // How many people hold each role — shown on the role rows and used to explain
   // why a delete is blocked.
@@ -77,8 +84,14 @@ const EnterpriseRolesTab = () => {
     return counts;
   }, [assignments]);
 
-  const openCreate = () => { setEditingRole(null); setRoleFormOpen(true); };
-  const openEdit = (role) => { setEditingRole(role); setRoleFormOpen(true); };
+  const openCreate = () => {
+    setEditingRole(null);
+    setRoleFormOpen(true);
+  };
+  const openEdit = (role) => {
+    setEditingRole(role);
+    setRoleFormOpen(true);
+  };
 
   const onRoleSaved = async (saved) => {
     await load();
@@ -90,7 +103,9 @@ const EnterpriseRolesTab = () => {
   const removeRole = (role) => {
     const holders = holdersByRole.get(String(role._id)) || 0;
     if (holders > 0) {
-      toast.error(`${holders} employee(s) still hold "${role.name}". Revoke those assignments first.`);
+      toast.error(
+        `${holders} employee(s) still hold "${role.name}". Revoke those assignments first.`,
+      );
       return;
     }
     setDeletingRole(role);
@@ -111,12 +126,13 @@ const EnterpriseRolesTab = () => {
     }
   };
 
-
   return (
     <div>
       <div className="ff-toolbar">
         <span className="ff-meta">
-          {loading ? 'Loading…' : (
+          {loading ? (
+            'Loading…'
+          ) : (
             <>
               <strong>{roles.length}</strong> role{roles.length === 1 ? '' : 's'} available ·{' '}
               <strong>{assignments.length}</strong> assignment{assignments.length === 1 ? '' : 's'}
@@ -147,12 +163,18 @@ const EnterpriseRolesTab = () => {
         </div>
       </div>
 
-      {error && <div className="ff-alert ff-alert--error" role="alert">{error}</div>}
+      {error && (
+        <div className="ff-alert ff-alert--error" role="alert">
+          {error}
+        </div>
+      )}
 
       {!loading && roles.length === 0 && (
         <div className="ff-card">
           <div className="ff-state">
-            <div className="ff-state__icon"><Shield size={22} /></div>
+            <div className="ff-state__icon">
+              <Shield size={22} />
+            </div>
             <div className="ff-state__title">No roles yet</div>
             <div>
               {canManageRoles
@@ -160,7 +182,12 @@ const EnterpriseRolesTab = () => {
                 : 'Your platform administrator hasn’t made any roles available to your enterprise.'}
             </div>
             {canManageRoles && (
-              <button type="button" className="ff-btn ff-btn--primary" style={{ marginTop: 12 }} onClick={openCreate}>
+              <button
+                type="button"
+                className="ff-btn ff-btn--primary"
+                style={{ marginTop: 12 }}
+                onClick={openCreate}
+              >
                 <Plus size={16} /> New role
               </button>
             )}
@@ -180,7 +207,9 @@ const EnterpriseRolesTab = () => {
               >
                 <span className="rbac-role__name">
                   <Shield size={15} /> {role.name}
-                  <span className={`ac-chip ${role.isEnterpriseOwned ? 'ac-chip--owned' : 'ac-chip--platform'}`}>
+                  <span
+                    className={`ac-chip ${role.isEnterpriseOwned ? 'ac-chip--owned' : 'ac-chip--platform'}`}
+                  >
                     {role.isEnterpriseOwned ? 'Yours' : 'Platform'}
                   </span>
                 </span>
@@ -197,19 +226,32 @@ const EnterpriseRolesTab = () => {
               <>
                 <div className="ac-detail__head">
                   <div>
-                    <div className="rbac-detail__title"><Shield size={16} /> {selectedRole.name}</div>
+                    <div className="rbac-detail__title">
+                      <Shield size={16} /> {selectedRole.name}
+                    </div>
                     <div className="rbac-detail__sub">
-                      {selectedRole.description || 'No description.'} · maps to <strong>{selectedRole.baseRole}</strong>
+                      {selectedRole.description || 'No description.'} · maps to{' '}
+                      <strong>{selectedRole.baseRole}</strong>
                     </div>
                   </div>
-                  {canManageRoles && selectedRole.isEnterpriseOwned && (
+                  {canManageRoles && selectedRole.canEditPermissions && (
                     <div className="ac-detail__actions">
-                      <button type="button" className="ff-btn ff-btn--secondary" onClick={() => openEdit(selectedRole)}>
+                      <button
+                        type="button"
+                        className="ff-btn ff-btn--secondary"
+                        onClick={() => openEdit(selectedRole)}
+                      >
                         <Pencil size={16} /> Edit
                       </button>
-                      <button type="button" className="ff-btn ff-btn--ghost" onClick={() => removeRole(selectedRole)}>
-                        <Trash2 size={16} /> Delete
-                      </button>
+                      {selectedRole.isEnterpriseOwned && (
+                        <button
+                          type="button"
+                          className="ff-btn ff-btn--ghost"
+                          onClick={() => removeRole(selectedRole)}
+                        >
+                          <Trash2 size={16} /> Delete
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -218,13 +260,20 @@ const EnterpriseRolesTab = () => {
                   <Users size={16} />
                   {selectedRole.isEnterpriseOwned ? (
                     <>
-                      Your enterprise defines this role. Edit it here, and use <strong>Branch Access</strong> to
-                      change what it grants at a single location.
+                      Your enterprise defines this role. Edit it here, and use{' '}
+                      <strong>Branch Access</strong> to change what it grants at a single location.
+                    </>
+                  ) : selectedRole.canEditPermissions ? (
+                    <>
+                      This is one of your organization&rsquo;s built-in roles — its name and access
+                      tier are fixed, but you can edit its permissions here. Use{' '}
+                      <strong>Branch Access</strong> to override them per location instead.
                     </>
                   ) : (
                     <>
-                      These are the enterprise defaults for this role (managed by your platform administrator).
-                      Use <strong>Branch Access</strong> to override them per location.
+                      These are the enterprise defaults for this role (managed by your platform
+                      administrator). Use <strong>Branch Access</strong> to override them per
+                      location.
                     </>
                   )}
                 </div>
@@ -235,7 +284,6 @@ const EnterpriseRolesTab = () => {
           </div>
         </div>
       )}
-
 
       <AssignRoleDrawer
         open={drawerOpen}
