@@ -11,7 +11,7 @@
  */
 
 .v360 {
-  --bg: #fafaf9;
+  --bg: #ffffff;
   --card: #ffffff;
   --sunk: #f5f5f4;
   --line: #e7e5e4;
@@ -24,8 +24,11 @@
   --orange-tint: #fdf1eb;
   --orange-solid: #b8460f;
   --orange-solid-h: #9e3b0b;
-  --erp: #1e3a8a;
-  --link: #1e3a8a;
+  /* Bright blue accent — matches the live-tracking map's marker/polyline color
+     (LiveTrackingPage.jsx) rather than the app's default navy brand blue, per
+     the "GNB Vehicle Detail v2" reference design. */
+  --erp: #2563eb;
+  --link: #2563eb;
 
   --green: #4caf50;
   --green-ink: #2e7d32;
@@ -103,8 +106,8 @@
   width: 42px;
   height: 42px;
   border-radius: 11px;
-  background: var(--orange-tint);
-  color: var(--orange-solid);
+  background: color-mix(in srgb, var(--erp) 12%, var(--card));
+  color: var(--erp);
 }
 .v360-idtitle {
   margin: 0;
@@ -184,27 +187,28 @@
   gap: 7px;
   height: 38px;
   padding: 0 15px;
-  border: 1px solid var(--line2);
+  border: 1px solid var(--erp);
   border-radius: 9px;
   background: var(--card);
-  color: var(--ink2);
+  color: var(--erp);
   font: 500 13px/1 var(--sans);
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
 }
 .v360-btn:hover {
-  border-color: var(--ink3);
-  color: var(--ink);
+  background: color-mix(in srgb, var(--erp) 10%, var(--card));
+  border-color: var(--erp);
+  color: var(--erp);
 }
 .v360-btn--primary {
   border-color: transparent;
-  background: var(--orange-solid);
+  background: var(--erp);
   color: #fff;
   font-weight: 600;
 }
 .v360-btn--primary:hover {
-  background: var(--orange-solid-h);
+  background: color-mix(in srgb, var(--erp) 85%, black);
   color: #fff;
 }
 .v360-link {
@@ -418,6 +422,60 @@
 .v360-registry dd:last-of-type {
   border-bottom: 0;
 }
+/* Manual spec sheet — two key:value pairs per row (grid auto-flow across 4
+   columns lays consecutive dt/dd fragments out exactly this way). */
+.v360-spec-grid {
+  grid-template-columns: auto 1fr auto 1fr !important;
+  column-gap: 14px;
+  margin: 0 0 4px !important;
+}
+
+/* ── Mini live map (hero right column) ─────────────────────── */
+.v360-minimap {
+  position: relative;
+  height: 168px;
+  margin: -15px -17px 14px;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  background: var(--sunk);
+}
+.v360-minimap--loading {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--sunk),
+    var(--sunk) 10px,
+    var(--card) 10px,
+    var(--card) 20px
+  );
+}
+.v360-minimap--empty {
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  text-align: center;
+  padding: 16px;
+}
+.v360-minimap-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font: 500 10.5px/1.3 var(--sans);
+  color: var(--ink2);
+}
+.v360-minimap-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
 
 /* ── Tabs ───────────────────────────────────────────────────── */
 .v360-tabs {
@@ -455,7 +513,7 @@
   bottom: -1px;
   height: 2.5px;
   border-radius: 2px;
-  background: var(--orange-solid);
+  background: var(--erp);
 }
 .v360-tab-count {
   margin-left: 6px;
@@ -666,6 +724,39 @@
 .v360-kv dd.is-dim {
   color: var(--ink3);
   font-weight: 450;
+}
+
+/* ── Driver card ────────────────────────────────────────────── */
+.v360-driver {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 10px;
+}
+.v360-driver-avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--erp) 14%, var(--card));
+  color: var(--erp);
+  font: 600 15px/1 var(--sans);
+}
+.v360-driver-name {
+  margin: 0;
+  font: 600 14.5px/1.3 var(--sans);
+  color: var(--ink);
+}
+.v360-driver .v360-kv {
+  min-width: 148px;
+  margin-top: 0;
+}
+.v360-driver .v360-kv dt,
+.v360-driver .v360-kv dd {
+  padding: 5px 0;
+  font-size: 11.5px;
 }
 
 /* ── Signals (telemetry tab) ────────────────────────────────── */

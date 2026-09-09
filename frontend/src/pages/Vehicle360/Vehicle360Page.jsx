@@ -9,6 +9,7 @@ import {
   DocumentsPanel,
   TelemetryPanel,
   TripsPanel,
+  DriversPanel,
 } from './vehicle360PanelsB';
 import './vehicle360.css';
 
@@ -48,11 +49,12 @@ export default function Vehicle360Page() {
   }));
 
   const TABS = [
-    { id: 'overview', label: 'Overview' },
+    { id: 'overview', label: 'Dashboard' },
     { id: 'service', label: 'Service' },
     { id: 'fuel', label: 'Fuel', count: p.recentFuelLogs?.length ?? null },
     { id: 'documents', label: 'Documents', count: p.fleetMaster?.documents?.length ?? null },
     { id: 'trips', label: 'Trips' },
+    { id: 'drivers', label: 'Drivers' },
     { id: 'telemetry', label: 'Telemetry' },
   ];
 
@@ -119,6 +121,7 @@ export default function Vehicle360Page() {
         fleetMaster={p.fleetMaster}
         fleetEdge={p.fleetEdge}
         health={p.health}
+        livePosition={p.livePosition}
         prediction={p.prediction}
         coverage={p.coverage}
         history={history}
@@ -130,9 +133,13 @@ export default function Vehicle360Page() {
         <OverviewPanel
           history={history}
           health={p.health}
+          livePosition={p.livePosition}
           prediction={p.prediction}
           documents={p.fleetMaster?.documents}
           recentFuelLogs={p.recentFuelLogs}
+          assignedDriver={p.assignedDriver}
+          fleetMaster={p.fleetMaster}
+          fleetEdge={p.fleetEdge}
           onGoTab={setActive}
         />
       ) : null}
@@ -144,6 +151,9 @@ export default function Vehicle360Page() {
       ) : null}
       {active === 'documents' ? <DocumentsPanel documents={p.fleetMaster?.documents} /> : null}
       {active === 'trips' ? <TripsPanel /> : null}
+      {active === 'drivers' ? (
+        <DriversPanel vehicleId={p.fleetMaster?.id} assignedDriver={p.assignedDriver} />
+      ) : null}
       {active === 'telemetry' ? (
         <TelemetryPanel health={p.health} livePosition={p.livePosition} history={history} />
       ) : null}

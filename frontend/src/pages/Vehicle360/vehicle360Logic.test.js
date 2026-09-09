@@ -14,6 +14,7 @@ import {
   coverageSources,
   daysSince,
   distanceInWindow,
+  dailyDistances,
   buildDueItems,
   buildSignals,
 } from './vehicle360Logic';
@@ -239,6 +240,31 @@ describe('distanceInWindow', () => {
   it('reports a parked truck as zero rather than negative on a counter reset', () => {
     expect(distanceInWindow([{ odo: 500 }, { odo: 500 }])).toBe(0);
     expect(distanceInWindow([{ odo: 500 }, { odo: 100 }])).toBe(0);
+  });
+});
+
+describe('dailyDistances', () => {
+  it('is the delta between each reading and the one before it', () => {
+    expect(
+      dailyDistances([
+        { t: '1 Sep', odo: 56000 },
+        { t: '2 Sep', odo: 56200 },
+        { t: '3 Sep', odo: 56588 },
+      ]),
+    ).toEqual([
+      { t: '2 Sep', km: 200 },
+      { t: '3 Sep', km: 388 },
+    ]);
+  });
+
+  it('needs two readings', () => {
+    expect(dailyDistances([{ t: '1 Sep', odo: 56588 }])).toBeNull();
+    expect(dailyDistances([])).toBeNull();
+    expect(dailyDistances(undefined)).toBeNull();
+  });
+
+  it('clamps a counter reset to zero rather than negative', () => {
+    expect(dailyDistances([{ odo: 500 }, { odo: 100 }])).toEqual([{ t: undefined, km: 0 }]);
   });
 });
 

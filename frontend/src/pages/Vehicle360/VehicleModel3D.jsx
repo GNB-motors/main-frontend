@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { buildTipper, disposeGroup } from './vehicleModel';
 
+const TRUCK_URL = '/models/indian-truck-draco.glb';
+const DRACO_DECODER_PATH = '/draco/';
+
 /**
- * Orbitable 3-D tipper for the vehicle hero.
+ * Orbitable 3-D truck for the vehicle hero.
  *
  * three.js is dynamic-imported so it costs nothing on the other pages that
  * never render a vehicle. Rotation only — no zoom, no pan — so the truck stays
  * the same size in the card however the user drags it.
  *
- * Degrades to a static caption when WebGL is unavailable, the chunk fails to
- * load, or the viewer has asked for reduced motion.
+ * The real (Draco-compressed) truck model is loaded from `/models`; if that
+ * fetch fails — offline, missing file — this falls back to the lightweight
+ * procedural box-truck from `vehicleModel.js` rather than showing nothing.
+ * Only a genuine WebGL failure (unsupported browser, chunk load failure)
+ * degrades to the static caption below.
  */
 export default function VehicleModel3D({ label }) {
   const hostRef = useRef(null);
@@ -25,11 +31,15 @@ export default function VehicleModel3D({ label }) {
     let cancelled = false;
     let cleanup = () => {};
 
+    let dracoLoader = null;
+
     (async () => {
       try {
-        const [THREE, { OrbitControls }] = await Promise.all([
+        const [THREE, { OrbitControls }, { GLTFLoader }, { DRACOLoader }] = await Promise.all([
           import('three'),
           import('three/addons/controls/OrbitControls.js'),
+          import('three/addons/loaders/GLTFLoader.js'),
+          import('three/addons/loaders/DRACOLoader.js'),
         ]);
         if (cancelled || !hostRef.current) return;
 
@@ -47,7 +57,27 @@ export default function VehicleModel3D({ label }) {
 
         const scene = new THREE.Scene();
 
-        const truck = buildTipper(THREE);
+        dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath(DRACO_DECODER_PATH);
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.setDRACOLoader(dracoLoader);
+
+        let truck;
+        try {
+          const gltf = await gltfLoader.loadAsync(TRUCK_URL);
+          if (cancelled || !hostRef.current) return;
+          truck = gltf.scene;
+          truck.traverse((node) => {
+            if (node.isMesh) {
+              node.castShadow = true;
+              node.receiveShadow = true;
+            }
+          });
+        } catch {
+          // Offline, missing file, or a bad response — the procedural truck
+          // is a full stand-in, not a degraded state, so no `failed` flag here.
+          truck = buildTipper(THREE);
+        }
         scene.add(truck);
 
         // Ground catches the shadow only — the card background shows through.
@@ -129,6 +159,7 @@ export default function VehicleModel3D({ label }) {
           ground.material.dispose();
           renderer.dispose();
           renderer.domElement.remove();
+          dracoLoader?.dispose();
         };
       } catch {
         // WebGL blocked, chunk failed, or the context was refused — the caller

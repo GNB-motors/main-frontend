@@ -185,6 +185,21 @@ export function distanceInWindow(history) {
 }
 
 /**
+ * Per-reading distance deltas from the odometer history, for the Activity
+ * chart. Same honesty rule as `distanceInWindow`: needs at least two readings,
+ * and a delta is clamped to 0 rather than shown negative (a reset/rollback
+ * odometer reads as "no movement", not a negative trip).
+ */
+export function dailyDistances(history) {
+  const rows = (history || []).filter((h) => h.odo != null && !Number.isNaN(h.odo));
+  if (rows.length < 2) return null;
+  return rows.slice(1).map((h, i) => ({
+    t: h.t,
+    km: Math.max(0, h.odo - rows[i].odo),
+  }));
+}
+
+/**
  * The "what is due" list — every open obligation on this vehicle, worst first.
  * Only items we can actually evidence; nothing is invented to fill the card.
  */

@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { formatKm, formatNum, timeAgo } from '../../utils/formatters';
+import { formatDateIST } from '../../utils/dateUtils';
 import {
   statusChips,
   serviceState,
   fuelReading,
+  defReading,
   coverageSources,
   daysSince,
   distanceInWindow,
@@ -12,6 +14,7 @@ import {
 } from './vehicle360Logic';
 
 const VehicleModel3D = lazy(() => import('./VehicleModel3D'));
+const VehicleMiniMap = lazy(() => import('./VehicleMiniMap'));
 
 /** Donut geometry from the source design: r=26, stroke 6, rotated -90°. */
 const RING_R = 26;
@@ -144,7 +147,8 @@ function Readout({ label, value, sub, crit }) {
   );
 }
 
-function Ring({ pct, stroke, ink, big, label, sub, dashed }) {
+/** Exported so panel cards (e.g. the Services donut) can reuse the same gauge. */
+export function Ring({ pct, stroke, ink, big, label, sub, dashed }) {
   const on = Math.max(0, Math.min(1, pct)) * RING_C;
   const dash = dashed ? '3 7' : `${on.toFixed(1)} ${(RING_C - on).toFixed(1)}`;
   return (
@@ -176,18 +180,78 @@ function Ring({ pct, stroke, ink, big, label, sub, dashed }) {
 }
 
 /**
+ * A `Ring` for a percentage-style telemetry reading (fuel, DEF) — shared so
+ * the two gauges can't drift out of sync on what "no data" vs "no unit"
+ * looks like.
+ */
+function LevelRing({ reading, label }) {
+  return (
+    <Ring
+      pct={reading.state === READING.OK && reading.unit === '%' ? reading.value / 100 : 0}
+      dashed={reading.state !== READING.OK}
+      stroke={reading.state === READING.OK ? 'var(--erp)' : 'var(--grey)'}
+      ink="var(--ink3)"
+      big={
+        reading.state === READING.OK
+          ? reading.unit === '%'
+            ? `${formatNum(reading.value)}%`
+            : formatNum(reading.value)
+          : '—'
+      }
+      label={label}
+      sub={
+        reading.state === READING.NO_UNIT
+          ? 'no unit reported by the sensor'
+          : reading.state === READING.NO_DATA
+            ? 'no reading yet'
+            : 'last live reading'
+      }
+    />
+  );
+}
+
+/**
  * Hero: the orbitable model with its readings underneath, the three rings, and
  * the registry column. Readings sit in a row below the truck rather than as
  * pins on it — they are telemetry, not parts of the vehicle.
  */
-export function HeroRow({ reg, fleetMaster, fleetEdge, health, prediction, coverage, history }) {
+export function HeroRow({
+  reg,
+  fleetMaster,
+  fleetEdge,
+  health,
+  livePosition,
+  prediction,
+  coverage,
+  history,
+}) {
   const svc = serviceState(prediction);
   const fuel = fuelReading(health);
+  const def = defReading(health);
   const telemetryAge = daysSince(health?.pulledAt);
   const travelled = distanceInWindow(history);
 
   const odoSub =
     health?.pulledAt != null ? `CAN reading · ${timeAgo(health.pulledAt)}` : 'no reading yet';
+
+  const rcExpiry = (fleetMaster?.documents || []).find((d) => d.docType === 'RC')?.expiryDate;
+
+  // Manual spec sheet first (matches the reference design's static-info
+  // block), then the FleetEdge/fleet-master identity facts underneath.
+  const specRows = [
+    ['Body type', fleetMaster?.bodyType, false],
+    ['Color', fleetMaster?.color, false],
+    ['GVM', fleetMaster?.gvm, false],
+    ['Registration', reg, true],
+    [
+      'Status',
+      fleetMaster?.status ? fleetMaster.status.replace(/_/g, ' ').toLowerCase() : null,
+      false,
+    ],
+    ['Year', fleetMaster?.manufactureYear, false],
+    ['State', fleetMaster?.registrationState, false],
+    ['Reg. expiry', rcExpiry ? formatDateIST(rcExpiry) : null, false],
+  ].filter(([, v]) => v);
 
   const registry = [
     ['Manufacturer', fleetEdge?.manufacturer || fleetMaster?.manufacturer, false],
@@ -235,27 +299,18 @@ export function HeroRow({ reg, fleetMaster, fleetEdge, health, prediction, cover
                     : `to go${svc.days != null ? ` · ${svc.days} days` : ''}`
               }
             />
+            <Readout
+              label="Speed"
+              value={livePosition?.speed != null ? `${formatNum(livePosition.speed)} km/h` : '—'}
+              sub={
+                livePosition?.eventDateTime ? timeAgo(livePosition.eventDateTime) : 'no live fix'
+              }
+            />
           </div>
         </div>
 
         <div className="v360-rings">
-          <Ring
-            pct={svc.overdue ? 1 : svc.level === 'none' ? 0 : 0.6}
-            dashed={svc.level === 'none'}
-            stroke={
-              svc.overdue ? 'var(--red)' : svc.level === 'none' ? 'var(--grey)' : 'var(--green)'
-            }
-            ink={svc.overdue ? 'var(--red-ink)' : 'var(--ink3)'}
-            big={svc.km != null ? formatKm(svc.km) : '—'}
-            label="Service interval"
-            sub={
-              svc.level === 'none'
-                ? 'no forecast yet'
-                : svc.overdue
-                  ? `past the ${health?.nextServiceKm != null ? formatKm(health.nextServiceKm) : 'service'} mark`
-                  : 'until the next service'
-            }
-          />
+          <LevelRing reading={fuel} label="Fuel level" />
           <Ring
             pct={travelled ? Math.min(1, travelled / 5000) : 0}
             dashed={travelled == null}
@@ -271,31 +326,23 @@ export function HeroRow({ reg, fleetMaster, fleetEdge, health, prediction, cover
                   : 'from the odometer history'
             }
           />
-          <Ring
-            pct={fuel.state === READING.OK && fuel.unit === '%' ? fuel.value / 100 : 0}
-            dashed={fuel.state !== READING.OK}
-            stroke={fuel.state === READING.OK ? 'var(--erp)' : 'var(--grey)'}
-            ink="var(--ink3)"
-            big={
-              fuel.state === READING.OK
-                ? fuel.unit === '%'
-                  ? `${formatNum(fuel.value)}%`
-                  : formatNum(fuel.value)
-                : '—'
-            }
-            label="Fuel level"
-            sub={
-              fuel.state === READING.NO_UNIT
-                ? 'no unit reported by the sensor'
-                : fuel.state === READING.NO_DATA
-                  ? 'no reading yet'
-                  : 'last live reading'
-            }
-          />
+          <LevelRing reading={def} label="DEF level" />
         </div>
       </div>
 
       <aside className="v360-registry">
+        <Suspense fallback={<div className="v360-minimap v360-minimap--loading" />}>
+          <VehicleMiniMap livePosition={livePosition} />
+        </Suspense>
+
+        {specRows.length ? (
+          <dl className="v360-spec-grid">
+            {specRows.map(([k, v, code]) => (
+              <RegistryRow key={k} k={k} v={v} code={code} />
+            ))}
+          </dl>
+        ) : null}
+
         <div className="v360-card-head">
           <p className="v360-card-title">Registry</p>
           {telemetryAge != null ? (

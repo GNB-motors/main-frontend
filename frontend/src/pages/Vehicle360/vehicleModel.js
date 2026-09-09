@@ -136,6 +136,26 @@ export function buildTipper(THREE) {
   return truck;
 }
 
+// Every texture slot a three.js material may hold — the procedural truck's
+// solid-color materials use none of these, but a loaded GLTF's PBR materials
+// commonly populate several at once (base color, normal, metalness/roughness…).
+const TEXTURE_MAP_KEYS = [
+  'map',
+  'normalMap',
+  'roughnessMap',
+  'metalnessMap',
+  'aoMap',
+  'emissiveMap',
+  'bumpMap',
+  'displacementMap',
+  'alphaMap',
+  'envMap',
+  'lightMap',
+  'clearcoatMap',
+  'clearcoatNormalMap',
+  'clearcoatRoughnessMap',
+];
+
 /** Free every GPU resource the group owns — three.js does not do this for you. */
 export function disposeGroup(group) {
   const seen = new Set();
@@ -147,10 +167,16 @@ export function disposeGroup(group) {
     }
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     for (const m of mats) {
-      if (m && !seen.has(m)) {
-        seen.add(m);
-        m.dispose();
+      if (!m || seen.has(m)) continue;
+      seen.add(m);
+      for (const key of TEXTURE_MAP_KEYS) {
+        const tex = m[key];
+        if (tex && !seen.has(tex)) {
+          seen.add(tex);
+          tex.dispose();
+        }
       }
+      m.dispose();
     }
   });
 }
