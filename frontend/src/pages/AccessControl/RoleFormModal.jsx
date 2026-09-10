@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { X } from 'lucide-react';
 import AccessControlApi from './accessControlService';
-import PermissionTreeView from './PermissionTreeView';
 
 // The access tier a role maps onto, so the app's existing role-string route
 // guards keep working. Owner is not offerable — it is a full-access system role.
@@ -13,24 +12,24 @@ const BASE_ROLE_OPTIONS = [
 ];
 
 /**
- * Create or edit a role owned by this enterprise, with its permissions picked in
- * the same tree the rest of the screen uses. Platform (GLOBAL) roles never open
- * here — only their availability is the enterprise's to use, not their
- * definition. A built-in default role (Manager/Field Agent/Driver) can open
- * here too — its permissions are editable, but its name and access tier are
- * locked (`role.isImmutable`).
+ * Create or edit a role's name, description and access tier. Permissions are
+ * NOT set here — they're toggled inline on the Enterprise Roles / Branch
+ * Access pages themselves, staged and committed via their own sticky
+ * Save/Cancel footer. Platform (GLOBAL) roles never open here — only their
+ * availability is the enterprise's to use, not their definition. A built-in
+ * default role (Manager/Field Agent/Driver) can open here too — its name and
+ * access tier are locked (`role.isImmutable`).
  */
-const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, branchId = null }) => {
+const RoleFormModal = ({ open, onClose, role = null, onSaved, branchId = null }) => {
   const editing = Boolean(role);
   // When branchId is set, a newly created role is scoped to that branch only.
   const creatingBranchRole = !editing && !!branchId;
-  // Default roles: permissions are editable, name/access tier are not.
+  // Default roles: permissions are editable (elsewhere), name/access tier are not.
   const locked = editing && !!role?.isImmutable;
 
   const [name, setName] = useState('');
   const [baseRole, setBaseRole] = useState('MANAGER');
   const [description, setDescription] = useState('');
-  const [granted, setGranted] = useState(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,28 +39,7 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, bran
     setName(role?.name || '');
     setBaseRole(role?.baseRole || 'MANAGER');
     setDescription(role?.description || '');
-    setGranted(new Set(role?.permissionKeys || []));
   }, [open, role]);
-
-  const grantedCount = useMemo(
-    () => catalog.filter((p) => granted.has(p.key)).length,
-    [catalog, granted],
-  );
-
-  const toggleKey = (key) =>
-    setGranted((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-
-  const toggleGroup = (items, allOn) =>
-    setGranted((prev) => {
-      const next = new Set(prev);
-      items.forEach((p) => (allOn ? next.delete(p.key) : next.add(p.key)));
-      return next;
-    });
 
   if (!open) return null;
 
@@ -75,17 +53,11 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, bran
     try {
       let saved;
       if (editing) {
-        // Editing configures everything: name, access tier, description, permissions.
-        const body = {
-          name: name.trim(),
-          baseRole,
-          description: description.trim(),
-          permissionKeys: [...granted],
-        };
+        const body = { name: name.trim(), baseRole, description: description.trim() };
         saved = await AccessControlApi.updateRole(role._id, body);
       } else {
         // Creating is name-only (+ optional description). Access tier defaults on the
-        // backend; permissions are granted afterward via Edit.
+        // backend; permissions are granted afterward on the roles page.
         const body = { name: name.trim(), description: description.trim() };
         saved = creatingBranchRole
           ? await AccessControlApi.createBranchRole(branchId, body)
@@ -120,7 +92,7 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, bran
       }}
       onKeyDown={handleOverlayKeyDown}
     >
-      <div className="ff-modal ac-modal--wide" role="dialog" aria-modal="true">
+      <div className="ff-modal" role="dialog" aria-modal="true">
         <div className="ff-modal__header">
           <div>
             <h2 className="ff-modal__title">
@@ -189,52 +161,30 @@ const RoleFormModal = ({ open, onClose, catalog = [], role = null, onSaved, bran
             />
           </div>
 
-          {/* Access tier and permissions are only configured when editing an
-              existing role — a role is created with just a name, then its
-              permissions are granted afterward via Edit. */}
-          {editing && (
-            <>
-              <div className="ff-field">
-                <label className="ff-field__label" htmlFor="ac-role-base">
-                  Access tier
-                </label>
-                <select
-                  id="ac-role-base"
-                  className="rbac-select"
-                  value={baseRole}
-                  onChange={(e) => setBaseRole(e.target.value)}
-                  disabled={locked}
-                >
-                  {BASE_ROLE_OPTIONS.map((b) => (
-                    <option key={b.value} value={b.value}>
-                      {b.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="ff-field__help">
-                  {locked
-                    ? "A default role's access tier can't be changed."
-                    : 'Sets which part of the product the role belongs to. The permissions below decide what it can actually do.'}
-                </span>
-              </div>
-
-              <div className="ff-field">
-                <label className="ff-field__label">
-                  Permissions{' '}
-                  <span className="ff-muted">
-                    ({grantedCount} of {catalog.length} granted)
-                  </span>
-                </label>
-                <div className="ac-modal__tree">
-                  <PermissionTreeView
-                    catalog={catalog}
-                    granted={granted}
-                    onToggleKey={toggleKey}
-                    onToggleGroup={toggleGroup}
-                  />
-                </div>
-              </div>
-            </>
+          {/* Access tier only applies to a custom role you defined — a default
+              role's tier is fixed, so there's nothing to show for those. */}
+          {editing && !locked && (
+            <div className="ff-field">
+              <label className="ff-field__label" htmlFor="ac-role-base">
+                Access tier
+              </label>
+              <select
+                id="ac-role-base"
+                className="rbac-select"
+                value={baseRole}
+                onChange={(e) => setBaseRole(e.target.value)}
+              >
+                {BASE_ROLE_OPTIONS.map((b) => (
+                  <option key={b.value} value={b.value}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+              <span className="ff-field__help">
+                Sets which part of the product the role belongs to. Grant its permissions from the
+                roles page after saving.
+              </span>
+            </div>
           )}
         </div>
 
