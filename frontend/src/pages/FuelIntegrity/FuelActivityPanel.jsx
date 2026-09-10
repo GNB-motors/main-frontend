@@ -27,7 +27,7 @@ export default function FuelActivityPanel({
   const metric = METRICS.find((m) => m.key === chartMetric) || METRICS[0];
   return (
     <Panel
-      className="lg:col-span-2"
+      className="min-w-0 lg:col-span-2"
       eyebrow="Fuel activity"
       question="Volume, loss and anomalies over time"
       action={
@@ -68,7 +68,7 @@ export default function FuelActivityPanel({
       ) : (
         <div className="h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="fiGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={metric.color} stopOpacity={0.25} />
@@ -88,8 +88,10 @@ export default function FuelActivityPanel({
                 tickLine={false}
                 axisLine={false}
                 stroke="var(--cluster-text-dim)"
-                unit={metric.unit}
-                width={44}
+                width={52}
+                tickFormatter={(v) =>
+                  v >= 1000 ? `${(v / 1000).toLocaleString('en-IN')}k` : `${v}`
+                }
               />
               <Tooltip
                 contentStyle={{

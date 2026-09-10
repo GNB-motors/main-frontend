@@ -256,8 +256,6 @@ export const SIDE_NAV_ITEMS = [
     icon: Fuel,
     children: [
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
-      { to: '/whatsapp-approvals', label: 'WhatsApp Approvals' },
-      { to: '/adblue-tracking', label: 'AdBlue', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
       // Live-map-refresh / warehouse branch additions.
       { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
@@ -267,8 +265,6 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: [
       '/mileage-tracking',
-      '/whatsapp-approvals',
-      '/adblue-tracking',
       '/fuel-comparison',
       '/fuel-integrity',
       '/fuel-spend',

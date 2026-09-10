@@ -4,37 +4,42 @@ import { GoogleMap, useLoadScript, MarkerF, InfoWindowF, CircleF } from '@react-
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { ShieldAlert, BellRing, EyeOff, Eye } from 'lucide-react';
-import PageShell from '../../components/ui/PageShell';
+import {
+  ShieldAlert,
+  BellRing,
+  EyeOff,
+  Eye,
+  ShieldCheck,
+  Globe,
+  Truck,
+  MapPin,
+  RefreshCw,
+  AlertTriangle,
+} from 'lucide-react';
 import { useConfirm } from '../../components/ui/confirmContext';
-import { listHotspots, dismissHotspot, activateHotspot, provenanceOf } from '../../services/HotspotService';
+import {
+  listHotspots,
+  dismissHotspot,
+  activateHotspot,
+  provenanceOf,
+} from '../../services/HotspotService';
+import { formatNum } from '../../utils/formatters';
+import { INDIA_CENTER } from '../LiveTracking/liveTracking.shared.js';
+import './Hotspots.css';
 
 dayjs.extend(relativeTime);
 
-/**
- * Hotspots — the theft/siphoning map (audit §5). Every customer's incidents
- * improve the map for every other customer; shared (network) hotspots carry
- * only aggregates and are never attributed to an org.
- *
- *   own-learned : amber   — clustered from YOUR fleet's theft alerts
- *   network     : blue    — learned across the whole network, aggregates only
- *   own-manual  : grey    — pinned by hand
- *
- * Trucks stopped inside a hotspot are flagged by the backend watch and
- * surface in the alert feed — this page links there rather than duplicating.
- */
-
 const PROVENANCE_META = {
   'own-learned': { label: 'Learned from your fleet', color: '#D98E13', text: '#1F2937' },
-  network: { label: 'Learned across the network', color: '#2E6FC0', text: '#FFFFFF' },
-  'own-manual': { label: 'Added manually', color: '#7C8AA0', text: '#FFFFFF' },
+  network: { label: 'Learned across network', color: '#2563EB', text: '#FFFFFF' },
+  'own-manual': { label: 'Added manually', color: '#64748B', text: '#FFFFFF' },
 };
 
-const mapContainerStyle = { width: '100%', height: '480px' };
+const mapContainerStyle = { width: '100%', height: '520px' };
 
-const formatLastIncident = (date) => (date ? dayjs(date).fromNow() : 'no incidents on record');
+const formatLastIncident = (date) => (date ? dayjs(date).fromNow() : 'No recent incidents');
 
-const HotspotsPage = () => {
+export default function HotspotsPage() {
   const confirm = useConfirm();
   const [hotspots, setHotspots] = useState(null); // null = loading
   const [error, setError] = useState(null);
@@ -63,18 +68,19 @@ const HotspotsPage = () => {
     return () => controller.abort();
   }, [load]);
 
-  const active = useMemo(
-    () => (hotspots || []).filter((h) => h.active !== false),
-    [hotspots],
-  );
-  const dismissed = useMemo(
-    () => (hotspots || []).filter((h) => h.active === false),
+  const active = useMemo(() => (hotspots || []).filter((h) => h.active !== false), [hotspots]);
+  const dismissed = useMemo(() => (hotspots || []).filter((h) => h.active === false), [hotspots]);
+
+  const networkCount = useMemo(
+    () => (hotspots || []).filter((h) => provenanceOf(h) === 'network').length,
     [hotspots],
   );
 
   const defaultCenter = useMemo(() => {
     const first = active[0];
-    return first ? { lat: first.centerLat, lng: first.centerLng } : { lat: 22.8, lng: 86.2 };
+    return first && Number.isFinite(first.centerLat) && Number.isFinite(first.centerLng)
+      ? { lat: first.centerLat, lng: first.centerLng }
+      : INDIA_CENTER;
   }, [active]);
 
   const toggleActive = async (hotspot) => {
@@ -82,8 +88,8 @@ const HotspotsPage = () => {
     const ok = await confirm({
       title: dismissing ? `Dismiss "${hotspot.name}"?` : `Restore "${hotspot.name}"?`,
       body: dismissing
-        ? 'It disappears from the map and trucks stopping there stop raising hotspot alerts.'
-        : 'It returns to the map and the watch resumes alerting on it.',
+        ? 'It will be hidden from the active map and trucks stopping there will pause raising theft alerts.'
+        : 'It will return to the active map and the automated watch will resume alerting.',
       confirmLabel: dismissing ? 'Dismiss hotspot' : 'Restore hotspot',
       danger: dismissing,
     });
@@ -101,136 +107,320 @@ const HotspotsPage = () => {
     }
   };
 
+  const selectedHotspot = useMemo(
+    () => active.find((h) => h._id === selectedId) || null,
+    [active, selectedId],
+  );
+
   return (
-    <PageShell
-      title="Theft Hotspots"
-      subtitle="Fuel goes missing at the same places. Learned from your fleet and, anonymously, from the whole network."
-      count={active.length}
-      actions={(
-        <Link to="/fleet-alerts" className="pshell-btn">
-          <BellRing size={14} aria-hidden="true" />
-          Stop alerts
-        </Link>
-      )}
-    >
-      <div className="hs-legend" aria-label="Legend">
-        {Object.entries(PROVENANCE_META).map(([key, meta]) => (
-          <span key={key} className="hs-legend-item">
-            <span className="hs-legend-dot" style={{ background: meta.color }} aria-hidden="true" />
-            {meta.label}
-          </span>
-        ))}
-      </div>
-
-      {error && (
-        <div className="hs-error" role="alert">
-          <ShieldAlert size={16} aria-hidden="true" /> {error}
-          <button type="button" className="pshell-btn" onClick={() => load()}>Retry</button>
-        </div>
-      )}
-
-      {!error && hotspots === null && <div className="hs-loading">Loading hotspots…</div>}
-
-      {!error && hotspots !== null && hotspots.length === 0 && (
-        <div className="hs-empty">
-          <ShieldAlert size={22} aria-hidden="true" />
-          <strong>No hotspots yet.</strong>
-          <p>
-            The network has learned nothing here so far — that is good news. When theft alerts
-            cluster geographically, a hotspot appears here automatically, for you and (as
-            anonymous aggregates) for every fleet on the network.
+    <div className="pshell min-h-screen">
+      {/* Header */}
+      <header className="pshell-head mb-6">
+        <div className="pshell-head-main">
+          <div className="flex items-center gap-3">
+            <h1 className="pshell-title text-2xl font-bold text-slate-900 tracking-tight">
+              Theft Hotspots
+            </h1>
+            <span className="num inline-flex items-center rounded-full bg-slate-200/80 px-2.5 py-0.5 text-xs font-bold text-slate-800">
+              {active.length} active zones
+            </span>
+          </div>
+          <p className="pshell-subtitle text-sm text-slate-500 mt-1">
+            Fuel theft & siphoning danger zones — learned automatically from your fleet and
+            aggregated anonymously across the logistics network.
           </p>
         </div>
+        <div className="flex items-center gap-3">
+          <button type="button" className="ov-btn" onClick={() => load()} title="Refresh hotspots">
+            <RefreshCw size={14} />
+            <span>Refresh</span>
+          </button>
+          <Link to="/fleet-alerts" className="ov-btn">
+            <BellRing size={14} />
+            <span>View Fleet Alerts</span>
+          </Link>
+        </div>
+      </header>
+
+      {/* Operations KPI Rail */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* 1. Active Hotspots */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Active Hotspots</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+              <ShieldAlert size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">{formatNum(active.length)}</span>
+          <span className="ov-kpi-sub">live geofenced theft clusters</span>
+        </div>
+
+        {/* 2. Network Intelligence */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #3b82f6' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Network Learned</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+              <Globe size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">{formatNum(networkCount)}</span>
+          <span className="ov-kpi-sub">anonymized cross-fleet clusters</span>
+        </div>
+
+        {/* 3. Fleet Monitored */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #10b981' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Fleet Protection</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+              <ShieldCheck size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">Active</span>
+          <span className="ov-kpi-sub">stop & dwell watch active</span>
+        </div>
+
+        {/* 4. Dismissed Zones */}
+        <div className="ov-kpi" style={{ borderLeft: '4px solid #64748b' }}>
+          <div className="flex items-center justify-between">
+            <span className="ov-kpi-label">Dismissed Zones</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              <EyeOff size={14} />
+            </span>
+          </div>
+          <span className="ov-kpi-value text-slate-900">{formatNum(dismissed.length)}</span>
+          <span className="ov-kpi-sub">muted by operations</span>
+        </div>
+      </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-rose-600 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => load()}
+            className="font-semibold text-rose-700 hover:underline text-xs"
+          >
+            Retry
+          </button>
+        </div>
       )}
 
-      {active.length > 0 && mapLoaded && (
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={defaultCenter}
-          zoom={7}
-          options={{ streetViewControl: false, mapTypeControl: false }}
-        >
-          {active.map((h) => {
-            const prov = provenanceOf(h);
-            const meta = PROVENANCE_META[prov] || PROVENANCE_META['own-manual'];
-            const isOwn = prov !== 'network';
-            return (
-              <React.Fragment key={h._id}>
-                <CircleF
-                  center={{ lat: h.centerLat, lng: h.centerLng }}
-                  radius={h.radiusM || 500}
-                  options={{
-                    fillColor: meta.color,
-                    fillOpacity: 0.18,
-                    strokeColor: meta.color,
-                    strokeOpacity: 0.9,
-                    strokeWeight: 1.5,
-                  }}
-                />
-                <MarkerF
-                  position={{ lat: h.centerLat, lng: h.centerLng }}
-                  onClick={() => setSelectedId(h._id)}
-                />
-                {selectedId === h._id && (
-                  <InfoWindowF
+      {/* Persistent Framed Google Map */}
+      <div className="hs-map-card">
+        <div className="hs-map-head">
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-amber-600" />
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+              Theft & Siphoning Risk Geospatial Watch
+            </span>
+          </div>
+
+          {/* Legend */}
+          <div className="hs-legend-group">
+            {Object.entries(PROVENANCE_META).map(([key, meta]) => (
+              <span key={key} className="hs-legend-pill">
+                <span className="hs-legend-dot" style={{ background: meta.color }} />
+                <span>{meta.label}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Ambient status overlay when zero hotspots */}
+        {active.length === 0 && (
+          <div className="hs-ambient-badge">
+            <ShieldCheck size={16} className="text-emerald-600" />
+            <span>Corridors Clear · 0 Theft Clusters Detected</span>
+          </div>
+        )}
+
+        {/* Google Map */}
+        {mapLoaded ? (
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={defaultCenter}
+            zoom={active.length > 0 ? 8 : 5}
+            options={{
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: true,
+            }}
+          >
+            {active.map((h) => {
+              const meta = PROVENANCE_META[provenanceOf(h)] || PROVENANCE_META['own-learned'];
+              return (
+                <React.Fragment key={h._id}>
+                  <MarkerF
                     position={{ lat: h.centerLat, lng: h.centerLng }}
-                    onCloseClick={() => setSelectedId(null)}
+                    onClick={() => setSelectedId(h._id)}
+                  />
+                  <CircleF
+                    center={{ lat: h.centerLat, lng: h.centerLng }}
+                    radius={h.radiusMeters || 500}
+                    options={{
+                      fillColor: meta.color,
+                      fillOpacity: 0.2,
+                      strokeColor: meta.color,
+                      strokeOpacity: 0.8,
+                      strokeWeight: 2,
+                    }}
+                  />
+                </React.Fragment>
+              );
+            })}
+
+            {selectedHotspot && (
+              <InfoWindowF
+                position={{ lat: selectedHotspot.centerLat, lng: selectedHotspot.centerLng }}
+                onCloseClick={() => setSelectedId(null)}
+              >
+                <div className="p-2 max-w-xs">
+                  <h4 className="font-bold text-slate-900 text-sm">{selectedHotspot.name}</h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Radius: {selectedHotspot.radiusMeters || 500}m
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Last incident: {formatLastIncident(selectedHotspot.lastIncidentAt)}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-semibold text-rose-600 hover:underline"
+                    onClick={() => toggleActive(selectedHotspot)}
                   >
-                    <div className="hs-info">
-                      <strong>{h.name}</strong>
-                      <span className="hs-info-prov" style={{ color: meta.color }}>
-                        {meta.label}
-                      </span>
-                      <span>
-                        {h.incidentCount || 0} incident{(h.incidentCount || 0) === 1 ? '' : 's'}
-                        {' · '}last {formatLastIncident(h.lastIncidentAt)}
-                      </span>
-                      {isOwn && (
+                    Dismiss hotspot
+                  </button>
+                </div>
+              </InfoWindowF>
+            )}
+          </GoogleMap>
+        ) : (
+          <div className="h-[520px] flex items-center justify-center bg-slate-50 text-slate-400 text-sm">
+            Loading Google Map layers…
+          </div>
+        )}
+      </div>
+
+      {/* Hotspots Breakdown List / Table */}
+      {active.length > 0 && (
+        <div className="oa-table-wrapper mb-6">
+          <div className="p-4 bg-slate-50 border-b border-slate-200">
+            <h3 className="text-sm font-bold text-slate-900">Active Monitored Risk Zones</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Trucks lingering in these zones automatically generate high-priority fuel risk alerts.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="oa-table">
+              <thead>
+                <tr>
+                  <th>Zone Name</th>
+                  <th>Source Provenance</th>
+                  <th style={{ textAlign: 'right' }}>Radius</th>
+                  <th>Last Incident</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {active.map((h) => {
+                  const prov = provenanceOf(h);
+                  const meta = PROVENANCE_META[prov] || PROVENANCE_META['own-learned'];
+                  return (
+                    <tr key={h._id}>
+                      <td className="font-semibold text-slate-900">
+                        {h.name || 'Unnamed Hotspot'}
+                      </td>
+                      <td>
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold"
+                          style={{ background: `${meta.color}18`, color: meta.color }}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ background: meta.color }}
+                          />
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }} className="num font-mono text-slate-700">
+                        {h.radiusMeters || 500}m
+                      </td>
+                      <td className="text-xs text-slate-600">
+                        {formatLastIncident(h.lastIncidentAt)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
-                          className="pshell-btn"
+                          className="oa-ack-action"
                           disabled={busyId === h._id}
                           onClick={() => toggleActive(h)}
                         >
-                          <EyeOff size={13} aria-hidden="true" /> Dismiss
+                          <EyeOff size={13} />
+                          <span>Dismiss</span>
                         </button>
-                      )}
-                      {prov === 'network' && (
-                        <small className="hs-info-privacy">
-                          Aggregates only — contributing fleets are never identified.
-                        </small>
-                      )}
-                    </div>
-                  </InfoWindowF>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </GoogleMap>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
+      {/* Dismissed Zones Section */}
       {dismissed.length > 0 && (
-        <section className="hs-dismissed" aria-label="Dismissed hotspots">
-          <h3>Dismissed ({dismissed.length})</h3>
-          <ul>
-            {dismissed.map((h) => (
-              <li key={h._id}>
-                <span>{h.name}</span>
-                <button
-                  type="button"
-                  className="pshell-btn"
-                  disabled={busyId === h._id}
-                  onClick={() => toggleActive(h)}
-                >
-                  <Eye size={13} aria-hidden="true" /> Restore
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div className="oa-table-wrapper">
+          <div className="p-4 bg-slate-50 border-b border-slate-200">
+            <h3 className="text-sm font-bold text-slate-700">
+              Dismissed Hotspots ({dismissed.length})
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Muted hotspots that no longer generate proximity stop alerts.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="oa-table">
+              <thead>
+                <tr>
+                  <th>Zone Name</th>
+                  <th>Source Provenance</th>
+                  <th style={{ textAlign: 'right' }}>Radius</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dismissed.map((h) => (
+                  <tr key={h._id} className="opacity-75">
+                    <td className="font-medium text-slate-700">{h.name || 'Unnamed Hotspot'}</td>
+                    <td>
+                      <span className="text-xs text-slate-500">Dismissed</span>
+                    </td>
+                    <td style={{ textAlign: 'right' }} className="num font-mono text-slate-500">
+                      {h.radiusMeters || 500}m
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        className="oa-ack-action"
+                        disabled={busyId === h._id}
+                        onClick={() => toggleActive(h)}
+                      >
+                        <Eye size={13} />
+                        <span>Restore</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
-    </PageShell>
+    </div>
   );
-};
-
-export default HotspotsPage;
+}

@@ -1,7 +1,7 @@
 .fa-fuel-page {
-  padding: 24px 28px;
-  max-width: 1400px;
-  margin: 0 auto;
+  /* PageShell (mounted inside) owns the padding, and the page spans full width
+     like the rest of the app — no extra padding, no centered max-width column. */
+  padding: 0;
 }
 
 .fa-fuel-header {

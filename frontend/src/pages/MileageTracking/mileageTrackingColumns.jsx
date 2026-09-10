@@ -25,6 +25,8 @@ export function buildMileageTrackingColumns({ onOpenVehicle }) {
     {
       key: 'actions',
       label: '',
+      align: 'right',
+      width: '132px',
       render: (v) => (
         <ViewLogsButton
           onClick={(e) => {
