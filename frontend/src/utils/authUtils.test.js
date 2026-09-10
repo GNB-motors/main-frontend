@@ -3,10 +3,12 @@ import {
   getTokenExpiration,
   clearAuthData,
   handleAuthError,
+  isSessionInvalid401,
   validateTokenBeforeRequest,
   getTokenTimeRemaining,
 } from './authUtils.js';
 import { setSession, getToken } from './session.js';
+import { setNavigator } from './navigation.js';
 
 const makeToken = (payload) => {
   const b64 = (obj) => btoa(JSON.stringify(obj)).replace(/=+$/, '');
@@ -125,6 +127,110 @@ describe('authUtils.js — JWT helpers', () => {
       const onLogout = vi.fn();
       expect(handleAuthError({ response: { status: 401 } }, onLogout)).toBe(true);
       expect(onLogout).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // A 401 is not automatically a dead session. Before this scoping, ANY 401
+  // from ANY request hard-navigated the browser to /login — one background
+  // poller, or one endpoint relaying an upstream provider's 401, ejected the
+  // user mid-page and discarded all app state.
+  describe('handleAuthError — scoping', () => {
+    const validToken = () => makeToken({ exp: FUTURE_EXP });
+
+    it('logs out when we hold a valid token but the server says the session is gone', () => {
+      setSession({ token: validToken() });
+      const onLogout = vi.fn();
+      const err = { response: { status: 401, data: { message: 'Token expired' } } };
+      expect(handleAuthError(err, onLogout)).toBe(true);
+      expect(getToken()).toBeNull();
+      expect(onLogout).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      'Invalid token',
+      'No token provided',
+      'Authentication failed',
+      'Authentication required',
+      'User not found',
+    ])('treats %s as a session-level 401', (message) => {
+      setSession({ token: validToken() });
+      expect(isSessionInvalid401({ response: { status: 401, data: { message } } })).toBe(true);
+    });
+
+    // These are the 401s that used to eject the user: the FleetEdge/GSP proxy
+    // relaying an upstream credential failure, and an expired live-stream
+    // ticket. Neither says anything about the browser's own session.
+    it.each([
+      'GSP authentication failed / token expired',
+      'Invalid or expired stream ticket',
+      'Incorrect email/mobile or password',
+    ])('does NOT log out on an endpoint-specific 401: %s', (message) => {
+      setSession({ token: validToken() });
+      const onLogout = vi.fn();
+      expect(handleAuthError({ response: { status: 401, data: { message } } }, onLogout)).toBe(
+        false,
+      );
+      expect(onLogout).not.toHaveBeenCalled();
+      expect(getToken()).not.toBeNull();
+    });
+
+    it('does NOT log out on an unrecognised 401 reason', () => {
+      setSession({ token: validToken() });
+      const onLogout = vi.fn();
+      expect(
+        handleAuthError({ response: { status: 401, data: { message: 'Nope' } } }, onLogout),
+      ).toBe(false);
+      expect(onLogout).not.toHaveBeenCalled();
+      expect(getToken()).not.toBeNull();
+    });
+
+    it('honours skipAuthRedirect on the request config', () => {
+      const onLogout = vi.fn();
+      const err = { response: { status: 401 }, config: { skipAuthRedirect: true } };
+      expect(handleAuthError(err, onLogout)).toBe(false);
+      expect(onLogout).not.toHaveBeenCalled();
+    });
+
+    it('leaves auth pages to handle their own 401', () => {
+      const original = window.location;
+      Object.defineProperty(window, 'location', {
+        value: { ...original, pathname: '/login' },
+        writable: true,
+        configurable: true,
+      });
+      try {
+        const onLogout = vi.fn();
+        expect(handleAuthError({ response: { status: 401 } }, onLogout)).toBe(false);
+        expect(onLogout).not.toHaveBeenCalled();
+      } finally {
+        Object.defineProperty(window, 'location', {
+          value: original,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
+
+    it('redirects through the router rather than reloading the page', () => {
+      const navigate = vi.fn();
+      setNavigator(navigate);
+      try {
+        setSession({ token: 'not-a-jwt' });
+        expect(handleAuthError({ response: { status: 401 } })).toBe(true);
+        expect(navigate).toHaveBeenCalledWith('/login', {
+          replace: true,
+          state: { reason: 'session-expired' },
+        });
+      } finally {
+        setNavigator(null);
+      }
+    });
+
+    it('isSessionInvalid401 ignores non-401 statuses', () => {
+      setSession({ token: makeToken({ exp: FUTURE_EXP }) });
+      expect(isSessionInvalid401({ response: { status: 403 } })).toBe(false);
+      expect(isSessionInvalid401({ status: 500 })).toBe(false);
+      expect(isSessionInvalid401(null)).toBe(false);
     });
   });
 

@@ -1,30 +1,26 @@
 /**
  * Zod validation for Driver API responses.
- * Permissive by design: known fields are typed, unknown fields pass through.
+ * Permissive by design: known fields are typed, unknown fields pass through,
+ * and every optional field also accepts null (see schemas/primitives.js).
  */
 import { z } from 'zod';
+import { str, ref, listMeta } from './primitives.js';
 
 export const driverSchema = z
   .object({
-    _id: z.string().optional(),
-    id: z.string().optional(),
-    name: z.string().optional(),
-    firstName: z.string().optional(),
-    lastName: z.string().optional(),
-    mobileNumber: z.string().optional(),
-    phone: z.string().optional(),
-    licenseNumber: z.string().optional(),
-    status: z.string().optional(),
+    _id: str,
+    id: str,
+    name: str,
+    firstName: str,
+    lastName: str,
+    mobileNumber: str,
+    phone: str,
+    licenseNumber: str,
+    status: str,
     // The list endpoint populates branchId to { _id, name } for a branch-scoped
-    // employee, and it's null for an enterprise-level one — never a bare string
-    // in practice, but accept one too since other endpoints may send the raw id.
-    branchId: z
-      .union([
-        z.string(),
-        z.object({ _id: z.string().optional(), name: z.string().optional() }).passthrough(),
-        z.null(),
-      ])
-      .optional(),
+    // employee, and it's null for an enterprise-level one; other endpoints send
+    // the raw id. `ref` covers all three.
+    branchId: ref,
   })
   .passthrough();
 
@@ -32,23 +28,15 @@ export const driverListSchema = z.array(driverSchema);
 
 export const driverListResponseSchema = z
   .object({
-    status: z.string().optional(),
+    status: str,
     data: z.union([driverListSchema, driverSchema]),
-    meta: z
-      .object({
-        total: z.number().optional(),
-        page: z.number().optional(),
-        limit: z.number().optional(),
-        totalPages: z.number().optional(),
-      })
-      .passthrough()
-      .optional(),
+    meta: listMeta,
   })
   .passthrough();
 
 export const driverResponseSchema = z
   .object({
-    status: z.string().optional(),
+    status: str,
     data: driverSchema,
   })
   .passthrough();

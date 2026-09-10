@@ -1,11 +1,24 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { lazy, Suspense, useLayoutEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import LottieLoader from './components/LottieLoader';
 import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
+import { setNavigator } from './utils/navigation.js';
 
 function RedirectWithState({ to }) {
   const location = useLocation();
   return <Navigate to={to} state={location.state} replace />;
+}
+
+// Hands the router's navigate() to utils/navigation so the axios interceptor
+// can redirect an expired session to /login as a route change instead of a
+// `window.location` reload that discards the entire app.
+function RouterBridge() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    setNavigator(navigate);
+    return () => setNavigator(null);
+  }, [navigate]);
+  return null;
 }
 
 // React Router doesn't reset scroll on navigation. The marketing pages scroll
@@ -183,6 +196,7 @@ const AssignedEmployeesPage = lazy(() => import('./pages/AccessControl/AssignedE
 function App() {
   return (
     <>
+      <RouterBridge />
       <ScrollToTop />
       <Suspense fallback={<LottieLoader isLoading />}>
         <Routes>

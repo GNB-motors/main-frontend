@@ -1,7 +1,7 @@
 import axios from 'axios';
 import apiClient from '../../utils/axiosConfig';
 import { getBranchId } from '../../utils/session.js';
-import { parseWith } from '../../schemas/validate.js';
+import { parseSafe } from '../../schemas/validate.js';
 
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -53,8 +53,12 @@ const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branch
     // Return both data and meta for pagination
     if (response.data && response.data.status === 'success') {
       return {
-        data: await parseWith('vehicleListSchema', () => import('../../schemas/vehicle.schema.js'), Array.isArray(response.data.data) ? response.data.data : []),
-        meta: response.data.meta || { total: 0, page: 1, limit: 10, totalPages: 1 }
+        data: await parseSafe(
+          'vehicleListSchema',
+          () => import('../../schemas/vehicle.schema.js'),
+          Array.isArray(response.data.data) ? response.data.data : [],
+        ),
+        meta: response.data.meta || { total: 0, page: 1, limit: 10, totalPages: 1 },
       };
     }
 
@@ -88,16 +92,12 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
       expectedMileage: toExpectedMileage(vehicleData.expected_mileage),
     };
 
-    const response = await axios.post(
-      `${API_BASE_URL}/api/vehicles`,
-      body,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.post(`${API_BASE_URL}/api/vehicles`, body, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
     // Prefer new response shape
     if (response.data && response.data.status === 'success' && response.data.data) {
@@ -136,16 +136,12 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
       branchId: options.branchId || getBranchId() || undefined,
     };
 
-    const response = await axios.post(
-      `${API_BASE_URL}/api/vehicles/bulk`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.post(`${API_BASE_URL}/api/vehicles/bulk`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (response.data && response.data.status === 'success' && response.data.data) {
       return response.data.data;
@@ -160,99 +156,92 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
 // Import (move) an existing enterprise vehicle into the active location. Raw
 // axios (no interceptor), so pass the active branch explicitly via header + body.
 const importVehicle = async (vehicleId, token) => {
-    try {
-        const branchId = getBranchId() || undefined;
-        const response = await axios.post(
-            `${API_BASE_URL}/api/vehicles/${vehicleId}/import`,
-            { branchId },
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    ...(branchId ? { 'X-Branch-Id': branchId } : {}),
-                },
-            }
-        );
-        return response.data?.data ?? response.data;
-    } catch (error) {
-        throw error.response?.data || { detail: error.message || 'Could not import vehicle.' };
-    }
+  try {
+    const branchId = getBranchId() || undefined;
+    const response = await axios.post(
+      `${API_BASE_URL}/api/vehicles/${vehicleId}/import`,
+      { branchId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...(branchId ? { 'X-Branch-Id': branchId } : {}),
+        },
+      },
+    );
+    return response.data?.data ?? response.data;
+  } catch (error) {
+    throw error.response?.data || { detail: error.message || 'Could not import vehicle.' };
+  }
 };
 
 const removeVehicle = async (businessRefId, vehicleId, token) => {
-    try {
-        const response = await axios.delete(
-            `${API_BASE_URL}/api/vehicles/${vehicleId}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        );
-        return response.data;
-    } catch (error) {
-        throw error.response?.data || { detail: error.message || 'Could not remove vehicle.' };
-    }
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/vehicles/${vehicleId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { detail: error.message || 'Could not remove vehicle.' };
+  }
 };
 
 // Placeholder for Edit Vehicle API call
 const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
-   try {
-     // Build body mapping only provided fields to API expected camelCase
-     const body = {};
-     if (vehicleData.registration_no !== undefined) body.registrationNumber = vehicleData.registration_no;
-     if (vehicleData.registrationNumber !== undefined) body.registrationNumber = vehicleData.registrationNumber;
-     if (vehicleData.vehicle_type !== undefined) body.vehicleType = vehicleData.vehicle_type;
-     if (vehicleData.vehicleType !== undefined) body.vehicleType = vehicleData.vehicleType;
-     if (vehicleData.chassis_number !== undefined) body.chassisNumber = vehicleData.chassis_number;
-     if (vehicleData.chassisNumber !== undefined) body.chassisNumber = vehicleData.chassisNumber;
-     if (vehicleData.model !== undefined) body.model = vehicleData.model;
-     if (vehicleData.status !== undefined) body.status = vehicleData.status;
-     if (vehicleData.inventory !== undefined) body.inventory = vehicleData.inventory;
-     // Include manufacturer and vehicleCategory for manual override
-     if (vehicleData.manufacturer !== undefined) body.manufacturer = vehicleData.manufacturer;
-     if (vehicleData.vehicleCategory !== undefined) body.vehicleCategory = vehicleData.vehicleCategory;
-     if (vehicleData.expected_mileage !== undefined) {
-       body.expectedMileage = toExpectedMileage(vehicleData.expected_mileage) || { kmPerL: null };
-     }
-     // Include orgId when provided by caller (some servers expect it)
-     if (businessRefId) body.orgId = businessRefId;
+  try {
+    // Build body mapping only provided fields to API expected camelCase
+    const body = {};
+    if (vehicleData.registration_no !== undefined)
+      body.registrationNumber = vehicleData.registration_no;
+    if (vehicleData.registrationNumber !== undefined)
+      body.registrationNumber = vehicleData.registrationNumber;
+    if (vehicleData.vehicle_type !== undefined) body.vehicleType = vehicleData.vehicle_type;
+    if (vehicleData.vehicleType !== undefined) body.vehicleType = vehicleData.vehicleType;
+    if (vehicleData.chassis_number !== undefined) body.chassisNumber = vehicleData.chassis_number;
+    if (vehicleData.chassisNumber !== undefined) body.chassisNumber = vehicleData.chassisNumber;
+    if (vehicleData.model !== undefined) body.model = vehicleData.model;
+    if (vehicleData.status !== undefined) body.status = vehicleData.status;
+    if (vehicleData.inventory !== undefined) body.inventory = vehicleData.inventory;
+    // Include manufacturer and vehicleCategory for manual override
+    if (vehicleData.manufacturer !== undefined) body.manufacturer = vehicleData.manufacturer;
+    if (vehicleData.vehicleCategory !== undefined)
+      body.vehicleCategory = vehicleData.vehicleCategory;
+    if (vehicleData.expected_mileage !== undefined) {
+      body.expectedMileage = toExpectedMileage(vehicleData.expected_mileage) || { kmPerL: null };
+    }
+    // Include orgId when provided by caller (some servers expect it)
+    if (businessRefId) body.orgId = businessRefId;
 
-     const response = await axios.patch(
-       `${API_BASE_URL}/api/vehicles/${vehicleId}`,
-       body,
-       {
-         headers: {
-           Authorization: `Bearer ${token}`,
-           'Content-Type': 'application/json',
-         },
-       }
-     );
+    const response = await axios.patch(`${API_BASE_URL}/api/vehicles/${vehicleId}`, body, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-     // Prefer new response shape
-     if (response.data && response.data.status === 'success' && response.data.data) {
-       return response.data.data;
-     }
+    // Prefer new response shape
+    if (response.data && response.data.status === 'success' && response.data.data) {
+      return response.data.data;
+    }
 
-     return response.data;
-   } catch (error) {
-     throw error.response?.data || { detail: error.message || 'Could not update vehicle.' };
-   }
- };
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { detail: error.message || 'Could not update vehicle.' };
+  }
+};
 
 /**
  * Get correction logs for a specific vehicle
  */
 const getVehicleCorrectionLogs = async (vehicleId, token) => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/vehicles/${vehicleId}/corrections`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await axios.get(`${API_BASE_URL}/api/vehicles/${vehicleId}/corrections`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (response.data && response.data.status === 'success') {
       return response.data.data;
@@ -276,7 +265,7 @@ const classifyExistingVehicles = async (token) => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
 
     if (response.data && response.data.status === 'success') {
@@ -287,7 +276,6 @@ const classifyExistingVehicles = async (token) => {
     throw error.response?.data || { detail: error.message || 'Could not classify vehicles.' };
   }
 };
-
 
 // Vehicle documents are stored embedded on the Vehicle itself (not in the
 // generic Document collection). All doc endpoints are scoped under the vehicle.
@@ -300,7 +288,7 @@ const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}
     if (!list.length) throw new Error('No files to upload');
 
     const formData = new FormData();
-    list.forEach(f => formData.append('files', f));
+    list.forEach((f) => formData.append('files', f));
     formData.append('docType', docType);
     if (opts.expiryDate) formData.append('expiryDate', opts.expiryDate);
     if (Array.isArray(opts.sides) && opts.sides.length === list.length) {
@@ -326,14 +314,11 @@ const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}
 
 const getVehicleDocuments = async (vehicleId, token) => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/api/vehicles/${vehicleId}/documents`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const response = await axios.get(`${API_BASE_URL}/api/vehicles/${vehicleId}/documents`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    );
+    });
     return response.data?.data || response.data || [];
   } catch (error) {
     console.error('API Error fetching vehicle documents:', error.response?.data || error.message);

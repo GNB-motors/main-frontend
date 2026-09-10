@@ -1,5 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
-import { parseWith } from '../../schemas/validate.js';
+import { parseSafe } from '../../schemas/validate.js';
 
 /**
  * Data layer for the Overview MetricTile widgets (Workstream H step 4).
@@ -28,7 +28,7 @@ export const OverviewWidgetsService = {
   getFleetPositions: async ({ signal } = {}) => {
     try {
       const response = await apiClient.get('/api/livetracking/positions', { signal });
-      const parsed = await parseWith(
+      const parsed = await parseSafe(
         'livePositionsResponseSchema',
         () => import('./overviewWidgets.schema.js'),
         response.data,
@@ -53,12 +53,12 @@ export const OverviewWidgetsService = {
         apiClient.get('/api/erp/approvals/summary', { signal }),
         apiClient.get('/api/app/v1/bills', { params: { status: 'PENDING', limit: 1 }, signal }),
       ]);
-      const approvals = await parseWith(
+      const approvals = await parseSafe(
         'erpApprovalsSummarySchema',
         () => import('./overviewWidgets.schema.js'),
         approvalsRes.data,
       );
-      const bills = await parseWith(
+      const bills = await parseSafe(
         'appBillsListSchema',
         () => import('./overviewWidgets.schema.js'),
         billsRes.data,
@@ -80,7 +80,7 @@ export const OverviewWidgetsService = {
   getIdlingSummary: async (params = {}, { signal } = {}) => {
     try {
       const response = await apiClient.get('/api/idling-reports/summary', { params, signal });
-      const parsed = await parseWith(
+      const parsed = await parseSafe(
         'idlingSummaryResponseSchema',
         () => import('./overviewWidgets.schema.js'),
         response.data,
@@ -101,7 +101,7 @@ export const OverviewWidgetsService = {
   getFuelSpendSummary: async (params = {}, { signal } = {}) => {
     try {
       const response = await apiClient.get('/api/fuel-spend/summary', { params, signal });
-      const parsed = await parseWith(
+      const parsed = await parseSafe(
         'fuelSpendSummarySchema',
         () => import('./overviewWidgets.schema.js'),
         response.data,

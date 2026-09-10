@@ -101,9 +101,25 @@ describe('schemas — async validation via parseWith', () => {
       expect(await trip('tripSchema', t)).toEqual(t);
     });
 
-    it('rejects non-string dates and ids', async () => {
+    it('rejects non-string dates', async () => {
       await expect(trip('tripSchema', { startDate: 20240115 })).rejects.toThrow();
-      await expect(trip('tripSchema', { vehicleId: {} })).rejects.toThrow();
+    });
+
+    // The services .populate() vehicleId/driverId on most list routes, so the
+    // same field is a bare id on one endpoint and a document on another.
+    it('accepts a reference field either populated or as a bare id', async () => {
+      const populated = await trip('tripSchema', {
+        vehicleId: { _id: 'v1', registrationNumber: 'KA01AB1234' },
+        driverId: { _id: 'd1', firstName: 'Ramesh' },
+      });
+      expect(populated.vehicleId.registrationNumber).toBe('KA01AB1234');
+      expect((await trip('tripSchema', { vehicleId: 'v1' })).vehicleId).toBe('v1');
+      expect((await trip('tripSchema', { vehicleId: null })).vehicleId).toBeNull();
+    });
+
+    it('still rejects a reference that is neither an id, a document nor null', async () => {
+      await expect(trip('tripSchema', { vehicleId: 42 })).rejects.toThrow();
+      await expect(trip('tripSchema', { vehicleId: true })).rejects.toThrow();
     });
 
     it('validates list and response envelopes', async () => {
@@ -165,6 +181,49 @@ describe('schemas — async validation via parseWith', () => {
       });
       expect(res.data._id).toBe('p1');
       expect(res.extra).toBe('kept');
+    });
+  });
+
+  // Mongo sends explicit null for an unset field. `.optional()` alone rejects
+  // it, which used to turn a healthy response into a thrown ZodError that the
+  // page then reported as a failed request.
+  describe('null tolerance on optional fields', () => {
+    it('accepts null on every optional string', async () => {
+      const v = await vehicle('vehicleSchema', {
+        _id: 'v1',
+        model: null,
+        make: null,
+        status: null,
+      });
+      expect(v.model).toBeNull();
+
+      const d = await driver('driverSchema', { _id: 'd1', name: null, licenseNumber: null });
+      expect(d.name).toBeNull();
+
+      const b = await branch('branchSchema', { _id: 'b1', code: null, city: null, address: null });
+      expect(b.city).toBeNull();
+
+      const pr = await profile('profileSchema', { _id: 'p1', gstin: null, companyName: null });
+      expect(pr.gstin).toBeNull();
+
+      const t = await trip('tripSchema', { _id: 't1', endDate: null, destination: null });
+      expect(t.endDate).toBeNull();
+    });
+
+    it('accepts null on money and meta fields', async () => {
+      expect((await erp('billSchema', { _id: 'b1', amount: null })).amount).toBeNull();
+      const res = await vehicle('vehicleListResponseSchema', {
+        data: [{ _id: 'v1' }],
+        meta: { total: 1, page: 1, limit: 25, totalPages: null },
+      });
+      expect(res.meta.totalPages).toBeNull();
+    });
+
+    it('still rejects a wrong non-null type', async () => {
+      await expect(vehicle('vehicleSchema', { model: 42 })).rejects.toThrow();
+      await expect(
+        vehicle('vehicleListResponseSchema', { data: [{ _id: 'v1' }], meta: { total: 'two' } }),
+      ).rejects.toThrow();
     });
   });
 
