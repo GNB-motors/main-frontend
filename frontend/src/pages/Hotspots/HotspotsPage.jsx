@@ -35,7 +35,12 @@ const PROVENANCE_META = {
   'own-manual': { label: 'Added manually', color: '#64748B', text: '#FFFFFF' },
 };
 
-const mapContainerStyle = { width: '100%', height: '520px' };
+const mapContainerStyle = {
+  width: '100%',
+  height: 'calc(100vh - 215px)',
+  minHeight: '440px',
+  maxHeight: '620px',
+};
 
 const formatLastIncident = (date) => (date ? dayjs(date).fromNow() : 'No recent incidents');
 
@@ -114,82 +119,29 @@ export default function HotspotsPage() {
 
   return (
     <div className="pshell min-h-screen">
-      {/* Header */}
-      <header className="pshell-head mb-6">
-        <div className="pshell-head-main">
-          <div className="flex items-center gap-3">
-            <h1 className="pshell-title text-2xl font-bold text-slate-900 tracking-tight">
-              Theft Hotspots
-            </h1>
-            <span className="num inline-flex items-center rounded-full bg-slate-200/80 px-2.5 py-0.5 text-xs font-bold text-slate-800">
+      {/* Compact Top Header */}
+      <div className="hs-top-header">
+        <div className="hs-title-group">
+          <div className="hs-title-row">
+            <h1 className="hs-title">Theft Hotspots</h1>
+            <span className="num inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-bold text-amber-700">
               {active.length} active zones
             </span>
           </div>
-          <p className="pshell-subtitle text-sm text-slate-500 mt-1">
-            Fuel theft & siphoning danger zones — learned automatically from your fleet and
-            aggregated anonymously across the logistics network.
+          <p className="hs-subtitle">
+            Fuel theft & siphoning danger zones — learned automatically from fleet telemetry and
+            network clusters.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button type="button" className="ov-btn" onClick={() => load()} title="Refresh hotspots">
-            <RefreshCw size={14} />
+            <RefreshCw size={13} />
             <span>Refresh</span>
           </button>
           <Link to="/fleet-alerts" className="ov-btn">
-            <BellRing size={14} />
-            <span>View Fleet Alerts</span>
+            <BellRing size={13} />
+            <span>Fleet Alerts</span>
           </Link>
-        </div>
-      </header>
-
-      {/* Operations KPI Rail */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* 1. Active Hotspots */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Active Hotspots</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200">
-              <ShieldAlert size={14} />
-            </span>
-          </div>
-          <span className="ov-kpi-value text-slate-900">{formatNum(active.length)}</span>
-          <span className="ov-kpi-sub">live geofenced theft clusters</span>
-        </div>
-
-        {/* 2. Network Intelligence */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Network Learned</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-200">
-              <Globe size={14} />
-            </span>
-          </div>
-          <span className="ov-kpi-value text-slate-900">{formatNum(networkCount)}</span>
-          <span className="ov-kpi-sub">anonymized cross-fleet clusters</span>
-        </div>
-
-        {/* 3. Fleet Monitored */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #10b981' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Fleet Protection</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
-              <ShieldCheck size={14} />
-            </span>
-          </div>
-          <span className="ov-kpi-value text-slate-900">Active</span>
-          <span className="ov-kpi-sub">stop & dwell watch active</span>
-        </div>
-
-        {/* 4. Dismissed Zones */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #64748b' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Dismissed Zones</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-              <EyeOff size={14} />
-            </span>
-          </div>
-          <span className="ov-kpi-value text-slate-900">{formatNum(dismissed.length)}</span>
-          <span className="ov-kpi-sub">muted by operations</span>
         </div>
       </div>
 
@@ -218,6 +170,53 @@ export default function HotspotsPage() {
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
               Theft & Siphoning Risk Geospatial Watch
             </span>
+          </div>
+
+          {/* Enclosed KPI Rail */}
+          <div className="hs-kpi-strip">
+            {/* 1. Active Hotspots */}
+            <div className="hs-kpi-pill">
+              <span className="hs-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
+                <ShieldAlert size={12} />
+              </span>
+              <div className="hs-kpi-pill-meta">
+                <span className="hs-kpi-pill-label">Active</span>
+                <span className="hs-kpi-pill-value">{formatNum(active.length)}</span>
+              </div>
+            </div>
+
+            {/* 2. Network Intelligence */}
+            <div className="hs-kpi-pill">
+              <span className="hs-kpi-pill-icon bg-blue-50 text-blue-600 border border-blue-200">
+                <Globe size={12} />
+              </span>
+              <div className="hs-kpi-pill-meta">
+                <span className="hs-kpi-pill-label">Network</span>
+                <span className="hs-kpi-pill-value">{formatNum(networkCount)}</span>
+              </div>
+            </div>
+
+            {/* 3. Fleet Monitored */}
+            <div className="hs-kpi-pill">
+              <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
+                <ShieldCheck size={12} />
+              </span>
+              <div className="hs-kpi-pill-meta">
+                <span className="hs-kpi-pill-label">Protection</span>
+                <span className="hs-kpi-pill-value text-emerald-700">Active</span>
+              </div>
+            </div>
+
+            {/* 4. Dismissed Zones */}
+            <div className="hs-kpi-pill">
+              <span className="hs-kpi-pill-icon bg-slate-100 text-slate-600 border border-slate-200">
+                <EyeOff size={12} />
+              </span>
+              <div className="hs-kpi-pill-meta">
+                <span className="hs-kpi-pill-label">Dismissed</span>
+                <span className="hs-kpi-pill-value">{formatNum(dismissed.length)}</span>
+              </div>
+            </div>
           </div>
 
           {/* Legend */}

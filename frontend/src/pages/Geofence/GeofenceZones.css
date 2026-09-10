@@ -86,36 +86,31 @@
 /* ─── KPI Row ── */
 .gfz-kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .gfz-kpi {
   background: white;
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 10px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   border: 1px solid #e2e8f0;
-  /* Elevation lifts the tile off the white page (was a near-flat .05 shadow). */
-  box-shadow:
-    0 1px 3px rgba(15, 23, 42, 0.06),
-    0 6px 16px -8px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: box-shadow 0.2s;
 }
 
 .gfz-kpi:hover {
-  box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.08),
-    0 12px 24px -10px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
 .gfz-kpi-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,20 +118,20 @@
 }
 
 .gfz-kpi-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #94a3b8;
+  letter-spacing: 0.04em;
+  color: #64748b;
   margin: 0;
 }
 
 .gfz-kpi-value {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
   color: #0f172a;
-  margin: 2px 0 0;
-  line-height: 1;
+  margin: 1px 0 0;
+  line-height: 1.1;
 }
 
 .gfz-kpi-danger .gfz-kpi-icon {

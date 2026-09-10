@@ -27,7 +27,12 @@ import './RouteReplay.css';
 
 const Truck3DLayer = lazy(() => import('./truck3d/Truck3DLayer.jsx'));
 
-const MAP_STYLE = { width: '100%', height: '520px' };
+const MAP_STYLE = {
+  width: '100%',
+  height: 'calc(100vh - 215px)',
+  minHeight: '440px',
+  maxHeight: '620px',
+};
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const SPEEDS = [1, 2, 4, 8, 16];
 const BASE_PLAYBACK_MS = 60000;
@@ -164,106 +169,35 @@ export default function RouteReplayPage() {
 
   return (
     <div className="pshell min-h-screen">
-      {/* Page Header */}
-      <header className="pshell-head mb-6">
-        <div className="pshell-head-main">
-          <div className="flex items-center gap-3">
-            <h1 className="pshell-title text-2xl font-bold text-slate-900 tracking-tight">
-              Route Replay
-            </h1>
-            {stats.pointCount > 0 && (
-              <span className="num inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-                {formatNum(stats.pointCount)} GPS fixes
-              </span>
-            )}
-          </div>
-          <p className="pshell-subtitle text-sm text-slate-500 mt-1">
-            Replay historical breadcrumb trails — distance and speeds measured directly from
-            telemetry.
-          </p>
-        </div>
-      </header>
-
-      {/* Operations Telemetry KPI Rail */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* 1. Ground Covered */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #0284c7' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Ground Covered</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-50 text-sky-600 border border-sky-200">
-              <RouteIcon size={14} />
+      {/* Compact Top Deck: Title + Controls */}
+      <div className="rr-top-deck">
+        <div className="rr-brand-group">
+          <h1 className="rr-brand-title">Route Replay</h1>
+          {stats.pointCount > 0 && (
+            <span className="num inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-bold text-blue-700">
+              {formatNum(stats.pointCount)} fixes
             </span>
+          )}
+        </div>
+
+        {/* Action & Filter Controls */}
+        <div className="rr-controls-strip">
+          {/* Vehicle Selector */}
+          <div className="rr-field">
+            <label htmlFor="rr-vehicle-select" className="rr-field-label">
+              Vehicle
+            </label>
+            <select id="rr-vehicle-select" value={reg} onChange={(e) => setReg(e.target.value)}>
+              <option value="">Select a vehicle…</option>
+              {vehicles.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
           </div>
-          <span className="ov-kpi-value text-slate-900">
-            {stats.distanceKm != null ? fmtKm(stats.distanceKm) : '0.0 km'}
-          </span>
-          <span className="ov-kpi-sub">measured between GPS fixes</span>
-        </div>
 
-        {/* 2. Duration */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #10b981' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Trail Duration</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
-              <Clock size={14} />
-            </span>
-          </div>
-          <span className="ov-kpi-value text-slate-900">
-            {stats.durationMs > 0 ? fmtDuration(stats.durationMs) : '0m'}
-          </span>
-          <span className="ov-kpi-sub">from first to last fix</span>
-        </div>
-
-        {/* 3. Average Speed */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Average Speed</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200">
-              <Gauge size={14} />
-            </span>
-          </div>
-          <span className="ov-kpi-value text-slate-900">
-            {stats.avgSpeedKmph > 0 ? fmtSpeed(stats.avgSpeedKmph) : '0 km/h'}
-          </span>
-          <span className="ov-kpi-sub">distance ÷ elapsed time</span>
-        </div>
-
-        {/* 4. Peak Leg Speed */}
-        <div className="ov-kpi" style={{ borderLeft: '4px solid #f43f5e' }}>
-          <div className="flex items-center justify-between">
-            <span className="ov-kpi-label">Peak Leg Speed</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-rose-600 border border-rose-200">
-              <Zap size={14} />
-            </span>
-          </div>
-          <span
-            className="ov-kpi-value"
-            style={{ color: stats.maxSpeedKmph > 65 ? '#e11d48' : '#0f172a' }}
-          >
-            {stats.maxSpeedKmph > 0 ? fmtSpeed(stats.maxSpeedKmph) : '0 km/h'}
-          </span>
-          <span className="ov-kpi-sub">fastest single telemetry fix</span>
-        </div>
-      </div>
-
-      {/* Control Toolbar */}
-      <div className="rr-control-panel">
-        {/* Vehicle Picker */}
-        <div className="rr-field">
-          <label className="rr-field-label">Vehicle</label>
-          <select value={reg} onChange={(e) => setReg(e.target.value)}>
-            <option value="">Select a vehicle…</option>
-            {vehicles.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Quick Date Presets */}
-        <div className="rr-field">
-          <label className="rr-field-label">Quick Presets</label>
+          {/* Quick Presets */}
           <div className="rr-presets">
             <button type="button" className="rr-preset-btn" onClick={() => applyPreset(0)}>
               Today
@@ -275,54 +209,69 @@ export default function RouteReplayPage() {
               7 Days
             </button>
           </div>
-        </div>
 
-        {/* Date From */}
-        <div className="rr-field">
-          <label className="rr-field-label">From Date</label>
-          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
-        </div>
+          {/* Date Range */}
+          <div className="rr-field">
+            <label htmlFor="rr-from-date" className="rr-field-label">
+              From
+            </label>
+            <input
+              id="rr-from-date"
+              type="date"
+              value={from}
+              max={to}
+              onChange={(e) => setFrom(e.target.value)}
+              aria-label="From date"
+            />
+          </div>
 
-        {/* Date To */}
-        <div className="rr-field">
-          <label className="rr-field-label">To Date</label>
-          <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
-        </div>
+          <div className="rr-field">
+            <label htmlFor="rr-to-date" className="rr-field-label">
+              To
+            </label>
+            <input
+              id="rr-to-date"
+              type="date"
+              value={to}
+              min={from}
+              onChange={(e) => setTo(e.target.value)}
+              aria-label="To date"
+            />
+          </div>
 
-        {/* Load Action */}
-        <button
-          type="button"
-          className="rr-load-btn"
-          onClick={loadTrail}
-          disabled={!reg || isLoading}
-        >
-          <RouteIcon size={16} />
-          <span>{isLoading ? 'Fetching trail…' : 'Load Replay'}</span>
-        </button>
+          {/* Load Action */}
+          <button
+            type="button"
+            className="rr-load-btn"
+            onClick={loadTrail}
+            disabled={!reg || isLoading}
+          >
+            <RouteIcon size={15} />
+            <span>{isLoading ? 'Loading…' : 'Load Replay'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          <AlertTriangle size={16} className="text-rose-600 flex-shrink-0" />
+        <div className="mb-3 flex items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-800">
+          <AlertTriangle size={15} className="text-rose-600 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Empty Result Notification */}
       {!error && trail && frames.length < 2 && (
-        <div className="mb-6 p-8 rounded-xl border border-dashed border-slate-300 bg-white text-center">
-          <RouteIcon size={32} className="mx-auto text-slate-400 mb-2" />
-          <p className="font-bold text-slate-900 text-sm">No GPS trail found for this window</p>
-          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-            {reg} reported {frames.length} position fix between {dayjs(from).format('DD MMM')} and{' '}
-            {dayjs(to).format('DD MMM')}. Try selecting a wider date range or a currently active
-            vehicle.
+        <div className="mb-3 p-4 rounded-xl border border-dashed border-slate-300 bg-white text-center flex items-center justify-center gap-3">
+          <RouteIcon size={20} className="text-slate-400" />
+          <p className="font-semibold text-slate-700 text-xs">
+            No GPS trail found for {reg} between {dayjs(from).format('DD MMM')} and{' '}
+            {dayjs(to).format('DD MMM')}. Try a wider date range.
           </p>
         </div>
       )}
 
-      {/* Framed Replay Map Card */}
+      {/* Full-Width Horizontal Map Card with Enclosed KPI Rail */}
       <div className="rr-map-card">
         <div className="rr-map-head">
           <div className="flex items-center gap-2">
@@ -330,17 +279,73 @@ export default function RouteReplayPage() {
               {reg ? `Trail: ${reg}` : 'Replay Canvas'}
             </span>
             {reg && <span className="reg-plate text-xs font-mono font-bold">{reg}</span>}
-          </div>
-          <div className="flex items-center gap-3 text-xs text-slate-500">
             {stats.pointCount > 0 && (
-              <span className="font-mono">
+              <span className="text-xs font-mono text-slate-500 hidden sm:inline">
                 {dayjs(from).format('DD MMM')} → {dayjs(to).format('DD MMM YYYY')}
               </span>
             )}
-            <span className="flex items-center gap-1 font-semibold text-slate-600">
-              <Compass size={13} className="text-blue-600" />
-              <span>{webglOk ? '3D Engine Ready' : '2D Map Engine'}</span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 ml-2">
+              <Compass size={12} className="text-blue-600" />
+              <span>{webglOk ? '3D' : '2D'}</span>
             </span>
+          </div>
+
+          {/* Enclosed Telemetry KPI Strip */}
+          <div className="rr-kpi-strip">
+            {/* 1. Ground Covered */}
+            <div className="rr-kpi-pill">
+              <span className="rr-kpi-pill-icon bg-sky-50 text-sky-600 border border-sky-200">
+                <RouteIcon size={12} />
+              </span>
+              <div className="rr-kpi-pill-meta">
+                <span className="rr-kpi-pill-label">Distance</span>
+                <span className="rr-kpi-pill-value">
+                  {stats.distanceKm != null ? fmtKm(stats.distanceKm) : '0.0 km'}
+                </span>
+              </div>
+            </div>
+
+            {/* 2. Duration */}
+            <div className="rr-kpi-pill">
+              <span className="rr-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
+                <Clock size={12} />
+              </span>
+              <div className="rr-kpi-pill-meta">
+                <span className="rr-kpi-pill-label">Duration</span>
+                <span className="rr-kpi-pill-value">
+                  {stats.durationMs > 0 ? fmtDuration(stats.durationMs) : '0m'}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Average Speed */}
+            <div className="rr-kpi-pill">
+              <span className="rr-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
+                <Gauge size={12} />
+              </span>
+              <div className="rr-kpi-pill-meta">
+                <span className="rr-kpi-pill-label">Avg Speed</span>
+                <span className="rr-kpi-pill-value">
+                  {stats.avgSpeedKmph > 0 ? fmtSpeed(stats.avgSpeedKmph) : '0 km/h'}
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Peak Speed */}
+            <div className="rr-kpi-pill">
+              <span className="rr-kpi-pill-icon bg-rose-50 text-rose-600 border border-rose-200">
+                <Zap size={12} />
+              </span>
+              <div className="rr-kpi-pill-meta">
+                <span className="rr-kpi-pill-label">Peak Speed</span>
+                <span
+                  className="rr-kpi-pill-value"
+                  style={{ color: stats.maxSpeedKmph > 65 ? '#e11d48' : '#0f172a' }}
+                >
+                  {stats.maxSpeedKmph > 0 ? fmtSpeed(stats.maxSpeedKmph) : '0 km/h'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

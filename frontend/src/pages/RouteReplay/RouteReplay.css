@@ -1,65 +1,93 @@
 /* Route Replay — Executive Operations Console Styling */
 @import '../OwnerAlerts/OwnerAlerts.css';
 
-.rr-control-panel {
+.rr-top-deck {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 14px;
-  padding: 16px 20px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.rr-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rr-brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.rr-controls-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .rr-field {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  gap: 6px;
 }
 
 .rr-field-label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #475569;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  white-space: nowrap;
 }
 
 .rr-field select,
 .rr-field input {
-  height: 38px;
-  min-width: 170px;
-  padding: 0 12px;
+  height: 34px;
+  padding: 0 10px;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #ffffff;
   color: #0f172a;
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 500;
   outline: none;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
 
+.rr-field select {
+  min-width: 160px;
+  cursor: pointer;
+}
+
 .rr-field select:focus,
 .rr-field input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
 }
 
 .rr-presets {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .rr-preset-btn {
-  height: 34px;
-  padding: 0 10px;
-  font-size: 12px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 11.5px;
   font-weight: 600;
   border-radius: 6px;
   border: 1px solid #cbd5e1;
@@ -84,18 +112,19 @@
 .rr-load-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 18px;
-  border-radius: 8px;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 7px;
   border: 1px solid #0284c7;
   background: #0284c7;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: 0 1px 2px rgba(2, 132, 199, 0.2);
+  white-space: nowrap;
 }
 
 .rr-load-btn:hover:not(:disabled) {
@@ -116,26 +145,79 @@
     0 1px 3px rgba(15, 23, 42, 0.05),
     0 4px 12px -2px rgba(15, 23, 42, 0.04);
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 .rr-map-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  gap: 12px;
+  padding: 10px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Horizontal Telemetry KPI Bar */
+.rr-kpi-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rr-kpi-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
   background: #f8fafc;
-  border-bottom: 1px solid #cbd5e1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.rr-kpi-pill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.rr-kpi-pill-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.rr-kpi-pill-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.rr-kpi-pill-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
 }
 
 .rr-playback-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 12px;
+  padding: 10px 18px;
   background: #ffffff;
-  border-top: 1px solid #cbd5e1;
+  border-top: 1px solid #e2e8f0;
 }
 
 .rr-play-btn {
