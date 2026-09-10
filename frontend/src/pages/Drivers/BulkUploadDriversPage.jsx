@@ -13,7 +13,6 @@ import BulkUploadResultsSidePanel from './Component/BulkUploadResultsSidePanel.j
 import BulkUploadFileStep from './Component/BulkUploadFileStep.jsx';
 import BulkUploadReviewTable from './Component/BulkUploadReviewTable.jsx';
 import BulkUploadRowErrorModal from './Component/BulkUploadRowErrorModal.jsx';
-import { checkPayloadSize } from '../../utils/bulkEmployees.js';
 import {
   applyColumnMapping,
   filterRowsByStatus,
@@ -37,6 +36,7 @@ const BulkUploadDriversPage = () => {
   const [uploadResult, setUploadResult] = useState(null);
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [selectedRowForError, setSelectedRowForError] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [themeColors, setThemeColors] = useState(getThemeCSS());
@@ -179,31 +179,46 @@ const BulkUploadDriversPage = () => {
       return;
     }
 
-    // Check payload size
-    const sizeCheck = checkPayloadSize(normalizedRows, 1);
-    if (sizeCheck.exceeds) {
-      toast.error(
-        `Payload size (${sizeCheck.sizeMB}MB) exceeds limit (${sizeCheck.maxMB}MB). Please reduce the number of rows.`,
-      );
-      return;
-    }
-
     setIsSubmitting(true);
+    setUploadProgress({ processed: 0, total: normalizedRows.length });
 
     try {
       const employees = buildEmployeesPayload(normalizedRows);
 
-      const resp = await DriverService.addBulkDrivers(employees);
+      const chunkSize = 50;
+      let totalCreatedCount = 0;
+      let totalErrorCount = 0;
+      let totalCreated = [];
+      let totalErrors = [];
 
-      // Normalize response
-      const respData = resp && resp.data ? resp.data : resp;
-      setUploadResult(respData);
+      for (let i = 0; i < employees.length; i += chunkSize) {
+        const chunk = employees.slice(i, i + chunkSize);
+        const resp = await DriverService.addBulkDrivers(chunk);
+
+        const respData = resp && resp.data ? resp.data : resp;
+
+        totalCreatedCount += respData?.createdCount ?? 0;
+        totalErrorCount += respData?.errorCount ?? respData?.errors?.length ?? 0;
+        totalCreated = [...totalCreated, ...(respData?.created || [])];
+        totalErrors = [...totalErrors, ...(respData?.errors || [])];
+
+        setUploadProgress({
+          processed: Math.min(i + chunkSize, employees.length),
+          total: employees.length,
+        });
+      }
+
+      const combinedResult = {
+        createdCount: totalCreatedCount,
+        errorCount: totalErrorCount,
+        created: totalCreated,
+        errors: totalErrors,
+      };
+
+      setUploadResult(combinedResult);
       setShowResultsModal(true);
 
-      const createdCount = respData?.createdCount ?? 0;
-      const errorCount = respData?.errorCount ?? respData?.errors?.length ?? 0;
-
-      toast.success(`Upload completed: ${createdCount} created, ${errorCount} error(s)`);
+      toast.success(`Upload completed: ${totalCreatedCount} created, ${totalErrorCount} error(s)`);
     } catch (error) {
       console.error('Submission error:', error);
 
@@ -232,6 +247,7 @@ const BulkUploadDriversPage = () => {
       setUploadResult(null);
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -323,6 +339,48 @@ const BulkUploadDriversPage = () => {
                   loading={isSubmitting}
                   disabled={errorCount > 0}
                 />
+              </div>
+            )}
+
+            {uploadProgress && (
+              <div
+                className="upload-progress-container"
+                style={{
+                  marginTop: '20px',
+                  padding: '16px',
+                  background: 'var(--surface-color, #fff)',
+                  border: '1px solid var(--border-color, #eaeaea)',
+                  borderRadius: '8px',
+                }}
+              >
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}
+                >
+                  <span style={{ fontWeight: '500', color: 'var(--text-color, #333)' }}>
+                    Uploading...
+                  </span>
+                  <span style={{ color: 'var(--text-secondary, #666)' }}>
+                    {uploadProgress.processed} / {uploadProgress.total}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '8px',
+                    background: 'var(--bg-secondary, #f0f0f0)',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      background: 'var(--primary-color, #0056b3)',
+                      width: `${(uploadProgress.processed / uploadProgress.total) * 100}%`,
+                      transition: 'width 0.3s ease',
+                    }}
+                  ></div>
+                </div>
               </div>
             )}
           </div>

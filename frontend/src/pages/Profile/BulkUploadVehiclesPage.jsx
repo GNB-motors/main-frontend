@@ -36,6 +36,7 @@ const BulkUploadVehiclesPage = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [fileName, setFileName] = useState('');
   const [uploadResult, setUploadResult] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [themeColors, setThemeColors] = useState(getThemeCSS());
@@ -113,8 +114,8 @@ const BulkUploadVehiclesPage = () => {
           ),
         );
 
-        // 3. Dedupe and Limit
-        const trimmedRows = dedupeRows(normalizedRows, VEHICLE_DEDUPE_KEY).slice(0, 500);
+        // 3. Dedupe and Limit (removed artificial limit for chunking)
+        const trimmedRows = dedupeRows(normalizedRows, VEHICLE_DEDUPE_KEY);
 
         // 4. Validate
         const nextErrors = trimmedRows.map((row) => validator(row));
@@ -174,29 +175,41 @@ const BulkUploadVehiclesPage = () => {
     }
 
     setIsSubmitting(true);
+    setUploadProgress({ processed: 0, total: rows.length });
+    setUploadResult(null);
 
     // Build payload using API expected camelCase keys
     // Use VehicleService to handle the mapping and API call (it defaults inventory to [])
     try {
       const token = getToken();
       const options = { dry_run: dryRun, upsert };
-      const resp = await VehicleService.addBulkVehicles(businessRefId, rows, options, token);
+      const chunkSize = 50;
 
-      // VehicleService returns response.data.data when possible, normalize it
-      const respData = resp && resp.data ? resp.data : resp;
-      setUploadResult(respData);
+      let totalCreated = 0;
+      let totalErrors = [];
 
-      const created =
-        respData?.createdCount ?? respData?.data?.createdCount ?? respData?.summary?.created ?? 0;
-      const errors = respData?.errors ?? respData?.data?.errors ?? [];
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize);
+        const resp = await VehicleService.addBulkVehicles(businessRefId, chunk, options, token);
+        const respData = resp && resp.data ? resp.data : resp;
+
+        totalCreated +=
+          respData?.createdCount ?? respData?.data?.createdCount ?? respData?.summary?.created ?? 0;
+        const chunkErrors = respData?.errors ?? respData?.data?.errors ?? [];
+        totalErrors = [...totalErrors, ...chunkErrors];
+
+        setUploadProgress({ processed: Math.min(i + chunkSize, rows.length), total: rows.length });
+      }
+
+      setUploadResult({ createdCount: totalCreated, errors: totalErrors });
 
       toast.success(
         dryRun
-          ? `Dry run completed: ${created} created, ${errors.length} error(s)`
-          : `Vehicles uploaded: ${created} created, ${errors.length} error(s)`,
+          ? `Dry run completed: ${totalCreated} created, ${totalErrors.length} error(s)`
+          : `Vehicles uploaded: ${totalCreated} created, ${totalErrors.length} error(s)`,
       );
 
-      if (!dryRun) {
+      if (!dryRun && totalErrors.length === 0) {
         setTimeout(() => navigate('/vehicles'), 2000);
       }
     } catch (error) {
@@ -210,6 +223,7 @@ const BulkUploadVehiclesPage = () => {
       setUploadResult(null);
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -305,6 +319,48 @@ const BulkUploadVehiclesPage = () => {
                   loading={isSubmitting}
                   disabled={errorCount > 0}
                 />
+              </div>
+            )}
+
+            {uploadProgress && (
+              <div
+                className="upload-progress-container"
+                style={{
+                  marginTop: '20px',
+                  padding: '16px',
+                  background: 'var(--surface-color, #fff)',
+                  border: '1px solid var(--border-color, #eaeaea)',
+                  borderRadius: '8px',
+                }}
+              >
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}
+                >
+                  <span style={{ fontWeight: '500', color: 'var(--text-color, #333)' }}>
+                    Uploading...
+                  </span>
+                  <span style={{ color: 'var(--text-secondary, #666)' }}>
+                    {uploadProgress.processed} / {uploadProgress.total}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '8px',
+                    background: 'var(--bg-secondary, #f0f0f0)',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      background: 'var(--primary-color, #0056b3)',
+                      width: `${(uploadProgress.processed / uploadProgress.total) * 100}%`,
+                      transition: 'width 0.3s ease',
+                    }}
+                  ></div>
+                </div>
               </div>
             )}
           </div>
