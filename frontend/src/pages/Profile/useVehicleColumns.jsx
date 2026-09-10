@@ -1,19 +1,92 @@
+/* eslint-disable react-refresh/only-export-components */
 // DataTable column definitions for the Vehicles page.
 // Extracted from VehiclesPage.jsx (WS0.7) to keep the page under the file-size rule;
 // cell markup preserved byte-identically.
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, Pencil, Trash2, ToggleRight } from 'lucide-react';
 import { describeFleetEdgeAccount } from './vehicleList.js';
-import { VehicleActionMenu } from './VehicleModals.jsx';
 
-export function useVehicleColumns({
-  accountMap,
-  openMenuId,
-  setOpenMenuId,
-  isSubmitting,
-  onEdit,
-  onDelete,
-  onActivateHere,
-}) {
+/**
+ * VehicleInlineActions
+ * Renders three icon buttons directly in the Actions column:
+ *   👁  View profile  |  ✏️  Edit  |  🗑  Delete
+ * For deactivated vehicles the edit/delete pair is replaced with "Mark as active".
+ */
+function VehicleInlineActions({ vehicle, isSubmitting, onEdit, onDelete, onActivateHere }) {
+  const navigate = useNavigate();
+  const isDeactivatedHere = vehicle?.branchStatus === 'DEACTIVATED';
+
+  const handleView = (e) => {
+    e.stopPropagation();
+    navigate(`/vehicles/${encodeURIComponent(vehicle.registration_no)}`);
+  };
+
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    onEdit(vehicle);
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    onDelete(vehicle);
+  };
+
+  const handleActivate = (e) => {
+    e.stopPropagation();
+    onActivateHere(vehicle);
+  };
+
+  return (
+    <div className="vehicle-inline-actions">
+      {/* View profile — always available */}
+      <button
+        className="vehicle-inline-btn vehicle-inline-btn--view"
+        onClick={handleView}
+        disabled={isSubmitting}
+        title="View profile"
+        type="button"
+      >
+        <Eye size={16} />
+      </button>
+
+      {isDeactivatedHere ? (
+        /* Deactivated vehicle: only action is to re-activate */
+        <button
+          className="vehicle-inline-btn vehicle-inline-btn--activate"
+          onClick={handleActivate}
+          disabled={isSubmitting}
+          title="Mark as active"
+          type="button"
+        >
+          <ToggleRight size={16} />
+        </button>
+      ) : (
+        <>
+          <button
+            className="vehicle-inline-btn vehicle-inline-btn--edit"
+            onClick={handleEdit}
+            disabled={isSubmitting}
+            title="Edit vehicle"
+            type="button"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            className="vehicle-inline-btn vehicle-inline-btn--delete"
+            onClick={handleDelete}
+            disabled={isSubmitting}
+            title="Delete vehicle"
+            type="button"
+          >
+            <Trash2 size={16} />
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, onActivateHere }) {
   return [
     {
       key: 'registration_no',
@@ -126,23 +199,12 @@ export function useVehicleColumns({
       label: 'Actions',
       align: 'center',
       render: (vehicle) => (
-        <VehicleActionMenu
+        <VehicleInlineActions
           vehicle={vehicle}
-          isOpen={openMenuId === vehicle.id}
-          onToggle={(e) => {
-            e.stopPropagation();
-            setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
-          }}
-          onClose={() => setOpenMenuId(null)}
           isSubmitting={isSubmitting}
-          onEdit={() => {
-            setOpenMenuId(null);
-            onEdit(vehicle);
-          }}
-          onDelete={() => {
-            onDelete(vehicle);
-          }}
-          onActivateHere={() => onActivateHere(vehicle)}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onActivateHere={onActivateHere}
         />
       ),
     },

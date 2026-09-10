@@ -39,7 +39,6 @@ const VehiclesPage = () => {
   const [formError, setFormError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [openMenuId, setOpenMenuId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingVehicle, setDeletingVehicle] = useState(null);
   const [searchVehicleNo, setSearchVehicleNo] = useState('');
@@ -68,27 +67,6 @@ const VehiclesPage = () => {
       }
     };
   }, []);
-
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Check if click is outside the actions menu and button
-      const isClickOnMenu = event.target.closest('.vehicle-actions-menu');
-      const isClickOnButton = event.target.closest('.vehicle-actions-menu-btn');
-
-      if (openMenuId && !isClickOnMenu && !isClickOnButton) {
-        setOpenMenuId(null);
-      }
-    };
-
-    if (openMenuId) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [openMenuId]);
 
   // --- Fetch Vehicles ---
   useEffect(() => {
@@ -130,7 +108,6 @@ const VehiclesPage = () => {
   const handleRemoveVehicle = async (vehicleIdToRemove) => {
     setFormError(null);
     setIsSubmitting(true);
-    setOpenMenuId(null);
     const token = getToken();
     if (!token) {
       toast.warn('No auth token found. Request may fail.');
@@ -174,7 +151,6 @@ const VehiclesPage = () => {
   const handleOpenDeleteModal = (vehicleToDelete) => {
     setDeletingVehicle(vehicleToDelete);
     setIsDeleteModalOpen(true);
-    setOpenMenuId(null);
   };
 
   // Build a map from accountId → account for fast lookup
@@ -269,8 +245,6 @@ const VehiclesPage = () => {
 
   const columns = useVehicleColumns({
     accountMap,
-    openMenuId,
-    setOpenMenuId,
     isSubmitting,
     onEdit: (vehicle) => navigate('/vehicles/add', { state: { editingVehicle: vehicle } }),
     onDelete: handleOpenDeleteModal,
@@ -361,9 +335,8 @@ const VehiclesPage = () => {
             />
           }
           onRowClick={(vehicle) => {
-            // Deactivated (moved-away) vehicles are read-only here.
-            if (vehicle.branchStatus === 'DEACTIVATED') return;
-            navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
+            // Clicking a row opens the vehicle profile (360) page.
+            navigate(`/vehicles/${encodeURIComponent(vehicle.registration_no)}`);
           }}
         />
 
