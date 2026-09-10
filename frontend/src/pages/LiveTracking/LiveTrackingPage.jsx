@@ -19,6 +19,7 @@ import {
   pinIcon,
 } from './liveTracking.shared.js';
 import { useLivePositions } from '../../hooks/useLivePositions';
+import { snappedRuns } from '../RouteReplay/snapRuns.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -106,11 +107,11 @@ const LiveTrackingPage = () => {
         setTrailTruncated(
           data.truncated ? { totalCount: data.totalCount, coveredTo: data.coveredTo } : null,
         );
-        setSnapPath(
-          (data.snap?.path || [])
-            .filter((p) => p.provenance === 'snapped')
-            .map((p) => ({ lat: p.lat, lng: p.lng })),
-        );
+        // Split into runs at every dropped (measured) entry: consecutive
+        // snapped fixes separated by a dropped fix must not become adjacent
+        // vertices, or an off-corridor detour gets bridged by a straight
+        // dashed line asserting corridor travel that did not happen.
+        setSnapPath(snappedRuns(data.snap?.path));
         const points = (data.points || [])
           .filter((p) => p.latitude != null && p.longitude != null)
           .map((p) => ({ lat: p.latitude, lng: p.longitude }));
@@ -138,6 +139,8 @@ const LiveTrackingPage = () => {
   }, [selectedReg]);
 
   const located = positions.filter((p) => p.latitude != null && p.longitude != null);
+  // Total snapped fixes across all dashed runs (snapPath is an array of runs).
+  const snappedCount = snapPath.reduce((n, run) => n + run.length, 0);
   const activeCount = positions.filter((p) => p.state === 'ACTIVE').length;
   const parkedCount = positions.filter((p) => p.state === 'PARKED').length;
   const offlineCount = positions.filter((p) => p.state === 'OFFLINE').length;
@@ -355,10 +358,13 @@ const LiveTrackingPage = () => {
                     options={{ strokeColor: '#2563EB', strokeOpacity: 0.9, strokeWeight: 4 }}
                   />
                 )}
-                {/* Corridor-matched fixes, dashed: display only. */}
-                {snapPath.length > 1 && (
+                {/* Corridor-matched fixes, dashed: display only. One polyline
+                    per run — runs are split at dropped fixes so detours are
+                    never bridged. */}
+                {snapPath.map((run, i) => (
                   <PolylineF
-                    path={snapPath}
+                    key={`snap-${i}`}
+                    path={run}
                     options={{
                       strokeColor: '#7c3aed',
                       strokeOpacity: 0,
@@ -373,7 +379,7 @@ const LiveTrackingPage = () => {
                       zIndex: 1,
                     }}
                   />
-                )}
+                ))}
                 {trail.length > 0 && (
                   <MarkerF
                     position={trail[0]}
@@ -438,7 +444,7 @@ const LiveTrackingPage = () => {
                         <p style={{ fontSize: 11, color: '#2563eb', margin: '4px 0' }}>
                           Trail: {trail.length} points
                           {trailTruncated && ` of ${trailTruncated.totalCount}`}
-                          {snapPath.length > 1 && ` · ${snapPath.length} snapped to corridor`}
+                          {snappedCount > 0 && ` · ${snappedCount} snapped to corridor`}
                         </p>
                       )}
                       {!trailLoading && trailTruncated && (

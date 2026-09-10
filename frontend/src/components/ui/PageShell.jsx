@@ -1,3 +1,4 @@
+import React from 'react';
 import FreshnessBadge from '../cluster/FreshnessBadge';
 
 /**

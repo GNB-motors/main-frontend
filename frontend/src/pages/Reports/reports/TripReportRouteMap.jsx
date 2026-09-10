@@ -9,6 +9,7 @@ import {
 import { MapPin, CircleDot } from 'lucide-react';
 import { START_MARKER_SVG, END_MARKER_SVG } from './tripReportDetailMapIcons';
 import { toFrames, toLatLngPath } from '../../RouteReplay/routeReplay';
+import { snappedRuns } from '../../RouteReplay/snapRuns.js';
 import { trailWindowForTrip } from './tripReportTrailWindow';
 import { LiveTrackingService } from '../../LiveTracking/LiveTrackingService.jsx';
 import { formatIST } from '../../LiveTracking/liveTracking.shared.js';
@@ -86,11 +87,9 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
         setTrailTruncated(
           trail?.truncated ? { totalCount: trail.totalCount, coveredTo: trail.coveredTo } : null,
         );
-        setSnapPath(
-          (trail?.snap?.path || [])
-            .filter((p) => p.provenance === 'snapped')
-            .map((p) => ({ lat: p.lat, lng: p.lng })),
-        );
+        // Split into runs at every dropped (measured) entry — never bridge an
+        // off-corridor stretch with a straight dashed line.
+        setSnapPath(snappedRuns(trail?.snap?.path));
         const path = toLatLngPath(toFrames(trail?.points));
         if (path.length >= 2) {
           setTrailPath(path);
@@ -154,25 +153,28 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
                 }}
               />
             )}
-            {/* Corridor-matched fixes, dashed: display only. */}
-            {snapPath && snapPath.length > 1 && (
-              <PolylineF
-                path={snapPath}
-                options={{
-                  strokeColor: '#7c3aed',
-                  strokeOpacity: 0,
-                  icons: [
-                    {
-                      icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, scale: 2 },
-                      offset: '0',
-                      repeat: '10px',
-                    },
-                  ],
-                  strokeWeight: 4,
-                  zIndex: 1,
-                }}
-              />
-            )}
+            {/* Corridor-matched fixes, dashed: display only. One polyline per
+                run, split at dropped fixes so detours are never bridged. */}
+            {snapPath &&
+              snapPath.map((run, i) => (
+                <PolylineF
+                  key={`snap-${i}`}
+                  path={run}
+                  options={{
+                    strokeColor: '#7c3aed',
+                    strokeOpacity: 0,
+                    icons: [
+                      {
+                        icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, scale: 2 },
+                        offset: '0',
+                        repeat: '10px',
+                      },
+                    ],
+                    strokeWeight: 4,
+                    zIndex: 1,
+                  }}
+                />
+              ))}
             {trailPath && (
               <PolylineF
                 path={trailPath}

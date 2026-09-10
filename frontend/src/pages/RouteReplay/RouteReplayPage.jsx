@@ -116,8 +116,14 @@ const RouteReplayPage = () => {
   }, [frames, head, repaired.breaks]);
   // Display-only corridor snap: same fixes, projected onto learned corridors
   // where one lies within ~150 m. Stats and playback stay on measured frames.
+  // Only 'snapped' entries are drawn — measured entries in snap.path are the
+  // fixes toFrames may reject (null island / teleports) and unsnapped fixes
+  // that the measured polyline already covers below.
   const snapPath = useMemo(
-    () => (trail?.snap?.path || []).map((p) => ({ lat: p.lat, lng: p.lng })),
+    () =>
+      (trail?.snap?.path || [])
+        .filter((p) => p.provenance === 'snapped')
+        .map((p) => ({ lat: p.lat, lng: p.lng })),
     [trail],
   );
   const snapInfo = trail?.snap || null;
@@ -259,9 +265,9 @@ const RouteReplayPage = () => {
 
       {!error && trail?.truncated && (
         <div role="status" className="rr-alert">
-          <AlertTriangle size={15} /> Showing the oldest {frames.length} of {trail.totalCount}{' '}
-          points in this window (up to {dayjs(trail.coveredTo).format('DD MMM, hh:mm A')}) — narrow
-          the dates to see the rest.
+          <AlertTriangle size={15} /> Showing the oldest {trail?.points?.length ?? frames.length} of{' '}
+          {trail.totalCount} points in this window (up to{' '}
+          {dayjs(trail.coveredTo).format('DD MMM, hh:mm A')}) — narrow the dates to see the rest.
         </div>
       )}
 
@@ -344,9 +350,16 @@ const RouteReplayPage = () => {
                       {g.kind === 'intertrip' ? 'break between trips' : g.kind}
                     </span>
                     <span className="rr-gaps-label">{g.label}</span>
-                    {g.unexplainedMs > 60_000 && (
+                    {/* unexplainedMs is shown whenever it is meaningfully
+                        non-zero — including the negative case, which
+                        estimateGap deliberately leaves unclamped: a corridor
+                        median longer than the observed silence is exactly
+                        what a user should see. */}
+                    {Math.abs(g.unexplainedMs) > 60_000 && (
                       <span className="rr-gaps-unexplained">
-                        unexplained: {fmtDuration(g.unexplainedMs)}
+                        {g.unexplainedMs < 0
+                          ? `corridor drive time exceeds the gap by ${fmtDuration(-g.unexplainedMs)}`
+                          : `unexplained: ${fmtDuration(g.unexplainedMs)}`}
                       </span>
                     )}
                   </li>
