@@ -1204,41 +1204,104 @@ a.ov-kpi:hover {
 .fbar {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 10px 12px;
+  padding: 12px 18px;
   background: var(--color-white);
-  border: 1px solid var(--ds-line);
-  border-radius: 12px;
-  box-shadow: var(--ds-shadow);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.02),
+    0 4px 16px -2px rgba(15, 23, 42, 0.03);
+  transition: all 0.15s ease;
 }
+
+/* Standalone search: when FilterBar contains only a search input (no chips, date ranges, or right controls),
+   drop the full-width white card container and let the search pill sit clean and self-contained. */
+.fbar--search-only,
+.fbar:not(:has(.fbar-range, .fbar-chips, .fbar-clear, .fbar-select, .fbar-field, .fbar-right > *)) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 6px;
+}
+
 .fbar-search {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 35px;
-  padding: 0 10px;
-  border: 1px solid var(--ds-line2);
-  border-radius: 9px;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
   background: var(--color-white);
   color: var(--ds-ink3);
-  width: 230px;
+  width: 280px;
   max-width: 100%;
   flex: 0 0 auto;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    width 0.2s ease;
 }
 .fbar-search:hover {
-  border-color: var(--ds-ink3);
+  border-color: #cbd5e1;
+}
+.fbar-search:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  width: 340px;
 }
 .fbar-search input {
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--ds-ink);
-  font-size: 13px;
+  font-size: 13.5px;
   width: 100%;
 }
 .fbar-search input::placeholder {
-  color: var(--ds-disabled-ink);
+  color: #94a3b8;
+}
+.fbar-search-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.fbar-search-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.fbar-search-x:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* In standalone search-only mode, give it a slightly wider presence and clear spacing */
+.fbar--search-only .fbar-search,
+.fbar:not(:has(.fbar-range, .fbar-chips, .fbar-clear, .fbar-select, .fbar-field, .fbar-right > *))
+  .fbar-search {
+  width: 320px;
+  height: 40px;
+  padding: 0 16px 0 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.fbar--search-only .fbar-search:focus-within,
+.fbar:not(:has(.fbar-range, .fbar-chips, .fbar-clear, .fbar-select, .fbar-field, .fbar-right > *))
+  .fbar-search:focus-within {
+  width: 380px;
 }
 .fbar-range {
   display: inline-flex;
@@ -1365,45 +1428,54 @@ a.ov-kpi:hover {
   opacity: 1;
 }
 
-/* DataTable */
+/* DataTable - Modern, Minimalist, Professional Card & Table Shell */
 .dt {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--ds-line);
-  border-radius: 12px;
-  background: var(--color-white);
-  box-shadow: var(--ds-shadow);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.02),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04);
   overflow: hidden;
 }
 .dt-tools {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--ds-line);
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
 }
 .dt-tools-right {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 .dt-tool {
   display: inline-flex;
   align-items: center;
-  height: 30px;
-  padding: 0 7px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ds-ink3);
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 500;
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition: all 0.15s ease;
 }
 .dt-tool:hover {
-  background: var(--ds-sunk);
-  color: var(--ds-ink);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 .dt-cols {
   position: relative;
@@ -1411,33 +1483,37 @@ a.ov-kpi:hover {
 .dt-cols-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   z-index: 20;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 170px;
-  padding: 10px 11px;
-  border: 1px solid var(--ds-line2);
-  border-radius: 10px;
-  background: var(--color-white);
-  box-shadow: var(--ds-shadow-lg);
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 4px 20px -2px rgba(15, 23, 42, 0.08),
+    0 2px 6px -1px rgba(15, 23, 42, 0.04);
 }
 .dt-cols-item {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
-  color: var(--ds-ink2);
+  color: #334155;
   cursor: pointer;
-  padding: 3px 4px;
-  border-radius: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.12s ease;
 }
 .dt-cols-item:hover {
-  background: var(--ds-sunk);
+  background: #f8fafc;
+  color: #0f172a;
 }
 .dt-cols-item input {
-  accent-color: var(--orange);
+  accent-color: #3b82f6;
 }
 .dt-scroll {
   overflow-x: auto;
@@ -1449,53 +1525,62 @@ a.ov-kpi:hover {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 13px;
+  font-size: 13.5px;
 }
-/* Header well on sunk stone, rule below in the stronger control line */
+/* Header: clean white, delicate bottom rule, zero vertical lines */
 .dt-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
   text-align: left;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #0f172a;
-  background: #f8fafc;
-  border-bottom: 2px solid #cbd5e1;
-  border-right: 1px solid #e2e8f0;
-  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: #475569;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: none;
+  border-left: none;
+  padding: 14px 20px;
   white-space: nowrap;
 }
 .dt-table thead th:last-child {
   border-right: none;
 }
 .dt--compact .dt-table thead th {
-  padding: 7px 12px;
+  padding: 9px 14px;
+  font-size: 12px;
 }
 .dt-th-sort {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   border: 0;
   background: transparent;
   font: inherit;
   color: inherit;
   cursor: pointer;
   padding: 0;
+  transition: color 0.15s ease;
 }
 .dt-th-sort:hover {
-  color: var(--ds-ink);
+  color: #0f172a;
 }
 .dt-th-sort--active {
-  color: var(--ds-ink);
+  color: #0f172a;
+  font-weight: 700;
 }
 .dt-table tbody td {
-  padding: 12px 14px;
-  border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: none;
+  border-left: none;
   color: #0f172a;
+  font-size: 13.5px;
   vertical-align: middle;
   background: #ffffff;
+  transition: background 0.15s ease;
 }
 .dt-table tbody td:last-child {
   border-right: none;
@@ -1504,29 +1589,28 @@ a.ov-kpi:hover {
   border-bottom: none;
 }
 .dt--compact .dt-table tbody td {
-  padding: 8px 12px;
+  padding: 10px 14px;
 }
-/* Row states (artboard §5): hover = sunk well; selected = orange tint with
-   a 3px orange leading edge */
+/* Row states: subtle clean hover */
 .dt-row:hover td {
-  background: #f8faff;
+  background: #f8fafc;
 }
 .dt-row--selected {
-  box-shadow: inset 3px 0 0 var(--orange);
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 .dt-row--selected td {
-  background: var(--orange-tint);
+  background: #f0f7ff;
 }
 .dt-row--selected:hover td {
-  background: var(--orange-tint);
+  background: #e6f1fe;
 }
 .dt-row--skeleton td {
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding-top: 14px;
+  padding-bottom: 14px;
 }
 .dt--compact .dt-row--skeleton td {
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-top: 9px;
+  padding-bottom: 9px;
 }
 .dt-skel {
   display: block;
@@ -1654,32 +1738,37 @@ a.ov-action:hover {
   flex: 0 0 auto;
 }
 
-/* Professional data table shell for overview, fleet intelligence, and triage */
+/* Professional data table shell for overview, fuel intelligence, and triage */
 .ov-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 18px;
   overflow: hidden;
   background: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.02),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04);
 }
 .ov-panel .ov-table,
 .cluster-panel .ov-table {
   border: none;
   border-radius: 0;
+  box-shadow: none;
 }
 .ov-table thead th {
   text-align: left;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #0f172a;
-  padding: 11px 14px;
-  background: #f8fafc;
-  border-bottom: 2px solid #cbd5e1;
-  border-right: 1px solid #e2e8f0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: #475569;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: none;
+  border-left: none;
   white-space: nowrap;
 }
 .ov-table thead th:last-child {
@@ -1694,13 +1783,15 @@ a.ov-action:hover {
   text-align: right;
 }
 .ov-table tbody td {
-  padding: 12px 14px;
-  border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0;
-  font-size: 13px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: none;
+  border-left: none;
+  font-size: 13.5px;
   color: #0f172a;
   vertical-align: middle;
   background: #ffffff;
+  transition: background 0.15s ease;
 }
 .ov-table tbody td:last-child {
   border-right: none;
@@ -1709,10 +1800,157 @@ a.ov-action:hover {
   border-bottom: 0;
 }
 .ov-table tbody tr {
-  transition: background 0.12s ease;
+  transition: background 0.15s ease;
 }
 .ov-table tbody tr:hover td {
-  background: #f8faff;
+  background: #f8fafc;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Modern Minimalist Table System (Reference-Grade UI)
+   Soft pills, clean progress bars, entity cells & card headers
+   ───────────────────────────────────────────────────────── */
+
+/* Modern Pill Badges (Categories, Tags, States) */
+.tbl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.tbl-pill--purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid rgba(124, 58, 237, 0.15);
+}
+.tbl-pill--amber {
+  background: #fefce8;
+  color: #b45309;
+  border: 1px solid rgba(180, 83, 9, 0.15);
+}
+.tbl-pill--rose {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid rgba(225, 29, 72, 0.15);
+}
+.tbl-pill--blue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+.tbl-pill--green {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid rgba(22, 163, 74, 0.15);
+}
+.tbl-pill--slate {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* Clickthrough / Ratio Progress Bar */
+.tbl-progress-track {
+  width: 100%;
+  max-width: 140px;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+.tbl-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: #4f46e5;
+  transition: width 0.3s ease;
+}
+
+/* Entity Cell with Avatar, Primary Name & Secondary Handle/Details */
+.tbl-entity {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.tbl-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f1f5f9;
+  flex-shrink: 0;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+.tbl-entity-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.tbl-entity-title {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+}
+.tbl-entity-sub {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* Modern Card Header Toolbar */
+.tbl-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+}
+.tbl-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+.tbl-card-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #f5f3ff;
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+.tbl-btn-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.15s ease;
+}
+.tbl-btn-filter:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
 /* Segmented control (sort / toggle) */

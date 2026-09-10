@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 /**
  * FilterBar — the one filter row every fleet list uses (master plan C.2).
@@ -27,11 +27,15 @@ export default function FilterBar({
   onClear = null,
   right = null,
 }) {
+  const hasExtras = Boolean(
+    onRangeChange || (chips && chips.length > 0) || (activeCount > 0 && onClear) || right,
+  );
+
   return (
-    <div className="fbar">
+    <div className={`fbar${!hasExtras ? ' fbar--search-only' : ''}`}>
       {onSearchChange ? (
         <label className="fbar-search">
-          <Search size={13} aria-hidden />
+          <Search size={14} className="fbar-search-icon" aria-hidden />
           <input
             type="search"
             value={searchValue}
@@ -39,6 +43,19 @@ export default function FilterBar({
             onChange={(e) => onSearchChange(e.target.value)}
             aria-label={searchPlaceholder}
           />
+          {searchValue ? (
+            <button
+              type="button"
+              className="fbar-search-x"
+              onClick={(e) => {
+                e.preventDefault();
+                onSearchChange('');
+              }}
+              aria-label="Clear search"
+            >
+              <X size={13} />
+            </button>
+          ) : null}
         </label>
       ) : null}
 

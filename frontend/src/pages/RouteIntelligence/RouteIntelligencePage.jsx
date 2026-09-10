@@ -163,7 +163,7 @@ function TabToolbar({ q, onQChange, activeFilters, exportProps, children = null 
 function TableShell({ title, caption, children }) {
   return (
     <div className="oa-table-wrapper">
-      <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-slate-100 bg-white flex items-center justify-between">
         <div>
           <h2 className="text-sm font-bold text-slate-900">{title}</h2>
           {caption ? (
@@ -189,25 +189,26 @@ function ListSkeleton({ rows = 6 }) {
 function SimplePagination({ page, totalPages, total, onChange, label = 'items' }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50">
+    <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-100 bg-white">
       <button
         type="button"
         disabled={page <= 1}
         onClick={() => onChange((p) => Math.max(1, p - 1))}
         className="ov-btn"
-        style={{ padding: '4px 10px', fontSize: 12 }}
+        style={{ padding: '5px 12px', fontSize: 12, borderRadius: 9999 }}
       >
         Prev
       </button>
-      <span className="num text-slate-600 text-xs font-medium">
-        Page {formatNum(page)} of {formatNum(totalPages)} · {formatNum(total ?? 0)} {label}
+      <span className="num text-slate-500 text-xs font-medium">
+        Page {page} of {totalPages}
+        {total != null ? ` (${total} ${label})` : ''}
       </span>
       <button
         type="button"
         disabled={page >= totalPages}
-        onClick={() => onChange((p) => p + 1)}
+        onClick={() => onChange((p) => Math.min(totalPages, p + 1))}
         className="ov-btn"
-        style={{ padding: '4px 10px', fontSize: 12 }}
+        style={{ padding: '5px 12px', fontSize: 12, borderRadius: 9999 }}
       >
         Next
       </button>

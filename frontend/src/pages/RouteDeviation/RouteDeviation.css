@@ -6,11 +6,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 14px 20px;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 18px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.02),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04);
   margin-bottom: 20px;
 }
 
@@ -24,7 +26,7 @@
 
 .rd-search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   color: #64748b;
   pointer-events: none;
 }
@@ -32,10 +34,10 @@
 .rd-search-input {
   width: 100%;
   height: 38px;
-  padding: 0 12px 0 36px;
+  padding: 0 14px 0 38px;
   font-size: 13px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
   background: #ffffff;
   color: #0f172a;
   outline: none;
@@ -57,10 +59,10 @@
 
 .rd-date-input {
   height: 38px;
-  padding: 0 10px;
+  padding: 0 14px;
   font-size: 13px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
   background: #ffffff;
   color: #0f172a;
   outline: none;
@@ -82,11 +84,11 @@
   align-items: center;
   gap: 6px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 12.5px;
   font-weight: 500;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
   background: #ffffff;
   color: #475569;
   cursor: pointer;
