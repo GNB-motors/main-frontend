@@ -100,6 +100,23 @@ describe('toFrames', () => {
     expect(frames[2].groundSpeedKmph).toBeCloseTo(30, 0);
   });
 
+  it('drops a bad LEADING fix instead of letting it poison the teleport filter', () => {
+    // One glitched fix 100 km away at t=0, then 24 real fixes ~1 km apart at
+    // 1-minute intervals. The leading fix used to be accepted unconditionally
+    // and become the reference, so every real fix measured against it as a
+    // teleport and ~24 minutes of real trail silently vanished.
+    const rows = [[11, 0, '2026-09-06T10:00:00Z']];
+    for (let i = 1; i <= 24; i += 1) {
+      rows.push([10 + i * 0.009, 0, `2026-09-06T10:${String(i).padStart(2, '0')}:00Z`]);
+    }
+    const frames = toFrames(trail(rows));
+    expect(frames).toHaveLength(24);
+    expect(frames[0].lat).toBeCloseTo(10.009, 6);
+    expect(frames.at(-1).lat).toBeCloseTo(10 + 24 * 0.009, 6);
+    // Cumulative distance is measured from the first REAL fix, not the glitch.
+    expect(frames.at(-1).cumulativeKm).toBeCloseTo(23 * 1.0007, 0);
+  });
+
   it('keeps a genuinely fast leg under the implied-speed cap', () => {
     // 100 km in an hour is a governed truck on a highway, not a glitch.
     const frames = toFrames(
@@ -289,6 +306,47 @@ describe('positionAt', () => {
       ]),
     );
     expect(positionAt(flat, 0.5)).toMatchObject({ lat: 11 });
+  });
+
+  it('marks interpolated positions estimated when either leg endpoint is estimated', () => {
+    // measured fix, then an estimated corridor frame 30 min later, then a
+    // measured fix. Interpolating on the measured↔estimated leg must carry
+    // estimated (and provenance) so the "· estimated (corridor)" badge can
+    // render mid-playback — not only at the trail's very end.
+    const T0 = Date.parse('2026-09-06T10:00:00Z');
+    const mixed = [
+      ...toFrames(trail([[12, 77, '2026-09-06T10:00:00Z']])),
+      {
+        lat: 12,
+        lng: 77.1,
+        at: T0 + 30 * 60_000,
+        estimated: true,
+        provenance: 'CORRIDOR',
+        heading: 90,
+        groundSpeedKmph: 20,
+        cumulativeKm: 10,
+      },
+      ...toFrames(trail([[12.009, 77.1, '2026-09-06T10:31:00Z']])),
+    ];
+    // 15 minutes in: halfway along the measured→estimated leg.
+    const mid = positionAt(mixed, 15 / 31);
+    expect(mid.lat).toBeCloseTo(12, 6);
+    expect(mid.lng).toBeCloseTo(77.05, 4);
+    expect(mid.estimated).toBe(true);
+    expect(mid.provenance).toBe('CORRIDOR');
+    // The reverse leg (estimated→measured) is estimated too — either
+    // endpoint being estimated marks the interpolation.
+    const tail = positionAt(mixed, 30.5 / 31);
+    expect(tail.estimated).toBe(true);
+    expect(tail.provenance).toBe('CORRIDOR');
+    // A purely measured leg stays unmarked.
+    const pure = toFrames(
+      trail([
+        [10, 0, '2026-09-06T10:00:00Z'],
+        [12, 0, '2026-09-06T12:00:00Z'],
+      ]),
+    );
+    expect(positionAt(pure, 0.5).estimated).toBeFalsy();
   });
 });
 

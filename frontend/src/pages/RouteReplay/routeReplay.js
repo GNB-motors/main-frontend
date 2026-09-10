@@ -84,15 +84,39 @@ export function toFrames(points) {
     .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && Number.isFinite(p.at))
     .sort((a, b) => a.at - b.at);
 
+  const isTeleportLeg = (from, to) => {
+    const implied = groundSpeedKmph(haversineKm(from, to), to.at - from.at);
+    // implied is null when no time elapsed (two fixes, one timestamp) —
+    // that says nothing about speed, so the leg is not a teleport.
+    return implied != null && implied > MAX_IMPLIED_KMPH;
+  };
+
   const accepted = [];
-  for (const p of clean) {
+  for (let k = 0; k < clean.length; k += 1) {
+    const p = clean[k];
     if (isNullIsland(p.lat, p.lng)) continue;
     const prev = accepted[accepted.length - 1];
-    if (prev) {
-      const implied = groundSpeedKmph(haversineKm(prev, p), p.at - prev.at);
-      // implied is null when no time elapsed (two fixes, one timestamp) —
-      // that says nothing about speed, so the fix is kept.
-      if (implied != null && implied > MAX_IMPLIED_KMPH) continue;
+    if (prev && isTeleportLeg(prev, p)) {
+      // Leading-fix look-ahead: the FIRST fix is accepted unconditionally, so
+      // a single glitched leading fix becomes the reference and every
+      // subsequent real fix measures against it as a teleport — one bad fix
+      // silently eats the whole trail. If p agrees with the following fix
+      // while prev contradicts it, prev is the outlier: drop prev and let p
+      // anchor the trail. Anything else is an ordinary mid-trail teleport —
+      // drop p.
+      const next = clean[k + 1];
+      if (
+        accepted.length === 1 &&
+        next &&
+        !isNullIsland(next.lat, next.lng) &&
+        !isTeleportLeg(p, next) &&
+        isTeleportLeg(prev, next)
+      ) {
+        accepted.pop();
+        accepted.push(p);
+        continue;
+      }
+      continue;
     }
     accepted.push(p);
   }
@@ -202,6 +226,10 @@ export function positionAt(frames, progress) {
   const b = frames[i + 1];
   const legMs = b.at - a.at;
   const t = legMs > 0 ? (target - a.at) / legMs : 0;
+  // estimated must ride along so the "· estimated (corridor)" badge renders
+  // mid-playback: a leg touching an estimated frame is estimated, even when
+  // the other endpoint is measured.
+  const estimated = Boolean(a.estimated || b.estimated);
   return {
     lat: a.lat + (b.lat - a.lat) * t,
     lng: a.lng + (b.lng - a.lng) * t,
@@ -210,6 +238,8 @@ export function positionAt(frames, progress) {
     groundSpeedKmph: b.groundSpeedKmph,
     reportedSpeed: b.reportedSpeed,
     cumulativeKm: a.cumulativeKm + (b.cumulativeKm - a.cumulativeKm) * t,
+    estimated,
+    provenance: estimated ? (a.provenance ?? b.provenance) : undefined,
     index: i,
   };
 }

@@ -90,7 +90,7 @@ const RouteReplayPage = () => {
   // measured/estimated split lives in replayStats.
   const repaired = useMemo(() => {
     const base = toFrames(trail?.points);
-    if (base.length < 2) return { frames: base, segments: [], estimates: [] };
+    if (base.length < 2) return { frames: base, breaks: [], segments: [], estimates: [] };
     const halts = habitualHalts(base);
     const gaps = detectGaps(base);
     const estimates = gaps.map((g) => ({
@@ -99,7 +99,7 @@ const RouteReplayPage = () => {
       toAt: base[g.toIndex].at,
     }));
     const { frames: spliced, breaks } = spliceTrail(base, estimates);
-    return { frames: spliced, segments: toRenderSegments(spliced, breaks), estimates };
+    return { frames: spliced, breaks, segments: toRenderSegments(spliced, breaks), estimates };
   }, [trail, corridors]);
 
   const frames = repaired.frames;
@@ -107,11 +107,13 @@ const RouteReplayPage = () => {
   const path = useMemo(() => toLatLngPath(frames), [frames]);
   const head = useMemo(() => positionAt(frames, progress), [frames, progress]);
   // The played overlay, cut at inter-trip breaks so playback never draws a
-  // line across a broken (separate-trip) gap.
+  // line across a broken (separate-trip) gap. Breaks are indices into the
+  // full spliced frame list; only those inside the played prefix cut it.
   const playedSegments = useMemo(() => {
     const upTo = (head?.index ?? 0) + 1;
-    return toRenderSegments(frames.slice(0, upTo), []);
-  }, [frames, head]);
+    const breaks = repaired.breaks.filter((b) => b < upTo);
+    return toRenderSegments(frames.slice(0, upTo), breaks);
+  }, [frames, head, repaired.breaks]);
   // Display-only corridor snap: same fixes, projected onto learned corridors
   // where one lies within ~150 m. Stats and playback stay on measured frames.
   const snapPath = useMemo(
