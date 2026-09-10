@@ -448,7 +448,23 @@ const RouteReplayPage = () => {
                   splices dashed amber, inter-trip gaps break the polyline
                   (no line is ever drawn between two real trips). */}
               {repaired.segments.map((seg, i) =>
-                seg.estimated ? (
+                // Singleton segment: a trip compressed to a single fix (e.g.
+                // a depot visit that is only one point between two breaks).
+                // Rendered as its point so the endpoint never vanishes.
+                seg.path.length === 1 ? (
+                  <MarkerF
+                    key={`seg-${i}`}
+                    position={seg.path[0]}
+                    icon={{
+                      path: window.google.maps.SymbolPath.CIRCLE,
+                      scale: 4,
+                      fillColor: seg.estimated ? '#d97706' : '#94a3b8',
+                      fillOpacity: 1,
+                      strokeColor: '#ffffff',
+                      strokeWeight: 1,
+                    }}
+                  />
+                ) : seg.estimated ? (
                   <PolylineF
                     key={`est-${i}`}
                     path={seg.path}

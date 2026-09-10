@@ -236,6 +236,43 @@ describe('spliceTrail', () => {
     expect(spliced.every((p) => !p.estimated)).toBe(true);
   });
 
+  it('breaks at EVERY inter-trip gap — two consecutive inter-trip gaps give two breaks', () => {
+    // Depot A 00:00 → depot B 06:00 → depot C 12:00, both gaps inter-trip.
+    const frames = [f(12, 77, 0), f(13, 78.5, 360), f(14, 79, 720)];
+    const intertrip = (fromIndex) => ({
+      fromIndex,
+      toIndex: fromIndex + 1,
+      kind: 'intertrip',
+      gapMs: 360 * MIN,
+      path: null,
+      driveMs: 0,
+      provenance: 'NONE',
+    });
+    const { frames: spliced, breaks } = spliceTrail(frames, [intertrip(0), intertrip(1)]);
+    expect(breaks).toEqual([1, 2]);
+    expect(spliced).toHaveLength(3); // no invented geometry anywhere
+  });
+
+  it('clamps interpolated timestamps to the observed silence when the corridor median exceeds it', () => {
+    // 60-minute silence, but the corridor's hour-median says the drive takes
+    // 120 minutes. Timestamps must stay monotonic (spread over the 60-minute
+    // gap), while the raw driveMs and the negative unexplainedMs stay visible
+    // in the estimate for the gap panel.
+    const frames = [f(12, 77, 0), f(12, 77.2, 60)];
+    const corridor = { ...CORRIDOR };
+    corridor.medianDurationMinByHour[10] = 120; // departs 10:00 UTC
+    const gap = { fromIndex: 0, toIndex: 1, kind: 'moving', gapMs: 60 * MIN, gapKm: 21 };
+    const est = estimateGap(gap, frames, { corridors: [corridor] });
+    expect(est.driveMs).toBe(120 * MIN); // raw figure, deliberately unclamped
+    expect(est.unexplainedMs).toBe(60 * MIN - 120 * MIN); // negative, on purpose
+    const { frames: spliced } = spliceTrail(frames, [est]);
+    for (let i = 1; i < spliced.length; i += 1) {
+      expect(spliced[i].at).toBeGreaterThan(spliced[i - 1].at);
+    }
+    const lastEstimated = spliced.filter((p) => p.estimated).at(-1);
+    expect(lastEstimated.at).toBeLessThan(frames[1].at);
+  });
+
   it('passes a clean trail through unchanged', () => {
     const frames = [f(12, 77, 0), f(12.009, 77, 1)];
     const { frames: out, breaks } = spliceTrail(frames, []);
@@ -272,9 +309,13 @@ describe('toRenderSegments', () => {
     frames[3].estimated = true;
     const segments = toRenderSegments(frames, []);
     expect(segments.map((s) => s.estimated)).toEqual([false, true, false]);
+    // Adjacent segments share their boundary vertex so measured↔estimated
+    // transitions render contiguously instead of leaving a visible hole.
     expect(segments[0].path).toHaveLength(2);
-    expect(segments[1].path).toHaveLength(2);
-    expect(segments[2].path).toHaveLength(2);
+    expect(segments[1].path).toHaveLength(3);
+    expect(segments[2].path).toHaveLength(3);
+    expect(segments[1].path[0]).toEqual(segments[0].path.at(-1));
+    expect(segments[2].path[0]).toEqual(segments[1].path.at(-1));
   });
 
   it('breaks the polyline at inter-trip break indices', () => {
@@ -282,9 +323,30 @@ describe('toRenderSegments', () => {
     const segments = toRenderSegments(frames, [2]);
     // Without the break this would be one 4-point measured run; the break
     // forces two separate polylines — never a line between two real trips.
+    // A break severs the shared-vertex chain too: segment 2 does NOT seed
+    // with segment 1's last point.
     expect(segments).toHaveLength(2);
     expect(segments[0].path).toHaveLength(2);
     expect(segments[1].path).toHaveLength(2);
+    expect(segments[1].path[0]).toEqual({ lat: 13, lng: 78.5 });
+  });
+
+  it('never joins two real trips and never drops a trip endpoint', () => {
+    // Three one-fix visits to depot A / B / C with inter-trip breaks at both
+    // gaps. Each depot must still render (a singleton segment keeps its point)
+    // and NO segment may contain both B and C.
+    const frames = [f(12, 77, 0), f(13, 78.5, 360), f(14, 79, 720)];
+    const segments = toRenderSegments(frames, [1, 2]);
+    expect(segments).toHaveLength(3);
+    expect(segments.map((s) => s.path)).toEqual([
+      [{ lat: 12, lng: 77 }],
+      [{ lat: 13, lng: 78.5 }],
+      [{ lat: 14, lng: 79 }],
+    ]);
+    const joined = segments.some(
+      (s) => s.path.some((p) => p.lat === 13) && s.path.some((p) => p.lat === 14),
+    );
+    expect(joined).toBe(false);
   });
 
   it('tolerates junk input', () => {

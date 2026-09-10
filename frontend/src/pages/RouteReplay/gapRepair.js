@@ -286,24 +286,30 @@ export function spliceTrail(frames, estimates) {
   const byFrom = new Map((Array.isArray(estimates) ? estimates : []).map((e) => [e.fromIndex, e]));
   const out = [];
   const breaks = [];
-  let insertedBreak = false;
 
   for (let i = 0; i < frames.length; i += 1) {
-    if (i > 0 && !insertedBreak) {
+    // The inter-trip check runs unconditionally for every frame after the
+    // first. A latch that skipped the frame right after a break used to make
+    // two consecutive inter-trip gaps yield ONE break — a trip endpoint
+    // vanished and two real trips got joined on the map.
+    if (i > 0) {
       const prevGap = byFrom.get(i - 1);
-      if (prevGap && prevGap.kind === 'intertrip') {
-        breaks.push(out.length);
-        insertedBreak = true;
-      }
-    } else {
-      insertedBreak = false;
+      if (prevGap && prevGap.kind === 'intertrip') breaks.push(out.length);
     }
     out.push({ ...frames[i], estimated: false });
 
     const est = byFrom.get(i);
     if (!est || !est.path || est.path.length < 2 || est.driveMs <= 0) continue;
 
-    // Distance-proportional timestamps across the sub-path over driveMs.
+    // Distance-proportional timestamps across the sub-path. The spread is
+    // clamped to the observed silence: when a corridor's hour-median exceeds
+    // gapMs, unclamped timestamps land after the next measured fix and the
+    // spliced trail goes non-monotonic (breaks positionAt's ordered scan).
+    // est.driveMs itself stays raw — the negative discrepancy is deliberate
+    // user-visible signal in the gap panel (estimateGap's comment).
+    const spanMs = est.gapMs != null ? Math.min(est.driveMs, est.gapMs) : est.driveMs;
+
+    // Distance-proportional timestamps across the sub-path over spanMs.
     const cum = [0];
     for (let j = 1; j < est.path.length; j += 1) {
       cum.push(cum[j - 1] + haversineKm(est.path[j - 1], est.path[j]));
@@ -313,14 +319,14 @@ export function spliceTrail(frames, estimates) {
       out.push({
         lat: est.path[j].lat,
         lng: est.path[j].lng,
-        at: frames[i].at + Math.round((cum[j] / totalKm) * est.driveMs),
+        at: frames[i].at + Math.round((cum[j] / totalKm) * spanMs),
         reportedSpeed: null,
         course: null,
         ignition: null,
         state: null,
         legKm: 0,
         cumulativeKm: 0,
-        groundSpeedKmph: totalKm > 0 ? (totalKm / est.driveMs) * 3600_000 : null,
+        groundSpeedKmph: totalKm > 0 ? (totalKm / spanMs) * 3600_000 : null,
         heading: 0,
         estimated: true,
         provenance: est.provenance,
@@ -350,6 +356,13 @@ export function spliceTrail(frames, estimates) {
  * Split spliced frames into drawable polyline runs: breaks split segments,
  * and within a segment measured and estimated runs get different styling.
  *
+ * Adjacent runs SHARE their boundary vertex: a new segment seeds with the
+ * previous segment's last point, so a measured↔estimated transition renders
+ * contiguously instead of leaving a visible hole. A break severs that chain
+ * (never a shared vertex across two real trips). Singleton segments are
+ * kept: a one-point trip endpoint must still render as its point, never be
+ * dropped — which would join two real trips on the map.
+ *
  * @returns {Array<{path: Array<{lat,lng}>, estimated: boolean}>}
  */
 export function toRenderSegments(frames, breaks) {
@@ -357,14 +370,20 @@ export function toRenderSegments(frames, breaks) {
   const breakSet = new Set(Array.isArray(breaks) ? breaks : []);
   const segments = [];
   let current = null;
+  let lastPoint = null;
   for (let i = 0; i < frames.length; i += 1) {
-    if (breakSet.has(i)) current = null;
+    if (breakSet.has(i)) {
+      current = null;
+      lastPoint = null;
+    }
     const estimated = Boolean(frames[i].estimated);
     if (!current || current.estimated !== estimated) {
-      current = { estimated, path: [] };
+      current = { estimated, path: lastPoint ? [lastPoint] : [] };
       segments.push(current);
     }
-    current.path.push({ lat: frames[i].lat, lng: frames[i].lng });
+    const point = { lat: frames[i].lat, lng: frames[i].lng };
+    current.path.push(point);
+    lastPoint = point;
   }
-  return segments.filter((s) => s.path.length > 1);
+  return segments;
 }
