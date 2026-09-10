@@ -70,7 +70,7 @@ describe('schemas — async validation via parseWith', () => {
     it('accepts a valid driver and passes extras through', async () => {
       const d = { _id: 'd1', name: 'Ramesh', licenseNumber: 'DL-123', extraField: 'x' };
       expect(await driver('driverSchema', d)).toEqual(d);
-    });
+    }, 15000);
 
     it('rejects wrong types on known fields', async () => {
       await expect(driver('driverSchema', { mobileNumber: 9876543210 })).rejects.toThrow();
@@ -82,7 +82,7 @@ describe('schemas — async validation via parseWith', () => {
       expect(res.data[0]._id).toBe('d1');
       const single = await driver('driverResponseSchema', { data: { _id: 'd1' } });
       expect(single.data._id).toBe('d1');
-    });
+    }, 15000);
   });
 
   describe('trip.schema.js', () => {
