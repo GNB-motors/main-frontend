@@ -7,25 +7,32 @@ export function buildVehicleDashboardColumns({ onManage }) {
   const columns = [
     {
       key: 'vehicle',
-      label: 'Vehicle #',
+      label: 'Vehicle Details',
       render: (row) => (
         <div>
           <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.registrationNumber}</div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{row.manufacturer || '—'}</div>
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+            {[row.manufacturer, row.model].filter(Boolean).join(' · ') || '—'}
+          </div>
         </div>
       ),
     },
-    { key: 'owner', label: 'Owner', render: (row) => row.ownerName || '—' },
-    { key: 'model', label: 'Model', render: (row) => row.model || '—' },
     {
-      key: 'chassis',
-      label: 'Chassis #',
+      key: 'identifiers',
+      label: 'Chassis & Owner',
       render: (row) => (
-        <span
-          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12 }}
-        >
-          {row.chassisNumber}
-        </span>
+        <div>
+          <div
+            style={{
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: 12,
+              color: '#0f172a',
+            }}
+          >
+            {row.chassisNumber || '—'}
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{row.ownerName || '—'}</div>
+        </div>
       ),
     },
   ];

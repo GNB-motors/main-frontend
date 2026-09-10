@@ -13,7 +13,7 @@ export const DocBadge = ({ docEntry }) => {
   const days = daysUntil(docEntry?.expiryDate);
 
   const text = (() => {
-    if (bucket === 'missing') return docEntry?.uploaded ? 'OCR pending' : 'Not uploaded';
+    if (bucket === 'missing') return docEntry?.uploaded ? 'OCR pending' : 'Missing';
     if (bucket === 'expired') return `Expired ${Math.abs(days)}d ago`;
     return `${days}d left`;
   })();
