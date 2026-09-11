@@ -1106,17 +1106,16 @@ a.ov-kpi:hover {
   padding: 24px 32px;
   min-width: 0;
   background: var(--canvas, #f4f6fb);
-  height: 100%;
   min-height: 100%;
 }
-/* Flex column so pages that put flex:1 on their table card and
-   margin-top:auto on their pagination bar can actually pin the
-   footer to the bottom of the shell instead of hugging short content. */
+/* Flex column so pages with short content can still expand the body
+   and let footers with margin-top: auto sit at the bottom, without
+   restricting natural vertical scrolling when content is tall. */
 .pshell-body {
   display: flex;
   flex-direction: column;
+  gap: 20px;
   flex: 1;
-  min-height: 0;
 }
 .pshell-head {
   display: flex;
@@ -1432,8 +1431,6 @@ a.ov-kpi:hover {
 .dt {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 18px;
   background: #ffffff;
@@ -1518,8 +1515,6 @@ a.ov-kpi:hover {
 .dt-scroll {
   overflow-x: auto;
   position: relative;
-  flex: 1;
-  min-height: 0;
 }
 .dt-table {
   width: 100%;
