@@ -5,6 +5,7 @@ import { useActiveBranch } from '../contexts/BranchContext.jsx';
 import { useFeatureFlags, useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchService } from '../services/branchService';
 import { getFirstNavPath } from '../utils/sideNavUtils.js';
+import { getUserRole } from '../utils/session.js';
 import NewEnterpriseIcon from './Icons/NewEnterpriseIcon.jsx';
 import BranchIcon from './Icons/BranchIcon.jsx';
 import Chevron from './Icons/Chevron.jsx';
@@ -38,7 +39,7 @@ const LocationSwitcher = () => {
   const ref = useRef(null);
   const triggerRef = useRef(null);
 
-  const canManage = ['OWNER', 'MANAGER'].includes(localStorage.getItem('user_role'));
+  const canManage = ['OWNER', 'MANAGER'].includes(getUserRole());
 
   useEffect(() => {
     if (!open) return undefined;

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import { WarehouseService } from './WarehouseService';
+import { getUserRole } from '../../../utils/session';
 import './WarehousePage.css';
 
 const CHECK_ICONS = {
@@ -197,7 +198,7 @@ const WarehousePage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);

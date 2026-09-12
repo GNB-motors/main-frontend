@@ -10,6 +10,7 @@ import {
   Search,
 } from 'lucide-react';
 import apiClient from '../../../utils/axiosConfig';
+import useApi from '../../../hooks/useApi';
 import './AdBlueComparisonReport.css';
 
 const PAGE_SIZE = 20;
@@ -51,7 +52,6 @@ const AdBlueComparisonReport = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -63,33 +63,36 @@ const AdBlueComparisonReport = () => {
     setPage(1);
   }, [startDate, endDate, debouncedSearch]);
 
+  const { data: comparisonResponse, loading, error: comparisonError } = useApi(
+    (signal) => apiClient.get('/api/adblue-logs/comparison', {
+      params: {
+        page,
+        limit: PAGE_SIZE,
+        startDate: dayjs(startDate).startOf('day').toISOString(),
+        endDate: dayjs(endDate).endOf('day').toISOString(),
+        ...(debouncedSearch && { search: debouncedSearch }),
+      },
+      signal,
+    }),
+    [JSON.stringify({ page, startDate, endDate, debouncedSearch })]
+  );
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
+    if (comparisonResponse) {
       setError('');
-      try {
-        const response = await apiClient.get('/api/adblue-logs/comparison', {
-          params: {
-            page,
-            limit: PAGE_SIZE,
-            startDate: dayjs(startDate).startOf('day').toISOString(),
-            endDate: dayjs(endDate).endOf('day').toISOString(),
-            ...(debouncedSearch && { search: debouncedSearch }),
-          },
-        });
-        setRows(response.data?.data || []);
-        setSummary(response.data?.summary || {});
-        setMeta(response.data?.meta || { page: 1, total: 0, totalPages: 1 });
-        setMethodology(response.data?.methodology || {});
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load AdBlue telemetry comparison');
-        setRows([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [page, startDate, endDate, debouncedSearch]);
+      setRows(comparisonResponse.data?.data || []);
+      setSummary(comparisonResponse.data?.summary || {});
+      setMeta(comparisonResponse.data?.meta || { page: 1, total: 0, totalPages: 1 });
+      setMethodology(comparisonResponse.data?.methodology || {});
+    }
+  }, [comparisonResponse]);
+
+  useEffect(() => {
+    if (comparisonError) {
+      setError(comparisonError.response?.data?.message || 'Failed to load AdBlue telemetry comparison');
+      setRows([]);
+    }
+  }, [comparisonError]);
 
   return (
     <div className="adblue-comparison-report">

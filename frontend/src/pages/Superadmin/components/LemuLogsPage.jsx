@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   BookOpen,
+  Boxes,
   Flag,
+  Fuel,
   Map,
   RefreshCw,
   ScrollText,
@@ -19,33 +21,49 @@ import LemuErrorsInbox from './lemu/LemuErrorsInbox';
 import LemuFlagsTab from './lemu/LemuFlagsTab';
 import LemuFindingsRibbon from './lemu/LemuFindingsRibbon';
 import LemuSystemMap from './lemu/LemuSystemMap';
+import LemuGraphDoorway from './lemu/LemuGraphDoorway';
 import LemuNodeDrawer from './lemu/LemuNodeDrawer';
 import LemuChangeFeed from './lemu/LemuChangeFeed';
-import { deriveRouteModule, nodeId, relativeTime, routePulseKey } from './lemu/utils';
+import FuelIntegrityLineagePanel from './lemu/FuelIntegrityLineagePanel';
+import { useLemuGraphData, useLemuSelectedNode } from './lemu/graph/useLemuGraphData';
+import { relativeTime } from './lemu/utils';
+import { getUserRole, getUserEmail } from '../../../utils/session';
 import './lemu/LemuLogsPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────
    LemuLogsPage
    Composition + data-fetching owner for the LEMU observability screen.
    Layer 3 adds the System map (manifest + pulse), Change feed (manifest
-   history + diffs), and a persistent Findings ribbon. All LEMU state lives
-   here so polls, the auto-refresh toggle and pagination behave exactly as
-   before and survive tab switches. The Flags tab is self-contained.
+   history + diffs), and a persistent Findings ribbon.
+
+   The knowledge graph moved to its own route (/superadmin/graph, see
+   LemuGraphPage) — the Graph tab here is a doorway. The graph-shaped data
+   the rest of this page still consumes (manifest, pulse, liveness, topology,
+   error attribution, job health, findings, versions/diffs — the System map,
+   ribbon, Change feed and node drawer all read it) comes from the shared
+   useLemuGraphData hook, so both pages poll on the same cadence and read
+   the same payload shapes.
 ──────────────────────────────────────────────────────────────────────────── */
 const PAGE_SIZE = 25;
 
 const TABS = [
   { id: 'system', label: 'System', group: 'structure', icon: <Map size={15} /> },
+  { id: 'graph', label: 'Graph', group: 'structure', icon: <Boxes size={15} /> },
   { id: 'changes', label: 'Changes', group: 'structure', icon: <BookOpen size={15} /> },
   { id: 'logs', label: 'Logs', group: 'activity', icon: <ScrollText size={15} /> },
   { id: 'jobs', label: 'Jobs', group: 'activity', icon: <Server size={15} /> },
   { id: 'errors', label: 'Errors', group: 'activity', icon: <AlertTriangle size={15} /> },
   { id: 'flags', label: 'Flags', group: 'config', icon: <Flag size={15} /> },
+  { id: 'lineage', label: 'Lineage', group: 'config', icon: <Fuel size={15} /> },
 ];
 
 const LemuLogsPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  /* Graph-shaped data (manifest/pulse/liveness/topology/attribution/jobs/
+     findings/versions/diffs) — shared with the standalone graph page. */
+  const graph = useLemuGraphData();
 
   /* ── Tabs ── */
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'system');
@@ -55,38 +73,18 @@ const LemuLogsPage = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState('');
 
-  /* ── Layer 3: system manifest + pulse + findings ── */
-  const [manifest, setManifest] = useState(null);
-  const [manifestStatus, setManifestStatus] = useState('loading');
-  const [pulse, setPulse] = useState(null);
-  const [pulseStatus, setPulseStatus] = useState('loading');
-  // Wide-window last-seen per route/collection — distinguishes "quiet this
-  // hour" from "no signal all day". Null until loaded; the map degrades to
-  // pulse-only behaviour without it.
-  const [liveness, setLiveness] = useState(null);
-  const [findings, setFindings] = useState(null);
-  const [findingsStatus, setFindingsStatus] = useState('loading');
-  const [manifestsList, setManifestsList] = useState([]);
-  const [manifestsStatus, setManifestsStatus] = useState('loading');
-  const [diffsByVersion, setDiffsByVersion] = useState({});
-  // Per-version fetch lifecycle: undefined = idle, 'loading' | 'ready' | 'error'.
-  // Kept separate from the diff payload so a failed fetch can never render as
-  // "no changes" (and vice versa).
-  const [diffStatusByVersion, setDiffStatusByVersion] = useState({});
+  /* ── Selection / drawer ── */
+  const [selectedNodeId, setSelectedNodeId] = useState(() => searchParams.get('node') || null);
+  const [drawerOpen, setDrawerOpen] = useState(() => !!searchParams.get('node'));
   const [sort, setSort] = useState('activity');
   const [findingsExpanded, setFindingsExpanded] = useState(() => searchParams.get('findings') === 'open');
   const [expandedVersions, setExpandedVersions] = useState(() => {
     const v = searchParams.get('v');
     return v ? new Set([Number(v)]) : new Set();
   });
-  const [selectedNodeId, setSelectedNodeId] = useState(() => searchParams.get('node') || null);
-  const [drawerOpen, setDrawerOpen] = useState(() => !!searchParams.get('node'));
 
   /* ── Jobs panel ── */
-  const [jobs, setJobs] = useState([]);
-  const [jobsCheckedAt, setJobsCheckedAt] = useState(null);
-  const [jobsLoading, setJobsLoading] = useState(true);
-  const [jobsError, setJobsError] = useState('');
+  // (job health itself is fetched by useLemuGraphData; the panel reads it)
 
   /* ── Events explorer ── */
   const [events, setEvents] = useState([]);
@@ -112,15 +110,18 @@ const LemuLogsPage = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);
 
+  const { manifest, pulse, jobs, topology, liveness } = graph;
+  const { loadJobs, refreshLayer3 } = graph;
+
   /* ── Derived status ── */
   const derivedStatus = useMemo(() => {
-    if (manifestStatus === 'loading') return 'loading';
-    if (manifestStatus === 'error') return 'error';
+    if (graph.manifestStatus === 'loading') return 'loading';
+    if (graph.manifestStatus === 'error') return 'error';
     if (!manifest) return 'empty';
     const newestBucket = pulse?.buckets?.[0]?.bucketStart;
     if (newestBucket) {
@@ -128,9 +129,9 @@ const LemuLogsPage = () => {
       if (ageMin > 5) return 'stale';
     }
     return 'live';
-  }, [manifest, manifestStatus, pulse]);
+  }, [graph.manifestStatus, manifest, pulse]);
 
-  /* ── Loaders ── */
+  /* ── Loaders (page-owned data only; graph-shaped data loads in the hook) ── */
   const loadDashboard = useCallback(async (silent = false) => {
     if (!silent) setDashboardLoading(true);
     setDashboardError('');
@@ -143,95 +144,6 @@ const LemuLogsPage = () => {
       setDashboardError(e.detail || e.message || 'Failed to load dashboard stats');
     } finally {
       setDashboardLoading(false);
-    }
-  }, []);
-
-  const loadManifest = useCallback(async (silent = false) => {
-    if (!silent) setManifestStatus('loading');
-    try {
-      const data = await LemuService.getManifest();
-      setManifest(data.data || null);
-      setManifestStatus('live');
-    } catch {
-      setManifestStatus('error');
-    }
-  }, []);
-
-  const loadPulse = useCallback(async (silent = false) => {
-    if (!silent) setPulseStatus('loading');
-    try {
-      const data = await LemuService.getPulse({ limit: 60 });
-      setPulse(data.data || null);
-      setPulseStatus('live');
-    } catch {
-      setPulseStatus('error');
-    }
-  }, []);
-
-  const loadLiveness = useCallback(async () => {
-    try {
-      const data = await LemuService.getLiveness({ windowHours: 24 });
-      setLiveness(data.data || null);
-    } catch {
-      // Liveness is an enhancement layer — pulse heat still renders without it.
-      setLiveness(null);
-    }
-  }, []);
-
-  const loadFindings = useCallback(async (silent = false) => {
-    if (!silent) setFindingsStatus('loading');
-    try {
-      const data = await LemuService.getFindings();
-      setFindings(data.data || null);
-      setFindingsStatus('live');
-    } catch {
-      setFindingsStatus('error');
-    }
-  }, []);
-
-  const loadManifests = useCallback(async (silent = false) => {
-    if (!silent) setManifestsStatus('loading');
-    try {
-      const data = await LemuService.getManifests({ page: 1, limit: 20 });
-      setManifestsList(data.data?.records || []);
-      setManifestsStatus('live');
-    } catch {
-      setManifestsStatus('error');
-    }
-  }, []);
-
-  const loadManifestDiff = useCallback(async (version) => {
-    setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'loading' }));
-    try {
-      const data = await LemuService.getManifestDiff(version);
-      setDiffsByVersion((prev) => ({ ...prev, [version]: data.data || null }));
-      setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'ready' }));
-    } catch {
-      // Leave the diff itself absent — status alone drives the error UI.
-      setDiffStatusByVersion((prev) => ({ ...prev, [version]: 'error' }));
-    }
-  }, []);
-
-  const rebuildManifest = useCallback(async () => {
-    try {
-      await LemuService.rebuildManifest();
-      await loadManifest();
-    } catch {
-      setManifestStatus('error');
-    }
-  }, [loadManifest]);
-
-  const loadJobs = useCallback(async (silent = false) => {
-    if (!silent) setJobsLoading(true);
-    setJobsError('');
-    try {
-      const data = await LemuService.getJobs();
-      setJobs(data.data || []);
-      setJobsCheckedAt(data.checkedAt || null);
-    } catch (e) {
-      setJobsError(e.detail || e.message || 'Failed to load job health');
-    } finally {
-      setJobsLoading(false);
     }
   }, []);
 
@@ -272,18 +184,10 @@ const LemuLogsPage = () => {
     }
   }, [resolvedFilter]);
 
-  /* Initial loads — all sections fetch up-front, regardless of active tab */
+  /* Initial loads — page-owned sections fetch up-front, regardless of tab.
+     (Manifest/pulse/liveness/topology/attribution/jobs/findings/versions all
+     load inside useLemuGraphData.) */
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
-  useEffect(() => { loadManifest(); }, [loadManifest]);
-  useEffect(() => { loadPulse(); }, [loadPulse]);
-  useEffect(() => {
-    loadLiveness();
-    const t = setInterval(() => loadLiveness(), 5 * 60 * 1000);
-    return () => clearInterval(t);
-  }, [loadLiveness]);
-  useEffect(() => { loadFindings(); }, [loadFindings]);
-  useEffect(() => { loadManifests(); }, [loadManifests]);
-  useEffect(() => { loadJobs(); }, [loadJobs]);
   useEffect(() => { loadTrackers(); }, [loadTrackers]);
 
   /* Events: debounce filter changes, refetch on page/filter change */
@@ -302,14 +206,11 @@ const LemuLogsPage = () => {
       loadJobs(true);
       loadEvents(true);
       if (activeTab === 'system' || activeTab === 'changes') {
-        loadManifest(true);
-        loadPulse(true);
-        loadFindings(true);
-        loadManifests(true);
+        refreshLayer3(true);
       }
     }, 30000);
     return () => clearInterval(id);
-  }, [autoRefresh, activeTab, loadDashboard, loadJobs, loadEvents, loadManifest, loadPulse, loadFindings, loadManifests]);
+  }, [autoRefresh, activeTab, loadDashboard, loadJobs, refreshLayer3, loadEvents]);
 
   /* Sync active tab with URL; keep other params intact. */
   const setTab = useCallback((tabId) => {
@@ -321,63 +222,9 @@ const LemuLogsPage = () => {
     }, { replace: true });
   }, [setSearchParams]);
 
-  /* Resolve a selected node ID to a node object + kind + pulse series. */
-  const functionsByName = useMemo(() => {
-    const map = {};
-    (manifest?.functions || []).forEach((fn) => { map[fn.functionName] = fn; });
-    return map;
-  }, [manifest]);
-
-  const selectedNode = useMemo(() => {
-    if (!selectedNodeId || !manifest) return null;
-    const kind = selectedNodeId.split(':')[0];
-
-    if (kind === 'route') {
-      const route = (manifest.routes || []).find((r) => nodeId.route(r) === selectedNodeId);
-      if (!route) return null;
-      const pulseSeries = (pulse?.buckets || []).map((b) => {
-        const r = (b.routes || []).find((x) => x.key === routePulseKey(route));
-        return r || { n: 0, err: 0 };
-      });
-      return { kind: 'route', node: { ...route, _id: selectedNodeId, _module: deriveRouteModule(route, functionsByName) }, pulseSeries };
-    }
-
-    if (kind === 'model') {
-      const model = (manifest.models || []).find((m) => nodeId.model(m) === selectedNodeId);
-      if (!model) return null;
-      const pulseSeries = (pulse?.buckets || []).map((b) => {
-        const c = (b.collections || []).find((x) => x.name === model.collectionName);
-        return c || { find: 0, insert: 0, update: 0, del: 0, agg: 0 };
-      });
-      return { kind: 'model', node: { ...model, _id: selectedNodeId }, pulseSeries };
-    }
-
-    if (kind === 'job') {
-      const job = (manifest.jobs || []).find((j) => nodeId.job(j) === selectedNodeId);
-      if (!job) return null;
-      const health = (jobs || []).find((j) => j.job === job.name) || {};
-      return { kind: 'job', node: { ...job, _id: selectedNodeId }, pulseSeries: { _health: health } };
-    }
-
-    if (kind === 'module') {
-      const module = (manifest.modules || []).find((m) => nodeId.module(m) === selectedNodeId);
-      if (!module) return null;
-      const routes = (manifest.routes || []).filter((r) => deriveRouteModule(r, functionsByName) === module.name);
-      const funcs = (manifest.functions || []).filter((f) => f.module === module.name);
-      return { kind: 'module', node: { ...module, _id: selectedNodeId, _routes: routes, _functions: funcs }, pulseSeries: [] };
-    }
-
-    return null;
-  }, [selectedNodeId, manifest, pulse, jobs, functionsByName]);
-
-  const findingIds = useMemo(() => {
-    const ids = new Set();
-    (findings?.untenantedRoutes || []).forEach((r) => ids.add(nodeId.route(r)));
-    (findings?.uninstrumentedJobs || []).forEach((j) => ids.add(nodeId.job(j)));
-    (findings?.modelsWithoutCollection || []).forEach((m) => ids.add(`model:${m}`));
-    (findings?.collectionsWithoutModel || []).forEach((c) => ids.add(`collection:${c}`));
-    return ids;
-  }, [findings]);
+  /* Resolve a selected node ID to a node object + kind + pulse series
+     (shared resolver — the standalone graph page uses the same one). */
+  const selectedNode = useLemuSelectedNode({ selectedNodeId, manifest, pulse, jobs, topology });
 
   const openNode = useCallback((nodeIdValue) => {
     setSelectedNodeId(nodeIdValue);
@@ -459,7 +306,7 @@ const LemuLogsPage = () => {
     setResolvingFp(fp);
     setTrackersError('');
     try {
-      await LemuService.resolveError(fp, { resolvedBy: localStorage.getItem('user_email') || undefined });
+      await LemuService.resolveError(fp, { resolvedBy: getUserEmail() || undefined });
       setTrackers((prev) => prev.filter((t) => t.fingerprint !== fp));
       setErrorsSummary((prev) => prev && {
         ...prev,
@@ -479,10 +326,7 @@ const LemuLogsPage = () => {
     loadJobs(true);
     loadEvents(true);
     loadTrackers(true);
-    loadManifest(true);
-    loadPulse(true);
-    loadFindings(true);
-    loadManifests(true);
+    refreshLayer3(true);
   };
 
   /* Keep URL params in sync with local state when they change externally. */
@@ -533,7 +377,7 @@ const LemuLogsPage = () => {
 
       <div className="lemu-toolbar">
         <span className="lemu-meta">
-          {jobsCheckedAt && <>Jobs checked <strong>{relativeTime(jobsCheckedAt)}</strong></>}
+          {graph.jobsCheckedAt && <>Jobs checked <strong>{relativeTime(graph.jobsCheckedAt)}</strong></>}
         </span>
         <div className="lemu-toolbar__actions">
           <button
@@ -559,12 +403,12 @@ const LemuLogsPage = () => {
 
       {/* Persistent findings ribbon */}
       <LemuFindingsRibbon
-        findings={findings}
+        findings={graph.findings}
         version={manifest?.version}
         onOpenNode={openNode}
         expanded={findingsExpanded}
         onToggle={toggleFindings}
-        status={findingsStatus}
+        status={graph.findingsStatus}
       />
 
       <div className="lemu-tabs" role="tablist" aria-label="LEMU sections">
@@ -583,17 +427,19 @@ const LemuLogsPage = () => {
             onSelectNode={openNode}
             selectedNodeId={selectedNodeId}
             jobHealth={jobs}
-            onRebuild={rebuildManifest}
+            onRebuild={graph.rebuildManifest}
           />
         )}
 
+        {activeTab === 'graph' && <LemuGraphDoorway />}
+
         {activeTab === 'changes' && (
           <LemuChangeFeed
-            manifests={manifestsList}
-            diffsByVersion={diffsByVersion}
-            diffStatusByVersion={diffStatusByVersion}
-            status={manifestsStatus}
-            onLoadDiff={loadManifestDiff}
+            manifests={graph.manifests}
+            diffsByVersion={graph.diffsByVersion}
+            diffStatusByVersion={graph.diffStatusByVersion}
+            status={graph.manifestsStatus}
+            onLoadDiff={graph.loadManifestDiff}
             expandedVersions={expandedVersions}
             onToggleVersion={toggleVersion}
           />
@@ -622,7 +468,7 @@ const LemuLogsPage = () => {
         )}
 
         {activeTab === 'jobs' && (
-          <LemuJobsPanel jobs={jobs} loading={jobsLoading} error={jobsError} />
+          <LemuJobsPanel jobs={jobs} loading={graph.jobsLoading} error={graph.jobsError} />
         )}
 
         {activeTab === 'errors' && (
@@ -639,6 +485,8 @@ const LemuLogsPage = () => {
         )}
 
         {activeTab === 'flags' && <LemuFlagsTab />}
+
+        {activeTab === 'lineage' && <FuelIntegrityLineagePanel />}
       </div>
 
       {drawerOpen && selectedNode && (
@@ -646,10 +494,13 @@ const LemuLogsPage = () => {
           node={selectedNode.node}
           kind={selectedNode.kind}
           pulseSeries={selectedNode.pulseSeries}
-          findingIds={findingIds}
-          pulseStatus={pulseStatus}
+          findingIds={graph.findingIds}
+          pulseStatus={graph.pulseStatus}
           edges={manifest?.edges || []}
           liveness={liveness}
+          topology={topology}
+          errorAttribution={graph.errorAttribution}
+          onSelectNode={openNode}
           onClose={closeDrawer}
         />
       )}

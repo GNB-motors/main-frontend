@@ -1,43 +1,38 @@
 import React, { useState } from 'react';
 import { CalendarDays, ChevronDown } from 'lucide-react';
-import {
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  startOfMonth,
-  startOfYear,
-  format,
-  isSameDay,
-} from 'date-fns';
+import dayjs from 'dayjs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import './DateRangeFilter.css';
 
+// Monday-start of week (weekStartsOn: 1 semantics)
+const startOfWeekMonday = () => dayjs().subtract((dayjs().day() + 6) % 7, 'day').startOf('day');
+
 const PRESETS = [
-  { key: 'today', label: 'Today', range: () => ({ from: startOfDay(new Date()), to: endOfDay(new Date()) }) },
-  { key: 'thisWeek', label: 'This Week', range: () => ({ from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: endOfDay(new Date()) }) },
-  { key: 'thisMonth', label: 'This Month', range: () => ({ from: startOfMonth(new Date()), to: endOfDay(new Date()) }) },
-  { key: 'thisYear', label: 'This Year', range: () => ({ from: startOfYear(new Date()), to: endOfDay(new Date()) }) },
+  { key: 'today', label: 'Today', range: () => ({ from: dayjs().startOf('day'), to: dayjs().endOf('day') }) },
+  { key: 'thisWeek', label: 'This Week', range: () => ({ from: startOfWeekMonday(), to: dayjs().endOf('day') }) },
+  { key: 'thisMonth', label: 'This Month', range: () => ({ from: dayjs().startOf('month'), to: dayjs().endOf('day') }) },
+  { key: 'thisYear', label: 'This Year', range: () => ({ from: dayjs().startOf('year'), to: dayjs().endOf('day') }) },
   { key: 'allTime', label: 'All Time', range: () => null },
 ];
 
 function labelForValue(value) {
   if (!value?.startDate || !value?.endDate) return 'All Time';
-  const start = new Date(value.startDate);
-  const end = new Date(value.endDate);
+  const start = dayjs(value.startDate);
+  const end = dayjs(value.endDate);
 
   for (const preset of PRESETS) {
     if (preset.key === 'allTime') continue;
     const presetRange = preset.range();
     if (
       presetRange &&
-      isSameDay(presetRange.from, start) &&
-      isSameDay(presetRange.to, end)
+      presetRange.from.isSame(start, 'day') &&
+      presetRange.to.isSame(end, 'day')
     ) {
       return preset.label;
     }
   }
-  return `${format(start, 'd MMM yyyy')} – ${format(end, 'd MMM yyyy')}`;
+  return `${start.format('D MMM YYYY')} – ${end.format('D MMM YYYY')}`;
 }
 
 /**
@@ -66,7 +61,7 @@ const DateRangeFilter = ({ value, onChange }) => {
   const handleCalendarSelect = (range) => {
     setDraftRange(range);
     if (range?.from && range?.to) {
-      applyRange({ from: startOfDay(range.from), to: endOfDay(range.to) });
+      applyRange({ from: dayjs(range.from).startOf('day'), to: dayjs(range.to).endOf('day') });
     }
   };
 

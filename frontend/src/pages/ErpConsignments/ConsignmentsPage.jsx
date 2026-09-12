@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { FileText, Upload, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ConsignmentService from './ConsignmentService';
@@ -27,7 +27,6 @@ const EMPTY_FORM = {
 
 const ConsignmentsPage = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [tab, setTab] = useState('pending');
   const [pending, setPending] = useState([]);
@@ -297,10 +296,13 @@ const ConsignmentsPage = () => {
       )}
 
       {selectedTrip && (
-        <div className="erp-modal-backdrop" onClick={closeSave} role="presentation">
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) closeSave(); }}
+        >
           <div
             className="erp-modal"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >

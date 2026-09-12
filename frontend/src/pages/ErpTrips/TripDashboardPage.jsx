@@ -10,6 +10,7 @@ import {
   Rows3,
 } from 'lucide-react';
 import TripDashboardService from './TripDashboardService';
+import PlacementService from '../ErpPlacement/PlacementService';
 import ErpDashboardService from '../ErpHome/ErpDashboardService';
 import '../../styles/erp.css';
 import './TripPipeline.css';
@@ -125,14 +126,20 @@ const MiniLifecycle = ({ state }) => {
   const idx = stageIndex(state);
   return (
     <span className="trippipe-mini" title={idx < 0 ? 'Cancelled' : `Waiting on ${LIFECYCLE[idx]}`}>
-      {LIFECYCLE.map((label, i) => (
-        <span
-          key={label}
-          className={`trippipe-mini-seg ${
-            idx < 0 ? 'cancelled' : i < idx ? 'done' : i === idx ? 'current' : ''
-          }`}
-        />
-      ))}
+      <span className="trippipe-mini-segs">
+        {LIFECYCLE.map((label, i) => (
+          <span
+            key={label}
+            className={`trippipe-mini-seg ${
+              idx < 0 ? 'cancelled' : i < idx ? 'done' : i === idx ? 'current' : ''
+            }`}
+          />
+        ))}
+      </span>
+      {/* Eight dots alone do not say how far along a trip is. */}
+      <span className="trippipe-mini-count">
+        {idx < 0 ? 'cancelled' : `${idx} / ${LIFECYCLE.length}`}
+      </span>
     </span>
   );
 };
@@ -178,6 +185,12 @@ const TripDashboardPage = () => {
   const [search, setSearch] = useState('');
   const [submittedSearch, setSubmittedSearch] = useState('');
   const [state, setState] = useState('');
+  /* Placements held at approval. There is deliberately no trip row for these:
+     _createTrip runs on approval, not on placement, so the trip document does
+     not exist yet. They are shown as a separate pre-pipeline strip rather than
+     synthesised as trips, which would corrupt the stage counts and the
+     lifecycle bar below. */
+  const [pendingPlacements, setPendingPlacements] = useState([]);
 
   const fetchTrips = useCallback(
     async (page = 1) => {
@@ -211,15 +224,46 @@ const TripDashboardPage = () => {
       .catch(() => setSummary(null));
   }, []);
 
+  useEffect(() => {
+    PlacementService.getPlacements({ status: 'PENDING_APPROVAL', limit: 50 })
+      .then((res) => setPendingPlacements(res?.data || []))
+      .catch(() => setPendingPlacements([]));
+  }, []);
+
   const stats = useMemo(() => {
     const p = summary?.pendingCounts;
     if (!p) return [];
     const active = p.activeTrips || {};
+    /**
+     * Two rows, not seven equal cards.
+     *
+     * "Awaiting CN" is work for right now; "Awaiting payment" is a trip sitting
+     * with accounts. Giving them the same size and weight made the operator read
+     * seven numbers to find the one they act on. `lead: true` marks the headline
+     * figures — everything else is a stage filter of the same list.
+     */
+    const awaitingCn = p.pendingCns || 0;
+    const readyToClose = p.pendingTripClose || 0;
+    const awaitingPod = p.pendingPods || 0;
+
     return [
-      { key: '', label: 'All active', value: Object.values(active).reduce((a, b) => a + b, 0) },
-      { key: 'PLACED', label: 'Awaiting CN', value: p.pendingCns || 0, tone: 'attention' },
-      { key: 'DISPATCHED', label: 'Ready to close', value: p.pendingTripClose || 0, tone: 'attention' },
-      { key: 'TRIP_CLOSED', label: 'Awaiting POD', value: p.pendingPods || 0, tone: 'attention' },
+      {
+        key: '',
+        label: 'Active trips',
+        value: Object.values(active).reduce((a, b) => a + b, 0),
+        lead: true,
+      },
+      {
+        key: 'PLACED',
+        label: 'Need action now',
+        value: awaitingCn + readyToClose + awaitingPod,
+        tone: 'attention',
+        lead: true,
+        hint: 'CN, close or POD outstanding',
+      },
+      { key: 'PLACED', label: 'Awaiting CN', value: awaitingCn, tone: 'attention' },
+      { key: 'DISPATCHED', label: 'Ready to close', value: readyToClose, tone: 'attention' },
+      { key: 'TRIP_CLOSED', label: 'Awaiting POD', value: awaitingPod, tone: 'attention' },
       { key: 'POD_RECEIVED', label: 'To unload', value: p.pendingUnloadings || 0 },
       { key: 'UNLOADED', label: 'Ready to bill', value: active.UNLOADED || 0 },
       { key: 'BILLED', label: 'Awaiting payment', value: active.BILLED || 0, tone: 'idle' },
@@ -263,22 +307,104 @@ const TripDashboardPage = () => {
 
       {/* ── Situational awareness, before the table ── */}
       {stats.length > 0 && (
-        <div className="trippipe-summary">
-          {stats.map((s) => (
-            <button
-              key={s.label}
-              type="button"
-              className={`trippipe-stat ${s.tone || ''} ${state === s.key && s.key !== '' ? 'active' : ''} ${
-                s.key === '' && !state ? 'active' : ''
-              }`}
-              onClick={() => setState(s.key)}
-              aria-pressed={state === s.key}
-            >
-              <span className="trippipe-stat-value">{s.value}</span>
-              <span className="trippipe-stat-label">{s.label}</span>
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="trippipe-summary trippipe-summary--lead">
+            {stats.filter((s) => s.lead).map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className={`trippipe-stat lead ${s.tone || ''} ${
+                  s.key === '' && !state ? 'active' : ''
+                }`}
+                onClick={() => setState(s.key)}
+              >
+                <span className="trippipe-stat-value">{s.value}</span>
+                <span className="trippipe-stat-label">{s.label}</span>
+                {s.hint && <span className="trippipe-stat-hint">{s.hint}</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className="trippipe-stagerow">
+            <span className="trippipe-stagerow-label">By stage</span>
+            {stats.filter((s) => !s.lead).map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className={`trippipe-chip ${s.tone || ''} ${state === s.key ? 'active' : ''}`}
+                onClick={() => setState(state === s.key ? '' : s.key)}
+                aria-pressed={state === s.key}
+              >
+                {s.label}
+                <span className="trippipe-chip-count">{s.value}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Not in the pipeline yet ──
+          A placement waiting on approval has no trip row, so without this the
+          operator raises a placement and the pipeline looks unchanged. Kept out
+          of `stats` and the stage filters on purpose: these are not trips. */}
+      {pendingPlacements.length > 0 && (
+        <section className="trippipe-pending">
+          <header className="trippipe-pending-head">
+            <Clock size={15} />
+            <div>
+              <strong>
+                {pendingPlacements.length} placement
+                {pendingPlacements.length === 1 ? '' : 's'} awaiting approval
+              </strong>
+              <span className="erp-cell-muted">
+                These have no trip yet — one is created the moment approval clears.
+              </span>
+            </div>
+            <Link to="/erp/approvals" className="trippipe-pending-link">
+              Review approvals
+              <ArrowRight size={14} />
+            </Link>
+          </header>
+
+          <div className="erp-table-scroll">
+            <table className="erp-table compact">
+              <thead>
+                <tr>
+                  <th>Placement</th>
+                  <th>Delivery order</th>
+                  <th>Vehicle / vendor</th>
+                  <th>Planned</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingPlacements.map((p) => (
+                  <tr key={p._id}>
+                    <td className="erp-cell-strong">{p.placementNumber}</td>
+                    <td>
+                      <div>{p.doId?.doNumber || '—'}</div>
+                      <div className="erp-cell-muted">{p.doId?.material || ''}</div>
+                    </td>
+                    <td className="erp-cell-muted">
+                      {p.vehicleId?.registrationNumber
+                        || p.vendorId?.name
+                        || '—'}
+                    </td>
+                    <td>
+                      {p.plannedQty ?? '—'} {p.qtyUnit || ''}
+                    </td>
+                    <td>
+                      <span className="erp-badge warning">
+                        <Clock size={11} />
+                        Awaiting approval
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* ── Filters ── */}

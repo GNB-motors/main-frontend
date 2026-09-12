@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, FlaskConical, MapPin } from 'lucide-react';
 import SlideOver from './SlideOver';
+import PlaceLabel from '../ui/PlaceLabel';
 import { formatINR, formatLitres } from '../../utils/formatters';
 
 /**
@@ -132,7 +133,8 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
           <div className="cluster-inset p-4">
             <div className="cluster-eyebrow mb-2">Context</div>
             <p className="text-sm" style={{ color: 'var(--cluster-text)' }}>
-              Stopped {context.hotspot.durationMin} min at {context.hotspot.lat}°N {context.hotspot.lng}°E
+              Stopped {context.hotspot.durationMin} min at{' '}
+              <PlaceLabel lat={context.hotspot.lat} lng={context.hotspot.lng} showMap={false} />
               {' — '}{context.hotspot.name || 'known hotspot'}
             </p>
             <a

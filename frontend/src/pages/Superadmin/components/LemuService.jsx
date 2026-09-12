@@ -169,4 +169,61 @@ export const LemuService = {
             throw error.response?.data || { detail: "Could not rebuild the manifest." };
         }
     },
+
+    /**
+     * Fuel-integrity lineage for a vehicle in a given time window.
+     * @param {object} params - { registrationNumber, vehicleId, windowFrom, windowTo }
+     */
+    getFuelIntegrityLineage: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/lemu/lineage/fuel-integrity`, { params });
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching fuel-integrity lineage:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch fuel-integrity lineage." };
+        }
+    },
+
+    /**
+     * INFRA topology: hosts, stores, collections, tables, pipes, jobs —
+     * structure from config, state from timestamped measurements.
+     */
+    getTopology: async () => {
+        try {
+            const response = await apiClient.get(`/api/lemu/topology`);
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU topology:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch LEMU topology." };
+        }
+    },
+
+    /**
+     * Errors joined to the functions that raised them. Each group carries an
+     * explicit matchQuality ('exact' | 'file' | 'none'); 'none' groups attach
+     * to no node and are listed under `unattributed`.
+     * @param {object} params - { windowHours }
+     */
+    getErrorAttribution: async (params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/lemu/error-attribution`, { params });
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching LEMU error attribution:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch error attribution." };
+        }
+    },
+
+    /**
+     * ClickHouse warehouse freshness for mirrored collections.
+     */
+    getWarehouseFreshness: async () => {
+        try {
+            const response = await apiClient.get(`/api/lemu/warehouse-freshness`);
+            return response.data || {};
+        } catch (error) {
+            console.error("API Error fetching warehouse freshness:", error.response?.data || error.message);
+            throw error.response?.data || { detail: "Could not fetch warehouse freshness." };
+        }
+    },
 };

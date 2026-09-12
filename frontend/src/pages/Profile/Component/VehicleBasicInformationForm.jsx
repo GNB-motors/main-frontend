@@ -6,9 +6,7 @@ import '../../Drivers/Component/BasicInformationForm.css';
 const VehicleBasicInformationForm = forwardRef(({
   initialData = {},
   onSubmit,
-  onCancel,
-  isSubmitting = false,
-  isEdit = false
+  isSubmitting = false
 }, ref) => {
   const { isEnabled } = useFeatureFlags();
   const showExpectedMileage = isEnabled('mileageIntegrity');

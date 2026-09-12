@@ -3,9 +3,23 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 
 // Group order mirrors the sidebar (the catalog is one group per sidebar item).
 const GROUP_ORDER = [
-  'Overview', 'Vehicles', 'Workforce', 'ERP Home', 'Planning', 'Approvals', 'Pipeline',
-  'Billing & Receivables', 'Payables', 'Accounts & Ledger', 'Masters & Settings',
-  'Fleet Operations', 'Fuel Management', 'Locations', 'Geofence', 'Khata Ledger', 'Reports',
+  'Overview',
+  'Vehicles',
+  'Workforce',
+  'ERP Home',
+  'Planning',
+  'Approvals',
+  'Pipeline',
+  'Billing & Receivables',
+  'Payables',
+  'Accounts & Ledger',
+  'Masters & Settings',
+  'Fleet Operations',
+  'Fuel Management',
+  'Locations',
+  'Geofence',
+  'Khata Ledger',
+  'Reports',
 ];
 
 /* Binary pill toggle (reuses FeatureFlags switch styling). */
@@ -49,13 +63,16 @@ const GroupCheck = ({ state, onToggle, disabled }) => {
  * Props:
  *  - catalog:  [{ key, group, label, description }]
  *  - granted:  Set<string>  (currently-effective keys)
- *  - baseline: Set<string> | null  (enterprise default — when provided, leaves
- *              that differ from it show an "Override" chip; matching ones show
- *              "Inherited". null = no inheritance annotations, e.g. view mode.)
  *  - readOnly: bool
  *  - onToggleKey(key), onToggleGroup(items, allOn)
  */
-const PermissionTreeView = ({ catalog = [], granted, baseline = null, readOnly = false, onToggleKey, onToggleGroup }) => {
+const PermissionTreeView = ({
+  catalog = [],
+  granted,
+  readOnly = false,
+  onToggleKey,
+  onToggleGroup,
+}) => {
   const [collapsed, setCollapsed] = useState(new Set());
 
   const groups = useMemo(() => {
@@ -92,13 +109,6 @@ const PermissionTreeView = ({ catalog = [], granted, baseline = null, readOnly =
     return 'mixed';
   };
 
-  const sourceChip = (key) => {
-    if (!baseline) return null;
-    const overridden = granted.has(key) !== baseline.has(key);
-    if (overridden) return <span className="ac-chip ac-chip--override">Override</span>;
-    return <span className="ac-chip ac-chip--inherited">Inherited</span>;
-  };
-
   return (
     <>
       {groups.map(({ group, items }) => {
@@ -106,34 +116,54 @@ const PermissionTreeView = ({ catalog = [], granted, baseline = null, readOnly =
         const onCount = items.filter((p) => granted.has(p.key)).length;
         return (
           <div className="rbac-group" key={group}>
-            <div className="rbac-group__head" onClick={() => toggleCollapse(group)}>
+            <div
+              className="rbac-group__head"
+              role="button"
+              tabIndex={0}
+              onClick={() => toggleCollapse(group)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleCollapse(group);
+                }
+              }}
+            >
               <span className="rbac-group__title">
                 {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                 {group}
-                <span className="rbac-group__count">{onCount}/{items.length}</span>
+                <span className="rbac-group__count">
+                  {onCount}/{items.length}
+                </span>
               </span>
               <GroupCheck
                 state={groupState(items)}
-                onToggle={() => onToggleGroup && onToggleGroup(items, items.every((p) => granted.has(p.key)))}
+                onToggle={() =>
+                  onToggleGroup &&
+                  onToggleGroup(
+                    items,
+                    items.every((p) => granted.has(p.key)),
+                  )
+                }
                 disabled={readOnly}
               />
             </div>
-            {!isCollapsed && items.map((p) => (
-              <div className="rbac-perm" key={p.key}>
-                <div>
-                  <div className="rbac-perm__label">
-                    {p.label || p.key} {sourceChip(p.key)}
+            {!isCollapsed &&
+              items.map((p) => (
+                <div className="rbac-perm" key={p.key}>
+                  <div>
+                    <div className="rbac-perm__label">{p.label || p.key}</div>
+                    <div className="rbac-perm__desc">
+                      {p.description || <span className="rbac-perm__key">{p.key}</span>}
+                    </div>
                   </div>
-                  <div className="rbac-perm__desc">{p.description || <span className="rbac-perm__key">{p.key}</span>}</div>
+                  <Toggle
+                    checked={granted.has(p.key)}
+                    onChange={() => onToggleKey && onToggleKey(p.key)}
+                    disabled={readOnly}
+                    label={`Toggle ${p.label || p.key}`}
+                  />
                 </div>
-                <Toggle
-                  checked={granted.has(p.key)}
-                  onChange={() => onToggleKey && onToggleKey(p.key)}
-                  disabled={readOnly}
-                  label={`Toggle ${p.label || p.key}`}
-                />
-              </div>
-            ))}
+              ))}
           </div>
         );
       })}

@@ -30,11 +30,14 @@ const ErpDrawer = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="erp-drawer-backdrop" onClick={onClose} role="presentation">
+    <div
+      className="erp-drawer-backdrop"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="presentation"
+    >
       <div
         className="erp-drawer"
         style={{ maxWidth }}
-        onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >

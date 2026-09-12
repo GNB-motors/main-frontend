@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Grid, UserPlus, LogOut, ToggleRight, KeyRound, ShieldCheck, ScrollText, Database } from 'lucide-react';
+import { Grid, UserPlus, LogOut, ToggleRight, KeyRound, ShieldCheck, ScrollText, Database, Network } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
+import { clearSession } from '../../../utils/session';
 import './SuperAdminSidebar.css';
 
 const SuperAdminSidebar = ({ setSidebarOpen }) => {
@@ -9,7 +10,7 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
 
     const handleLogout = () => {
         // Clear all auth data
-        localStorage.clear();
+        clearSession();
         navigate('/login');
     };
 
@@ -56,6 +57,11 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
                     <NavLink to="/superadmin/lemu" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
                         <ScrollText size={20} />
                         <span>LEMU Logs</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/graph" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <Network size={20} />
+                        <span>Graph</span>
                     </NavLink>
 
                     <NavLink to="/superadmin/warehouse" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>

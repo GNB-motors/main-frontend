@@ -254,8 +254,12 @@ const LedgerPage = ({ embedded = false }) => {
       )}
 
       {showVoucher && (
-        <div className="erp-modal-backdrop" onClick={() => setShowVoucher(false)} role="presentation">
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()} role="dialog">
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowVoucher(false); }}
+        >
+          <div className="erp-modal" role="dialog">
             <div className="erp-modal-header">
               <h2>New voucher</h2>
               <button

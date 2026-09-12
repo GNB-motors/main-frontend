@@ -4,7 +4,14 @@ import { toast } from 'react-toastify';
 import KhataLedgerService from '../KhataLedgerService';
 import { getDriverName, getVehicleLabel } from '../utils';
 
-const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehicles = [], drivers = [] }) => {
+const AssignmentFormModal = ({
+  isOpen,
+  onClose,
+  onSaved,
+  editingAssignment,
+  vehicles = [],
+  drivers = [],
+}) => {
   const [form, setForm] = useState({
     driverId: '',
     vehicleId: '',
@@ -20,8 +27,12 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
       setForm({
         driverId: editingAssignment.driverId?._id || editingAssignment.driverId || '',
         vehicleId: editingAssignment.vehicleId?._id || editingAssignment.vehicleId || '',
-        startDate: editingAssignment.startDate ? new Date(editingAssignment.startDate).toISOString().split('T')[0] : '',
-        endDate: editingAssignment.endDate ? new Date(editingAssignment.endDate).toISOString().split('T')[0] : '',
+        startDate: editingAssignment.startDate
+          ? new Date(editingAssignment.startDate).toISOString().split('T')[0]
+          : '',
+        endDate: editingAssignment.endDate
+          ? new Date(editingAssignment.endDate).toISOString().split('T')[0]
+          : '',
         status: editingAssignment.status || 'ACTIVE',
         notes: editingAssignment.notes || '',
       });
@@ -75,10 +86,20 @@ const AssignmentFormModal = ({ isOpen, onClose, onSaved, editingAssignment, vehi
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color,#4f46e5)] focus:border-[var(--primary-color,#4f46e5)]';
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{editingAssignment ? 'Edit Assignment' : 'Add Assignment'}</h2>
+          <h2 className="text-lg font-semibold">
+            {editingAssignment ? 'Edit Assignment' : 'Add Assignment'}
+          </h2>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100">
             <X size={20} />
           </button>

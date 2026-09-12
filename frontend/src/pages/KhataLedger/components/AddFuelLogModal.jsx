@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import FuelLogForm from '@/components/FuelLogForm/FuelLogForm';
-import KhataLedgerService from '../KhataLedgerService';
+import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
 
 const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
   const [resolvedDriverId, setResolvedDriverId] = useState(driverId || '');
@@ -25,16 +31,17 @@ const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
       if (hasDriver && hasVehicle) return;
 
       try {
-        const assignment = await KhataLedgerService.getActiveAssignment({
+        const assignment = await DriverVehicleAssignmentService.getActiveAssignment({
           driverId: hasDriver ? driverId : undefined,
           vehicleId: hasVehicle ? vehicleId : undefined,
         });
 
         if (assignment) {
+          // driverId/vehicleId come back populated (objects), not bare ids.
           if (hasVehicle && !hasDriver) {
-            setResolvedDriverId(assignment.driverId || '');
+            setResolvedDriverId(DriverVehicleAssignmentService.idOf(assignment.driverId));
           } else if (hasDriver && !hasVehicle) {
-            setResolvedVehicleId(assignment.vehicleId || '');
+            setResolvedVehicleId(DriverVehicleAssignmentService.idOf(assignment.vehicleId));
           }
         }
       } catch (err) {
@@ -54,12 +61,18 @@ const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
+    >
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Fuel Log</DialogTitle>
           <DialogDescription>
-            Log a diesel fuel entry. The selected driver/vehicle context is prefilled from active assignments.
+            Log a diesel fuel entry. The selected driver/vehicle context is prefilled from active
+            assignments.
           </DialogDescription>
         </DialogHeader>
         <FuelLogForm

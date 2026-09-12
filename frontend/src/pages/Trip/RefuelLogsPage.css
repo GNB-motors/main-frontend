@@ -32,7 +32,6 @@
 }
 
 .refuel-tab {
-
   color: #666666;
 
   padding: 10px 24px;
@@ -43,7 +42,6 @@
   transition: all 0.2s ease;
   min-width: 100px;
 }
-
 
 .refuel-tab.active {
   background-color: var(--primary-color, var(--primary-color, #4f46e5));
@@ -67,7 +65,9 @@
   border-radius: 10px;
   border: 1px solid #dfdfe2;
   background: #ffffff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .refuel-search input {
@@ -120,7 +120,9 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .add-refuel-btn:hover {
@@ -284,7 +286,7 @@
   gap: 8px;
   margin-top: 18px;
   padding: 10px 22px;
-  background: var(--primary-color, #3B82F6);
+  background: var(--primary-color, #3b82f6);
   color: white;
   border: none;
   border-radius: 10px;
@@ -445,7 +447,9 @@
   color: #121214;
   background: #ffffff;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .refuel-form-group input:focus,
@@ -588,12 +592,26 @@
   transition: all 0.2s ease;
 }
 
-.refuel-pagination-btn:first-child { margin-right: 8px; }
-.refuel-pagination-btn:last-child  { margin-left: 8px; }
+.refuel-pagination-btn:first-child {
+  margin-right: 8px;
+}
+.refuel-pagination-btn:last-child {
+  margin-left: 8px;
+}
 
-.refuel-pagination-btn:hover:not(:disabled) { background: #f7f7f8; border-color: #d8d8db; }
-.refuel-pagination-btn:disabled { cursor: not-allowed; opacity: 0.4; }
-.refuel-pagination-btn svg { width: 12px; height: 12px; color: #121214; }
+.refuel-pagination-btn:hover:not(:disabled) {
+  background: #f7f7f8;
+  border-color: #d8d8db;
+}
+.refuel-pagination-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.refuel-pagination-btn svg {
+  width: 12px;
+  height: 12px;
+  color: #121214;
+}
 
 .refuel-page-number {
   width: 32px;
@@ -613,7 +631,7 @@
 
 .refuel-page-number span {
   text-align: center;
-  color: #5D5D5E;
+  color: #5d5d5e;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
@@ -621,7 +639,7 @@
 }
 
 .refuel-page-number:hover:not(.refuel-page-number-current) {
-  background: #F7F7F8;
+  background: #f7f7f8;
 }
 
 .refuel-page-number-current {
@@ -652,7 +670,7 @@
 
 .refuel-page-overflow span {
   text-align: center;
-  color: #5D5D5E;
+  color: #5d5d5e;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
@@ -800,7 +818,9 @@
   background: none;
   color: #6b7280;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .refuel-modal-close:hover {

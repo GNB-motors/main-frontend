@@ -250,8 +250,12 @@ const PlacementsPage = () => {
       </div>
 
       {target && (
-        <div className="erp-modal-backdrop" onClick={() => setTarget(null)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setTarget(null); }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>Delete {target.placementNumber}</h2>
               <button className="btn-icon" onClick={() => setTarget(null)}>

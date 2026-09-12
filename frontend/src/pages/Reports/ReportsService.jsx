@@ -72,7 +72,7 @@ export const ReportsService = {
             }
 
             // Call the new backend endpoint with optional params (removed businessRefId dependency)
-            const response = await apiClient.get(`/api/v1/reports/outliers`, { params });
+            const response = await apiClient.get(`/api/reports/outliers`, { params });
             // Ensure response.data is always an array
             return response.data || [];
         } catch (error) {

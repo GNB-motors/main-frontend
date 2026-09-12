@@ -7,6 +7,7 @@ import { Receipt, X, Printer, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SaleBillApi from './SaleBillService';
 import PageShell from '../../components/Erp/PageShell';
+import StatusBadge from '../../components/Erp/StatusBadge';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -389,7 +390,7 @@ const SaleBillsPage = ({ embedded = false }) => {
                     <td>{b.billDate ? new Date(b.billDate).toLocaleDateString('en-IN') : '—'}</td>
                     <td>{b.lines?.length ?? '—'}</td>
                     <td>{money(b.netAmount)}</td>
-                    <td>{b.status}</td>
+                    <td><StatusBadge status={b.status} /></td>
                     <td>
                       <button type="button" className="erp-btn" onClick={() => openDetail(b._id)}>
                         View
@@ -597,7 +598,7 @@ const SaleBillsPage = ({ embedded = false }) => {
             </div>
             <div className="erp-form">
               <p>
-                Party: {detail.partyId?.name} · Status: {detail.status} · Net:{' '}
+                Party: {detail.partyId?.name} · Status: <StatusBadge status={detail.status} /> · Net:{' '}
                 {money(detail.netAmount)}
               </p>
               <div className="erp-table-wrap">

@@ -14,6 +14,7 @@ export const CALL_OUTCOMES = [
   {
     value: 'SURE_ORDER',
     label: 'Sure Order',
+    blurb: 'Customer confirmed an order',
     needsRemark: false,
     needsNextDate: false,
     tone: 'success',
@@ -21,6 +22,7 @@ export const CALL_OUTCOMES = [
   {
     value: 'FOLLOW_UP',
     label: 'Follow Up',
+    blurb: 'Talk again on a later date',
     needsRemark: true,
     needsNextDate: true,
     tone: 'warning',
@@ -28,6 +30,7 @@ export const CALL_OUTCOMES = [
   {
     value: 'NO_RESPONSE',
     label: 'No Response',
+    blurb: 'Could not reach the customer',
     needsRemark: true,
     needsNextDate: true,
     tone: 'warning',
@@ -35,6 +38,7 @@ export const CALL_OUTCOMES = [
   {
     value: 'NO_ORDER',
     label: 'No Order',
+    blurb: 'Customer did not place an order',
     needsRemark: true,
     needsNextDate: false,
     tone: 'danger',

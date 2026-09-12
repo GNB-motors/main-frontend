@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 
 const unwrap = (res) => res.data?.data || res.data;
 
@@ -61,41 +62,15 @@ const KhataLedgerService = {
     return unwrap(response);
   },
 
-  // Driver-vehicle assignments
-  getAssignments: async (params = {}) => {
-    const response = await apiClient.get('/api/driver-vehicle-assignments', { params });
-    return unwrap(response);
-  },
-
-  createAssignment: async (data) => {
-    const response = await apiClient.post('/api/driver-vehicle-assignments', data);
-    return unwrap(response);
-  },
-
-  updateAssignment: async (id, data) => {
-    const response = await apiClient.put(`/api/driver-vehicle-assignments/${id}`, data);
-    return unwrap(response);
-  },
-
-  endAssignment: async (id) => {
-    const response = await apiClient.post(`/api/driver-vehicle-assignments/${id}/end`);
-    return unwrap(response);
-  },
-
-  deleteAssignment: async (id) => {
-    const response = await apiClient.delete(`/api/driver-vehicle-assignments/${id}`);
-    return response.data;
-  },
-
-  getActiveAssignment: async ({ driverId, vehicleId } = {}) => {
-    const params = { activeOn: new Date().toISOString() };
-    if (driverId) params.driverId = driverId;
-    if (vehicleId) params.vehicleId = vehicleId;
-    const response = await apiClient.get('/api/driver-vehicle-assignments', { params });
-    const data = unwrap(response);
-    const list = data?.results || data?.items || data || [];
-    return Array.isArray(list) && list.length ? list[0] : null;
-  },
+  // Driver-vehicle assignments — implementation lives in the shared
+  // DriverVehicleAssignmentService (also used by the Employee page); kept
+  // re-exported here so existing Khata Ledger call sites are unaffected.
+  getAssignments: DriverVehicleAssignmentService.getAssignments,
+  createAssignment: DriverVehicleAssignmentService.createAssignment,
+  updateAssignment: DriverVehicleAssignmentService.updateAssignment,
+  endAssignment: DriverVehicleAssignmentService.endAssignment,
+  deleteAssignment: DriverVehicleAssignmentService.deleteAssignment,
+  getActiveAssignment: DriverVehicleAssignmentService.getActiveAssignment,
 };
 
 export default KhataLedgerService;

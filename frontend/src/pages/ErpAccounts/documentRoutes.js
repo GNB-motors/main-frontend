@@ -60,12 +60,14 @@ export const documentPathFor = (sourceType, sourceId, extra = {}) => {
     case 'SUPPLIER_INVOICE':
       return sourceId ? `/erp/payables/supplier-invoice/${sourceId}` : null;
 
-    // All four resolve to a Voucher document.
+    // All four resolve to a Voucher document. Carry the real subtype so the
+    // detail page makes ONE activity call, not up to four probes to rediscover
+    // a type already known here.
     case 'RECEIPT':
     case 'PAYMENT':
     case 'ON_ACCOUNT':
     case 'JOURNAL':
-      return sourceId ? `/erp/accounts/voucher/${sourceId}` : null;
+      return sourceId ? `/erp/accounts/voucher/${sourceId}?type=${sourceType}` : null;
 
     // Advances belong to a trip, not to a document of their own.
     case 'ADVANCE':

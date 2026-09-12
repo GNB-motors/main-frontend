@@ -61,6 +61,7 @@ const SlotUpload = ({ docType, title, label, inputId, required, doc, isScanning,
         /* ── Empty / drag-drop state ── */
         <div
           className={`slot-dropzone ${isDragging ? 'dragging' : ''}`}
+          role="presentation"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -175,7 +176,7 @@ const SlotUpload = ({ docType, title, label, inputId, required, doc, isScanning,
   );
 };
 
-const FixedDocumentsSection = ({ fixedDocs, setFixedDocs, ocrScanning, setOcrScanning, onOcrPreview }) => {
+const FixedDocumentsSection = ({ fixedDocs, setFixedDocs, ocrScanning, setOcrScanning }) => {
   const [, setOcrResults] = useState({ odometer: null, fuel: null });
 
   const handleFixedDocDrop = useCallback(async (docType, files) => {

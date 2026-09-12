@@ -6,12 +6,14 @@
  * one it supersedes so a lookup always has a single answer.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, IndianRupee, Trash2, X, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import RateMasterService from './RateMasterService';
 import PartyService from './PartyService';
+import useApi from '../../hooks/useApi';
+import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
 const UNITS = [
@@ -35,56 +37,64 @@ const RatesPage = () => {
   const [rates, setRates] = useState([]);
   const [parties, setParties] = useState([]);
   const [routes, setRoutes] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [partyFilter, setPartyFilter] = useState('');
+  const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const fetchRates = useCallback(async (partyId = '', page = 1) => {
-    setLoading(true);
-    try {
-      const res = await RateMasterService.getRates({
+  const {
+    data: ratesResponse,
+    loading,
+    error: ratesError,
+    refetch: refetchRates,
+  } = useApi(
+    () =>
+      RateMasterService.getRates({
         rateType: 'SB',
-        ...(partyId ? { partyId } : {}),
+        ...(partyFilter ? { partyId: partyFilter } : {}),
         page,
         limit: 20,
-      });
-      setRates(res.data || []);
-      setMeta(res.meta || { total: 0, page: 1, limit: 20, totalPages: 0 });
-    } catch (err) {
-      if (err.status === 404) {
-        toast.error('ERP Masters is not enabled for your organization');
-      } else {
-        toast.error(err.message);
-      }
-      setRates([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      }),
+    [JSON.stringify({ partyId: partyFilter, page })],
+  );
 
-  const fetchOptions = useCallback(async () => {
-    try {
-      const res = await PartyService.getParties({ status: 'ACTIVE', limit: 200 });
-      setParties(res.data || []);
-    } catch {
-      setParties([]);
-    }
-    try {
-      const res = await apiClient.get('/api/routes', { params: { limit: 200 } });
-      setRoutes(res.data?.data || []);
-    } catch {
-      setRoutes([]);
-    }
-  }, []);
+  const { data: partiesResponse } = useApi(
+    () => PartyService.getParties({ status: 'ACTIVE', limit: 200 }),
+    [],
+  );
+
+  const { data: routesResponse } = useApi(
+    (signal) => apiClient.get('/api/routes', { params: { limit: 200 }, signal }),
+    [],
+  );
 
   useEffect(() => {
-    fetchRates(partyFilter);
-    fetchOptions();
-  }, [fetchRates, fetchOptions, partyFilter]);
+    if (ratesResponse) {
+      setRates(ratesResponse.data || []);
+      setMeta(ratesResponse.meta || { total: 0, page: 1, limit: 20, totalPages: 0 });
+    }
+  }, [ratesResponse]);
+
+  useEffect(() => {
+    if (partiesResponse) setParties(partiesResponse.data || []);
+  }, [partiesResponse]);
+
+  useEffect(() => {
+    if (routesResponse) setRoutes(routesResponse.data?.data || []);
+  }, [routesResponse]);
+
+  useEffect(() => {
+    if (!ratesError) return;
+    if (ratesError.status === 404) {
+      toast.error('ERP Masters is not enabled for your organization');
+    } else {
+      toast.error(ratesError.message);
+    }
+    setRates([]);
+  }, [ratesError]);
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -113,7 +123,7 @@ const RatesPage = () => {
       });
       toast.success('Rate saved');
       setShowModal(false);
-      fetchRates(partyFilter, meta.page);
+      refetchRates();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -126,7 +136,7 @@ const RatesPage = () => {
     try {
       await RateMasterService.deactivateRate(rate._id);
       toast.success('Rate deactivated');
-      fetchRates(partyFilter, meta.page);
+      refetchRates();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -138,27 +148,24 @@ const RatesPage = () => {
   const dateLabel = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '—');
 
   return (
-    <div className="erp-page">
-      <div className="erp-header">
-        <div>
-          <h1>Rate Master</h1>
-          <p className="erp-subtitle">
-            Sale rates by party, route and material — delivery orders resolve against these
-          </p>
-        </div>
-        <div className="erp-header-actions">
-          <button className="btn btn-primary" onClick={openCreate}>
-            <Plus size={18} />
-            Add Rate
-          </button>
-        </div>
-      </div>
-
+    <PageShell
+      title="Rate Master"
+      subtitle="Sale rates by party, route and material — delivery orders resolve against these"
+      actions={
+        <button className="btn btn-primary" onClick={openCreate}>
+          <Plus size={18} />
+          Add Rate
+        </button>
+      }
+    >
       <div className="erp-toolbar">
         <select
           className="erp-filter"
           value={partyFilter}
-          onChange={(e) => setPartyFilter(e.target.value)}
+          onChange={(e) => {
+            setPartyFilter(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="">All parties</option>
           {parties.map((p) => (
@@ -242,7 +249,7 @@ const RatesPage = () => {
                 <button
                   className="btn btn-secondary"
                   disabled={meta.page === 1}
-                  onClick={() => fetchRates(partyFilter, meta.page - 1)}
+                  onClick={() => setPage(meta.page - 1)}
                 >
                   Previous
                 </button>
@@ -252,7 +259,7 @@ const RatesPage = () => {
                 <button
                   className="btn btn-secondary"
                   disabled={meta.page === meta.totalPages}
-                  onClick={() => fetchRates(partyFilter, meta.page + 1)}
+                  onClick={() => setPage(meta.page + 1)}
                 >
                   Next
                 </button>
@@ -263,8 +270,14 @@ const RatesPage = () => {
       </div>
 
       {showModal && (
-        <div className="erp-modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>Add Rate</h2>
               <button className="btn-icon" onClick={() => setShowModal(false)}>
@@ -277,8 +290,8 @@ const RatesPage = () => {
                 <div className="erp-callout info">
                   <Info size={16} />
                   <span>
-                    Adding a rate for a combination that already has one closes the older rate
-                    on this date. Orders already raised keep the rate they were created with.
+                    Adding a rate for a combination that already has one closes the older rate on
+                    this date. Orders already raised keep the rate they were created with.
                   </span>
                 </div>
 
@@ -403,7 +416,7 @@ const RatesPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

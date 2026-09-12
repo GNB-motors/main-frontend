@@ -1,798 +1,428 @@
-import ReactDOM from 'react-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 // Profile context removed - vehicles page should render independently
-import { getPrimaryColor, getThemeCSS } from '../../utils/colorTheme.js';
+import { getThemeCSS } from '../../utils/colorTheme.js';
 import './ProfilePage.css';
 import './VehiclesPage.css';
 
 // Import assets and icons
-import { Plus, Edit, Trash2, MoreHorizontal, Upload, ToggleRight } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import NewButton from '@/components/ui/NewButton';
+import PageShell from '../../components/ui/PageShell';
+import FilterBar from '../../components/ui/FilterBar';
+import DataTable from '../../components/ui/DataTable';
+import ExportButton from '../../components/ui/ExportButton';
 
 // Import the services
 import { VehicleService } from './VehicleService.jsx';
 import { listAccounts } from './FleetEdgeAccountService.jsx';
-
-// --- Delete Vehicle Modal Component ---
-const DeleteVehicleModal = ({ isOpen, onClose, onConfirm, vehicle, isLoading: isDeleting }) => {
-    if (!isOpen || !vehicle) return null;
-
-    return (
-        <div className="vehicle-delete-modal-overlay" onClick={onClose}>
-            <div className="vehicle-delete-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="vehicle-delete-modal-header">
-                    <h4>Delete Vehicle</h4>
-                    <button onClick={onClose} className="vehicle-delete-modal-close-btn">&times;</button>
-                </div>
-                
-                <div className="vehicle-delete-content">
-                    <div className="vehicle-delete-warning">
-                        <div className="vehicle-delete-warning-icon">⚠️</div>
-                        <p>This action cannot be undone. The vehicle will be permanently removed from the system.</p>
-                    </div>
-                    
-                    <div className="vehicle-delete-vehicle-info">
-                        <div className="vehicle-delete-info">
-                            <div className="vehicle-delete-details">
-                                <span className="vehicle-delete-registration">{vehicle.registration_no}</span>
-                                <span className="vehicle-delete-type">{vehicle.vehicle_type || 'Unknown Type'}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="vehicle-delete-modal-actions">
-                    <NewButton
-                        variant="secondary"
-                        size="md"
-                        type="button"
-                        text="Cancel"
-                        onClick={onClose}
-                        disabled={isDeleting}
-                    />
-                    <NewButton
-                        variant="danger"
-                        size="md"
-                        type="button"
-                        text="Delete Vehicle"
-                        onClick={() => onConfirm(vehicle.id)}
-                        loading={isDeleting}
-                    />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-
-// --- Vehicles Page Component ---
-
-/**
- * VehicleActionMenu
- * Stateless wrapper that owns the triggerRef for the PortalDropdown.
- * Keeps the portal trigger and its ref co-located.
- */
-function VehicleActionMenu({ vehicle, isOpen, onToggle, onClose, isSubmitting, onEdit, onDelete, onActivateHere }) {
-    const btnRef = React.useRef(null);
-    // A vehicle deactivated here (moved to another location) can't be edited here —
-    // the only action is to activate it back into this location.
-    const isDeactivatedHere = vehicle?.branchStatus === 'DEACTIVATED';
-
-    return (
-        <div className="vehicle-action-menu-container">
-            <button
-                ref={btnRef}
-                className="vehicle-actions-menu-btn"
-                onClick={onToggle}
-                disabled={isSubmitting}
-                title="Actions"
-            >
-                <MoreHorizontal size={18} />
-            </button>
-            <PortalDropdown triggerRef={btnRef} isOpen={isOpen} onClose={onClose}>
-                {isDeactivatedHere ? (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onClose();
-                            onActivateHere();
-                        }}
-                        disabled={isSubmitting}
-                    >
-                        <ToggleRight size={16} /> Mark as active
-                    </button>
-                ) : (
-                    <>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onClose();
-                                onEdit();
-                            }}
-                            disabled={isSubmitting}
-                        >
-                            <Edit size={16} /> Edit
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onClose();
-                                onDelete();
-                            }}
-                            disabled={isSubmitting}
-                        >
-                            <Trash2 size={16} /> Remove
-                        </button>
-                    </>
-                )}
-            </PortalDropdown>
-        </div>
-    );
-}
-
-
-/**
- * PortalDropdown
- * Renders the actions menu via ReactDOM.createPortal into document.body.
- *
- * WHY: The vehicles table uses `overflow-y: auto` on tbody and `overflow: hidden`
- * on td. Any position:absolute child is clipped to those scroll containers
- * regardless of z-index. Portaling to body bypasses all overflow constraints.
- *
- * The menu is positioned by reading the trigger button's getBoundingClientRect()
- * and converting to fixed-position coordinates.
- */
-function PortalDropdown({ triggerRef, isOpen, onClose, children }) {
-    const [coords, setCoords] = React.useState({ top: 0, left: 0 });
-
-    React.useEffect(() => {
-        if (!isOpen || !triggerRef.current) return;
-
-        const updatePosition = () => {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setCoords({
-                top: rect.bottom + window.scrollY + 4,   // 4px gap below button
-                left: rect.right + window.scrollX,       // right-align to button edge
-            });
-        };
-
-        updatePosition();
-
-        // Reposition on scroll or resize so it doesn't detach
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-        return () => {
-            window.removeEventListener('scroll', updatePosition, true);
-            window.removeEventListener('resize', updatePosition);
-        };
-    }, [isOpen, triggerRef]);
-
-    // Close when clicking outside
-    React.useEffect(() => {
-        if (!isOpen) return;
-        const handleOutside = (e) => {
-            if (triggerRef.current && !triggerRef.current.contains(e.target)) {
-                onClose();
-            }
-        };
-        document.addEventListener('mousedown', handleOutside);
-        return () => document.removeEventListener('mousedown', handleOutside);
-    }, [isOpen, onClose, triggerRef]);
-
-    if (!isOpen) return null;
-
-    return ReactDOM.createPortal(
-        <div
-            className="vehicle-actions-menu"
-            style={{
-                position: 'absolute',
-                top: coords.top,
-                left: coords.left,
-                transform: 'translateX(-100%)', // right-align: shift left by own width
-                zIndex: 99999,
-                margin: 0,
-            }}
-            // Stop clicks inside the menu from bubbling to document (closing it)
-            onMouseDown={(e) => e.stopPropagation()}
-        >
-            {children}
-        </div>,
-        document.body
-    );
-}
+import { getToken, getProfileField } from '../../utils/session.js';
+import { DeleteVehicleModal } from './VehicleModals.jsx';
+import { useVehicleColumns } from './useVehicleColumns.jsx';
+import {
+  normalizeVehicle,
+  buildAccountMap,
+  filterVehicles,
+  VEHICLE_EXPORT_COLUMNS,
+  mapVehicleForExport,
+  vehicleExportMeta,
+} from './vehicleList.js';
 
 const VehiclesPage = () => {
-    const navigate = useNavigate();
-    // Try to read business ref id from localStorage as a fallback when profile context is absent
-    const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
-    const [vehicles, setVehicles] = useState([]);
-    const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
-    const [vehicleError, setVehicleError] = useState(null);
-    const [formError, setFormError] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [refreshKey, setRefreshKey] = useState(0);
-    const [openMenuId, setOpenMenuId] = useState(null);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingVehicle, setEditingVehicle] = useState(null);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [deletingVehicle, setDeletingVehicle] = useState(null);
-    const [searchVehicleNo, setSearchVehicleNo] = useState('');
-    const [themeColors, setThemeColors] = useState(getThemeCSS());
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(10);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalVehicles, setTotalVehicles] = useState(0);
-    const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
-    const [accountFilter, setAccountFilter] = useState('all'); // 'all' | 'untagged' | <accountId>
+  const navigate = useNavigate();
+  // Try to read business ref id from session storage as a fallback when profile context is absent
+  const businessRefId = getProfileField('business_ref_id') || null;
+  const [vehicles, setVehicles] = useState([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+  const [vehicleError, setVehicleError] = useState(null);
+  const [formError, setFormError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingVehicle, setDeletingVehicle] = useState(null);
+  const [searchVehicleNo, setSearchVehicleNo] = useState('');
+  const [themeColors, setThemeColors] = useState(getThemeCSS());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalVehicles, setTotalVehicles] = useState(0);
+  const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
+  const [accountFilter, setAccountFilter] = useState('all'); // 'all' | 'untagged' | <accountId>
 
-    // Update theme colors when component mounts
-    useEffect(() => {
-        setThemeColors(getThemeCSS());
-    }, []);
+  // Update theme colors when component mounts
+  useEffect(() => {
+    setThemeColors(getThemeCSS());
+  }, []);
 
-    // Remove global page-content padding only for this page
-    useEffect(() => {
-        const pageContentEl = document.querySelector('.page-content');
-        if (pageContentEl) {
-            pageContentEl.classList.add('no-padding');
-        }
-        return () => {
-            if (pageContentEl) {
-                pageContentEl.classList.remove('no-padding');
-            }
-        };
-    }, []);
-
-    // Handle click outside to close dropdown
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            // Check if click is outside the actions menu and button
-            const isClickOnMenu = event.target.closest('.vehicle-actions-menu');
-            const isClickOnButton = event.target.closest('.vehicle-actions-menu-btn');
-            
-            if (openMenuId && !isClickOnMenu && !isClickOnButton) {
-                setOpenMenuId(null);
-            }
-        };
-
-        if (openMenuId) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [openMenuId]);
-
-    // --- Fetch Vehicles ---
-    useEffect(() => {
-        const fetchVehicles = async () => {
-            setIsLoadingVehicles(true);
-            setVehicleError(null);
-            const token = localStorage.getItem('authToken');
-            try {
-                const result = await VehicleService.getAllVehicles(businessRefId, token, currentPage, itemsPerPage);
-                // Normalize API vehicle shape (camelCase) to UI expected snake_case
-                const normalized = (result.data || []).map(v => ({
-                    id: v._id || v.id || v._id, // keep id if present
-                    registration_no: v.registrationNumber || v.registration_no || v.registrationNumber,
-                    vehicle_type: v.vehicleType || v.vehicle_type || '',
-                    chassis_number: v.chassisNumber || v.chassis_number || '',
-                    model: v.model || '',
-                    status: v.status || '',
-                    inventory: v.inventory || [],
-                    // New classification fields
-                    manufacturer: v.manufacturer || null,
-                    vehicleCategory: v.vehicleCategory || null,
-                    classification: v.classification || null,
-                    fleetEdgeAccountId: v.fleetEdgeAccountId || null,
-                    // Branch membership state (present only in a branch view).
-                    branchStatus: v.branchStatus,
-                    isImported: v.isImported,
-                }));
-
-                // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
-                try {
-                    const accounts = await listAccounts(token);
-                    setFleetEdgeAccounts(accounts || []);
-                } catch (_) { /* non-fatal */ }
-                setVehicles(normalized);
-                setTotalPages(result.meta.totalPages);
-                setTotalVehicles(result.meta.total);
-            } catch (apiError) {
-                console.error('Failed to fetch vehicles:', apiError);
-                setVehicleError(apiError?.detail || 'Failed to load vehicles.');
-            } finally {
-                setIsLoadingVehicles(false);
-            }
-        };
-        fetchVehicles();
-    }, [businessRefId, currentPage, itemsPerPage, refreshKey]);
-
-    // --- Add Vehicle ---
-    const handleAddVehicle = async (vehicleData) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            toast.warn('No auth token found. Request may fail.');
-        }
-        setIsSubmitting(true);
-        setFormError(null);
-        try {
-            console.log('Adding vehicle with data:', vehicleData);
-            const addedVehicle = await VehicleService.addVehicle(businessRefId, vehicleData, token);
-            console.log('Vehicle added, API response:', addedVehicle);
-            
-            // Normalize returned vehicle to UI shape
-            const nv = {
-                id: addedVehicle._id || addedVehicle.id,
-                registration_no: addedVehicle.registrationNumber || addedVehicle.registration_no || vehicleData.registration_no,
-                vehicle_type: addedVehicle.vehicleType || addedVehicle.vehicle_type || '',
-                chassis_number: addedVehicle.chassisNumber || addedVehicle.chassis_number || vehicleData.chassis_number,
-                model: addedVehicle.model || vehicleData.model || '',
-                status: addedVehicle.status || 'AVAILABLE',
-                inventory: addedVehicle.inventory || [],
-                // New classification fields
-                manufacturer: addedVehicle.manufacturer || null,
-                vehicleCategory: addedVehicle.vehicleCategory || null,
-                classification: addedVehicle.classification || null,
-            };
-            console.log('Normalized vehicle for UI:', nv);
-            setVehicles(prevVehicles => [...prevVehicles, nv]);
-            setIsAddModalOpen(false);
-            toast.success(`Vehicle "${vehicleData.registration_no}" added successfully!`);
-        } catch (apiError) {
-            console.error("Failed to add vehicle:", apiError);
-            throw apiError;
-        } finally {
-            setIsSubmitting(false);
-        }
+  // Remove global page-content padding only for this page
+  useEffect(() => {
+    const pageContentEl = document.querySelector('.page-content');
+    if (pageContentEl) {
+      pageContentEl.classList.add('no-padding');
+    }
+    return () => {
+      if (pageContentEl) {
+        pageContentEl.classList.remove('no-padding');
+      }
     };
+  }, []);
 
-    // --- Remove Vehicle ---
-    const handleRemoveVehicle = async (vehicleIdToRemove) => {
-        setFormError(null);
-        setIsSubmitting(true);
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is outside the actions menu and button
+      const isClickOnMenu = event.target.closest('.vehicle-actions-menu');
+      const isClickOnButton = event.target.closest('.vehicle-actions-menu-btn');
+
+      if (openMenuId && !isClickOnMenu && !isClickOnButton) {
         setOpenMenuId(null);
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            toast.warn('No auth token found. Request may fail.');
-        }
-        const originalVehicles = [...vehicles];
-        const removedVehicle = vehicles.find(v => v.id === vehicleIdToRemove);
-        setVehicles(prevVehicles => prevVehicles.filter(v => v.id !== vehicleIdToRemove));
+      }
+    };
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuId]);
+
+  // --- Fetch Vehicles ---
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      setIsLoadingVehicles(true);
+      setVehicleError(null);
+      const token = getToken();
+      try {
+        const result = await VehicleService.getAllVehicles(
+          businessRefId,
+          token,
+          currentPage,
+          itemsPerPage,
+        );
+        // Normalize API vehicle shape (camelCase) to UI expected snake_case
+        const normalized = (result.data || []).map(normalizeVehicle);
+
+        // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
         try {
-            await VehicleService.removeVehicle(businessRefId, vehicleIdToRemove, token);
-            toast.success(`Vehicle "${removedVehicle?.registration_no || vehicleIdToRemove}" removed successfully!`);
-            setIsDeleteModalOpen(false);
-            setDeletingVehicle(null);
-        } catch (apiError) {
-            console.error("Failed to remove vehicle:", apiError);
-            const errorMessage = apiError?.detail || "Could not remove vehicle.";
-            setFormError(errorMessage);
-            toast.error(errorMessage);
-            setVehicles(originalVehicles);
-        } finally {
-            setIsSubmitting(false);
+          const accounts = await listAccounts(token);
+          setFleetEdgeAccounts(accounts || []);
+        } catch {
+          /* non-fatal */
         }
+        setVehicles(normalized);
+        setTotalPages(result.meta.totalPages);
+        setTotalVehicles(result.meta.total);
+      } catch (apiError) {
+        console.error('Failed to fetch vehicles:', apiError);
+        setVehicleError(apiError?.detail || 'Failed to load vehicles.');
+      } finally {
+        setIsLoadingVehicles(false);
+      }
     };
+    fetchVehicles();
+  }, [businessRefId, currentPage, itemsPerPage, refreshKey]);
 
-    // --- Edit Vehicle ---
-    // Activate a deactivated (moved-away) vehicle back into the current location.
-    // Re-import moves it here (active here, deactivated where it was).
-    const handleActivateHere = async (vehicle) => {
-        const token = localStorage.getItem('authToken');
-        try {
-            await VehicleService.importVehicle(vehicle.id, token);
-            toast.success('Vehicle activated in this location');
-            setRefreshKey((k) => k + 1);
-        } catch (err) {
-            toast.error(err?.detail || err?.message || 'Could not activate vehicle here');
+  // --- Remove Vehicle ---
+  const handleRemoveVehicle = async (vehicleIdToRemove) => {
+    setFormError(null);
+    setIsSubmitting(true);
+    setOpenMenuId(null);
+    const token = getToken();
+    if (!token) {
+      toast.warn('No auth token found. Request may fail.');
+    }
+    const originalVehicles = [...vehicles];
+    const removedVehicle = vehicles.find((v) => v.id === vehicleIdToRemove);
+    setVehicles((prevVehicles) => prevVehicles.filter((v) => v.id !== vehicleIdToRemove));
+    try {
+      await VehicleService.removeVehicle(businessRefId, vehicleIdToRemove, token);
+      toast.success(
+        `Vehicle "${removedVehicle?.registration_no || vehicleIdToRemove}" removed successfully!`,
+      );
+      setIsDeleteModalOpen(false);
+      setDeletingVehicle(null);
+    } catch (apiError) {
+      console.error('Failed to remove vehicle:', apiError);
+      const errorMessage = apiError?.detail || 'Could not remove vehicle.';
+      setFormError(errorMessage);
+      toast.error(errorMessage);
+      setVehicles(originalVehicles);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- Edit Vehicle ---
+  // Activate a deactivated (moved-away) vehicle back into the current location.
+  // Re-import moves it here (active here, deactivated where it was).
+  const handleActivateHere = async (vehicle) => {
+    const token = getToken();
+    try {
+      await VehicleService.importVehicle(vehicle.id, token);
+      toast.success('Vehicle activated in this location');
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      toast.error(err?.detail || err?.message || 'Could not activate vehicle here');
+    }
+  };
+
+  // --- Open Delete Modal ---
+  const handleOpenDeleteModal = (vehicleToDelete) => {
+    setDeletingVehicle(vehicleToDelete);
+    setIsDeleteModalOpen(true);
+    setOpenMenuId(null);
+  };
+
+  // Build a map from accountId → account for fast lookup
+  const accountMap = useMemo(() => buildAccountMap(fleetEdgeAccounts), [fleetEdgeAccounts]);
+
+  // --- Filter vehicles by registration number + account ---
+  const filteredVehicles = useMemo(
+    () => filterVehicles(vehicles, { search: searchVehicleNo, accountFilter }),
+    [vehicles, searchVehicleNo, accountFilter],
+  );
+
+  const exportRows = useMemo(
+    () => filteredVehicles.map((v) => mapVehicleForExport(v, accountMap)),
+    [filteredVehicles, accountMap],
+  );
+
+  // Generate page numbers for pagination (similar to DriversPage)
+  const generatePageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 7;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 4) {
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i);
         }
-    };
-
-    const handleEditVehicle = (vehicleToEdit) => {
-        console.log("Attempting to edit vehicle:", vehicleToEdit);
-        setOpenMenuId(null);
-        setEditingVehicle(vehicleToEdit);
-        setIsEditModalOpen(true);
-        setFormError(null);
-    };
-
-    // --- Open Delete Modal ---
-    const handleOpenDeleteModal = (vehicleToDelete) => {
-        setDeletingVehicle(vehicleToDelete);
-        setIsDeleteModalOpen(true);
-        setOpenMenuId(null);
-    };
-
-    // --- Update Vehicle ---
-    const handleUpdateVehicle = async (vehicleData) => {
-        setFormError(null);
-        setIsSubmitting(true);
-        
-        const token = localStorage.getItem('authToken');
-        
-        if (!token) {
-            toast.warn('No auth token found. Request may fail.');
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pages.push(i);
         }
-        if (!editingVehicle) {
-            setFormError('No vehicle selected for editing.');
-            setIsSubmitting(false);
-            return;
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
         }
-        
-        try {
-            const updatedVehicle = await VehicleService.updateVehicle(
-                businessRefId,
-                // pass the DB id (ObjectId) as required by PATCH /vehicles/{id}
-                editingVehicle.id || editingVehicle._id || editingVehicle.registration_no,
-                vehicleData,
-                token
-            );
-            
-            // Normalize the updated vehicle response
-            const normalizedUpdated = {
-                id: updatedVehicle._id || updatedVehicle.id || editingVehicle.id,
-                registration_no: updatedVehicle.registrationNumber || updatedVehicle.registration_no || vehicleData.registration_no,
-                vehicle_type: updatedVehicle.vehicleType || updatedVehicle.vehicle_type || '',
-                chassis_number: updatedVehicle.chassisNumber || updatedVehicle.chassis_number || vehicleData.chassis_number,
-                model: updatedVehicle.model || vehicleData.model,
-                status: updatedVehicle.status || editingVehicle.status || '',
-                inventory: updatedVehicle.inventory || [],
-                manufacturer: updatedVehicle.manufacturer || null,
-                vehicleCategory: updatedVehicle.vehicleCategory || null,
-                classification: updatedVehicle.classification || null,
-            };
-            
-            setVehicles(prevVehicles => 
-                prevVehicles.map(v => 
-                    v.id === editingVehicle.id ? normalizedUpdated : v
-                )
-            );
-            
-            setIsEditModalOpen(false);
-            setEditingVehicle(null);
-            toast.success(`Vehicle "${vehicleData.registration_no}" updated successfully!`);
-            console.log("Vehicle updated successfully:", normalizedUpdated);
-        } catch (apiError) {
-            console.error("Failed to update vehicle:", apiError);
-            const errorMessage = apiError?.detail || "Could not update vehicle.";
-            setFormError(errorMessage);
-            toast.error(errorMessage);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
 
-    // Build a map from accountId → account for fast lookup
-    const accountMap = {};
-    for (const a of fleetEdgeAccounts) accountMap[String(a._id)] = a;
+    return pages;
+  };
 
-    // --- Filter vehicles by registration number + account ---
-    const filteredVehicles = vehicles.filter(vehicle => {
-        if (searchVehicleNo.trim() && !vehicle.registration_no.toLowerCase().includes(searchVehicleNo.toLowerCase())) return false;
-        if (accountFilter === 'untagged') return !vehicle.fleetEdgeAccountId;
-        if (accountFilter !== 'all') return String(vehicle.fleetEdgeAccountId) === accountFilter;
-        return true;
-    });
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
-    const displayVehicles = filteredVehicles;
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchVehicleNo]);
 
-    // Generate page numbers for pagination (similar to DriversPage)
-    const generatePageNumbers = () => {
-        const pages = [];
-        const maxPagesToShow = 7;
-        
-        if (totalPages <= maxPagesToShow) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
-        } else {
-            if (currentPage <= 4) {
-                for (let i = 1; i <= 5; i++) {
-                    pages.push(i);
-                }
-                pages.push('...');
-                pages.push(totalPages);
-            } else if (currentPage >= totalPages - 3) {
-                pages.push(1);
-                pages.push('...');
-                for (let i = totalPages - 4; i <= totalPages; i++) {
-                    pages.push(i);
-                }
-            } else {
-                pages.push(1);
-                pages.push('...');
-                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                    pages.push(i);
-                }
-                pages.push('...');
-                pages.push(totalPages);
-            }
-        }
-        
-        return pages;
-    };
+  const activeFilterCount = (searchVehicleNo.trim() ? 1 : 0) + (accountFilter !== 'all' ? 1 : 0);
 
-    const handlePageChange = (page) => {
-        if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
-        }
-    };
+  const clearFilters = () => {
+    setSearchVehicleNo('');
+    setAccountFilter('all');
+    setCurrentPage(1);
+  };
 
-    // Reset to page 1 when search changes
-    useEffect(() => {
+  const accountSelect = fleetEdgeAccounts.length > 0 && (
+    <select
+      value={accountFilter}
+      onChange={(e) => {
+        setAccountFilter(e.target.value);
         setCurrentPage(1);
-    }, [searchVehicleNo]);
+      }}
+      className="vehicles-search-input"
+      style={{ maxWidth: 200, cursor: 'pointer' }}
+      title="Filter by FleetEdge account"
+    >
+      <option value="all">All FleetEdge accounts</option>
+      <option value="untagged">Untagged</option>
+      {fleetEdgeAccounts.map((a) => (
+        <option key={a._id} value={String(a._id)}>
+          {a.friendlyName || a.externalAccountId}
+        </option>
+      ))}
+    </select>
+  );
 
-    // The page renders without profile context or businessRefId.
+  const columns = useVehicleColumns({
+    accountMap,
+    openMenuId,
+    setOpenMenuId,
+    isSubmitting,
+    onEdit: (vehicle) => navigate('/vehicles/add', { state: { editingVehicle: vehicle } }),
+    onDelete: handleOpenDeleteModal,
+    onActivateHere: handleActivateHere,
+  });
 
-    return (
-        <>
-            <div className="vehicles-page-container" style={themeColors}>
-                <div className="vehicles-content-wrapper">
-                    {/* Header Section */}
-                    <div className="vehicles-header">
-                        <div>
-                            <h3>
-                                <span>Total vehicles </span>
-                                <span>({filteredVehicles.length})</span>
-                            </h3>
-                            <div className="vehicles-actions">
-                                {/* Search Bar */}
-                                <div className="vehicles-search-container">
-                                    <input
-                                        type="text"
-                                        value={searchVehicleNo}
-                                        onChange={(e) => setSearchVehicleNo(e.target.value)}
-                                        placeholder="Search by vehicle registration number"
-                                        className="vehicles-search-input"
-                                    />
-                                </div>
-                                {/* FleetEdge account filter */}
-                                {fleetEdgeAccounts.length > 0 && (
-                                    <select
-                                        value={accountFilter}
-                                        onChange={e => { setAccountFilter(e.target.value); setCurrentPage(1); }}
-                                        className="vehicles-search-input"
-                                        style={{ maxWidth: 200, cursor: 'pointer' }}
-                                        title="Filter by FleetEdge account"
-                                    >
-                                        <option value="all">All FleetEdge accounts</option>
-                                        <option value="untagged">Untagged</option>
-                                        {fleetEdgeAccounts.map(a => (
-                                            <option key={a._id} value={String(a._id)}>{a.friendlyName || a.externalAccountId}</option>
-                                        ))}
-                                    </select>
-                                )}
+  // The page renders without profile context or businessRefId.
 
-                                {/* Action Buttons */}
-                                <NewButton
-                                    variant="secondary"
-                                    type="button"
-                                    text="Bulk Upload"
-                                    prependIcon={<Upload size={16} />}
-                                    onClick={() => navigate('/vehicles/bulk-upload')}
-                                    disabled={isSubmitting}
-                                />
-                                <NewButton
-                                    variant="primary"
-                                    type="button"
-                                    text="Add Vehicle"
-                                    prependIcon={<Plus size={16} />}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        navigate('/vehicles/add');
-                                    }}
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="vehicles-table-section">
-                        {isLoadingVehicles && <p style={{ fontSize: '14px', color: '#8b8b8c', padding: '20px' }}>Loading vehicles...</p>}
-                        {vehicleError && <p className="error-message" style={{ padding: '20px' }}>{vehicleError}</p>}
-                        {formError && <p className="error-message" style={{ marginBottom: '10px', padding: '0 20px' }}>{formError}</p>}
-
-                        {!isLoadingVehicles && !vehicleError && (
-                            <div className="vehicles-table-container">
-                                {displayVehicles.length === 0 ? (
-                                    <p style={{
-                                        textAlign: 'center',
-                                        padding: '40px 20px',
-                                        color: '#8b8b8c',
-                                        fontSize: '14px',
-                                        margin: 0
-                                    }}>
-                                        {vehicles.length === 0 ? 'No vehicles added yet. Click "Add Vehicle" to start.' : 'No vehicles match your search.'}
-                                    </p>
-                                ) : (
-                                    <div className="vehicles-table-wrapper">
-                                        <table className="vehicles-table">
-                                            <thead>
-                                                <tr>
-                                                    <th style={{ width: '140px' }}>Vehicle No</th>
-                                                    <th style={{ width: '120px' }}>Model</th>
-                                                    <th style={{ width: '140px' }}>Manufacturer</th>
-                                                    <th style={{ width: '100px' }}>Category</th>
-                                                    <th style={{ width: '180px' }}>Chassis No</th>
-                                                    <th style={{ width: '160px' }}>FleetEdge Account</th>
-                                                    <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {displayVehicles.map(vehicle => (
-                                                    <tr
-                                                        key={vehicle.id}
-                                                        className={`vehicles-table-row ${openMenuId === vehicle.id ? 'menu-open' : ''}`}
-                                                        onClick={() => {
-                                                            // Deactivated (moved-away) vehicles are read-only here.
-                                                            if (vehicle.branchStatus === 'DEACTIVATED') return;
-                                                            navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
-                                                        }}
-                                                    >
-                                                        <td style={{ fontWeight: 600 }}>
-                                                            {vehicle.registration_no}
-                                                            {vehicle.branchStatus === 'DEACTIVATED' && (
-                                                                <span
-                                                                    className="vehicle-badge"
-                                                                    title="Moved to another location — deactivated here"
-                                                                    style={{ marginLeft: 8, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
-                                                                >
-                                                                    Deactivated
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td>{vehicle.model || 'N/A'}</td>
-                                                        <td>
-                                                            {vehicle.manufacturer && vehicle.manufacturer !== 'UNKNOWN' ? (
-                                                                <span className={`vehicle-badge manufacturer-${vehicle.manufacturer?.toLowerCase().replace(/\s+/g, '-')}`}>
-                                                                    {vehicle.manufacturer}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="vehicle-badge vehicle-badge-unknown">—</span>
-                                                            )}
-                                                        </td>
-                                                        <td>
-                                                            {vehicle.vehicleCategory && vehicle.vehicleCategory !== 'UNKNOWN' ? (
-                                                                <span className={`vehicle-badge category-${vehicle.vehicleCategory?.toLowerCase()}`}>
-                                                                    {vehicle.vehicleCategory}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="vehicle-badge vehicle-badge-unknown">—</span>
-                                                            )}
-                                                        </td>
-                                                        <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{vehicle.chassis_number || 'N/A'}</td>
-                                                        <td>
-                                                            {vehicle.fleetEdgeAccountId ? (
-                                                                (() => {
-                                                                    const acct = accountMap[String(vehicle.fleetEdgeAccountId)];
-                                                                    const label = acct ? (acct.friendlyName || acct.externalAccountId) : String(vehicle.fleetEdgeAccountId).slice(-6);
-                                                                    const tip = acct ? `${acct.source} · ${acct.externalAccountId}${acct.lastSeenAt ? ' · seen ' + new Date(acct.lastSeenAt).toLocaleDateString() : ''}` : '';
-                                                                    const isDisabled = acct?.status === 'DISABLED';
-                                                                    return (
-                                                                        <span
-                                                                            title={tip}
-                                                                            className="vehicle-badge"
-                                                                            style={{
-                                                                                background: isDisabled ? '#fef3c7' : '#eff6ff',
-                                                                                color: isDisabled ? '#92400e' : '#1d4ed8',
-                                                                                border: `1px solid ${isDisabled ? '#fde68a' : '#bfdbfe'}`,
-                                                                                display: 'inline-flex',
-                                                                                alignItems: 'center',
-                                                                                gap: 4,
-                                                                            }}
-                                                                        >
-                                                                            {isDisabled && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} title="Source account disabled" />}
-                                                                            {label}
-                                                                        </span>
-                                                                    );
-                                                                })()
-                                                            ) : (
-                                                                <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>untagged</span>
-                                                            )}
-                                                        </td>
-                                                        <td style={{ textAlign: 'center' }}>
-                                                            <VehicleActionMenu
-                                                                vehicle={vehicle}
-                                                                isOpen={openMenuId === vehicle.id}
-                                                                onToggle={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
-                                                                }}
-                                                                onClose={() => setOpenMenuId(null)}
-                                                                isSubmitting={isSubmitting}
-                                                                onEdit={() => {
-                                                                    setOpenMenuId(null);
-                                                                    navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
-                                                                }}
-                                                                onDelete={() => {
-                                                                    handleOpenDeleteModal(vehicle);
-                                                                }}
-                                                                onActivateHere={() => handleActivateHere(vehicle)}
-                                                            />
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Footer Section with Pagination - Always visible */}
-                <div className="vehicles-pagination-controls">
-                    {/* Left Arrow */}
-                    <button 
-                        className="vehicles-pagination-btn" 
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || totalPages <= 1}
-                    >
-                        <span>←</span>
-                    </button>
-
-                    {/* Page Numbers */}
-                    {generatePageNumbers().map((page, index) => {
-                        if (page === '...') {
-                            return (
-                                <div key={`overflow-${index}`} className="vehicles-page-overflow">
-                                    <span>...</span>
-                                </div>
-                            );
-                        }
-                        return (
-                            <button
-                                key={page}
-                                className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
-                                onClick={() => handlePageChange(page)}
-                                disabled={totalPages <= 1}
-                            >
-                                <span>{page}</span>
-                            </button>
-                        );
-                    })}
-
-                    {/* Right Arrow */}
-                    <button 
-                        className="vehicles-pagination-btn" 
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages || totalPages <= 1}
-                    >
-                        <span>→</span>
-                    </button>
-                </div>
-            </div>
-
-
-            {/* Delete Vehicle Modal */}
-            <DeleteVehicleModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => {
-                    setIsDeleteModalOpen(false);
-                    setDeletingVehicle(null);
-                }}
-                onConfirm={handleRemoveVehicle}
-                vehicle={deletingVehicle}
-                isLoading={isSubmitting}
+  return (
+    <div className="vehicles-page-container" style={themeColors}>
+      <PageShell
+        title="Vehicles"
+        count={filteredVehicles.length}
+        actions={
+          <>
+            <ExportButton
+              rows={exportRows}
+              columns={VEHICLE_EXPORT_COLUMNS}
+              filename="vehicles"
+              meta={vehicleExportMeta({ search: searchVehicleNo, accountFilter, accountMap })}
+              disabled={!exportRows.length}
             />
-        </>
-    );
+            <NewButton
+              variant="secondary"
+              type="button"
+              text="Bulk Upload"
+              prependIcon={<Upload size={16} />}
+              onClick={() => navigate('/vehicles/bulk-upload')}
+              disabled={isSubmitting}
+            />
+            <NewButton
+              variant="primary"
+              type="button"
+              text="Add Vehicle"
+              prependIcon={<Plus size={16} />}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate('/vehicles/add');
+              }}
+              disabled={isSubmitting}
+            />
+          </>
+        }
+        filters={
+          <FilterBar
+            searchValue={searchVehicleNo}
+            onSearchChange={setSearchVehicleNo}
+            searchPlaceholder="Search by vehicle registration number"
+            activeCount={activeFilterCount}
+            onClear={clearFilters}
+            right={accountSelect}
+          />
+        }
+        footer={`Showing ${filteredVehicles.length} of ${totalVehicles} vehicles`}
+      >
+        {formError && (
+          <p className="error-message" style={{ marginBottom: '10px', padding: '0 20px' }}>
+            {formError}
+          </p>
+        )}
+
+        <DataTable
+          columns={columns}
+          rows={filteredVehicles}
+          rowKey={(vehicle) => vehicle.id}
+          loading={isLoadingVehicles}
+          error={vehicleError}
+          onRetry={() => setRefreshKey((k) => k + 1)}
+          showing={filteredVehicles.length}
+          total={totalVehicles}
+          activeFilters={activeFilterCount}
+          emptyTitle={
+            vehicles.length === 0 ? 'No vehicles added yet' : 'No vehicles match your search'
+          }
+          emptyHint={
+            vehicles.length === 0
+              ? 'Click "Add Vehicle" to start.'
+              : 'Try a different registration number or account filter.'
+          }
+          emptyAction={
+            <NewButton
+              variant="primary"
+              type="button"
+              text="Add Vehicle"
+              prependIcon={<Plus size={16} />}
+              onClick={() => navigate('/vehicles/add')}
+            />
+          }
+          onRowClick={(vehicle) => {
+            // Deactivated (moved-away) vehicles are read-only here.
+            if (vehicle.branchStatus === 'DEACTIVATED') return;
+            navigate('/vehicles/add', { state: { editingVehicle: vehicle } });
+          }}
+        />
+
+        {/* Pagination controls - server-side, always visible */}
+        <div className="vehicles-pagination-controls">
+          {/* Left Arrow */}
+          <button
+            className="vehicles-pagination-btn"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1 || totalPages <= 1}
+          >
+            <span>←</span>
+          </button>
+
+          {/* Page Numbers */}
+          {generatePageNumbers().map((page, index) => {
+            if (page === '...') {
+              return (
+                <div key={`overflow-${index}`} className="vehicles-page-overflow">
+                  <span>...</span>
+                </div>
+              );
+            }
+            return (
+              <button
+                key={page}
+                className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
+                onClick={() => handlePageChange(page)}
+                disabled={totalPages <= 1}
+              >
+                <span>{page}</span>
+              </button>
+            );
+          })}
+
+          {/* Right Arrow */}
+          <button
+            className="vehicles-pagination-btn"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages <= 1}
+          >
+            <span>→</span>
+          </button>
+        </div>
+      </PageShell>
+
+      {/* Delete Vehicle Modal */}
+      <DeleteVehicleModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeletingVehicle(null);
+        }}
+        onConfirm={handleRemoveVehicle}
+        vehicle={deletingVehicle}
+        isLoading={isSubmitting}
+      />
+    </div>
+  );
 };
 
 export default VehiclesPage;

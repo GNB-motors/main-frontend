@@ -667,6 +667,12 @@
   color: #b91c1c;
 }
 
+.lemu-alert--warn {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #b45309;
+}
+
 .lemu-state {
   display: flex;
   flex-direction: column;
@@ -844,6 +850,11 @@
 
 /* ── Layer 3: custom properties ────────────────────────────── */
 .lemu-page {
+  /* Same MEASURED value as .lemu-graph3d's --lemu-header-h (see the note at
+     the .lemu-graph3d block): the fixed SuperAdminNavbar is 72px tall and
+     z-index 1001. Defined here too so page-level overlays (the node
+     drawer's top offset) resolve it; the drawer keeps its 72px fallback. */
+  --lemu-header-h: 72px;
   --lemu-status-live: var(--lemu-primary);
   --lemu-status-idle: #6b7280;
   --lemu-status-idle-bg: #f1f2f4;
@@ -862,7 +873,10 @@
   --lemu-plate-gap: 12px;
   --lemu-node-h: 28px;
   --lemu-region-rule: var(--lemu-border);
-  --lemu-drawer-w: 420px;
+  /* Task 10: the redesigned drawer is 404px (design spec); the open-drawer
+     tab-body padding (var + 24px = 428) keeps a 12px gap between the drawer
+     and the shifted right toolbar — the design's translateX(-416px). */
+  --lemu-drawer-w: 404px;
   --lemu-drawer-w-sm: 380px;
   --lemu-scrim: rgba(17, 24, 39, 0.35);
   --lemu-ribbon-h: 40px;
@@ -1195,6 +1209,51 @@
   flex: 1;
 }
 
+/* The region head is a button so the whole strip toggles the surface. Reset the
+   UA button chrome but keep the divider the original div carried. */
+.lemu-region__head--toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--lemu-border);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.lemu-region__head--toggle:hover .lemu-region__title,
+.lemu-region__head--toggle:hover .lemu-region__chevron {
+  color: var(--lemu-text-primary);
+}
+
+.lemu-region__head--toggle:focus-visible {
+  outline: 2px solid var(--lemu-accent, #4f46e5);
+  outline-offset: 2px;
+}
+
+.lemu-region__chevron {
+  margin-left: auto;
+  color: var(--lemu-text-secondary);
+  transition: transform 140ms ease;
+}
+
+.lemu-region--collapsed .lemu-region__chevron {
+  transform: rotate(-90deg);
+}
+
+/* A collapsed region should not keep stretching to fill the board. */
+.lemu-region--collapsed {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lemu-region__chevron { transition: none; }
+}
+
 /* ── Plates ────────────────────────────────────────────────── */
 .lemu-plates {
   display: grid;
@@ -1429,11 +1488,23 @@
 }
 
 /* ── Drawer ────────────────────────────────────────────────── */
+/* The scrim is a TINT layer only — no backdrop-filter. The old blur(8px)
+   blurred the whole board into a white blanket behind the drawer; the
+   selection-focus dimming lives in the canvas paint itself (kgDraw), so a
+   theme-appropriate tint is enough for the drawer to read as foreground
+   while the graph stays sharp underneath. The tint arrives via
+   --lemu-scrim, set inline by LemuNodeDrawer from the graph theme tokens
+   (dark ≈ rgba(6,7,10,.32), light ≈ rgba(255,255,255,.28)). One z-step
+   BELOW the drawer (45 vs 46) so the drawer renders crisp on top;
+   pointer-transparent so the board stays interactive. `position` is
+   overridden inline (absolute when the drawer is contained in the graph
+   page's relative wrapper). */
 .lemu-drawer-scrim {
   position: fixed;
   inset: 0;
-  background: var(--lemu-scrim);
-  z-index: 40;
+  background: var(--lemu-scrim, rgba(17, 24, 39, 0.32));
+  z-index: 45;
+  pointer-events: none;
 }
 
 .lemu-drawer {
@@ -1571,6 +1642,60 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px 12px;
+}
+
+/* Blast-radius closure rows in the drawer: bare id buttons, same text
+   styling as the static list but clickable through to the node. */
+.lemu-drawer__link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.lemu-drawer__link:hover { color: var(--lemu-accent, #4f46e5); text-decoration: underline; }
+
+/* ── Attributed errors in the drawer (Phase 4) ─────────────── */
+/* Match quality is a first-class citizen of the row: amber for a confident
+   exact match, muted for a best-effort file-only one. Hiding that difference
+   is how a guess becomes a fact. */
+.lemu-err {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lemu-err__row {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--lemu-bg-subtle);
+  border: 1px solid var(--lemu-border, transparent);
+}
+.lemu-err__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lemu-text, inherit);
+  word-break: break-word;
+}
+.lemu-err__row .lemu-meta {
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+}
+.lemu-err__row code {
+  font-family: var(--lg-mono, monospace);
+  font-size: 11px;
+  word-break: break-all;
+}
+.lemu-err [data-quality='exact'] { color: #f59e0b; }
+.lemu-err [data-quality='file'] { color: var(--lemu-text-secondary); }
+.lemu-err__pip {
+  color: #f59e0b;
+  margin-right: 4px;
+  cursor: help;
 }
 
 .lemu-drawer__metrics {
@@ -1932,4 +2057,1706 @@
 
 .lemu-findings-group__no-match {
   padding: 8px 4px;
+}
+
+/* ── Warehouse freshness panel ─────────────────────────────── */
+.lemu-warehouse-panel {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-warehouse-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--lemu-text);
+}
+
+.lemu-warehouse-panel__head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.lemu-warehouse-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lemu-warehouse-panel__checked {
+  margin-bottom: 4px;
+}
+
+.lemu-warehouse-panel__table {
+  font-size: 13px;
+}
+
+.lemu-warehouse-panel__table th,
+.lemu-warehouse-panel__table td {
+  padding: 10px 12px;
+}
+
+/* ── Fuel-integrity lineage panel ──────────────────────────── */
+.lemu-lineage {
+  max-width: 900px;
+}
+
+.lemu-lineage__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.lemu-lineage__search .lemu-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.lemu-lineage__search .lemu-input {
+  width: 100%;
+}
+
+.lemu-lineage__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.lemu-lineage__meta > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lemu-lineage__label {
+  color: var(--lemu-text-secondary);
+  font-weight: 600;
+}
+
+.lemu-lineage-verdict {
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-lineage-verdict__title {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-bottom: 10px;
+}
+
+.lemu-lineage-verdict--ok .lemu-lineage-verdict__title {
+  color: #15803d;
+}
+
+.lemu-lineage-verdict--warning .lemu-lineage-verdict__title,
+.lemu-lineage-verdict--suspect .lemu-lineage-verdict__title {
+  color: #d97706;
+}
+
+.lemu-lineage-verdict--fail .lemu-lineage-verdict__title,
+.lemu-lineage-verdict--error .lemu-lineage-verdict__title {
+  color: #dc2626;
+}
+
+.lemu-lineage-verdict__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lemu-lineage-metric {
+  background: var(--lemu-bg-subtle);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 140px;
+}
+
+.lemu-lineage-metric span {
+  display: block;
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lemu-lineage-metric strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-lineage-path {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid var(--lemu-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lemu-lineage-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 140px;
+  padding: 14px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--lemu-border);
+  background: var(--lemu-bg-subtle);
+  text-align: center;
+}
+
+.lemu-lineage-node__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-lineage-node--ok .lemu-lineage-node__icon {
+  color: #0f9d58;
+}
+
+.lemu-lineage-node--stale .lemu-lineage-node__icon {
+  color: #d97706;
+}
+
+.lemu-lineage-node--missing .lemu-lineage-node__icon {
+  color: #dc2626;
+}
+
+.lemu-lineage-node__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.lemu-lineage-node__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lemu-text);
+}
+
+.lemu-lineage-node__meta {
+  font-size: 12px;
+  color: var(--lemu-text-secondary);
+  font-weight: 600;
+}
+
+.lemu-lineage-node__freshness {
+  display: flex;
+  justify-content: center;
+}
+
+.lemu-lineage-node__note {
+  font-size: 11px;
+  color: var(--lemu-text-secondary);
+  line-height: 1.35;
+}
+
+.lemu-lineage-connector {
+  width: 24px;
+  height: 2px;
+  background: var(--lemu-border);
+  flex-shrink: 0;
+}
+
+.lemu-lineage-verdict-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--lemu-border);
+  background: #fff;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.lemu-lineage-verdict-dot__title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--lemu-text-secondary);
+}
+
+.lemu-lineage-verdict-dot__status {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--lemu-text);
+}
+
+.lemu-lineage-verdict-dot--ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.lemu-lineage-verdict-dot--warning,
+.lemu-lineage-verdict-dot--suspect {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.lemu-lineage-verdict-dot--fail,
+.lemu-lineage-verdict-dot--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* ── Lineage responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .lemu-lineage-path {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lemu-lineage-connector {
+    width: 2px;
+    height: 16px;
+    margin: 0 auto;
+  }
+
+  .lemu-lineage-node {
+    width: 100%;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .lemu-lineage-node__body {
+    align-items: flex-start;
+  }
+
+  .lemu-lineage-node__freshness {
+    justify-content: flex-start;
+  }
+
+  .lemu-lineage-verdict-dot {
+    align-self: center;
+  }
+}
+
+/* ── 3D knowledge graph: full-bleed instrument surface ───────
+   An air-traffic instrument, not a card in a page — deep space
+   background, floating frosted-glass chrome, tabular numerals, one
+   accent family. Every value is a token; nothing hardcodes a colour
+   outside this block. */
+.lemu-graph3d {
+  /* ── tokens ─────────────────────────────────────────────── */
+  --lg-bg:            #070b18;
+  --lg-panel:         rgba(13, 18, 34, 0.66);
+  --lg-panel-border:  rgba(148, 163, 184, 0.16);
+  --lg-text:          #e2e8f0;
+  --lg-text-dim:      #8b96ab;
+  --lg-accent:        #818cf8;
+  --lg-danger:        #fb7185;
+  --lg-radius:        12px;
+  --lg-mono:          ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  position: relative;
+  height: calc(100dvh - var(--lemu-header-h, 180px));
+  margin-inline: calc(-1 * var(--lemu-page-pad, 24px));
+  border-radius: 0;
+  border-inline: 0;
+  color: var(--lg-text);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Aurora glow at the top + faint instrument grid */
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
+    radial-gradient(circle, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    var(--lg-bg);
+  background-size: auto, 26px 26px, auto;
+}
+
+/* The negative inline margin reaches the .lemu-page padding; the value is
+   measured (24px — see the token definition in the Plan-5 block below). */
+.lemu-graph3d > .lemu-state {
+  color: var(--lg-text-dim);
+}
+
+/* ── Floating glass chrome ─────────────────────────────────── */
+.lemu-graph3d__panel {
+  position: absolute; z-index: 2;
+  padding: 10px 12px;
+  border-radius: var(--lg-radius);
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),   /* top hairline light */
+    0 12px 32px rgba(2, 6, 23, 0.45);
+}
+.lemu-graph3d__panel--tl { top: 12px; left: 12px; max-width: calc(100% - 24px); }
+.lemu-graph3d__panel--tr { top: 12px; right: 12px; max-height: calc(100% - 24px); overflow-y: auto; }
+
+.lemu-graph3d__rail {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 2;
+  display: flex; align-items: center; gap: 16px;
+  padding: 8px 14px;
+  border-radius: var(--lg-radius);
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+}
+.lemu-graph3d__rail b { font-family: var(--lg-mono); font-variant-numeric: tabular-nums; }
+
+/* Rail freshness: 7px dot + mono age label. Dot colour is the honest
+   liveness signal — accent while the data is under a minute old, amber
+   through two minutes, danger past that. */
+.lemu-graph3d__fresh {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--lg-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-text-dim);
+  white-space: nowrap;
+}
+.lemu-graph3d__fresh-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lg-accent);
+}
+.lemu-graph3d__fresh--ok .lemu-graph3d__fresh-dot { background: var(--lg-accent); }
+.lemu-graph3d__fresh--warn .lemu-graph3d__fresh-dot { background: #f59e0b; }
+.lemu-graph3d__fresh--stale .lemu-graph3d__fresh-dot { background: var(--lg-danger); }
+
+/* ── Controls (top-left panel) ─────────────────────────────── */
+.lemu-graph3d__bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lemu-graph3d__panel .lemu-system-map__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--lg-text);
+}
+
+.lemu-graph3d__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+}
+
+/* Shared chrome overrides: the search box and outline button come from the
+   page's light-surface styles; on the glass panel they go dark. */
+.lemu-graph3d__panel .lemu-search__icon { color: var(--lg-text-dim); }
+.lemu-graph3d__panel .lemu-search input {
+  background: rgba(7, 11, 24, 0.55);
+  border-color: var(--lg-panel-border);
+  color: var(--lg-text);
+}
+.lemu-graph3d__panel .lemu-search input::placeholder { color: var(--lg-text-dim); }
+
+.lemu-graph3d__panel .lemu-btn--outline {
+  background: transparent;
+  color: var(--lg-text);
+  border-color: var(--lg-panel-border);
+}
+.lemu-graph3d__panel .lemu-btn--outline:not(:disabled):hover {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: var(--lg-accent);
+}
+
+.lemu-graph3d__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lemu-graph3d__toggle input { accent-color: var(--lg-accent); }
+
+.lemu-graph3d__hop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+  white-space: nowrap;
+}
+
+.lemu-graph3d__hop select {
+  font-family: var(--lg-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--lg-text);
+  background: rgba(7, 11, 24, 0.55);
+  border: 1px solid var(--lg-panel-border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.lemu-graph3d__hop select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lemu-graph3d__hop-hint {
+  font-size: 11px;
+}
+
+/* Every interactive element gets the accent focus ring. */
+.lemu-graph3d__legend-item:focus-visible,
+.lemu-graph3d__toggle input:focus-visible,
+.lemu-graph3d__hop select:focus-visible,
+.lemu-graph3d__panel .lemu-search input:focus-visible,
+.lemu-graph3d__panel .lemu-btn:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+.lemu-graph3d__panel .lemu-search input:focus-visible {
+  border-color: var(--lg-panel-border);
+  box-shadow: none;
+}
+
+/* ── Legend (top-right panel): chips double as kind filters ── */
+.lemu-graph3d__legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+}
+
+.lemu-graph3d__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lemu-graph3d__legend-item i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.lemu-graph3d__legend-item b {
+  font-family: var(--lg-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-text);
+  font-weight: 600;
+}
+
+/* Legend chips are toggle buttons: strip the UA button chrome so they keep
+   the legend-item look, and mark hidden kinds. */
+button.lemu-graph3d__legend-item {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.lemu-graph3d__legend-item[aria-pressed="true"] {
+  text-decoration: underline;
+  text-decoration-color: var(--lg-accent);
+  text-underline-offset: 3px;
+}
+.lemu-graph3d__legend-item--off {
+  text-decoration: line-through;
+  opacity: .45;
+}
+
+/* ── Canvas: the WebGL surface owns the whole tab ──────────── */
+.lemu-graph3d__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.lemu-graph3d__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--lg-text-dim);
+}
+
+/* Hover hint follows the cursor (position set inline from mouse tracking)
+   and stays pointer-events:none so it never eats canvas drags. */
+.lemu-graph3d__hint {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+  color: var(--lg-text);
+  font-size: 12px;
+  pointer-events: none;
+  max-width: 240px;
+  z-index: 3;
+}
+
+.lemu-graph3d__hint strong {
+  word-break: break-all;
+}
+
+.lemu-graph3d__hint .lemu-meta {
+  color: var(--lg-text-dim);
+}
+
+/* Hover state chip — same data-state vocabulary as the evidence block. */
+.lemu-graph3d__state {
+  align-self: flex-start;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lemu-graph3d__state[data-state="measured"] { color: var(--lg-accent, #22d3ee); }
+.lemu-graph3d__state[data-state="declared"] { color: #94a3b8; }
+.lemu-graph3d__state[data-state="unreachable"] { color: #fb7185; }
+
+/* ── Evidence block (drawer, P2) ───────────────────────────── */
+.lemu-evidence {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: var(--lg-radius, 8px);
+  border: 1px solid var(--lg-panel-border);
+  background: rgba(7, 11, 24, 0.35);
+}
+.lemu-evidence__state {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.lemu-evidence__state[data-state="measured"] { color: var(--lg-accent, #22d3ee); }
+.lemu-evidence__state[data-state="declared"] { color: #94a3b8; }
+.lemu-evidence__state[data-state="unreachable"] { color: #fb7185; }
+.lemu-evidence__list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+.lemu-evidence__list dt { color: var(--lg-text-dim); }
+.lemu-evidence__list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+.lemu-evidence__list pre {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(7, 11, 24, 0.55);
+  border: 1px solid var(--lg-panel-border);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── INFRA status rail (top-center) ────────────────────────── */
+.lemu-graph3d__statusrail {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+}
+.lemu-graph3d__statechip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--lg-text-dim);
+  cursor: pointer;
+  opacity: 0.45;
+}
+.lemu-graph3d__statechip--on { opacity: 1; }
+.lemu-graph3d__statechip:hover { color: var(--lg-text); }
+.lemu-graph3d__statechip b {
+  font-family: var(--lg-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-text);
+}
+.lemu-graph3d__statechip[data-state="measured"] i { color: var(--lg-accent, #22d3ee); font-style: normal; }
+.lemu-graph3d__statechip[data-state="declared"] i { color: #94a3b8; font-style: normal; }
+.lemu-graph3d__statechip[data-state="unreachable"] i { color: #fb7185; font-style: normal; }
+.lemu-graph3d__statechip:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+
+/* ── Attribution quality rail (Phase 4, v2-F3) ─────────────── */
+/* Sits under the state rail / degraded strip, same chip styling — no new
+   colour semantics: the counts are text, the ⚠ mark is the existing amber
+   the pips and drawer already use for errors. */
+.lemu-graph3d__attribrail {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  max-width: calc(100% - 48px);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lemu-graph3d__attribrail .lemu-graph3d__statechip i { color: #f59e0b; font-style: normal; }
+
+/* ── Degraded strip (under the status rail) ────────────────── */
+.lemu-graph3d__degraded {
+  position: absolute;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 48px);
+  padding: 6px 10px 6px 12px;
+  /* Notice tone, not alarm: the strip names measurements the backend could
+     not complete (degraded[]), which is informational — the fault/unreachable
+     red is reserved for real failures. Accent border + ⓘ marker. */
+  border-color: color-mix(in srgb, var(--lg-accent) 45%, transparent);
+  color: var(--lg-text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: ellipsis;
+}
+.lemu-graph3d__degraded::before {
+  content: 'ⓘ';
+  color: var(--lg-accent);
+  font-size: 12px;
+  flex: none;
+}
+/* Each entry is a chip-button: click opens the detail popover explaining the
+   probe, the reason, what it affects and when the payload reported it. */
+.lemu-graph3d__degraded-chip {
+  border: 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--lg-accent) 55%, transparent);
+  background: transparent;
+  padding: 2px 2px 1px;
+  font: inherit;
+  color: var(--lg-text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lemu-graph3d__degraded-chip:hover { color: var(--lg-text); }
+.lemu-graph3d__degraded-chip[aria-expanded='true'] {
+  color: var(--lg-text);
+  border-bottom-style: solid;
+}
+.lemu-graph3d__degraded-chip:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.lemu-graph3d__degraded code { color: var(--lg-accent); }
+
+/* Detail popover: same glass treatment as the rail panel, docked under the
+   strip. Rows come from degradedExplain.degradedDetail — real fields only. */
+.lemu-graph3d__degraded-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 12px;
+  width: 360px;
+  max-width: calc(100vw - 140px);
+  white-space: normal;
+  cursor: default;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.lemu-graph3d__degraded-pop-title {
+  margin: 0 0 8px;
+  font-family: var(--lg-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--lg-text);
+}
+.lemu-graph3d__degraded-pop-row {
+  display: flex;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid var(--lg-panel-border);
+}
+.lemu-graph3d__degraded-pop-row dt {
+  flex: none;
+  width: 118px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--lg-text-dim);
+  padding-top: 1px;
+}
+.lemu-graph3d__degraded-pop-row dd {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  color: var(--lg-text);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.lemu-graph3d__degraded-pop-row dd.lemu-graph3d__degraded-pop-mono {
+  font-family: var(--lg-mono);
+  font-size: 11.5px;
+}
+.lemu-graph3d__degraded-x {
+  border: 0;
+  background: transparent;
+  color: var(--lg-text-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.lemu-graph3d__degraded-x:hover { color: var(--lg-text); }
+.lemu-graph3d__degraded-x:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+
+/* ── Collapsible key (bottom-left) ─────────────────────────── */
+.lemu-graph3d__key {
+  position: absolute;
+  left: 12px;
+  bottom: 56px;
+  z-index: 2;
+  max-width: 240px;
+  padding: 6px;
+}
+.lemu-graph3d__key-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--lg-text-dim);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.lemu-graph3d__key-toggle:hover { color: var(--lg-text); }
+.lemu-graph3d__key-toggle:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+.lemu-graph3d__key-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px;
+  font-size: 12px;
+  color: var(--lg-text-dim);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.lemu-graph3d__key-body .lemu-meta { margin-top: 6px; }
+.lemu-graph3d__key-body .lemu-meta:first-child { margin-top: 0; }
+.lemu-graph3d__key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lemu-graph3d__key-item i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.lemu-graph3d__key-item em {
+  width: 12px;
+  height: 2px;
+  display: inline-block;
+}
+.lemu-graph3d__key-item b {
+  font-family: var(--lg-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-text);
+  font-weight: 600;
+}
+.lemu-graph3d__key-ring {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  text-decoration: none;
+}
+.lemu-graph3d__key-ring--solid {
+  background: var(--lg-accent, #22d3ee);
+}
+.lemu-graph3d__key-ring--hollow {
+  border: 1.5px solid #94a3b8;
+}
+.lemu-graph3d__key-ring--fault {
+  border: 1.5px dashed #fb7185;
+}
+
+.lemu-graph3d__foot {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--lg-text-dim);
+}
+
+@media (max-width: 720px) {
+  .lemu-graph3d__panel--tl { right: 8px; left: 8px; max-width: none; }
+  .lemu-graph3d__panel--tr { top: auto; bottom: 56px; right: 8px; left: 8px; max-height: 40%; }
+  .lemu-graph3d__rail { flex-wrap: wrap; gap: 8px; }
+}
+
+/* ── Task 9: 2D/3D segmented toggle, fallback chip, snapshot ── */
+.lemu-graph3d__seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--lg-radius);
+  background: rgba(7, 11, 24, 0.55);
+  border: 1px solid var(--lg-panel-border);
+}
+
+.lemu-graph3d__seg-item {
+  border: 0;
+  background: transparent;
+  color: var(--lg-text-dim);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lemu-graph3d__seg-item--on {
+  background: rgba(129, 140, 248, 0.18);
+  color: var(--lg-text);
+}
+
+.lemu-graph3d__seg-item:not(.lemu-graph3d__seg-item--on):hover {
+  color: var(--lg-text);
+}
+
+/* Top-center fallback notice: the user picked 3D but this machine has no
+   WebGL context, so the canvas below is the 2D renderer. Sits clear of the
+   top-left controls panel and the bottom-left hover hint. */
+.lemu-graph3d__chip {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+  color: var(--lg-text-dim);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ── Task 10: accessible table view ─────────────────────────── */
+/* The table is the keyboard/AT equivalent of the canvas: same surface, same
+   tokens. It fills the tab like the canvas does and scrolls beneath the
+   floating panels; generous top padding keeps the sticky header below the
+   top-left controls panel, bottom padding clears the rail. */
+.lemu-graph3d__table {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: auto;
+  padding: 104px 16px 64px;
+  color: var(--lg-text);
+}
+
+.lemu-graph3d__table:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: -2px;
+}
+
+.lemu-graph3d__table table {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  background: var(--lg-panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--lg-panel-border);
+  border-radius: var(--lg-radius);
+  overflow: hidden;
+}
+
+.lemu-graph3d__table caption {
+  caption-side: top;
+  text-align: left;
+  padding: 10px 14px;
+  font-weight: 700;
+  color: var(--lg-text);
+  background: rgba(7, 11, 24, 0.55);
+  border-bottom: 1px solid var(--lg-panel-border);
+}
+
+.lemu-graph3d__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--lg-text-dim);
+  background: rgba(7, 11, 24, 0.85);
+  border-bottom: 1px solid var(--lg-panel-border);
+}
+
+.lemu-graph3d__table td {
+  padding: 6px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  color: var(--lg-text-dim);
+  white-space: nowrap;
+}
+
+.lemu-graph3d__table tbody tr:hover td {
+  background: rgba(129, 140, 248, 0.06);
+  color: var(--lg-text);
+}
+
+.lemu-graph3d__table-kind { color: var(--lg-text); }
+
+.lemu-graph3d__table-name {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  color: var(--lg-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.lemu-graph3d__table-name:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--lg-accent);
+  text-underline-offset: 3px;
+}
+
+.lemu-graph3d__table-name:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Ops and Last seen read as numbers: mono, tabular, right-aligned. */
+.lemu-graph3d__table-num {
+  font-family: var(--lg-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.lemu-graph3d__table-none {
+  font-family: var(--lg-mono);
+  color: var(--lg-text-dim);
+  opacity: 0.8;
+}
+
+/* ── Time scrubber (Phase 5) ───────────────────────────────── */
+/* Bottom-centre, above the footer rail. The Live button is a real toggle:
+   pressed = the graph shows the rolling present, unpressed = scrubbed. */
+.lemu-graph3d__scrubber {
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  max-width: min(520px, calc(100% - 48px));
+}
+.lemu-graph3d__scrubber input[type="range"] {
+  flex: 1;
+  min-width: 160px;
+  accent-color: var(--lg-accent);
+}
+.lemu-graph3d__scrubber-live {
+  border: 1px solid var(--lg-panel-border);
+  background: transparent;
+  color: var(--lg-text-dim);
+  font-size: 11px;
+  font-family: var(--lg-mono);
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lemu-graph3d__scrubber-live--on {
+  color: var(--lg-text);
+  border-color: var(--lg-accent);
+}
+.lemu-graph3d__scrubber-time {
+  font-family: var(--lg-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--lg-text-dim);
+  white-space: nowrap;
+}
+/* Scrubbed state: the freshness dot is neutral grey, never a staleness
+   colour — the user asked for the past. */
+.lemu-graph3d__fresh--showing .lemu-graph3d__fresh-dot { background: var(--lg-text-dim); }
+
+/* ── Dead-surfaces panel (Phase 5) ─────────────────────────── */
+/* Docked right, above the footer rail. Groups in severity order; the
+   flag-disabled group is muted — configuration, not a fault. */
+.lemu-graph3d__dead {
+  position: absolute;
+  right: 12px;
+  bottom: 56px;
+  z-index: 2;
+  width: 300px;
+  max-height: 46%;
+  overflow-y: auto;
+  padding: 6px;
+}
+.lemu-graph3d__dead-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--lg-text-dim);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+}
+.lemu-graph3d__dead-toggle:hover { color: var(--lg-text); }
+.lemu-graph3d__dead-toggle b {
+  font-family: var(--lg-mono);
+  color: var(--lg-text);
+}
+.lemu-graph3d__dead-caret { transition: transform 0.12s ease; }
+.lemu-graph3d__dead-caret--open { transform: rotate(90deg); }
+.lemu-graph3d__dead-body { margin-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+.lemu-graph3d__dead-group-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--lg-text-dim);
+  margin-bottom: 3px;
+}
+.lemu-graph3d__dead-group-head b { font-family: var(--lg-mono); color: var(--lg-text); }
+.lemu-graph3d__dead-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.lemu-graph3d__dead-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--lg-text);
+  font-size: 12px;
+}
+.lemu-graph3d__dead-row:hover { background: rgba(148, 163, 184, 0.12); }
+.lemu-graph3d__dead-label { font-family: var(--lg-mono); overflow-wrap: anywhere; }
+.lemu-graph3d__dead-reason { color: var(--lg-text-dim); font-size: 11px; }
+.lemu-graph3d__dead-group--muted { opacity: 0.55; }
+
+/* ── Analysis rail (Phase 5) ───────────────────────────────── */
+/* One chip per active analysis (blast radius, path finding, live path, diff
+   overlay), stacked under the attribution rail. Same glass panel + statechip
+   styling — these are readouts, not alarms. */
+.lemu-graph3d__analysisrail {
+  position: absolute;
+  top: 132px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  max-width: calc(100% - 48px);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lemu-graph3d__analysisrail .lemu-graph3d__statechip { cursor: default; }
+.lemu-graph3d__analysisrail .lemu-graph3d__statechip i { color: var(--lg-accent); font-style: normal; }
+
+/* The canvas wrapper is focusable (keyboard shortcuts) — same accent ring. */
+.lemu-graph3d__canvas:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: -2px;
+}
+
+.lemu-graph3d__seg-item:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 720px) {
+  .lemu-graph3d__table { padding: 148px 8px 88px; }
+}
+
+/* ── Plan 5 Tasks 8/9/14: left rail + state/kind filter panel + theme ───
+   The redesign's glass chrome reads the design tokens as CSS custom
+   properties (--panel, --l8, --sh3, --acBg3, --faultT, …). The static values
+   below are themeTokens('dark') + canvasTokens('dark') and serve as the
+   DARK fallbacks — do not retype by hand. Task 14's light theme writes the
+   LIGHT set over them as inline properties on .lemu-graph3d (see
+   graphTheme.applyThemeVars); .lemu-graph3d--light swaps the legacy --lg-*
+   chrome tokens the same way.
+
+   --lemu-header-h / --lemu-page-pad are MEASURED, not guessed: the app-shell
+   header (SuperAdminNavbar) is a fixed bar with height:72px and
+   .main-content pads padding-top:72px beneath it (SuperAdminLayout.css);
+   .lemu-page's own inline padding is 24px on each side. The consumers keep
+   their fallbacks regardless. */
+.lemu-graph3d {
+  --lemu-header-h: 72px;
+  --lemu-page-pad: 24px;
+
+  --bg: #06070A;
+  --panel: rgba(11,13,19,.72);
+  --inputBg: rgba(0,0,0,.28);
+  --inset: rgba(0,0,0,.9);
+  --void: #030407;
+  --voidFault: #0B0406;
+  --l4: rgba(255,255,255,.06);
+  --l5: rgba(255,255,255,.07);
+  --l7: rgba(255,255,255,.08);
+  --l8: rgba(255,255,255,.085);
+  --l9: rgba(255,255,255,.09);
+  --l12: rgba(255,255,255,.13);
+  --sh3: rgba(0,0,0,.55);
+  --t2: #E4EBF6;
+  --t3: #C6D0DE;
+  --t4: #8C97A9;
+  --t5: #5E6879;
+  --t6: #4A5364;
+  --ac: #6C9BFF;
+  --acText: #CBDCFF;
+  --acBg: rgba(96,140,250,.2);
+  --acBg3: rgba(96,140,250,.05);
+  --acBd: rgba(122,162,255,.42);
+  --link: #7FB2FF;
+  --warnT: #FCD68A;
+  --warnBg: rgba(251,191,36,.14);
+  --warnBd: rgba(251,191,36,.38);
+  --okT: #9FE8BC;
+  --faultT: #FF9A9A;
+  --faultBg: rgba(255,92,92,.12);
+  --hollow: rgba(150,163,184,.62);
+  --f3: rgba(255,255,255,.035);
+  --measGlow: rgba(143,166,200,.75);
+  --faultCss: #FF5C5C;
+  /* The design sets 'IBM Plex Mono'; it is not a loaded webfont here, so
+     the stack falls back to the same mono the canvas label pass uses. */
+  --kg-mono: "IBM Plex Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Light theme (Task 14): the pre-redesign --lg-* chrome tokens (canvas-region
+   background, hint tooltip, foot rails, scrubber, dead-surface panel) get
+   the LIGHT palette under the same names, mapped from themeTokens('light').
+   The DARK/LIGHT design tokens themselves are written inline by
+   graphTheme.applyThemeVars on the same element; these stay in CSS because
+   they are not part of that token set. */
+.lemu-graph3d--light {
+  --lg-bg: #F4F5F8;
+  --lg-panel: rgba(255,255,255,.78);
+  --lg-panel-border: rgba(15,23,42,.12);
+  --lg-text: #17233A;
+  --lg-text-dim: #56637A;
+  --lg-accent: #2563EB;
+  --lg-danger: #DC2626;
+}
+
+/* Shared glass treatment: 296px panels, blur(20px) saturate(1.35),
+   1px solid var(--l8), radius 11, shadow 0 18px 50px var(--sh3). */
+.lemu-kgrail__panel,
+.lemu-kgfilt {
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  backdrop-filter: blur(20px) saturate(1.35);
+  border: 1px solid var(--l8);
+  border-radius: 11px;
+  box-shadow: 0 18px 50px var(--sh3);
+  color: var(--t3);
+}
+
+/* ── Task 8 rail: left 16 / top 14 ─────────────────────────── */
+.lemu-kgrail {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  z-index: 32;
+  width: 296px;
+}
+.lemu-kgrail__panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lemu-kgrail__layers {
+  display: flex;
+  padding: 7px;
+  gap: 5px;
+  border-bottom: 1px solid var(--l4);
+}
+.lemu-kgrail__tab {
+  flex: 1;
+  border-radius: 7px;
+  padding: 7px 9px;
+  text-align: left;
+  border: 1px solid var(--l7);
+  background: transparent;
+  cursor: pointer;
+  min-width: 0;
+}
+.lemu-kgrail__tab:not(.lemu-kgrail__tab--on):hover { background: var(--f3); }
+.lemu-kgrail__tab--on { background: var(--acBg); border-color: var(--acBd); }
+.lemu-kgrail__tab-label {
+  display: block;
+  font-family: var(--kg-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  margin-bottom: 2px;
+  color: var(--t5);
+}
+.lemu-kgrail__tab--on .lemu-kgrail__tab-label { color: var(--t2); }
+.lemu-kgrail__tab-sub {
+  display: block;
+  font-family: var(--kg-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--t6);
+}
+.lemu-kgrail__tab--on .lemu-kgrail__tab-sub { color: var(--t4); }
+
+.lemu-kgrail__body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.lemu-kgrail__search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--l9);
+  border-radius: 7px;
+  background: var(--inputBg);
+  padding: 0 8px;
+  height: 31px;
+}
+.lemu-kgrail__glyph {
+  font-family: var(--kg-mono);
+  font-size: 11px;
+  color: var(--t5);
+}
+.lemu-kgrail__search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--t2);
+  font-family: var(--kg-mono);
+  font-size: 11.5px;
+}
+.lemu-kgrail__search input::placeholder { color: var(--t6); }
+.lemu-kgrail__hits {
+  font-family: var(--kg-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--t6);
+}
+.lemu-kgrail__hits[data-tone="ok"] { color: var(--okT); }
+.lemu-kgrail__hits[data-tone="fault"] { color: var(--faultT); }
+
+.lemu-kgrail__row { display: flex; gap: 6px; }
+.lemu-kgrail__focus {
+  flex: 1;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: var(--kg-mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-align: left;
+  border: 1px solid var(--l7);
+  background: transparent;
+  color: var(--t5);
+  cursor: pointer;
+}
+.lemu-kgrail__focus--on {
+  background: var(--warnBg);
+  border-color: var(--warnBd);
+  color: var(--warnT);
+}
+.lemu-kgrail__clear {
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-family: var(--kg-mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  border: 1px solid var(--l9);
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+}
+.lemu-kgrail__clear[data-dim="true"] { color: var(--t6); }
+.lemu-kgrail__clear:hover { background: var(--f3); }
+
+/* Hop panel: background lifts to --acBg3 once a node is selected
+   (hop filtering live), per the design. */
+.lemu-kgrail__hop {
+  padding: 9px 9px 10px;
+  border-top: 1px solid var(--l4);
+  background: transparent;
+}
+.lemu-kgrail__hop--live { background: var(--acBg3); }
+.lemu-kgrail__hop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.lemu-kgrail__hop-label {
+  font-family: var(--kg-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--t6);
+}
+.lemu-kgrail__hop--live .lemu-kgrail__hop-label { color: var(--t4); }
+.lemu-kgrail__hop-hint {
+  font-family: var(--kg-mono);
+  font-size: 9.5px;
+  color: var(--t6);
+}
+.lemu-kgrail__hop--live .lemu-kgrail__hop-hint { color: var(--t5); }
+.lemu-kgrail__hop-row { display: flex; gap: 4px; }
+.lemu-kgrail__hop-btn {
+  flex: 1;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-family: var(--kg-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--l5);
+  background: transparent;
+  color: var(--t6);
+  cursor: pointer;
+}
+.lemu-kgrail__hop-btn:disabled { cursor: not-allowed; }
+.lemu-kgrail__hop--live .lemu-kgrail__hop-btn:not(:disabled) { color: var(--t5); }
+.lemu-kgrail__hop-btn.lemu-kgrail__hop-btn--on {
+  background: var(--acBg);
+  border-color: var(--acBd);
+  color: var(--acText);
+}
+
+/* Carried-over analysis/view controls, pending the design's right
+   toolbar. They inherit the shared page chrome, re-tinted to the glass. */
+.lemu-kgrail__tools {
+  padding: 8px 9px 9px;
+  border-top: 1px solid var(--l4);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.lemu-kgrail__tools-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lemu-kgrail__tools .lemu-graph3d__toggle { font-size: 11px; color: var(--t4); }
+.lemu-kgrail__tools .lemu-graph3d__seg {
+  background: var(--inputBg);
+  border-color: var(--l9);
+}
+.lemu-kgrail__tools .lemu-graph3d__seg-item { color: var(--t5); }
+.lemu-kgrail__tools .lemu-graph3d__seg-item--on { background: var(--acBg); color: var(--acText); }
+.lemu-kgrail__tools .lemu-graph3d__hop select {
+  background: var(--inputBg);
+  border-color: var(--l9);
+  color: var(--t2);
+}
+.lemu-kgrail__tools .lemu-btn--outline {
+  background: transparent;
+  color: var(--t3);
+  border-color: var(--l9);
+}
+.lemu-kgrail__tools .lemu-btn--outline:not(:disabled):hover {
+  background: var(--acBg);
+  border-color: var(--acBd);
+}
+.lemu-kgrail__fit { margin-left: auto; }
+
+/* ── Task 9 filter panel: left 16 / bottom 48 ──────────────── */
+.lemu-kgfilt {
+  position: absolute;
+  left: 16px;
+  bottom: 48px;
+  z-index: 32;
+  width: 296px;
+  max-height: calc(100% - 262px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.lemu-kgfilt__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 7px;
+  border-bottom: 1px solid var(--l4);
+  flex: none;
+}
+.lemu-kgfilt__states + .lemu-kgfilt__head { border-top: 1px solid var(--l4); }
+.lemu-kgfilt__title {
+  font-family: var(--kg-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--t5);
+}
+.lemu-kgfilt__note {
+  font-family: var(--kg-mono);
+  font-size: 9.5px;
+  color: var(--t6);
+}
+.lemu-kgfilt__all {
+  font-family: var(--kg-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  border: none;
+  background: transparent;
+  color: var(--link);
+  padding: 0;
+  cursor: pointer;
+}
+.lemu-kgfilt__all[data-dim="true"] { color: var(--t6); cursor: default; }
+
+.lemu-kgfilt__states {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+  padding: 5px 5px 7px;
+  flex: none;
+}
+.lemu-kgfilt__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 6px 7px;
+  border-radius: 6px;
+  border: none;
+  text-align: left;
+  background: var(--f3);
+  min-width: 0;
+  cursor: pointer;
+}
+.lemu-kgfilt__state--off { background: transparent; }
+.lemu-kgfilt__state--off:hover { background: var(--f3); }
+.lemu-kgfilt__state-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+/* The design's state glyphs rendered in the DOM: solid dot (measured),
+   dashed hollow ring (never measured), fault ring (unreachable). */
+.lemu-kgfilt__glyph {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+.lemu-kgfilt__glyph--measured {
+  background: var(--t4);
+  box-shadow: 0 0 9px var(--measGlow);
+}
+.lemu-kgfilt__glyph--never {
+  background: var(--void);
+  border: 1.5px dashed var(--hollow);
+  box-shadow: inset 0 0 6px var(--inset);
+}
+.lemu-kgfilt__glyph--unreachable {
+  background: var(--voidFault);
+  border: 2px solid var(--faultCss);
+  box-shadow: 0 0 0 2px var(--faultBg);
+}
+.lemu-kgfilt__count {
+  font-family: var(--kg-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--t4);
+}
+.lemu-kgfilt__state[data-state="declared"] .lemu-kgfilt__count { color: var(--t3); }
+.lemu-kgfilt__state[data-state="unreachable"] .lemu-kgfilt__count { color: var(--faultT); }
+.lemu-kgfilt__state--off .lemu-kgfilt__count { color: var(--t6); }
+.lemu-kgfilt__label {
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.lemu-kgfilt__state--off .lemu-kgfilt__label { color: var(--t6); }
+
+.lemu-kgfilt__kinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 4px 5px 8px;
+  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 44px;
+  align-content: start;
+}
+.lemu-kgfilt__kind {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: none;
+  text-align: left;
+  background: var(--f3);
+  min-width: 0;
+  cursor: pointer;
+}
+.lemu-kgfilt__kind--off { background: transparent; }
+.lemu-kgfilt__kind--off:hover { background: var(--f3); }
+.lemu-kgfilt__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+.lemu-kgfilt__kind-label {
+  flex: 1;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lemu-kgfilt__kind--off .lemu-kgfilt__kind-label { color: var(--t6); }
+.lemu-kgfilt__kind-count {
+  font-family: var(--kg-mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--t4);
+}
+.lemu-kgfilt__kind--off .lemu-kgfilt__kind-count { color: var(--t6); }
+
+.lemu-kgrail__tab:focus-visible,
+.lemu-kgrail__focus:focus-visible,
+.lemu-kgrail__clear:focus-visible,
+.lemu-kgrail__hop-btn:focus-visible,
+.lemu-kgfilt__state:focus-visible,
+.lemu-kgfilt__kind:focus-visible,
+.lemu-kgfilt__all:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 1px;
+}
+
+@media (max-width: 720px) {
+  .lemu-kgrail { left: 8px; right: 8px; width: auto; }
+  .lemu-kgfilt { left: 8px; right: 8px; width: auto; }
 }

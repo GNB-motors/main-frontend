@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-    Box, Alert
-} from '@mui/material';
 import dayjs from 'dayjs';
 import {
     Pagination, PaginationContent, PaginationEllipsis,
@@ -101,7 +98,7 @@ const VehicleReport = () => {
     const handleExportExcel = () => downloadCsv('xlsx', 'application/vnd.ms-excel;charset=utf-8;');
 
     return (
-        <Box sx={{ padding: '24px' }}>
+        <div className="p-6">
             {/* Header Section */}
             <div className="report-header-section">
                 <div className="report-header-top">
@@ -159,7 +156,11 @@ const VehicleReport = () => {
                 </div>
             )}
 
-            {vehicleError && !isLoadingVehicles && <Alert severity="error" sx={{ my: 2 }}>{vehicleError}</Alert>}
+            {vehicleError && !isLoadingVehicles && (
+                <div role="alert" className="my-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {vehicleError}
+                </div>
+            )}
 
             {!isLoadingVehicles && !vehicleError && (
                 <div className="report-content">
@@ -282,7 +283,7 @@ const VehicleReport = () => {
                     )}
                 </div>
             )}
-        </Box>
+        </div>
     );
 };
 

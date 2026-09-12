@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import apiClient from "../../utils/axiosConfig";
+import useApi from "../../hooks/useApi";
 
 // Start of today in IST, as an ISO instant for the backend window.
 const startOfTodayIST = () => {
@@ -19,24 +20,25 @@ const startOfTodayIST = () => {
  */
 export const useOwnerValueDigest = () => {
   const [money, setMoney] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const { data: moneyResponse, loading: isLoading, error: moneyError } = useApi(
+    (signal) => apiClient.get(`/api/owner-value/money`, {
+      params: { from: startOfTodayIST() },
+      signal,
+    }),
+    []
+  );
 
   useEffect(() => {
-    const fetchMoney = async () => {
-      try {
-        const response = await apiClient.get(`/api/owner-value/money`, {
-          params: { from: startOfTodayIST() },
-        });
-        setMoney(response.data?.data || null);
-      } catch (error) {
-        console.error("API Error fetching owner value digest:", error.response?.data || error.message);
-        setMoney(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchMoney();
-  }, []);
+    if (moneyResponse) setMoney(moneyResponse.data?.data || null);
+  }, [moneyResponse]);
+
+  useEffect(() => {
+    if (moneyError) {
+      console.error("API Error fetching owner value digest:", moneyError.response?.data || moneyError.message);
+      setMoney(null);
+    }
+  }, [moneyError]);
 
   return { money, isLoading };
 };

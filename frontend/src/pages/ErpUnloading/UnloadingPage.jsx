@@ -3,11 +3,12 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Scale, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UnloadingApi from './UnloadingService';
 import PageShell from '../../components/Erp/PageShell';
+import StatusBadge from '../../components/Erp/StatusBadge';
 import '../../styles/erp.css';
 
 const money = (n) =>
@@ -15,7 +16,6 @@ const money = (n) =>
 
 const UnloadingPage = ({ embedded = false, initialTab = null }) => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [tab, setTab] = useState(initialTab || 'pending');
   const [pending, setPending] = useState([]);
@@ -256,7 +256,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                     <td>{money(row.shortageAmount)}</td>
                     <td>{money(row.detentionAmount)}</td>
                     <td>{money(row.netReceivable)}</td>
-                    <td>{row.status}</td>
+                    <td><StatusBadge status={row.status} /></td>
                   </tr>
                 ))
               )}
@@ -293,7 +293,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                     <td>{money(row.shortageAmount)}</td>
                     <td>{money(row.tdsAmount)}</td>
                     <td>{money(row.netAmount)}</td>
-                    <td>{row.status}</td>
+                    <td><StatusBadge status={row.status} /></td>
                   </tr>
                 ))
               )}

@@ -5,54 +5,74 @@
    ───────────────────────────────────────────────────────── */
 
 .dashboard-layout {
-    display: flex;
-    min-height: 100vh;
-    position: relative;
-    background: #f1f5f9;
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  background: var(--canvas, #f4f6fb);
+}
+
+/* Visually-hidden until focused (keyboard users) — jumps past the sidebar nav. */
+.skip-to-content {
+  position: absolute;
+  top: -48px;
+  left: 16px;
+  z-index: 1000;
+  padding: 10px 16px;
+  background: var(--primary-color, #187a32);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+.skip-to-content:focus {
+  top: 12px;
 }
 
 .main-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    margin-left: 100px; /* Always account for collapsed sidebar width */
-    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    height: 100vh;
-    padding-top: var(--navbar-height, 72px); /* Pad for fixed navbar */
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-left: 100px; /* Always account for collapsed sidebar width */
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  height: 100vh;
+  padding-top: var(--navbar-height, 72px); /* Pad for fixed navbar */
 }
 
 .page-content {
-    padding: var(--spacing-lg);
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex-grow: 1;
-    height: 100%;
-    box-sizing: border-box;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-grow: 1;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--canvas, #f4f6fb);
 }
 
 .page-content.no-padding {
-    padding: 0 !important;
+  padding: 0 !important;
 }
 
 /* Loading content styles */
 .dashboard-loading-content {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Override the LottieLoader overlay to only cover the main content area */
 .dashboard-loading-content .lottie-loader-overlay {
-    position: absolute !important;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-    background-color: rgba(255, 255, 255, 0.95);
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 /* The rail hover-expands to 260px (Sidebar.css .sidebar:hover) and floats ON TOP
@@ -63,29 +83,31 @@
    reads as the in-focus element. Sits above navbar/content (z 1002), below the
    sidebar (z 1004). Non-interactive; the rail collapses when the mouse leaves it. */
 .main-content::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.32);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    z-index: 1002;
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+  z-index: 1002;
 }
 
 @media (min-width: 993px) {
-    .sidebar:hover ~ .main-content::before {
-        opacity: 1;
-        visibility: visible;
-    }
+  .sidebar:hover ~ .main-content::before {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 /* Mobile styles */
 @media (max-width: 992px) {
-    .main-content {
-        width: 100%;
-        margin-left: 0;
-        padding-top: var(--navbar-height, 72px);
-    }
+  .main-content {
+    width: 100%;
+    margin-left: 0;
+    padding-top: var(--navbar-height, 72px);
+  }
 }

@@ -47,12 +47,19 @@ export const fullRoutePath = (route) => {
   return `${mount}${path.startsWith('/') ? '' : '/'}${path}`; // split fields
 };
 
-/** Build deep-linkable node IDs. */
+/** Build deep-linkable node IDs. INFRA kinds share the `kind:key` scheme. */
 export const nodeId = {
   route: (route) => `route:${route.method}:${fullRoutePath(route)}`,
   model: (model) => `model:${model.modelName}`,
   job: (job) => `job:${job.name}`,
   module: (module) => `module:${module.name}`,
+  host: (host) => `host:${host}`,
+  store: (store) => `store:${store}`,
+  collection: (collection) => `collection:${collection}`,
+  table: (table) => `table:${table}`,
+  pipe: (pipe) => `pipe:${pipe}`,
+  source: (source) => `source:${source}`,
+  surface: (surface) => `surface:${surface}`,
 };
 
 /** Heat bucket for a pulse count (routes) or summed model ops. */

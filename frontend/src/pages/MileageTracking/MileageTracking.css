@@ -72,7 +72,7 @@
 }
 
 .mileage-listing-container .search-bar:focus-within {
-  border-color: var(--primary-color, #3B82F6);
+  border-color: var(--primary-color, #3b82f6);
   background: white;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
@@ -95,7 +95,7 @@
   height: 44px;
   min-width: 112px;
   padding: 10px 24px;
-  background: var(--primary-color, #3B82F6);
+  background: var(--primary-color, #3b82f6);
   box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
   border-radius: 8px;
   outline: 1px var(--primary-dark, #1d30b5) solid;
@@ -107,7 +107,7 @@
   border: none;
   cursor: pointer;
   transition: all 0.2s;
-  color: #F8F8FB;
+  color: #f8f8fb;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
@@ -136,13 +136,21 @@
   flex-direction: column;
 }
 
+/* Shared chassis frame inside the content area — the area already carries
+   the page padding, so the shell only provides the gap between its slots. */
+.mileage-content-area .mileage-detail-shell {
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+}
+
 /* ── Native Table (matches DriversPage) ──────────────────────────────── */
 .mileage-table-container {
   align-self: stretch;
-  background: #F8F8FB;
+  background: #f8f8fb;
   box-shadow: 2px 2px 0px white inset;
   border-radius: 16px;
-  outline: 1px #DFDFE2 solid;
+  outline: 1px #dfdfe2 solid;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
@@ -195,7 +203,7 @@
 
 .mileage-table th {
   padding: 11px 16px;
-  color: #5D5D5E;
+  color: #5d5d5e;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
@@ -210,7 +218,7 @@
 .mileage-table tbody tr {
   background: white;
   border-radius: 12px;
-  outline: 1px #ECECEE solid;
+  outline: 1px #ececee solid;
   outline-offset: -1px;
   position: relative;
   z-index: 1;
@@ -221,7 +229,7 @@
 }
 
 .mileage-table tbody tr:hover {
-  background-color: #FAFAFA;
+  background-color: #fafafa;
   z-index: 10;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -250,10 +258,19 @@
 }
 
 /* Custom scrollbar */
-.mileage-table tbody::-webkit-scrollbar { width: 6px; }
-.mileage-table tbody::-webkit-scrollbar-track { background: transparent; }
-.mileage-table tbody::-webkit-scrollbar-thumb { background: #DFDFE2; border-radius: 3px; }
-.mileage-table tbody::-webkit-scrollbar-thumb:hover { background: #CECECE; }
+.mileage-table tbody::-webkit-scrollbar {
+  width: 6px;
+}
+.mileage-table tbody::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mileage-table tbody::-webkit-scrollbar-thumb {
+  background: #dfdfe2;
+  border-radius: 3px;
+}
+.mileage-table tbody::-webkit-scrollbar-thumb:hover {
+  background: #cecece;
+}
 
 /* Last column hover fx */
 .mileage-last-col {
@@ -280,10 +297,10 @@
   align-items: center;
   gap: 4px;
   padding: 5px 16px;
-  border: 1.5px solid var(--primary-color, #3B82F6);
+  border: 1.5px solid var(--primary-color, #3b82f6);
   border-radius: 20px;
   background: white;
-  color: var(--primary-color, #3B82F6);
+  color: var(--primary-color, #3b82f6);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -300,6 +317,39 @@
 
 .mileage-listing-container .view-details-btn:hover {
   background: #eef4fd;
+}
+
+/* View logs — the actions cell in the DataTable overview. A compact accent
+   text link + chevron; nowrap so "View logs" and the chevron never stack. */
+.mt-viewlogs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary-color, #2563eb);
+  font-size: 13px;
+  font-weight: 600;
+  /* line-height:1 collapses the text box to match the icon so the chevron
+     sits on the true optical center rather than the taller line box. */
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.mt-viewlogs:hover {
+  background: #eff6ff;
+}
+.mt-viewlogs svg {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.mt-viewlogs:hover svg {
+  transform: translateX(2px);
 }
 
 /* Status badge */
@@ -351,7 +401,7 @@
   gap: 8px;
   margin-top: 18px;
   padding: 10px 22px;
-  background: var(--primary-color, #3B82F6);
+  background: var(--primary-color, #3b82f6);
   color: white;
   border: none;
   border-radius: 10px;
@@ -380,7 +430,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px;
-  border-top: 1px solid #DFDFE2;
+  border-top: 1px solid #dfdfe2;
   background: white;
   width: 100%;
   box-sizing: border-box;
@@ -402,12 +452,25 @@
   transition: opacity 0.2s ease;
 }
 
-.mileage-pagination-btn:first-child { margin-right: 8px; }
-.mileage-pagination-btn:last-child  { margin-left: 8px; }
+.mileage-pagination-btn:first-child {
+  margin-right: 8px;
+}
+.mileage-pagination-btn:last-child {
+  margin-left: 8px;
+}
 
-.mileage-pagination-btn:hover:not(:disabled) { opacity: 0.7; }
-.mileage-pagination-btn:disabled { cursor: not-allowed; opacity: 0.3; }
-.mileage-pagination-btn svg { width: 12px; height: 12px; color: #121214; }
+.mileage-pagination-btn:hover:not(:disabled) {
+  opacity: 0.7;
+}
+.mileage-pagination-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+.mileage-pagination-btn svg {
+  width: 12px;
+  height: 12px;
+  color: #121214;
+}
 
 .mileage-page-number {
   width: 32px;
@@ -427,7 +490,7 @@
 
 .mileage-page-number span {
   text-align: center;
-  color: #5D5D5E;
+  color: #5d5d5e;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
@@ -435,7 +498,7 @@
 }
 
 .mileage-page-number:hover:not(.mileage-page-number-current) {
-  background: #F7F7F8;
+  background: #f7f7f8;
 }
 
 .mileage-page-number-current {
@@ -462,13 +525,12 @@
 
 .mileage-page-overflow span {
   text-align: center;
-  color: #5D5D5E;
+  color: #5d5d5e;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   line-height: 21px;
 }
-
 
 /* ═══════════════════════════════════════════
    FORM PAGE (MileageFuelLogPage)
@@ -554,7 +616,7 @@
   background: #eff6ff;
   border: 1.5px solid #bfdbfe;
   border-radius: 999px;
-  color: var(--primary-color, #3B82F6);
+  color: var(--primary-color, #3b82f6);
   font-size: 13px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -593,7 +655,7 @@
 }
 
 .mileage-form-group label {
-  color: #5D5D5E;
+  color: #5d5d5e;
   font-size: 14px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -606,7 +668,7 @@
   padding: 10px 12px;
   background: white;
   border-radius: 8px;
-  border: 1px solid #DFDFE2;
+  border: 1px solid #dfdfe2;
   font-size: 14px;
   color: #121214;
   font-family: 'Inter', sans-serif;
@@ -627,12 +689,12 @@
 .mileage-form-group input:focus,
 .mileage-form-group select:focus {
   outline: none;
-  border-color: var(--primary-color, #3B82F6);
+  border-color: var(--primary-color, #3b82f6);
   box-shadow: 0 0 0 3px rgba(42, 79, 214, 0.1);
 }
 
 .mileage-form-group input::placeholder {
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .mileage-form-group input.mileage-readonly-input,
@@ -653,7 +715,7 @@
   width: 100%;
   height: 44px;
   padding: 10px 12px;
-  border: 1px solid #DFDFE2;
+  border: 1px solid #dfdfe2;
   border-radius: 8px;
   background: white;
   font-size: 14px;
@@ -668,19 +730,42 @@
   text-align: left;
 }
 
-.dropdown-button:hover { border-color: #9ca3af; }
-.dropdown-button:focus { outline: none; border-color: var(--primary-color, #3B82F6); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-.dropdown-button.disabled { opacity: 0.5; cursor: not-allowed; }
-.dropdown-button span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dropdown-button svg { transition: transform 0.2s ease; color: #9ca3af; flex-shrink: 0; width: 16px; height: 16px; }
-.dropdown-button svg.rotated { transform: rotate(180deg); }
+.dropdown-button:hover {
+  border-color: #9ca3af;
+}
+.dropdown-button:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.dropdown-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dropdown-button span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dropdown-button svg {
+  transition: transform 0.2s ease;
+  color: #9ca3af;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+.dropdown-button svg.rotated {
+  transform: rotate(180deg);
+}
 
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 4px);
-  left: 0; right: 0;
+  left: 0;
+  right: 0;
   background: white;
-  border: 1px solid #DFDFE2;
+  border: 1px solid #dfdfe2;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   z-index: 1000;
@@ -699,7 +784,10 @@
   background: #f8fafc;
 }
 
-.dropdown-list { overflow-y: auto; flex: 1; }
+.dropdown-list {
+  overflow-y: auto;
+  flex: 1;
+}
 
 .dropdown-item {
   width: 100%;
@@ -712,11 +800,25 @@
   border-bottom: 1px solid #f8fafc;
 }
 
-.dropdown-item:hover { background: #f8fafc; }
-.dropdown-item.selected { background: #eff6ff; border-left: 3px solid var(--primary-color, #3B82F6); padding-left: 11px; }
+.dropdown-item:hover {
+  background: #f8fafc;
+}
+.dropdown-item.selected {
+  background: #eff6ff;
+  border-left: 3px solid var(--primary-color, #3b82f6);
+  padding-left: 11px;
+}
 
-.item-main { font-size: 14px; font-weight: 600; color: #121214; margin-bottom: 2px; }
-.item-sub { font-size: 12px; color: #64748b; }
+.item-main {
+  font-size: 14px;
+  font-weight: 600;
+  color: #121214;
+  margin-bottom: 2px;
+}
+.item-sub {
+  font-size: 12px;
+  color: #64748b;
+}
 
 /* Document Slot */
 .mileage-slots-row {
@@ -730,7 +832,7 @@
   min-width: 300px;
   display: flex;
   flex-direction: column;
-  border: 1px solid #DFDFE2;
+  border: 1px solid #dfdfe2;
   border-radius: 8px;
   overflow: hidden;
   background: white;
@@ -738,8 +840,8 @@
 
 .modern-document-slot .slot-header {
   padding: 12px 16px;
-  border-bottom: 1px solid #ECECEE;
-  background: #FAFAFA;
+  border-bottom: 1px solid #ececee;
+  background: #fafafa;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -749,7 +851,7 @@
 .modern-document-slot .slot-header h3 {
   font-size: 12px;
   font-weight: 600;
-  color: #5D5D5E;
+  color: #5d5d5e;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin: 0;
@@ -758,12 +860,21 @@
 .slot-dropzone {
   margin: 16px;
   border-radius: 8px;
-  background-image: repeating-linear-gradient(90deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(90deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px);
-  background-size: 16px 1.5px, 1.5px 16px, 16px 1.5px, 1.5px 16px;
-  background-position: 0 0, 100% 0, 0 100%, 0 0;
+  background-image:
+    repeating-linear-gradient(90deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(180deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(90deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(180deg, #cbd5e1 0, #cbd5e1 8px, transparent 8px, transparent 16px);
+  background-size:
+    16px 1.5px,
+    1.5px 16px,
+    16px 1.5px,
+    1.5px 16px;
+  background-position:
+    0 0,
+    100% 0,
+    0 100%,
+    0 0;
   background-repeat: repeat-x, repeat-y, repeat-x, repeat-y;
   transition: all 0.25s ease;
   cursor: pointer;
@@ -771,16 +882,53 @@
 
 .slot-dropzone:hover,
 .slot-dropzone.dragging {
-  background-image: repeating-linear-gradient(90deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(90deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px),
-                    repeating-linear-gradient(180deg, var(--primary-color, #3B82F6) 0, var(--primary-color, #3B82F6) 8px, transparent 8px, transparent 16px);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      var(--primary-color, #3b82f6) 0,
+      var(--primary-color, #3b82f6) 8px,
+      transparent 8px,
+      transparent 16px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      var(--primary-color, #3b82f6) 0,
+      var(--primary-color, #3b82f6) 8px,
+      transparent 8px,
+      transparent 16px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--primary-color, #3b82f6) 0,
+      var(--primary-color, #3b82f6) 8px,
+      transparent 8px,
+      transparent 16px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      var(--primary-color, #3b82f6) 0,
+      var(--primary-color, #3b82f6) 8px,
+      transparent 8px,
+      transparent 16px
+    );
   animation: border-march 0.5s linear infinite;
 }
 
 @keyframes border-march {
-  from { background-position: 0 0, 100% 0, 100% 100%, 0 100%; }
-  to   { background-position: 20px 0, 100% 20px, calc(100% - 20px) 100%, 0 calc(100% - 20px); }
+  from {
+    background-position:
+      0 0,
+      100% 0,
+      100% 100%,
+      0 100%;
+  }
+  to {
+    background-position:
+      20px 0,
+      100% 20px,
+      calc(100% - 20px) 100%,
+      0 calc(100% - 20px);
+  }
 }
 
 .slot-dropzone-inner {
@@ -796,31 +944,142 @@
   text-align: center;
 }
 
-.slot-dropzone-inner.dragging { background: #eff6ff; }
-.slot-icon-wrapper { margin-bottom: 12px; transition: transform 0.25s ease; }
-.slot-dropzone:hover .slot-icon-wrapper { transform: translateY(-4px); }
-.slot-dropzone-title { font-size: 14px; font-weight: 500; color: #121214; margin: 0 0 4px 0; }
-.slot-highlight { color: var(--primary-color, #3B82F6); font-weight: 600; }
-.slot-dropzone-sub { font-size: 13px; color: #5D5D5E; margin: 0; }
-.slot-browse-link { color: var(--primary-color, #3B82F6); font-weight: 500; text-decoration: underline; text-decoration-style: dotted; cursor: pointer; }
-.slot-dropzone-drag-icon { font-size: 32px; margin-bottom: 10px; animation: mt-float 0.7s ease infinite alternate; }
-@keyframes mt-float { from { transform: translateY(0); } to { transform: translateY(-6px); } }
-.slot-dropzone-drag-text { font-size: 16px; font-weight: 700; color: var(--primary-color, #3B82F6); margin: 0; }
+.slot-dropzone-inner.dragging {
+  background: #eff6ff;
+}
+.slot-icon-wrapper {
+  margin-bottom: 12px;
+  transition: transform 0.25s ease;
+}
+.slot-dropzone:hover .slot-icon-wrapper {
+  transform: translateY(-4px);
+}
+.slot-dropzone-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #121214;
+  margin: 0 0 4px 0;
+}
+.slot-highlight {
+  color: var(--primary-color, #3b82f6);
+  font-weight: 600;
+}
+.slot-dropzone-sub {
+  font-size: 13px;
+  color: #5d5d5e;
+  margin: 0;
+}
+.slot-browse-link {
+  color: var(--primary-color, #3b82f6);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  cursor: pointer;
+}
+.slot-dropzone-drag-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  animation: mt-float 0.7s ease infinite alternate;
+}
+@keyframes mt-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6px);
+  }
+}
+.slot-dropzone-drag-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-color, #3b82f6);
+  margin: 0;
+}
 
-.slot-filled-container { display: flex; flex-direction: column; }
-.slot-image-wrapper { position: relative; height: 192px; background-color: #0f172a; overflow: hidden; }
-.slot-image-wrapper img { width: 100%; height: 100%; object-fit: contain; background: #0f172a; }
-.slot-image-overlay { position: absolute; top: 0; left: 0; right: 0; padding: 10px; display: flex; justify-content: space-between; align-items: flex-start; }
-.slot-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background-color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.15); color: #475569; }
-.slot-badge.success { color: #16a34a; }
-.badge-icon-svg { color: #16a34a; }
-.spinning { animation: mt-spin 1s linear infinite; }
-@keyframes mt-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.slot-actions { display: flex; gap: 6px; }
-.slot-action-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 4px 10px; background: white; color: #334155; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.12); transition: all 0.15s; }
-.slot-action-btn:hover { background: #f1f5f9; }
-.slot-action-btn.delete { color: #ef4444; }
-.slot-action-btn.delete:hover { background: #fef2f2; }
+.slot-filled-container {
+  display: flex;
+  flex-direction: column;
+}
+.slot-image-wrapper {
+  position: relative;
+  height: 192px;
+  background-color: #0f172a;
+  overflow: hidden;
+}
+.slot-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0f172a;
+}
+.slot-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.slot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: #475569;
+}
+.slot-badge.success {
+  color: #16a34a;
+}
+.badge-icon-svg {
+  color: #16a34a;
+}
+.spinning {
+  animation: mt-spin 1s linear infinite;
+}
+@keyframes mt-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.slot-actions {
+  display: flex;
+  gap: 6px;
+}
+.slot-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: white;
+  color: #334155;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: all 0.15s;
+}
+.slot-action-btn:hover {
+  background: #f1f5f9;
+}
+.slot-action-btn.delete {
+  color: #ef4444;
+}
+.slot-action-btn.delete:hover {
+  background: #fef2f2;
+}
 
 /* Buttons */
 .mileage-actions {
@@ -848,35 +1107,70 @@
 }
 
 .mileage-btn-primary {
-  background: var(--primary-color, #3B82F6);
-  color: #F8F8FB;
+  background: var(--primary-color, #3b82f6);
+  color: #f8f8fb;
   box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
   outline: 1px var(--primary-dark, #1d30b5) solid;
   outline-offset: -1px;
 }
 
-.mileage-btn-primary:hover:not(:disabled) { background: var(--primary-dark, #1d30b5); }
-.mileage-btn-primary:active:not(:disabled) { transform: translateY(1px); box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5); }
-.mileage-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; background: #9ca3af; box-shadow: none; outline-color: #9ca3af; }
+.mileage-btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark, #1d30b5);
+}
+.mileage-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5);
+}
+.mileage-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #9ca3af;
+  box-shadow: none;
+  outline-color: #9ca3af;
+}
 
 .mileage-btn-secondary {
   background: white;
   color: #374151;
-  border: 1px solid #DFDFE2;
+  border: 1px solid #dfdfe2;
 }
 
-.mileage-btn-secondary:hover { background: #f8fafc; }
+.mileage-btn-secondary:hover {
+  background: #f8fafc;
+}
 
 @media (max-width: 768px) {
-  .mileage-form-row { flex-direction: column; gap: 16px; }
-  .mileage-listing-header .header-content { flex-direction: column; gap: 16px; }
-  .header-right { flex-direction: column; width: 100%; }
-  .mileage-listing-container .search-bar { width: 100%; min-width: unset; }
-  .log-fuel-btn { width: 100%; }
-  .mileage-content-area { padding: 16px; }
-  .mileage-listing-header { padding: 16px; }
-  .mileage-form-header { padding: 16px; }
-  .mileage-form-content { padding: 16px 16px 48px; }
+  .mileage-form-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .mileage-listing-header .header-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .header-right {
+    flex-direction: column;
+    width: 100%;
+  }
+  .mileage-listing-container .search-bar {
+    width: 100%;
+    min-width: unset;
+  }
+  .log-fuel-btn {
+    width: 100%;
+  }
+  .mileage-content-area {
+    padding: 16px;
+  }
+  .mileage-listing-header {
+    padding: 16px;
+  }
+  .mileage-form-header {
+    padding: 16px;
+  }
+  .mileage-form-content {
+    padding: 16px 16px 48px;
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -996,7 +1290,9 @@
   gap: 12px;
 }
 
-.mid-metric-row:last-child { border-bottom: none; }
+.mid-metric-row:last-child {
+  border-bottom: none;
+}
 
 .mid-metric-label {
   font-size: 13px;
@@ -1077,7 +1373,9 @@
   border-bottom: 1px solid #f8fafc;
 }
 
-.mid-variance-row:last-child { border-bottom: none; }
+.mid-variance-row:last-child {
+  border-bottom: none;
+}
 
 .mid-variance-label {
   font-size: 13px;
@@ -1102,8 +1400,12 @@
   min-width: 90px;
 }
 
-.mid-variance-cell.system .mid-vc-val { color: #1d4ed8; }
-.mid-variance-cell.gps    .mid-vc-val { color: '#0891b2'; }
+.mid-variance-cell.system .mid-vc-val {
+  color: #1d4ed8;
+}
+.mid-variance-cell.gps .mid-vc-val {
+  color: '#0891b2';
+}
 
 .mid-vc-sub {
   font-size: 10px;
@@ -1126,7 +1428,9 @@
   font-weight: 600;
 }
 
-.mid-variance-badge-wrap { margin-left: auto; }
+.mid-variance-badge-wrap {
+  margin-left: auto;
+}
 
 .mid-variance-badge {
   display: inline-flex;
@@ -1173,7 +1477,9 @@
   transition: background 0.15s;
 }
 
-.mid-fuellog-entry:last-child { border-bottom: none; }
+.mid-fuellog-entry:last-child {
+  border-bottom: none;
+}
 
 .mid-fuellog-badge {
   font-size: 11px;
@@ -1211,10 +1517,19 @@
 
 /* ── Responsive ───────────────────────────── */
 @media (max-width: 900px) {
-  .mid-top-row { grid-template-columns: 1fr; }
-  .mid-content { padding: 16px; gap: 16px; }
-  .mid-header  { padding: 14px 16px; }
-  .mid-variance-cells { flex-wrap: wrap; }
+  .mid-top-row {
+    grid-template-columns: 1fr;
+  }
+  .mid-content {
+    padding: 16px;
+    gap: 16px;
+  }
+  .mid-header {
+    padding: 14px 16px;
+  }
+  .mid-variance-cells {
+    flex-wrap: wrap;
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -1363,7 +1678,9 @@
   background: white;
   border: 1px solid #eef2f7;
   border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 1px 2px rgba(15, 23, 42, 0.03);
   overflow: hidden;
 }
 
@@ -1615,7 +1932,9 @@
   height: 14px;
   border-radius: 50%;
   margin: 18px auto 0;
-  box-shadow: 0 0 0 4px white, 0 0 0 5px currentColor;
+  box-shadow:
+    0 0 0 4px white,
+    0 0 0 5px currentColor;
 }
 
 .mid2-tl-line {
@@ -1693,20 +2012,40 @@
 
 /* ── Responsive ───────────────────────────── */
 @media (max-width: 1100px) {
-  .mid2-variance-grid { grid-template-columns: 1fr; }
+  .mid2-variance-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
-  .mid2-grid-2 { grid-template-columns: 1fr; }
-  .mid2-content { padding: 16px; gap: 16px; }
-  .mid2-header-bottom { padding: 18px 16px; flex-wrap: wrap; }
-  .mid2-header-right { width: 100%; justify-content: flex-start; }
-  .mid2-title { font-size: 19px; }
-  .mid2-variance-grid { padding: 16px; }
-  .mid2-timeline { padding: 16px; }
-  .mid2-tl-details { gap: 6px 16px; }
+  .mid2-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .mid2-content {
+    padding: 16px;
+    gap: 16px;
+  }
+  .mid2-header-bottom {
+    padding: 18px 16px;
+    flex-wrap: wrap;
+  }
+  .mid2-header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .mid2-title {
+    font-size: 19px;
+  }
+  .mid2-variance-grid {
+    padding: 16px;
+  }
+  .mid2-timeline {
+    padding: 16px;
+  }
+  .mid2-tl-details {
+    gap: 6px 16px;
+  }
 }
-
 
 /* ═══════════════════════════════════════════
    MODEL COMPARISON PAGE (mc-)
@@ -1744,7 +2083,7 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(59, 130, 246, 0.10);
+  background: rgba(59, 130, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1996,7 +2335,7 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  background: rgba(59, 130, 246, 0.10);
+  background: rgba(59, 130, 246, 0.1);
   color: #2563eb;
   border-radius: 999px;
   font-size: 11px;
@@ -2047,7 +2386,7 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 10px;
-  background: rgba(59, 130, 246, 0.10);
+  background: rgba(59, 130, 246, 0.1);
   color: #2563eb;
   border-radius: 999px;
   font-size: 12px;
@@ -2072,7 +2411,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #D97706;
+  color: #d97706;
   font-weight: 600;
   font-size: 12px;
 }
@@ -2116,13 +2455,13 @@
 }
 
 .mc-perf-legend-bar--multi {
-  background: linear-gradient(90deg, #10B981 0 33%, #F59E0B 33% 66%, #EF4444 66% 100%);
+  background: linear-gradient(90deg, #10b981 0 33%, #f59e0b 33% 66%, #ef4444 66% 100%);
 }
 
 .mc-perf-legend-dash {
   width: 18px;
   height: 2px;
-  background: #F59E0B;
+  background: #f59e0b;
   border-radius: 999px;
   flex-shrink: 0;
 }
@@ -2139,7 +2478,7 @@
 }
 
 .mc-row-selected .mc-td-primary {
-  color: #1D4ED8 !important;
+  color: #1d4ed8 !important;
 }
 
 /* ── At risk / OK badges in table ────────── */
@@ -2149,8 +2488,8 @@
   justify-content: center;
   min-width: 22px;
   padding: 2px 8px;
-  background: rgba(239, 68, 68, 0.10);
-  color: #DC2626;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
@@ -2158,20 +2497,31 @@
 
 .mc-ok-badge {
   font-size: 13px;
-  color: #10B981;
+  color: #10b981;
   font-weight: 700;
 }
 
 /* ── Responsive ───────────────────────────── */
 @media (max-width: 1100px) {
-  .mc-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .mc-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-  .mc-header { padding: 14px 16px; }
-  .mc-content { padding: 16px; gap: 16px; }
-  .mc-kpi-row { grid-template-columns: 1fr 1fr; }
-  .mc-card-hint { display: none; }
+  .mc-header {
+    padding: 14px 16px;
+  }
+  .mc-content {
+    padding: 16px;
+    gap: 16px;
+  }
+  .mc-kpi-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mc-card-hint {
+    display: none;
+  }
 }
 
 /* ── Glass Tooltip & Enhancements ─────────────── */

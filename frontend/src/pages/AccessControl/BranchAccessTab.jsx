@@ -5,12 +5,20 @@ import AccessControlApi from './accessControlService';
 import PermissionTreeView from './PermissionTreeView';
 import RoleFormModal from './RoleFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import { getUserRole } from '../../utils/session.js';
 
 const setsEqual = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
 
 /* Binary pill toggle (reuses FeatureFlags switch styling). */
 const Toggle = ({ checked, onChange, label }) => (
-  <button type="button" role="switch" aria-checked={checked} aria-label={label} className="ff-switch" onClick={onChange}>
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    className="ff-switch"
+    onClick={onChange}
+  >
     <span className="ff-switch__thumb" />
   </button>
 );
@@ -42,7 +50,7 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
   const [error, setError] = useState('');
 
   // Branch-scoped role creation + deletion (mirrors the enterprise tab).
-  const canManageRoles = localStorage.getItem('user_role') === 'OWNER';
+  const canManageRoles = getUserRole() === 'OWNER';
   const [roleFormOpen, setRoleFormOpen] = useState(false);
   const [deletingRole, setDeletingRole] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -66,26 +74,39 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
     setOriginal({ granted: new Set(g), enabled: row.enabled !== false });
   }, []);
 
-  const loadBranchRoles = useCallback(async (id) => {
-    if (!id) return;
-    setLoading(true);
-    setError('');
-    try {
-      const data = (await AccessControlApi.getBranchRoles(id)) || [];
-      setRows(data);
-      if (data.length) selectRoleRow(data.find((r) => r.role._id === selectedRoleId) || data[0]);
-    } catch (e) {
-      setError(e.response?.data?.message || 'Failed to load branch roles');
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectRoleRow]);
+  const loadBranchRoles = useCallback(
+    async (id) => {
+      if (!id) return;
+      setLoading(true);
+      setError('');
+      try {
+        const data = (await AccessControlApi.getBranchRoles(id)) || [];
+        setRows(data);
+        if (data.length) selectRoleRow(data.find((r) => r.role._id === selectedRoleId) || data[0]);
+      } catch (e) {
+        setError(e.response?.data?.message || 'Failed to load branch roles');
+      } finally {
+        setLoading(false);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [selectRoleRow],
+  );
 
   // Follow the header location switcher when it changes while this tab is open.
-  useEffect(() => { setBranchId(initialBranchId); }, [initialBranchId]);
+  useEffect(() => {
+    setBranchId(initialBranchId);
+  }, [initialBranchId]);
 
-  useEffect(() => { if (branchId) loadBranchRoles(branchId); }, [branchId, loadBranchRoles]);
+  // No manual "select a branch" step when one is available — jump straight to
+  // the first branch. Only applies when nothing is locked in from outside.
+  useEffect(() => {
+    if (!locked && !branchId && branches.length > 0) setBranchId(branches[0]._id);
+  }, [locked, branchId, branches]);
+
+  useEffect(() => {
+    if (branchId) loadBranchRoles(branchId);
+  }, [branchId, loadBranchRoles]);
 
   const selectedRow = rows.find((r) => r.role._id === selectedRoleId) || null;
 
@@ -121,7 +142,10 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
         const cur = granted.has(p.key);
         if (cur !== base) overrides[p.key] = cur;
       });
-      await AccessControlApi.setBranchRole(branchId, selectedRow.role._id, { enabled, permissionOverrides: overrides });
+      await AccessControlApi.setBranchRole(branchId, selectedRow.role._id, {
+        enabled,
+        permissionOverrides: overrides,
+      });
       toast.success(`Saved override for "${selectedRow.role.name}"`);
       await loadBranchRoles(branchId);
     } catch (e) {
@@ -173,40 +197,47 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
   return (
     <div>
       <div className="rbac-orgbar">
-        <span className="ff-search__icon"><MapPin size={18} /></span>
+        <span className="ff-search__icon">
+          <MapPin size={18} />
+        </span>
         {locked ? (
           <span className="ff-meta">
             Location:{' '}
             <strong>
-              {lockedBranchName
-                || branches.find((b) => String(b._id) === String(branchId))?.name
-                || 'this location'}
+              {lockedBranchName ||
+                branches.find((b) => String(b._id) === String(branchId))?.name ||
+                'this location'}
             </strong>
           </span>
-        ) : (
-          <select className="rbac-select" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            <option value="">Select a branch…</option>
+        ) : branches.length > 0 ? (
+          <select
+            className="rbac-select"
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+          >
             {branches.map((b) => (
-              <option key={b._id} value={b._id}>{b.name}</option>
+              <option key={b._id} value={b._id}>
+                {b.name}
+              </option>
             ))}
           </select>
-        )}
-        {branchId && (
-          <span className="ac-legend">
-            <span className="ac-chip ac-chip--inherited">Inherited</span>
-            <span className="ac-chip ac-chip--override">Override</span>
-          </span>
-        )}
+        ) : null}
       </div>
 
-      {error && <div className="ff-alert ff-alert--error" role="alert">{error}</div>}
+      {error && (
+        <div className="ff-alert ff-alert--error" role="alert">
+          {error}
+        </div>
+      )}
 
-      {!branchId && (
+      {!branchId && branches.length === 0 && !locked && (
         <div className="ff-card">
           <div className="ff-state">
-            <div className="ff-state__icon"><Building2 size={22} /></div>
-            <div className="ff-state__title">Pick a branch</div>
-            <div>Select a branch to configure its role access. Branches inherit the enterprise default until you override.</div>
+            <div className="ff-state__icon">
+              <Building2 size={22} />
+            </div>
+            <div className="ff-state__title">No branches yet</div>
+            <div>Add a branch to configure location-specific role overrides.</div>
           </div>
         </div>
       )}
@@ -224,24 +255,32 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
                 <Plus size={16} /> Add branch role
               </button>
             )}
-            {loading && <div className="ff-state"><div className="ff-spinner" /></div>}
-            {!loading && rows.map((row) => (
-              <button
-                key={row.role._id}
-                type="button"
-                className={`rbac-role ${row.role._id === selectedRoleId ? 'rbac-role--active' : ''}`}
-                onClick={() => selectRoleRow(row)}
-              >
-                <span className="rbac-role__name">
-                  <Shield size={15} /> {row.role.name}
-                  {row.role.scopeType === 'BRANCH' && <span className="ac-chip ac-chip--branch">Branch role</span>}
-                </span>
-                <span className="rbac-role__meta">
-                  {row.enabled === false ? 'disabled here' : row.hasBranchConfig ? 'overridden' : 'inherited'}
-                </span>
-              </button>
-            ))}
-            {!loading && rows.length === 0 && <div className="rbac-role__meta" style={{ padding: 12 }}>No roles available here.</div>}
+            {loading && (
+              <div className="ff-state">
+                <div className="ff-spinner" />
+              </div>
+            )}
+            {!loading &&
+              rows.map((row) => (
+                <button
+                  key={row.role._id}
+                  type="button"
+                  className={`rbac-role ${row.role._id === selectedRoleId ? 'rbac-role--active' : ''}`}
+                  onClick={() => selectRoleRow(row)}
+                >
+                  <span className="rbac-role__name">
+                    <Shield size={15} /> {row.role.name}
+                    {row.role.scopeType === 'BRANCH' && (
+                      <span className="ac-chip ac-chip--branch">Branch role</span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            {!loading && rows.length === 0 && (
+              <div className="rbac-role__meta" style={{ padding: 12 }}>
+                No roles available here.
+              </div>
+            )}
           </div>
 
           <div className="rbac-detail">
@@ -249,9 +288,8 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
               <>
                 <div className="ac-detail__head">
                   <div>
-                    <div className="rbac-detail__title"><Shield size={16} /> {selectedRow.role.name}</div>
-                    <div className="rbac-detail__sub">
-                      Overrides here apply only to this branch. Untouched permissions stay inherited from the enterprise default.
+                    <div className="rbac-detail__title">
+                      <Shield size={16} /> {selectedRow.role.name}
                     </div>
                   </div>
                   {/* Only branch-scoped custom roles can be deleted; enterprise
@@ -269,36 +307,62 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
                   )}
                 </div>
 
-                <div className="rbac-perm" style={{ borderTop: 'none', paddingLeft: 0, paddingRight: 0 }}>
-                  <div>
-                    <div className="rbac-perm__label">Role available at this branch</div>
-                    <div className="rbac-perm__desc">Turn off to make this role unavailable at this branch.</div>
-                  </div>
-                  <Toggle checked={enabled} onChange={() => setEnabled((v) => !v)} label="Role available at this branch" />
+                <div
+                  className="rbac-perm"
+                  style={{ borderTop: 'none', paddingLeft: 0, paddingRight: 0 }}
+                >
+                  <div className="rbac-perm__label">Role available at this branch</div>
+                  <Toggle
+                    checked={enabled}
+                    onChange={() => setEnabled((v) => !v)}
+                    label="Role available at this branch"
+                  />
                 </div>
 
                 <PermissionTreeView
                   catalog={catalog}
                   granted={granted}
-                  baseline={baseline}
                   readOnly={!enabled}
                   onToggleKey={toggleKey}
                   onToggleGroup={toggleGroup}
                 />
-
-                <div className="rbac-detail__footer">
-                  <button type="button" className="ff-btn ff-btn--ghost" onClick={resetToDefault} disabled={saving || !selectedRow.hasBranchConfig}>
-                    Reset to Enterprise Default
-                  </button>
-                  <button type="button" className="ff-btn ff-btn--secondary" onClick={revert} disabled={!dirty || saving}>
-                    <RotateCcw size={16} /> Cancel
-                  </button>
-                  <button type="button" className="ff-btn ff-btn--primary" onClick={save} disabled={!dirty || saving}>
-                    <Save size={16} /> {saving ? 'Saving…' : 'Save override'}
-                  </button>
-                </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Full-page sticky footer (matches the Employee form's FormFooter) —
+          not scoped to the detail card, so it stays anchored to the viewport. */}
+      {selectedRow && (
+        <div className="form-footer">
+          <div className="form-footer-content">
+            <div className="form-footer-actions">
+              <button
+                type="button"
+                className="ff-btn ff-btn--ghost"
+                onClick={resetToDefault}
+                disabled={saving || !selectedRow.hasBranchConfig}
+              >
+                Reset to Enterprise Default
+              </button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--secondary"
+                onClick={revert}
+                disabled={!dirty || saving}
+              >
+                <RotateCcw size={16} /> Cancel
+              </button>
+              <button
+                type="button"
+                className="ff-btn ff-btn--primary"
+                onClick={save}
+                disabled={!dirty || saving}
+              >
+                <Save size={16} /> {saving ? 'Saving…' : 'Save override'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -306,7 +370,6 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
       <RoleFormModal
         open={roleFormOpen}
         onClose={() => setRoleFormOpen(false)}
-        catalog={catalog}
         branchId={branchId}
         onSaved={async (saved) => {
           await loadBranchRoles(branchId);

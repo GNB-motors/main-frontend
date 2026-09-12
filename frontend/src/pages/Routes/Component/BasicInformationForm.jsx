@@ -6,10 +6,7 @@ const BasicInformationForm = forwardRef(({
   initialData = {},
   locationData = {},
   onSubmit,
-  onLocationChange,
-  onOpenMapsModal,
-  isSubmitting = false,
-  isEdit = false
+  onOpenMapsModal
 }, ref) => {
   const [formData, setFormData] = useState({
     name: initialData.name || '',

@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PackageCheck, X, AlertTriangle, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import PodService from './PodService';
 import '../../styles/erp.css';
 
@@ -24,7 +24,6 @@ const EMPTY_FORM = {
 
 const PodsPage = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [tab, setTab] = useState('pending');
   const [pending, setPending] = useState([]);
@@ -317,10 +316,13 @@ const PodsPage = () => {
       )}
 
       {selected && (
-        <div className="erp-modal-backdrop" onClick={closeModal} role="presentation">
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
           <div
             className="erp-modal"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >

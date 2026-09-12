@@ -5,7 +5,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000
 
 const registerUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/v1/auth/register`, userData);
+    // Backend owner-registration endpoint (SUPER_ADMIN only). The page that uses
+    // this service is at /admin/new-user, so /api/admin/register-owner is the
+    // route that actually exists; /api/v1/auth/register is not mounted.
+    const response = await axios.post(`${API_BASE_URL}/api/admin/register-owner`, userData);
     // Return the full response data which includes the token
     return response.data;
   } catch (error) {

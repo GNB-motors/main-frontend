@@ -3,15 +3,17 @@ import { X, Save, FileText } from "lucide-react";
 import "./EditRowModal.css";
 
 const EditRowModal = ({ isOpen, row, columns, onSave, onClose, errors, rawData }) => {
-  if (!isOpen || !row) return null;
-
-  const [formData, setFormData] = React.useState(row);
+  const [formData, setFormData] = React.useState(row || {});
   const [showRaw, setShowRaw] = React.useState(false);
 
   React.useEffect(() => {
-    setFormData(row);
-    setShowRaw(false);
+    if (row) {
+      setFormData(row);
+      setShowRaw(false);
+    }
   }, [row]);
+
+  if (!isOpen || !row) return null;
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -36,8 +38,8 @@ const EditRowModal = ({ isOpen, row, columns, onSave, onClose, errors, rawData }
           <div className="modal-errors">
             <h4>Validation Errors:</h4>
             <ul>
-              {errors.map((err, idx) => (
-                <li key={idx}>{err}</li>
+              {errors.map((err) => (
+                <li key={err}>{err}</li>
               ))}
             </ul>
           </div>

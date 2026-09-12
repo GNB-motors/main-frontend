@@ -3,9 +3,7 @@ import './DocumentCard.css';
 
 // Force refresh: 2026-02-14
 const DocumentCard = ({
-  documentType,
   label,
-  description,
   preview,
   onSelect,
   onRemove,

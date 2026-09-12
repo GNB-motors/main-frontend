@@ -31,7 +31,7 @@ const InputGroup = ({ id, label, type = "number", placeholder, value, field, req
   </div>
 );
 
-const TripForm = ({ slip, fixedDocs, onUpdate, selectedVehicle, journeyData, onValidationChange, showValidation }) => {
+const TripForm = ({ slip, onUpdate, onValidationChange, showValidation }) => {
   // Track which fields have been manually edited by the user
   const manuallyEditedFieldsRef = useRef(new Set());
   

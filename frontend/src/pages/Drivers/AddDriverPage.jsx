@@ -3,10 +3,17 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { DriverService } from './DriverService.jsx';
 import AccessControlApi from '../AccessControl/accessControlService';
+import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { useActiveBranch } from '../../contexts/BranchContext';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { getProfileField } from '../../utils/session.js';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { UserPlus, Building2 } from 'lucide-react';
 import PageHeader from './Component/PageHeader.jsx';
@@ -26,6 +33,9 @@ const AddDriverPage = () => {
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
+  // The driver's current active vehicle assignment (edit mode), if any — used
+  // to diff against the form's vehicleId on save and to end/replace it correctly.
+  const [currentAssignment, setCurrentAssignment] = useState(null);
   // RBAC roles available to this enterprise — dynamic source for the role
   // selectors (Enterprise Role / Branch Role). New roles show up automatically.
   const [roles, setRoles] = useState([]);
@@ -39,7 +49,7 @@ const AddDriverPage = () => {
     aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
   });
 
-  const businessRefId = localStorage.getItem('profile_business_ref_id') || null;
+  const businessRefId = getProfileField('business_ref_id') || null;
 
   useEffect(() => {
     const updateTheme = () => setThemeColors(getThemeCSS());
@@ -63,6 +73,17 @@ const AddDriverPage = () => {
         setIsEdit(true);
         const empId = editing.id || editing._id;
         setDriverId(empId);
+
+        let assignment = null;
+        try {
+          assignment = await DriverVehicleAssignmentService.getActiveAssignment({
+            driverId: empId,
+          });
+        } catch (err) {
+          console.error('Failed to load vehicle assignment', err);
+        }
+        setCurrentAssignment(assignment);
+
         const formData = {
           firstName: editing.firstName || editing.first_name || '',
           lastName: editing.lastName || editing.last_name || '',
@@ -72,6 +93,7 @@ const AddDriverPage = () => {
           role: editing.role || 'DRIVER',
           status: editing.status || 'PENDING',
           password: '', // Don't prefill password
+          vehicleId: assignment ? DriverVehicleAssignmentService.idOf(assignment.vehicleId) : '',
         };
         console.log('Editing driver:', editing);
         console.log('Setting form data:', formData);
@@ -81,25 +103,32 @@ const AddDriverPage = () => {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
           console.log('Fetched documents:', fetchedDocs);
           const updatedDocs = {
-            driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+            driverLicense: {
+              file: null,
+              preview: null,
+              imageUrl: null,
+              name: '',
+              documentId: null,
+            },
             panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-            aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null }
+            aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
           };
 
           if (Array.isArray(fetchedDocs)) {
-            fetchedDocs.forEach(doc => {
+            fetchedDocs.forEach((doc) => {
               // Map API doc types to our state keys
               const mappedType = {
-                'DRIVER_LICENSE': 'driverLicense',
-                'DL': 'driverLicense',
-                'LICENSE': 'driverLicense',
-                'PAN': 'panCard',
-                'AADHAAR': 'aadharCard',
-                'AADHAR': 'aadharCard'
+                DRIVER_LICENSE: 'driverLicense',
+                DL: 'driverLicense',
+                LICENSE: 'driverLicense',
+                PAN: 'panCard',
+                AADHAAR: 'aadharCard',
+                AADHAR: 'aadharCard',
               }[doc.docType];
 
               if (mappedType) {
-                const url = doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
+                const url =
+                  doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
                 if (url) {
                   updatedDocs[mappedType].preview = url;
                   updatedDocs[mappedType].imageUrl = url;
@@ -111,17 +140,18 @@ const AddDriverPage = () => {
           }
           setDocuments(updatedDocs);
         } catch (err) {
-          console.error("Failed to load documents", err);
+          console.error('Failed to load documents', err);
         }
       } else {
         // Reset to add mode when no editing driver
         setIsEdit(false);
         setDriverId(null);
         setInitialFormData({});
+        setCurrentAssignment(null);
         setDocuments({
           driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
           panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null }
+          aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
         });
       }
     };
@@ -139,7 +169,8 @@ const AddDriverPage = () => {
       if (!formData.lastName?.trim()) missing.push('Last name');
       if (!formData.mobileNumber?.trim()) missing.push('Mobile number');
       if (!formData.password) missing.push('Password');
-      if (!formData.enterpriseRoleId && !formData.branchRoleId) missing.push('a Role (Enterprise or Branch)');
+      if (!formData.enterpriseRoleId && !formData.branchRoleId)
+        missing.push('a Role (Enterprise or Branch)');
       if (missing.length) {
         toast.error(`To create an employee, please add: ${missing.join(', ')}.`);
         return;
@@ -151,7 +182,33 @@ const AddDriverPage = () => {
       const docTypes = {
         driverLicense: 'DRIVER_LICENSE',
         panCard: 'PAN',
-        aadharCard: 'AADHAAR'
+        aadharCard: 'AADHAAR',
+      };
+
+      // Reconcile the form's vehicle pick with the driver's actual assignment,
+      // as part of this same save — end-then-create (not an in-place edit) so
+      // the per-vehicle history stays intact. No-op if nothing changed.
+      const syncVehicleAssignment = async (entityId, vehicleId) => {
+        const currentVehicleId = currentAssignment
+          ? DriverVehicleAssignmentService.idOf(currentAssignment.vehicleId)
+          : '';
+        if ((vehicleId || '') === currentVehicleId) return;
+        try {
+          if (currentAssignment) {
+            await DriverVehicleAssignmentService.endAssignment(currentAssignment._id);
+          }
+          if (vehicleId) {
+            await DriverVehicleAssignmentService.createAssignment({
+              driverId: entityId,
+              vehicleId,
+              startDate: new Date().toISOString(),
+            });
+          }
+        } catch (err) {
+          toast.error(
+            err?.response?.data?.message || err?.message || 'Failed to update vehicle assignment',
+          );
+        }
       };
 
       const uploadDocuments = async (entityId) => {
@@ -162,7 +219,11 @@ const AddDriverPage = () => {
               // Delete old document if replacing
               const oldDocId = docData._previousDocumentId;
               if (oldDocId) {
-                try { await DriverService.deleteDocument(oldDocId); } catch { /* best effort */ }
+                try {
+                  await DriverService.deleteDocument(oldDocId);
+                } catch {
+                  /* best effort */
+                }
               }
               await DriverService.uploadDocument(entityId, docType, docData.file);
             } catch (docErr) {
@@ -186,6 +247,7 @@ const AddDriverPage = () => {
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
         await uploadDocuments(driverId);
+        await syncVehicleAssignment(driverId, formData.vehicleId);
 
         toast.success('Employee updated successfully');
         navigate('/drivers');
@@ -218,6 +280,7 @@ const AddDriverPage = () => {
         // All roles (including field agents, now branch-scoped) return { id, status }.
         const empId = savedEmployee._id || savedEmployee.id || savedEmployee.user?._id;
         await uploadDocuments(empId);
+        await syncVehicleAssignment(empId, formData.vehicleId);
 
         toast.success('Employee created successfully');
         navigate('/drivers');
@@ -269,11 +332,17 @@ const AddDriverPage = () => {
         <PageHeader
           backLabel="Employees"
           backPath="/drivers"
-          currentLabel={isEdit ? (initialFormData.firstName && initialFormData.lastName ? `${initialFormData.firstName} ${initialFormData.lastName}` : initialFormData.firstName || 'Employee') : null}
+          currentLabel={
+            isEdit
+              ? initialFormData.firstName && initialFormData.lastName
+                ? `${initialFormData.firstName} ${initialFormData.lastName}`
+                : initialFormData.firstName || 'Employee'
+              : null
+          }
           title="Employee Details"
           description={
-            isEdit 
-              ? 'Update employee information including personal details, contact information, and role assignment.' 
+            isEdit
+              ? 'Update employee information including personal details, contact information, and role assignment.'
               : 'Configure essential employee details, including the name, contact information, location, and role assignment.'
           }
           onBack={() => navigate(-1)}
@@ -305,13 +374,18 @@ const AddDriverPage = () => {
       />
 
       {/* Import Employee — shown when the phone already exists in the enterprise. */}
-      <Dialog open={!!importCandidate} onOpenChange={(o) => { if (!o && !importing) setImportCandidate(null); }}>
+      <Dialog
+        open={!!importCandidate}
+        onOpenChange={(o) => {
+          if (!o && !importing) setImportCandidate(null);
+        }}
+      >
         <DialogContent className="max-w-md p-0">
           <DialogHeader>
             <DialogTitle>Import existing employee</DialogTitle>
             <DialogDescription>
-              This phone number already belongs to an employee in your enterprise. Import them into the
-              current location instead of creating a duplicate — they become active here and are
+              This phone number already belongs to an employee in your enterprise. Import them into
+              the current location instead of creating a duplicate — they become active here and are
               deactivated in their previous location.
             </DialogDescription>
           </DialogHeader>
@@ -324,7 +398,9 @@ const AddDriverPage = () => {
                 </div>
                 <div className="text-sm">
                   <div className="font-semibold">
-                    {[importCandidate.firstName, importCandidate.lastName].filter(Boolean).join(' ') || 'Employee'}
+                    {[importCandidate.firstName, importCandidate.lastName]
+                      .filter(Boolean)
+                      .join(' ') || 'Employee'}
                   </div>
                   <div className="text-muted-foreground">{importCandidate.mobileNumber}</div>
                   <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
@@ -335,9 +411,10 @@ const AddDriverPage = () => {
               </div>
             )}
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Their existing records stay with their previous location (history isn't moved). They become
-              <strong> active in this location</strong>, and <strong>deactivated</strong> in the previous one —
-              where they can no longer be assigned anything.
+              Their existing records stay with their previous location (history isn't moved). They
+              become
+              <strong> active in this location</strong>, and <strong>deactivated</strong> in the
+              previous one — where they can no longer be assigned anything.
             </p>
           </div>
 

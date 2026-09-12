@@ -1,7 +1,9 @@
+import { getToken } from '../../utils/session';
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 export function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
+  const token = getToken();
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,

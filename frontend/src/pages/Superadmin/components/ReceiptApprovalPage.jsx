@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import apiClient from '../../../utils/axiosConfig';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
+import { getUserRole } from '../../../utils/session';
 import './ReceiptApproval.css';
 
 const ODOMETER_MODES = [
@@ -43,12 +44,10 @@ const ODOMETER_MODES = [
    org WhatsApp Approvals page. Hidden on the cross-org superadmin route. */
 const OdometerModeControl = () => {
   const { organization } = useFeatureFlags();
-  const [mode, setMode] = useState(
-    organization?.whatsappSettings?.odometerMode || 'INTERACTIVE',
-  );
+  const [mode, setMode] = useState(organization?.whatsappSettings?.odometerMode || 'INTERACTIVE');
   const [saving, setSaving] = useState(false);
 
-  const userRole = (localStorage.getItem('user_role') || '').toUpperCase();
+  const userRole = (getUserRole() || '').toUpperCase();
   const canEdit = ['OWNER', 'MANAGER'].includes(userRole);
 
   useEffect(() => {
@@ -471,10 +470,14 @@ const ReceiptApprovalPage = () => {
                       <td className="ra-right ra-strong">{fmtLitres(d.litres)}</td>
                       <td className="ra-right ra-strong">{fmtMoney(d.amount)}</td>
                       <td className="ra-center ra-muted">
-                        {d.odometerReading != null ? d.odometerReading.toLocaleString('en-IN') : '—'}
+                        {d.odometerReading != null
+                          ? d.odometerReading.toLocaleString('en-IN')
+                          : '—'}
                       </td>
                       <td className="ra-center">
-                        <span className={`ra-badge ${STATUS_BADGE[d.status] || 'ra-badge--cleared'}`}>
+                        <span
+                          className={`ra-badge ${STATUS_BADGE[d.status] || 'ra-badge--cleared'}`}
+                        >
                           <span className="ra-badge__dot" />
                           {d.status}
                         </span>

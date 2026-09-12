@@ -1,17 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import {
-  Save,
-  RotateCcw,
-  Plus,
-  Trash2,
-  X,
-  AlertTriangle,
-  ToggleRight,
-} from 'lucide-react';
+import { Save, RotateCcw, Plus, Trash2, X, AlertTriangle, ToggleRight } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
+import useApi from '../../../hooks/useApi';
+import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 
 const FEATURE_LABELS = {
@@ -51,7 +45,6 @@ const OrgFeatureFlagsDetailPage = () => {
   const [original, setOriginal] = useState({});
   const [knownKeys, setKnownKeys] = useState([]);
   const [registryKeys, setRegistryKeys] = useState(new Set());
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -68,48 +61,55 @@ const OrgFeatureFlagsDetailPage = () => {
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);
 
-  const load = useCallback(async () => {
-    if (!orgId) return;
-    setLoading(true);
-    setError('');
-    try {
+  const {
+    data: flagsData,
+    loading,
+    error: loadError,
+    refetch,
+  } = useApi(
+    async (signal) => {
+      if (!orgId) return null;
       const [flagsRes, orgsRes, registryRes] = await Promise.all([
-        apiClient.get(`/api/feature-flags/${orgId}`),
-        apiClient.get('/api/admin/organizations'),
-        apiClient.get('/api/feature-flags/registry'),
+        apiClient.get(`/api/feature-flags/${orgId}`, { signal }),
+        apiClient.get('/api/admin/organizations', { signal }),
+        apiClient.get('/api/feature-flags/registry', { signal }),
       ]);
-      const payload = flagsRes.data?.data ?? {};
-      setFlags(payload.flags || {});
-      setOriginal(payload.flags || {});
-      setKnownKeys(payload.knownKeys || []);
-      const registry = registryRes.data?.data ?? [];
-      setRegistryKeys(new Set(registry.map((r) => r.key)));
-      const list = orgsRes.data?.data ?? [];
-      const me = list.find((o) => o._id === orgId);
-      setOrgName(me?.companyName || me?.ownerEmail || orgId);
-    } catch (e) {
-      setError(e.response?.data?.message || 'Failed to load flags');
-    } finally {
-      setLoading(false);
-    }
-  }, [orgId]);
+      return { flagsRes, orgsRes, registryRes };
+    },
+    [JSON.stringify({ orgId })],
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (loading) setError('');
+  }, [loading]);
+
+  useEffect(() => {
+    if (!flagsData) return;
+    const payload = flagsData.flagsRes.data?.data ?? {};
+    setFlags(payload.flags || {});
+    setOriginal(payload.flags || {});
+    setKnownKeys(payload.knownKeys || []);
+    const registry = flagsData.registryRes.data?.data ?? [];
+    setRegistryKeys(new Set(registry.map((r) => r.key)));
+    const list = flagsData.orgsRes.data?.data ?? [];
+    const me = list.find((o) => o._id === orgId);
+    setOrgName(me?.companyName || me?.ownerEmail || orgId);
+  }, [flagsData, orgId]);
+
+  useEffect(() => {
+    if (loadError) setError(loadError.response?.data?.message || 'Failed to load flags');
+  }, [loadError]);
 
   const toggle = (key) => {
     setFlags((prev) => ({ ...prev, [key]: !prev?.[key] }));
   };
 
-  const dirty = knownKeys.some(
-    (k) => (flags?.[k] === true) !== (original?.[k] === true),
-  );
+  const dirty = knownKeys.some((k) => (flags?.[k] === true) !== (original?.[k] === true));
 
   const enabledCount = knownKeys.filter((k) => flags?.[k] === true).length;
 
@@ -166,7 +166,7 @@ const OrgFeatureFlagsDetailPage = () => {
       });
       setAddOpen(false);
       toast.success(`Registered "${trimmedKey}"`);
-      await load();
+      refetch();
     } catch (e) {
       setAddError(e.response?.data?.message || 'Failed to register key');
     } finally {
@@ -178,12 +178,10 @@ const OrgFeatureFlagsDetailPage = () => {
     if (!removeTarget) return;
     setRemoving(true);
     try {
-      await apiClient.delete(
-        `/api/feature-flags/registry/${encodeURIComponent(removeTarget)}`,
-      );
+      await apiClient.delete(`/api/feature-flags/registry/${encodeURIComponent(removeTarget)}`);
       toast.success(`Removed "${removeTarget}"`);
       setRemoveTarget(null);
-      await load();
+      refetch();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to remove');
     } finally {
@@ -207,8 +205,13 @@ const OrgFeatureFlagsDetailPage = () => {
             'Loading…'
           ) : (
             <>
-              <strong>{enabledCount}</strong> of <strong>{knownKeys.length}</strong> features enabled
-              {dirty && <span className="ff-badge ff-badge--brand" style={{ marginLeft: 10 }}>Unsaved changes</span>}
+              <strong>{enabledCount}</strong> of <strong>{knownKeys.length}</strong> features
+              enabled
+              {dirty && (
+                <span className="ff-badge ff-badge--brand" style={{ marginLeft: 10 }}>
+                  Unsaved changes
+                </span>
+              )}
             </>
           )}
         </span>
@@ -286,9 +289,7 @@ const OrgFeatureFlagsDetailPage = () => {
                   return (
                     <tr key={key}>
                       <td>
-                        <span className="ff-feature__label">
-                          {FEATURE_LABELS[key] || key}
-                        </span>
+                        <span className="ff-feature__label">{FEATURE_LABELS[key] || key}</span>
                         {key === 'dailyMileageReport' && (
                           <div className="ff-feature__hint">
                             Sends a daily 09:00 IST mileage digest to this org.
@@ -347,23 +348,29 @@ const OrgFeatureFlagsDetailPage = () => {
       {addOpen && (
         <div
           className="ff-modal-overlay"
-          onClick={() => !adding && setAddOpen(false)}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !adding) setAddOpen(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (!adding) setAddOpen(false);
+            }
+          }}
         >
-          <div
-            className="ff-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="ff-add-title"
-          >
+          <div className="ff-modal" role="dialog" aria-modal="true" aria-labelledby="ff-add-title">
             <div className="ff-modal__header">
               <div>
                 <h2 className="ff-modal__title" id="ff-add-title">
                   Register a new feature flag
                 </h2>
                 <p className="ff-modal__subtitle">
-                  New flags become available to all organizations. Each one starts
-                  denied — flip the toggle to enable it.
+                  New flags become available to all organizations. Each one starts denied — flip the
+                  toggle to enable it.
                 </p>
               </div>
               <button
@@ -457,11 +464,22 @@ const OrgFeatureFlagsDetailPage = () => {
       {removeTarget && (
         <div
           className="ff-modal-overlay"
-          onClick={() => !removing && setRemoveTarget(null)}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !removing) setRemoveTarget(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (!removing) setRemoveTarget(null);
+            }
+          }}
         >
           <div
             className="ff-modal"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="ff-remove-title"
@@ -476,8 +494,8 @@ const OrgFeatureFlagsDetailPage = () => {
                     Remove “{removeTarget}”?
                   </h2>
                   <p className="ff-modal__subtitle">
-                    It stops appearing here for all organizations. Each org keeps its
-                    stored value, so re-registering the key restores it.
+                    It stops appearing here for all organizations. Each org keeps its stored value,
+                    so re-registering the key restores it.
                   </p>
                 </div>
               </div>

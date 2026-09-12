@@ -9,6 +9,7 @@
  * Uses the shared apiClient so every call inherits Authorization + X-Org-Id.
  */
 import apiClient from '../utils/axiosConfig';
+import { parseSafe } from '../schemas/validate.js';
 
 const unwrap = (res) => res?.data?.data ?? res?.data ?? null;
 
@@ -16,7 +17,11 @@ export const BranchService = {
   async listBranches(params = {}) {
     const res = await apiClient.get('/api/branches', { params });
     const data = unwrap(res);
-    return Array.isArray(data) ? data : [];
+    return parseSafe(
+      'branchListSchema',
+      () => import('../schemas/branch.schema.js'),
+      Array.isArray(data) ? data : [],
+    );
   },
 
   async getBranch(id) {

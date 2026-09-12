@@ -70,12 +70,14 @@ const LocationSearch = ({ isLoaded, value, onChange, onSelect, hasError }) => {
       {suggestions.length > 0 && (
         <ul className="azd-suggestions">
           {suggestions.map((s, i) => (
-            <li
-              key={s.place_id || i}
-              className="azd-suggestion-item"
-              onMouseDown={() => { setSuggestions([]); onSelect(s); }}
-            >
-              {s.description}
+            <li key={s.place_id || i} className="azd-suggestion-item" style={{ padding: 0 }}>
+              <button
+                type="button"
+                style={{ background: 'none', border: 'none', padding: '10px 14px', font: 'inherit', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }}
+                onMouseDown={() => { setSuggestions([]); onSelect(s); }}
+              >
+                {s.description}
+              </button>
             </li>
           ))}
         </ul>
@@ -116,8 +118,17 @@ const GeoTypeSelect = ({ value, onChange }) => {
           {OPTIONS.map(o => (
             <div
               key={o.value}
+              role="button"
+              tabIndex={0}
               className={`azd-type-option ${value === o.value ? 'azd-type-selected' : ''}`}
               onClick={() => { onChange(o.value); setOpen(false); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onChange(o.value);
+                  setOpen(false);
+                }
+              }}
             >
               <span className="azd-type-icon">{o.icon}</span>
               <span className="azd-type-name">{o.label}</span>
@@ -135,7 +146,7 @@ const GeoTypeSelect = ({ value, onChange }) => {
 // NO DrawingManager / 'drawing' library needed.
 const ZoneMapPreview = ({
   isLoaded, locationLatLng, geofenceType,
-  radiusMetres, polygonPath, onPolygonComplete, onClearShape,
+  radiusMetres, polygonPath, onClearShape,
   draftPoints, onAddPoint, onClearDraft,
 }) => {
   const [mapInstance, setMapInstance] = useState(null);
@@ -381,9 +392,24 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
     }
   };
 
+  const handleOverlayKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   return (
-    <div className="azd-overlay" onClick={onClose}>
-      <div className="azd-modal" onClick={e => e.stopPropagation()}>
+    <div
+      className="azd-overlay"
+      role="button"
+      tabIndex={-1}
+      aria-label="Close dialog"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={handleOverlayKeyDown}
+    >
+      <div className="azd-modal">
 
         {/* ── Header ── */}
         <div className="azd-header">

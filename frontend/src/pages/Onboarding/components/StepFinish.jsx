@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getUserFirstName } from '../../../utils/session.js';
 
 /**
  * StepFinish
@@ -8,7 +9,7 @@ import React, { useState } from 'react';
 const StepFinish = ({ onFinish, onBack }) => {
     const [isLaunching, setIsLaunching] = useState(false);
 
-    const firstName = localStorage.getItem('user_firstName') || '';
+    const firstName = getUserFirstName() || '';
     const companyRaw = sessionStorage.getItem('onboardingCompany');
     const company = companyRaw ? JSON.parse(companyRaw) : {};
     const companyName = company.companyName || 'your company';

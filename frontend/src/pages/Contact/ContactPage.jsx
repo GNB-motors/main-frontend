@@ -87,7 +87,7 @@ const ContactPage = () => {
                     {/* Background Images */}
                     {slideData.map((slide, index) => (
                         <img
-                            key={index}
+                            key={slide.title}
                             src={slide.image}
                             className={`slide-bg ${index === currentSlide ? "active" : ""}`}
                             alt={`Slide ${index + 1}`}
@@ -101,29 +101,41 @@ const ContactPage = () => {
                     <div className="vector-4"></div>
 
                     {/* Glass Card */}
-                    <div className="glass-card" onClick={nextSlide}>
+                    <div
+                        className="glass-card"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nextSlide(); } }}
+                        onClick={nextSlide}
+                    >
                         <div className="card-title">{slideData[currentSlide].title}</div>
                         <div className="card-desc">{slideData[currentSlide].desc}</div>
 
                         <div className="card-dots">
-                            {slideData.map((_, index) => (
-                                <div
-                                    key={index}
+                            {slideData.map((slide, index) => (
+                                <button
+                                    type="button"
+                                    key={slide.title}
                                     className={`card-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                    style={{ border: 'none', padding: 0, font: 'inherit' }}
+                                    aria-label={`Go to slide ${index + 1}`}
                                     onClick={(e) => goToSlide(index, e)}
-                                ></div>
+                                ></button>
                             ))}
                         </div>
                     </div>
 
                     {/* Bottom Navigation Pill */}
                     <div className="bottom-pill">
-                        {slideData.map((_, index) => (
-                            <div
-                                key={index}
+                        {slideData.map((slide, index) => (
+                            <button
+                                type="button"
+                                key={slide.title}
                                 className={`nav-dot ${index === currentSlide ? "active" : "inactive"}`}
+                                style={{ border: 'none', padding: 0, font: 'inherit' }}
+                                aria-label={`Go to slide ${index + 1}`}
                                 onClick={(e) => goToSlide(index, e)}
-                            ></div>
+                            ></button>
                         ))}
                     </div>
                 </div>

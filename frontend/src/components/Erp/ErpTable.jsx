@@ -68,8 +68,8 @@ const ErpTable = ({
         <table className="erp-table">
           <thead>
             <tr>
-              {columns.map((col, idx) => (
-                <th key={idx} style={col.headerStyle || {}}>
+              {columns.map((col) => (
+                <th key={col.accessor || col.key || col.header} style={col.headerStyle || {}}>
                   {col.header}
                 </th>
               ))}

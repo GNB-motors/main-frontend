@@ -51,8 +51,8 @@ const OcrPreviewModal = ({ showOcrModal, setShowOcrModal, selectedOcrData, selec
   ];
 
   return (
-    <div className="ocr-modal-overlay" onClick={() => setShowOcrModal(false)}>
-      <div className="ocr-modal" onClick={e => e.stopPropagation()}>
+    <div className="ocr-modal-overlay" role="presentation" onClick={() => setShowOcrModal(false)}>
+      <div className="ocr-modal" role="presentation" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="ocr-modal-header">
