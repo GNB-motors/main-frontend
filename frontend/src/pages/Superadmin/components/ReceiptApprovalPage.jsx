@@ -11,6 +11,8 @@ import {
   Radio,
   PencilLine,
   ArrowLeft,
+  Check,
+  CheckCircle2,
 } from 'lucide-react';
 import apiClient from '../../../utils/axiosConfig';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
@@ -156,43 +158,36 @@ const ReceiptApprovalPage = () => {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await apiClient.get('/api/whatsapp/admin/drafts', {
+  // Multi-selection state
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [draftsRes, countsRes] = await Promise.all([
+        apiClient.get('/api/whatsapp/admin/drafts', {
           params: { status, limit: 200 },
-        });
-        if (!alive) return;
-        setItems(res.data?.data?.items ?? []);
-      } catch (e) {
-        if (!alive) return;
-        setError(e.response?.data?.message || 'Failed to load receipts');
-      } finally {
-        if (alive) setLoading(false);
+        }),
+        apiClient.get('/api/whatsapp/admin/drafts/counts').catch(() => null),
+      ]);
+      setItems(draftsRes.data?.data?.items ?? []);
+      if (countsRes?.data?.data) {
+        setCounts(countsRes.data.data);
       }
-    };
-    load();
-    return () => {
-      alive = false;
-    };
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to load receipts');
+    } finally {
+      setLoading(false);
+    }
   }, [status]);
 
-  // Counts per status for the tab badges — best-effort, non-blocking.
   useEffect(() => {
-    let alive = true;
-    apiClient
-      .get('/api/whatsapp/admin/drafts/counts')
-      .then((res) => {
-        if (alive) setCounts(res.data?.data ?? {});
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [status]);
+    fetchData();
+    setSelectedIds(new Set());
+  }, [fetchData]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -208,6 +203,115 @@ const ReceiptApprovalPage = () => {
       );
     });
   }, [items, query]);
+
+  // Only READY drafts can be approved
+  const selectableItems = useMemo(
+    () => filtered.filter((d) => d.status === 'READY'),
+    [filtered],
+  );
+
+  const isAllSelected =
+    selectableItems.length > 0 &&
+    selectableItems.every((d) => selectedIds.has(d._id));
+
+  const isSomeSelected =
+    selectableItems.some((d) => selectedIds.has(d._id)) && !isAllSelected;
+
+  const selectedDrafts = useMemo(
+    () => items.filter((d) => selectedIds.has(d._id)),
+    [items, selectedIds],
+  );
+
+  const totalSelectedLitres = useMemo(
+    () => selectedDrafts.reduce((sum, d) => sum + (Number(d.litres) || 0), 0),
+    [selectedDrafts],
+  );
+
+  const totalSelectedAmount = useMemo(
+    () => selectedDrafts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0),
+    [selectedDrafts],
+  );
+
+  const toggleSelectOne = useCallback((id, e) => {
+    e?.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const allSelectableIds = selectableItems.map((d) => d._id);
+      const allSelected = allSelectableIds.length > 0 && allSelectableIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) {
+        allSelectableIds.forEach((id) => next.delete(id));
+      } else {
+        allSelectableIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, [selectableItems]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBulkApprove = useCallback(async () => {
+    if (selectedIds.size === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const res = await apiClient.post('/api/whatsapp/admin/drafts/bulk-publish', { ids });
+      const data = res.data?.data || {};
+      const { successCount = 0, failureCount = 0, failed = [] } = data;
+
+      if (failureCount === 0) {
+        toast.success(
+          `Successfully published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`,
+        );
+      } else {
+        // Collect distinct error messages from failed drafts
+        const failureMessages = Array.from(
+          new Set(failed.map((f) => f.message).filter(Boolean)),
+        );
+
+        if (successCount > 0) {
+          toast.success(
+            `Published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`,
+          );
+        }
+
+        if (failureMessages.length > 0) {
+          failureMessages.forEach((msg) => {
+            toast.error(msg);
+          });
+        } else {
+          toast.error(
+            failureCount === 1
+              ? '1 receipt failed to publish'
+              : `${failureCount} receipts failed to publish`,
+          );
+        }
+      }
+
+      setShowBulkConfirmModal(false);
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || err.message || 'Error processing bulk approval';
+      toast.error(msg);
+    } finally {
+      setBulkBusy(false);
+    }
+  }, [selectedIds, bulkBusy, clearSelection, fetchData]);
 
   return (
     <div className="ra-page">
@@ -275,6 +379,19 @@ const ReceiptApprovalPage = () => {
           <table className="ra-table">
             <thead>
               <tr>
+                <th className="ra-table__th-select">
+                  <input
+                    type="checkbox"
+                    className="ra-checkbox"
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isSomeSelected;
+                    }}
+                    onChange={toggleSelectAll}
+                    disabled={selectableItems.length === 0}
+                    aria-label="Select all ready receipts"
+                  />
+                </th>
                 <th>Vehicle</th>
                 <th>Organization</th>
                 <th className="ra-right">Litres</th>
@@ -288,7 +405,7 @@ const ReceiptApprovalPage = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="ra-state">
                       <div className="ra-spinner" />
                     </div>
@@ -298,7 +415,7 @@ const ReceiptApprovalPage = () => {
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="ra-state">
                       <div className="ra-state__icon">
                         <Inbox size={22} />
@@ -317,12 +434,30 @@ const ReceiptApprovalPage = () => {
               {!loading &&
                 filtered.map((d) => {
                   const veh = d.vehicleId?.registrationNumber || d.vehicleReg || '—';
+                  const isSelected = selectedIds.has(d._id);
+                  const canSelect = d.status === 'READY';
                   return (
                     <tr
                       key={d._id}
-                      className="ra-clickable"
+                      className={`ra-clickable ${isSelected ? 'is-selected' : ''}`}
                       onClick={() => navigate(`${basePath}/${d._id}`)}
                     >
+                      <td
+                        className="ra-table__td-select"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {canSelect ? (
+                          <input
+                            type="checkbox"
+                            className="ra-checkbox"
+                            checked={isSelected}
+                            onChange={(e) => toggleSelectOne(d._id, e)}
+                            aria-label={`Select receipt for ${veh}`}
+                          />
+                        ) : (
+                          <span className="ra-checkbox-placeholder" />
+                        )}
+                      </td>
                       <td>
                         <span className="ra-veh">
                           <span className="ra-veh__avatar">
@@ -360,6 +495,103 @@ const ReceiptApprovalPage = () => {
           </table>
         </div>
       </div>
+
+      {/* Floating bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="ra-bulk-bar">
+          <div className="ra-bulk-bar__content">
+            <div className="ra-bulk-bar__left">
+              <span className="ra-bulk-bar__badge">
+                <Check size={14} />
+                {selectedIds.size} Selected
+              </span>
+              <div className="ra-bulk-bar__divider" />
+              <span className="ra-bulk-bar__stat">
+                <span className="ra-bulk-bar__stat-label">Total Litres:</span>
+                <span className="ra-bulk-bar__stat-val">{fmtLitres(totalSelectedLitres)}</span>
+              </span>
+              <div className="ra-bulk-bar__divider" />
+              <span className="ra-bulk-bar__stat">
+                <span className="ra-bulk-bar__stat-label">Total Amount:</span>
+                <span className="ra-bulk-bar__stat-val">{fmtMoney(totalSelectedAmount)}</span>
+              </span>
+            </div>
+            <div className="ra-bulk-bar__actions">
+              <button
+                type="button"
+                className="ra-bulk-btn ra-bulk-btn--ghost"
+                onClick={clearSelection}
+                disabled={bulkBusy}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ra-bulk-btn ra-bulk-btn--primary"
+                onClick={() => setShowBulkConfirmModal(true)}
+                disabled={bulkBusy}
+              >
+                <CheckCircle2 size={16} />
+                Approve {selectedIds.size} {selectedIds.size === 1 ? 'Receipt' : 'Receipts'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showBulkConfirmModal && (
+        <div
+          className="ra-modal-overlay"
+          onClick={() => !bulkBusy && setShowBulkConfirmModal(false)}
+        >
+          <div className="ra-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ra-modal__head">
+              Bulk Approve Receipts
+            </div>
+            <div className="ra-modal__body">
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--foreground)' }}>
+                Are you sure you want to approve and publish <strong>{selectedIds.size}</strong> fuel receipt{selectedIds.size === 1 ? '' : 's'} to the fuel ledger?
+              </p>
+              <div className="ra-bulk-summary-box">
+                <div className="ra-bulk-summary-row">
+                  <span>Selected Receipts:</span>
+                  <strong>{selectedIds.size}</strong>
+                </div>
+                <div className="ra-bulk-summary-row">
+                  <span>Total Fuel Quantity:</span>
+                  <strong>{fmtLitres(totalSelectedLitres)}</strong>
+                </div>
+                <div className="ra-bulk-summary-row">
+                  <span>Total Amount:</span>
+                  <strong>{fmtMoney(totalSelectedAmount)}</strong>
+                </div>
+              </div>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted-foreground)' }}>
+                Fuel log entries will be created atomically for each approved receipt.
+              </p>
+            </div>
+            <div className="ra-modal__foot">
+              <button
+                type="button"
+                className="ra-btn ra-btn--ghost"
+                onClick={() => setShowBulkConfirmModal(false)}
+                disabled={bulkBusy}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ra-btn ra-btn--publish"
+                onClick={handleBulkApprove}
+                disabled={bulkBusy}
+              >
+                {bulkBusy ? 'Publishing…' : `Confirm & Publish (${selectedIds.size})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
