@@ -9,6 +9,8 @@ import LottieLoader from '../../components/LottieLoader.jsx';
 import NewButton from '@/components/ui/NewButton';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
+import DataTable from '../../components/ui/DataTable';
+import { useDriverColumns } from './useDriverColumns.jsx';
 import { getInitials, formatRole } from './Component/driverPresenters.js';
 import { EditDriverModal } from './Component/DriverFormModals.jsx';
 import {
@@ -44,19 +46,6 @@ const DriversPage = () => {
   // Update theme colors when component mounts
   useEffect(() => {
     setThemeColors(getThemeCSS());
-  }, []);
-
-  // Remove global page-content padding only for this page
-  useEffect(() => {
-    const pageContentEl = document.querySelector('.page-content');
-    if (pageContentEl) {
-      pageContentEl.classList.add('no-padding');
-    }
-    return () => {
-      if (pageContentEl) {
-        pageContentEl.classList.remove('no-padding');
-      }
-    };
   }, []);
 
   // Action Menu State
@@ -209,6 +198,19 @@ const DriversPage = () => {
     fetchDrivers,
     setOpenMenuDriverId,
     setActionError,
+  });
+
+  const columns = useDriverColumns({
+    openMenuDriverId,
+    setOpenMenuDriverId,
+    menuPosition,
+    setMenuPosition,
+    onEdit: handleOpenEditModal,
+    onDelete: handleOpenDeleteModal,
+    onActivateHere: handleActivateHere,
+    onDeactivate: handleOpenDeactivate,
+    getInitials,
+    formatRole,
   });
 
   const handleSearchChange = (event) => {
@@ -365,27 +367,42 @@ const DriversPage = () => {
             }
           />
         }
+        footer={`Showing ${paginatedDrivers.length} of ${drivers.length} employees`}
       >
         {actionError && (
           <div className="drivers-error-message drivers-action-error">{actionError}</div>
         )}
 
-        <DriverTable
-          drivers={paginatedDrivers}
-          isLoading={isLoading}
-          rows={itemsPerPage}
-          searchTerm={searchTerm}
-          openMenuDriverId={openMenuDriverId}
-          setOpenMenuDriverId={setOpenMenuDriverId}
-          menuPosition={menuPosition}
-          setMenuPosition={setMenuPosition}
-          onRowClick={(driver) => navigate('/drivers/add', { state: { editingDriver: driver } })}
-          onEdit={handleOpenEditModal}
-          onDelete={handleOpenDeleteModal}
-          onActivateHere={handleActivateHere}
-          onDeactivate={handleOpenDeactivate}
-          getInitials={getInitials}
-          formatRole={formatRole}
+        <DataTable
+          columns={columns}
+          rows={paginatedDrivers}
+          rowKey={(driver) => driver.id}
+          loading={isLoading && !hasLoadedOnce}
+          error={error}
+          onRetry={fetchDrivers}
+          showing={paginatedDrivers.length}
+          total={activeCount}
+          activeFilters={activeFilterCount}
+          emptyTitle={
+            drivers.length === 0 ? 'No employees added yet' : 'No employees match your search'
+          }
+          emptyHint={
+            drivers.length === 0
+              ? 'Click "Add employee" to start.'
+              : 'Try a different search term or role filter.'
+          }
+          emptyAction={
+            <NewButton
+              variant="primary"
+              text="Add employee"
+              prependIcon={<Plus size={16} />}
+              onClick={() => navigate('/drivers/add')}
+            />
+          }
+          onRowClick={(driver) => {
+            if (driver.branchStatus === 'DEACTIVATED') return;
+            handleOpenEditModal(driver);
+          }}
         />
 
         {/* Pagination controls - server-side, always visible */}

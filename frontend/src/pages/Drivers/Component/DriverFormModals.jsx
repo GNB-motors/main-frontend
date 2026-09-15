@@ -1,4 +1,4 @@
-﻿// Add/Edit employee form modals. Split from driversComponents.jsx (WS0.7); markup preserved.
+// Add/Edit employee form modals. Split from driversComponents.jsx (WS0.7); markup preserved.
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import NewButton from '@/components/ui/NewButton';
@@ -246,7 +246,6 @@ export const EditDriverModal = ({
       location: location || undefined,
       role: role || undefined,
       status: status || undefined,
-      vehicle_registration_no: vehicleRegistrationNo || null, // Send null if empty string
     };
 
     try {

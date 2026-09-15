@@ -157,10 +157,6 @@ export const DriverService = {
       if (driverData.password !== undefined) body.password = driverData.password;
       if (driverData.role !== undefined) body.role = driverData.role;
       if (driverData.status !== undefined) body.status = driverData.status;
-      if (driverData.vehicle_registration_no !== undefined)
-        body.vehicle_registration_no = driverData.vehicle_registration_no;
-      // include orgId if present
-      if (businessRefId) body.orgId = businessRefId;
 
       const response = await apiClient.patch(`/api/employees/${driverId}`, body);
       if (response.data && response.data.status === 'success' && response.data.data)

@@ -84,6 +84,15 @@ const AddDriverPage = () => {
         }
         setCurrentAssignment(assignment);
 
+        // Map existing role to an enterprise/branch role option if available
+        let matchedRoleId = editing.enterpriseRoleId || editing.branchRoleId || '';
+        if (!matchedRoleId && editing.role && roles.length) {
+          const matched = roles.find(
+            (r) => r.baseRole === editing.role || r.name?.toUpperCase() === editing.role,
+          );
+          if (matched) matchedRoleId = matched._id;
+        }
+
         const formData = {
           firstName: editing.firstName || editing.first_name || '',
           lastName: editing.lastName || editing.last_name || '',
@@ -91,6 +100,8 @@ const AddDriverPage = () => {
           mobileNumber: editing.mobileNumber || editing.mobile_number || '',
           location: editing.location || '',
           role: editing.role || 'DRIVER',
+          enterpriseRoleId: matchedRoleId,
+          branchRoleId: matchedRoleId,
           status: editing.status || 'PENDING',
           password: '', // Don't prefill password
           vehicleId: assignment ? DriverVehicleAssignmentService.idOf(assignment.vehicleId) : '',
@@ -242,7 +253,13 @@ const AddDriverPage = () => {
         if (formData.mobileNumber !== undefined) updatePayload.mobileNumber = formData.mobileNumber;
         if (formData.location !== undefined) updatePayload.location = formData.location;
         if (formData.password) updatePayload.password = formData.password;
-        if (formData.role !== undefined) updatePayload.role = formData.role;
+        const chosenRoleId = formData.branchRoleId || formData.enterpriseRoleId;
+        const chosenRole = roles.find((r) => r._id === chosenRoleId);
+        if (chosenRole?.baseRole) {
+          updatePayload.role = chosenRole.baseRole;
+        } else if (formData.role !== undefined) {
+          updatePayload.role = formData.role;
+        }
         if (formData.status !== undefined) updatePayload.status = formData.status;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
