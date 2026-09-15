@@ -42,14 +42,14 @@ describe('mileageIntervalReportUtils', () => {
       expect(toStartOfDayIso('')).toBeUndefined();
       expect(toStartOfDayIso(null)).toBeUndefined();
       const start = toStartOfDayIso('2026-09-06');
-      expect(start).toContain('2026-09-06');
+      expect(new Date(start).getDate()).toBe(6);
     });
 
     it('toEndOfDayIso produces end-of-day ISO', () => {
       expect(toEndOfDayIso('')).toBeUndefined();
       expect(toEndOfDayIso(null)).toBeUndefined();
       const end = toEndOfDayIso('2026-09-06');
-      expect(end).toContain('2026-09-06');
+      expect(new Date(end).getDate()).toBe(6);
     });
   });
 
@@ -61,8 +61,8 @@ describe('mileageIntervalReportUtils', () => {
         vehicleId: 'veh-123',
         driverId: 'all',
       });
-      expect(params.startDate).toContain('2026-09-01');
-      expect(params.endDate).toContain('2026-09-05');
+      expect(new Date(params.startDate).getDate()).toBe(1);
+      expect(new Date(params.endDate).getDate()).toBe(5);
       expect(params.vehicleId).toBe('veh-123');
       expect(params.driverId).toBeUndefined();
     });

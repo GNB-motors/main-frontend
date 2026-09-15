@@ -53,7 +53,9 @@ describe('colorTheme.js — central colour theming', () => {
       expect(style.getPropertyValue('--color-primary-500')).toBe('#22cc88');
       expect(style.getPropertyValue('--color-primary-600')).toBe('#00a460');
       expect(style.getPropertyValue('--color-primary-100')).toBe('rgba(34, 204, 136, 0.12)');
-      expect(style.getPropertyValue('--primary')).toMatch(/^oklch\(/);
+      const styleEl = document.getElementById('gnb-theme-primary');
+      expect(styleEl).not.toBeNull();
+      expect(styleEl.textContent).toMatch(/--primary:oklch\(/);
     });
 
     it('uses the indigo fallback when no colour is stored', () => {
