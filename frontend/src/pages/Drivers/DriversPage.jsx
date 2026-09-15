@@ -238,12 +238,15 @@ const DriversPage = () => {
     setIsFilterDropdownOpen(false);
   };
 
-  const toggleFilterDropdown = () => {
-    if (!isFilterDropdownOpen) {
-      // When opening dropdown, sync temp filters with current filters
-      setTempFilters(filters);
-    }
-    setIsFilterDropdownOpen(!isFilterDropdownOpen);
+  const toggleFilterDropdown = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsFilterDropdownOpen((prev) => {
+      if (!prev) {
+        // When opening dropdown, sync temp filters with current filters
+        setTempFilters(filters);
+      }
+      return !prev;
+    });
   };
 
   // Client-side filtering with search and filters
@@ -271,6 +274,8 @@ const DriversPage = () => {
   // Close action menu and filter dropdown if clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (!event.target || typeof event.target.closest !== 'function') return;
+
       // Check if the click is outside the action menu button/area AND outside the portal menu
       if (
         openMenuDriverId &&

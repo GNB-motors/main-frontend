@@ -1,6 +1,7 @@
-﻿// Filter dropdown + portal action menu. Split from driversComponents.jsx (WS0.7); markup preserved.
+// Filter dropdown + portal action menu. Split from driversComponents.jsx (WS0.7); markup preserved.
 import { createPortal } from 'react-dom';
-import { X, ToggleRight, ToggleLeft, Trash2 } from 'lucide-react';
+import { X, ToggleRight, ToggleLeft, Trash2, Edit } from 'lucide-react';
+import NewButton from '@/components/ui/NewButton';
 import { ROLE_LABELS } from './driverPresenters.js';
 
 // --- Filter Dropdown Component ---
