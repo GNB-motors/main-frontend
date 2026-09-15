@@ -8,7 +8,7 @@ const SuperAdminLayout = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
     return (
-        <div className="dashboard-layout">
+        <div className="superadmin-layout">
             <SuperAdminSidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
             <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
                 <SuperAdminNavbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />

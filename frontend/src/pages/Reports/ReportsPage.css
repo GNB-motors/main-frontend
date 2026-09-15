@@ -21,7 +21,7 @@
 
 .reports-content.with-sidebar {
   margin-left: 246px;
-  /* Space for reports sidebar (246px) - main sidebar is already accounted for by .main-content margin */
+  /* Space for the 246px reports secondary nav — the main icon-rail is already accounted for by .main-content margin */
 }
 
 .nav-left {
@@ -442,12 +442,17 @@
   transform: scale(1.1);
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 1200px) {
+/* Collapse the content offset only when the reports nav actually docks (<=992px,
+   matching SecondarySideNav + main-content). Between 993-1200px the nav is still
+   fixed at 246px, so the content must keep its 246px margin or they overlap. */
+@media (max-width: 992px) {
   .reports-content.with-sidebar {
     margin-left: 0;
   }
+}
 
+/* Mobile Responsiveness */
+@media (max-width: 1200px) {
   .reports-main-content {
     max-width: 100%;
     padding: var(--spacing-md);

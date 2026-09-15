@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AlertTriangle, Bell, FileWarning, RefreshCw, Wrench } from 'lucide-react';
 import { MaintenanceService } from '../MaintenanceService.jsx';
+import { getToken } from '../../../utils/session.js';
 
 // Sub-tab keys map to backend alert.type, except 'ALL' / 'CRITICAL' which are filters.
 const SUB_TABS = [
@@ -47,7 +48,7 @@ const AlertsTab = () => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
       const data = await MaintenanceService.getAlerts(token);
       if (myId !== requestIdRef.current) return;
       setAlerts(data);

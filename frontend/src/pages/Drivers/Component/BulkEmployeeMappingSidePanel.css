@@ -196,39 +196,6 @@
     flex-shrink: 0;
 }
 
-.bem-btn-secondary,
-.bem-btn-primary {
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: none;
-    font-size: 0.95rem;
-    transition: background-color 0.2s;
-    font-family: Inter;
-}
-
-.bem-btn-secondary {
-    background-color: #f3f4f6;
-    color: #374151;
-}
-
-.bem-btn-secondary:hover {
-    background-color: #e5e7eb;
-}
-
-.bem-btn-primary {
-    background-color: var(--primary-color, #4f46e5);
-    color: white;
-}
-
-.bem-btn-primary:hover {
-    background-color: #4338ca;
-}
-
 /* Modal styles for other modals in BulkUploadDriversPage */
 .bem-modal-overlay {
   position: fixed;
@@ -283,21 +250,6 @@
   margin-top: 8px;
   padding-top: 16px;
   border-top: 1px solid #e5e7eb;
-}
-
-.bem-btn-primary {
-  background-color: var(--primary-color, #4f46e5);
-  color: white;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  font-size: 0.95rem;
-  transition: background-color 0.2s;
 }
 
 /* Dropdown styles */

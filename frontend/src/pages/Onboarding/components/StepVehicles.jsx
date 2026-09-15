@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Plus, Trash2 } from 'lucide-react';
 import { OnboardingService } from '../OnboardingService';
+import { getToken, getOrgId, setSession } from '../../../utils/session.js';
 
-const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
+const StepVehicles = ({ onNext, onBack, onDataChange }) => {
     const [vehicles, setVehicles] = useState([
         { registration_no: '', vehicle_type: 'Truck', chassis_number: '' }
     ]);
@@ -100,9 +101,9 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
             const profileData = JSON.parse(sessionStorage.getItem('onboardingProfile') || '{}');
             const companyData = JSON.parse(sessionStorage.getItem('onboardingCompany') || '{}');
 
-            // Get orgId and token from localStorage
-            const token = localStorage.getItem('authToken');
-            const orgId = localStorage.getItem('user_orgId');
+            // Get orgId and token from session storage
+            const token = getToken();
+            const orgId = getOrgId();
             
             if (!token) {
                 throw new Error('Authentication token not found');
@@ -128,8 +129,8 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
             
             console.log('Onboarding result:', result);
 
-            // Mark onboarding as complete
-            localStorage.setItem('onboardingCompleted', 'true');
+            // Mark onboarding as complete (setSession writes onboardingCompleted)
+            setSession({ organization: { isOnboarded: true } });
             
             // Clear sessionStorage
             sessionStorage.removeItem('onboardingStep');
@@ -160,7 +161,7 @@ const StepVehicles = ({ onNext, onBack, onDataChange, formData }) => {
 
             <div className="form-section">
                 {vehicles.map((vehicle, index) => (
-                    <div key={index} className="vehicle-card">
+                    <div key={vehicle.registration_no} className="vehicle-card">
                         <div className="vehicle-card-header">
                             <h4>Vehicle {index + 1}</h4>
                             {vehicles.length > 1 && (

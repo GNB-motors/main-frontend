@@ -1,6 +1,8 @@
+/* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
 import React, { useState, useEffect } from 'react';
 import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from '../../Drivers/Component/DocumentCard';
+import { toast } from 'react-toastify';
 import '../../Drivers/Component/DocumentUpload.css';
 
 // Five canonical vehicle document types. RC and National Permit accept two
@@ -80,7 +82,7 @@ const VehicleDocumentUpload = ({
       const file = e.target.files?.[0];
       if (!file) return;
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size should be less than 10MB');
+        toast.error('File size should be less than 10MB');
         return;
       }
 

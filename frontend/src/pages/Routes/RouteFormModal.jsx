@@ -26,8 +26,8 @@ const RouteFormModal = ({
   };
 
   return (
-    <div className="route-modal-overlay" onClick={onClose}>
-      <div className="route-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="route-modal-overlay" role="presentation" onClick={onClose}>
+      <div className="route-modal-content" role="presentation" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="route-modal-header">
           <h2>{title}</h2>

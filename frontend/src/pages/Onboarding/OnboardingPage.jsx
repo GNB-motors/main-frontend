@@ -14,6 +14,7 @@ import { OnboardingService } from './OnboardingService.jsx';
 import { clearAuthData } from '../../utils/authUtils';
 import apiClient from '../../utils/axiosConfig';
 import { fetchAndResolveLandingRoute } from '../../utils/featureFlagRoutes.js';
+import { getToken, getOrgId, isOnboarded, getUserFirstName, getUserLastName, setSession, setThemeColor } from '../../utils/session.js';
 
 const STEPS = [
     { number: 1, title: 'Profile',           short: 'Profile'           },
@@ -31,15 +32,14 @@ const OnboardingPage = () => {
 
     // ── Auth guard ────────────────────────────────────────────────────────────
     useEffect(() => {
-        const token = localStorage.getItem('authToken');
+        const token = getToken();
         if (!token) {
             toast.error('Session expired. Please login again.');
             clearAuthData();
             navigate('/login');
             return;
         }
-        const onboardingCompleted = localStorage.getItem('onboardingCompleted');
-        if (onboardingCompleted === 'true') {
+        if (isOnboarded()) {
             (async () => {
                 const landing = await fetchAndResolveLandingRoute(apiClient);
                 navigate(landing);
@@ -83,16 +83,16 @@ const OnboardingPage = () => {
     // ── Final submission — identical logic to original, just moved here ───────
     const submitOnboarding = async () => {
         try {
-            const token = localStorage.getItem('authToken');
-            const orgId = localStorage.getItem('user_orgId');
+            const token = getToken();
+            const orgId = getOrgId();
             const profileRaw = sessionStorage.getItem('onboardingProfile');
             const companyRaw = sessionStorage.getItem('onboardingCompany');
             const profile = profileRaw ? JSON.parse(profileRaw) : {};
             const company = companyRaw ? JSON.parse(companyRaw) : {};
 
             const onboardingData = {
-                firstName:         profile.firstName  || localStorage.getItem('user_firstName'),
-                lastName:          profile.lastName   || localStorage.getItem('user_lastName'),
+                firstName:         profile.firstName  || getUserFirstName(),
+                lastName:          profile.lastName   || getUserLastName(),
                 companyName:       company.companyName,
                 gstin:             company.gstin,
                 primaryThemeColor: company.selectedColor || company.primaryThemeColor,
@@ -100,14 +100,15 @@ const OnboardingPage = () => {
 
             await OnboardingService.completeOnboarding(onboardingData, token, orgId);
 
-            localStorage.setItem('onboardingCompleted', 'true');
+            // Mark onboarding as complete (setSession writes onboardingCompleted)
+            setSession({ organization: { isOnboarded: true } });
             if (onboardingData.primaryThemeColor) {
-                localStorage.setItem('primaryThemeColor', onboardingData.primaryThemeColor);
-                window.dispatchEvent(new CustomEvent('themeColorChange'));
+                // setThemeColor dispatches themeColorChange itself
+                setThemeColor(onboardingData.primaryThemeColor);
             }
             setShowLaunch(true);
-        } catch (err) {
-            try { toast.error('Failed to complete onboarding. Please try again.'); } catch (_) {}
+        } catch {
+            try { toast.error('Failed to complete onboarding. Please try again.'); } catch { /* toast unavailable */ }
         }
     };
 
@@ -123,8 +124,8 @@ const OnboardingPage = () => {
                 </div>
                 <div className="ob-topbar-avatar">
                     {(() => {
-                        const fn = localStorage.getItem('user_firstName') || '';
-                        const ln = localStorage.getItem('user_lastName')  || '';
+                        const fn = getUserFirstName() || '';
+                        const ln = getUserLastName()  || '';
                         // Show first initial of first name + first initial of last name
                         // Falls back to single "U" if neither is available
                         const initials = (fn[0] || '') + (ln[0] || '');
@@ -151,6 +152,9 @@ const OnboardingPage = () => {
                             <React.Fragment key={step.number}>
                                 <div
                                     className={`ob-step ${active ? 'ob-step--active' : ''} ${done ? 'ob-step--done' : ''}`}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleStepClick(step.number); } }}
                                     onClick={() => handleStepClick(step.number)}
                                     style={{ cursor: done ? 'pointer' : 'default' }}
                                 >

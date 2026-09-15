@@ -24,6 +24,7 @@ import {
 } from '../superAdminFormat';
 import { SortIcon } from './SortIcon.jsx';
 import DateRangeFilter from './DateRangeFilter';
+import { getUserRole } from '../../../utils/session';
 import '../SuperAdminPage.css';
 import './OrgDetailPage.css';
 
@@ -32,7 +33,7 @@ const OrgDetailPage = () => {
   const { id: orgId } = useParams();
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);

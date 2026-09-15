@@ -1,8 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building2, ChevronRight, Inbox, Trash2, AlertTriangle, X, Flame } from 'lucide-react';
+import {
+  Search,
+  Building2,
+  ChevronRight,
+  Inbox,
+  Trash2,
+  AlertTriangle,
+  X,
+  Flame,
+} from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import apiClient from '../../../utils/axiosConfig';
+import useApi from '../../../hooks/useApi';
+import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -16,10 +27,10 @@ import './FeatureFlags.css';
    The super-admin must type the exact org name before either button activates.
 ──────────────────────────────────────────────────────────────────────────── */
 const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
-  const [typedName, setTypedName]   = useState('');
+  const [typedName, setTypedName] = useState('');
   const [activeMode, setActiveMode] = useState(null); // 'delete' | 'purge'
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const inputRef = useRef(null);
 
   // Auto-focus the confirmation input when modal opens
@@ -31,7 +42,9 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
   // Block page scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   const displayName = org.companyName || org.ownerEmail || '(unnamed)';
@@ -43,9 +56,10 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
     setLoading(true);
     setError('');
     try {
-      const url = mode === 'purge'
-        ? `/api/admin/organizations/${org._id}/purge`
-        : `/api/admin/organizations/${org._id}`;
+      const url =
+        mode === 'purge'
+          ? `/api/admin/organizations/${org._id}/purge`
+          : `/api/admin/organizations/${org._id}`;
       await apiClient.delete(url);
       onConfirmed(org._id);
     } catch (e) {
@@ -62,13 +76,17 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
   return (
     <div
       className="ff-modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="del-modal-title"
-      onClick={(e) => { if (e.target === e.currentTarget && !loading) onCancel(); }}
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onCancel();
+      }}
     >
-      <div className="ff-modal ff-modal--wide">
-
+      <div
+        className="ff-modal ff-modal--wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="del-modal-title"
+      >
         {/* ── Header ── */}
         <div className="ff-modal__header">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -80,26 +98,20 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
                 Remove Organisation
               </h2>
               <p className="ff-modal__subtitle">
-                Choose a removal mode. <strong>Both actions are permanent and cannot be undone.</strong>
+                Choose a removal mode.{' '}
+                <strong>Both actions are permanent and cannot be undone.</strong>
               </p>
             </div>
           </div>
-          <button
-            className="ff-icon-btn"
-            onClick={onCancel}
-            aria-label="Close"
-            disabled={loading}
-          >
+          <button className="ff-icon-btn" onClick={onCancel} aria-label="Close" disabled={loading}>
             <X size={18} />
           </button>
         </div>
 
         {/* ── Body ── */}
         <div className="ff-modal__body">
-
           {/* Two-column comparison */}
           <div className="ff-compare">
-
             {/* ── Delete Organisation (soft) ── */}
             <div className="ff-compare__col ff-compare__col--delete">
               <div className="ff-compare__head">
@@ -107,8 +119,8 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
                 <span>Delete Organisation</span>
               </div>
               <p className="ff-compare__desc">
-                Removes the organisation's operational setup while retaining all
-                historical records for future analytics.
+                Removes the organisation's operational setup while retaining all historical records
+                for future analytics.
               </p>
               <div className="ff-compare__section ff-compare__section--warn">
                 <strong>Will be deleted:</strong>
@@ -144,13 +156,15 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
                 <span>Purge All Data</span>
               </div>
               <p className="ff-compare__desc">
-                Wipes every record tied to this organisation across all collections.
-                Zero data survives. Use only if completely decommissioning.
+                Wipes every record tied to this organisation across all collections. Zero data
+                survives. Use only if completely decommissioning.
               </p>
               <div className="ff-compare__section ff-compare__section--purge">
                 <strong>Everything deleted — including:</strong>
                 <ul>
-                  <li>All of the above <em>plus</em></li>
+                  <li>
+                    All of the above <em>plus</em>
+                  </li>
                   <li>All trips &amp; trip ledger entries</li>
                   <li>All fuel logs &amp; comparisons</li>
                   <li>All uploaded documents</li>
@@ -162,15 +176,16 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
                 </ul>
               </div>
             </div>
-
           </div>
 
           {/* Confirmation input */}
           <div className="ff-field">
             <label className="ff-field__label" htmlFor="del-confirm-input">
-              Type <strong style={{ fontFamily: 'monospace', letterSpacing: '0.02em' }}>
+              Type{' '}
+              <strong style={{ fontFamily: 'monospace', letterSpacing: '0.02em' }}>
                 {displayName}
-              </strong> to unlock the action buttons
+              </strong>{' '}
+              to unlock the action buttons
             </label>
             <input
               ref={inputRef}
@@ -200,11 +215,7 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
 
         {/* ── Footer ── */}
         <div className="ff-modal__footer ff-modal__footer--split">
-          <button
-            className="ff-btn ff-btn--secondary"
-            onClick={onCancel}
-            disabled={loading}
-          >
+          <button className="ff-btn ff-btn--secondary" onClick={onCancel} disabled={loading}>
             Cancel
           </button>
 
@@ -252,7 +263,6 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -264,7 +274,6 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
 const OrgFeatureFlagsPage = () => {
   const navigate = useNavigate();
   const [orgs, setOrgs] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
 
@@ -272,26 +281,28 @@ const OrgFeatureFlagsPage = () => {
   const [orgToDelete, setOrgToDelete] = useState(null);
 
   useEffect(() => {
-    if (localStorage.getItem('user_role') !== 'SUPER_ADMIN') {
+    if (getUserRole() !== 'SUPER_ADMIN') {
       navigate('/overview');
     }
   }, [navigate]);
 
+  const {
+    data: orgsResponse,
+    loading,
+    error: orgsError,
+  } = useApi((signal) => apiClient.get('/api/admin/organizations', { signal }), []);
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await apiClient.get('/api/admin/organizations');
-        setOrgs(res.data?.data ?? []);
-      } catch (e) {
-        setError(e.response?.data?.message || 'Failed to load organizations');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    if (loading) setError('');
+  }, [loading]);
+
+  useEffect(() => {
+    if (orgsResponse) setOrgs(orgsResponse.data?.data ?? []);
+  }, [orgsResponse]);
+
+  useEffect(() => {
+    if (orgsError) setError(orgsError.response?.data?.message || 'Failed to load organizations');
+  }, [orgsError]);
 
   const filtered = orgs.filter((o) => {
     if (!query) return true;
@@ -329,7 +340,13 @@ const OrgFeatureFlagsPage = () => {
 
       <div className="ff-toolbar">
         <span className="ff-meta">
-          {loading ? 'Loading…' : <><strong>{filtered.length}</strong> organization{filtered.length === 1 ? '' : 's'}</>}
+          {loading ? (
+            'Loading…'
+          ) : (
+            <>
+              <strong>{filtered.length}</strong> organization{filtered.length === 1 ? '' : 's'}
+            </>
+          )}
         </span>
         <div className="ff-search">
           <span className="ff-search__icon">
@@ -407,7 +424,9 @@ const OrgFeatureFlagsPage = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="ff-muted" title={org.ownerEmail || ''}>{org.ownerEmail || '—'}</td>
+                    <td className="ff-muted" title={org.ownerEmail || ''}>
+                      {org.ownerEmail || '—'}
+                    </td>
                     <td className="ff-muted">{org.gstin || '—'}</td>
                     <td className="ff-center">
                       {org.isOnboarded ? (

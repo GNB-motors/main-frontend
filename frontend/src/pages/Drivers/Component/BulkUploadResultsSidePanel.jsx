@@ -1,5 +1,6 @@
 import React from "react";
 import { X, Download } from "lucide-react";
+import NewButton from "@/components/ui/NewButton";
 import "./BulkEmployeeMappingSidePanel.css";
 
 const BulkUploadResultsSidePanel = ({
@@ -92,15 +93,16 @@ const BulkUploadResultsSidePanel = ({
                     </tbody>
                   </table>
                 </div>
-                <button
+                <NewButton
+                  variant="primary"
+                  size="md"
                   type="button"
+                  fullWidth
+                  style={{ marginTop: '16px' }}
+                  text="Download Credentials CSV"
+                  prependIcon={<Download size={16} />}
                   onClick={onDownloadCredentials}
-                  className="bem-btn-primary"
-                  style={{ marginTop: '16px', width: '100%' }}
-                >
-                  <Download size={16} />
-                  Download Credentials CSV
-                </button>
+                />
               </div>
             )}
 
@@ -116,8 +118,8 @@ const BulkUploadResultsSidePanel = ({
                   Errors
                 </h4>
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {uploadResult.errors.map((error, idx) => (
-                    <div key={idx} style={{
+                  {uploadResult.errors.map((error) => (
+                    <div key={error.index} style={{
                       padding: '12px',
                       marginBottom: '8px',
                       backgroundColor: '#fef2f2',
@@ -152,13 +154,13 @@ const BulkUploadResultsSidePanel = ({
         </div>
 
         <div className="bem-sidepanel-actions">
-          <button
+          <NewButton
+            variant="primary"
+            size="md"
             type="button"
+            text="Done"
             onClick={onClose}
-            className="bem-btn-primary"
-          >
-            Done
-          </button>
+          />
         </div>
       </div>
     </div>

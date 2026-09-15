@@ -15,11 +15,14 @@ const SlipsList = ({ slips, currentIndex, onSelectSlip, onPreviewClick }) => {
       <div className="slips-scroll">
         {slips.map((slip, index) => (
           <div
-            key={index}
+            key={slip._id || slip.id || slip.uploadIndex}
             className={`slip-item ${currentIndex === index ? 'active' : ''} ${
               slip.isDone ? 'done' : 'pending'
             }`}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelectSlip(index)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSlip(index); } }}
           >
             <div className="slip-number">#{index + 1}</div>
             <div className="slip-thumbnail">

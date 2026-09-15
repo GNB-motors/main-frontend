@@ -1,0 +1,290 @@
+/* GNB Edge — vehicle-tracking-v2 (scoped tokens + animations, generated from the design) */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&family=Caveat:wght@400;600&display=swap");
+
+.gnb-edge-v2 {
+  /* ================================================================
+     CORE PALETTE — every hex in this block is 1:1 with the DTCG token.
+     Families: nova-rage (primary), nova-blush, lilac-haze,
+               morning-fog (neutrals), midnight-navy / midnight-black,
+               plus spot colors (nova-gold, nova-fern, nova-blaze, etc).
+     ================================================================ */
+
+  /* NOVA RAGE — primary indigo-blue family */
+  --nova-rage-100: #829BF5;
+  --nova-rage-200: #6D8AF3;
+  --nova-rage-300: #5979F1;
+  --nova-rage-400: #4469F0;  /* brand primary */
+  --nova-rage-500: #2F58EE;  /* alpha base */
+  --nova-rage-600: #2A4FD6;  /* focused input border */
+  --nova-rage-700: #2646BE;  /* primary hover */
+  --nova-rage-800: #213EA7;  /* primary pressed / border */
+  --nova-rage-900: #1C358F;
+  --nova-rage-a05:  rgba(47, 88, 238, 0.05);
+  --nova-rage-a10:  rgba(47, 88, 238, 0.10);
+  --nova-rage-a20:  rgba(47, 88, 238, 0.20);
+  --nova-rage-a40:  rgba(47, 88, 238, 0.40);
+  --nova-rage-a60:  rgba(47, 88, 238, 0.60);
+
+  /* MIDNIGHT NAVY — dark theme canvas family */
+  --midnight-navy-900: #050816;
+  --midnight-navy-800: #0C1020;   /* app canvas on dark */
+  --midnight-navy-700: #121428;   /* elevated surface */
+  --midnight-navy-600: #1E2238;   /* input bg dark */
+  --midnight-navy-500: #2A3350;
+  --midnight-navy-400: #404A6A;
+  --midnight-navy-300: #5B6486;
+  --midnight-navy-200: #828BAE;
+
+  /* MIDNIGHT BLACK — neutral dark text / ink */
+  --midnight-black-900: #121214;  /* primary text on light */
+  --midnight-black-800: #1E1E20;
+  --midnight-black-700: #2E2E30;
+  --midnight-black-600: #454547;
+  --midnight-black-500: #5D5D5E;  /* secondary text */
+  --midnight-black-400: #747476;
+  --midnight-black-300: #8B8B8C;
+
+  /* MORNING FOG — cool neutral greys */
+  --morning-fog-900: #F8F8FB;    /* off-white surface */
+  --morning-fog-800: #F3F3F6;    /* canvas (light) */
+  --morning-fog-700: #ECECEE;    /* subtle border */
+  --morning-fog-600: #DFDFE2;    /* filled input border */
+  --morning-fog-500: #C6C6C9;    /* default border */
+  --morning-fog-400: #B9B9BA;
+  --morning-fog-300: #93939A;
+  --morning-fog-200: #82808D;
+  --morning-fog-100: #5D5D5E;
+
+  /* NOVA BLUSH — warm coral */
+  --nova-blush-500: #E5686C;
+  --nova-blush-400: #E5686B;
+  --nova-blush-300: #FEACAD;
+
+  /* LILAC HAZE — pale violet accent */
+  --lilac-haze-500: #D8D8FF;
+  --lilac-haze-400: #F8F7FF;
+
+  /* Named spot colors (from semantic token refs) */
+  --nova-gold-500:   #FBBF23;
+  --nova-gold-400:   #EFBF41;
+  --nova-gold-300:   #EECF7F;
+  --nova-bronze-600: #C56200;  /* warning text */
+  --nova-fern-600:   #187A32;  /* success text */
+  --nova-fern-500:   #25BA4C;
+  --nova-fern-400:   #3FC261;
+  --nova-fern-300:   #59CB77;
+  --nova-fern-700:   #21A744;
+  --nova-fern-800:   #1C8B39;
+  --nova-blaze-700:  #BB2626;  /* danger text */
+  --nova-blaze-500:  #DD3030;  /* error fill */
+  --nova-blaze-300:  #941E1E;
+  --nova-nebula-500: #6A43D8;  /* special / AI */
+  --nova-sky-500:    #2E81ED;  /* info */
+  --nova-sky-600:    #2666B8;
+  --nova-leaf-500:   #F0AA48;  /* orange warn */
+  --nova-splash-500: #36D7A6;  /* fresh mint */
+  --nova-splash-600: #2BAC85;
+  --nova-deep-600:   #984647;
+
+  /* BRAND GRADIENTS */
+  --nova-gradient-light: linear-gradient(135deg, #F9A061 0%, #E5686C 100%);
+  --nova-gradient-dark:  linear-gradient(135deg, #E5686C 0%, #6366F1 100%);
+  --nova-gradient-rage:  linear-gradient(180deg, #213EA7 0%, #2F58EE 100%);
+
+  /* ================================================================
+     SEMANTIC TOKENS — LIGHT THEME (Midnight-black)
+     ================================================================ */
+
+  /* Background */
+  --bg-app:         #FFFFFF;
+  --bg-canvas:      var(--morning-fog-800);
+  --bg-surface:     #FFFFFF;
+  --bg-elevated:    #FFFFFF;
+  --bg-subtle:      var(--morning-fog-900);
+  --bg-input:       #FFFFFF;
+  --bg-input-disabled: var(--morning-fog-700);
+  --bg-scrim:       rgba(18, 18, 20, 0.48);
+
+  /* Foreground */
+  --fg-primary:     var(--midnight-black-900);  /* headings / bold text */
+  --fg-secondary:   var(--midnight-black-500);  /* body / meta */
+  --fg-tertiary:    var(--morning-fog-300);     /* quiet / disabled */
+  --fg-inverse:     #FFFFFF;
+  --fg-brand:       var(--nova-rage-600);
+  --fg-on-brand:    #FFFFFF;
+  --fg-success:     var(--nova-fern-600);
+  --fg-warning:     var(--nova-bronze-600);
+  --fg-danger:      var(--nova-blaze-700);
+  --fg-info:        var(--nova-sky-600);
+
+  /* Borders */
+  --border-subtle:   rgba(5, 8, 22, 0.05);
+  --border-default:  rgba(5, 8, 22, 0.10);
+  --border-strong:   var(--morning-fog-500);
+  --border-input:    var(--morning-fog-600);
+  --border-focus:    var(--nova-rage-600);
+
+  /* Action — PRIMARY */
+  --action-primary-bg:          var(--nova-rage-400);
+  --action-primary-bg-hover:    var(--nova-rage-700);
+  --action-primary-bg-pressed:  var(--nova-rage-800);
+  --action-primary-bg-disabled: var(--nova-rage-300);
+  --action-primary-fg:          #FFFFFF;
+  --action-primary-border:      var(--nova-rage-800);
+
+  /* Action — SECONDARY (ghost) */
+  --action-secondary-bg:          var(--nova-rage-a10);
+  --action-secondary-bg-hover:    var(--nova-rage-a20);
+  --action-secondary-bg-pressed:  var(--nova-rage-a40);
+  --action-secondary-bg-disabled: var(--nova-rage-a05);
+  --action-secondary-fg:          var(--nova-rage-700);
+  --action-secondary-border:      var(--nova-rage-a20);
+
+  /* Action — TERTIARY (text) */
+  --action-tertiary-fg:         var(--nova-rage-700);
+  --action-tertiary-fg-hover:   var(--nova-rage-800);
+  --action-tertiary-fg-pressed: var(--nova-rage-900);
+
+  /* Shadows — navy-tinted on light */
+  --shadow-xs: 0 1px 2px 0 rgba(30, 34, 56, 0.06);
+  --shadow-sm: 0 2px 4px 0 rgba(30, 34, 56, 0.08),
+               0 1px 2px 0 rgba(30, 34, 56, 0.04);
+  --shadow-md: 0 4px 12px 0 rgba(30, 34, 56, 0.10),
+               0 1px 2px 0 rgba(30, 34, 56, 0.06);
+  --shadow-lg: 0 12px 32px 0 rgba(30, 34, 56, 0.14),
+               0 2px 6px 0 rgba(30, 34, 56, 0.08);
+  --shadow-inset-soft: inset 0.75px 0.75px 3px 0 rgba(255, 255, 255, 1),
+                      0 6px 6px 0 rgba(18, 18, 20, 0.02);
+  --ring-focus: 0 0 0 3px var(--nova-rage-a20);
+
+  /* ================================================================
+     SPACING (spacekit)
+     ================================================================ */
+  --space-0:   0px;
+  --space-half: 2px;
+  --space-1:   4px;   /* baseline */
+  --space-1h:  6px;
+  --space-2:   8px;
+  --space-2h:  10px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   28px;
+  --space-8:   32px;
+  --space-9:   36px;
+  --space-10:  40px;
+  --space-11:  44px;
+  --space-12:  48px;
+  --space-14:  56px;
+  --space-16:  64px;
+  --space-18:  72px;
+  --space-20:  80px;
+  --space-24:  96px;
+  --space-28:  112px;
+  --space-30:  120px;
+
+  /* ================================================================
+     RADII (spacekit)
+     ================================================================ */
+  --radius-hard:         0;
+  --radius-baseline:     4px;
+  --radius-m:            8px;
+  --radius-md:           10px;
+  --radius-l:            12px;
+  --radius-xl:           16px;
+  --radius-soft:         24px;
+  --radius-xtra-soft:    32px;
+  --radius-ultra-soft:   44px;
+  --radius-super-soft:   64px;
+  --radius-full:         999px;
+
+  /* ================================================================
+     TYPOGRAPHY
+     ================================================================ */
+  --font-ui:      "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "DM Sans", "Inter", sans-serif;
+  --font-mono:    "DM Mono", "SF Mono", Menlo, monospace;
+  --font-eyebrow: "Helvetica Neue", Helvetica, Arial, sans-serif; /* SUBSTITUTED */
+  --font-script:  "Caveat", cursive;
+
+  /* size scale */
+  --type-xxs:  8px;
+  --type-3xs:  10px;
+  --type-2xs:  12px;
+  --type-xs:   14px;
+  --type-s:    16px;
+  --type-m:    18px;
+  --type-l:    20px;
+  --type-xl:   24px;
+  --type-2xl:  28px;
+  --type-3xl:  32px;
+  --type-4xl:  36px;
+  --type-5xl:  40px;
+  --type-6xl:  48px;
+  --type-7xl:  64px;
+
+  /* line heights */
+  --lh-tight:   1.1;
+  --lh-snug:    1.25;
+  --lh-normal:  1.45;
+  --lh-relaxed: 1.6;
+
+  /* tracking */
+  --tracking-ultra-compact: -0.025em;
+  --tracking-compact:       -0.015em;
+  --tracking-concise:       -0.005em;
+  --tracking-default:        0.005em;
+  --tracking-comfortable:    0.025em;
+  --tracking-relaxed:        0.05em;
+  --tracking-ultra-lounge:   0.2em;
+  --tracking-eyebrow:        0.44em;
+
+  /* motion */
+  --ease-standard:   cubic-bezier(0.2, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --duration-micro:  120ms;
+  --duration-fast:   200ms;
+  --duration-medium: 320ms;
+}
+.gnb-edge-v2[data-theme="dark"] {
+  --bg-app:         var(--midnight-navy-800);
+  --bg-canvas:      var(--midnight-navy-900);
+  --bg-surface:     var(--midnight-navy-700);
+  --bg-elevated:    var(--midnight-navy-600);
+  --bg-subtle:      var(--midnight-navy-700);
+  --bg-input:       var(--midnight-navy-600);
+  --bg-input-disabled: var(--midnight-navy-700);
+  --bg-scrim:       rgba(5, 8, 22, 0.72);
+
+  --fg-primary:     #F8F8FB;
+  --fg-secondary:   #B9B9C3;
+  --fg-tertiary:    #6D7299;
+  --fg-inverse:     var(--midnight-navy-900);
+  --fg-brand:       var(--nova-rage-300);
+  --fg-on-brand:    #FFFFFF;
+
+  --border-subtle:  rgba(248, 248, 251, 0.05);
+  --border-default: rgba(248, 248, 251, 0.10);
+  --border-strong:  var(--midnight-navy-400);
+  --border-input:   var(--midnight-navy-500);
+
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px 0 rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 16px 40px 0 rgba(0, 0, 0, 0.48);
+}
+
+.gnb-edge-v2 { overflow-x:clip; -webkit-font-smoothing:antialiased; background:#F4F5FA; color:#050816; font-family:var(--font-ui); }
+.gnb-edge-v2 a { color: var(--nova-rage-600); text-decoration:none; }
+.gnb-edge-v2 a:hover { color: var(--nova-rage-700); }
+@media (prefers-reduced-motion: reduce) {
+  .gnb-edge-v2 *, .gnb-edge-v2 *::before, .gnb-edge-v2 *::after { animation: none !important; transition-duration:.001ms !important; }
+}
+
+@keyframes vt-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes vt-ping { 0% { transform:scale(.4); opacity:.9; } 100% { transform:scale(2.6); opacity:0; } }
+@keyframes ai-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -42; } }
+@keyframes ai-scan { 0% { left:0%; opacity:0; } 6% { opacity:1; } 94% { opacity:1; } 100% { left:100%; opacity:0; } }
+@keyframes ai-blip { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.5); opacity:.35; } }

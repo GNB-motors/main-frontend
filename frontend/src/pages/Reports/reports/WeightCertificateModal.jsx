@@ -47,10 +47,12 @@ const WeightCertificateModal = ({ isOpen, onClose, trip }) => {
     return (
         <div
             className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            role="presentation"
             onClick={onClose}
         >
             <div
                 className="bg-white rounded-2xl w-[95%] max-w-[1100px] max-h-[85vh] overflow-y-auto shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200"
+                role="presentation"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -136,12 +138,17 @@ const WeightCertificateModal = ({ isOpen, onClose, trip }) => {
                                 <FileText size={16} className="text-blue-600" />
                                 Certificate Document
                             </p>
-                            <img
-                                src={weightCertUrl}
-                                alt="Weight Certificate"
-                                className="w-full rounded-lg cursor-pointer border border-gray-200 hover:opacity-90 transition-opacity"
+                            <button
+                                type="button"
+                                className="w-full rounded-lg cursor-pointer border border-gray-200 hover:opacity-90 transition-opacity p-0 bg-transparent"
                                 onClick={() => window.open(weightCertUrl, '_blank')}
-                            />
+                            >
+                                <img
+                                    src={weightCertUrl}
+                                    alt="Weight Certificate"
+                                    className="w-full"
+                                />
+                            </button>
                             <p className="text-xs text-gray-400 text-center mt-2 m-0">
                                 Click image to view full size
                             </p>

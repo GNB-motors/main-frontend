@@ -1,4 +1,5 @@
 import apiClient from '../../../utils/axiosConfig';
+import { parseSafe } from '../../../schemas/validate.js';
 
 class TripService {
   /**
@@ -21,7 +22,10 @@ class TripService {
       // Add odometer image
       if (files.odometer_image) {
         formData.append('odometer_image', files.odometer_image);
-        console.log('✅ Added odometer_image to FormData:', files.odometer_image.name || 'unnamed file');
+        console.log(
+          '✅ Added odometer_image to FormData:',
+          files.odometer_image.name || 'unnamed file',
+        );
         fileCount++;
       }
 
@@ -30,10 +34,19 @@ class TripService {
         journeyData.fuelLogs.forEach((fuelLog) => {
           if (fuelLog.tempId && files[fuelLog.tempId]) {
             formData.append(fuelLog.tempId, files[fuelLog.tempId]);
-            console.log('✅ Added fuel file to FormData:', fuelLog.tempId, files[fuelLog.tempId].name || 'unnamed');
+            console.log(
+              '✅ Added fuel file to FormData:',
+              fuelLog.tempId,
+              files[fuelLog.tempId].name || 'unnamed',
+            );
             fileCount++;
           } else {
-            console.log('⚠️ No file found for fuel tempId:', fuelLog.tempId, 'available keys:', Object.keys(files));
+            console.log(
+              '⚠️ No file found for fuel tempId:',
+              fuelLog.tempId,
+              'available keys:',
+              Object.keys(files),
+            );
           }
         });
       }
@@ -43,10 +56,19 @@ class TripService {
         journeyData.weightSlipTrips.forEach((trip) => {
           if (trip.tempId && files[trip.tempId]) {
             formData.append(trip.tempId, files[trip.tempId]);
-            console.log('✅ Added weight cert file to FormData:', trip.tempId, files[trip.tempId].name || 'unnamed');
+            console.log(
+              '✅ Added weight cert file to FormData:',
+              trip.tempId,
+              files[trip.tempId].name || 'unnamed',
+            );
             fileCount++;
           } else {
-            console.log('⚠️ No file found for weight slip tempId:', trip.tempId, 'available keys:', Object.keys(files));
+            console.log(
+              '⚠️ No file found for weight slip tempId:',
+              trip.tempId,
+              'available keys:',
+              Object.keys(files),
+            );
           }
         });
       }
@@ -96,7 +118,7 @@ class TripService {
         tripId,
         documentType,
         documentId,
-        ocrExtracted: ocrData || undefined
+        ocrExtracted: ocrData || undefined,
       };
       const response = await apiClient.post(`/api/trips/${tripId}/upload-documents`, body);
       return response.data;
@@ -120,7 +142,7 @@ class TripService {
   static async getAllTrips(params = {}) {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (params.page) queryParams.append('page', params.page);
       if (params.limit) queryParams.append('limit', params.limit);
       if (params.status) queryParams.append('status', params.status);
@@ -130,7 +152,13 @@ class TripService {
       if (params.endDate) queryParams.append('endDate', params.endDate);
 
       const response = await apiClient.get(`/api/trips?${queryParams.toString()}`);
-      return response.data;
+      return response.data
+        ? parseSafe(
+            'tripListResponseSchema',
+            () => import('../../../schemas/trip.schema.js'),
+            response.data,
+          )
+        : response.data;
     } catch (error) {
       console.error('Failed to fetch trips:', error);
       throw error.response?.data || error;
@@ -378,7 +406,8 @@ class TripService {
       }
       throw error.response?.data || error;
     }
-  }}
+  }
+}
 
 export default TripService;
 
@@ -387,9 +416,12 @@ export default TripService;
  */
 
 // PATCH for update-ocr-data (corrections array)
-TripService.updateOcrData = async function(tripId, correctionsPayload) {
+TripService.updateOcrData = async function (tripId, correctionsPayload) {
   try {
-    const response = await apiClient.patch(`/api/trips/${tripId}/update-ocr-data`, correctionsPayload);
+    const response = await apiClient.patch(
+      `/api/trips/${tripId}/update-ocr-data`,
+      correctionsPayload,
+    );
     return response.data;
   } catch (error) {
     console.error('Failed to update OCR data:', error);
@@ -398,7 +430,7 @@ TripService.updateOcrData = async function(tripId, correctionsPayload) {
 };
 
 // POST for assign-routes (routeIds, totalFuel)
-TripService.assignRoutes = async function(tripId, assignPayload) {
+TripService.assignRoutes = async function (tripId, assignPayload) {
   try {
     const response = await apiClient.post(`/api/trips/${tripId}/assign-routes`, assignPayload);
     return response.data;
@@ -409,7 +441,7 @@ TripService.assignRoutes = async function(tripId, assignPayload) {
 };
 
 // PATCH for enter-revenue (revenues array)
-TripService.enterRevenue = async function(tripId, revenuePayload) {
+TripService.enterRevenue = async function (tripId, revenuePayload) {
   try {
     const response = await apiClient.patch(`/api/trips/${tripId}/enter-revenue`, revenuePayload);
     return response.data;
@@ -420,7 +452,7 @@ TripService.enterRevenue = async function(tripId, revenuePayload) {
 };
 
 // PATCH for enter-expenses (expenses array)
-TripService.enterExpenses = async function(tripId, expensesPayload) {
+TripService.enterExpenses = async function (tripId, expensesPayload) {
   try {
     const response = await apiClient.patch(`/api/trips/${tripId}/enter-expenses`, expensesPayload);
     return response.data;

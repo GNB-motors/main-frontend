@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Mail, Phone, Lock, User, Eye, EyeOff } from 'lucide-react';
 import LottieLoader from '../../../components/LottieLoader.jsx';
+import { getToken } from '../../../utils/session';
 import './AddUserPage.css';
 
 const AddUserPage = () => {
@@ -29,7 +30,7 @@ const AddUserPage = () => {
 
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
 
       const response = await fetch(`${API_BASE_URL}/api/admin/register-owner`, {
         method: 'POST',

@@ -1,0 +1,224 @@
+/* Overspeed page styling — Executive Operations Console */
+@import '../OwnerAlerts/OwnerAlerts.css';
+
+.osp-page {
+  width: 100%;
+}
+
+.osp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 18px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.02),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04);
+}
+
+.osp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 140px;
+}
+
+.osp-field--vehicle {
+  min-width: 260px;
+  flex: 1;
+}
+
+.osp-field label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #475569;
+}
+
+.osp-field input,
+.osp-field select {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  font-size: 13px;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.osp-field input:focus,
+.osp-field select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.osp-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.osp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.osp-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.osp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.osp-btn--primary {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+}
+
+.osp-btn--primary:hover:not(:disabled) {
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.osp-spin {
+  animation: ospSpin 1s linear infinite;
+}
+
+@keyframes ospSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.osp-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.osp-state svg {
+  color: #64748b;
+}
+
+.osp-state-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.osp-state span {
+  font-size: 13px;
+  color: #64748b;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.osp-state--clear {
+  border-left: 4px solid #10b981;
+}
+
+.osp-state--clear svg {
+  color: #10b981;
+}
+
+.osp-state--error {
+  border-left: 4px solid #ef4444;
+}
+
+.osp-state--error svg {
+  color: #ef4444;
+}
+
+.osp-state--missing {
+  border-left: 4px solid #f59e0b;
+}
+
+.osp-state--missing svg {
+  color: #f59e0b;
+}
+
+.osp-section {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.osp-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.osp-section-sub {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0 0 16px 0;
+}
+
+.osp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.osp-disagree-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.osp-provenance {
+  display: inline-block;
+  font-size: 11.5px;
+  color: #64748b;
+  font-style: italic;
+}

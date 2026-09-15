@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
 import React, { useState, useEffect, useMemo, forwardRef } from 'react';
 import { Wrench } from 'lucide-react';
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';

@@ -1,0 +1,268 @@
+/**
+ * Accounts & Money — Day Book, Registers, and Fleet Finance redesign.
+ *
+ * Content is scoped under `.acc-workspace`; the hub chrome (header/tabs/panel,
+ * shared across all five Accounts tabs) is styled via
+ * `.erp-page:has(.acc-workspace)` so it is only touched while one of THESE tabs
+ * is mounted — never the sibling Overview tab (which the user styles under
+ * `.acc-redesign`) and never any other module. Mirrors the Overview visual
+ * language so the whole Accounts hub reads as one product.
+ *
+ * UI-only. Indigo (#4f46e5) is the primary accent; green stays only for
+ * semantic success pills, red/orange for overdue/warning.
+ */
+
+.acc-workspace {
+  --accw-primary: #4f46e5;
+  --accw-primary-hover: #4338ca;
+  --accw-primary-tint: #eef2ff;
+  --accw-ink: #0f172a;
+  --accw-ink-2: #334155;
+  --accw-muted: #64748b;
+  --accw-faint: #94a3b8;
+  --accw-border: #e6e9ef;
+  --accw-border-soft: #eef1f5;
+  --accw-radius: 12px;
+
+  color: var(--accw-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ══ Hub chrome — styled only while a workspace tab is mounted ═══════════════ */
+.erp-hub-panel:has(.acc-workspace) {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.erp-page:has(.acc-workspace) .erp-page-header {
+  margin-bottom: 14px !important;
+}
+
+.erp-page:has(.acc-workspace) .erp-toolbar {
+  margin-bottom: 18px !important;
+}
+
+.erp-page:has(.acc-workspace) .erp-tabs {
+  padding: 3px;
+  gap: 2px;
+  background: #eef1f5;
+  border: 1px solid var(--accw-border);
+  border-radius: 10px;
+}
+
+.erp-page:has(.acc-workspace) .erp-tab {
+  padding: 7px 15px;
+  font-size: 13px;
+  color: #64748b;
+  border-radius: 7px;
+}
+
+.erp-page:has(.acc-workspace) .erp-tab.active {
+  background: #fff;
+  color: var(--accw-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+/* ══ Register sub-tabs (RegistersPage) — same segmented control ═════════════ */
+.acc-workspace .erp-tabs {
+  padding: 3px;
+  gap: 2px;
+  background: #eef1f5;
+  border: 1px solid var(--accw-border);
+  border-radius: 10px;
+}
+
+.acc-workspace .erp-tab {
+  padding: 6px 13px;
+  font-size: 12.5px;
+  color: var(--accw-muted);
+  border-radius: 7px;
+}
+
+.acc-workspace .erp-tab.active {
+  background: #fff;
+  color: var(--accw-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+/* ══ Buttons: outlined secondary, indigo primary ════════════════════════════ */
+.acc-workspace .erp-btn {
+  border-color: var(--accw-border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.acc-workspace .erp-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.acc-workspace .erp-btn.primary,
+.acc-workspace .erp-btn-primary {
+  background: var(--accw-primary);
+  border-color: var(--accw-primary);
+  color: #fff;
+}
+
+.acc-workspace .erp-btn.primary:hover:not(:disabled),
+.acc-workspace .erp-btn-primary:hover:not(:disabled) {
+  background: var(--accw-primary-hover);
+  border-color: var(--accw-primary-hover);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+/* Register link chips (Finance) — were green on hover. */
+.acc-workspace .erp-link-btn {
+  border-color: var(--accw-border);
+  border-radius: 8px;
+  color: var(--accw-ink-2);
+}
+
+.acc-workspace .erp-link-btn:hover {
+  background: var(--accw-primary-tint);
+  border-color: var(--accw-primary);
+  color: var(--accw-primary-hover);
+}
+
+/* ══ Filters / inputs — indigo focus ════════════════════════════════════════ */
+.acc-workspace .erp-filter,
+.acc-workspace .erp-search input {
+  border-color: var(--accw-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--accw-ink);
+}
+
+.acc-workspace .erp-filter:focus,
+.acc-workspace .erp-search input:focus {
+  border-color: var(--accw-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* ══ Period totals / summary strip ══════════════════════════════════════════ */
+.acc-workspace .erp-stat {
+  padding: 14px 16px;
+  border-color: var(--accw-border);
+  border-radius: var(--accw-radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.acc-workspace .erp-stat-label {
+  font-size: 11px;
+  color: var(--accw-muted);
+  margin-bottom: 6px;
+}
+
+.acc-workspace .erp-stat-value {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--accw-ink);
+}
+
+/* ══ Tables: dense, scannable, subtle separators + hover ════════════════════ */
+.acc-workspace .erp-table-wrap {
+  border-color: var(--accw-border);
+  border-radius: var(--accw-radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.acc-workspace .erp-table {
+  font-size: 13px;
+}
+
+.acc-workspace .erp-table thead th {
+  padding: 10px 14px;
+  background: #f8fafc;
+  color: var(--accw-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--accw-border);
+}
+
+.acc-workspace .erp-table tbody td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--accw-border-soft);
+  color: var(--accw-ink-2);
+  vertical-align: middle;
+}
+
+.acc-workspace .erp-table.compact thead th,
+.acc-workspace .erp-table.compact tbody td {
+  padding: 8px 12px;
+}
+
+.acc-workspace .erp-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.acc-workspace .erp-table a {
+  color: var(--accw-primary);
+  text-decoration: none;
+}
+
+.acc-workspace .erp-table a:hover {
+  text-decoration: underline;
+}
+
+.acc-workspace .erp-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══ Status pills ═══════════════════════════════════════════════════════════ */
+.acc-workspace .erp-badge {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.acc-workspace .erp-badge.success { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+.acc-workspace .erp-badge.warning { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+.acc-workspace .erp-badge.danger  { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+.acc-workspace .erp-badge.info    { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+.acc-workspace .erp-badge.neutral { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+
+/* ══ Cards & forms (Fleet Finance) ══════════════════════════════════════════ */
+.acc-workspace .erp-card {
+  border-color: var(--accw-border);
+  border-radius: var(--accw-radius);
+  padding: 20px 22px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.acc-workspace .erp-form-grid {
+  gap: 16px 20px;
+}
+
+.acc-workspace .erp-form-grid > label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accw-ink-2);
+}
+
+.acc-workspace .erp-form-grid > label input,
+.acc-workspace .erp-form-grid > label select {
+  border-color: var(--accw-border);
+  border-radius: 8px;
+  color: var(--accw-ink);
+}
+
+.acc-workspace .erp-form-grid > label input:focus,
+.acc-workspace .erp-form-grid > label select:focus {
+  border-color: var(--accw-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* ══ Info callout ═══════════════════════════════════════════════════════════ */
+.acc-workspace .erp-callout.info {
+  background: var(--accw-primary-tint);
+  border: 1px solid #e0e7ff;
+  color: var(--accw-ink-2);
+  border-radius: 10px;
+}

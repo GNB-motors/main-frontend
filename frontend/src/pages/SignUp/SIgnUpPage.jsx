@@ -35,7 +35,7 @@ const SignUpPage = () => {
         };
 
         try {
-            const data = await SignUpPageService.registerUser(userData);
+            await SignUpPageService.registerUser(userData);
             toast.success("User added successfully!");
             // Reset form
             setFirstName('');

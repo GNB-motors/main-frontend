@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Grid, UserPlus, LogOut, ToggleRight } from 'lucide-react';
+import { Grid, UserPlus, LogOut, ToggleRight, KeyRound, ShieldCheck, ScrollText, Database, Network } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
+import { clearSession } from '../../../utils/session';
 import './SuperAdminSidebar.css';
 
-const SuperAdminSidebar = ({ isSidebarOpen, setSidebarOpen }) => {
+const SuperAdminSidebar = ({ setSidebarOpen }) => {
     const navigate = useNavigate();
-    const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
     const handleLogout = () => {
         // Clear all auth data
-        localStorage.clear();
+        clearSession();
         navigate('/login');
     };
 
@@ -21,11 +21,7 @@ const SuperAdminSidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     };
 
     return (
-        <aside
-            className="superadmin-sidebar"
-            onMouseEnter={() => setIsSidebarHovered(true)}
-            onMouseLeave={() => setIsSidebarHovered(false)}
-        >
+        <aside className="superadmin-sidebar">
             <div className="superadmin-sidebar-content">
                 <div className="superadmin-sidebar-header">
                     <img src={UkoLogo} alt="Uko Logo" className="superadmin-logo-img" />
@@ -46,6 +42,31 @@ const SuperAdminSidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                     <NavLink to="/superadmin/feature-flags" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
                         <ToggleRight size={20} />
                         <span>Feature Flags</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/rbac/permissions" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <KeyRound size={20} />
+                        <span>Permissions</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/rbac/roles" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <ShieldCheck size={20} />
+                        <span>Roles &amp; Permissions</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/lemu" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <ScrollText size={20} />
+                        <span>LEMU Logs</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/graph" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <Network size={20} />
+                        <span>Graph</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/warehouse" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <Database size={20} />
+                        <span>Data Warehouse</span>
                     </NavLink>
                 </nav>
             </div>

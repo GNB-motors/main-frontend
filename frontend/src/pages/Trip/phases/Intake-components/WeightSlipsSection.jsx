@@ -16,7 +16,6 @@ const WeightSlipsSection = ({
   setWeightSlips,
   weightSlipScanning,
   setWeightSlipScanning,
-  weightSlipOcrResults,
   setWeightSlipOcrResults,
   fixedDocs,
   onOcrPreview
@@ -119,6 +118,7 @@ const WeightSlipsSection = ({
   return (
     <div
       className={`intake-weight-slips${isDragging ? ' section-dragging' : ''}`}
+      role="presentation"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -168,7 +168,7 @@ const WeightSlipsSection = ({
             const scanning = weightSlipScanning[index];
             const status = slip.ocrStatus;
             return (
-              <div key={index} className="multi-slot-thumb">
+              <div key={slip.uploadIndex} className="multi-slot-thumb">
                 <img src={slip.file.preview} alt={`Slip ${index + 1}`} className="multi-slot-img" />
                 <div className="multi-slot-num">#{index + 1}</div>
                 <div className={`multi-slot-status ${scanning ? 'scanning' : status}`}>

@@ -107,55 +107,12 @@
     height: 44px;
 }
 
-/* Filter Button */
-.drivers-filter-btn {
-    width: 44px;
-    height: 44px;
-    padding: 10px;
-    background: var(--core-semantics-universal-white, white);
-    border-radius: 8px;
-    outline: 1px var(--core-morning-fog-solids-morning-fog-700, #DFDFE2) solid;
-    outline-offset: -1px;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    display: flex;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-}
-
-.drivers-filter-btn svg {
-    width: 14px;
-    height: 14px;
-    color: var(--alias-icon-icon-primary, #121214);
-}
-
-.drivers-filter-btn > span {
-    color: var(--alias-type-type-secondary, #5D5D5E);
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 400;
-    line-height: 21px;
-    word-wrap: break-word;
-}
-
-.drivers-filter-btn:hover {
-    background-color: var(--color-grey-50);
-}
-
 /* Filter Dropdown Styles */
 .drivers-filter-container {
     position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
-}
-
-.drivers-filter-btn-active {
-    background-color: var(--color-primary-50);
-    outline-color: var(--color-primary-300);
 }
 
 .drivers-filter-chevron {
@@ -327,12 +284,9 @@
     border-top: 1px solid var(--color-grey-200);
 }
 
-.drivers-filter-actions .drivers-btn {
+/* Clear All / Apply Filters share the dropdown width evenly. */
+.drivers-filter-actions > button {
     flex: 1;
-    padding: 8px 16px;
-    font-size: 14px;
-    min-width: auto;
-    border-radius: var(--border-radius-md);
 }
 
 .drivers-filter-loader {
@@ -361,52 +315,69 @@
     100% { transform: rotate(360deg); }
 }
 
-/* Add Employee Button */
-.drivers-add-driver-btn {
-    height: 44px;
-    min-width: 112px;
-    padding-left: 24px;
-    padding-right: 24px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    background: var(--action-primary-background-color-action-background-primary-default, var(--primary-color, var(--primary-color, #4f46e5)));
-    box-shadow: 0px 2px 0px var(--primary-dark, #4338ca);
-    border-radius: 8px;
-    outline: 1px var(--action-primary-border-color-action-border-primary-default, var(--primary-dark, #4338ca)) solid;
-    outline-offset: -1px;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    display: flex;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
+/* --- Loading skeleton (shimmer) for the employees table --- */
+.drivers-skeleton-row {
+    cursor: default !important;
 }
 
-.drivers-add-driver-btn svg {
-    width: 16px;
-    height: 16px;
-    color: var(--alias-icon-icon-invert-primary, #F8F8FB);
+.drivers-skeleton-row:hover {
+    background: var(--core-semantics-universal-white, white) !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
-.drivers-add-driver-btn span {
-    text-align: center;
-    color: var(--alias-icon-icon-invert-primary, #F8F8FB);
-    font-size: 16px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    line-height: 24px;
-    word-wrap: break-word;
+.drivers-skeleton {
+    display: inline-block;
+    border-radius: 6px;
+    background: var(--core-morning-fog-solids-morning-fog-800, #ECECEE);
+    background-image: linear-gradient(
+        90deg,
+        var(--core-morning-fog-solids-morning-fog-800, #ECECEE) 0%,
+        var(--core-morning-fog-solids-morning-fog-900, #F8F8FB) 50%,
+        var(--core-morning-fog-solids-morning-fog-800, #ECECEE) 100%
+    );
+    background-size: 200% 100%;
+    animation: drivers-shimmer 1.4s ease-in-out infinite;
 }
 
-.drivers-add-driver-btn:hover {
-    background-color: var(--primary-dark, #4338ca);
-    filter: none;
+.drivers-skeleton-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 9999px;
+    flex-shrink: 0;
 }
 
-.drivers-add-driver-btn:active {
-    transform: translateY(1px);
-    box-shadow: 0px 1px 0px var(--primary-dark, #4338ca);
+.drivers-skeleton-text {
+    height: 12px;
+    width: 70%;
+    vertical-align: middle;
+}
+
+.drivers-skeleton-text-lg {
+    width: 85%;
+}
+
+.drivers-skeleton-text-sm {
+    width: 45%;
+    height: 10px;
+}
+
+.drivers-skeleton-pill {
+    height: 22px;
+    width: 72px;
+    border-radius: 9999px;
+}
+
+@keyframes drivers-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Respect users who prefer reduced motion: keep a static placeholder. */
+@media (prefers-reduced-motion: reduce) {
+    .drivers-skeleton {
+        animation: none;
+    }
 }
 
 /* Table Container */
@@ -754,6 +725,24 @@
     outline: 1px solid #D3D3D5;
 }
 
+/* Deactivated employees: greyed-out row so it reads as inactive at a glance.
+   Scoped under .drivers-table tbody so it out-specifies the base white row
+   background (.drivers-table tbody tr) — otherwise the row stays white and only
+   the cells grey out, leaving the name cell reading as a white patch. */
+.drivers-table tbody tr.drivers-table-row--deactivated,
+.drivers-table tbody tr.drivers-table-row--deactivated td {
+    background-color: #f1f2f4;
+    color: #8a90a2;
+}
+.drivers-table tbody tr.drivers-table-row--deactivated:hover,
+.drivers-table tbody tr.drivers-table-row--deactivated:hover td {
+    background-color: #e9ebef;
+}
+.drivers-table-row--deactivated .drivers-driver-initials {
+    filter: grayscale(1);
+    opacity: 0.7;
+}
+
 .drivers-action-menu-container {
     position: relative;
 }
@@ -973,7 +962,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    /* Above the portalled action menu (z-index: 99999) so the confirm modals
+       always sit on top when opened from that menu. */
+    z-index: 100000;
 }
 
 .drivers-modal-content {
@@ -1085,63 +1076,9 @@
     border-top: 1px solid var(--color-grey-100);
 }
 
-.drivers-modal-actions .drivers-btn {
-    padding: 12px 24px;
-    font-size: 15px;
-    font-weight: 600;
+/* Keeps the modal footer pair evenly weighted. */
+.drivers-modal-actions > button {
     min-width: 120px;
-    text-align: center;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--border-radius-md);
-    transition: all 0.2s;
-    cursor: pointer;
-    border: 2px solid transparent;
-}
-
-.drivers-btn-primary {
-    background-color: var(--primary-color, var(--primary-color, var(--primary-color, #4f46e5)));
-    color: var(--color-white);
-    border-color: var(--primary-color, var(--primary-color, var(--primary-color, #4f46e5)));
-}
-
-.drivers-btn-primary:hover {
-    background-color: var(--primary-color, #2563EB);
-    border-color: var(--primary-color, #2563EB);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px var(--color-primary-200);
-}
-
-.drivers-btn-primary:disabled {
-    background-color: var(--color-grey-300);
-    border-color: var(--color-grey-300);
-    color: var(--color-grey-500);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.drivers-btn-secondary {
-    background-color: var(--color-white);
-    color: var(--color-grey-700);
-    border-color: var(--color-grey-300);
-}
-
-.drivers-btn-secondary:hover {
-    background-color: var(--color-grey-50);
-    border-color: var(--color-grey-400);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.drivers-btn-secondary:disabled {
-    background-color: var(--color-grey-100);
-    border-color: var(--color-grey-200);
-    color: var(--color-grey-400);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }
 
 /* Vehicle Information Styles */
@@ -1274,15 +1211,6 @@
     background-color: var(--color-white);
 }
 
-/* Button base for page actions */
-.drivers-btn {
-    padding: 10px 16px;
-    border-radius: var(--border-radius-md);
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid transparent;
-}
-
 @media (max-width: 720px) {
     .drivers-form-group { flex: 1 1 100%; }
 }
@@ -1317,35 +1245,6 @@
     font-weight: 500;
 }
 
-.drivers-btn-danger {
-    background-color: #dc2626;
-    color: var(--color-white);
-    border-color: #dc2626;
-    font-weight: 600;
-    position: relative;
-    overflow: hidden;
-}
-
-.drivers-btn-danger:hover {
-    background-color: #b91c1c;
-    border-color: #b91c1c;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
-}
-
-.drivers-btn-danger:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
-}
-
-.drivers-btn-danger:disabled {
-    background-color: #9ca3af;
-    border-color: #9ca3af;
-    color: #f3f4f6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
 
 /* Make sure all text uses Inter font */
 .drivers-container,

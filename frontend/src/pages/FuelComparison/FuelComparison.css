@@ -1,8 +1,14 @@
 .fc-page {
-  padding: 24px;
-  background-color: var(--background-color, #f8fafc);
+  /* No padding of its own — PageShell (mounted inside) owns the page padding.
+     A padding here would double-inset the content and make it narrower than
+     the rest of the app. */
+  padding: 0;
+  background-color: var(--background-color, #ffffff);
   min-height: 100vh;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    sans-serif;
   color: #0f172a;
 }
 
@@ -60,8 +66,8 @@
   background: white;
   padding: 8px 12px;
   border-radius: 20px;
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .fc-btn {
@@ -80,7 +86,7 @@
 .fc-btn-icon {
   padding: 10px;
   background: white;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   color: #475569;
 }
 .fc-btn-icon:hover {
@@ -91,18 +97,25 @@
   background: white;
   border: 1px solid #cbd5e1;
   color: #0f172a;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 .fc-btn-primary:hover {
   background: #f8fafc;
 }
 
 /* ─── Top Metrics Row ───────────────────────────────────────────────────── */
+/* auto-fit so the KPI cards stretch to fill the row instead of leaving the
+   rigid 4-column grid half-empty on the second line. */
 .fc-metrics-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
+}
+/* The live-errors panel is a different shape from a KPI tile, so it takes its
+   own full-width row below the tiles rather than sitting in a KPI slot. */
+.fc-metrics-row .fc-live-errors-widget {
+  grid-column: 1 / -1;
 }
 
 .fc-kpi-card {
@@ -112,8 +125,20 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-  border: 1px solid rgba(0,0,0,0.04);
+  /* On the now-white page, cards need real elevation to sit above the surface.
+     Hairline (#e2e8f0) defines the edge; the layered shadow lifts the tile. */
+  border: 1px solid #e2e8f0;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 6px 16px -8px rgba(15, 23, 42, 0.14);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.fc-kpi-card:hover {
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.08),
+    0 12px 24px -10px rgba(15, 23, 42, 0.18);
 }
 
 .fc-kpi-icon-wrap {
@@ -125,10 +150,22 @@
   justify-content: center;
 }
 
-.fc-kpi-pending .fc-kpi-icon-wrap { background: #eff6ff; color: #3b82f6; }
-.fc-kpi-success .fc-kpi-icon-wrap { background: #f0fdf4; color: #22c55e; }
-.fc-kpi-warning .fc-kpi-icon-wrap { background: #fffbeb; color: #f59e0b; }
-.fc-kpi-nodata  .fc-kpi-icon-wrap { background: #f8fafc; color: #94a3b8; }
+.fc-kpi-pending .fc-kpi-icon-wrap {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+.fc-kpi-success .fc-kpi-icon-wrap {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+.fc-kpi-warning .fc-kpi-icon-wrap {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+.fc-kpi-nodata .fc-kpi-icon-wrap {
+  background: #f8fafc;
+  color: #94a3b8;
+}
 
 .fc-kpi-label {
   display: block;
@@ -152,7 +189,9 @@
   background: white;
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
   border: 1px solid #fecaca;
   display: flex;
   flex-direction: column;
@@ -220,13 +259,15 @@
   white-space: nowrap;
 }
 
-
 /* ─── Content Area / Table ──────────────────────────────────────────────── */
 .fc-content-card {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-  border: 1px solid rgba(0,0,0,0.04);
+  /* Larger surface → slightly deeper elevation so it anchors the layout on white. */
+  border: 1px solid #e2e8f0;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 10px 28px -14px rgba(15, 23, 42, 0.16);
   overflow: hidden;
 }
 
@@ -283,9 +324,12 @@
   padding: 2px 8px;
   border-radius: 12px;
 }
-.fc-tab.active .fc-tab-badge { background: #94a3b8; }
-.fc-tab.active.alert .fc-badge-alert { background: #ef4444; }
-
+.fc-tab.active .fc-tab-badge {
+  background: #94a3b8;
+}
+.fc-tab.active.alert .fc-badge-alert {
+  background: #ef4444;
+}
 
 .fc-filters {
   display: flex;
@@ -323,7 +367,10 @@
   color: #0f172a;
   outline: none;
   min-height: 36px;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    sans-serif;
 }
 .fc-date-input:focus {
   border-color: #cbd5e1;
@@ -361,7 +408,6 @@
   background: #1e293b;
 }
 
-
 .fc-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -394,7 +440,9 @@
   background: #f8fafc;
 }
 
-.num-col { text-align: right !important; }
+.num-col {
+  text-align: right !important;
+}
 
 .fc-primary-text {
   font-size: 14px;
@@ -409,7 +457,7 @@
 .fc-date-range {
   font-size: 13px;
   color: #475569;
-  font-feature-settings: "tnum";
+  font-feature-settings: 'tnum';
 }
 
 .fc-variance-badge {
@@ -417,8 +465,14 @@
   flex-direction: column;
   align-items: flex-end;
 }
-.fc-variance-badge.over span:first-child { color: #ea580c; font-weight: 600; }
-.fc-variance-badge.ok span:first-child { color: #10b981; font-weight: 600; }
+.fc-variance-badge.over span:first-child {
+  color: #ea580c;
+  font-weight: 600;
+}
+.fc-variance-badge.ok span:first-child {
+  color: #10b981;
+  font-weight: 600;
+}
 
 .fc-pct {
   font-size: 12px;
@@ -479,8 +533,13 @@
 }
 
 /* ── Pending Review tab ─────────────────────── */
-.fc-tab.review { color: #d97706; }
-.fc-tab.active.review { border-bottom-color: #d97706; color: #d97706; }
+.fc-tab.review {
+  color: #d97706;
+}
+.fc-tab.active.review {
+  border-bottom-color: #d97706;
+  color: #d97706;
+}
 .fc-badge-review {
   background: #fef3c7;
   color: #b45309;
@@ -488,7 +547,9 @@
 }
 
 /* ── Odometer mismatch row highlight ─────────── */
-tr:has(.MuiChip-colorError) { background: #fff7f7; }
+tr:has(.MuiChip-colorError) {
+  background: #fff7f7;
+}
 
 /* ── FleetEdge connectivity bar ────────────────── */
 .fc-connectivity-bar {
@@ -510,23 +571,41 @@ tr:has(.MuiChip-colorError) { background: #fff7f7; }
   border-color: #fde68a;
   color: #92400e;
 }
-.fc-conn-left, .fc-conn-right {
+.fc-conn-left,
+.fc-conn-right {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
-.fc-conn-label { font-weight: 600; }
+.fc-conn-label {
+  font-weight: 600;
+}
 .fc-conn-chip {
   padding: 2px 8px;
   border-radius: 99px;
   font-size: 11px;
   font-weight: 600;
 }
-.fc-conn-ok      { background: #dcfce7; color: #166534; }
-.fc-conn-warn    { background: #fef3c7; color: #92400e; }
-.fc-conn-pulling { background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; gap: 4px; }
-.fc-conn-meta    { color: inherit; opacity: 0.75; }
+.fc-conn-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.fc-conn-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+.fc-conn-pulling {
+  background: #eff6ff;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fc-conn-meta {
+  color: inherit;
+  opacity: 0.75;
+}
 
 /* ── Reauth banner ───────────────────────────────── */
 .fc-reauth-banner {
@@ -557,8 +636,13 @@ tr:has(.MuiChip-colorError) { background: #fff7f7; }
   cursor: pointer;
   transition: background 0.15s;
 }
-.fc-btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
-.fc-btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+.fc-btn-secondary:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+.fc-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 /* ── Reauth error item in live errors widget ──────── */
 .fc-error-reauth {
@@ -575,210 +659,13 @@ tr:has(.MuiChip-colorError) { background: #fff7f7; }
 }
 
 /* ── Spinner animation ───────────────────────────── */
-@keyframes fc-spin { to { transform: rotate(360deg); } }
-.fc-spin { animation: fc-spin 1s linear infinite; display: inline-block; will-change: transform; }
-
-/* ── Vehicle multi-select filter ─────────────────────── */
-.fc-vehicle-filter {
-  position: relative;
+@keyframes fc-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
-
-.fc-vehicle-trigger {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  height: 36px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: border-color 0.15s, background 0.15s;
-  min-width: 130px;
-  max-width: 200px;
+.fc-spin {
+  animation: fc-spin 1s linear infinite;
+  display: inline-block;
+  will-change: transform;
 }
-.fc-vehicle-trigger:hover {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-}
-.fc-vehicle-trigger.open {
-  border-color: #94a3b8;
-  background: #f1f5f9;
-}
-.fc-vehicle-trigger.has-selection {
-  border-color: #0f172a;
-  color: #0f172a;
-  background: #e2e8f0;
-  font-weight: 600;
-}
-
-.fc-vehicle-trigger-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: left;
-}
-
-.fc-vehicle-clear {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #94a3b8;
-  color: white;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.fc-vehicle-clear:hover { background: #64748b; }
-
-.fc-vehicle-chevron {
-  flex-shrink: 0;
-  color: #94a3b8;
-  transition: transform 0.2s;
-}
-.fc-vehicle-chevron.rotated { transform: rotate(180deg); }
-
-/* Dropdown panel */
-.fc-vehicle-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 999;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  width: 240px;
-  overflow: hidden;
-}
-
-.fc-vehicle-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #94a3b8;
-}
-.fc-vehicle-search input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  color: #0f172a;
-  background: transparent;
-}
-
-.fc-vehicle-list {
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.fc-vehicle-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  font-size: 13px;
-  color: #334155;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.fc-vehicle-option:hover {
-  background: #f8fafc;
-}
-.fc-vehicle-option.selected {
-  background: #f0fdf4;
-  color: #15803d;
-  font-weight: 600;
-}
-
-.fc-vehicle-checkbox {
-  width: 18px;
-  height: 18px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: white;
-  color: #15803d;
-  transition: border-color 0.12s, background 0.12s;
-}
-.fc-vehicle-option.selected .fc-vehicle-checkbox {
-  border-color: #15803d;
-  background: #dcfce7;
-}
-
-.fc-vehicle-reg {
-  flex: 1;
-  font-feature-settings: "tnum";
-}
-
-.fc-vehicle-empty {
-  padding: 20px;
-  text-align: center;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.fc-vehicle-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 14px;
-  border-top: 1px solid #f1f5f9;
-  font-size: 12px;
-  color: #64748b;
-}
-.fc-vehicle-footer button {
-  font-size: 12px;
-  color: #ef4444;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  padding: 0;
-}
-.fc-vehicle-footer button:hover { text-decoration: underline; }
-
-/* Selected vehicle chips row */
-.fc-vehicle-chips {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-}
-
-.fc-vehicle-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  background: #e2e8f0;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #0f172a;
-  white-space: nowrap;
-}
-.fc-vehicle-chip button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #64748b;
-  padding: 0;
-  line-height: 1;
-}
-.fc-vehicle-chip button:hover { color: #ef4444; }

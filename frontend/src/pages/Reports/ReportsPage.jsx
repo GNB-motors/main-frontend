@@ -5,18 +5,6 @@ import '../PageStyles.css';
 import './ReportsPage.css';
 import { getThemeCSS } from '../../utils/colorTheme';
 
-// --- IMPORTS for MUI (Layout) ---
-import {
-    Box, Typography, CircularProgress, Alert
-} from '@mui/material';
-
-// --- IMPORTS for Date Pickers (Context Provider) ---
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-
-// --- IMPORTS FOR CONTEXT ---
-// Removed useProfile import - profile logic completely removed
-
 // --- IMPORTS FOR SEGREGATED REPORT COMPONENTS ---
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
@@ -28,14 +16,13 @@ import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
 
 // --- MAIN REPORTS PAGE COMPONENT ---
 const ReportsPage = () => {
-    const [isReportsSidebarOpen, setIsReportsSidebarOpen] = useState(true);
+    const [isReportsSidebarOpen] = useState(true);
     const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
     const [themeColors, setThemeColors] = useState(getThemeCSS());
     const [selectedReport, setSelectedReport] = useState('driver'); // Default to driver report
-    const [highlightedOutlierId, setHighlightedOutlierId] = useState(null); // Used for linking
+    const [, setHighlightedOutlierId] = useState(null); // Used for linking
 
     // Removed profile context - profile logic completely removed
-    const businessRefId = null;
 
     // Effect for theme
     useEffect(() => { setThemeColors(getThemeCSS()); }, []);
@@ -111,25 +98,23 @@ const ReportsPage = () => {
 
     // --- RETURN JSX ---
     return (
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <div className="reports-page-container" style={themeColors}>
-                {/* Sidebar */}
-                <ReportsSidebar
-                    isOpen={isReportsSidebarOpen}
-                    isMainSidebarCollapsed={isMainSidebarCollapsed}
-                    selectedReport={selectedReport}
-                    setSelectedReport={setSelectedReport}
-                />
-                {/* Main Content Area */}
-                <div className={`reports-content ${isReportsSidebarOpen ? 'with-sidebar' : ''} ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}>
-                    {/* Top Nav Bar */}
-                    {/* Report Content */}
-                    <div className="reports-main-content">
-                        {renderReport()} {/* Renders the selected report component */}
-                    </div>
+        <div className="reports-page-container" style={themeColors}>
+            {/* Sidebar */}
+            <ReportsSidebar
+                isOpen={isReportsSidebarOpen}
+                isMainSidebarCollapsed={isMainSidebarCollapsed}
+                selectedReport={selectedReport}
+                setSelectedReport={setSelectedReport}
+            />
+            {/* Main Content Area */}
+            <div className={`reports-content ${isReportsSidebarOpen ? 'with-sidebar' : ''} ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}>
+                {/* Top Nav Bar */}
+                {/* Report Content */}
+                <div className="reports-main-content">
+                    {renderReport()} {/* Renders the selected report component */}
                 </div>
             </div>
-        </LocalizationProvider>
+        </div>
     );
 };
 

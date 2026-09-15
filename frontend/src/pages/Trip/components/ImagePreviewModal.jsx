@@ -123,8 +123,8 @@ const ImagePreviewModal = ({ imageSrc, title, onClose }) => {
   const reset   = useCallback(() => { setZoom(1); setRotation(0); }, []);
 
   return ReactDOM.createPortal(
-    <div style={S.overlay} onClick={onClose}>
-      <div style={S.card} onClick={e => e.stopPropagation()}>
+    <div style={S.overlay} role="presentation" onClick={onClose}>
+      <div style={S.card} role="presentation" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={S.header}>

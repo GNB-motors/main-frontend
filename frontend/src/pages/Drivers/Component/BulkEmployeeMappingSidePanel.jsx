@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Check } from "lucide-react";
 import ChevronIcon from "../../Trip/assets/ChevronIcon.jsx";
+import NewButton from "@/components/ui/NewButton";
+import { toast } from "react-toastify";
 import "./BulkEmployeeMappingSidePanel.css";
 
 const FIELD_TARGETS = [
@@ -72,7 +74,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
     const missing = requiredFields.filter((f) => !mapping[f.key]);
 
     if (missing.length > 0) {
-      alert(`Please map the following required fields: ${missing.map((f) => f.label).join(", ")}`);
+      toast.error(`Please map the following required fields: ${missing.map((f) => f.label).join(", ")}`);
       return;
     }
 
@@ -82,7 +84,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
   const getDisabledOptions = (currentFieldKey) => {
     return Object.entries(selectedOptions)
       .filter(([fieldKey, selected]) => fieldKey !== currentFieldKey && selected)
-      .map(([_, selected]) => selected);
+      .map(([, selected]) => selected);
   };
 
   const scrollToDropdown = (dropdownElement) => {
@@ -245,13 +247,21 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
         </div>
 
         <div className="bem-sidepanel-actions">
-          <button type="button" onClick={onClose} className="bem-btn-secondary">
-            Cancel
-          </button>
-          <button type="submit" onClick={handleSubmit} className="bem-btn-primary">
-            <Check size={16} />
-            Apply Mapping
-          </button>
+          <NewButton
+            variant="secondary"
+            size="md"
+            type="button"
+            text="Cancel"
+            onClick={onClose}
+          />
+          <NewButton
+            variant="primary"
+            size="md"
+            type="submit"
+            text="Apply Mapping"
+            prependIcon={<Check size={16} />}
+            onClick={handleSubmit}
+          />
         </div>
       </div>
     </div>
