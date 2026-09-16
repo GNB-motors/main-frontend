@@ -51,6 +51,10 @@ export const LABELS = {
     LOAD: 'Loaded',
     EMPTY: 'Empty',
   },
+  legitimacy: {
+    LEGIT: 'Legit',
+    EXCESS: 'Excess',
+  },
   source: {
     API: 'Fetched from price API',
     MANUAL: 'Entered manually',
@@ -92,6 +96,8 @@ export const TONES = {
   FAILED: 'critical',
   BLACKLISTED: 'critical',
   IDLE: 'caution',
+  LEGIT: 'ok',
+  EXCESS: 'caution',
 };
 
 const normaliseKey = (key) =>

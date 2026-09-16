@@ -81,6 +81,11 @@ const AddRoutePage = () => {
   // Fetch the driven path whenever both endpoints have coordinates. A new
   // result replaces the previous geometry; a failed result after the user
   // changed an endpoint drops it so a stale polyline is never saved.
+  //
+  // A learned RouteCorridor (built server-side from the fleet's own past
+  // trips over this origin/destination) is checked first — reusing ground
+  // truth the fleet has already driven instead of firing another Google
+  // Directions request for the same pair. Directions only runs on a miss.
   useEffect(() => {
     if (!isMapsLoaded || !window.google?.maps?.DirectionsService) return;
 
@@ -92,25 +97,49 @@ const AddRoutePage = () => {
     }
 
     let cancelled = false;
-    const directionsService = new window.google.maps.DirectionsService();
-    directionsService.route(
-      {
-        origin: { lat: source.lat, lng: source.lng },
-        destination: { lat: dest.lat, lng: dest.lng },
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (cancelled) return;
-        const route = result?.routes?.[0];
-        if (status === window.google.maps.DirectionsStatus.OK && route) {
-          setGeometry(
-            buildRouteGeometry(route, { distanceMeters: route.legs?.[0]?.distance?.value ?? null }),
-          );
-        } else if (endpointsTouchedRef.current) {
-          setGeometry(null);
-        }
-      },
-    );
+
+    const fetchDirections = () => {
+      const directionsService = new window.google.maps.DirectionsService();
+      directionsService.route(
+        {
+          origin: { lat: source.lat, lng: source.lng },
+          destination: { lat: dest.lat, lng: dest.lng },
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (cancelled) return;
+          const route = result?.routes?.[0];
+          if (status === window.google.maps.DirectionsStatus.OK && route) {
+            setGeometry(
+              buildRouteGeometry(route, {
+                distanceMeters: route.legs?.[0]?.distance?.value ?? null,
+              }),
+            );
+          } else if (endpointsTouchedRef.current) {
+            setGeometry(null);
+          }
+        },
+      );
+    };
+
+    RouteService.getCorridorGeometry({
+      originAddress: source.address,
+      originCity: source.city,
+      originLat: source.lat,
+      originLng: source.lng,
+      destAddress: dest.address,
+      destCity: dest.city,
+      destLat: dest.lat,
+      destLng: dest.lng,
+    }).then((corridor) => {
+      if (cancelled) return;
+      if (corridor?.found && corridor.geometry) {
+        setGeometry(corridor.geometry);
+      } else {
+        fetchDirections();
+      }
+    });
+
     return () => {
       cancelled = true;
     };

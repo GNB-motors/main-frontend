@@ -182,6 +182,7 @@ const DocumentDetailPage = lazy(() => import('./pages/ErpAccounts/DocumentDetail
 const DailyDigestPage = lazy(() => import('./pages/DailyDigest/DailyDigestPage.jsx'));
 const CompliancePage = lazy(() => import('./pages/Compliance/CompliancePage.jsx'));
 const FleetAlertsPage = lazy(() => import('./pages/FleetAlerts/FleetAlertsPage.jsx'));
+const IdlingConsolePage = lazy(() => import('./pages/IdlingConsole/IdlingConsolePage.jsx'));
 const FuelSpendPage = lazy(() => import('./pages/FuelSpend/FuelSpendPage.jsx'));
 const DefLedgerPage = lazy(() => import('./pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('./pages/FleetCoverage/FleetCoveragePage.jsx'));
@@ -339,6 +340,7 @@ function App() {
             <Route path="/digest" element={<DailyDigestPage />} />
             <Route path="/compliance" element={<CompliancePage />} />
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
+            <Route path="/idling-console" element={<IdlingConsolePage />} />
             <Route path="/fuel-spend" element={<FuelSpendPage />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />

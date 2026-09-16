@@ -18,6 +18,7 @@ import FilterBar from '../../components/ui/FilterBar';
 import ExportButton from '../../components/ui/ExportButton';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import EtaBand from '../../components/ui/EtaBand';
+import CorridorTimeHeatmap from './CorridorTimeHeatmap.jsx';
 import { footerSummary } from '../../lib/tableState';
 import { humanise, label } from '../../lib/vocabulary';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
@@ -448,6 +449,12 @@ function CorridorsTable({ records }) {
                           Typical Transit Time & Statistics
                         </span>
                         <CorridorEtaPanel corridor={c} />
+                      </div>
+                      <div className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          Travel Time by Hour &amp; Day
+                        </span>
+                        <CorridorTimeHeatmap corridorId={c._id} />
                       </div>
                     </td>
                   </tr>
