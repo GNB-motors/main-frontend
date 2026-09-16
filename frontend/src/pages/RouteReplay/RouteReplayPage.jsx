@@ -19,7 +19,13 @@ import { LiveTrackingService } from '../LiveTracking/LiveTrackingService.jsx';
 import { INDIA_CENTER } from '../LiveTracking/liveTracking.shared.js';
 import useApi from '../../hooks/useApi';
 import apiClient from '../../utils/axiosConfig';
-import { toFrames, replayStats, positionAt, toLatLngPath } from './routeReplay.js';
+import {
+  toFrames,
+  replayStats,
+  positionAt,
+  toLatLngPath,
+  toLatLngSegments,
+} from './routeReplay.js';
 import Truck3DErrorBoundary from './truck3d/Truck3DErrorBoundary.jsx';
 import { isWebGLAvailable } from './truck3d/truck3dMaths.js';
 import { formatNum } from '../../utils/formatters';
@@ -78,6 +84,12 @@ export default function RouteReplayPage() {
   const stats = useMemo(() => replayStats(frames), [frames]);
   const path = useMemo(() => toLatLngPath(frames), [frames]);
   const head = useMemo(() => positionAt(frames, progress), [frames, progress]);
+  // Split at inter-trip gaps so a break is never drawn as a continuous line.
+  const fullSegments = useMemo(() => toLatLngSegments(frames), [frames]);
+  const travelledSegments = useMemo(
+    () => toLatLngSegments(frames, head?.index ?? 0),
+    [frames, head],
+  );
 
   const webglOk = useMemo(() => isWebGLAvailable(), []);
   const [truckReady, setTruckReady] = useState(false);
@@ -260,6 +272,20 @@ export default function RouteReplayPage() {
         </div>
       )}
 
+      {/* Truncated Trail Warning */}
+      {!error && trail?.truncated && (
+        <div className="mb-3 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          <AlertTriangle size={15} className="text-amber-600 flex-shrink-0" />
+          <span>
+            This window has {formatNum(trail.totalCount)} GPS fixes — showing only the newest{' '}
+            {formatNum(trail.points?.length || 0)}, covering{' '}
+            {dayjs(trail.actualFrom).format('DD MMM, hh:mm A')} →{' '}
+            {dayjs(trail.actualTo).format('DD MMM, hh:mm A')}. Narrow the date range to see an
+            earlier part of the trail.
+          </span>
+        </div>
+      )}
+
       {/* Empty Result Notification */}
       {!error && trail && frames.length < 2 && (
         <div className="mb-3 p-4 rounded-xl border border-dashed border-slate-300 bg-white text-center flex items-center justify-center gap-3">
@@ -367,16 +393,28 @@ export default function RouteReplayPage() {
           >
             {path.length > 1 && (
               <>
-                {/* Full path */}
-                <PolylineF
-                  path={path}
-                  options={{ strokeColor: '#94a3b8', strokeOpacity: 0.8, strokeWeight: 4 }}
-                />
-                {/* Travelled segment */}
-                <PolylineF
-                  path={path.slice(0, (head?.index ?? 0) + 1)}
-                  options={{ strokeColor: '#0284c7', strokeOpacity: 1, strokeWeight: 5 }}
-                />
+                {/* Full path, split at inter-trip gaps */}
+                {fullSegments.map(
+                  (seg, idx) =>
+                    seg.length > 1 && (
+                      <PolylineF
+                        key={`full-${idx}`}
+                        path={seg}
+                        options={{ strokeColor: '#94a3b8', strokeOpacity: 0.8, strokeWeight: 4 }}
+                      />
+                    ),
+                )}
+                {/* Travelled segment, same split */}
+                {travelledSegments.map(
+                  (seg, idx) =>
+                    seg.length > 1 && (
+                      <PolylineF
+                        key={`travelled-${idx}`}
+                        path={seg}
+                        options={{ strokeColor: '#0284c7', strokeOpacity: 1, strokeWeight: 5 }}
+                      />
+                    ),
+                )}
                 <MarkerF
                   position={path[0]}
                   label={{ text: 'S', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}

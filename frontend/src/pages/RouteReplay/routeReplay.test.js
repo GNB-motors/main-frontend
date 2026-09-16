@@ -7,6 +7,7 @@ import {
   replayStats,
   positionAt,
   toLatLngPath,
+  toLatLngSegments,
 } from './routeReplay.js';
 
 // Two points ~111 km apart (1 degree of latitude at the equator).
@@ -110,6 +111,33 @@ describe('toFrames', () => {
     expect(toFrames(undefined)).toEqual([]);
     expect(toFrames([])).toEqual([]);
   });
+
+  it('zeroes out distance/speed across a server-flagged inter-trip break instead of drawing a straight line through it', () => {
+    const frames = toFrames([
+      { latitude: 0, longitude: 0, eventDateTime: '2026-09-06T10:00:00Z', tripId: 't1' },
+      // Same server point, but 500 km away an hour later and flagged as the
+      // start of a different trip — a real gap, not a driven leg.
+      {
+        latitude: 4.5,
+        longitude: 0,
+        eventDateTime: '2026-09-06T11:00:00Z',
+        tripId: 't2',
+        break: true,
+      },
+    ]);
+    expect(frames[1].isBreak).toBe(true);
+    expect(frames[1].legKm).toBe(0);
+    expect(frames[1].cumulativeKm).toBe(0);
+    expect(frames[1].groundSpeedKmph).toBeNull();
+    expect(frames[1].tripId).toBe('t2');
+  });
+
+  it('defaults measured to true and carries tripId through when the server omits them', () => {
+    const frames = toFrames(trail([[0, 0, '2026-09-06T10:00:00Z']]));
+    expect(frames[0].measured).toBe(true);
+    expect(frames[0].tripId).toBeNull();
+    expect(frames[0].isBreak).toBe(false);
+  });
 });
 
 describe('groundSpeedKmph', () => {
@@ -205,6 +233,19 @@ describe('positionAt', () => {
     );
     expect(positionAt(flat, 0.5)).toMatchObject({ lat: 1 });
   });
+
+  it('holds at the last known fix across an inter-trip break instead of interpolating across the gap', () => {
+    const gapped = toFrames([
+      { latitude: 0, longitude: 0, eventDateTime: '2026-09-06T10:00:00Z' },
+      { latitude: 10, longitude: 0, eventDateTime: '2026-09-06T12:00:00Z', break: true },
+    ]);
+    // Progress that lands strictly between the two fixes must not fly toward
+    // the far side of the break — it should still read as the first fix.
+    expect(positionAt(gapped, 0.25).lat).toBeCloseTo(0, 6);
+    expect(positionAt(gapped, 0.75).lat).toBeCloseTo(0, 6);
+    // Reaching (or passing) the second fix's own timestamp snaps to it.
+    expect(positionAt(gapped, 1).lat).toBeCloseTo(10, 6);
+  });
 });
 
 describe('toLatLngPath', () => {
@@ -220,5 +261,44 @@ describe('toLatLngPath', () => {
       { lat: 3, lng: 4 },
     ]);
     expect(toLatLngPath(null)).toEqual([]);
+  });
+});
+
+describe('toLatLngSegments', () => {
+  const framesWithBreak = () =>
+    toFrames([
+      { latitude: 1, longitude: 1, eventDateTime: '2026-09-06T10:00:00Z' },
+      { latitude: 2, longitude: 1, eventDateTime: '2026-09-06T10:05:00Z' },
+      { latitude: 3, longitude: 1, eventDateTime: '2026-09-06T12:00:00Z', break: true },
+      { latitude: 4, longitude: 1, eventDateTime: '2026-09-06T12:05:00Z' },
+    ]);
+
+  it('splits the path into a new segment at each inter-trip break', () => {
+    const segments = toLatLngSegments(framesWithBreak());
+    expect(segments).toEqual([
+      [
+        { lat: 1, lng: 1 },
+        { lat: 2, lng: 1 },
+      ],
+      [
+        { lat: 3, lng: 1 },
+        { lat: 4, lng: 1 },
+      ],
+    ]);
+  });
+
+  it('limits the segments to upToIndex, for the "travelled so far" portion during playback', () => {
+    const segments = toLatLngSegments(framesWithBreak(), 1);
+    expect(segments).toEqual([
+      [
+        { lat: 1, lng: 1 },
+        { lat: 2, lng: 1 },
+      ],
+    ]);
+  });
+
+  it('tolerates empty input', () => {
+    expect(toLatLngSegments(null)).toEqual([]);
+    expect(toLatLngSegments([])).toEqual([]);
   });
 });
