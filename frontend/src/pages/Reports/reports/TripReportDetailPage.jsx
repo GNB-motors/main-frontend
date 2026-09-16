@@ -11,6 +11,7 @@ import {
   WeightDistanceCard,
   RouteInformationCard,
 } from './tripReportDetailCards';
+import TripReconciliationCard from './TripReconciliationCard';
 import './TripReportDetailPage.css';
 
 const isOnTrack = (status) => status === 'COMPLETED' || status === 'SUBMITTED';
@@ -104,6 +105,8 @@ const TripReportDetailPage = () => {
             endLoc={fields.endLoc}
             routeName={fields.routeName}
           />
+
+          <TripReconciliationCard tripId={trip._id || trip.id} />
 
           <Button className="weight-cert-btn" onClick={() => setWeightCertOpen(true)}>
             <FileText size={18} />

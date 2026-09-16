@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Activity } from 'lucide-react';
+import { Plus, Edit2, Trash2, Activity, Compass } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
@@ -98,24 +98,44 @@ const RoutesPage = () => {
 
   const handleToggleStatus = useCallback(
     async (route) => {
+      const newStatus = route.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
       try {
-        const newStatus = route.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
         await RouteService.updateRouteStatus(route._id, newStatus);
-        toast.success(`Route ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'}`);
+        toast.success(`Route marked as ${newStatus}`);
         fetchRoutes(meta.page, searchTerm);
       } catch (error) {
-        toast.error(error?.message || 'Failed to update route status');
+        toast.error(error?.message || 'Failed to update status');
       }
     },
     [fetchRoutes, meta.page, searchTerm],
   );
 
-  const exportRows = routes.map((route) => ({
-    name: route.name,
-    sourceCity: `${route.sourceLocation.city}, ${route.sourceLocation.state}`,
-    destCity: `${route.destLocation.city}, ${route.destLocation.state}`,
-    distanceKm: route.distanceKm,
-    status: route.status,
+  const handleDeriveGeometry = useCallback(
+    async (route) => {
+      try {
+        toast.info(`Deriving geometry for "${route.name}" from fleet telemetry…`);
+        const response = await RouteService.deriveGeometry(route._id);
+        toast.success(
+          `Geometry derived successfully from ${response.data?.geometry?.pointCount || ''} GPS fixes!`,
+        );
+        fetchRoutes(meta.page, searchTerm);
+      } catch (error) {
+        toast.error(
+          error?.message ||
+            error?.detail ||
+            'No completed trips with recorded GPS tracks found for this route',
+        );
+      }
+    },
+    [fetchRoutes, meta.page, searchTerm],
+  );
+
+  const exportRows = routes.map((r) => ({
+    name: r.name,
+    sourceCity: r.sourceLocation?.city || '',
+    destCity: r.destLocation?.city || '',
+    distanceKm: r.distanceKm,
+    status: r.status,
   }));
 
   const columns = [
@@ -125,8 +145,14 @@ const RoutesPage = () => {
       render: (route) => (
         <div className="location-info">
           <strong>{route.name}</strong>
-          {!route.geometry?.encodedPolyline && (
-            <span className="location-address">Path not captured</span>
+          {!route.geometry?.encodedPolyline ? (
+            <span className="location-address text-amber-600">Path not captured</span>
+          ) : (
+            <span className="text-[11px] text-sky-600 font-medium">
+              {route.geometry.provider === 'DERIVED_FROM_TRACK'
+                ? '✓ Learned from GPS Telemetry'
+                : '✓ Directions Polyline'}
+            </span>
           )}
         </div>
       ),
@@ -181,6 +207,16 @@ const RoutesPage = () => {
       label: 'Actions',
       render: (route) => (
         <div className="actions-cell">
+          {!route.geometry?.encodedPolyline && (
+            <button
+              type="button"
+              className="btn-icon text-sky-600 hover:text-sky-800"
+              onClick={() => handleDeriveGeometry(route)}
+              title="Derive geometry from completed trips telemetry"
+            >
+              <Compass size={16} />
+            </button>
+          )}
           <button
             type="button"
             className="btn-icon edit"

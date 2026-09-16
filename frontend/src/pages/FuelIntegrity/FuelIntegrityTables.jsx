@@ -2,10 +2,16 @@ import { useState } from 'react';
 import { Panel } from '../Overview/components/overview.primitives.jsx';
 import EventsFeedPanel from './EventsFeedPanel.jsx';
 import VehicleRiskPanel from './VehicleRiskPanel.jsx';
+import PumpHonestyPanel from './PumpHonestyPanel.jsx';
 
 const TABS = [
   { key: 'events', label: 'Recent events', question: 'Which event should I investigate first?' },
   { key: 'risk', label: 'Vehicle risk', question: 'Which vehicles carry the most risk?' },
+  {
+    key: 'pumps',
+    label: 'Pump Honesty Ledger',
+    question: 'Which fuel pumps have chronic short-delivery?',
+  },
 ];
 
 /**
@@ -65,13 +71,15 @@ export default function FuelIntegrityTables({
           onOpenEvent={onOpenEvent}
           onPageChange={onPageChange}
         />
-      ) : (
+      ) : tab === 'risk' ? (
         <VehicleRiskPanel
           bare
           isLoading={isLoading}
           riskVehicles={riskVehicles}
           onDrill={onDrill}
         />
+      ) : (
+        <PumpHonestyPanel />
       )}
     </Panel>
   );

@@ -95,6 +95,7 @@ const RouteService = {
   },
 
   /**
+  /**
    * Delete a route
    * @param {string} id - Route ID
    * @returns {Promise<Object>} Deleted route object
@@ -105,6 +106,21 @@ const RouteService = {
       return response.data;
     } catch (error) {
       console.error('Failed to delete route:', error.response?.data || error.message);
+      throw error.response?.data || error;
+    }
+  },
+
+  /**
+   * Derive route geometry from completed trips telemetry
+   * @param {string} id - Route ID
+   * @returns {Promise<Object>} Updated route with derived geometry
+   */
+  deriveGeometry: async (id) => {
+    try {
+      const response = await apiClient.post(`/api/routes/${id}/derive-geometry`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to derive route geometry:', error.response?.data || error.message);
       throw error.response?.data || error;
     }
   },
