@@ -10,11 +10,13 @@ import { shortestPath } from './shortestPath';
 import { findDeadSurfaces } from './deadSurfaces';
 import { overlayFromDiff, ghostNode } from './diffOverlay';
 import { healthyPathSet } from './healthyPath';
-import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
-import { applyKindFilter } from './kindFilter';
 import { countQueryMatches } from './graphPanelCounts';
 import { formatUnattributed } from './unattributedReasons';
 import { applyGraphParams } from './graphUrlSync';
+import { initViewState } from './graphViewState';
+import { composeVisible } from './graphFilterCompose';
+import { analysisNeighbourSet, nextNavTarget } from './graphSelection';
+import { sortPulseBuckets } from './pulseBuckets';
 import { readStoredTheme, writeStoredTheme, applyThemeVars, clearThemeVars } from './graphTheme';
 import { degradedDetail, degradedTitle } from './degradedExplain';
 import KgCanvas from './KgCanvas';
@@ -62,20 +64,15 @@ const LemuGraphTab = ({
   const snapshotRef = useRef(null);
   const searchRef = useRef(null);
 
-  /* View state reads the URL exactly once at mount (read-once init below) and
-     is written back on change by the sync effect. hiddenKinds and
-     focusMatches are ephemeral and stay out of the URL deliberately. */
-  const [view, setView] = useState(() => {
-    const v = searchParams.get('gview');
-    return v === 'graph' || v === 'table' ? v : 'graph';
-  });
-  const [query, setQuery] = useState(() => searchParams.get('q') || '');
+  /* View state reads the URL exactly once at mount (graphViewState owns the
+     parsing rules) and is written back on change by the sync effect.
+     hiddenKinds and focusMatches are ephemeral and stay out of the URL
+     deliberately. */
+  const [initialView] = useState(() => initViewState(searchParams));
+  const [view, setView] = useState(initialView.view);
+  const [query, setQuery] = useState(initialView.query);
   const [showRoutes, setShowRoutes] = useState(false);
-  const [hopDepth, setHopDepth] = useState(() => {
-    const h = searchParams.get('hops');
-    if (h === 'all') return 'all';
-    return ['1', '2', '3', '4'].includes(h) ? Number(h) : 2;
-  });
+  const [hopDepth, setHopDepth] = useState(initialView.hopDepth);
   const [focusMatches, setFocusMatches] = useState(false);
   const [hiddenKinds, setHiddenKinds] = useState(() => new Set());
   /* State visibility (plan Task 9): nodes whose state is in offStates drop
@@ -83,20 +80,12 @@ const LemuGraphTab = ({
      state (the CODE layer) are never matched, so state filtering is a
      no-op there — absence is not hidden. */
   const [offStates, setOffStates] = useState(() => new Set());
-  const [mode, setMode] = useState(() => {
-    const m = searchParams.get('mode');
-    if (m === '2d' || m === '3d') return m;
-    /* The raw-canvas renderer draws even its 3D projection on one 2D canvas
-       (plan §0 C8) — no WebGL probe, and 2D is the design's default board. */
-    return '2d';
-  });
+  const [mode, setMode] = useState(initialView.mode);
   /* The layer switch: CODE is the manifest dependency graph, INFRA is the
      topology board (hosts -> stores -> collections -> CDC -> tables). Read
      once at mount like the other view params; the default is deleted from
      the URL by the sync effect below. */
-  const [layer, setLayer] = useState(() =>
-    searchParams.get('layer') === 'infra' ? 'infra' : 'code',
-  );
+  const [layer, setLayer] = useState(initialView.layer);
   /* State-rail dimming (INFRA layer): clicking a summary chip dims every
      OTHER state through the SAME opacity channel as search — P3, no new
      colour meaning. */
@@ -210,10 +199,7 @@ const LemuGraphTab = ({
     LemuService.getPulse({ limit: 1440 })
       .then((d) => {
         if (!alive) return;
-        const buckets = [...(d?.data?.buckets || [])].sort(
-          (a, b) => new Date(a.bucketStart) - new Date(b.bucketStart),
-        );
-        setPulseBuckets(buckets);
+        setPulseBuckets(sortPulseBuckets(d));
       })
       .catch(() => {});
     return () => {
@@ -443,17 +429,10 @@ const LemuGraphTab = ({
 
   /* Blast/path highlights feed the canvas through the neighbour-outline
      channel — the SAME treatment hop highlighting already uses (P3). */
-  const analysisNeighbours = useMemo(() => {
-    const s = new Set();
-    if (blast) {
-      blast.down.forEach((id) => s.add(id));
-      blast.up.forEach((id) => s.add(id));
-    }
-    (pathInfo || []).forEach((id) => {
-      if (id !== selectedNodeId) s.add(id);
-    });
-    return s.size ? s : null;
-  }, [blast, pathInfo, selectedNodeId]);
+  const analysisNeighbours = useMemo(
+    () => analysisNeighbourSet(blast, pathInfo, selectedNodeId),
+    [blast, pathInfo, selectedNodeId],
+  );
 
   /* Publish the closure upward so the node drawer can list it (the tab owns
      the links; the page owns the drawer). */
@@ -469,35 +448,22 @@ const LemuGraphTab = ({
     [graph.nodes, graph.links, jobHealth],
   );
 
-  /* Filters compose in a fixed order inside this memo: hidden kinds drop out
-     first, then hidden states, then focus-match search (when on), then the
-     hop-depth collapse. The rail and filter-panel counts still describe the
-     FULL graph. */
-  const visible = useMemo(() => {
-    let g = applyKindFilter(graphStable, hiddenKinds);
-    if (offStates.size) {
-      const nodes = g.nodes.filter((n) => !offStates.has(n.state));
-      const present = new Set(nodes.map((n) => n.id));
-      g = {
-        nodes,
-        links: g.links.filter((l) => present.has(endId(l.source)) && present.has(endId(l.target))),
-      };
-    }
-    if (focusMatches && matches) {
-      const nodes = g.nodes.filter((n) => matches.has(n.id));
-      const present = new Set(nodes.map((n) => n.id));
-      g = {
-        nodes,
-        links: g.links.filter((l) => present.has(endId(l.source)) && present.has(endId(l.target))),
-      };
-    }
-    if (!selectedNodeId || hopDepth === 'all') return g;
-    const keep = nodesWithinHops(g.links, selectedNodeId, Number(hopDepth));
-    return {
-      nodes: g.nodes.filter((n) => keep.has(n.id)),
-      links: g.links.filter((l) => keep.has(endId(l.source)) && keep.has(endId(l.target))),
-    };
-  }, [graphStable, hiddenKinds, offStates, focusMatches, matches, selectedNodeId, hopDepth]);
+  /* Filters compose in a fixed order inside graphFilterCompose: hidden kinds
+     drop out first, then hidden states, then focus-match search (when on),
+     then the hop-depth collapse. The rail and filter-panel counts still
+     describe the FULL graph. */
+  const visible = useMemo(
+    () =>
+      composeVisible(graphStable, {
+        hiddenKinds,
+        offStates,
+        focusMatches,
+        matches,
+        selectedNodeId,
+        hopDepth,
+      }),
+    [graphStable, hiddenKinds, offStates, focusMatches, matches, selectedNodeId, hopDepth],
+  );
 
   /* dagSafe existed for the retired DAG-mode layout engine, which threw on
      cycles. The raw-canvas renderer pins the infra layer to columns in its own sim
@@ -574,9 +540,9 @@ const LemuGraphTab = ({
   );
 
   /* Arrow-key selection (plan Task 10): moves through the selected node's
-     neighbours (hopFilter.neighboursOf), Right/Down next, Left/Up previous,
+     neighbours (graphSelection.nextNavTarget), Right/Down next, Left/Up previous,
      wrapping. The cursor ref keeps "next" stable across repeated presses —
-     without it, recomputing neighboursOf after every jump would ping-pong
+     without it, recomputing the neighbour step after every jump would ping-pong
      between two nodes. Any selection change from another control (click,
      table, hop filter) resets the cursor on the next press. With nothing
      selected, the first visible node is selected. */
@@ -597,18 +563,10 @@ const LemuGraphTab = ({
         selectViaKeyboard(visible.nodes[0]);
         return;
       }
-      const cursor = navCursor.current;
-      if (cursor.anchor !== selectedNodeId) {
-        const ids = [...neighboursOf(visible.links, selectedNodeId)];
-        if (!ids.length) return;
-        const index = dir > 0 ? 0 : ids.length - 1;
-        navCursor.current = { anchor: selectedNodeId, ids, index };
-        selectViaKeyboard(nodeById.get(ids[index]));
-        return;
-      }
-      const index = (cursor.index + dir + cursor.ids.length) % cursor.ids.length;
-      navCursor.current = { ...cursor, index };
-      selectViaKeyboard(nodeById.get(cursor.ids[index]));
+      const next = nextNavTarget(navCursor.current, selectedNodeId, visible.links, dir);
+      if (!next) return;
+      navCursor.current = next.cursor;
+      selectViaKeyboard(nodeById.get(next.id));
     },
     [visible, selectedNodeId, nodeById, selectViaKeyboard],
   );
