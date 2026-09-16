@@ -45,7 +45,10 @@ export const KaaranService = {
   getUnknownTerritories: async (params = {}) => {
     try {
       const res = await apiClient.get('/api/kaaran/territory', { params });
-      return res.data?.data || res.data || [];
+      const d = res.data?.data || res.data;
+      if (Array.isArray(d)) return d;
+      if (Array.isArray(d?.data)) return d.data;
+      return [];
     } catch (err) {
       console.error('KaaranService.getUnknownTerritories error:', err);
       throw err.response?.data || { message: 'Failed to load unknown territories' };
@@ -86,7 +89,10 @@ export const KaaranService = {
   getPumpLedger: async (params = {}) => {
     try {
       const res = await apiClient.get('/api/kaaran/pumps/ledger', { params });
-      return res.data?.data || res.data || [];
+      const d = res.data?.data || res.data;
+      if (Array.isArray(d)) return d;
+      if (Array.isArray(d?.pumps)) return d.pumps;
+      return [];
     } catch (err) {
       console.error('KaaranService.getPumpLedger error:', err);
       throw err.response?.data || { message: 'Failed to load pump ledger' };
