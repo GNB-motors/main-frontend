@@ -8,7 +8,7 @@ import {
 } from '@react-google-maps/api';
 import { MapPin, CircleDot } from 'lucide-react';
 import { START_MARKER_SVG, END_MARKER_SVG } from './tripReportDetailMapIcons';
-import { toFrames, toLatLngPath } from '../../RouteReplay/routeReplay';
+import { toFrames, toLatLngPath, toLatLngSegments } from '../../RouteReplay/routeReplay';
 import { trailWindowForTrip } from './tripReportTrailWindow';
 import { LiveTrackingService } from '../../LiveTracking/LiveTrackingService.jsx';
 
@@ -25,6 +25,7 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
   const [directions, setDirections] = useState(null);
   const [mapPoints, setMapPoints] = useState({ start: null, end: null });
   const [trailPath, setTrailPath] = useState(null);
+  const [trailSegments, setTrailSegments] = useState(null);
   const mapRef = useRef(null);
 
   const { isLoaded, loadError } = useLoadScript({
@@ -76,9 +77,12 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
     })
       .then((trail) => {
         if (cancelled) return;
-        const path = toLatLngPath(toFrames(trail?.points));
+        const frames = toFrames(trail?.points);
+        const path = toLatLngPath(frames);
         if (path.length >= 2) {
           setTrailPath(path);
+          // Split at inter-trip gaps so a break is never drawn as a continuous line.
+          setTrailSegments(toLatLngSegments(frames));
           setMapPoints({ start: path[0], end: path[path.length - 1] });
         }
       })
@@ -139,12 +143,17 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
                 }}
               />
             )}
-            {trailPath && (
-              <PolylineF
-                path={trailPath}
-                options={{ strokeColor: '#1a73e8', strokeWeight: 4, strokeOpacity: 0.85 }}
-              />
-            )}
+            {trailSegments &&
+              trailSegments.map(
+                (seg, idx) =>
+                  seg.length > 1 && (
+                    <PolylineF
+                      key={`trail-${idx}`}
+                      path={seg}
+                      options={{ strokeColor: '#1a73e8', strokeWeight: 4, strokeOpacity: 0.85 }}
+                    />
+                  ),
+              )}
             {mapPoints.start && (
               <Marker
                 position={mapPoints.start}
