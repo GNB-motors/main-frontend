@@ -15,6 +15,7 @@ import {
   MapPin,
   RefreshCw,
   AlertTriangle,
+  Droplets,
 } from 'lucide-react';
 import { useConfirm } from '../../components/ui/confirmContext';
 import {
@@ -25,6 +26,7 @@ import {
 } from '../../services/HotspotService';
 import { formatNum } from '../../utils/formatters';
 import { INDIA_CENTER } from '../LiveTracking/liveTracking.shared.js';
+import DrainHotspotMap from './DrainHotspotMap.jsx';
 import './Hotspots.css';
 
 dayjs.extend(relativeTime);
@@ -50,6 +52,7 @@ export default function HotspotsPage() {
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [view, setView] = useState('theft'); // 'theft' = watch zones | 'drain' = drain map
 
   const { isLoaded: mapLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -145,280 +148,320 @@ export default function HotspotsPage() {
         </div>
       </div>
 
-      {/* Error Alert */}
-      {error && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={16} className="text-rose-600 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => load()}
-            className="font-semibold text-rose-700 hover:underline text-xs"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Persistent Framed Google Map */}
-      <div className="hs-map-card">
-        <div className="hs-map-head">
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-amber-600" />
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-              Theft & Siphoning Risk Geospatial Watch
-            </span>
-          </div>
-
-          {/* Enclosed KPI Rail */}
-          <div className="hs-kpi-strip">
-            {/* 1. Active Hotspots */}
-            <div className="hs-kpi-pill">
-              <span className="hs-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
-                <ShieldAlert size={12} />
-              </span>
-              <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Active</span>
-                <span className="hs-kpi-pill-value">{formatNum(active.length)}</span>
-              </div>
-            </div>
-
-            {/* 2. Network Intelligence */}
-            <div className="hs-kpi-pill">
-              <span className="hs-kpi-pill-icon bg-blue-50 text-blue-600 border border-blue-200">
-                <Globe size={12} />
-              </span>
-              <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Network</span>
-                <span className="hs-kpi-pill-value">{formatNum(networkCount)}</span>
-              </div>
-            </div>
-
-            {/* 3. Fleet Monitored */}
-            <div className="hs-kpi-pill">
-              <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
-                <ShieldCheck size={12} />
-              </span>
-              <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Protection</span>
-                <span className="hs-kpi-pill-value text-emerald-700">Active</span>
-              </div>
-            </div>
-
-            {/* 4. Dismissed Zones */}
-            <div className="hs-kpi-pill">
-              <span className="hs-kpi-pill-icon bg-slate-100 text-slate-600 border border-slate-200">
-                <EyeOff size={12} />
-              </span>
-              <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Dismissed</span>
-                <span className="hs-kpi-pill-value">{formatNum(dismissed.length)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="hs-legend-group">
-            {Object.entries(PROVENANCE_META).map(([key, meta]) => (
-              <span key={key} className="hs-legend-pill">
-                <span className="hs-legend-dot" style={{ background: meta.color }} />
-                <span>{meta.label}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Ambient status overlay when zero hotspots */}
-        {active.length === 0 && (
-          <div className="hs-ambient-badge">
-            <ShieldCheck size={16} className="text-emerald-600" />
-            <span>Corridors Clear · 0 Theft Clusters Detected</span>
-          </div>
-        )}
-
-        {/* Google Map */}
-        {mapLoaded ? (
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={defaultCenter}
-            zoom={active.length > 0 ? 8 : 5}
-            options={{
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: true,
-            }}
-          >
-            {active.map((h) => {
-              const meta = PROVENANCE_META[provenanceOf(h)] || PROVENANCE_META['own-learned'];
-              return (
-                <React.Fragment key={h._id}>
-                  <MarkerF
-                    position={{ lat: h.centerLat, lng: h.centerLng }}
-                    onClick={() => setSelectedId(h._id)}
-                  />
-                  <CircleF
-                    center={{ lat: h.centerLat, lng: h.centerLng }}
-                    radius={h.radiusMeters || 500}
-                    options={{
-                      fillColor: meta.color,
-                      fillOpacity: 0.2,
-                      strokeColor: meta.color,
-                      strokeOpacity: 0.8,
-                      strokeWeight: 2,
-                    }}
-                  />
-                </React.Fragment>
-              );
-            })}
-
-            {selectedHotspot && (
-              <InfoWindowF
-                position={{ lat: selectedHotspot.centerLat, lng: selectedHotspot.centerLng }}
-                onCloseClick={() => setSelectedId(null)}
-              >
-                <div className="p-2 max-w-xs">
-                  <h4 className="font-bold text-slate-900 text-sm">{selectedHotspot.name}</h4>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Radius: {selectedHotspot.radiusMeters || 500}m
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Last incident: {formatLastIncident(selectedHotspot.lastIncidentAt)}
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-2 text-xs font-semibold text-rose-600 hover:underline"
-                    onClick={() => toggleActive(selectedHotspot)}
-                  >
-                    Dismiss hotspot
-                  </button>
-                </div>
-              </InfoWindowF>
-            )}
-          </GoogleMap>
-        ) : (
-          <div className="h-[520px] flex items-center justify-center bg-slate-50 text-slate-400 text-sm">
-            Loading Google Map layers…
-          </div>
-        )}
+      {/* View tabs */}
+      <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+        <button
+          type="button"
+          onClick={() => setView('theft')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+            view === 'theft'
+              ? 'bg-white text-amber-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <ShieldAlert size={13} />
+          <span>Theft Hotspots</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('drain')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+            view === 'drain'
+              ? 'bg-white text-sky-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Droplets size={13} />
+          <span>Fuel Drain Map</span>
+        </button>
       </div>
 
-      {/* Hotspots Breakdown List / Table */}
-      {active.length > 0 && (
-        <div className="oa-table-wrapper mb-6">
-          <div className="p-4 bg-slate-50 border-b border-slate-200">
-            <h3 className="text-sm font-bold text-slate-900">Active Monitored Risk Zones</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Trucks lingering in these zones automatically generate high-priority fuel risk alerts.
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="oa-table">
-              <thead>
-                <tr>
-                  <th>Zone Name</th>
-                  <th>Source Provenance</th>
-                  <th style={{ textAlign: 'right' }}>Radius</th>
-                  <th>Last Incident</th>
-                  <th style={{ textAlign: 'center' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
+      {view === 'drain' && <DrainHotspotMap mapLoaded={mapLoaded} />}
+
+      {view === 'theft' && (
+        <>
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-rose-600 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => load()}
+                className="font-semibold text-rose-700 hover:underline text-xs"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Persistent Framed Google Map */}
+          <div className="hs-map-card">
+            <div className="hs-map-head">
+              <div className="flex items-center gap-2">
+                <MapPin size={16} className="text-amber-600" />
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  Theft & Siphoning Risk Geospatial Watch
+                </span>
+              </div>
+
+              {/* Enclosed KPI Rail */}
+              <div className="hs-kpi-strip">
+                {/* 1. Active Hotspots */}
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
+                    <ShieldAlert size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Active</span>
+                    <span className="hs-kpi-pill-value">{formatNum(active.length)}</span>
+                  </div>
+                </div>
+
+                {/* 2. Network Intelligence */}
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-blue-50 text-blue-600 border border-blue-200">
+                    <Globe size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Network</span>
+                    <span className="hs-kpi-pill-value">{formatNum(networkCount)}</span>
+                  </div>
+                </div>
+
+                {/* 3. Fleet Monitored */}
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    <ShieldCheck size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Protection</span>
+                    <span className="hs-kpi-pill-value text-emerald-700">Active</span>
+                  </div>
+                </div>
+
+                {/* 4. Dismissed Zones */}
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-slate-100 text-slate-600 border border-slate-200">
+                    <EyeOff size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Dismissed</span>
+                    <span className="hs-kpi-pill-value">{formatNum(dismissed.length)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="hs-legend-group">
+                {Object.entries(PROVENANCE_META).map(([key, meta]) => (
+                  <span key={key} className="hs-legend-pill">
+                    <span className="hs-legend-dot" style={{ background: meta.color }} />
+                    <span>{meta.label}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Ambient status overlay when zero hotspots */}
+            {active.length === 0 && (
+              <div className="hs-ambient-badge">
+                <ShieldCheck size={16} className="text-emerald-600" />
+                <span>Corridors Clear · 0 Theft Clusters Detected</span>
+              </div>
+            )}
+
+            {/* Google Map */}
+            {mapLoaded ? (
+              <GoogleMap
+                mapContainerStyle={mapContainerStyle}
+                center={defaultCenter}
+                zoom={active.length > 0 ? 8 : 5}
+                options={{
+                  streetViewControl: false,
+                  mapTypeControl: false,
+                  fullscreenControl: true,
+                }}
+              >
                 {active.map((h) => {
-                  const prov = provenanceOf(h);
-                  const meta = PROVENANCE_META[prov] || PROVENANCE_META['own-learned'];
+                  const meta = PROVENANCE_META[provenanceOf(h)] || PROVENANCE_META['own-learned'];
                   return (
-                    <tr key={h._id}>
-                      <td className="font-semibold text-slate-900">
-                        {h.name || 'Unnamed Hotspot'}
-                      </td>
-                      <td>
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold"
-                          style={{ background: `${meta.color}18`, color: meta.color }}
-                        >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ background: meta.color }}
-                          />
-                          {meta.label}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }} className="num font-mono text-slate-700">
-                        {h.radiusMeters || 500}m
-                      </td>
-                      <td className="text-xs text-slate-600">
-                        {formatLastIncident(h.lastIncidentAt)}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="oa-ack-action"
-                          disabled={busyId === h._id}
-                          onClick={() => toggleActive(h)}
-                        >
-                          <EyeOff size={13} />
-                          <span>Dismiss</span>
-                        </button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={h._id}>
+                      <MarkerF
+                        position={{ lat: h.centerLat, lng: h.centerLng }}
+                        onClick={() => setSelectedId(h._id)}
+                      />
+                      <CircleF
+                        center={{ lat: h.centerLat, lng: h.centerLng }}
+                        radius={h.radiusMeters || 500}
+                        options={{
+                          fillColor: meta.color,
+                          fillOpacity: 0.2,
+                          strokeColor: meta.color,
+                          strokeOpacity: 0.8,
+                          strokeWeight: 2,
+                        }}
+                      />
+                    </React.Fragment>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
-      {/* Dismissed Zones Section */}
-      {dismissed.length > 0 && (
-        <div className="oa-table-wrapper">
-          <div className="p-4 bg-slate-50 border-b border-slate-200">
-            <h3 className="text-sm font-bold text-slate-700">
-              Dismissed Hotspots ({dismissed.length})
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Muted hotspots that no longer generate proximity stop alerts.
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="oa-table">
-              <thead>
-                <tr>
-                  <th>Zone Name</th>
-                  <th>Source Provenance</th>
-                  <th style={{ textAlign: 'right' }}>Radius</th>
-                  <th style={{ textAlign: 'center' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dismissed.map((h) => (
-                  <tr key={h._id} className="opacity-75">
-                    <td className="font-medium text-slate-700">{h.name || 'Unnamed Hotspot'}</td>
-                    <td>
-                      <span className="text-xs text-slate-500">Dismissed</span>
-                    </td>
-                    <td style={{ textAlign: 'right' }} className="num font-mono text-slate-500">
-                      {h.radiusMeters || 500}m
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
+                {selectedHotspot && (
+                  <InfoWindowF
+                    position={{ lat: selectedHotspot.centerLat, lng: selectedHotspot.centerLng }}
+                    onCloseClick={() => setSelectedId(null)}
+                  >
+                    <div className="p-2 max-w-xs">
+                      <h4 className="font-bold text-slate-900 text-sm">{selectedHotspot.name}</h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Radius: {selectedHotspot.radiusMeters || 500}m
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Last incident: {formatLastIncident(selectedHotspot.lastIncidentAt)}
+                      </p>
                       <button
                         type="button"
-                        className="oa-ack-action"
-                        disabled={busyId === h._id}
-                        onClick={() => toggleActive(h)}
+                        className="mt-2 text-xs font-semibold text-rose-600 hover:underline"
+                        onClick={() => toggleActive(selectedHotspot)}
                       >
-                        <Eye size={13} />
-                        <span>Restore</span>
+                        Dismiss hotspot
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </InfoWindowF>
+                )}
+              </GoogleMap>
+            ) : (
+              <div className="h-[520px] flex items-center justify-center bg-slate-50 text-slate-400 text-sm">
+                Loading Google Map layers…
+              </div>
+            )}
           </div>
-        </div>
+
+          {/* Hotspots Breakdown List / Table */}
+          {active.length > 0 && (
+            <div className="oa-table-wrapper mb-6">
+              <div className="p-4 bg-slate-50 border-b border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900">Active Monitored Risk Zones</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Trucks lingering in these zones automatically generate high-priority fuel risk
+                  alerts.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="oa-table">
+                  <thead>
+                    <tr>
+                      <th>Zone Name</th>
+                      <th>Source Provenance</th>
+                      <th style={{ textAlign: 'right' }}>Radius</th>
+                      <th>Last Incident</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {active.map((h) => {
+                      const prov = provenanceOf(h);
+                      const meta = PROVENANCE_META[prov] || PROVENANCE_META['own-learned'];
+                      return (
+                        <tr key={h._id}>
+                          <td className="font-semibold text-slate-900">
+                            {h.name || 'Unnamed Hotspot'}
+                          </td>
+                          <td>
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold"
+                              style={{ background: `${meta.color}18`, color: meta.color }}
+                            >
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ background: meta.color }}
+                              />
+                              {meta.label}
+                            </span>
+                          </td>
+                          <td
+                            style={{ textAlign: 'right' }}
+                            className="num font-mono text-slate-700"
+                          >
+                            {h.radiusMeters || 500}m
+                          </td>
+                          <td className="text-xs text-slate-600">
+                            {formatLastIncident(h.lastIncidentAt)}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="oa-ack-action"
+                              disabled={busyId === h._id}
+                              onClick={() => toggleActive(h)}
+                            >
+                              <EyeOff size={13} />
+                              <span>Dismiss</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Dismissed Zones Section */}
+          {dismissed.length > 0 && (
+            <div className="oa-table-wrapper">
+              <div className="p-4 bg-slate-50 border-b border-slate-200">
+                <h3 className="text-sm font-bold text-slate-700">
+                  Dismissed Hotspots ({dismissed.length})
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Muted hotspots that no longer generate proximity stop alerts.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="oa-table">
+                  <thead>
+                    <tr>
+                      <th>Zone Name</th>
+                      <th>Source Provenance</th>
+                      <th style={{ textAlign: 'right' }}>Radius</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dismissed.map((h) => (
+                      <tr key={h._id} className="opacity-75">
+                        <td className="font-medium text-slate-700">
+                          {h.name || 'Unnamed Hotspot'}
+                        </td>
+                        <td>
+                          <span className="text-xs text-slate-500">Dismissed</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }} className="num font-mono text-slate-500">
+                          {h.radiusMeters || 500}m
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="oa-ack-action"
+                            disabled={busyId === h._id}
+                            onClick={() => toggleActive(h)}
+                          >
+                            <Eye size={13} />
+                            <span>Restore</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
