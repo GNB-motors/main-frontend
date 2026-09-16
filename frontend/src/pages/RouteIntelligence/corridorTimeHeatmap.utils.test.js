@@ -4,6 +4,12 @@ import {
   colorForValue,
   opacityForSamples,
   p50Range,
+  formatMinutes,
+  formatHour12,
+  formatHour24,
+  utcToIst,
+  istToUtc,
+  computeCorridorInsights,
   SEQUENTIAL_RAMP,
   NO_DATA_COLOR,
 } from './corridorTimeHeatmap.utils.js';
@@ -58,5 +64,70 @@ describe('p50Range', () => {
   it('returns nulls when nothing is populated', () => {
     expect(p50Range([])).toEqual({ min: null, max: null });
     expect(p50Range([{ p50Min: null }])).toEqual({ min: null, max: null });
+  });
+});
+
+describe('formatMinutes', () => {
+  it('formats hours and minutes correctly', () => {
+    expect(formatMinutes(135)).toBe('2h 15m');
+    expect(formatMinutes(120)).toBe('2h');
+    expect(formatMinutes(45)).toBe('45m');
+    expect(formatMinutes(null)).toBe('—');
+  });
+});
+
+describe('formatHour12 & formatHour24', () => {
+  it('formats 12h labels cleanly', () => {
+    expect(formatHour12(0)).toBe('12 AM');
+    expect(formatHour12(9)).toBe('9 AM');
+    expect(formatHour12(12)).toBe('12 PM');
+    expect(formatHour12(18)).toBe('6 PM');
+  });
+
+  it('formats 24h timestamps', () => {
+    expect(formatHour24(4)).toBe('04:00');
+    expect(formatHour24(17)).toBe('17:00');
+  });
+});
+
+describe('utcToIst & istToUtc', () => {
+  it('converts UTC to IST adding 5.5 hours', () => {
+    const res = utcToIst(0, 1); // 00:00 UTC Monday -> ~06:00 IST Monday
+    expect(res.istHour).toBe(6);
+    expect(res.istDOW).toBe(1);
+  });
+
+  it('handles day-of-week roll over for late UTC hours', () => {
+    const res = utcToIst(20, 1); // 20:00 UTC Monday -> 01:30 IST Tuesday
+    expect(res.istHour).toBe(2);
+    expect(res.istDOW).toBe(2);
+  });
+
+  it('inverts cleanly with istToUtc', () => {
+    const { utcHour, utcDow } = istToUtc(6, 1);
+    expect(utcHour).toBe(0);
+    expect(utcDow).toBe(1);
+  });
+});
+
+describe('computeCorridorInsights', () => {
+  it('extracts optimal window, peak congestion, and variance', () => {
+    const sampleBuckets = [
+      { hour: 3, dow: 1, p50Min: 120, p90Min: 140, samples: 10 },
+      { hour: 4, dow: 1, p50Min: 125, p90Min: 145, samples: 10 },
+      { hour: 5, dow: 1, p50Min: 130, p90Min: 150, samples: 10 },
+      { hour: 17, dow: 1, p50Min: 210, p90Min: 250, samples: 15 },
+      { hour: 18, dow: 1, p50Min: 220, p90Min: 260, samples: 15 },
+      { hour: 19, dow: 1, p50Min: 215, p90Min: 255, samples: 15 },
+    ];
+
+    const insights = computeCorridorInsights(sampleBuckets);
+    expect(insights.hasData).toBe(true);
+    expect(insights.minP50).toBe(120);
+    expect(insights.maxP50).toBe(220);
+    expect(insights.delayDeltaMin).toBe(100);
+    expect(insights.delayDeltaPct).toBeGreaterThan(0);
+    expect(insights.totalSamples).toBe(75);
+    expect(insights.avgBufferMin).toBeGreaterThan(0);
   });
 });
