@@ -180,7 +180,6 @@ const ErpAccountsPage = lazy(() => import('./pages/ErpAccounts/ErpAccountsPage.j
 const Account360Page = lazy(() => import('./pages/ErpAccounts/Account360Page.jsx'));
 const DocumentDetailPage = lazy(() => import('./pages/ErpAccounts/DocumentDetailPage.jsx'));
 const DailyDigestPage = lazy(() => import('./pages/DailyDigest/DailyDigestPage.jsx'));
-const DailyBriefPage = lazy(() => import('./pages/DailyBrief/DailyBriefPage.jsx'));
 const CompliancePage = lazy(() => import('./pages/Compliance/CompliancePage.jsx'));
 const FleetAlertsPage = lazy(() => import('./pages/FleetAlerts/FleetAlertsPage.jsx'));
 const IdlingConsolePage = lazy(() => import('./pages/IdlingConsole/IdlingConsolePage.jsx'));
@@ -339,7 +338,6 @@ function App() {
             <Route path="/command-center" element={<CommandCenterPage />} />
             <Route path="/overview" element={<OverviewPage />} />
             <Route path="/digest" element={<DailyDigestPage />} />
-            <Route path="/daily-brief" element={<DailyBriefPage />} />
             <Route path="/compliance" element={<CompliancePage />} />
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
             <Route path="/idling-console" element={<IdlingConsolePage />} />

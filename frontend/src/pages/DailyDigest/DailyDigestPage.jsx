@@ -5,6 +5,8 @@ import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
+import { DailyBriefService } from '../DailyBrief/DailyBriefService';
+import { TotalImpactTile, BriefSectionCard } from '../DailyBrief/dailyBriefCards';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import PageShell from '../../components/ui/PageShell';
 import { formatInrCompact, formatNum, timeAgo } from '../../utils/formatters';
@@ -41,6 +43,9 @@ export default function DailyDigestPage() {
   const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
   const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);
   const fleetAlerts$ = useApi((s) => FleetDataService.getFleetAlertSummary({ from }, s), [from]);
+  // Dark-launched (feature flag off = 404) — excluded from the primary loading
+  // gate and rendered only on success, so an org without it sees no trace.
+  const brief$ = useApi((s) => DailyBriefService.getBrief({ date: from }, s), [from]);
 
   const { data: money } = money$;
   const { data: compliance } = compliance$;
@@ -48,6 +53,7 @@ export default function DailyDigestPage() {
   const { data: alerts } = alerts$;
   const { data: fuelSummary } = fuel$;
   const { data: fleetAlertSummary } = fleetAlerts$;
+  const { data: brief } = brief$;
 
   const loading =
     money$.loading || compliance$.loading || downtime$.loading || alerts$.loading || fuel$.loading;
@@ -64,7 +70,9 @@ export default function DailyDigestPage() {
   }, []);
 
   const handleRefresh = () => {
-    [money$, compliance$, downtime$, alerts$, fuel$, fleetAlerts$].forEach((h) => h.refetch?.());
+    [money$, compliance$, downtime$, alerts$, fuel$, fleetAlerts$, brief$].forEach((h) =>
+      h.refetch?.(),
+    );
   };
 
   const m = money?.money;
@@ -175,6 +183,18 @@ export default function DailyDigestPage() {
                   </div>
                 )}
               </section>
+
+              {brief && !brief$.error ? (
+                <section className="mt-8">
+                  <SectionHeader label="Today's ₹ impact" />
+                  <div className="mt-4 flex flex-col gap-3">
+                    <TotalImpactTile totalRupees={brief.totalRupees} />
+                    {brief.sections.map((section) => (
+                      <BriefSectionCard key={section.key} section={section} />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
 
               <section className="mt-12">
                 <SectionHeader label="Upcoming" count={upcoming.length || null} />
