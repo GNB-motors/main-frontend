@@ -283,6 +283,9 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/compliance', label: 'Compliance', key: 'fleetIntelligence' },
       { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
+      // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
+      // toggled on per org independently of the rest of this group.
+      { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
       { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
@@ -296,6 +299,7 @@ export const SIDE_NAV_ITEMS = [
     matchRoutes: [
       '/compliance',
       '/fleet-alerts',
+      '/idling-console',
       '/fleet-coverage',
       '/audit-trail',
       '/route-intelligence',
