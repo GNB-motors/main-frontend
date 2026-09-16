@@ -170,6 +170,7 @@ const MaterialCompatibilityPage = lazy(
 );
 const ErpSettingsPage = lazy(() => import('./pages/ErpMasters/ErpSettingsPage.jsx'));
 const ErpTripDetailPage = lazy(() => import('./pages/ErpTrips/TripDetailPage.jsx'));
+const TripWindowsPage = lazy(() => import('./pages/ErpTrips/TripWindowsPage.jsx'));
 const AdvanceMastersPage = lazy(() => import('./pages/ErpAdvances/AdvanceMastersPage.jsx'));
 const InboundEwbPage = lazy(() => import('./pages/ErpInboundEwb/InboundEwbPage.jsx'));
 const ErpHomePage = lazy(() => import('./pages/ErpHome/ErpHomePage.jsx'));
@@ -351,6 +352,7 @@ function App() {
             <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
             <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
             <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
+            <Route path="/erp/trip-windows" element={<TripWindowsPage />} />
             <Route
               path="/whatsapp-approvals"
               element={
