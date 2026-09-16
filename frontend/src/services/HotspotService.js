@@ -13,6 +13,22 @@ export async function listHotspots({ signal } = {}) {
   return response.data?.data ?? [];
 }
 
+/**
+ * Fuel-drain hotspot map (feature #8). Aggregates FleetEdge THEFT alerts +
+ * GeofenceAnomaly stops into coordinate-grid buckets. Buckets carry
+ * coordinates only — no address — so callers geocode a clicked cell on demand.
+ * `from`/`to` are ISO strings; `bbox` is "minLng,minLat,maxLng,maxLat". All are
+ * optional (the backend defaults the window and returns the whole fleet).
+ */
+export async function getDrainMap({ from, to, bbox, signal } = {}) {
+  const params = {};
+  if (from) params.from = from;
+  if (to) params.to = to;
+  if (bbox) params.bbox = bbox;
+  const response = await apiClient.get('/api/hotspots/map', { params, signal });
+  return response.data?.data ?? null;
+}
+
 export async function dismissHotspot(id, { signal } = {}) {
   const response = await apiClient.put(`/api/hotspots/${id}`, { active: false }, { signal });
   return response.data?.data ?? null;
