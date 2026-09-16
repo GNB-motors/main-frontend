@@ -13,6 +13,7 @@ import { healthyPathSet } from './healthyPath';
 import { endId, neighboursOf, nodesWithinHops } from './hopFilter';
 import { applyKindFilter } from './kindFilter';
 import { countQueryMatches } from './graphPanelCounts';
+import { formatUnattributed } from './unattributedReasons';
 import { applyGraphParams } from './graphUrlSync';
 import { readStoredTheme, writeStoredTheme, applyThemeVars, clearThemeVars } from './graphTheme';
 import { degradedDetail, degradedTitle } from './degradedExplain';
@@ -771,6 +772,14 @@ const LemuGraphTab = ({
     return q;
   }, [errorAttribution]);
   const unattributedCount = errorAttribution?.unattributed?.length || 0;
+  const unattributedLabel = useMemo(
+    () =>
+      formatUnattributed({
+        count: unattributedCount,
+        reasons: errorAttribution?.unattributedReasons || null,
+      }),
+    [unattributedCount, errorAttribution],
+  );
   const openErrors = useCallback(() => onOpenErrors?.(), [onOpenErrors]);
 
   // Snapshot is a 2D-only control (spec §4.3-4: incident-report capture of
@@ -902,7 +911,7 @@ const LemuGraphTab = ({
               title="Open the Errors tab"
               onClick={openErrors}
             >
-              {unattributedCount} error{unattributedCount === 1 ? '' : 's'} could not be attributed
+              {unattributedLabel}
             </button>
           )}
         </div>
