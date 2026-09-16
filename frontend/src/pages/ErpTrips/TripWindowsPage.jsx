@@ -13,20 +13,20 @@ import TripDashboardService from './TripDashboardService';
  * Read-only. Estimates from telematics; flags mean "please review".
  */
 const STATUS_LABEL = {
-  COMPUTED: { text: 'Computed', color: 'var(--positive, #16a34a)' },
-  PENDING: { text: 'Pending', color: 'var(--caution)' },
-  NO_DATA: { text: 'No data', color: 'var(--text-dim, #94a3b8)' },
-  NO_TELEMATICS: { text: 'No telematics', color: 'var(--text-dim, #94a3b8)' },
+  COMPUTED: { text: 'Verified', color: 'var(--positive, #16a34a)' },
+  PENDING: { text: 'Pending Rollup', color: 'var(--caution)' },
+  NO_DATA: { text: 'No Telematics', color: 'var(--text-dim, #94a3b8)' },
+  NO_TELEMATICS: { text: 'No GPS Device', color: 'var(--text-dim, #94a3b8)' },
   FAILED: { text: 'Failed', color: 'var(--critical)' },
 };
 
 const LEG_TILES = [
-  { key: 'ladenKm', label: 'Laden km' },
-  { key: 'approachKm', label: 'Approach km' },
-  { key: 'returnKm', label: 'Return km' },
-  { key: 'fuelDetourKm', label: 'Fuel detour km' },
-  { key: 'totalTripKm', label: 'Total km' },
-  { key: 'fuelConsumedL', label: 'Fuel L' },
+  { key: 'ladenKm', label: 'Laden Distance', hint: 'Loaded travel with cargo' },
+  { key: 'approachKm', label: 'Approach Distance', hint: 'Empty run to pickup' },
+  { key: 'returnKm', label: 'Return Distance', hint: 'Return leg after drop' },
+  { key: 'fuelDetourKm', label: 'Fuel Detour', hint: 'Route deviation for refueling' },
+  { key: 'totalTripKm', label: 'Total Distance', hint: 'Sum of all verified legs' },
+  { key: 'fuelConsumedL', label: 'Total Fuel', hint: 'Sensor measured fuel burn' },
 ];
 
 export default function TripWindowsPage() {
@@ -55,7 +55,7 @@ export default function TripWindowsPage() {
   return (
     <PageShell
       title="Trip Windows"
-      subtitle="Planned vs actual per-leg kilometres and fuel, from the telematics rollup"
+      subtitle="Planned vs verified GPS telematics kilometres and fuel consumption for each trip leg"
       count={data?.count ?? null}
       actions={
         <button className="ov-btn" onClick={refetch} disabled={loading}>
@@ -185,18 +185,28 @@ export default function TripWindowsPage() {
                     <td className="py-2 pl-2">
                       {w.flags?.length ? (
                         <div className="flex flex-wrap gap-1">
-                          {w.flags.map((f) => (
-                            <span
-                              key={f}
-                              className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-                              style={{
-                                background: 'color-mix(in srgb, var(--caution) 14%, transparent)',
-                                color: 'var(--caution)',
-                              }}
-                            >
-                              {f}
-                            </span>
-                          ))}
+                          {w.flags.map((f) => {
+                            const isExtraKm = f === 'EXTRA_KM';
+                            const label = isExtraKm ? 'Extra Distance' : f;
+                            const title = isExtraKm
+                              ? 'Trip actual distance exceeded planned route corridor'
+                              : f;
+                            return (
+                              <span
+                                key={f}
+                                title={title}
+                                className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
+                                style={{
+                                  background: 'color-mix(in srgb, var(--caution) 16%, transparent)',
+                                  color: 'var(--caution)',
+                                  border:
+                                    '1px solid color-mix(in srgb, var(--caution) 30%, transparent)',
+                                }}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
                         </div>
                       ) : (
                         <span className="text-dim text-xs">—</span>

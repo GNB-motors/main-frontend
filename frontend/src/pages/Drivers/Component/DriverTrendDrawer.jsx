@@ -94,10 +94,10 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                Driver Improvement & Consistency Tracking
+                Driver Driving Consistency & Improvement
               </h2>
               <p className="text-xs text-slate-500">
-                Longitudinal CV variance, OLS regression trend slope & coaching attribution
+                Track long-term driving consistency, fuel efficiency trends, and coaching results
               </p>
             </div>
           </div>
@@ -105,14 +105,14 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
             <button
               onClick={handleRecompute}
               disabled={recomputing}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center gap-1 text-slate-700 dark:text-slate-200"
+              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center gap-1 text-slate-700 dark:text-slate-200 transition"
             >
               <RefreshCw size={13} className={recomputing ? 'animate-spin' : ''} />
               {recomputing ? 'Computing...' : 'Recompute Trends'}
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X size={18} />
             </button>
@@ -121,18 +121,18 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
 
         {/* Metrics Strip */}
         <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 font-medium">Fleet Avg Consistency</div>
             <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
               {avgConsistency} <span className="text-xs font-normal text-slate-400">/ 100</span>
             </div>
           </div>
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-xs text-slate-500 font-medium">Consistent Drivers</div>
             <div className="text-xl font-bold text-emerald-600">{consistentCount}</div>
           </div>
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-            <div className="text-xs text-slate-500 font-medium">Volatile (High CV)</div>
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="text-xs text-slate-500 font-medium">Irregular Habits</div>
             <div className="text-xl font-bold text-red-600">{volatileCount}</div>
           </div>
         </div>
@@ -140,17 +140,22 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
         {/* Filter Bar */}
         <div className="px-6 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
           <span className="text-xs text-slate-500 font-medium mr-2">Filter:</span>
-          {['ALL', 'CONSISTENT', 'VOLATILE', 'IMPROVING'].map((f) => (
+          {[
+            { key: 'ALL', label: 'All' },
+            { key: 'CONSISTENT', label: 'Consistent' },
+            { key: 'VOLATILE', label: 'Needs Attention' },
+            { key: 'IMPROVING', label: 'Improving' },
+          ].map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.key}
+              onClick={() => setFilter(f.key)}
               className={`px-2.5 py-1 rounded text-xs font-medium transition ${
-                filter === f
-                  ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                filter === f.key
+                  ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              {f}
+              {f.label}
             </button>
           ))}
         </div>
@@ -161,8 +166,7 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
             <div className="py-16 text-center text-xs text-slate-400">Loading trend records...</div>
           ) : filteredRows.length === 0 ? (
             <div className="py-16 text-center text-xs text-slate-400">
-              No longitudinal trend entries accumulated yet. Recompute to generate from accumulated
-              trip and fuel intervals.
+              No driver trend records found. Click 'Recompute Trends' to analyze completed trips.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -170,11 +174,23 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold">
                     <th className="pb-2">Driver</th>
-                    <th className="pb-2 text-right">Score</th>
-                    <th className="pb-2 text-right">CV %</th>
-                    <th className="pb-2">Consistency</th>
-                    <th className="pb-2 text-right">Trend Slope (β)</th>
-                    <th className="pb-2">Coaching ROI</th>
+                    <th
+                      className="pb-2 text-right"
+                      title="Driving smoothness and habit score out of 100"
+                    >
+                      Consistency Score
+                    </th>
+                    <th
+                      className="pb-2 text-right"
+                      title="Trip-to-trip mileage variation: lower means steady driving"
+                    >
+                      Mileage Variation
+                    </th>
+                    <th className="pb-2">Habit Rating</th>
+                    <th className="pb-2 text-right" title="8-week fuel efficiency trajectory">
+                      Efficiency Trend
+                    </th>
+                    <th className="pb-2">Coaching Impact</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -184,7 +200,10 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
                     const isPositive = slope > 0.05;
                     const isNegative = slope < -0.05;
                     return (
-                      <tr key={row.driverId || row._id} className="hover:bg-slate-50/50">
+                      <tr
+                        key={row.driverId || row._id}
+                        className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40"
+                      >
                         <td className="py-3 font-semibold text-slate-800 dark:text-slate-200">
                           {row.driverName || row.driverId}
                         </td>
@@ -216,7 +235,11 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
                             {isPositive && <TrendingUp size={13} />}
                             {isNegative && <TrendingDown size={13} />}
                             {!isPositive && !isNegative && <Minus size={13} />}
-                            {slope >= 0 ? `+${slope.toFixed(2)}` : slope.toFixed(2)}
+                            {isPositive
+                              ? `Improving (+${slope.toFixed(2)})`
+                              : isNegative
+                                ? `Declining (${slope.toFixed(2)})`
+                                : `Steady (±${Math.abs(slope).toFixed(2)})`}
                           </span>
                         </td>
                         <td className="py-3 text-slate-500 text-[11px]">

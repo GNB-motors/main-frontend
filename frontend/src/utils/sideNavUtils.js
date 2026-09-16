@@ -19,6 +19,7 @@ import {
   CalendarClock,
   ReceiptText,
   Radar,
+  Route,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -167,8 +168,9 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/erp/pipeline', label: 'Trip Pipeline', key: 'erpOperations' },
       { to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', key: 'erpCnUpdation' },
+      { to: '/erp/trip-windows', label: 'Trip Windows', key: 'erpOperations' },
     ],
-    matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb'],
+    matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb', '/erp/trip-windows'],
   },
   // Finance — the accounting side. Renamed from the ambiguous "Accounts".
   {
@@ -304,8 +306,12 @@ export const SIDE_NAV_ITEMS = [
       '/fleet-coverage',
       '/audit-trail',
       '/route-intelligence',
+      '/erp/trip-windows',
       '/route-deviation',
       '/route-replay',
+      '/route-profitability',
+      '/overspeed',
+      '/hotspots',
       '/owner-alerts',
     ],
   },
@@ -316,6 +322,14 @@ export const SIDE_NAV_ITEMS = [
     to: '/locations',
     label: 'Locations',
     icon: MapPin,
+  },
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/routes',
+    label: 'Routes',
+    icon: Route,
   },
   {
     type: 'group',

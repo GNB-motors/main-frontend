@@ -118,7 +118,7 @@ export default function DrainHotspotMap({ mapLoaded }) {
                 <MapPin size={12} />
               </span>
               <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Drain cells</span>
+                <span className="hs-kpi-pill-label">Risk Hotspots</span>
                 <span className="hs-kpi-pill-value">{formatNum(summary.cells)}</span>
               </div>
             </div>
@@ -127,7 +127,7 @@ export default function DrainHotspotMap({ mapLoaded }) {
                 <Droplets size={12} />
               </span>
               <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Litres lost</span>
+                <span className="hs-kpi-pill-label">Fuel Drained</span>
                 <span className="hs-kpi-pill-value">{formatLitres(summary.totalLitres)}</span>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function DrainHotspotMap({ mapLoaded }) {
                 <AlertTriangle size={12} />
               </span>
               <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Est. loss</span>
+                <span className="hs-kpi-pill-label">Estimated Loss</span>
                 <span className="hs-kpi-pill-value">{formatINR(summary.totalInr)}</span>
               </div>
             </div>
@@ -145,7 +145,7 @@ export default function DrainHotspotMap({ mapLoaded }) {
                 <Truck size={12} />
               </span>
               <div className="hs-kpi-pill-meta">
-                <span className="hs-kpi-pill-label">Vehicles</span>
+                <span className="hs-kpi-pill-label">Affected Trucks</span>
                 <span className="hs-kpi-pill-value">{formatNum(summary.vehicles)}</span>
               </div>
             </div>

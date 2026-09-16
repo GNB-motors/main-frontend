@@ -169,15 +169,16 @@ export default function CorridorTimeHeatmap({ corridorId }) {
                 Recommended SLA Buffer
               </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-800 border border-indigo-300">
-                p90 – p50 Spread
+                Traffic Delay Buffer
               </span>
             </div>
             <div className="mt-2 text-base font-extrabold text-slate-900 font-mono tracking-tight">
               +{formatMinutes(insights.avgBufferMin)}
             </div>
             <p className="mt-1 text-xs text-slate-600">
-              Buffer needed for <span className="font-semibold text-indigo-700">90% on-time</span>{' '}
-              delivery SLA
+              Buffer recommended for{' '}
+              <span className="font-semibold text-indigo-700">90% on-time</span> delivery SLA during
+              peak hours
             </p>
           </div>
 
@@ -481,8 +482,11 @@ export default function CorridorTimeHeatmap({ corridorId }) {
           {activeInspector.bucket ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 items-center">
               <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Median Travel Time (p50)
+                <span
+                  className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block"
+                  title="Typical transit duration during normal conditions"
+                >
+                  Expected Travel Time (Typical)
                 </span>
                 <span className="text-xl font-extrabold text-slate-900 font-mono">
                   {formatMinutes(activeInspector.bucket.p50Min)}
@@ -495,15 +499,18 @@ export default function CorridorTimeHeatmap({ corridorId }) {
               </div>
 
               <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Worst-Case Travel Time (p90)
+                <span
+                  className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block"
+                  title="Worst-case transit time expected during heavy traffic (90% confidence)"
+                >
+                  Worst-Case Travel Time (Peak)
                 </span>
                 <span className="text-xl font-extrabold text-slate-900 font-mono">
                   {formatMinutes(activeInspector.bucket.p90Min)}
                 </span>
                 <span className="text-[11px] text-indigo-700 block mt-0.5">
                   +{formatMinutes(activeInspector.bucket.p90Min - activeInspector.bucket.p50Min)}{' '}
-                  buffer spread
+                  traffic buffer
                 </span>
               </div>
 

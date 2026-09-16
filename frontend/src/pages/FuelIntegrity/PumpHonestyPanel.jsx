@@ -66,13 +66,13 @@ export default function PumpHonestyPanel() {
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
           <div>
-            <div className="text-xs text-slate-500 font-medium">Audited Fills</div>
+            <div className="text-xs text-slate-500 font-medium">Audited Refuels</div>
             <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
               {summary.totalAuditedFills || 0}
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-500 font-medium">Short-Delivered Vol</div>
+            <div className="text-xs text-slate-500 font-medium">Total Shortfall</div>
             <div className="text-lg font-bold text-amber-600">
               {formatLitres(summary.totalShortLitres || 0)}
             </div>
@@ -84,7 +84,7 @@ export default function PumpHonestyPanel() {
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-500 font-medium">Chronic Pumps</div>
+            <div className="text-xs text-slate-500 font-medium">Chronic Shortage Pumps</div>
             <div className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1">
               <span>{summary.chronicPumpsCount || 0}</span>
               {summary.chronicPumpsCount > 0 && <ShieldAlert size={16} className="text-red-500" />}
@@ -107,11 +107,21 @@ export default function PumpHonestyPanel() {
                   <th>Pump / Station</th>
                   <th>Location</th>
                   <th className="text-right">Fills</th>
-                  <th className="text-right">Billed</th>
-                  <th className="text-right">Sensor Rise</th>
-                  <th className="text-right">Shortage</th>
-                  <th className="text-right">Loss (₹)</th>
-                  <th>Classification</th>
+                  <th className="text-right">Billed Fuel</th>
+                  <th
+                    className="text-right"
+                    title="Volume rise measured by vehicle fuel tank sensor"
+                  >
+                    Actual Tank Rise
+                  </th>
+                  <th
+                    className="text-right"
+                    title="Difference between billed fuel and tank level rise"
+                  >
+                    Shortage
+                  </th>
+                  <th className="text-right">Est. Loss (₹)</th>
+                  <th>Honesty Rating</th>
                 </tr>
               </thead>
               <tbody>

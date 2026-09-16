@@ -388,10 +388,12 @@ function CorridorsTable({ records }) {
             <th style={{ width: 44, textAlign: 'center' }} aria-label="Expand" />
             <th>Origin</th>
             <th>Destination</th>
-            <th>Sample Tracks</th>
-            <th>p90 Cell Gap</th>
-            <th>Usable for Deviation</th>
-            <th>Insights Dominated</th>
+            <th title="Total recorded trips on this corridor">Tracked Trips</th>
+            <th title="Path spread variation between different trip traversals">Route Spread</th>
+            <th title="Whether this corridor is actively monitored for vehicle deviation alerts">
+              Deviation Monitoring
+            </th>
+            <th title="Primary transport route between these zones">Primary Route</th>
           </tr>
         </thead>
         <tbody>

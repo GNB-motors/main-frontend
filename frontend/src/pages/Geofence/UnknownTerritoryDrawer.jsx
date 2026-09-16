@@ -118,10 +118,11 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                Unknown Territory Learning Loop
+                Unmapped Halts & Territory Learning
               </h2>
               <p className="text-xs text-slate-500">
-                Unmapped stops &gt; 20m requiring manager classification
+                Frequent vehicle stops (&gt; 20 min) outside recognized geofences — verify and name
+                them
               </p>
             </div>
           </div>
@@ -129,14 +130,17 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
             <button
               onClick={handleRunScan}
               disabled={scanning}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center gap-1 text-slate-700 dark:text-slate-200"
+              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center gap-1 text-slate-700 dark:text-slate-200 transition"
             >
-              <Sparkles size={13} className={scanning ? 'animate-spin' : ''} />
-              {scanning ? 'Scanning...' : 'Scan GPS'}
+              <Sparkles
+                size={13}
+                className={scanning ? 'animate-spin text-indigo-600' : 'text-indigo-600'}
+              />
+              {scanning ? 'Scanning...' : 'Scan Trips'}
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X size={18} />
             </button>
@@ -148,18 +152,20 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
           {/* Cluster List */}
           <div className="w-full md:w-1/2 border-r border-slate-200 dark:border-slate-800 overflow-y-auto p-4 space-y-3">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              <span>Detected Clusters ({clusters.length})</span>
+              <span>Unmapped Halt Locations ({clusters.length})</span>
               <button onClick={fetchClusters} disabled={loading} className="hover:text-slate-700">
                 <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
               </button>
             </div>
 
             {loading ? (
-              <div className="py-12 text-center text-xs text-slate-400">Loading clusters...</div>
+              <div className="py-12 text-center text-xs text-slate-400">
+                Loading halt locations...
+              </div>
             ) : clusters.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400 px-4">
-                No unmapped dwell clusters detected. All frequent vehicle halts are currently inside
-                known geofences!
+                No unmapped halt locations detected. All frequent vehicle halts are currently inside
+                recognized geofences!
               </div>
             ) : (
               clusters.map((c) => {
@@ -170,8 +176,8 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
                     onClick={() => selectCluster(c)}
                     className={`p-3 rounded-lg border cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30'
-                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -179,7 +185,7 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
                         {c.center?.lat?.toFixed(4)}, {c.center?.lng?.toFixed(4)}
                       </div>
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
-                        {c.totalDwells || 1} dwells
+                        {c.totalDwells || 1} halts
                       </span>
                     </div>
 
@@ -217,7 +223,7 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Classification
+                    Location Category
                   </label>
                   <select
                     value={formClassification}
@@ -234,7 +240,7 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Geofence Radius (meters)
+                    Geofence Boundary Radius (meters)
                   </label>
                   <input
                     type="number"
@@ -247,13 +253,15 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
                   />
                 </div>
 
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs text-slate-600 dark:text-slate-400 space-y-1.5 border border-slate-200/60 dark:border-slate-700/60">
                   <div className="font-semibold text-slate-800 dark:text-slate-200">
-                    Auto-Promotion Impact:
+                    When this location is saved:
                   </div>
-                  <div>• Creates a verified Geofence Zone instantly.</div>
-                  <div>• Evicts reverse-geocoder spatial cache so reports use this label.</div>
-                  <div>• Eliminates future false-positive unauthorized dwell alerts here.</div>
+                  <div>• Immediately adds this location as an active Geofence Zone.</div>
+                  <div>
+                    • Replaces raw GPS coordinates with this site name across all trip reports.
+                  </div>
+                  <div>• Prevents false unauthorized stop alerts when trucks halt here.</div>
                 </div>
 
                 <button
@@ -262,12 +270,12 @@ export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted
                   className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <CheckCircle size={16} />
-                  {saving ? 'Promoting...' : 'Promote to Known Geofence Zone'}
+                  {saving ? 'Saving...' : 'Save as Known Geofence Zone'}
                 </button>
               </form>
             ) : (
               <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-                Select a cluster to classify
+                Select an unmapped halt location to classify
               </div>
             )}
           </div>
