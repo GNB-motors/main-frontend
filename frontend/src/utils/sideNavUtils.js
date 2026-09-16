@@ -289,6 +289,7 @@ export const SIDE_NAV_ITEMS = [
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
       { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
+      { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
       { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
       { to: '/route-replay', label: 'Route Replay', key: 'fleetIntelligence' },
       { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },

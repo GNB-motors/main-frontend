@@ -13,6 +13,8 @@ import FuelActivityPanel from './FuelActivityPanel.jsx';
 import AnomalyBreakdownPanel from './AnomalyBreakdownPanel.jsx';
 import FuelIntegrityTables from './FuelIntegrityTables.jsx';
 import VehicleDrilldownPanel from './VehicleDrilldownPanel.jsx';
+import PumpLedgerPanel from './PumpLedgerPanel.jsx';
+import RefuelAdvisoryPanel from './RefuelAdvisoryPanel.jsx';
 import { IST_ZONE, formatRelativeIST } from './fiDates.js';
 import {
   buildEvents,
@@ -340,6 +342,11 @@ const FuelIntegrityPage = () => {
             affected={affected}
             onDrill={setDrillVehicle}
           />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <PumpLedgerPanel from={buildParams().from} to={buildParams().to} />
+          <RefuelAdvisoryPanel vehicle={vehicle} />
         </div>
 
         <FuelIntegrityTables
