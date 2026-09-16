@@ -195,6 +195,25 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
       },
     },
     {
+      key: 'missingDocTypes',
+      label: 'Documents',
+      render: (vehicle) => {
+        const missing = vehicle.missingDocTypes || [];
+        if (missing.length === 0) {
+          return <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>complete</span>;
+        }
+        return (
+          <span
+            className="vehicle-badge"
+            title={`Missing: ${missing.join(', ')}`}
+            style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
+          >
+            {missing.length} doc{missing.length === 1 ? '' : 's'} missing
+          </span>
+        );
+      },
+    },
+    {
       key: 'actions',
       label: 'Actions',
       align: 'center',

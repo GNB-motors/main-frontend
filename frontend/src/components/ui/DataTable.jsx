@@ -54,6 +54,11 @@ export default function DataTable({
   onRowMouseEnter = null,
   onRowMouseLeave = null,
   className = '',
+  // Row selection — additive and default-off, so existing callers are untouched.
+  selectable = false,
+  selectedKeys = null,
+  onSelectionChange = null,
+  isRowSelectable = null,
 }) {
   const [hidden, setHidden] = useState(() => new Set());
   const [density, setDensity] = useState(() => readDensity(window.localStorage));
@@ -88,6 +93,41 @@ export default function DataTable({
     total: total ?? rows.length,
     activeFilters,
   });
+
+  // Visible + selectable rows, in display order — "select all" only ever
+  // touches what search/filtering has left on screen, never hidden rows.
+  const visibleSelectableKeys = useMemo(() => {
+    if (!selectable) return [];
+    return rows
+      .map((row, i) => ({ row, key: rowKey(row, i) }))
+      .filter(({ row }) => !isRowSelectable || isRowSelectable(row))
+      .map(({ key }) => key);
+  }, [selectable, rows, rowKey, isRowSelectable]);
+
+  const selectedSet = selectedKeys || new Set();
+  const selectedVisibleCount = visibleSelectableKeys.filter((k) => selectedSet.has(k)).length;
+  const allVisibleSelected =
+    visibleSelectableKeys.length > 0 && selectedVisibleCount === visibleSelectableKeys.length;
+  const someVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
+
+  const toggleSelectAll = () => {
+    if (!onSelectionChange) return;
+    const next = new Set(selectedSet);
+    if (allVisibleSelected) {
+      visibleSelectableKeys.forEach((k) => next.delete(k));
+    } else {
+      visibleSelectableKeys.forEach((k) => next.add(k));
+    }
+    onSelectionChange(next);
+  };
+
+  const toggleRow = (key) => {
+    if (!onSelectionChange) return;
+    const next = new Set(selectedSet);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onSelectionChange(next);
+  };
 
   return (
     <div className={`dt dt--${density} ${className}`.trim()}>
@@ -137,6 +177,20 @@ export default function DataTable({
         <table className="dt-table">
           <thead>
             <tr>
+              {selectable ? (
+                <th className="dt-th-select" style={{ width: 36 }}>
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={allVisibleSelected}
+                    disabled={visibleSelectableKeys.length === 0}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someVisibleSelected;
+                    }}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+              ) : null}
               {cols.map((col) => {
                 const active = sortBy === (col.sortKey || col.key);
                 return (
@@ -173,6 +227,11 @@ export default function DataTable({
             {loading && rows.length === 0
               ? Array.from({ length: 6 }).map((_, i) => (
                   <tr key={`skel-${i}`} className="dt-row dt-row--skeleton" aria-hidden>
+                    {selectable ? (
+                      <td>
+                        <span className="dt-skel" />
+                      </td>
+                    ) : null}
                     {cols.map((col) => (
                       <td key={col.key} style={{ textAlign: col.align }}>
                         <span className="dt-skel" />
@@ -182,15 +241,28 @@ export default function DataTable({
                 ))
               : rows.map((row, i) => {
                   const extra = rowClassName ? rowClassName(row, i) : '';
+                  const key = rowKey(row, i);
+                  const rowSelectable = selectable && (!isRowSelectable || isRowSelectable(row));
                   return (
                     <tr
-                      key={rowKey(row, i)}
+                      key={key}
                       className={`dt-row${extra ? ` ${extra}` : ''}`}
                       onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                       onMouseEnter={onRowMouseEnter ? () => onRowMouseEnter(row, i) : undefined}
                       onMouseLeave={onRowMouseLeave ? () => onRowMouseLeave(row, i) : undefined}
                       style={onRowClick ? { cursor: 'pointer' } : undefined}
                     >
+                      {selectable ? (
+                        <td className="dt-td-select" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select row ${i + 1}`}
+                            checked={selectedSet.has(key)}
+                            disabled={!rowSelectable}
+                            onChange={() => toggleRow(key)}
+                          />
+                        </td>
+                      ) : null}
                       {cols.map((col) => (
                         <td key={col.key} style={{ textAlign: col.align }} data-label={col.label}>
                           {col.render ? col.render(row, i) : (row?.[col.key] ?? '—')}

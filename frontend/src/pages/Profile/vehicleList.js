@@ -19,6 +19,9 @@ export function normalizeVehicle(v) {
     vehicleCategory: v.vehicleCategory || null,
     classification: v.classification || null,
     fleetEdgeAccountId: v.fleetEdgeAccountId || null,
+    // Server-computed — which of the tracked document types this vehicle has
+    // not uploaded yet (plan WS3/WS6). Empty when everything is on file.
+    missingDocTypes: v.missingDocTypes || [],
     // Branch membership state (present only in a branch view).
     branchStatus: v.branchStatus,
     isImported: v.isImported,

@@ -21,6 +21,7 @@ const apiVehicle = {
   vehicleCategory: 'HEAVY',
   classification: 'OWNED',
   fleetEdgeAccountId: 'acc-9',
+  missingDocTypes: ['PERMIT', 'NATIONAL_PERMIT'],
   branchStatus: 'ACTIVE',
   isImported: true,
 };
@@ -36,6 +37,7 @@ describe('normalizeVehicle', () => {
     expect(v.manufacturer).toBe('VOLVO');
     expect(v.vehicleCategory).toBe('HEAVY');
     expect(v.fleetEdgeAccountId).toBe('acc-9');
+    expect(v.missingDocTypes).toEqual(['PERMIT', 'NATIONAL_PERMIT']);
     expect(v.branchStatus).toBe('ACTIVE');
     expect(v.isImported).toBe(true);
   });
@@ -49,6 +51,7 @@ describe('normalizeVehicle', () => {
     expect(v.inventory).toEqual([]);
     expect(v.manufacturer).toBeNull();
     expect(v.fleetEdgeAccountId).toBeNull();
+    expect(v.missingDocTypes).toEqual([]);
   });
 
   it('falls back to snake_case fields when camelCase absent', () => {
