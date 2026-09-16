@@ -17,12 +17,14 @@ import { initViewState } from './graphViewState';
 import { composeVisible } from './graphFilterCompose';
 import { analysisNeighbourSet, nextNavTarget } from './graphSelection';
 import { sortPulseBuckets } from './pulseBuckets';
+import { rankIncidents, urgencyByNode } from './incidentRank';
 import { readStoredTheme, writeStoredTheme, applyThemeVars, clearThemeVars } from './graphTheme';
 import { degradedDetail, degradedTitle } from './degradedExplain';
 import KgCanvas from './KgCanvas';
 import LemuGraphControls from './LemuGraphControls';
 import LemuGraphFilters from './LemuGraphFilters';
 import LemuDeadSurfaces from './LemuDeadSurfaces';
+import LemuIncidentList from './LemuIncidentList';
 import LemuTimeScrubber from './LemuTimeScrubber';
 import LemuGraphTable from './LemuGraphTable';
 import LemuGraphEmpty from './LemuGraphEmpty';
@@ -695,6 +697,31 @@ const LemuGraphTab = ({
      `matches` set must not pollute it. */
   const hitCount = useMemo(() => countQueryMatches(graph.nodes, query), [graph.nodes, query]);
 
+  /* Incident urgency (I4): rank the attributed, unresolved error groups
+     (severity → blast radius → age — see incidentRank) and map node id →
+     visual weight. The canvas draws the weight; the companion list renders
+     the same ranked objects. `now` is the 5s ticker above, so ages stay
+     honest without an extra timer. */
+  const incidents = useMemo(
+    () => rankIncidents(errorAttribution?.groups || [], now),
+    [errorAttribution, now],
+  );
+  const urgency = useMemo(() => urgencyByNode(incidents), [incidents]);
+
+  /* Row click in the incident list: select the node (opens the drawer, same
+     as a sphere click) and fly the camera when the node is in the current
+     view. A node hidden by the hop filter has no laid-out position to fly
+     to — selecting still opens its drawer, and the canvas keeps pulsing it
+     the moment the view includes it again. */
+  const handleIncidentFocus = useCallback(
+    (id) => {
+      onSelectNode?.(id);
+      const node = nodeById.get(id);
+      if (node) focusRef.current?.(node);
+    },
+    [nodeById, onSelectNode],
+  );
+
   const summary = layer === 'infra' ? topology?.summary : null;
   const degraded = layer === 'infra' ? topology?.degraded || [] : [];
 
@@ -1033,6 +1060,7 @@ const LemuGraphTab = ({
               hopDepth={hopDepth}
               matches={matches}
               neighbours={analysisNeighbours}
+              urgency={urgency}
               overlay={overlayMarks}
               query={query}
               focusMatches={focusMatches}
@@ -1076,11 +1104,17 @@ const LemuGraphTab = ({
         <LemuTimeScrubber buckets={pulseBuckets} value={scrubIndex} onChange={setScrubIndex} />
       )}
 
-      {/* Standing dead-surface panel, docked under the graph (right side).
-          Rows click through to the node via the same selection mechanism
-          as a sphere click. */}
+      {/* Docked bottom-right column: the ranked incident list (I4) above the
+          standing dead-surface panel. The list is the companion to the
+          on-canvas urgency treatment — it exists so an incident is never
+          missed when its node is occluded or outside the hop window. Rows
+          click through to the node via the same selection mechanism as a
+          sphere click. */}
       {view === 'graph' && (
-        <LemuDeadSurfaces surfaces={deadSurfaces} onSelectNode={(id) => onSelectNode?.(id)} />
+        <div className="lemu-graph3d__dock">
+          <LemuIncidentList incidents={incidents} onFocusNode={handleIncidentFocus} />
+          <LemuDeadSurfaces surfaces={deadSurfaces} onSelectNode={(id) => onSelectNode?.(id)} />
+        </div>
       )}
 
       <p className="lemu-meta lemu-graph3d__foot lemu-graph3d__rail">

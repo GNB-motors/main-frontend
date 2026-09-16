@@ -7,7 +7,14 @@ const measure60 = () => ({ width: 60 });
 const boxW = 60 + 6; // box width = w + 6
 
 const node = (id, x, y, r = 8, overrides = {}) => ({
-  id, name: id, kind: 'module', r, x, y, z: 0, ...overrides,
+  id,
+  name: id,
+  kind: 'module',
+  r,
+  x,
+  y,
+  z: 0,
+  ...overrides,
 });
 
 const base = (overrides = {}) => ({
@@ -33,7 +40,7 @@ describe('placeLabels', () => {
     expect(labels).toHaveLength(1);
   });
 
-  it('always keeps an important (selected) node\'s label even on clash', () => {
+  it("always keeps an important (selected) node's label even on clash", () => {
     const nodes = [node('a', 800, 400), node('b', 802, 400)];
     const labels = placeLabels(nodes, base({ visibleCount: 100, selId: 'b' }));
     const b = labels.find((l) => l.id === 'b');
@@ -42,7 +49,10 @@ describe('placeLabels', () => {
     // the non-important clashing node is still dropped…
     expect(labels.find((l) => l.id === 'a')).toBeUndefined();
     // …but when both are important, both survive the same clash
-    const both = placeLabels(nodes, base({ visibleCount: 100, selId: 'b', neighbours: new Set(['a']) }));
+    const both = placeLabels(
+      nodes,
+      base({ visibleCount: 100, selId: 'b', neighbours: new Set(['a']) }),
+    );
     expect(both).toHaveLength(2);
   });
 
@@ -50,7 +60,10 @@ describe('placeLabels', () => {
     const nodes = [node('alpha', 800, 400, 3), node('beta', 802, 400, 3)];
     // neither is important: both are below r 5.5 and beta's box clashes
     expect(placeLabels(nodes, base({ visibleCount: 100 }))).toHaveLength(0);
-    const asNeighbour = placeLabels(nodes, base({ visibleCount: 100, neighbours: new Set(['beta']) }));
+    const asNeighbour = placeLabels(
+      nodes,
+      base({ visibleCount: 100, neighbours: new Set(['beta']) }),
+    );
     expect(asNeighbour.map((l) => l.id)).toEqual(['beta']);
     expect(asNeighbour[0].alpha).toBe(1);
     const asMatch = placeLabels(nodes, base({ visibleCount: 100, query: 'bet' }));
@@ -75,10 +88,16 @@ describe('placeLabels', () => {
   });
 
   it('labels big infra nodes but still skips small unimportant ones', () => {
-    const big = placeLabels([node('a', 300, 300, 8), node('b', 700, 300, 8)], base({ layer: 'infra' }));
+    const big = placeLabels(
+      [node('a', 300, 300, 8), node('b', 700, 300, 8)],
+      base({ layer: 'infra' }),
+    );
     expect(big).toHaveLength(2);
     // labelAll does not rescue a node below the r 5.5 floor
-    const small = placeLabels([node('a', 300, 300, 3), node('b', 700, 300, 3)], base({ layer: 'infra' }));
+    const small = placeLabels(
+      [node('a', 300, 300, 3), node('b', 700, 300, 3)],
+      base({ layer: 'infra' }),
+    );
     expect(small).toHaveLength(0);
   });
 
@@ -114,7 +133,8 @@ describe('placeLabels', () => {
 
   it('returns every box inside the viewport for well-placed nodes', () => {
     const nodes = [];
-    for (let i = 0; i < 20; i++) nodes.push(node('n' + i, 200 + (i % 5) * 200, 100 + Math.floor(i / 5) * 120, 8));
+    for (let i = 0; i < 20; i++)
+      nodes.push(node('n' + i, 200 + (i % 5) * 200, 100 + Math.floor(i / 5) * 120, 8));
     const labels = placeLabels(nodes, base({ visibleCount: 20 }));
     expect(labels.length).toBeGreaterThan(0);
     for (const l of labels) {
@@ -138,7 +158,10 @@ describe('placeLabels', () => {
 
   it('truncates labels at 30 chars with …', () => {
     const long = 'x'.repeat(45);
-    const labels = placeLabels([node('id1', 500, 300, 10, { name: long })], base({ visibleCount: 1 }));
+    const labels = placeLabels(
+      [node('id1', 500, 300, 10, { name: long })],
+      base({ visibleCount: 1 }),
+    );
     expect(labels[0].label).toBe('x'.repeat(29) + '…');
     expect(labels[0].label.length).toBe(30);
   });
@@ -151,5 +174,34 @@ describe('placeLabels', () => {
     // lands inside the near node's and it is not important
     expect(labels).toHaveLength(1);
     expect(labels[0].id).toBe('near');
+  });
+});
+
+describe('placeLabels — incident centre-pull (I4)', () => {
+  it('follows the same pullTowardCentre the shell projection applies', async () => {
+    const { pullTowardCentre } = await import('./incidentRank');
+    const cam = createCamera();
+    const nodeA = node('a', 100, 100);
+    const urgency = new Map([['a', { scale: 2, pulseHz: 1, halo: 1, pull: 0.25, rank: 0 }]]);
+    const opts = { visibleCount: 2 }; // labelAll: every node keeps its label
+    const [plain] = placeLabels([nodeA], base(opts));
+    const [pulled] = placeLabels([nodeA], base({ ...opts, urgency }));
+    // text[0] is the projected x — the pull must match the shared formula.
+    // Recover the projected point from the plain label: text = [x, y + r + 5.5].
+    const r = Math.max(2.2, nodeA.r * cam.k);
+    const expected = pullTowardCentre(plain.text[0], plain.text[1] - r - 5.5, 0.25, 1600, 900);
+    expect(pulled.text[0]).toBeCloseTo(expected.x, 6);
+    expect(pulled.text[1]).toBeCloseTo(expected.y + r + 5.5, 6);
+    // and it moved TOWARD the centre, not away
+    expect(Math.abs(pulled.text[0] - 800)).toBeLessThan(Math.abs(plain.text[0] - 800));
+  });
+
+  it('leaves unranked node labels exactly where they were', () => {
+    const nodes = [node('a', 100, 100), node('b', 900, 400)];
+    const urgency = new Map([['a', { pull: 0.25, rank: 0 }]]);
+    const opts = { visibleCount: 2 };
+    const [plainB] = placeLabels(nodes, base(opts)).filter((l) => l.id === 'b');
+    const [pulledB] = placeLabels(nodes, base({ ...opts, urgency })).filter((l) => l.id === 'b');
+    expect(pulledB.text).toEqual(plainB.text);
   });
 });

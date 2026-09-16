@@ -19,6 +19,7 @@ import { kindHue, canvasTokens } from './graphTheme';
 import { pickNode, pickHostChip } from './kgPick';
 import { shouldCaptureSpace, isSpaceKey, SPACE_PAN_CURSORS } from './spacePan';
 import { hoverMeta, prepareSimGraph } from './kgPrep';
+import { pullTowardCentre } from './incidentRank';
 
 const HIDE_TIP = { show: false, x: 0, y: 0, color: '#fff', name: '', meta: '' };
 
@@ -33,6 +34,10 @@ const HIDE_TIP = { show: false, x: 0, y: 0, color: '#fff', name: '', meta: '' };
  *   selectedNodeId, hopDepth  — selection state, owned by the tab
  *   matches      Set<string> | null — search/state-dim/live-path opacity gate
  *   neighbours   Set<string> | null — analysis (blast/path) + hop highlight
+ *   urgency      Map<nodeId, {scale, pulseHz, halo, pull, rank}> | null —
+ *                incidentRank.urgencyByNode (I4): ranked incidents render
+ *                large/pulsing/on-top with a zoom-proof halo, and are pulled
+ *                `pull` of the way toward the viewport centre
  *   overlay      Map<nodeId, 'added'|'changed'|'removed'> | null — manifest-diff
  *                marks; owns the outline channel while non-empty (P3)
  *   query        raw search string
@@ -58,6 +63,7 @@ const KgCanvas = ({
   hopDepth = 'all',
   matches = null,
   neighbours = null,
+  urgency = null,
   overlay = null,
   query = '',
   focusMatches = false,
@@ -115,6 +121,7 @@ const KgCanvas = ({
     hopDepth,
     matches,
     neighbours,
+    urgency,
     overlay,
     query,
     focusMatches,
@@ -300,6 +307,16 @@ const KgCanvas = ({
     for (let i = 0; i < sim.drawNodes.length; i++) {
       const e = sim.drawNodes[i];
       const p = project(e._n, cam, is3d);
+      /* Incident gravity (I4): a ranked incident is pulled toward the viewport
+         centre AFTER projection, so the draw pass, the pick map (projOf) and
+         the label pass (same pull inside placeLabels) all agree on one
+         position. The sim itself is untouched — the pull is presentational. */
+      const u = pr.urgency && pr.urgency.get(e.id);
+      if (u && u.pull) {
+        const q = pullTowardCentre(p.x, p.y, u.pull, W, H);
+        p.x = q.x;
+        p.y = q.y;
+      }
       e.x = p.x;
       e.y = p.y;
       e.s = p.s;
@@ -325,6 +342,7 @@ const KgCanvas = ({
         selectedId: pr.selectedNodeId,
         hoverId: hoverRef.current,
         neighbours: pr.neighbours,
+        urgency: pr.urgency,
         overlay: pr.overlay,
         nodes: sim.drawNodes,
         links: sim.drawLinks,
@@ -341,6 +359,7 @@ const KgCanvas = ({
       selId: pr.selectedNodeId,
       hoverId: hoverRef.current,
       neighbours: pr.neighbours,
+      urgency: pr.urgency,
       query: pr.query,
       measureText: (t) => ctx.measureText(t),
     });
