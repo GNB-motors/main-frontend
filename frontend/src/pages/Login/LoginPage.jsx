@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
@@ -12,163 +12,181 @@ import { setSession, setOrgId } from '../../utils/session.js';
 
 // --- Carousel Data ---
 const slideData = [
-    {
-        image: "https://images.unsplash.com/photo-1616432043562-3671ea2e5242?q=80&w=2070&auto=format&fit=crop",
-        title: "Fleet Tracking",
-        desc: " Monitoring for your entire fleet. Know where your assets are at all times.",
-    },
-    {
-        image: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop",
-        title: "Smart Analytics",
-        desc: "Data-driven insights to optimize routes, reduce fuel consumption, and increase efficiency.",
-    },
-    {
-        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop",
-        title: "Profitability Reports",
-        desc: "Detailed insights into trip profitability, cost analysis, and revenue optimization to maximize your business returns.",
-    },
-    {
-        image: "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?q=80&w=2072&auto=format&fit=crop",
-        title: "Driver Safety",
-        desc: "Advanced telematics to monitor driver behavior and ensure safety compliance on the road.",
-    },
+  {
+    image:
+      'https://images.unsplash.com/photo-1616432043562-3671ea2e5242?q=80&w=2070&auto=format&fit=crop',
+    title: 'Fleet Tracking',
+    desc: ' Monitoring for your entire fleet. Know where your assets are at all times.',
+  },
+  {
+    image:
+      'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2070&auto=format&fit=crop',
+    title: 'Smart Analytics',
+    desc: 'Data-driven insights to optimize routes, reduce fuel consumption, and increase efficiency.',
+  },
+  {
+    image:
+      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop',
+    title: 'Profitability Reports',
+    desc: 'Detailed insights into trip profitability, cost analysis, and revenue optimization to maximize your business returns.',
+  },
+  {
+    image:
+      'https://images.unsplash.com/photo-1591768793355-74d04bb6608f?q=80&w=2072&auto=format&fit=crop',
+    title: 'Driver Safety',
+    desc: 'Advanced telematics to monitor driver behavior and ensure safety compliance on the road.',
+  },
 ];
 
 const LoginPage = () => {
-    const navigate = useNavigate();
-    const [emailOrMobile, setEmailOrMobile] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [, setError] = useState(null);
-    const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const [emailOrMobile, setEmailOrMobile] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-    // --- Carousel State ---
-    const [currentSlide, setCurrentSlide] = useState(0);
+  // --- Carousel State ---
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-    // --- Carousel Logic: Auto Rotate ---
-    useEffect(() => {
-        const slideInterval = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % slideData.length);
-        }, 5000);
-        return () => clearInterval(slideInterval);
-    }, []);
+  // --- Carousel Logic: Auto Rotate ---
+  useEffect(() => {
+    const slideInterval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slideData.length);
+    }, 5000);
+    return () => clearInterval(slideInterval);
+  }, []);
 
-    const nextSlide = () => {
-        setCurrentSlide((prev) => (prev + 1) % slideData.length);
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slideData.length);
+  };
+
+  const goToSlide = (index, e) => {
+    if (e) e.stopPropagation();
+    setCurrentSlide(index);
+  };
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    const credentials = {
+      emailOrMobile: emailOrMobile,
+      password: password,
     };
 
-    const goToSlide = (index, e) => {
-        if (e) e.stopPropagation();
-        setCurrentSlide(index);
-    };
+    try {
+      // Step 1: Attempt Login
+      const loginData = await LoginPageService.loginUser(credentials);
 
+      // Handle new API response structure
+      const token = loginData.token || loginData.access_token;
+      const user = loginData.user;
+      const organization = loginData.organization;
 
-    const handleLogin = async (event) => {
-        event.preventDefault();
-        setIsLoading(true);
-        setError(null);
+      // Store the token, user and org in one call. setSession also stores
+      // primaryThemeColor and fires themeColorChange when present, so
+      // Sidebar/Navbar use the correct colour immediately on login —
+      // without this it falls back to default blue because ProfilePage
+      // only mounts on /profile, not on app boot.
+      setSession({ token, user, organization });
 
-        const credentials = {
-            emailOrMobile: emailOrMobile,
-            password: password
-        };
+      if (user) {
+        // Default view after login is Enterprise (all locations) — no active
+        // location is seeded, so the user sees all data exactly as before.
+        // The BranchContext loads the location list; the header switcher lets
+        // the user narrow to a specific location (persisted in user_branchId).
 
-        try {
-            // Step 1: Attempt Login
-            const loginData = await LoginPageService.loginUser(credentials);
-
-            // Handle new API response structure
-            const token = loginData.token || loginData.access_token;
-            const user = loginData.user;
-            const organization = loginData.organization;
-
-            // Store the token, user and org in one call. setSession also stores
-            // primaryThemeColor and fires themeColorChange when present, so
-            // Sidebar/Navbar use the correct colour immediately on login —
-            // without this it falls back to default blue because ProfilePage
-            // only mounts on /profile, not on app boot.
-            setSession({ token, user, organization });
-
-            if (user) {
-                // Default view after login is Enterprise (all locations) — no active
-                // location is seeded, so the user sees all data exactly as before.
-                // The BranchContext loads the location list; the header switcher lets
-                // the user narrow to a specific location (persisted in user_branchId).
-
-                // Step 2: Role-based routing
-                if (user.role === 'SUPER_ADMIN') {
-                    toast.success("Welcome Super Admin! Redirecting...");
-                    setTimeout(() => {
-                        navigate('/superadmin');
-                    }, 1500);
-                    return;
-                }
-
-                // For OWNER and other roles, check if onboarding is completed
-                const isOnboarded = organization?.isOnboarded === true;
-
-                if (user.role === 'FIELD_AGENT') {
-                    try {
-                        const orgsRes = await apiClient.get('/api/me/orgs');
-                        const orgs = orgsRes.data?.data || [];
-                        if (orgs.length > 0) {
-                            setOrgId(orgs[0].orgId);
-                        }
-                    } catch (err) {
-                        console.error('Failed to fetch orgs for field agent', err);
-                    }
-                    toast.success("Welcome Field Agent! Redirecting to dashboard...");
-                    setTimeout(() => {
-                        navigate('/field-agent-fuel');
-                    }, 1500);
-                    return;
-                } else if (isOnboarded) {
-                    const landing = resolveLandingRoute(organization?.featureFlags);
-                    toast.success("Welcome back! Redirecting to dashboard...");
-                    setTimeout(() => {
-                        navigate(landing);
-                    }, 1500);
-                } else {
-                    toast.success("Login successful! Redirecting to onboarding...");
-                    setTimeout(() => {
-                        navigate('/onboarding');
-                    }, 1500);
-                }
-            }
-
-        } catch (loginApiError) {
-            const errorMessage = loginApiError?.userMessage
-                || loginApiError?.response?.data?.message
-                || loginApiError?.detail
-                || loginApiError?.message
-                || 'Login failed. Please check your credentials.';
-            const isRateLimit = errorMessage?.toLowerCase().includes('too many');
-            if (!isRateLimit || !import.meta.env.DEV) {
-                toast.error(errorMessage);
-            }
-        } finally {
-            setIsLoading(false);
+        // Step 2: Role-based routing
+        if (user.role === 'SUPER_ADMIN') {
+          toast.success('Welcome Super Admin! Redirecting...');
+          setTimeout(() => {
+            navigate('/superadmin');
+          }, 1500);
+          return;
         }
-    };
 
-    return (
-        <>
-            {/* API Loading Loader */}
-            <LottieLoader 
-                isLoading={isLoading} 
-                size="medium" 
-                message="Signing you in..." 
-            />
+        // For OWNER and other roles, check if onboarding is completed
+        const isOnboarded = organization?.isOnboarded === true;
 
-            <div className="login-container">
-            <div className="login-form-wrapper">
-                <div className="login-form-card">
-                    <div className="login-header">
-                        <img src={GNBLogo} alt="GNB Logo" className="logo"/>
-                        <h1>Sign In</h1>
-                    </div>
+        if (user.role === 'FIELD_AGENT') {
+          try {
+            const orgsRes = await apiClient.get('/api/me/orgs');
+            const orgs = orgsRes.data?.data || [];
+            if (orgs.length > 0) {
+              setOrgId(orgs[0].orgId);
+            }
+          } catch (err) {
+            console.error('Failed to fetch orgs for field agent', err);
+          }
+          toast.success('Welcome Field Agent! Redirecting to dashboard...');
+          setTimeout(() => {
+            navigate('/field-agent-fuel');
+          }, 1500);
+          return;
+        } else if (isOnboarded) {
+          const landing = resolveLandingRoute(organization?.featureFlags);
+          toast.success('Welcome back! Redirecting to dashboard...');
+          setTimeout(() => {
+            navigate(landing);
+          }, 1500);
+        } else {
+          toast.success('Login successful! Redirecting to onboarding...');
+          setTimeout(() => {
+            navigate('/onboarding');
+          }, 1500);
+        }
+      }
+    } catch (loginApiError) {
+      const errorMessage =
+        loginApiError?.userMessage ||
+        loginApiError?.response?.data?.message ||
+        loginApiError?.detail ||
+        loginApiError?.message ||
+        'Login failed. Please check your credentials.';
+      const isRateLimit = errorMessage?.toLowerCase().includes('too many');
+      if (!isRateLimit || !import.meta.env.DEV) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-                    {/* <div className="social-login-options">
+  return (
+    <>
+      {/* API Loading Loader */}
+      <LottieLoader isLoading={isLoading} size="medium" message="Signing you in..." />
+
+      <div className="login-container">
+        <Link
+          to="/"
+          className="login-back-link"
+          style={{
+            position: 'fixed',
+            top: '22px',
+            left: '24px',
+            zIndex: 1000,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#050816',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: 600,
+          }}
+        >
+          <ArrowLeft size={18} /> Back to home
+        </Link>
+        <div className="login-form-wrapper">
+          <div className="login-form-card">
+            <div className="login-header">
+              <img src={GNBLogo} alt="GNB Logo" className="logo" />
+              <h1>Sign In</h1>
+            </div>
+
+            {/* <div className="social-login-options">
                         <button className="social-btn">
                             <img src={GoogleLogo} alt="Google" />
                             <span>Sign in with Google</span>
@@ -178,121 +196,128 @@ const LoginPage = () => {
                             <span>Sign in with Mobile</span>
                         </button>
                     </div> */}
-{/* 
+            {/* 
                     <div className="divider">
                         <span>Or</span>
                     </div> */}
 
-                    <form onSubmit={handleLogin}>
-                        <div className="form-group">
-                            <label htmlFor="emailOrMobile">Email or Mobile Number</label>
-                            <input
-                                type="text"
-                                id="emailOrMobile"
-                                className="form-input"
-                                placeholder="Enter email or mobile number"
-                                value={emailOrMobile}
-                                onChange={(e) => setEmailOrMobile(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="password">Password</label>
-                            <div className="password-input-container">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    id="password"
-                                    className="form-input"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="password-toggle-icon"
-                                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit' }}
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </div>
-
-
-                        <div className="form-options">
-                            <Link to="#" className="forgot-password">Forgot Password?</Link>
-                        </div>
-
-                        <button type="submit" className="signin-button" disabled={isLoading}>
-                            {isLoading ? 'Signing In...' : 'Sign In'}
-                        </button>
-                    </form>
-
-                    <div className="signup-link">
-                        <span>Don't have an account? </span><Link to="/contact">Contact Us</Link>
-                    </div>
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <label htmlFor="emailOrMobile">Email or Mobile Number</label>
+                <input
+                  type="text"
+                  id="emailOrMobile"
+                  className="form-input"
+                  placeholder="Enter email or mobile number"
+                  value={emailOrMobile}
+                  onChange={(e) => setEmailOrMobile(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <div className="password-input-container">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    className="form-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="password-toggle-icon"
+                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit' }}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
+              </div>
+
+              <div className="form-options">
+                <Link to="#" className="forgot-password">
+                  Forgot Password?
+                </Link>
+              </div>
+
+              <button type="submit" className="signin-button" disabled={isLoading}>
+                {isLoading ? 'Signing In...' : 'Sign In'}
+              </button>
+            </form>
+
+            <div className="signup-link">
+              <span>Don't have an account? </span>
+              <Link to="/contact">Contact Us</Link>
             </div>
-                <div className="right-panel-container">
-                    {/* Background Images */}
-                    {slideData.map((slide, index) => (
-                        <img
-                            key={slide.title}
-                            src={slide.image}
-                            className={`slide-bg ${index === currentSlide ? "active" : ""}`}
-                            alt={`Slide ${index + 1}`}
-                        />
-                    ))}
-
-                    {/* Blue Blur Vectors */}
-                    <div className="vector-1"></div>
-                    <div className="vector-2"></div>
-                    <div className="vector-3"></div>
-                    <div className="vector-4"></div>
-
-                    {/* Glass Card */}
-                    <div
-                        className="glass-card"
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nextSlide(); } }}
-                        onClick={nextSlide}
-                    >
-                        <div className="card-title">{slideData[currentSlide].title}</div>
-                        <div className="card-desc">{slideData[currentSlide].desc}</div>
-
-                        <div className="card-dots">
-                            {slideData.map((slide, index) => (
-                                <button
-                                    type="button"
-                                    key={slide.title}
-                                    className={`card-dot ${index === currentSlide ? "active" : "inactive"}`}
-                                    style={{ border: 'none', padding: 0, font: 'inherit' }}
-                                    aria-label={`Go to slide ${index + 1}`}
-                                    onClick={(e) => goToSlide(index, e)}
-                                ></button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Bottom Navigation Pill */}
-                    <div className="bottom-pill">
-                        {slideData.map((slide, index) => (
-                            <button
-                                type="button"
-                                key={slide.title}
-                                className={`nav-dot ${index === currentSlide ? "active" : "inactive"}`}
-                                style={{ border: 'none', padding: 0, font: 'inherit' }}
-                                aria-label={`Go to slide ${index + 1}`}
-                                onClick={(e) => goToSlide(index, e)}
-                            ></button>
-                        ))}
-                    </div>
-                </div>
+          </div>
         </div>
-        </>
-    );
+        <div className="right-panel-container">
+          {/* Background Images */}
+          {slideData.map((slide, index) => (
+            <img
+              key={slide.title}
+              src={slide.image}
+              className={`slide-bg ${index === currentSlide ? 'active' : ''}`}
+              alt={`Slide ${index + 1}`}
+            />
+          ))}
+
+          {/* Blue Blur Vectors */}
+          <div className="vector-1"></div>
+          <div className="vector-2"></div>
+          <div className="vector-3"></div>
+          <div className="vector-4"></div>
+
+          {/* Glass Card */}
+          <div
+            className="glass-card"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+              }
+            }}
+            onClick={nextSlide}
+          >
+            <div className="card-title">{slideData[currentSlide].title}</div>
+            <div className="card-desc">{slideData[currentSlide].desc}</div>
+
+            <div className="card-dots">
+              {slideData.map((slide, index) => (
+                <button
+                  type="button"
+                  key={slide.title}
+                  className={`card-dot ${index === currentSlide ? 'active' : 'inactive'}`}
+                  style={{ border: 'none', padding: 0, font: 'inherit' }}
+                  aria-label={`Go to slide ${index + 1}`}
+                  onClick={(e) => goToSlide(index, e)}
+                ></button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Navigation Pill */}
+          <div className="bottom-pill">
+            {slideData.map((slide, index) => (
+              <button
+                type="button"
+                key={slide.title}
+                className={`nav-dot ${index === currentSlide ? 'active' : 'inactive'}`}
+                style={{ border: 'none', padding: 0, font: 'inherit' }}
+                aria-label={`Go to slide ${index + 1}`}
+                onClick={(e) => goToSlide(index, e)}
+              ></button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
 };
 
 export default LoginPage;

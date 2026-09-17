@@ -46,19 +46,77 @@ function FaqItem({ item, isOpen, onToggle }) {
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', padding: '24px 0', background: 'none', border: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-ui)' }}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '24px',
+          padding: '24px 0',
+          background: 'none',
+          border: 0,
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontFamily: 'var(--font-ui)',
+        }}
       >
-        <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-.2px', color: '#050816' }}>{item.q}</span>
-        <span style={{ flex: '0 0 auto', width: '34px', height: '34px', borderRadius: '999px', display: 'grid', placeItems: 'center', border: '1px solid rgba(5,8,22,.12)', color: '#050816', background: isOpen ? '#F4F5FA' : 'transparent', transition: 'background 200ms cubic-bezier(.2,0,0,1)' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <span
+          style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-.2px', color: '#050816' }}
+        >
+          {item.q}
+        </span>
+        <span
+          style={{
+            flex: '0 0 auto',
+            width: '34px',
+            height: '34px',
+            borderRadius: '999px',
+            display: 'grid',
+            placeItems: 'center',
+            border: '1px solid rgba(5,8,22,.12)',
+            color: '#050816',
+            background: isOpen ? '#F4F5FA' : 'transparent',
+            transition: 'background 200ms cubic-bezier(.2,0,0,1)',
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
             <path d="M5 12h14" />
-            <path d="M12 5v14" style={{ transition: 'opacity 200ms cubic-bezier(.2,0,0,1)', opacity: isOpen ? 0 : 1 }} />
+            <path
+              d="M12 5v14"
+              style={{
+                transition: 'opacity 200ms cubic-bezier(.2,0,0,1)',
+                opacity: isOpen ? 0 : 1,
+              }}
+            />
           </svg>
         </span>
       </button>
-      <div style={{ display: 'grid', gridTemplateRows: isOpen ? '1fr' : '0fr', transition: 'grid-template-rows 320ms cubic-bezier(.2,0,0,1)' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          transition: 'grid-template-rows 320ms cubic-bezier(.2,0,0,1)',
+        }}
+      >
         <div style={{ overflow: 'hidden' }}>
-          <p style={{ fontSize: '16px', lineHeight: '26px', color: '#5D5D5E', padding: '0 60px 26px 0' }}>{item.a}</p>
+          <p
+            style={{
+              fontSize: '16px',
+              lineHeight: '26px',
+              color: '#5D5D5E',
+              padding: '0 60px 26px 0',
+            }}
+          >
+            {item.a}
+          </p>
         </div>
       </div>
     </div>
@@ -70,14 +128,49 @@ export default function Faq() {
 
   return (
     <section data-screen-label="FAQ" style={{ background: '#F4F5FA', padding: '112px 40px' }}>
-      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: '80px', alignItems: 'center' }}>
+      <div
+        data-mcol
+        style={{
+          maxWidth: '1280px',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: '.8fr 1.2fr',
+          gap: '80px',
+          alignItems: 'center',
+        }}
+      >
         <div data-reveal>
-          <div style={{ fontFamily: 'var(--font-eyebrow)', fontSize: '11px', fontWeight: 500, letterSpacing: '.44em', textTransform: 'uppercase', color: 'var(--nova-rage-600)', marginBottom: '20px' }}>Questions</div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '42px', lineHeight: '1.1', letterSpacing: '-1.3px', margin: 0, textWrap: 'pretty' }}>
-            Frequently asked{' '}
-            <span style={{ color: 'var(--nova-rage-400)' }}>questions.</span>
+          <div
+            style={{
+              fontFamily: 'var(--font-eyebrow)',
+              fontSize: '11px',
+              fontWeight: 500,
+              letterSpacing: '.44em',
+              textTransform: 'uppercase',
+              color: 'var(--nova-rage-600)',
+              marginBottom: '20px',
+            }}
+          >
+            Questions
+          </div>
+          <h2
+            data-mhead
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: '42px',
+              lineHeight: '1.1',
+              letterSpacing: '-1.3px',
+              margin: 0,
+              textWrap: 'pretty',
+            }}
+          >
+            Frequently asked <span style={{ color: 'var(--nova-rage-400)' }}>questions.</span>
           </h2>
-          <p style={{ fontSize: '17px', lineHeight: '28px', color: '#5D5D5E', margin: '22px 0 0' }}>Still unsure whether GNB Edge fits your operation? Book a walkthrough and we will map your current stack module by module.</p>
+          <p style={{ fontSize: '17px', lineHeight: '28px', color: '#5D5D5E', margin: '22px 0 0' }}>
+            Still unsure whether GNB Edge fits your operation? Book a walkthrough and we will map
+            your current stack module by module.
+          </p>
         </div>
         <div data-reveal style={{ display: 'flex', flexDirection: 'column' }}>
           {FAQS.map((item, i) => (

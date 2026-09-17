@@ -9,7 +9,9 @@
 .gnb-edge-v2 [data-reveal-pending] {
   opacity: 0;
   transform: translateY(22px);
-  transition: opacity 0.7s cubic-bezier(.2,0,0,1), transform 0.7s cubic-bezier(.2,0,0,1);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.7s cubic-bezier(0.2, 0, 0, 1);
   will-change: opacity, transform;
 }
 .gnb-edge-v2 [data-reveal-pending][data-revealed] {
@@ -30,5 +32,183 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gnb-edge-v2 [data-reveal-pending] { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .gnb-edge-v2 [data-reveal-pending] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   SHARED MOBILE BASELINE  (applies to EVERY GNB Edge page — this file is
+   imported by <GnbPage>). Keeps the desktop-fixed marketing pages from
+   overflowing horizontally and reduces the oversized side padding on phones.
+   Page-specific section collapses live in each page's own stylesheet.
+   ========================================================================== */
+
+/* nothing wider than the viewport should force a horizontal scroll */
+.gnb-edge-v2 {
+  overflow-x: clip;
+}
+.gnb-edge-v2 img,
+.gnb-edge-v2 iframe {
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  /* every section + the footer are authored with 40px side padding */
+  .gnb-edge-v2 section[data-screen-label] {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+  .gnb-edge-v2 footer {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+
+  /* sub-page breadcrumb nav: let it wrap and drop the breadcrumb trail so the
+     logo + actions always fit */
+  .gnb-edge-v2 [data-subnav] {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    padding: 14px 0 !important;
+    row-gap: 8px !important;
+    column-gap: 12px !important;
+  }
+  .gnb-edge-v2 [data-subnav] > div:first-of-type {
+    display: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .gnb-edge-v2 section[data-screen-label] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .gnb-edge-v2 footer {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* ==========================================================================
+   SHARED RESPONSIVE TOOLKIT  (available on EVERY GNB Edge page)
+   Annotate a desktop-fixed element with one of these [data-*] hooks and it
+   becomes mobile-safe — no per-page CSS needed. Used by the landing page and
+   every sub-page (contact / customers / feature pages).
+
+     data-mcol      two-column row  -> single column
+     data-mcol2     grid            -> 2-up (tablet) -> 1-up (phone)
+     data-mcol3     3/4-up grid     -> 2-up (tablet) -> 1-up (phone)
+     data-cardgrid  auto-fit cards  -> single column on the narrowest phones
+     data-flow      chip→art→node   -> single column, decorative art hidden
+     data-mhead     display heading -> scaled down
+     data-btnrow    button pair     -> stays side by side (never stacked)
+     data-cta-card  gradient panel  -> reduced inner padding
+     data-foot-grid footer columns  -> brand full-width + 2-up links
+     data-scroll-m  wide console    -> horizontally swipeable instead of clipping
+     data-hide-m    decorative only -> hidden on phones
+   Breakpoints: 900 (tablet) · 760 (large phone) · 620/560 (phone).
+   ========================================================================== */
+@media (max-width: 900px) {
+  .gnb-edge-v2 [data-mcol] {
+    grid-template-columns: 1fr !important;
+    gap: 44px !important;
+  }
+  .gnb-edge-v2 [data-mcol2] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 28px !important;
+  }
+  .gnb-edge-v2 [data-mcol3] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 24px !important;
+  }
+  .gnb-edge-v2 [data-flow] {
+    grid-template-columns: 1fr !important;
+  }
+  .gnb-edge-v2 [data-flow] > svg,
+  .gnb-edge-v2 [data-flow] > div:last-child {
+    display: none !important;
+  }
+  .gnb-edge-v2 [data-mhead] {
+    font-size: 34px !important;
+    letter-spacing: -1px !important;
+    line-height: 1.1 !important;
+  }
+  .gnb-edge-v2 [data-scroll-m] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .gnb-edge-v2 [data-hide-m] {
+    display: none !important;
+  }
+}
+@media (max-width: 760px) {
+  .gnb-edge-v2 [data-foot-grid] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 30px 24px !important;
+    padding-top: 44px !important;
+  }
+  .gnb-edge-v2 [data-foot-grid] > div:first-child {
+    grid-column: 1 / -1 !important;
+  }
+  .gnb-edge-v2 [data-cta-card] {
+    padding: 52px 26px !important;
+  }
+}
+@media (max-width: 620px) {
+  .gnb-edge-v2 [data-btnrow] {
+    flex-wrap: nowrap !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  .gnb-edge-v2 [data-btnrow] > a {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 560px) {
+  .gnb-edge-v2 [data-mcol2],
+  .gnb-edge-v2 [data-mcol3] {
+    grid-template-columns: 1fr !important;
+  }
+  .gnb-edge-v2 [data-cardgrid] {
+    grid-template-columns: 1fr !important;
+  }
+  .gnb-edge-v2 [data-mhead] {
+    font-size: 29px !important;
+    letter-spacing: -0.6px !important;
+  }
+  .gnb-edge-v2 [data-cta-card] {
+    padding: 40px 20px !important;
+  }
+}
+
+/* ---- nav on mobile: show Login, hide the "Reach us" CTA (the hamburger
+   drawer already carries every destination). Applies wherever the MegaNav
+   is used (this file loads on every page). ---- */
+@media (max-width: 760px) {
+  .gnb-edge-v2 [data-navcta] {
+    display: none !important;
+  }
+  .gnb-edge-v2 [data-mega] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* ---- footer bottom-row links: the sub-page footers put 5–6 links in a
+   no-wrap flex row that overflows on phones — let them wrap ---- */
+@media (max-width: 640px) {
+  .gnb-edge-v2 [data-footlinks] {
+    flex-wrap: wrap !important;
+    gap: 12px 18px !important;
+  }
 }
