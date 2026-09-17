@@ -53,6 +53,11 @@ export function bearingDeg(a, b) {
  * A trail can arrive unsorted (the history collection is append-only across
  * multiple ingest paths), and a single out-of-order fix would otherwise draw a
  * spike across the map and corrupt every cumulative figure after it.
+ *
+ * A source point marked `break` (the server's inter-trip-gap flag) starts a
+ * new segment: its leg contributes no distance/speed, since the vehicle's
+ * real path during that gap is unknown — counting it would corrupt the
+ * distance/speed rollups with a straight line across an unrelated trip.
  */
 export function toFrames(points) {
   const clean = (Array.isArray(points) ? points : [])
@@ -65,6 +70,9 @@ export function toFrames(points) {
       course: p.courseDegrees == null ? null : Number(p.courseDegrees),
       ignition: p.ignition ?? null,
       state: p.state ?? null,
+      tripId: p.tripId ?? null,
+      measured: p.measured !== false,
+      isGapBreak: !!p.break,
     }))
     .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && Number.isFinite(p.at))
     .sort((a, b) => a.at - b.at);
@@ -72,15 +80,17 @@ export function toFrames(points) {
   let cumulativeKm = 0;
   return clean.map((p, i) => {
     const prev = i === 0 ? null : clean[i - 1];
-    const legKm = prev ? haversineKm(prev, p) : 0;
+    const isBreak = i > 0 && p.isGapBreak;
+    const legKm = prev && !isBreak ? haversineKm(prev, p) : 0;
     const legMs = prev ? p.at - prev.at : 0;
     cumulativeKm += legKm;
     return {
       ...p,
+      isBreak,
       legKm,
       cumulativeKm,
-      groundSpeedKmph: groundSpeedKmph(legKm, legMs),
-      heading: p.course != null ? p.course : prev ? bearingDeg(prev, p) : 0,
+      groundSpeedKmph: isBreak ? null : groundSpeedKmph(legKm, legMs),
+      heading: p.course != null ? p.course : prev && !isBreak ? bearingDeg(prev, p) : 0,
     };
   });
 }
@@ -137,6 +147,12 @@ export function positionAt(frames, progress) {
 
   const a = frames[i];
   const b = frames[i + 1];
+  if (b.isBreak) {
+    // Trip boundary: hold at the last known fix rather than fabricating
+    // motion across a gap whose real path is unknown — this is what stops
+    // playback from visually "flying" over a missing section.
+    return { ...a, at: target, index: i };
+  }
   const legMs = b.at - a.at;
   const t = legMs > 0 ? (target - a.at) / legMs : 0;
   return {
@@ -153,3 +169,27 @@ export function positionAt(frames, progress) {
 
 /** Google Maps path for the drawn polyline. */
 export const toLatLngPath = (frames) => (frames || []).map((f) => ({ lat: f.lat, lng: f.lng }));
+
+/**
+ * Path split into segments at `isBreak` frames — each inter-trip gap becomes
+ * its own segment so a drawn line never bridges two unrelated trips.
+ * `upToIndex` (default: the whole trail) limits it to the "travelled so far"
+ * portion during playback.
+ */
+export function toLatLngSegments(frames, upToIndex) {
+  const list = frames || [];
+  if (list.length === 0) return [];
+  const end = upToIndex == null ? list.length - 1 : Math.min(upToIndex, list.length - 1);
+  const segments = [];
+  let current = [];
+  for (let i = 0; i <= end; i += 1) {
+    const f = list[i];
+    if (f.isBreak && current.length) {
+      segments.push(current);
+      current = [];
+    }
+    current.push({ lat: f.lat, lng: f.lng });
+  }
+  if (current.length) segments.push(current);
+  return segments;
+}

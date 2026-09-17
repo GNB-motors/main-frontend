@@ -31,6 +31,12 @@ class TripDashboardService {
     const response = await apiClient.post(`/api/erp/trips/${id}/telematics/recompute`);
     return response.data.data;
   }
+
+  // B2.3 — trip-window analytics read model (planned vs per-leg actual km/fuel).
+  static async getTripWindows(params = {}, { signal } = {}) {
+    const response = await apiClient.get('/api/erp/trips/windows', { params, signal });
+    return response.data.data;
+  }
 }
 
 export default TripDashboardService;

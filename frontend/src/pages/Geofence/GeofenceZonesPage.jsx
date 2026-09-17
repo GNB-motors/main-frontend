@@ -15,6 +15,7 @@ import {
   WifiOff,
   Truck,
   Edit2,
+  Compass,
 } from 'lucide-react';
 import {
   GoogleMap,
@@ -29,6 +30,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import AddZoneDrawer from './AddZoneDrawer.jsx';
+import UnknownTerritoryDrawer from './UnknownTerritoryDrawer.jsx';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
 import { label, humanise } from '../../lib/vocabulary';
 import { footerSummary } from '../../lib/tableState';
@@ -268,6 +270,7 @@ const GeofenceZonesPage = () => {
   const [zoneQuery, setZoneQuery] = useState('');
   const [showDrawer, setShowDrawer] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [showUnknownTerritory, setShowUnknownTerritory] = useState(false);
   const [clickedLatLng, setClickedLatLng] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -422,6 +425,13 @@ const GeofenceZonesPage = () => {
             {unreadCount > 0 ? <Bell size={15} /> : <BellOff size={15} />}
             Alerts
             {unreadCount > 0 && <span className="gfz-badge-count">{unreadCount}</span>}
+          </button>
+          <button
+            className="gfz-btn gfz-btn-ghost"
+            onClick={() => setShowUnknownTerritory(true)}
+            title="Review unmapped dwell clusters and promote to zones"
+          >
+            <Compass size={14} /> Unknown Territory
           </button>
           <button
             className="gfz-btn gfz-btn-primary"
@@ -847,6 +857,13 @@ const GeofenceZonesPage = () => {
           }}
         />
       )}
+
+      {/* Unknown Territory Learning Loop Drawer */}
+      <UnknownTerritoryDrawer
+        isOpen={showUnknownTerritory}
+        onClose={() => setShowUnknownTerritory(false)}
+        onZonePromoted={fetchZones}
+      />
     </PageShell>
   );
 };

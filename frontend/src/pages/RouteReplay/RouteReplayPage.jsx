@@ -19,7 +19,13 @@ import { LiveTrackingService } from '../LiveTracking/LiveTrackingService.jsx';
 import { INDIA_CENTER } from '../LiveTracking/liveTracking.shared.js';
 import useApi from '../../hooks/useApi';
 import apiClient from '../../utils/axiosConfig';
-import { toFrames, replayStats, positionAt, toLatLngPath } from './routeReplay.js';
+import {
+  toFrames,
+  replayStats,
+  positionAt,
+  toLatLngPath,
+  toLatLngSegments,
+} from './routeReplay.js';
 import Truck3DErrorBoundary from './truck3d/Truck3DErrorBoundary.jsx';
 import { isWebGLAvailable } from './truck3d/truck3dMaths.js';
 import { formatNum } from '../../utils/formatters';
@@ -78,9 +84,37 @@ export default function RouteReplayPage() {
   const stats = useMemo(() => replayStats(frames), [frames]);
   const path = useMemo(() => toLatLngPath(frames), [frames]);
   const head = useMemo(() => positionAt(frames, progress), [frames, progress]);
+  // Split at inter-trip gaps so a break is never drawn as a continuous line.
+  const fullSegments = useMemo(() => toLatLngSegments(frames), [frames]);
+  const travelledSegments = useMemo(
+    () => toLatLngSegments(frames, head?.index ?? 0),
+    [frames, head],
+  );
 
   const webglOk = useMemo(() => isWebGLAvailable(), []);
   const [truckReady, setTruckReady] = useState(false);
+  const [viewMode, setViewMode] = useState(webglOk ? '3D' : '2D'); // '2D' | '3D' | '3D_FOLLOW'
+
+  // Tilt and rotate camera based on viewMode
+  useEffect(() => {
+    if (!map) return;
+    if (viewMode === '2D') {
+      if (typeof map.setTilt === 'function') map.setTilt(0);
+      if (typeof map.setHeading === 'function') map.setHeading(0);
+    } else {
+      if (typeof map.setTilt === 'function') map.setTilt(45);
+    }
+  }, [viewMode, map]);
+
+  // In follow-cam mode, track head position and course
+  useEffect(() => {
+    if (viewMode === '3D_FOLLOW' && map && head) {
+      map.panTo({ lat: head.lat, lng: head.lng });
+      if (typeof map.setHeading === 'function' && head.heading != null) {
+        map.setHeading(head.heading);
+      }
+    }
+  }, [viewMode, map, head]);
 
   const loadTrail = useCallback(async () => {
     if (!reg) return;
@@ -260,6 +294,20 @@ export default function RouteReplayPage() {
         </div>
       )}
 
+      {/* Truncated Trail Warning */}
+      {!error && trail?.truncated && (
+        <div className="mb-3 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          <AlertTriangle size={15} className="text-amber-600 flex-shrink-0" />
+          <span>
+            This window has {formatNum(trail.totalCount)} GPS fixes — showing only the newest{' '}
+            {formatNum(trail.points?.length || 0)}, covering{' '}
+            {dayjs(trail.actualFrom).format('DD MMM, hh:mm A')} →{' '}
+            {dayjs(trail.actualTo).format('DD MMM, hh:mm A')}. Narrow the date range to see an
+            earlier part of the trail.
+          </span>
+        </div>
+      )}
+
       {/* Empty Result Notification */}
       {!error && trail && frames.length < 2 && (
         <div className="mb-3 p-4 rounded-xl border border-dashed border-slate-300 bg-white text-center flex items-center justify-center gap-3">
@@ -349,62 +397,135 @@ export default function RouteReplayPage() {
           </div>
         </div>
 
-        {/* Google Map */}
-        {isLoaded ? (
-          <GoogleMap
-            mapContainerStyle={MAP_STYLE}
-            center={path[0] || INDIA_CENTER}
-            zoom={path.length ? 9 : 5}
-            onLoad={(m) => {
-              mapRef.current = m;
-              setMap(m);
-            }}
-            options={{
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: true,
-            }}
-          >
-            {path.length > 1 && (
-              <>
-                {/* Full path */}
-                <PolylineF
-                  path={path}
-                  options={{ strokeColor: '#94a3b8', strokeOpacity: 0.8, strokeWeight: 4 }}
-                />
-                {/* Travelled segment */}
-                <PolylineF
-                  path={path.slice(0, (head?.index ?? 0) + 1)}
-                  options={{ strokeColor: '#0284c7', strokeOpacity: 1, strokeWeight: 5 }}
-                />
-                <MarkerF
-                  position={path[0]}
-                  label={{ text: 'S', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
-                />
-                <MarkerF
-                  position={path[path.length - 1]}
-                  label={{ text: 'E', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
-                />
-              </>
-            )}
-            {head && !truckReady && (
-              <MarkerF position={{ lat: head.lat, lng: head.lng }} icon={truckIcon} zIndex={99} />
-            )}
-          </GoogleMap>
-        ) : (
-          <div className="h-[520px] flex items-center justify-center bg-slate-50 text-slate-400 text-sm">
-            Loading Google Map layers…
+        {/* Map Perspective Switcher */}
+        <div className="flex items-center justify-between pb-2">
+          <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+            <Layers size={14} className="text-slate-500" />
+            <span>Replay Perspective</span>
           </div>
-        )}
 
-        {/* 3D WebGL Truck Layer */}
-        {webglOk && map && head && (
-          <Truck3DErrorBoundary>
-            <Suspense fallback={null}>
-              <Truck3DLayer map={map} head={head} onReady={() => setTruckReady(true)} />
-            </Suspense>
-          </Truck3DErrorBoundary>
-        )}
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+            <button
+              type="button"
+              onClick={() => setViewMode('2D')}
+              className={`px-3 py-1 rounded font-medium transition-all ${
+                viewMode === '2D'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              2D Classic
+            </button>
+            <button
+              type="button"
+              disabled={!webglOk}
+              onClick={() => setViewMode('3D')}
+              title={!webglOk ? 'WebGL not supported on this device' : '3D Isometric Truck View'}
+              className={`px-3 py-1 rounded font-medium transition-all ${
+                viewMode === '3D'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
+              } ${!webglOk ? 'opacity-40 cursor-not-allowed' : ''}`}
+            >
+              3D Isometric
+            </button>
+            <button
+              type="button"
+              disabled={!webglOk}
+              onClick={() => setViewMode('3D_FOLLOW')}
+              title={
+                !webglOk
+                  ? 'WebGL not supported on this device'
+                  : 'Follow-Cam with dynamic heading rotation'
+              }
+              className={`px-3 py-1 rounded font-medium transition-all ${
+                viewMode === '3D_FOLLOW'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
+              } ${!webglOk ? 'opacity-40 cursor-not-allowed' : ''}`}
+            >
+              3D Follow-Cam
+            </button>
+          </div>
+        </div>
+
+        {/* Google Map Area */}
+        <div className="relative">
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={MAP_STYLE}
+              center={path[0] || INDIA_CENTER}
+              zoom={path.length ? 9 : 5}
+              onLoad={(m) => {
+                mapRef.current = m;
+                setMap(m);
+              }}
+              options={{
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: true,
+              }}
+            >
+              {path.length > 1 && (
+                <>
+                  {/* Full path, split at inter-trip gaps */}
+                  {fullSegments.map(
+                    (seg, idx) =>
+                      seg.length > 1 && (
+                        <PolylineF
+                          key={`full-${idx}`}
+                          path={seg}
+                          options={{ strokeColor: '#94a3b8', strokeOpacity: 0.8, strokeWeight: 4 }}
+                        />
+                      ),
+                  )}
+                  {/* Travelled segment, same split */}
+                  {travelledSegments.map(
+                    (seg, idx) =>
+                      seg.length > 1 && (
+                        <PolylineF
+                          key={`travelled-${idx}`}
+                          path={seg}
+                          options={{ strokeColor: '#0284c7', strokeOpacity: 1, strokeWeight: 5 }}
+                        />
+                      ),
+                  )}
+                  <MarkerF
+                    position={path[0]}
+                    label={{ text: 'S', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+                  />
+                  <MarkerF
+                    position={path[path.length - 1]}
+                    label={{ text: 'E', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+                  />
+                </>
+              )}
+              {head && (viewMode === '2D' || !truckReady) && (
+                <MarkerF position={{ lat: head.lat, lng: head.lng }} icon={truckIcon} zIndex={99} />
+              )}
+            </GoogleMap>
+          ) : (
+            <div className="h-[520px] flex items-center justify-center bg-slate-50 text-slate-400 text-sm">
+              Loading Google Map layers…
+            </div>
+          )}
+
+          {/* 3D WebGL Truck Layer */}
+          {webglOk && viewMode !== '2D' && map && head && (
+            <Truck3DErrorBoundary>
+              <Suspense fallback={null}>
+                <Truck3DLayer map={map} head={head} onReady={() => setTruckReady(true)} />
+              </Suspense>
+            </Truck3DErrorBoundary>
+          )}
+
+          {/* 3D Attribution Badge */}
+          {viewMode !== '2D' && (
+            <div className="absolute bottom-3 right-3 z-10 bg-black/60 text-white/80 text-[10px] px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none">
+              3D Asset: Indian Truck by AFJAL ANSARI (CC BY 4.0)
+            </div>
+          )}
+        </div>
 
         {/* Playback Control Deck */}
         {frames.length >= 2 && (

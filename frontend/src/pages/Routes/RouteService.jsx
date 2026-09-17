@@ -95,6 +95,24 @@ const RouteService = {
   },
 
   /**
+   * Look up a learned route corridor (built from the fleet's own past trips)
+   * for an origin/destination pair. Returns { found: false, geometry: null }
+   * when nothing is available to reuse — callers should fall back to their
+   * normal directions/geometry source in that case, not treat it as an error.
+   * @param {Object} params - { originAddress, originCity, originLat, originLng, destAddress, destCity, destLat, destLng }
+   * @returns {Promise<Object>} { found, geometry, sampleTripCount?, corridorBufferKm? }
+   */
+  getCorridorGeometry: async (params) => {
+    try {
+      const response = await apiClient.get('/api/routes/corridor-geometry', { params });
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to look up route corridor:', error.response?.data || error.message);
+      return { found: false, geometry: null };
+    }
+  },
+
+  /**
    * Delete a route
    * @param {string} id - Route ID
    * @returns {Promise<Object>} Deleted route object
@@ -105,6 +123,21 @@ const RouteService = {
       return response.data;
     } catch (error) {
       console.error('Failed to delete route:', error.response?.data || error.message);
+      throw error.response?.data || error;
+    }
+  },
+
+  /**
+   * Derive route geometry from completed trips telemetry
+   * @param {string} id - Route ID
+   * @returns {Promise<Object>} Updated route with derived geometry
+   */
+  deriveGeometry: async (id) => {
+    try {
+      const response = await apiClient.post(`/api/routes/${id}/derive-geometry`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to derive route geometry:', error.response?.data || error.message);
       throw error.response?.data || error;
     }
   },

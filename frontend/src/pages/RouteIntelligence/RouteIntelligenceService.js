@@ -25,7 +25,7 @@ export const RouteIntelligenceService = {
 
   listCorridors: async (
     { originSiteId, destinationSiteId, usableForDeviation, page = 1, limit = 25 } = {},
-    { signal } = {}
+    { signal } = {},
   ) => {
     const response = await apiClient.get(`${BASE}/corridors`, {
       params: { originSiteId, destinationSiteId, usableForDeviation, page, limit },
@@ -42,9 +42,18 @@ export const RouteIntelligenceService = {
     return response.data?.data ?? response.data;
   },
 
+  /** Hour × day-of-week travel-time grid for one corridor (up to 168 buckets). */
+  corridorTimeProfile: async (corridorId, { signal } = {}) => {
+    const response = await apiClient.get(`${BASE}/corridors/time`, {
+      params: { corridorId },
+      signal,
+    });
+    return response.data?.data ?? response.data;
+  },
+
   listDeviations: async (
     { vehicle, from, to, status, page = 1, limit = 25 } = {},
-    { signal } = {}
+    { signal } = {},
   ) => {
     const response = await apiClient.get(`${BASE}/deviations`, {
       params: { vehicle, from, to, status, page, limit },
@@ -55,7 +64,7 @@ export const RouteIntelligenceService = {
 
   listArrivals: async (
     { siteId, vehicle, from, to, status, page = 1, limit = 25 } = {},
-    { signal } = {}
+    { signal } = {},
   ) => {
     const response = await apiClient.get(`${BASE}/arrivals`, {
       params: { siteId, vehicle, from, to, status, page, limit },

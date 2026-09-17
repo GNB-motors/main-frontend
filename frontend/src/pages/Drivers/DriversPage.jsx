@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Plus, Upload } from 'lucide-react';
+import { Search, Plus, Upload, TrendingUp } from 'lucide-react';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,7 @@ import {
 import DriverTable from './Component/DriverTable.jsx';
 import DriversPagination from './Component/DriversPagination.jsx';
 import DriverFilter from './Component/DriverFilter.jsx';
+import DriverTrendDrawer from './Component/DriverTrendDrawer.jsx';
 import {
   normalizeDriver,
   normalizeVehicleOption,
@@ -51,6 +52,7 @@ const DriversPage = () => {
   // Action Menu State
   const [openMenuDriverId, setOpenMenuDriverId] = useState(null);
   const [menuPosition, setMenuPosition] = useState(null); // {top, bottom, right} from getBoundingClientRect
+  const [showTrendsDrawer, setShowTrendsDrawer] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -331,6 +333,12 @@ const DriversPage = () => {
         actions={
           <>
             <NewButton
+              variant="secondary"
+              text="Performance & Trends"
+              prependIcon={<TrendingUp size={16} />}
+              onClick={() => setShowTrendsDrawer(true)}
+            />
+            <NewButton
               variant="primary"
               text="Add employee"
               prependIcon={<Plus size={16} />}
@@ -447,6 +455,7 @@ const DriversPage = () => {
         driver={movingDriver}
         isLoading={isActionSubmitting}
       />
+      <DriverTrendDrawer isOpen={showTrendsDrawer} onClose={() => setShowTrendsDrawer(false)} />
     </div>
   );
 };

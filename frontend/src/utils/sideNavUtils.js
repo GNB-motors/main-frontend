@@ -19,6 +19,7 @@ import {
   CalendarClock,
   ReceiptText,
   Radar,
+  Route,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -167,8 +168,9 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/erp/pipeline', label: 'Trip Pipeline', key: 'erpOperations' },
       { to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', key: 'erpCnUpdation' },
+      { to: '/erp/trip-windows', label: 'Trip Windows', key: 'erpOperations' },
     ],
-    matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb'],
+    matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb', '/erp/trip-windows'],
   },
   // Finance — the accounting side. Renamed from the ambiguous "Accounts".
   {
@@ -283,9 +285,13 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/compliance', label: 'Compliance', key: 'fleetIntelligence' },
       { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
+      // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
+      // toggled on per org independently of the rest of this group.
+      { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
       { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
+      { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
       { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
       { to: '/route-replay', label: 'Route Replay', key: 'fleetIntelligence' },
       { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
@@ -296,11 +302,16 @@ export const SIDE_NAV_ITEMS = [
     matchRoutes: [
       '/compliance',
       '/fleet-alerts',
+      '/idling-console',
       '/fleet-coverage',
       '/audit-trail',
       '/route-intelligence',
+      '/erp/trip-windows',
       '/route-deviation',
       '/route-replay',
+      '/route-profitability',
+      '/overspeed',
+      '/hotspots',
       '/owner-alerts',
     ],
   },
@@ -311,6 +322,14 @@ export const SIDE_NAV_ITEMS = [
     to: '/locations',
     label: 'Locations',
     icon: MapPin,
+  },
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/routes',
+    label: 'Routes',
+    icon: Route,
   },
   {
     type: 'group',

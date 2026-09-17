@@ -6,6 +6,8 @@ import { INDIA_CENTER } from '../../LiveTracking/liveTracking.shared.js';
 const MAP_STYLE = { width: '100%', height: '340px', borderRadius: '0.75rem' };
 
 const DEFAULT_STROKE = { strokeColor: '#2563eb', strokeOpacity: 0.8, strokeWeight: 4 };
+const LEARNED_STROKE = { strokeColor: '#0284c7', strokeOpacity: 0.85, strokeWeight: 4 };
+const PLANNED_STROKE = { strokeColor: '#7c3aed', strokeOpacity: 0.8, strokeWeight: 4 };
 const HIGHLIGHT_STROKE = { strokeColor: '#B8460F', strokeOpacity: 1, strokeWeight: 6 };
 
 // Prefer the Maps geometry library when the script was loaded with it; the
@@ -33,7 +35,13 @@ const RoutesMapPanel = ({ routes = [], highlightedId = null, isLoaded = false })
       const encoded = route?.geometry?.encodedPolyline;
       if (!encoded) continue;
       const path = decodePath(encoded);
-      if (path.length > 0) byId.set(route._id, path);
+      if (path.length > 0) {
+        byId.set(route._id, {
+          path,
+          provider: route?.geometry?.provider,
+          name: route.name,
+        });
+      }
     }
     return byId;
   }, [routes]);
@@ -47,7 +55,7 @@ const RoutesMapPanel = ({ routes = [], highlightedId = null, isLoaded = false })
     }
     if (paths.size > 0) {
       const latLngBounds = new window.google.maps.LatLngBounds();
-      paths.forEach((path) => path.forEach((p) => latLngBounds.extend(p)));
+      paths.forEach(({ path }) => path.forEach((p) => latLngBounds.extend(p)));
       mapRef.current.fitBounds(latLngBounds, 48);
     }
   }, [routes, paths, isLoaded]);
@@ -55,7 +63,7 @@ const RoutesMapPanel = ({ routes = [], highlightedId = null, isLoaded = false })
   if (!isLoaded) return null;
 
   return (
-    <div className="routes-map-panel">
+    <div className="routes-map-panel relative">
       <GoogleMap
         mapContainerStyle={MAP_STYLE}
         center={INDIA_CENTER}
@@ -65,14 +73,25 @@ const RoutesMapPanel = ({ routes = [], highlightedId = null, isLoaded = false })
         }}
         options={{ streetViewControl: false, mapTypeControl: false }}
       >
-        {[...paths].map(([id, path]) => (
-          <PolylineF
-            key={id}
-            path={path}
-            options={id === highlightedId ? HIGHLIGHT_STROKE : DEFAULT_STROKE}
-          />
-        ))}
+        {[...paths].map(([id, { path, provider }]) => {
+          let options = provider === 'DERIVED_FROM_TRACK' ? LEARNED_STROKE : PLANNED_STROKE;
+          if (id === highlightedId) options = HIGHLIGHT_STROKE;
+          return <PolylineF key={id} path={path} options={options} />;
+        })}
       </GoogleMap>
+
+      {/* Corridor Provenance Legend */}
+      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm text-[11px] flex items-center gap-3">
+        <span className="flex items-center gap-1.5 font-medium text-slate-700">
+          <span className="w-3 h-1 bg-sky-600 rounded-full inline-block" />
+          Learned from Telemetry (
+          {routes.filter((r) => r.geometry?.provider === 'DERIVED_FROM_TRACK').length})
+        </span>
+        <span className="flex items-center gap-1.5 font-medium text-slate-700">
+          <span className="w-3 h-1 bg-purple-600 rounded-full inline-block" />
+          Planned Baseline
+        </span>
+      </div>
     </div>
   );
 };
