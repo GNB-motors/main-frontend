@@ -2,8 +2,8 @@ import apiClient from '../../utils/axiosConfig';
 
 /**
  * Service functions for the Daily Brief (per-org morning intelligence brief).
- * Dark-launch: 404s for orgs without the `dailyBrief` feature flag or a
- * non-OWNER/MANAGER role — that is enforced server-side, not here.
+ * Same access as the rest of the Daily Digest — 404s only for a non-OWNER/MANAGER
+ * role, enforced server-side, not here.
  */
 export const DailyBriefService = {
   /**
