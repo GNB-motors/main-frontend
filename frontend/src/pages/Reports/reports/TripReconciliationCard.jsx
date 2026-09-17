@@ -7,7 +7,7 @@ import {
   Smartphone,
   Navigation,
 } from 'lucide-react';
-import apiClient from '../../../../utils/axiosConfig';
+import apiClient from '../../../utils/axiosConfig';
 
 /**
  * TripReconciliationCard (Feature #20)
