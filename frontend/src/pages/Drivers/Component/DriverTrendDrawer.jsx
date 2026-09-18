@@ -1,31 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import {
-  X,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  RefreshCw,
-  Award,
-  AlertCircle,
-  HelpCircle,
-  Activity,
-  Sparkles,
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, TrendingUp, TrendingDown, Minus, RefreshCw, Activity } from 'lucide-react';
 import KaaranService from '../../../services/KaaranService';
 import { toast } from 'react-toastify';
 
 const CONSISTENCY_MAP = {
   CONSISTENT: {
     label: 'Consistent',
-    bg: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300',
+    bg: '#dcfce7',
+    color: '#166534',
+    border: '#bbf7d0',
   },
   MODERATE: {
     label: 'Moderate',
-    bg: 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300',
+    bg: '#fef3c7',
+    color: '#92400e',
+    border: '#fde68a',
   },
   VOLATILE: {
     label: 'Volatile',
-    bg: 'bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300',
+    bg: '#fee2e2',
+    color: '#991b1b',
+    border: '#fecaca',
   },
 };
 
@@ -39,9 +34,10 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
     setLoading(true);
     try {
       const data = await KaaranService.getDriverTrends();
-      setTrends(data || []);
+      setTrends(Array.isArray(data) ? data : []);
     } catch (err) {
       toast.error(err.message || 'Failed to load driver trends');
+      setTrends([]);
     } finally {
       setLoading(false);
     }
@@ -52,6 +48,17 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
       fetchTrends();
     }
   }, [isOpen]);
+
+  // Keyboard accessibility: ESC closes drawer
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleRecompute = async () => {
     setRecomputing(true);
@@ -66,53 +73,199 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
     }
   };
 
+  // Filtered rows with defensive guards
+  const filteredRows = useMemo(() => {
+    return trends.filter((row) => {
+      if (!row) return false;
+      if (filter === 'CONSISTENT') return row.consistencyClass === 'CONSISTENT';
+      if (filter === 'VOLATILE') return row.consistencyClass === 'VOLATILE';
+      if (filter === 'IMPROVING') return Number(row.trendSlope ?? 0) > 0.05;
+      return true;
+    });
+  }, [trends, filter]);
+
+  // KPI aggregates with safe math
+  const validScores = useMemo(() => {
+    return trends
+      .map((t) => Number(t.consistencyIndex))
+      .filter((n) => Number.isFinite(n) && n >= 0);
+  }, [trends]);
+
+  const consistentCount = useMemo(
+    () => trends.filter((t) => t.consistencyClass === 'CONSISTENT').length,
+    [trends],
+  );
+
+  const volatileCount = useMemo(
+    () => trends.filter((t) => t.consistencyClass === 'VOLATILE').length,
+    [trends],
+  );
+
+  const avgConsistency = useMemo(() => {
+    if (!validScores.length) return 0;
+    return Math.round(validScores.reduce((acc, v) => acc + v, 0) / validScores.length);
+  }, [validScores]);
+
   if (!isOpen) return null;
 
-  // Filtered rows
-  const filteredRows = trends.filter((row) => {
-    if (filter === 'CONSISTENT') return row.consistencyClass === 'CONSISTENT';
-    if (filter === 'VOLATILE') return row.consistencyClass === 'VOLATILE';
-    if (filter === 'IMPROVING') return (row.trendSlope || 0) > 0.05;
-    return true;
-  });
-
-  // KPI aggregates
-  const consistentCount = trends.filter((t) => t.consistencyClass === 'CONSISTENT').length;
-  const volatileCount = trends.filter((t) => t.consistencyClass === 'VOLATILE').length;
-  const avgConsistency = trends.length
-    ? Math.round(trends.reduce((s, t) => s + (t.consistencyIndex || 0), 0) / trends.length)
-    : 0;
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Performance and Driver Trend Tracking"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        backdropFilter: 'blur(3px)',
+        transition: 'opacity 0.2s ease',
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <style>{`
+        @keyframes trend-slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0.95;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .trend-drawer-panel {
+          animation: trend-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .trend-table-row:hover {
+          background-color: #f8fafc;
+        }
+      `}</style>
+
+      <div
+        className="trend-drawer-panel"
+        style={{
+          width: '100%',
+          maxWidth: '780px',
+          backgroundColor: '#ffffff',
+          height: '100%',
+          boxShadow: '-8px 0 32px rgba(15, 23, 42, 0.12)',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+        }}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600">
-              <TrendingUp size={20} />
+        <div
+          style={{
+            padding: '18px 24px',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#ffffff',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                backgroundColor: '#ecfdf5',
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <TrendingUp size={22} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                Driver Driving Consistency & Improvement
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  lineHeight: '22px',
+                }}
+              >
+                Performance & Driver Trend Tracking
               </h2>
-              <p className="text-xs text-slate-500">
-                Track long-term driving consistency, fuel efficiency trends, and coaching results
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '12.5px',
+                  color: '#64748b',
+                  lineHeight: '18px',
+                  marginTop: '2px',
+                }}
+              >
+                Statistical consistency (CV variance), OLS regression trend slope & coaching results
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               onClick={handleRecompute}
               disabled={recomputing}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center gap-1 text-slate-700 dark:text-slate-200 transition"
+              type="button"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#334155',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                cursor: recomputing ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease',
+              }}
             >
-              <RefreshCw size={13} className={recomputing ? 'animate-spin' : ''} />
-              {recomputing ? 'Computing...' : 'Recompute Trends'}
+              <RefreshCw
+                size={13}
+                style={{
+                  animation: recomputing ? 'spin 1s linear infinite' : 'none',
+                }}
+              />
+              {recomputing ? 'Computing…' : 'Recompute'}
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+              type="button"
+              aria-label="Close drawer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid transparent',
+                background: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f1f5f9';
+                e.currentTarget.style.color = '#0f172a';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#64748b';
+              }}
             >
               <X size={18} />
             </button>
@@ -120,117 +273,301 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
         </div>
 
         {/* Metrics Strip */}
-        <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-xs text-slate-500 font-medium">Fleet Avg Consistency</div>
-            <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
-              {avgConsistency} <span className="text-xs font-normal text-slate-400">/ 100</span>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '12px',
+            padding: '16px 24px',
+            backgroundColor: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+          }}
+        >
+          <div
+            style={{
+              padding: '12px 14px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b' }}>
+              Fleet Avg Consistency
+            </div>
+            <div
+              style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#0f172a',
+                marginTop: '4px',
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: '4px',
+              }}
+            >
+              {avgConsistency}
+              <span style={{ fontSize: '12px', fontWeight: 500, color: '#94a3b8' }}>/ 100</span>
             </div>
           </div>
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-xs text-slate-500 font-medium">Consistent Drivers</div>
-            <div className="text-xl font-bold text-emerald-600">{consistentCount}</div>
+
+          <div
+            style={{
+              padding: '12px 14px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b' }}>
+              Consistent Drivers
+            </div>
+            <div
+              style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#059669',
+                marginTop: '4px',
+              }}
+            >
+              {consistentCount}
+            </div>
           </div>
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-xs text-slate-500 font-medium">Irregular Habits</div>
-            <div className="text-xl font-bold text-red-600">{volatileCount}</div>
+
+          <div
+            style={{
+              padding: '12px 14px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b' }}>
+              Irregular Habits
+            </div>
+            <div
+              style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                color: '#dc2626',
+                marginTop: '4px',
+              }}
+            >
+              {volatileCount}
+            </div>
           </div>
         </div>
 
         {/* Filter Bar */}
-        <div className="px-6 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-          <span className="text-xs text-slate-500 font-medium mr-2">Filter:</span>
+        <div
+          style={{
+            padding: '10px 24px',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: '#ffffff',
+          }}
+        >
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginRight: '4px' }}>
+            Filter:
+          </span>
           {[
-            { key: 'ALL', label: 'All' },
-            { key: 'CONSISTENT', label: 'Consistent' },
-            { key: 'VOLATILE', label: 'Needs Attention' },
-            { key: 'IMPROVING', label: 'Improving' },
-          ].map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition ${
-                filter === f.key
-                  ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+            { id: 'ALL', label: 'All' },
+            { id: 'CONSISTENT', label: 'Consistent' },
+            { id: 'VOLATILE', label: 'Needs Attention' },
+            { id: 'IMPROVING', label: 'Improving (β > 0)' },
+          ].map((f) => {
+            const isActive = filter === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: isActive ? 600 : 500,
+                  cursor: 'pointer',
+                  border: isActive ? '1px solid #0f172a' : '1px solid #e2e8f0',
+                  backgroundColor: isActive ? '#0f172a' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#475569',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Table Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '16px 24px',
+            backgroundColor: '#ffffff',
+          }}
+        >
           {loading ? (
-            <div className="py-16 text-center text-xs text-slate-400">Loading trend records...</div>
+            <div
+              style={{
+                padding: '64px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px',
+                color: '#94a3b8',
+                fontSize: '13px',
+              }}
+            >
+              <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+              <span>Loading trend metrics…</span>
+            </div>
           ) : filteredRows.length === 0 ? (
-            <div className="py-16 text-center text-xs text-slate-400">
-              No driver trend records found. Click 'Recompute Trends' to analyze completed trips.
+            <div
+              style={{
+                padding: '64px 24px',
+                textAlign: 'center',
+                color: '#64748b',
+                fontSize: '13px',
+                lineHeight: '20px',
+              }}
+            >
+              <Activity size={32} style={{ color: '#cbd5e1', margin: '0 auto 12px auto' }} />
+              <div style={{ fontWeight: 600, color: '#1e293b' }}>No trend records in this view</div>
+              <div
+                style={{
+                  marginTop: '4px',
+                  color: '#94a3b8',
+                  maxWidth: '420px',
+                  margin: '4px auto 0',
+                }}
+              >
+                {trends.length === 0
+                  ? 'No driver trends accumulated yet. Click "Recompute" to derive statistical consistency from recent trip and fuel data.'
+                  : 'Try selecting a different filter above.'}
+              </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div style={{ overflowX: 'auto' }}>
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontSize: '12.5px',
+                  textAlign: 'left',
+                }}
+              >
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold">
-                    <th className="pb-2">Driver</th>
-                    <th
-                      className="pb-2 text-right"
-                      title="Driving smoothness and habit score out of 100"
-                    >
-                      Consistency Score
-                    </th>
-                    <th
-                      className="pb-2 text-right"
-                      title="Trip-to-trip mileage variation: lower means steady driving"
-                    >
-                      Mileage Variation
-                    </th>
-                    <th className="pb-2">Habit Rating</th>
-                    <th className="pb-2 text-right" title="8-week fuel efficiency trajectory">
+                  <tr
+                    style={{
+                      borderBottom: '1px solid #e2e8f0',
+                      color: '#64748b',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    <th style={{ padding: '8px 12px 10px 0' }}>Driver</th>
+                    <th style={{ padding: '8px 12px 10px 12px', textAlign: 'right' }}>Score</th>
+                    <th style={{ padding: '8px 12px 10px 12px', textAlign: 'right' }}>CV %</th>
+                    <th style={{ padding: '8px 12px 10px 12px' }}>Habit Rating</th>
+                    <th style={{ padding: '8px 12px 10px 12px', textAlign: 'right' }}>
                       Efficiency Trend
                     </th>
-                    <th className="pb-2">Coaching Impact</th>
+                    <th style={{ padding: '8px 0 10px 12px' }}>Coaching Impact</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody>
                   {filteredRows.map((row) => {
                     const cfg = CONSISTENCY_MAP[row.consistencyClass] || CONSISTENCY_MAP.MODERATE;
-                    const slope = Number(row.trendSlope ?? 0);
+                    const slope = Number.isFinite(Number(row.trendSlope))
+                      ? Number(row.trendSlope)
+                      : 0;
                     const isPositive = slope > 0.05;
                     const isNegative = slope < -0.05;
+                    const cv = Number.isFinite(Number(row.coefficientOfVariation))
+                      ? `${Number(row.coefficientOfVariation).toFixed(1)}%`
+                      : '—';
+                    const score = Number.isFinite(Number(row.consistencyIndex))
+                      ? row.consistencyIndex
+                      : 0;
+                    const driverName =
+                      row.driverName ||
+                      (typeof row.driverId === 'object' && row.driverId?.name
+                        ? row.driverId.name
+                        : null) ||
+                      row.driverId ||
+                      'Driver';
+
                     return (
                       <tr
-                        key={row.driverId || row._id}
-                        className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40"
+                        key={row._id || row.driverId}
+                        className="trend-table-row"
+                        style={{
+                          borderBottom: '1px solid #f1f5f9',
+                          transition: 'background-color 0.15s ease',
+                        }}
                       >
-                        <td className="py-3 font-semibold text-slate-800 dark:text-slate-200">
-                          {row.driverName || row.driverId}
+                        <td
+                          style={{ padding: '12px 12px 12px 0', fontWeight: 600, color: '#0f172a' }}
+                        >
+                          {driverName}
                         </td>
-                        <td className="py-3 text-right font-mono font-medium">
-                          {row.consistencyIndex ?? 0}
+                        <td
+                          style={{
+                            padding: '12px',
+                            textAlign: 'right',
+                            fontFamily: 'monospace',
+                            fontWeight: 600,
+                            color: '#1e293b',
+                          }}
+                        >
+                          {score}
                         </td>
-                        <td className="py-3 text-right font-mono text-slate-500">
-                          {row.coefficientOfVariation
-                            ? `${row.coefficientOfVariation.toFixed(1)}%`
-                            : '—'}
+                        <td
+                          style={{
+                            padding: '12px',
+                            textAlign: 'right',
+                            fontFamily: 'monospace',
+                            color: '#64748b',
+                          }}
+                        >
+                          {cv}
                         </td>
-                        <td className="py-3">
+                        <td style={{ padding: '12px' }}>
                           <span
-                            className={`inline-block px-2 py-0.5 rounded border text-[11px] font-semibold ${cfg.bg}`}
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              backgroundColor: cfg.bg,
+                              color: cfg.color,
+                              border: `1px solid ${cfg.border}`,
+                            }}
                           >
                             {cfg.label}
                           </span>
                         </td>
-                        <td className="py-3 text-right font-mono">
+                        <td
+                          style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}
+                        >
                           <span
-                            className={`inline-flex items-center gap-0.5 ${
-                              isPositive
-                                ? 'text-emerald-600 font-bold'
-                                : isNegative
-                                  ? 'text-red-600 font-bold'
-                                  : 'text-slate-500'
-                            }`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: 600,
+                              color: isPositive ? '#059669' : isNegative ? '#dc2626' : '#64748b',
+                            }}
                           >
                             {isPositive && <TrendingUp size={13} />}
                             {isNegative && <TrendingDown size={13} />}
@@ -242,13 +579,19 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
                                 : `Steady (±${Math.abs(slope).toFixed(2)})`}
                           </span>
                         </td>
-                        <td className="py-3 text-slate-500 text-[11px]">
+                        <td
+                          style={{
+                            padding: '12px 0 12px 12px',
+                            color: '#64748b',
+                            fontSize: '11.5px',
+                          }}
+                        >
                           {row.coachingAttribution?.coached ? (
-                            <span className="text-emerald-600 font-medium">
+                            <span style={{ color: '#059669', fontWeight: 600 }}>
                               +{row.coachingAttribution.improvementScore ?? 0}% post-coaching
                             </span>
                           ) : (
-                            <span className="text-slate-400">Not coached</span>
+                            <span style={{ color: '#94a3b8' }}>Not coached</span>
                           )}
                         </td>
                       </tr>

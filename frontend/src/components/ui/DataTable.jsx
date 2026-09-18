@@ -59,6 +59,7 @@ export default function DataTable({
   selectedKeys = null,
   onSelectionChange = null,
   isRowSelectable = null,
+  pagination = null,
 }) {
   const [hidden, setHidden] = useState(() => new Set());
   const [density, setDensity] = useState(() => readDensity(window.localStorage));
@@ -292,9 +293,10 @@ export default function DataTable({
         ) : null}
       </div>
 
-      {paginated && rows.length > 0 ? (
+      {(paginated || pagination) && rows.length > 0 ? (
         <div className="dt-foot">
           <span className="dt-summary">{summary}</span>
+          {pagination ? <div className="dt-pagination">{pagination}</div> : null}
         </div>
       ) : null}
     </div>

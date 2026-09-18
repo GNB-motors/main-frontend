@@ -49,9 +49,6 @@ const DriversPage = () => {
     setThemeColors(getThemeCSS());
   }, []);
 
-  // Action Menu State
-  const [openMenuDriverId, setOpenMenuDriverId] = useState(null);
-  const [menuPosition, setMenuPosition] = useState(null); // {top, bottom, right} from getBoundingClientRect
   const [showTrendsDrawer, setShowTrendsDrawer] = useState(false);
 
   // Pagination State
@@ -78,21 +75,6 @@ const DriversPage = () => {
   // Profile context removed - drivers page should render independently
   // Read businessRefId from session storage as a fallback
   const businessRefId = getProfileField('business_ref_id') || null;
-
-  // Close Action Menu on scroll to prevent detached floating menu
-  useEffect(() => {
-    const handleScroll = () => {
-      if (openMenuDriverId !== null) {
-        setOpenMenuDriverId(null);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { capture: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll, { capture: true });
-    };
-  }, [openMenuDriverId]);
 
   // --- Data Fetching ---
   const fetchDrivers = async () => {
@@ -198,21 +180,17 @@ const DriversPage = () => {
     drivers,
     setDrivers,
     fetchDrivers,
-    setOpenMenuDriverId,
     setActionError,
   });
 
   const columns = useDriverColumns({
-    openMenuDriverId,
-    setOpenMenuDriverId,
-    menuPosition,
-    setMenuPosition,
     onEdit: handleOpenEditModal,
     onDelete: handleOpenDeleteModal,
     onActivateHere: handleActivateHere,
     onDeactivate: handleOpenDeactivate,
     getInitials,
     formatRole,
+    isSubmitting: isSubmitting || isActionSubmitting,
   });
 
   const handleSearchChange = (event) => {
@@ -275,20 +253,10 @@ const DriversPage = () => {
     }
   };
 
-  // Close action menu and filter dropdown if clicking outside
+  // Close filter dropdown if clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target || typeof event.target.closest !== 'function') return;
-
-      // Check if the click is outside the action menu button/area AND outside the portal menu
-      if (
-        openMenuDriverId &&
-        !event.target.closest(`.drivers-action-menu-container-${openMenuDriverId}`) &&
-        !event.target.closest('.drivers-action-menu')
-      ) {
-        setOpenMenuDriverId(null);
-        setMenuPosition(null);
-      }
 
       // Check if the click is outside the filter dropdown
       if (isFilterDropdownOpen && !event.target.closest('.drivers-filter-container')) {
@@ -299,7 +267,7 @@ const DriversPage = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [openMenuDriverId, isFilterDropdownOpen]);
+  }, [isFilterDropdownOpen]);
 
   // --- Render Logic ---
   // Full-page loader only on the very first mount. Subsequent refetches
@@ -375,7 +343,6 @@ const DriversPage = () => {
             }
           />
         }
-        footer={`Showing ${paginatedDrivers.length} of ${drivers.length} employees`}
       >
         {actionError && (
           <div className="drivers-error-message drivers-action-error">{actionError}</div>
@@ -391,6 +358,16 @@ const DriversPage = () => {
           showing={paginatedDrivers.length}
           total={activeCount}
           activeFilters={activeFilterCount}
+          paginated={true}
+          pagination={
+            totalPages > 1 || activeCount > 10 ? (
+              <DriversPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            ) : null
+          }
           emptyTitle={
             drivers.length === 0 ? 'No employees added yet' : 'No employees match your search'
           }
@@ -411,13 +388,6 @@ const DriversPage = () => {
             if (driver.branchStatus === 'DEACTIVATED') return;
             handleOpenEditModal(driver);
           }}
-        />
-
-        {/* Pagination controls - server-side, always visible */}
-        <DriversPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
         />
       </PageShell>
 

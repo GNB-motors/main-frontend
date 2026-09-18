@@ -299,7 +299,6 @@ const VehiclesPage = () => {
             right={accountSelect}
           />
         }
-        footer={`Showing ${filteredVehicles.length} of ${totalVehicles} vehicles`}
       >
         {formError && (
           <p className="error-message" style={{ marginBottom: '10px', padding: '0 20px' }}>
@@ -317,6 +316,56 @@ const VehiclesPage = () => {
           showing={filteredVehicles.length}
           total={totalVehicles}
           activeFilters={activeFilterCount}
+          paginated={true}
+          pagination={
+            totalPages > 1 || totalVehicles > 10 ? (
+              <div className="vehicles-pagination-controls">
+                {/* Left Arrow */}
+                <button
+                  className="vehicles-pagination-btn"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || totalPages <= 1}
+                  type="button"
+                  title="Previous page"
+                >
+                  <span>←</span>
+                </button>
+
+                {/* Page Numbers */}
+                {generatePageNumbers().map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <div key={`overflow-${index}`} className="vehicles-page-overflow">
+                        <span>...</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      key={page}
+                      type="button"
+                      className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
+                      onClick={() => handlePageChange(page)}
+                      disabled={totalPages <= 1}
+                    >
+                      <span>{page}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Right Arrow */}
+                <button
+                  className="vehicles-pagination-btn"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || totalPages <= 1}
+                  type="button"
+                  title="Next page"
+                >
+                  <span>→</span>
+                </button>
+              </div>
+            ) : null
+          }
           emptyTitle={
             vehicles.length === 0 ? 'No vehicles added yet' : 'No vehicles match your search'
           }
@@ -339,48 +388,6 @@ const VehiclesPage = () => {
             navigate(`/vehicles/${encodeURIComponent(vehicle.registration_no)}`);
           }}
         />
-
-        {/* Pagination controls - server-side, always visible */}
-        <div className="vehicles-pagination-controls">
-          {/* Left Arrow */}
-          <button
-            className="vehicles-pagination-btn"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1 || totalPages <= 1}
-          >
-            <span>←</span>
-          </button>
-
-          {/* Page Numbers */}
-          {generatePageNumbers().map((page, index) => {
-            if (page === '...') {
-              return (
-                <div key={`overflow-${index}`} className="vehicles-page-overflow">
-                  <span>...</span>
-                </div>
-              );
-            }
-            return (
-              <button
-                key={page}
-                className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
-                onClick={() => handlePageChange(page)}
-                disabled={totalPages <= 1}
-              >
-                <span>{page}</span>
-              </button>
-            );
-          })}
-
-          {/* Right Arrow */}
-          <button
-            className="vehicles-pagination-btn"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || totalPages <= 1}
-          >
-            <span>→</span>
-          </button>
-        </div>
       </PageShell>
 
       {/* Delete Vehicle Modal */}

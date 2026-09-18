@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, Plus, Wrench } from 'lucide-react';
+import { Plus, Wrench } from 'lucide-react';
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
@@ -65,26 +65,6 @@ const Kpi = ({ title, value, accent, icon }) => (
       <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{value}</div>
     </div>
   </div>
-);
-
-const BackToVehicles = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 6,
-      background: 'none',
-      border: 'none',
-      padding: 0,
-      fontSize: 13,
-      color: '#2563eb',
-      cursor: 'pointer',
-    }}
-  >
-    <ArrowLeft size={14} />
-    Vehicles
-  </button>
 );
 
 const ServiceIntelligencePage = () => {
@@ -212,7 +192,6 @@ const ServiceIntelligencePage = () => {
         <PageShell
           title="Service Intelligence"
           subtitle="Manage vehicle service and repair history. Alerts will surface automatically once we wire the rules."
-          actions={<BackToVehicles onClick={() => navigate('/vehicles')} />}
           filters={
             !isAlerts ? (
               <FilterBar
