@@ -1,20 +1,96 @@
+/* eslint-disable react-refresh/only-export-components */
 // DataTable column definitions for the Drivers/Employees page.
 // Follows the unified PageShell + DataTable design used across other sections.
 import React from 'react';
-import { MoreHorizontal } from 'lucide-react';
-import { ActionMenu } from './Component/DriverMenuExtras.jsx';
+import { Eye, Pencil, Trash2, ToggleRight } from 'lucide-react';
+
+/**
+ * DriverInlineActions
+ * Renders inline icon buttons directly in the Actions column, matching VehiclesPage:
+ *   👁  View profile/edit  |  ✏️  Edit  |  🗑  Delete
+ * For deactivated employees, the edit/delete pair is replaced with "Mark as active".
+ */
+function DriverInlineActions({ driver, isSubmitting, onEdit, onDelete, onActivateHere }) {
+  const isDeactivatedHere = driver?.branchStatus === 'DEACTIVATED';
+
+  const handleView = (e) => {
+    e.stopPropagation();
+    onEdit(driver);
+  };
+
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    onEdit(driver);
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    onDelete(driver);
+  };
+
+  const handleActivate = (e) => {
+    e.stopPropagation();
+    onActivateHere(driver);
+  };
+
+  return (
+    <div className="vehicle-inline-actions driver-inline-actions">
+      {/* View profile — always available */}
+      <button
+        className="vehicle-inline-btn vehicle-inline-btn--view"
+        onClick={handleView}
+        disabled={isSubmitting}
+        title="View details"
+        type="button"
+      >
+        <Eye size={16} />
+      </button>
+
+      {isDeactivatedHere ? (
+        /* Deactivated employee: action is to re-activate */
+        <button
+          className="vehicle-inline-btn vehicle-inline-btn--activate"
+          onClick={handleActivate}
+          disabled={isSubmitting}
+          title="Mark as active"
+          type="button"
+        >
+          <ToggleRight size={16} />
+        </button>
+      ) : (
+        <>
+          <button
+            className="vehicle-inline-btn vehicle-inline-btn--edit"
+            onClick={handleEdit}
+            disabled={isSubmitting}
+            title="Edit employee"
+            type="button"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            className="vehicle-inline-btn vehicle-inline-btn--delete"
+            onClick={handleDelete}
+            disabled={isSubmitting}
+            title="Delete employee"
+            type="button"
+          >
+            <Trash2 size={16} />
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function useDriverColumns({
-  openMenuDriverId,
-  setOpenMenuDriverId,
-  menuPosition,
-  setMenuPosition,
   onEdit,
   onDelete,
   onActivateHere,
   onDeactivate,
   getInitials,
   formatRole,
+  isSubmitting = false,
 }) {
   return [
     {
@@ -51,66 +127,56 @@ export function useDriverColumns({
       ),
     },
     {
-      key: 'id',
-      label: 'Emp ID',
+      key: 'mobileNumber',
+      label: 'Contact',
+      render: (driver) => (
+        <span style={{ fontSize: '13px', color: 'var(--ds-ink2, #334155)' }}>
+          {driver.mobileNumber || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'assignedVehicle',
+      label: 'Assigned Vehicle',
+      render: (driver) => {
+        const hasVehicle = driver.assignedVehicle && driver.assignedVehicle !== 'Unassigned';
+        return (
+          <span
+            style={{
+              fontSize: '13px',
+              fontWeight: hasVehicle ? 600 : 400,
+              color: hasVehicle ? 'var(--ds-ink, #0f172a)' : 'var(--ds-ink3, #94a3b8)',
+              fontFamily: hasVehicle ? 'var(--font-mono, monospace)' : 'inherit',
+            }}
+          >
+            {driver.assignedVehicle || 'Unassigned'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'licenseNumber',
+      label: 'License / Docs',
       render: (driver) => (
         <span
           style={{
             fontFamily: 'var(--font-mono, monospace)',
             fontSize: '12px',
-            color: 'var(--ds-ink2, #334155)',
+            color: 'var(--ds-ink2, #475569)',
           }}
         >
-          {driver.id ? `${driver.id.substring(0, 8)}...` : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'mobileNumber',
-      label: 'Contact',
-      render: (driver) => (
-        <span style={{ fontSize: '13px', color: 'var(--ds-ink2, #334155)' }}>
-          {driver.mobileNumber || driver.email || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'role',
-      label: 'Role',
-      render: (driver) => (
-        <span
-          style={{
-            padding: '3px 8px',
-            borderRadius: '6px',
-            fontSize: '12px',
-            fontWeight: 500,
-            background: '#f1f5f9',
-            color: '#334155',
-            border: '1px solid #e2e8f0',
-            display: 'inline-block',
-          }}
-        >
-          {formatRole ? formatRole(driver.role, driver.is_superadmin) : driver.role || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      render: (driver) => (
-        <span style={{ fontSize: '13px', color: 'var(--ds-ink3, #64748b)' }}>
-          {driver.email || '-'}
+          {driver.licenseNumber || '-'}
         </span>
       ),
     },
     {
       key: 'status',
       label: 'Status',
+      align: 'center',
       render: (driver) => {
         if (driver.branchStatus === 'DEACTIVATED') {
           return (
             <span
-              title="This employee moved to another location and is deactivated here"
               style={{
                 padding: '3px 8px',
                 borderRadius: '6px',
@@ -151,53 +217,14 @@ export function useDriverColumns({
       label: 'Actions',
       align: 'center',
       render: (driver) => (
-        <div
-          className={`drivers-action-menu-container drivers-action-menu-container-${driver.id}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            className="drivers-action-menu-btn"
-            type="button"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '6px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--ds-ink2, #475569)',
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (openMenuDriverId === driver.id) {
-                setOpenMenuDriverId(null);
-                setMenuPosition(null);
-              } else {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setMenuPosition({
-                  top: rect.top,
-                  bottom: rect.bottom,
-                  right: rect.right,
-                });
-                setOpenMenuDriverId(driver.id);
-              }
-            }}
-          >
-            <MoreHorizontal size={18} />
-          </button>
-          {openMenuDriverId === driver.id && (
-            <ActionMenu
-              driver={driver}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onActivateHere={onActivateHere}
-              onDeactivate={onDeactivate}
-              position={menuPosition}
-            />
-          )}
-        </div>
+        <DriverInlineActions
+          driver={driver}
+          isSubmitting={isSubmitting}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onActivateHere={onActivateHere}
+          onDeactivate={onDeactivate}
+        />
       ),
     },
   ];

@@ -15,7 +15,6 @@ export function useDriverActions({
   drivers,
   setDrivers,
   fetchDrivers,
-  setOpenMenuDriverId,
   setActionError,
 }) {
   // Modal States
@@ -34,14 +33,12 @@ export function useDriverActions({
   const handleOpenEditModal = (driver) => {
     // Navigate to the Add Driver page but pass the driver to edit via location state
     // so the same page can be used for editing with fields pre-filled.
-    setOpenMenuDriverId(null); // Close action menu
     navigate('/drivers/add', { state: { editingDriver: driver } });
   };
 
   const handleOpenDeleteModal = (driver) => {
     setDeletingDriver(driver);
     setIsDeleteModalOpen(true);
-    setOpenMenuDriverId(null); // Close action menu
   };
 
   // Activate a deactivated employee in the current location. If they are still
@@ -49,7 +46,6 @@ export function useDriverActions({
   // deactivated there) — warn with a modal first. If they were simply
   // deactivated in this same branch, it's a plain re-enable, so run it directly.
   const handleActivateHere = (driver) => {
-    setOpenMenuDriverId(null);
     if (isCrossBranchMove(driver, getBranchId())) {
       setMovingDriver(driver);
     } else {
@@ -75,7 +71,6 @@ export function useDriverActions({
 
   // Open the confirm modal for deactivating an active employee in this branch.
   const handleOpenDeactivate = (driver) => {
-    setOpenMenuDriverId(null);
     setDeactivatingDriver(driver);
   };
 

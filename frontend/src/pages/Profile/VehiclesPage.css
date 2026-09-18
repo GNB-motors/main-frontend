@@ -679,28 +679,22 @@
    Vehicles Page Layout & Table Styles
    ========================================================================== */
 
-/* Vehicles Page Layout - Similar to Drivers Page */
+/* Vehicles Page Layout - Matches Drivers Page */
 .vehicles-page-container {
   padding: 0 !important;
   border-radius: var(--border-radius-lg);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: calc(100vh - 80px);
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
+  min-height: 100%;
   background-color: transparent;
-  /* Prevent content from being hidden behind the fixed 64px FormFooter */
-  padding-bottom: 64px !important;
 }
 
 .vehicles-content-wrapper {
   flex: 1;
-  padding: 24px 24px 0 24px;
-  overflow-y: auto; /* was: overflow: hidden — clipped content and broke scrolling */
-  overflow-x: hidden;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .vehicles-header {
@@ -964,20 +958,18 @@
   position: relative;
 }
 
-/* Pagination Controls - Sticky Footer */
+/* Pagination Controls */
 .vehicles-pagination-controls {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
-  padding: 6px;
-  border-top: 1px solid var(--core-morning-fog-solids-morning-fog-700, #dfdfe2);
-  background: var(--core-semantics-universal-white, white);
-  width: 100%;
+  padding: 0;
+  border-top: none;
+  background: transparent;
+  width: auto;
   box-sizing: border-box;
-  margin-top: auto;
   flex-shrink: 0;
-  min-height: 24px;
 }
 
 /* Arrow buttons (Left/Right) */

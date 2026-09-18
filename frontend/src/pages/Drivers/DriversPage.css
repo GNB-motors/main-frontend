@@ -4,21 +4,16 @@
   border-radius: var(--border-radius-lg);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: calc(100vh - 80px);
-  overflow-y: auto;
+  min-height: 100%;
   background-color: transparent;
-  padding-bottom: 64px !important;
 }
 
 .drivers-content-wrapper {
   flex: 1;
-  padding: 24px 24px 0 24px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  width: 100%;
 }
 
 /* Header Section */
@@ -809,14 +804,12 @@
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
-  padding: 6px;
-  border-top: 1px solid var(--core-morning-fog-solids-morning-fog-700, #dfdfe2);
-  background: var(--core-semantics-universal-white, white);
-  width: 100%;
+  padding: 0;
+  border-top: none;
+  background: transparent;
+  width: auto;
   box-sizing: border-box;
-  margin-top: auto;
   flex-shrink: 0;
-  min-height: 24px;
 }
 
 /* Footer - Always visible even without pagination */
@@ -1261,25 +1254,89 @@
   font-weight: 500;
 }
 
-/* Make sure all text uses Inter font */
-.drivers-container,
-.drivers-container * {
-  font-family: 'Inter', sans-serif;
+/* Inline Action Buttons matching Vehicles page */
+.driver-inline-actions,
+.vehicle-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
 
-/* Responsive adjustments */
-@media (max-width: 720px) {
-  .drivers-header > div:first-child {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.driver-inline-actions .vehicle-inline-btn,
+.vehicle-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #ececee;
+  background: #f9f9fb;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+  color: #454547;
+  flex-shrink: 0;
+}
 
-  .drivers-actions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
+.vehicle-inline-btn:hover {
+  background: #f0f0f5;
+  transform: translateY(-1px);
+}
 
-  .drivers-form-group {
-    flex: 1 1 100%;
-  }
+.vehicle-inline-btn:active {
+  transform: translateY(0);
+}
+
+.vehicle-inline-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* View — blue */
+.vehicle-inline-btn--view {
+  color: #3b6ef8;
+  border-color: #dce7fd;
+  background: #f0f5ff;
+}
+.vehicle-inline-btn--view:hover {
+  background: #e0ebff;
+  border-color: #3b6ef8;
+}
+
+/* Edit — slate/grey */
+.vehicle-inline-btn--edit {
+  color: #454547;
+  border-color: #e2e2e6;
+  background: #f9f9fb;
+}
+.vehicle-inline-btn--edit:hover {
+  background: #ededf2;
+  border-color: #bbbbc2;
+}
+
+/* Delete — red */
+.vehicle-inline-btn--delete {
+  color: #e53935;
+  border-color: #fddede;
+  background: #fff5f5;
+}
+.vehicle-inline-btn--delete:hover {
+  background: #ffe0e0;
+  border-color: #e53935;
+}
+
+/* Activate — green */
+.vehicle-inline-btn--activate {
+  color: #2e7d32;
+  border-color: #c8e6c9;
+  background: #f1f8f1;
+}
+.vehicle-inline-btn--activate:hover {
+  background: #dcedc8;
+  border-color: #2e7d32;
 }
