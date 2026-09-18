@@ -8,6 +8,7 @@
    clash-skipping applies only to the rest. */
 
 import { project } from './kgProject';
+import { pullTowardCentre } from './incidentRank';
 
 /** Label font, verbatim from the design. */
 export const LABEL_FONT = "500 10.5px 'IBM Plex Mono', monospace";
@@ -16,11 +17,13 @@ export const LABEL_FONT = "500 10.5px 'IBM Plex Mono', monospace";
 export const LABEL_MAX = 30;
 
 /** Off-screen cull margins: ±80 on x, ±40 on y. */
-export const CULL_X = 80, CULL_Y = 40;
+export const CULL_X = 80,
+  CULL_Y = 40;
 
 /** labelAll thresholds: infra always labels; otherwise every node is labelled
     only while the graph is small or the view is zoomed in. */
-export const LABEL_ALL_COUNT = 90, LABEL_ALL_K = 1.6;
+export const LABEL_ALL_COUNT = 90,
+  LABEL_ALL_K = 1.6;
 
 /** Non-important nodes smaller than this skip their label. */
 export const IMPORTANT_MIN_R = 5.5;
@@ -33,12 +36,12 @@ const has = (nb, id) => {
 };
 
 /** The design's matches(): name, file, ns, or kind contains the query. */
-const matches = (n, q) => !!q && (
-  (n.name || '').toLowerCase().includes(q)
-  || (n.file || '').toLowerCase().includes(q)
-  || (n.ns || '').toLowerCase().includes(q)
-  || (n.kind || '').includes(q)
-);
+const matches = (n, q) =>
+  !!q &&
+  ((n.name || '').toLowerCase().includes(q) ||
+    (n.file || '').toLowerCase().includes(q) ||
+    (n.ns || '').toLowerCase().includes(q) ||
+    (n.kind || '').includes(q));
 
 const truncate = (name) => (name.length > LABEL_MAX ? name.slice(0, LABEL_MAX - 1) + '…' : name);
 
@@ -62,22 +65,37 @@ const truncate = (name) => (name.length > LABEL_MAX ? name.slice(0, LABEL_MAX - 
     at [x, y + r + 5.5]. */
 export const placeLabels = (nodes, opts) => {
   const { layer, visibleCount, cam, is3d = false, width: W, height: H, measureText } = opts;
-  const sel = opts.selId || null, hov = opts.hoverId || null;
+  const sel = opts.selId || null,
+    hov = opts.hoverId || null;
   const nb = opts.neighbours;
   const q = (opts.query || '').trim().toLowerCase();
 
   const labelAll = layer === 'infra' || visibleCount < LABEL_ALL_COUNT || cam.k > LABEL_ALL_K;
   const P = {};
-  for (const n of nodes) P[n.id] = project(n, cam, is3d);
+  /* The label must follow the incident centre-pull the shell applies in its
+     projection loop (I4) — same urgency map, same formula — or a pulled
+     node's label would drift off the node it names. */
+  for (const n of nodes) {
+    const p = project(n, cam, is3d);
+    const u = opts.urgency && opts.urgency.get(n.id);
+    if (u && u.pull) {
+      const q = pullTowardCentre(p.x, p.y, u.pull, W, H);
+      p.x = q.x;
+      p.y = q.y;
+    }
+    P[n.id] = p;
+  }
 
   // Priority: selected +3, neighbour +2, hovered +3, r * 0.02 — high first.
-  const prio = (n) => (n.id === sel ? 3 : 0) + (has(nb, n.id) ? 2 : 0) + (n.id === hov ? 3 : 0) + n.r * 0.02;
+  const prio = (n) =>
+    (n.id === sel ? 3 : 0) + (has(nb, n.id) ? 2 : 0) + (n.id === hov ? 3 : 0) + n.r * 0.02;
   const cand = nodes.slice().sort((a, b) => prio(b) - prio(a));
 
   const placed = [];
   const out = [];
   for (const n of cand) {
-    const p = P[n.id], r = Math.max(2.2, n.r * cam.k * p.s);
+    const p = P[n.id],
+      r = Math.max(2.2, n.r * cam.k * p.s);
     const important = n.id === sel || n.id === hov || has(nb, n.id) || matches(n, q);
     if (!labelAll && !important) continue;
     if (!important && r < IMPORTANT_MIN_R) continue;
@@ -88,14 +106,22 @@ export const placeLabels = (nodes, opts) => {
     let clash = false;
     for (let i = 0; i < placed.length; i++) {
       const o = placed[i];
-      if (box[0] < o[0] + o[2] + 2 && box[0] + box[2] + 2 > o[0] && box[1] < o[1] + o[3] + 1 && box[1] + box[3] + 1 > o[1]) { clash = true; break; }
+      if (
+        box[0] < o[0] + o[2] + 2 &&
+        box[0] + box[2] + 2 > o[0] &&
+        box[1] < o[1] + o[3] + 1 &&
+        box[1] + box[3] + 1 > o[1]
+      ) {
+        clash = true;
+        break;
+      }
     }
     if (clash && !important) continue;
     placed.push(box);
     out.push({
       id: n.id,
       label,
-      alpha: important ? 1 : (sel ? 0.3 : 0.68),
+      alpha: important ? 1 : sel ? 0.3 : 0.68,
       box,
       text: [p.x, p.y + r + 5.5],
     });
