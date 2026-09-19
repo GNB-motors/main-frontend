@@ -298,7 +298,7 @@ const TripCreationFlow = () => {
     setSelectedDriver(null);
     setShowJourneyModal(false);
     setJourneyData(null);
-    navigate('/trip/management');
+    navigate('/trip-management');
   }, [confirm, navigate]);
 
   return (

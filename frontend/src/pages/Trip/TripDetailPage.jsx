@@ -180,7 +180,7 @@ const TripDetailPage = () => {
           totalTrips={totalTrips}
           expanded={expandedSections.weightSlips}
           onToggle={() => toggleSection('weightSlips')}
-          onOpenTrip={(wst) => navigate(`/trip-management/weight-slip/${wst._id}`)}
+          onOpenTrip={(wst) => navigate(`/trip-management/trip/${wst._id}`)}
         />
 
         <TimelineSection trip={trip} />

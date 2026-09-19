@@ -160,13 +160,7 @@ const TripManagementPage = () => {
         loading={isLoading}
         showing={filteredTrips.length}
         total={activePagination.total}
-        onRowClick={(trip) =>
-          navigate(
-            activeTab === 'trips'
-              ? `/trip-management/weight-slip/${trip._id}`
-              : `/trip-management/trip/${trip._id}`,
-          )
-        }
+        onRowClick={(trip) => navigate(`/trip-management/trip/${trip._id}`)}
         emptyTitle={`No ${tabLabel} found`}
         emptyHint={searchQuery ? 'Try adjusting your search' : null}
         emptyAction={

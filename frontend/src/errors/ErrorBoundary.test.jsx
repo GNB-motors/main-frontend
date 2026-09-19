@@ -110,7 +110,8 @@ describe('ErrorFallback', () => {
     expect(reset).toHaveBeenCalledTimes(1);
   });
 
-  it('assigns to / on Go to Dashboard', () => {
+  // '/' is the public marketing page — a signed-in user landing there looks logged out.
+  it('assigns to the authenticated dashboard on Go to Dashboard', () => {
     const assign = vi.fn();
     Object.defineProperty(window, 'location', {
       value: { ...window.location, assign },
@@ -118,6 +119,6 @@ describe('ErrorFallback', () => {
     });
     render(<ErrorFallback error={new Error('x')} />);
     fireEvent.click(screen.getByRole('button', { name: 'Go to Dashboard' }));
-    expect(assign).toHaveBeenCalledWith('/');
+    expect(assign).toHaveBeenCalledWith('/overview');
   });
 });
