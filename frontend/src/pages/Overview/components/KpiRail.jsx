@@ -69,7 +69,7 @@ export default function KpiRail({
         sub={`${formatNum(drivers?.active || 0)} active`}
       />
       <KpiTile
-        to="/trips"
+        to="/trip-management"
         label={
           <>
             <RouteIcon size={13} /> Trips
