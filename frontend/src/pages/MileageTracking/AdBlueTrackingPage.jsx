@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Search, AlertTriangle, Eye, FileText, Pencil } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import '../Trip/RefuelLogsPage.css';

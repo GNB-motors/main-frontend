@@ -11,13 +11,77 @@
  * gateway to persistent storage.
  */
 
-import { getOrgId, getUserId } from './session.js';
+import { getOrgId, getUserId, getToken } from './session.js';
 
 let sdk = null;
 let initPromise = null;
 const pending = [];
 
 const BUFFER_CAP = 20;
+
+// ── In-house capture (LEMU) ────────────────────────────────────────────────
+// Sentry is a no-op unless VITE_SENTRY_DSN is set, so on its own captured
+// errors go nowhere. The backend LEMU pipeline (POST /telemetry/ingest →
+// source-mapped errors dashboard + Discord alerts) is always available, so we
+// mirror every captured exception to it. Deduped per-fingerprint to avoid
+// flooding on a render loop; best-effort and never throws.
+// Same mount the backend uses for extension telemetry (app.js: /api/extension/telemetry),
+// under the API base the rest of the app already targets (VITE_API_BASE_URL).
+const LEMU_ENDPOINT = `${import.meta.env.VITE_API_BASE_URL || ''}/extension/telemetry/ingest`;
+const LEMU_DEDUPE_MS = 60_000;
+const lemuSeen = new Map();
+
+function lemuFingerprint(error) {
+  const name = error?.name || 'Error';
+  const msg = (error?.message || String(error) || '').slice(0, 120);
+  return `web:${name}:${msg}`;
+}
+
+function reportToLemu(error, context = {}) {
+  try {
+    if (!import.meta.env.VITE_API_BASE_URL) return;
+    const fp = lemuFingerprint(error);
+    const now = Date.now();
+    const last = lemuSeen.get(fp);
+    if (last && now - last < LEMU_DEDUPE_MS) return;
+    if (lemuSeen.size > 100) lemuSeen.clear();
+    lemuSeen.set(fp, now);
+
+    const event = {
+      source: 'FRONTEND',
+      severity: 'ERROR',
+      layer: 'UI',
+      errorName: error?.name || 'Error',
+      message: (error?.message || String(error) || 'Unknown error').slice(0, 500),
+      stack: error?.stack || null,
+      fingerprint: fp,
+      timestamp: new Date().toISOString(),
+      environment: import.meta.env.MODE,
+      extra: {
+        ...(context.extra || {}),
+        ...(context.tags || {}),
+        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
+        orgId: getOrgId() || undefined,
+        userId: getUserId() || undefined,
+      },
+    };
+    const token = getToken();
+    // keepalive lets the POST survive an unload (e.g. an error during navigation).
+    fetch(LEMU_ENDPOINT, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ environment: import.meta.env.MODE, events: [event] }),
+    }).catch(() => {
+      // best-effort: a failed error-report must never surface as another error
+    });
+  } catch {
+    // never let the reporter throw into the caller (an error boundary / handler)
+  }
+}
 
 function flushPending() {
   while (pending.length > 0 && sdk) {
@@ -42,6 +106,8 @@ function report(error, context) {
  * @param {{tags?: Object, extra?: Object}} [context]
  */
 export function captureException(error, context = {}) {
+  // Always mirror to the in-house LEMU pipeline (works without a Sentry DSN).
+  reportToLemu(error, context);
   if (sdk) {
     report(error, context);
   } else if (pending.length < BUFFER_CAP) {

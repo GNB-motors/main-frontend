@@ -73,7 +73,6 @@ export const createVehicleMarkerIcon = ({
   const isIdling = status === 'Idling';
   const isStopped = status === 'Stopped';
 
-  // Sensor cone colors matching Screenshot 2 (purple for Stopped, green for Moving)
   const coneFill = isMoving
     ? 'rgba(34, 197, 94, 0.4)'
     : isIdling
@@ -98,117 +97,130 @@ export const createVehicleMarkerIcon = ({
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
-      ${
-        isSelected
-          ? `
-        <circle cx="34" cy="28" r="26" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-dasharray="4 3" opacity="0.9" />
-      `
-          : ''
-      }
-
-      <!-- Rotated Vehicle and Forward Beam -->
-      <g transform="rotate(${courseDegrees || 0} 34 28)">
-        <!-- Forward Sensor / Direction Beam projecting forward -->
-        <path d="M 34 14 L 14 0 A 30 30 0 0 1 54 0 Z" fill="${coneFill}" stroke="${coneStroke}" stroke-width="1.2" stroke-dasharray="2.5 2" />
-        
-        <!-- Truck Chassis / Body -->
-        <rect x="27" y="18" width="14" height="20" rx="2.5" fill="#FFFFFF" stroke="#334155" stroke-width="1.5" />
-        
-        <!-- Truck Cabin -->
-        <rect x="28.5" y="10" width="11" height="9" rx="2" fill="${cabFill}" stroke="#1E293B" stroke-width="1.2" />
-        
-        <!-- Windshield -->
-        <rect x="29.5" y="12" width="9" height="3" rx="1" fill="#E2E8F0" opacity="0.95" />
-        
-        <!-- Wheels / Side Mirrors -->
-        <rect x="25" y="12" width="2" height="4" rx="1" fill="#1E293B" />
-        <rect x="41" y="12" width="2" height="4" rx="1" fill="#1E293B" />
-        <rect x="25" y="28" width="2" height="6" rx="1" fill="#1E293B" />
-        <rect x="41" y="28" width="2" height="6" rx="1" fill="#1E293B" />
+      <g transform="translate(34, 29)">
+        ${
+          isSelected
+            ? `<circle r="26" fill="none" stroke="${coneStroke}" stroke-width="2" stroke-dasharray="4 3" opacity="0.8"/>`
+            : ''
+        }
+        <g transform="rotate(${courseDegrees})">
+          <path d="M 0 0 L -22 -34 A 38 38 0 0 1 22 -34 Z"
+                fill="${coneFill}"
+                stroke="${coneStroke}"
+                stroke-width="1.2"/>
+          <rect x="-7" y="-12" width="14" height="24" rx="4"
+                fill="${cabFill}"
+                stroke="#0F172A"
+                stroke-width="1.5"/>
+          <rect x="-5" y="-10" width="10" height="7" rx="2"
+                fill="#F8FAFC"
+                opacity="0.9"/>
+          <line x1="0" y1="-12" x2="0" y2="-16" stroke="#0F172A" stroke-width="2"/>
+          <circle cx="0" cy="-17" r="1.5" fill="#EF4444"/>
+        </g>
+        <circle r="2.5" fill="#FFFFFF" stroke="#0F172A" stroke-width="1"/>
       </g>
-
       ${
         showLabel && registrationNumber
           ? `
-        <!-- Plate Badge Pill (Unrotated) -->
-        <g transform="translate(34, 55)">
-          <rect x="-32" y="0" width="64" height="17" rx="3" fill="#FFFFFF" stroke="#64748B" stroke-width="1" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.35))" />
-          <text x="0" y="12" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="800" fill="#000000" letter-spacing="0.2px">
-            ${registrationNumber.slice(0, 11)}
+        <g transform="translate(34, 66)">
+          <rect x="-30" y="-10" width="60" height="18" rx="4"
+                fill="#0F172A"
+                stroke="#334155"
+                stroke-width="1"/>
+          <text x="0" y="3"
+                fill="#FFFFFF"
+                font-family="system-ui, -apple-system, sans-serif"
+                font-size="10"
+                font-weight="700"
+                text-anchor="middle"
+                letter-spacing="0.5">
+            ${registrationNumber.slice(-8)}
           </text>
         </g>
       `
           : ''
       }
     </svg>
-    `;
+  `;
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    anchor:
-      typeof window !== 'undefined' && window.google
-        ? new window.google.maps.Point(34, 28)
-        : undefined,
     scaledSize:
       typeof window !== 'undefined' && window.google
         ? new window.google.maps.Size(svgWidth, svgHeight)
         : undefined,
+    anchor:
+      typeof window !== 'undefined' && window.google
+        ? new window.google.maps.Point(34, 29)
+        : undefined,
   };
 };
 
-/** MarkerClusterer styles for zoomed-out fleet overview */
+/**
+ * Cluster badge style generator
+ */
 export const CLUSTER_STYLES = [
   {
     textColor: '#FFFFFF',
+    textSize: 12,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontWeight: '700',
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="18" fill="#1E293B" stroke="#3B82F6" stroke-width="2"/>
+        <circle cx="20" cy="20" r="14" fill="#3B82F6" opacity="0.2"/>
+      </svg>`,
+    )}`,
+    height: 40,
+    width: 40,
+  },
+  {
+    textColor: '#FFFFFF',
     textSize: 13,
-    fontWeight: '800',
-    width: 44,
-    height: 44,
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
-            <circle cx="22" cy="22" r="21" fill="#1E1B4B" fill-opacity="0.85" stroke="#818CF8" stroke-width="2"/>
-            <circle cx="22" cy="22" r="14" fill="#0F172A" fill-opacity="0.95"/>
-          </svg>
-        `)}`,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontWeight: '700',
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="22" fill="#1E293B" stroke="#6366F1" stroke-width="2.5"/>
+        <circle cx="24" cy="24" r="17" fill="#6366F1" opacity="0.25"/>
+      </svg>`,
+    )}`,
+    height: 48,
+    width: 48,
   },
   {
     textColor: '#FFFFFF',
     textSize: 14,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
     fontWeight: '800',
-    width: 50,
-    height: 50,
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50">
-            <circle cx="25" cy="25" r="24" fill="#1E1B4B" fill-opacity="0.85" stroke="#A78BFA" stroke-width="2.5"/>
-            <circle cx="25" cy="25" r="16" fill="#0F172A" fill-opacity="0.95"/>
-          </svg>
-        `)}`,
-  },
-  {
-    textColor: '#FFFFFF',
-    textSize: 15,
-    fontWeight: '800',
-    width: 56,
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="26" fill="#0F172A" stroke="#8B5CF6" stroke-width="3"/>
+        <circle cx="28" cy="28" r="20" fill="#8B5CF6" opacity="0.3"/>
+      </svg>`,
+    )}`,
     height: 56,
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
-            <circle cx="28" cy="28" r="27" fill="#1E1B4B" fill-opacity="0.85" stroke="#C084FC" stroke-width="3"/>
-            <circle cx="28" cy="28" r="18" fill="#0F172A" fill-opacity="0.95"/>
-          </svg>
-        `)}`,
+    width: 56,
   },
 ];
 
 /** Resolve normalized vehicle status */
 export const resolveVehicleStatus = (v) => {
   if (!v) return 'Offline';
-  if (v.state === 'OFFLINE' || v.status === 'Offline' || v.isStale) {
+  if (v.state === 'OFFLINE' || v.status === 'Offline' || v.status === 'offline' || v.isStale) {
     return 'Offline';
   }
-  if (v.speed > 3 || v.status === 'Moving') {
+  if (v.speed > 3 || v.status === 'Moving' || v.status === 'moving') {
     return 'Moving';
   }
-  if ((v.ignition === true || v.status === 'Idling') && v.speed <= 3) {
+  if (
+    (v.ignition === true ||
+      v.ignition === 'ON' ||
+      v.status === 'Idling' ||
+      v.status === 'idling') &&
+    (v.speed <= 3 || !v.speed)
+  ) {
     return 'Idling';
   }
   return 'Stopped';
@@ -243,4 +255,137 @@ export const fitMapToPositions = (map, located) => {
   const bounds = new window.google.maps.LatLngBounds();
   located.forEach((p) => bounds.extend({ lat: p.latitude, lng: p.longitude }));
   map.fitBounds(bounds, 60);
+};
+
+/* =========================================================================
+   NOVA EDGE PRO EXTENSIONS & CONSTANTS
+   ========================================================================= */
+
+export const NOVA_STATUS = {
+  moving: { label: 'Moving', trip: 'In transit', c: '#187A32', tint: 'rgba(37,186,76,.12)' },
+  idling: { label: 'Idling', trip: 'Halted', c: '#C56200', tint: 'rgba(240,170,72,.16)' },
+  stopped: { label: 'Stopped', trip: 'At stop', c: '#6A43D8', tint: 'rgba(106,67,216,.12)' },
+  offline: { label: 'Offline', trip: 'Pending', c: '#5D5D5E', tint: 'rgba(93,93,94,.12)' },
+};
+
+export const DEPOTS = [
+  [22.6812, 88.2905, 'Dankuni depot'],
+  [23.5204, 87.3119, 'Durgapur depot'],
+  [22.346, 87.232, 'Kharagpur yard'],
+  [26.7271, 88.3953, 'Siliguri hub'],
+  [22.0667, 88.0698, 'Haldia yard'],
+  [25.0119, 88.1433, 'Malda hub'],
+];
+
+export const CITY_COORDS = {
+  KOL: [22.5726, 88.3639, 'Kolkata, WB'],
+  HWH: [22.5958, 88.2636, 'Howrah, WB'],
+  DGP: [23.5204, 87.3119, 'Durgapur, WB'],
+  ASN: [23.6739, 86.9524, 'Asansol, WB'],
+  SLG: [26.7271, 88.3953, 'Siliguri, WB'],
+  MLD: [25.0119, 88.1433, 'Malda, WB'],
+  HLD: [22.0667, 88.0698, 'Haldia, WB'],
+  KGP: [22.346, 87.232, 'Kharagpur, WB'],
+  BWN: [23.2324, 87.8615, 'Bardhaman, WB'],
+  BNK: [23.2412, 87.0753, 'Bankura, WB'],
+  BRH: [24.1065, 88.2461, 'Berhampore, WB'],
+  DKN: [22.6812, 88.2905, 'Dankuni, WB'],
+  JSR: [22.8046, 86.2029, 'Jamshedpur, JH'],
+};
+
+export const ROUTES_LIST = [
+  ['HLD', 'Haldia, WB', 'DGP', 'Durgapur, WB'],
+  ['KOL', 'Kolkata, WB', 'SLG', 'Siliguri, WB'],
+  ['DKN', 'Dankuni, WB', 'JSR', 'Jamshedpur, JH'],
+  ['KGP', 'Kharagpur, WB', 'BWN', 'Bardhaman, WB'],
+  ['ASN', 'Asansol, WB', 'KOL', 'Kolkata, WB'],
+  ['MLD', 'Malda, WB', 'HWH', 'Howrah, WB'],
+  ['BNK', 'Bankura, WB', 'HLD', 'Haldia, WB'],
+  ['SLG', 'Siliguri, WB', 'BRH', 'Berhampore, WB'],
+];
+
+export const haversineKm = (a, b) => {
+  if (!a || !b) return 0;
+  const R = 6371;
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a[0] * Math.PI) / 180) * Math.cos((b[0] * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+};
+
+export const bearingDegrees = (a, b) => {
+  if (!a || !b) return 0;
+  const y = Math.sin(((b[1] - a[1]) * Math.PI) / 180) * Math.cos((b[0] * Math.PI) / 180);
+  const x =
+    Math.cos((a[0] * Math.PI) / 180) * Math.sin((b[0] * Math.PI) / 180) -
+    Math.sin((a[0] * Math.PI) / 180) *
+      Math.cos((b[0] * Math.PI) / 180) *
+      Math.cos(((b[1] - a[1]) * Math.PI) / 180);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+};
+
+export const formatAgoText = (m) => {
+  if (m == null || isNaN(m)) return '—';
+  if (m < 1) return 'just now';
+  if (m < 60) return `${Math.round(m)} min ago`;
+  if (m < 1440) return `${Math.floor(m / 60)} hr ago`;
+  if (m < 43200) return `${Math.floor(m / 1440)} day${m >= 2880 ? 's' : ''} ago`;
+  return `${Math.floor(m / 43200)} months ago`;
+};
+
+export const formatISTTime = (d) => {
+  if (!d) return '—';
+  const dateObj = d instanceof Date ? d : new Date(d);
+  return dateObj
+    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
+    .toUpperCase()
+    .replace(' ', '');
+};
+
+export const formatISTDate = (d) => {
+  if (!d) return '—';
+  const dateObj = d instanceof Date ? d : new Date(d);
+  return dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
+
+export const formatDayText = (m) => {
+  const d = new Date(Date.now() - (m || 0) * 60000);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+export const formatFullStamp = (m) => {
+  const d = new Date(Date.now() - (m || 0) * 60000);
+  return `${formatISTTime(d)}, ${formatISTDate(d)} ${d.getFullYear()}`;
+};
+
+export const formatHrsText = (m) => {
+  if (!m || isNaN(m)) return '0h 00m';
+  return `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
+};
+
+export const aheadPath = (v) => {
+  if (!v) return null;
+  if (v._ahead) return v._ahead;
+  const destCode = v.route ? v.route[2] : null;
+  const d =
+    destCode && CITY_COORDS[destCode] ? [CITY_COORDS[destCode][0], CITY_COORDS[destCode][1]] : null;
+  if (!d) return null;
+  const a = [v.lat, v.lng];
+  const pts = [a];
+  const dx = d[0] - a[0];
+  const dy = d[1] - a[1];
+  const n = 7;
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    const bend = Math.sin(t * Math.PI) * 0.1;
+    pts.push([
+      a[0] + dx * t + dy * bend * (i % 2 ? 1 : -1) * 0.35,
+      a[1] + dy * t - dx * bend * (i % 2 ? 1 : -1) * 0.35,
+    ]);
+  }
+  pts.push(d);
+  v._ahead = pts;
+  return pts;
 };
