@@ -260,25 +260,28 @@ const createVehicleMarkerIcon = (v, isSelected, showPlate) => {
 
 const createReplayTruckIcon = (heading = 0) => {
   if (typeof window === 'undefined' || !window.google) return undefined;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+  // Clean directional "navigation cursor": soft halo + white disc + a crisp
+  // green arrow that rotates to the direction of travel.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
     <defs>
-      <filter id="rsh" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
+      <filter id="rsh" x="-40%" y="-40%" width="180%" height="180%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#0B3D1A" flood-opacity="0.35"/>
       </filter>
     </defs>
+    <circle cx="24" cy="24" r="21" fill="#187A32" fill-opacity="0.16"/>
     <g filter="url(#rsh)">
-      <circle cx="22" cy="22" r="19" fill="#187A32" stroke="#FFFFFF" stroke-width="2.5"/>
-      <g transform="rotate(${Math.round(heading)}, 22, 22)">
-        <polygon points="22,6 26,11 18,11" fill="#FFFFFF"/>
-        <rect x="16" y="14" width="12" height="14" rx="2" fill="#FFFFFF"/>
-        <rect x="18" y="29" width="8" height="3" rx="1" fill="#FFFFFF"/>
+      <circle cx="24" cy="24" r="14" fill="#FFFFFF"/>
+      <circle cx="24" cy="24" r="14" fill="none" stroke="#187A32" stroke-width="2"/>
+      <g transform="rotate(${Math.round(heading)}, 24, 24)">
+        <path d="M24 13 L31 31 L24 26.5 L17 31 Z"
+          fill="#187A32" stroke="#187A32" stroke-width="1" stroke-linejoin="round"/>
       </g>
     </g>
   </svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(44, 44),
-    anchor: new window.google.maps.Point(22, 22),
+    scaledSize: new window.google.maps.Size(48, 48),
+    anchor: new window.google.maps.Point(24, 24),
   };
 };
 
@@ -443,6 +446,7 @@ const LiveTrackingPage = () => {
 
   // Map & interaction refs
   const mapRef = useRef(null);
+  const didAutoFitRef = useRef(false);
   const lastReplayTimeRef = useRef(0);
   const searchInputRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -618,23 +622,49 @@ const LiveTrackingPage = () => {
   }, [mapMode]);
 
   // Callback when Google Map mounts
+  // Fit the viewport to the GPS-live vehicles (those with a fix). Clamps the
+  // zoom afterwards so a single live vehicle only zooms in "a little" rather
+  // than to street level. Returns true if it had something to fit.
+  const fitToLiveVehicles = useCallback(
+    (map) => {
+      if (!map || !window.google) return false;
+      const live = vehicles.filter((v) => v.live && v.hasFix);
+      if (!live.length) return false;
+      const bounds = new window.google.maps.LatLngBounds();
+      live.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
+      map.fitBounds(bounds, { top: 80, right: 80, bottom: 80, left: 80 });
+      window.google.maps.event.addListenerOnce(map, 'idle', () => {
+        if ((map.getZoom() || 5) > 12) map.setZoom(12);
+      });
+      return true;
+    },
+    [vehicles],
+  );
+
   const onMapLoad = useCallback(
     (map) => {
       mapRef.current = map;
-      if (filteredVehicles.length > 0 && window.google) {
-        const bounds = new window.google.maps.LatLngBounds();
-        filteredVehicles.forEach((v) => {
-          if (v.lat != null && v.lng != null) bounds.extend({ lat: v.lat, lng: v.lng });
-        });
-        map.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
+      // Try fitting to live vehicles immediately; if positions haven't loaded
+      // yet, the auto-fit effect below handles it once they arrive.
+      if (fitToLiveVehicles(map)) {
+        didAutoFitRef.current = true;
       }
     },
-    [filteredVehicles],
+    [fitToLiveVehicles],
   );
+
+  // One-time auto-fit to GPS-live vehicles once positions first arrive, so
+  // landing on the page frames the moving fleet instead of all of India.
+  useEffect(() => {
+    if (didAutoFitRef.current || !mapRef.current || selectedId) return;
+    if (fitToLiveVehicles(mapRef.current)) {
+      didAutoFitRef.current = true;
+    }
+  }, [fitToLiveVehicles, selectedId]);
 
   // Pan / focus when selected vehicle changes
   useEffect(() => {
-    if (!selectedVehicle || !mapRef.current) return;
+    if (!selectedVehicle || !selectedVehicle.hasFix || !mapRef.current) return;
     mapRef.current.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
     if ((mapRef.current.getZoom() || 5) < 12) {
       mapRef.current.setZoom(12);
