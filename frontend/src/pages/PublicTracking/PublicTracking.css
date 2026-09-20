@@ -312,6 +312,9 @@
   .pt-metrics {
     gap: 6px;
     width: 100%;
+    /* Anchor the row to the viewport, not the panel's resolved width, so the
+       three flex tiles always fit even if the sheet's containing block is odd. */
+    max-width: calc(100vw - 24px);
   }
   .pt-plate {
     font-size: 18px;
