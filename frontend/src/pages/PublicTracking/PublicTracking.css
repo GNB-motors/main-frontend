@@ -150,31 +150,23 @@
   flex: 1 1 0;
   min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 10px;
+  gap: 3px;
+  padding: 10px 8px;
   border-radius: 12px;
   background: #f3f5f8;
-  color: #8b93a3;
   overflow: hidden;
-}
-.pt-metric > div {
-  min-width: 0;
-}
-.pt-metric .k,
-.pt-metric .v {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .pt-metric .k {
   font-size: 11px;
   color: #6b7280;
 }
 .pt-metric .v {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #1a1d21;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .pt-metric .v.ok {
@@ -227,35 +219,33 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
-/* Trail toggle button (light) */
-.pt-trailbtn {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  z-index: 6;
+/* Trail toggle button — lives inside the detail panel */
+.pt-panel-trail {
+  width: 100%;
+  margin-top: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 10px 15px;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  justify-content: center;
+  gap: 8px;
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   background: #ffffff;
   color: #1a1d21;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
   transition: all 0.14s;
 }
-.pt-trailbtn:hover {
-  transform: translateY(-1px);
+.pt-panel-trail:hover {
+  background: #f3f5f8;
 }
-.pt-trailbtn.on {
+.pt-panel-trail.on {
   background: #187a32;
   border-color: #187a32;
   color: #fff;
 }
-.pt-trailbtn:disabled {
+.pt-panel-trail:disabled {
   opacity: 0.7;
   cursor: default;
 }
@@ -322,28 +312,10 @@
     font-size: 18px;
   }
   .pt-metric {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    padding: 8px 9px;
-    overflow: hidden;
+    padding: 9px 6px;
   }
-  .pt-metric svg {
-    display: none;
-  }
-  .pt-metric .k,
   .pt-metric .v {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  /* Sit the trail button just above the bottom sheet, out of the way. */
-  .pt-trailbtn {
-    bottom: auto;
-    top: 10px;
-    right: 10px;
-    padding: 8px 12px;
-    font-size: 12px;
+    font-size: 14px;
   }
   .pt-nofix {
     top: 56px;

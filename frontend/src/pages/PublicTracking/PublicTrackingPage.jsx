@@ -243,16 +243,6 @@ const PublicTrackingPage = () => {
         {showTrail && !trailLoading && trail.length < 2 && (
           <div className="pt-nofix">No recorded movement in this window.</div>
         )}
-        {vehicle?.trailHours > 0 && hasFix && (
-          <button
-            className={`pt-trailbtn ${showTrail ? 'on' : ''}`}
-            onClick={toggleTrail}
-            disabled={trailLoading}
-          >
-            <Icon name="route" size={16} />
-            {trailLoading ? 'Loading…' : showTrail ? 'Hide trail' : 'Show trail'}
-          </button>
-        )}
       </div>
 
       {vehicle && (
@@ -273,29 +263,20 @@ const PublicTrackingPage = () => {
 
           <div className="pt-metrics">
             <div className="pt-metric">
-              <Icon name="gauge" />
-              <div>
-                <div className="k">Speed</div>
-                <div className="v">
-                  {vehicle.speed != null ? `${Math.round(vehicle.speed)} km/h` : '—'}
-                </div>
+              <div className="k">Speed</div>
+              <div className="v">
+                {vehicle.speed != null ? `${Math.round(vehicle.speed)} km/h` : '—'}
               </div>
             </div>
             <div className="pt-metric">
-              <Icon name="zap" />
-              <div>
-                <div className="k">Ignition</div>
-                <div className={`v ${vehicle.ignition === 'ON' ? 'ok' : 'off'}`}>
-                  {vehicle.ignition || '—'}
-                </div>
+              <div className="k">Ignition</div>
+              <div className={`v ${vehicle.ignition === 'ON' ? 'ok' : 'off'}`}>
+                {vehicle.ignition || '—'}
               </div>
             </div>
             <div className="pt-metric">
-              <Icon name="nav" />
-              <div>
-                <div className="k">GPS</div>
-                <div className={`v ${gpsLabel === 'Active' ? 'ok' : 'off'}`}>{gpsLabel}</div>
-              </div>
+              <div className="k">GPS</div>
+              <div className={`v ${gpsLabel === 'Active' ? 'ok' : 'off'}`}>{gpsLabel}</div>
             </div>
           </div>
 
@@ -313,6 +294,17 @@ const PublicTrackingPage = () => {
               <span>{ago != null ? `Updated ${formatAgoText(ago)}` : 'Awaiting update'}</span>
             </div>
           </div>
+
+          {vehicle.trailHours > 0 && hasFix && (
+            <button
+              className={`pt-panel-trail ${showTrail ? 'on' : ''}`}
+              onClick={toggleTrail}
+              disabled={trailLoading}
+            >
+              <Icon name="route" size={16} />
+              {trailLoading ? 'Loading trail…' : showTrail ? 'Hide trail' : 'Show trail'}
+            </button>
+          )}
 
           <div className="pt-secure">Shared securely · you can only see this one vehicle</div>
         </div>
