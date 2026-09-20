@@ -268,42 +268,6 @@ export const NOVA_STATUS = {
   offline: { label: 'Offline', trip: 'Pending', c: '#5D5D5E', tint: 'rgba(93,93,94,.12)' },
 };
 
-export const DEPOTS = [
-  [22.6812, 88.2905, 'Dankuni depot'],
-  [23.5204, 87.3119, 'Durgapur depot'],
-  [22.346, 87.232, 'Kharagpur yard'],
-  [26.7271, 88.3953, 'Siliguri hub'],
-  [22.0667, 88.0698, 'Haldia yard'],
-  [25.0119, 88.1433, 'Malda hub'],
-];
-
-export const CITY_COORDS = {
-  KOL: [22.5726, 88.3639, 'Kolkata, WB'],
-  HWH: [22.5958, 88.2636, 'Howrah, WB'],
-  DGP: [23.5204, 87.3119, 'Durgapur, WB'],
-  ASN: [23.6739, 86.9524, 'Asansol, WB'],
-  SLG: [26.7271, 88.3953, 'Siliguri, WB'],
-  MLD: [25.0119, 88.1433, 'Malda, WB'],
-  HLD: [22.0667, 88.0698, 'Haldia, WB'],
-  KGP: [22.346, 87.232, 'Kharagpur, WB'],
-  BWN: [23.2324, 87.8615, 'Bardhaman, WB'],
-  BNK: [23.2412, 87.0753, 'Bankura, WB'],
-  BRH: [24.1065, 88.2461, 'Berhampore, WB'],
-  DKN: [22.6812, 88.2905, 'Dankuni, WB'],
-  JSR: [22.8046, 86.2029, 'Jamshedpur, JH'],
-};
-
-export const ROUTES_LIST = [
-  ['HLD', 'Haldia, WB', 'DGP', 'Durgapur, WB'],
-  ['KOL', 'Kolkata, WB', 'SLG', 'Siliguri, WB'],
-  ['DKN', 'Dankuni, WB', 'JSR', 'Jamshedpur, JH'],
-  ['KGP', 'Kharagpur, WB', 'BWN', 'Bardhaman, WB'],
-  ['ASN', 'Asansol, WB', 'KOL', 'Kolkata, WB'],
-  ['MLD', 'Malda, WB', 'HWH', 'Howrah, WB'],
-  ['BNK', 'Bankura, WB', 'HLD', 'Haldia, WB'],
-  ['SLG', 'Siliguri, WB', 'BRH', 'Berhampore, WB'],
-];
-
 export const haversineKm = (a, b) => {
   if (!a || !b) return 0;
   const R = 6371;
@@ -363,29 +327,4 @@ export const formatFullStamp = (m) => {
 export const formatHrsText = (m) => {
   if (!m || isNaN(m)) return '0h 00m';
   return `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
-};
-
-export const aheadPath = (v) => {
-  if (!v) return null;
-  if (v._ahead) return v._ahead;
-  const destCode = v.route ? v.route[2] : null;
-  const d =
-    destCode && CITY_COORDS[destCode] ? [CITY_COORDS[destCode][0], CITY_COORDS[destCode][1]] : null;
-  if (!d) return null;
-  const a = [v.lat, v.lng];
-  const pts = [a];
-  const dx = d[0] - a[0];
-  const dy = d[1] - a[1];
-  const n = 7;
-  for (let i = 1; i < n; i++) {
-    const t = i / n;
-    const bend = Math.sin(t * Math.PI) * 0.1;
-    pts.push([
-      a[0] + dx * t + dy * bend * (i % 2 ? 1 : -1) * 0.35,
-      a[1] + dy * t - dx * bend * (i % 2 ? 1 : -1) * 0.35,
-    ]);
-  }
-  pts.push(d);
-  v._ahead = pts;
-  return pts;
 };

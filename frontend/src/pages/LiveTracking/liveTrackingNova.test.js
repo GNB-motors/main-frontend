@@ -1,13 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   NOVA_STATUS,
-  CITY_COORDS,
-  DEPOTS,
   haversineKm,
   bearingDegrees,
   formatAgoText,
   formatHrsText,
-  aheadPath,
   resolveVehicleStatus,
 } from './liveTracking.shared.js';
 
@@ -21,9 +18,8 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
   });
 
   it('computes haversine distance between two coordinates', () => {
-    const kolkata = CITY_COORDS.KOL;
-    const howrah = CITY_COORDS.HWH;
-    const dist = haversineKm([kolkata[0], kolkata[1]], [howrah[0], howrah[1]]);
+    // Kolkata → Howrah, ~10 km apart.
+    const dist = haversineKm([22.5726, 88.3639], [22.5958, 88.2636]);
     expect(dist).toBeGreaterThan(5);
     expect(dist).toBeLessThan(20);
   });
@@ -49,21 +45,7 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
     expect(formatHrsText(0)).toBe('0h 00m');
   });
 
-  it('generates an interpolated ahead route path', () => {
-    const vehicle = {
-      lat: 22.5726,
-      lng: 88.3639,
-      route: ['KOL', 'Kolkata, WB', 'SLG', 'Siliguri, WB'],
-    };
-    const pts = aheadPath(vehicle);
-    expect(pts).toBeDefined();
-    expect(pts.length).toBeGreaterThan(5);
-    expect(pts[0]).toEqual([22.5726, 88.3639]);
-    expect(pts[pts.length - 1]).toEqual([CITY_COORDS.SLG[0], CITY_COORDS.SLG[1]]);
-  });
-
-  it('contains valid depot coordinates and statuses', () => {
-    expect(DEPOTS.length).toBeGreaterThanOrEqual(6);
+  it('exposes the status color palette', () => {
     expect(NOVA_STATUS.moving.c).toBe('#187A32');
     expect(NOVA_STATUS.stopped.c).toBe('#6A43D8');
     expect(NOVA_STATUS.idling.c).toBe('#C56200');

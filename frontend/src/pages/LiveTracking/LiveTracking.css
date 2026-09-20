@@ -1620,6 +1620,23 @@ a:hover {
   font-variant-numeric: tabular-nums;
 }
 
+.vc-loc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--fg-secondary);
+  font-size: 12px;
+}
+.vc-loc svg {
+  color: var(--fg-tertiary);
+  flex-shrink: 0;
+}
+.vc-loc span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .vc-meta {
   display: flex;
   align-items: center;

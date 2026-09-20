@@ -6,17 +6,11 @@ import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
 import {
   NOVA_STATUS,
-  DEPOTS,
-  CITY_COORDS,
-  ROUTES_LIST,
   bearingDegrees,
+  haversineKm,
   formatAgoText,
-  formatISTTime,
-  formatISTDate,
   formatDayText,
   formatFullStamp,
-  formatHrsText,
-  aheadPath,
   resolveVehicleStatus,
 } from './liveTracking.shared.js';
 import './LiveTracking.css';
@@ -264,26 +258,6 @@ const createVehicleMarkerIcon = (v, isSelected, showPlate) => {
   };
 };
 
-const createDestMarkerIcon = () => {
-  if (typeof window === 'undefined' || !window.google) return undefined;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">
-    <defs>
-      <filter id="dsh" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
-      </filter>
-    </defs>
-    <g filter="url(#dsh)">
-      <path d="M17 2 C8.7 2 2 8.7 2 17 C2 27.5 17 40 17 40 C17 40 32 27.5 32 17 C32 8.7 25.3 2 17 2 Z" fill="#C56200" stroke="#FFFFFF" stroke-width="2"/>
-      <circle cx="17" cy="16" r="5" fill="#FFFFFF"/>
-    </g>
-  </svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(34, 42),
-    anchor: new window.google.maps.Point(17, 41),
-  };
-};
-
 const createReplayTruckIcon = (heading = 0) => {
   if (typeof window === 'undefined' || !window.google) return undefined;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
@@ -318,18 +292,6 @@ const createTrailEndpointIcon = (text, color) => {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
     scaledSize: new window.google.maps.Size(24, 24),
     anchor: new window.google.maps.Point(12, 12),
-  };
-};
-
-const createTrailStopIcon = () => {
-  if (typeof window === 'undefined' || !window.google) return undefined;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-    <circle cx="8" cy="8" r="6" fill="#C56200" stroke="#FFFFFF" stroke-width="2"/>
-  </svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(16, 16),
-    anchor: new window.google.maps.Point(8, 8),
   };
 };
 
@@ -397,33 +359,15 @@ const renderIconSvg = (name, size = 16, className = '') => {
   );
 };
 
-/* Seeded random generator for fallback/enrichment */
-const createSeededRandom = (seed) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
-
-const MODELS = [
-  'TATA 2823',
-  'TATA 1918',
-  'ASHOK LEYLAND 2820',
-  'BHARATBENZ 2823R',
-  'EICHER PRO 6028',
-];
-
-const generateSyntheticTrail = (lat, lng, n = 24, rnd) => {
-  const pts = [];
-  let a = rnd() * Math.PI * 2;
-  let la = lat;
-  let ln = lng;
-  for (let i = n; i > 0; i--) {
-    a += (rnd() - 0.5) * 0.5;
-    la -= Math.cos(a) * 0.011;
-    ln -= Math.sin(a) * 0.013;
-    pts.unshift([la, ln]);
+/* Total path length (km) of an ordered [lat, lng] breadcrumb list — this is
+   real distance derived from the backend trail, not a synthetic estimate. */
+const trailDistanceKm = (points) => {
+  if (!Array.isArray(points) || points.length < 2) return 0;
+  let sum = 0;
+  for (let i = 1; i < points.length; i++) {
+    sum += haversineKm(points[i - 1], points[i]);
   }
-  pts.push([lat, lng]);
-  return pts;
+  return sum;
 };
 
 /* ---------------- Main LiveTrackingPage Component ---------------- */
@@ -461,7 +405,6 @@ const LiveTrackingPage = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRailOpen, setIsRailOpen] = useState(true);
   const [showLabels, setShowLabels] = useState(false);
-  const [showAllRoutes, setShowAllRoutes] = useState(false);
   const [mapMode, setMapMode] = useState('map'); // 'map' | 'sat'
   const [isTelemetryOn, setIsTelemetryOn] = useState(true);
 
@@ -559,85 +502,56 @@ const LiveTrackingPage = () => {
 
   // Build Unified Vehicles List
   const vehicles = useMemo(() => {
-    const rnd = createSeededRandom(20260920);
-    const hasLiveRows = Array.isArray(rawPositions) && rawPositions.length > 0;
+    if (!Array.isArray(rawPositions) || rawPositions.length === 0) return [];
 
-    let items = [];
-
-    if (hasLiveRows) {
-      items = rawPositions.map((p, idx) => {
+    return rawPositions
+      .map((p) => {
         const reg = (p.registrationNumber || '').toUpperCase().trim();
+        if (!reg) return null;
         const cleanReg = reg.replace(/\s+/g, '');
         const meta = vehiclesMeta[cleanReg] || vehiclesMeta[reg] || {};
         const st = resolveVehicleStatus(p).toLowerCase();
-        const lat = p.latitude != null ? Number(p.latitude) : 22.5726;
-        const lng = p.longitude != null ? Number(p.longitude) : 88.3639;
-        const speed = Math.round(p.speed || 0);
+        const hasFix = p.latitude != null && p.longitude != null;
+        const lat = hasFix ? Number(p.latitude) : null;
+        const lng = hasFix ? Number(p.longitude) : null;
+        const speed = p.speed != null ? Math.round(p.speed) : null;
         const fuel =
-          p.primaryFuelLevel != null
-            ? Number(p.primaryFuelLevel).toFixed(1)
-            : (45 + ((idx * 7) % 180)).toFixed(1);
+          p.primaryFuelLevel != null ? Number(Number(p.primaryFuelLevel).toFixed(1)) : null;
         const ignition = p.ignition === true || p.ignition === 'ON' ? 'ON' : 'OFF';
         const isLive = st !== 'offline' && !p.isStale;
-        const routeIdx = idx % ROUTES_LIST.length;
-        const route = ROUTES_LIST[routeIdx];
-        const progress = Math.round(18 + ((idx * 17) % 72));
-        const totalKm = 180 + ((idx * 43) % 460);
-        const tripKm = Math.round((totalKm * progress) / 100);
-        const tripMin = Math.max(45, Math.round((tripKm / 40) * 60));
-        const stops = 1 + (idx % 3);
 
         const minutesAgo = p.eventDateTime
           ? Math.max(0, Math.round((Date.now() - new Date(p.eventDateTime).getTime()) / 60000))
-          : isLive
-            ? st === 'moving'
-              ? 0
-              : 4
-            : 180;
+          : null;
 
         return {
-          id: `live-${cleanReg || idx}`,
-          plate: reg || `WB${11 + idx}A${1000 + idx}`,
-          model: meta.model || meta.manufacturer || MODELS[idx % MODELS.length],
-          vin: meta.chassisNumber || p.vin || `VIN${10000 + idx}`,
+          id: `live-${cleanReg}`,
+          plate: reg,
+          model: meta.model || meta.manufacturer || null,
+          vin: meta.chassisNumber || p.vin || null,
           status: st,
           live: isLive,
+          hasFix,
           lat,
           lng,
           area:
             meta.currentLocation ||
             meta.branch ||
             p.address ||
-            (lat != null && lng != null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : 'In transit'),
-          route,
+            (hasFix ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : null),
           speed,
-          fuel: Number(fuel),
+          fuel,
+          fuelUnit: p.fuelLevelUnit || null,
           ignition,
           gps: isLive ? 'Active' : 'No fix',
-          sats: 8 + (idx % 5),
           ago: minutesAgo,
-          odo: meta.odometer || 84000 + idx * 1200,
-          reg: meta.manufacturingYear || 2021,
-          progress,
-          totalKm,
-          tripKm,
-          tripMin,
-          stops,
-          stopIdx: [3, 7, 12].slice(0, stops),
-          trail: lat != null && lng != null ? generateSyntheticTrail(lat, lng, 24, rnd) : [],
-          depAt: new Date(Date.now() - (minutesAgo + tripMin) * 60000),
-          etaAt: new Date(
-            Date.now() -
-              minutesAgo * 60000 +
-              Math.round((tripMin * (100 - progress)) / Math.max(progress, 1)) * 60000,
-          ),
+          eventDateTime: p.eventDateTime || null,
+          courseDegrees: p.courseDegrees != null ? p.courseDegrees : null,
+          odo: meta.odometer != null ? meta.odometer : null,
+          regYear: meta.manufacturingYear != null ? meta.manufacturingYear : null,
         };
-      });
-    } else {
-      items = [];
-    }
-
-    return items;
+      })
+      .filter(Boolean);
   }, [rawPositions, vehiclesMeta]);
 
   // Vehicle by ID map
@@ -671,9 +585,9 @@ const LiveTrackingPage = () => {
       if (!q) return true;
       return (
         v.plate.toLowerCase().includes(q) ||
-        v.model.toLowerCase().includes(q) ||
-        v.vin.toLowerCase().includes(q) ||
-        (v.route && (v.route[1].toLowerCase().includes(q) || v.route[3].toLowerCase().includes(q)))
+        (v.model || '').toLowerCase().includes(q) ||
+        (v.vin || '').toLowerCase().includes(q) ||
+        (v.area || '').toLowerCase().includes(q)
       );
     });
   }, [vehicles, filter, searchQuery]);
@@ -727,59 +641,18 @@ const LiveTrackingPage = () => {
     }
   }, [selectedVehicle]);
 
-  // Selected vehicle ahead route path
-  const selectedAheadCoords = useMemo(() => {
-    if (!selectedVehicle?.live) return null;
-    const pts = aheadPath(selectedVehicle);
-    if (!pts || pts.length < 2) return null;
-    return pts.map(([lat, lng]) => ({ lat, lng }));
-  }, [selectedVehicle]);
-
-  const selectedDestPt = useMemo(() => {
-    if (!selectedAheadCoords || selectedAheadCoords.length === 0) return null;
-    return selectedAheadCoords[selectedAheadCoords.length - 1];
-  }, [selectedAheadCoords]);
-
   const selectedStatusColor = useMemo(() => {
     if (!selectedVehicle) return '#187A32';
     return (NOVA_STATUS[selectedVehicle.status] || NOVA_STATUS.moving).c;
   }, [selectedVehicle]);
-
-  // All planned routes for live vehicles
-  const allAheadRoutes = useMemo(() => {
-    if (!showAllRoutes) return [];
-    return vehicles
-      .filter((v) => v.live)
-      .map((v) => {
-        const pts = aheadPath(v);
-        if (!pts || pts.length < 2) return null;
-        const s = NOVA_STATUS[v.status] || NOVA_STATUS.moving;
-        return {
-          id: v.id,
-          plate: v.plate,
-          dest: v.route?.[3],
-          color: s.c,
-          coords: pts.map(([lat, lng]) => ({ lat, lng })),
-        };
-      })
-      .filter(Boolean);
-  }, [showAllRoutes, vehicles]);
 
   // Breadcrumb Trail points transformed to LatLng objects
   const trailCoords = useMemo(() => {
     return trailPoints.map(([lat, lng]) => ({ lat, lng }));
   }, [trailPoints]);
 
-  const trailStopPoints = useMemo(() => {
-    if (!selectedVehicle?.stopIdx || !trailCoords.length) return [];
-    return selectedVehicle.stopIdx
-      .map((idx) => {
-        const pt = trailCoords[idx];
-        if (!pt) return null;
-        return { idx, pos: pt };
-      })
-      .filter(Boolean);
-  }, [selectedVehicle, trailCoords]);
+  // Total distance (km) of the currently loaded trail — real, from the trail
+  const trailKm = useMemo(() => trailDistanceKm(trailPoints), [trailPoints]);
 
   // Replay base trail points transformed to LatLng objects
   const replayPtsCoords = useMemo(() => {
@@ -854,7 +727,7 @@ const LiveTrackingPage = () => {
       }
 
       setTrailLoading(true);
-      let points = v.trail;
+      let points = [];
 
       try {
         const trailData = await LiveTrackingService.getTrail(v.plate);
@@ -864,13 +737,13 @@ const LiveTrackingPage = () => {
             .map((p) => [p.latitude, p.longitude]);
         }
       } catch {
-        // fallback to synthesized trail
+        // Trail is optional; empty-state handled below.
       } finally {
         setTrailLoading(false);
       }
 
       if (!points || points.length < 2) {
-        showToast(`No trail recorded for ${v.plate}`);
+        showToast(`No recorded trail for ${v.plate}`);
         return;
       }
 
@@ -882,7 +755,7 @@ const LiveTrackingPage = () => {
         points.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
         mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
       }
-      showToast(`Trail · ${v.tripKm} km over ${formatHrsText(v.tripMin)}`);
+      showToast(`Trail · ${trailDistanceKm(points).toFixed(1)} km · ${points.length} points`);
     },
     [isTrailVisible, replayState.on, showToast],
   );
@@ -890,7 +763,7 @@ const LiveTrackingPage = () => {
   // Enter Replay
   const enterReplay = useCallback(
     async (v) => {
-      let points = v.trail;
+      let points = [];
       try {
         const trailData = await LiveTrackingService.getTrail(v.plate);
         if (trailData?.points?.length > 1) {
@@ -899,11 +772,11 @@ const LiveTrackingPage = () => {
             .map((p) => [p.latitude, p.longitude]);
         }
       } catch {
-        // fallback
+        // Trail is optional; empty-state handled below.
       }
 
       if (!points || points.length < 2) {
-        showToast('No trail available for this vehicle');
+        showToast('No recorded trail to replay for this vehicle');
         return;
       }
 
@@ -982,26 +855,22 @@ const LiveTrackingPage = () => {
   const handleExportCSV = useCallback(() => {
     const rows = filteredVehicles;
     const headers =
-      'plate,model,vin,status,origin,destination,progress_pct,fuel_l,ignition,gps,speed_kmh,last_update,lat,lng';
+      'plate,model,vin,status,location,fuel_l,ignition,gps,speed_kmh,last_update,lat,lng';
     const lines = rows.map((v) => {
       const st = NOVA_STATUS[v.status]?.label || v.status;
-      const origin = v.route ? v.route[1] : '';
-      const dest = v.route ? v.route[3] : '';
       return [
         v.plate,
-        v.model,
-        v.vin,
+        `"${v.model || ''}"`,
+        v.vin || '',
         st,
-        `"${origin}"`,
-        `"${dest}"`,
-        v.progress,
-        v.fuel,
+        `"${v.area || ''}"`,
+        v.fuel != null ? v.fuel : '',
         v.ignition,
         v.gps,
-        v.speed,
-        `"${formatFullStamp(v.ago)}"`,
-        v.lat.toFixed(5),
-        v.lng.toFixed(5),
+        v.speed != null ? v.speed : '',
+        `"${v.ago != null ? formatFullStamp(v.ago) : ''}"`,
+        v.hasFix ? v.lat.toFixed(5) : '',
+        v.hasFix ? v.lng.toFixed(5) : '',
       ].join(',');
     });
     const csvContent = [headers, ...lines].join('\n');
@@ -1178,6 +1047,7 @@ const LiveTrackingPage = () => {
                   {/* Fleet Vehicle Markers */}
                   {filteredVehicles.map((v) => {
                     const isSelected = v.id === selectedId;
+                    if (!v.hasFix) return null;
                     const icon = createVehicleMarkerIcon(v, isSelected, showLabels);
                     return (
                       <MarkerF
@@ -1193,50 +1063,7 @@ const LiveTrackingPage = () => {
                     );
                   })}
 
-                  {/* Planned Route Ahead for Selected Vehicle */}
-                  {selectedAheadCoords && selectedAheadCoords.length > 1 && (
-                    <>
-                      <PolylineF
-                        path={selectedAheadCoords}
-                        options={{
-                          strokeColor: selectedStatusColor,
-                          strokeOpacity: 0.22,
-                          strokeWeight: 6,
-                        }}
-                      />
-                      <PolylineF
-                        path={selectedAheadCoords}
-                        options={{
-                          strokeColor: selectedStatusColor,
-                          strokeOpacity: 0.9,
-                          strokeWeight: 3,
-                        }}
-                      />
-                      {selectedDestPt && (
-                        <MarkerF
-                          position={selectedDestPt}
-                          icon={createDestMarkerIcon()}
-                          title={`Drop-off: ${selectedVehicle?.route?.[3] || 'Destination'}`}
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {/* All Live Routes toggle */}
-                  {showAllRoutes &&
-                    allAheadRoutes.map((r, idx) => (
-                      <PolylineF
-                        key={`all-rt-${idx}`}
-                        path={r.coords}
-                        options={{
-                          strokeColor: r.color,
-                          strokeOpacity: 0.45,
-                          strokeWeight: 2,
-                        }}
-                      />
-                    ))}
-
-                  {/* Breadcrumb Trail */}
+                  {/* Breadcrumb Trail (real recorded path from the trail API) */}
                   {isTrailVisible && trailCoords.length > 1 && (
                     <>
                       <PolylineF
@@ -1255,13 +1082,6 @@ const LiveTrackingPage = () => {
                         position={trailCoords[trailCoords.length - 1]}
                         icon={createTrailEndpointIcon('E', selectedStatusColor)}
                       />
-                      {trailStopPoints.map((stop, sIdx) => (
-                        <MarkerF
-                          key={`stop-${sIdx}`}
-                          position={stop.pos}
-                          icon={createTrailStopIcon()}
-                        />
-                      ))}
                     </>
                   )}
 
@@ -1303,7 +1123,7 @@ const LiveTrackingPage = () => {
                   )}
 
                   {/* 360 Orbit Circle */}
-                  {modal360Open && selectedVehicle && (
+                  {modal360Open && selectedVehicle && selectedVehicle.hasFix && (
                     <CircleF
                       center={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
                       radius={1400}
@@ -1363,24 +1183,6 @@ const LiveTrackingPage = () => {
 
               <button
                 className="ctrl"
-                title="Show all routes"
-                aria-label="Show all routes"
-                aria-pressed={showAllRoutes}
-                onClick={() => {
-                  setShowAllRoutes((prev) => {
-                    const next = !prev;
-                    showToast(
-                      next ? 'Showing planned routes for all live vehicles' : 'Route lines hidden',
-                    );
-                    return next;
-                  });
-                }}
-              >
-                {renderIconSvg('route', 18)}
-              </button>
-
-              <button
-                className="ctrl"
                 title="Vehicle labels"
                 aria-label="Vehicle labels"
                 aria-pressed={showLabels}
@@ -1434,21 +1236,14 @@ const LiveTrackingPage = () => {
                       <span className="rp-badge">{renderIconSvg('route', 15)}</span>
                       <span className="rp-plate">{selectedVehicle.plate}</span>
                       <span className="rp-date">
-                        {selectedVehicle.route[0]} → {selectedVehicle.route[2]} ·{' '}
-                        {formatDayText(selectedVehicle.ago)}
+                        {selectedVehicle.ago != null
+                          ? formatDayText(selectedVehicle.ago)
+                          : 'Recorded trail'}
                       </span>
                       <div className="rp-stats">
                         <div className="rp-stat">
                           <div className="k">Distance</div>
-                          <div className="v">{selectedVehicle.tripKm} km</div>
-                        </div>
-                        <div className="rp-stat">
-                          <div className="k">Driving</div>
-                          <div className="v">{formatHrsText(selectedVehicle.tripMin)}</div>
-                        </div>
-                        <div className="rp-stat">
-                          <div className="k">Stops</div>
-                          <div className="v">{selectedVehicle.stops}</div>
+                          <div className="v">{trailKm.toFixed(1)} km</div>
                         </div>
                         <div className="rp-stat">
                           <div className="k">Pings</div>
@@ -1509,15 +1304,6 @@ const LiveTrackingPage = () => {
                             style={{ width: `${(replayState.t * 100).toFixed(1)}%` }}
                           />
                         </div>
-                        <div id="rpTicks">
-                          {(selectedVehicle.stopIdx || []).map((idx) => {
-                            const total = replayState.pts ? replayState.pts.length - 1 : 1;
-                            const pct = ((idx / Math.max(1, total)) * 100).toFixed(1);
-                            return (
-                              <span key={idx} className="rp-tick" style={{ left: `${pct}%` }} />
-                            );
-                          })}
-                        </div>
                         <div
                           className="rp-knob"
                           style={{ left: `${(replayState.t * 100).toFixed(1)}%` }}
@@ -1549,11 +1335,11 @@ const LiveTrackingPage = () => {
                   <span className="tplate">{telemetryVehicle.plate}</span>
                   <span className="tsep" />
                   <span className="tval">
-                    <b>{telemetryVehicle.speed}</b> km/h
+                    <b>{telemetryVehicle.speed != null ? telemetryVehicle.speed : '—'}</b> km/h
                   </span>
                   <span className="tsep" />
                   <span className="tval">
-                    Fuel <b>{telemetryVehicle.fuel} L</b>
+                    Fuel <b>{telemetryVehicle.fuel != null ? `${telemetryVehicle.fuel} L` : '—'}</b>
                   </span>
                   <span className="tsep" />
                   <span className="tval">
@@ -1561,15 +1347,12 @@ const LiveTrackingPage = () => {
                   </span>
                   <span className="tsep opt1" />
                   <span className="tval opt1">
-                    GPS{' '}
-                    <b>
-                      {telemetryVehicle.gps === 'Active'
-                        ? `${telemetryVehicle.sats} sats`
-                        : 'No fix'}
-                    </b>
+                    GPS <b>{telemetryVehicle.gps}</b>
                   </span>
                   <span className="tsep opt2" />
-                  <span className="tval opt2">{formatAgoText(telemetryVehicle.ago)}</span>
+                  <span className="tval opt2">
+                    {telemetryVehicle.ago != null ? formatAgoText(telemetryVehicle.ago) : '—'}
+                  </span>
                 </div>
               )}
             </div>
@@ -1689,7 +1472,6 @@ const LiveTrackingPage = () => {
                 ) : (
                   filteredVehicles.slice(0, 120).map((v) => {
                     const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
-                    const pct = v.live ? v.progress : 0;
                     const isSel = v.id === selectedId;
 
                     return (
@@ -1713,7 +1495,7 @@ const LiveTrackingPage = () => {
                               {v.plate}
                               <span className="vc-model">{v.model}</span>
                             </div>
-                            <div className="vc-vin">#{v.vin}</div>
+                            <div className="vc-vin">{v.vin ? `#${v.vin}` : '—'}</div>
                           </div>
                           <span className="vc-state">
                             <i />
@@ -1721,53 +1503,17 @@ const LiveTrackingPage = () => {
                           </span>
                         </div>
 
-                        {/* Route Strip */}
-                        <div className="vc-route">
-                          <div className="vc-ends">
-                            <div className="vc-end">
-                              <div className="vc-code">{v.route[0]}</div>
-                              <div className="vc-city">{v.route[1]}</div>
-                            </div>
-                            <div className="vc-end to">
-                              <div className="vc-code">{v.route[2]}</div>
-                              <div className="vc-city">{v.route[3]}</div>
-                            </div>
-                          </div>
-
-                          <div className="vc-times">
-                            <span className="vc-time">
-                              {formatISTDate(v.depAt)}, {formatISTTime(v.depAt)}
-                            </span>
-                            <span className="vc-time">
-                              {v.live
-                                ? `${formatISTDate(v.etaAt)}, ${formatISTTime(v.etaAt)}`
-                                : 'Not dispatched'}
-                            </span>
-                          </div>
-
-                          <div className="vc-prog">
-                            <span className="vc-line" />
-                            <span
-                              className="vc-done"
-                              style={{ width: `calc((100% - 24px) * ${pct / 100})` }}
-                            />
-                            <span className="vc-origin">{renderIconSvg('box', 14)}</span>
-                            <span
-                              className="vc-mover"
-                              style={{ left: `calc(12px + (100% - 24px) * ${pct / 100})` }}
-                            >
-                              {renderIconSvg('truck', 16)}
-                            </span>
-                            <span className="vc-dest">{renderIconSvg('pin', 14)}</span>
-                            {v.live && <span className="vc-pct">{pct}%</span>}
-                          </div>
+                        {/* Current location (real position) */}
+                        <div className="vc-loc">
+                          {renderIconSvg('pin', 13)}
+                          <span>{v.area || 'No location fix'}</span>
                         </div>
 
                         {/* Card Meta Footer */}
                         <div className="vc-meta">
                           <span>
                             {renderIconSvg('fuel', 13)}
-                            <b>{v.fuel} L</b>
+                            <b>{v.fuel != null ? `${v.fuel} L` : '—'}</b>
                           </span>
                           <span>
                             {renderIconSvg('zap', 13)}
@@ -1778,7 +1524,7 @@ const LiveTrackingPage = () => {
                             {v.gps}
                           </span>
                           <span className="sp" />
-                          <span>{formatAgoText(v.ago)}</span>
+                          <span>{v.ago != null ? formatAgoText(v.ago) : '—'}</span>
                         </div>
                       </div>
                     );
@@ -1819,7 +1565,13 @@ const LiveTrackingPage = () => {
                       <div className="dtitle">
                         <div className="plate">{selectedVehicle.plate}</div>
                         <div className="model">
-                          {selectedVehicle.model} · <code>#{selectedVehicle.vin}</code>
+                          {selectedVehicle.model || 'Model n/a'}
+                          {selectedVehicle.vin ? (
+                            <>
+                              {' · '}
+                              <code>#{selectedVehicle.vin}</code>
+                            </>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -1836,27 +1588,15 @@ const LiveTrackingPage = () => {
                       })()}
                     </div>
 
-                    {/* Active Route Box */}
-                    <div className="droute">
-                      <div className="eyebrow-mini" style={{ marginBottom: 6 }}>
-                        Current dispatch
-                      </div>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--type-xs)', marginBottom: 2 }}>
-                        {selectedVehicle.route[1]} → {selectedVehicle.route[3]}
-                      </div>
-                      <div style={{ color: 'var(--fg-secondary)', fontSize: 'var(--type-2xs)' }}>
-                        Trip ref · {selectedVehicle.route[0]}-{selectedVehicle.route[2]}-
-                        {selectedVehicle.plate.slice(-4)}
-                      </div>
-                    </div>
-
                     {/* Metric Tiles */}
                     <div className="metrics">
                       <div className="metric">
                         {renderIconSvg('fuel', 18)}
                         <div>
                           <div className="k">Fuel</div>
-                          <div className="v">{selectedVehicle.fuel} L</div>
+                          <div className="v">
+                            {selectedVehicle.fuel != null ? `${selectedVehicle.fuel} L` : '—'}
+                          </div>
                         </div>
                       </div>
 
@@ -1884,7 +1624,9 @@ const LiveTrackingPage = () => {
                         {renderIconSvg('gauge', 18)}
                         <div>
                           <div className="k">Speed</div>
-                          <div className="v">{selectedVehicle.speed} km/h</div>
+                          <div className="v">
+                            {selectedVehicle.speed != null ? `${selectedVehicle.speed} km/h` : '—'}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1894,16 +1636,23 @@ const LiveTrackingPage = () => {
                       <div className="dline">
                         {renderIconSvg('pin', 18)}
                         <div>
-                          <b>{selectedVehicle.area}</b>
-                          {selectedVehicle.lat.toFixed(4)}, {selectedVehicle.lng.toFixed(4)}
+                          <b>{selectedVehicle.area || 'No location fix'}</b>
+                          {selectedVehicle.hasFix
+                            ? `${selectedVehicle.lat.toFixed(4)}, ${selectedVehicle.lng.toFixed(4)}`
+                            : 'GPS position unavailable'}
                         </div>
                       </div>
 
                       <div className="dline">
                         {renderIconSvg('clock', 18)}
                         <div>
-                          <b>{formatFullStamp(selectedVehicle.ago)}</b>
-                          Last update · {formatAgoText(selectedVehicle.ago)}
+                          <b>
+                            {selectedVehicle.ago != null
+                              ? formatFullStamp(selectedVehicle.ago)
+                              : 'No recent report'}
+                          </b>
+                          Last update ·{' '}
+                          {selectedVehicle.ago != null ? formatAgoText(selectedVehicle.ago) : '—'}
                         </div>
                       </div>
                     </div>
@@ -1912,7 +1661,12 @@ const LiveTrackingPage = () => {
                     <div className="dactions">
                       <button
                         className="act"
+                        disabled={!selectedVehicle.hasFix}
                         onClick={() => {
+                          if (!selectedVehicle.hasFix) {
+                            showToast(`No GPS fix for ${selectedVehicle.plate}`);
+                            return;
+                          }
                           mapRef.current?.panTo({
                             lat: selectedVehicle.lat,
                             lng: selectedVehicle.lng,
@@ -1964,55 +1718,26 @@ const LiveTrackingPage = () => {
                       <details className="sec" open>
                         <summary>
                           {renderIconSvg('trip', 16)}
-                          Trip progress
+                          Recorded path
                           <span className="chev">{renderIconSvg('chevDown', 16)}</span>
                         </summary>
                         <div className="secbody">
-                          {selectedVehicle.live ? (
+                          {isTrailVisible && trailPoints.length > 1 ? (
                             <>
                               <div className="kv">
-                                <span className="k">Route distance</span>
-                                <span className="v">{selectedVehicle.totalKm} km</span>
+                                <span className="k">Path distance</span>
+                                <span className="v">{trailKm.toFixed(1)} km</span>
                               </div>
                               <div className="kv">
-                                <span className="k">Covered</span>
-                                <span className="v">
-                                  {Math.round(
-                                    (selectedVehicle.totalKm * selectedVehicle.progress) / 100,
-                                  )}{' '}
-                                  km · {selectedVehicle.progress}%
-                                </span>
-                              </div>
-                              <div className="kv">
-                                <span className="k">Remaining</span>
-                                <span className="v">
-                                  {selectedVehicle.totalKm -
-                                    Math.round(
-                                      (selectedVehicle.totalKm * selectedVehicle.progress) / 100,
-                                    )}{' '}
-                                  km
-                                </span>
-                              </div>
-                              <div className="kv">
-                                <span className="k">Driving time</span>
-                                <span className="v">{formatHrsText(selectedVehicle.tripMin)}</span>
-                              </div>
-                              <div className="kv">
-                                <span className="k">Stops</span>
-                                <span className="v">{selectedVehicle.stops}</span>
-                              </div>
-                              <div className="kv">
-                                <span className="k">ETA</span>
-                                <span className="v">
-                                  {formatISTDate(selectedVehicle.etaAt)},{' '}
-                                  {formatISTTime(selectedVehicle.etaAt)}
-                                </span>
+                                <span className="k">GPS points</span>
+                                <span className="v">{trailPoints.length}</span>
                               </div>
                             </>
                           ) : (
                             <div className="secnote">
-                              No trip in progress. Last assigned route {selectedVehicle.route[0]} →{' '}
-                              {selectedVehicle.route[2]}.
+                              Trip/dispatch data (origin, destination, ETA, planned route) is not
+                              provided by telematics. Use <b>Trail</b> or <b>Replay</b> to load this
+                              vehicle&apos;s recorded GPS path.
                             </div>
                           )}
                         </div>
@@ -2027,21 +1752,23 @@ const LiveTrackingPage = () => {
                         <div className="secbody">
                           <div className="kv">
                             <span className="k">Chassis / VIN</span>
-                            <span className="v">{selectedVehicle.vin}</span>
+                            <span className="v">{selectedVehicle.vin || '—'}</span>
                           </div>
                           <div className="kv">
                             <span className="k">Model</span>
-                            <span className="v">{selectedVehicle.model}</span>
+                            <span className="v">{selectedVehicle.model || '—'}</span>
                           </div>
                           <div className="kv">
                             <span className="k">Odometer</span>
                             <span className="v">
-                              {selectedVehicle.odo.toLocaleString('en-IN')} km
+                              {selectedVehicle.odo != null
+                                ? `${selectedVehicle.odo.toLocaleString('en-IN')} km`
+                                : '—'}
                             </span>
                           </div>
                           <div className="kv">
                             <span className="k">Registered</span>
-                            <span className="v">{selectedVehicle.reg}</span>
+                            <span className="v">{selectedVehicle.regYear || '—'}</span>
                           </div>
                         </div>
                       </details>
