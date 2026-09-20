@@ -212,6 +212,9 @@ const PublicTrackingPage = () => {
               disableDefaultUI: true,
               zoomControl: true,
               clickableIcons: false,
+              // One-finger pan on touch (like the Google Maps app); the embed
+              // default is 'cooperative', which forces a two-finger drag.
+              gestureHandling: 'greedy',
               styles: LIGHT_MAP_STYLE,
             }}
           >
