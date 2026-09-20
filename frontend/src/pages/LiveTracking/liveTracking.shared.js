@@ -59,6 +59,151 @@ export const pinIcon = (color, dimmed) => ({
 });
 
 /**
+ * Dark plate-pill marker matching the live-tracking map's selected-vehicle
+ * marker — a dark chip with a status dot + the plate and a pointer. Used by the
+ * internal map and the public single-vehicle share page so a pin means the same
+ * thing in both.
+ */
+export const plateMarkerIcon = (plate, color) => {
+  if (typeof window === 'undefined' || !window.google) return undefined;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="124" height="48" viewBox="0 0 124 48">
+    <defs>
+      <filter id="pm" x="-10%" y="-10%" width="120%" height="130%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.35"/>
+      </filter>
+    </defs>
+    <g filter="url(#pm)">
+      <rect x="2" y="2" width="120" height="32" rx="7" fill="#0C1020" stroke="${color}" stroke-width="1.75"/>
+      <circle cx="14" cy="18" r="5" fill="${color}"/>
+      <text x="25" y="22" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" letter-spacing="0.4">${plate}</text>
+      <polygon points="56,34 68,34 62,43" fill="#0C1020"/>
+      <polygon points="57,34 67,34 62,42" fill="${color}"/>
+    </g>
+  </svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new window.google.maps.Size(124, 48),
+    anchor: new window.google.maps.Point(62, 45),
+  };
+};
+
+/* Muted map styles shared by the internal live map and the public share page,
+   so both render the same understated cartography (light + dark variants). */
+export const LIGHT_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#f0f3f6' }] },
+  {
+    featureType: 'administrative.country',
+    elementType: 'geometry.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#7b8794' }, { weight: 1.5 }],
+  },
+  {
+    featureType: 'administrative.country',
+    elementType: 'labels.text.fill',
+    stylers: [{ visibility: 'on' }, { color: '#475569' }],
+  },
+  {
+    featureType: 'administrative.country',
+    elementType: 'labels.text.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#ffffff' }, { weight: 2 }],
+  },
+  {
+    featureType: 'administrative.province',
+    elementType: 'geometry.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#9daab8' }, { weight: 1.2 }],
+  },
+  {
+    featureType: 'administrative.province',
+    elementType: 'labels.text.fill',
+    stylers: [{ visibility: 'on' }, { color: '#64748b' }],
+  },
+  {
+    featureType: 'administrative.province',
+    elementType: 'labels.text.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#ffffff' }, { weight: 2 }],
+  },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ visibility: 'on' }, { color: '#1e293b' }],
+  },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#ffffff' }, { weight: 2 }],
+  },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#e2e8f0' }, { weight: 1 }],
+  },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#edf2f7' }] },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#cbd5e1' }, { weight: 1 }],
+  },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#d8dee4' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+];
+
+export const DARK_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#0d111e' }] },
+  {
+    featureType: 'administrative.country',
+    elementType: 'geometry.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#43516f' }, { weight: 1.5 }],
+  },
+  {
+    featureType: 'administrative.country',
+    elementType: 'labels.text.fill',
+    stylers: [{ visibility: 'on' }, { color: '#cbd5e1' }],
+  },
+  {
+    featureType: 'administrative.country',
+    elementType: 'labels.text.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#090d18' }, { weight: 2 }],
+  },
+  {
+    featureType: 'administrative.province',
+    elementType: 'geometry.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#2d3a54' }, { weight: 1.2 }],
+  },
+  {
+    featureType: 'administrative.province',
+    elementType: 'labels.text.fill',
+    stylers: [{ visibility: 'on' }, { color: '#94a3b8' }],
+  },
+  {
+    featureType: 'administrative.province',
+    elementType: 'labels.text.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#090d18' }, { weight: 2 }],
+  },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ visibility: 'on' }, { color: '#e2e8f0' }],
+  },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.stroke',
+    stylers: [{ visibility: 'on' }, { color: '#090d18' }, { weight: 2 }],
+  },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#161b2e' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#101524' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#242c4b' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1a2038' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#070a12' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#475569' }] },
+];
+
+/**
  * Enhanced directional vehicle marker with rotated top-down truck,
  * status-colored radar beam/cone, and clean plate pill tag.
  */
