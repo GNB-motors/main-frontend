@@ -271,6 +271,24 @@ export default function CompliancePage() {
         }
         footer={data?.disclaimer || null}
       >
+        <div
+          style={{
+            backgroundColor: '#fee2e2',
+            color: '#b91c1c',
+            padding: '12px 16px',
+            borderRadius: '6px',
+            marginBottom: '16px',
+            fontSize: '14px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <ShieldCheck size={18} />
+          This module is deprecated and will be removed soon. Please contact support if you still
+          rely on this page.
+        </div>
         <PanelErrorBoundary name="compliance">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatTile label="Expired" value={formatNum(stats.expired)} tone="var(--critical)" />
