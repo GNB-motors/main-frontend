@@ -256,3 +256,43 @@
   margin: 0;
   line-height: 1.5;
 }
+
+/* Trail toggle button (bottom-right of the map) */
+.pt-trailbtn {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 16, 32, 0.9);
+  backdrop-filter: blur(10px);
+  color: #eef1f5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  transition: all 0.14s;
+}
+.pt-trailbtn:hover {
+  transform: translateY(-1px);
+}
+.pt-trailbtn.on {
+  background: #187a32;
+  border-color: #187a32;
+}
+.pt-trailbtn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+@media (max-width: 560px) {
+  .pt-trailbtn {
+    bottom: auto;
+    top: 66px;
+    right: 10px;
+  }
+}

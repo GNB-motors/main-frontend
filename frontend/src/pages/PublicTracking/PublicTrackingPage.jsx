@@ -7,8 +7,8 @@ import {
   POLL_INTERVAL_MS,
   NOVA_STATUS,
   LIGHT_MAP_STYLE,
-  DARK_MAP_STYLE,
   plateMarkerIcon,
+  trailArrowIcons,
   formatAgoText,
 } from '../LiveTracking/liveTracking.shared.js';
 import './PublicTracking.css';
@@ -28,6 +28,8 @@ const ICONS = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   radio:
     '<circle cx="12" cy="12" r="2"/><path d="M7.8 16.2a6 6 0 0 1 0-8.4"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M4.9 19.1a10 10 0 0 1 0-14.2"/><path d="M19.1 4.9a10 10 0 0 1 0 14.2"/>',
+  route:
+    '<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/>',
 };
 
 const Icon = ({ name, size = 18 }) => (
@@ -44,17 +46,25 @@ const Icon = ({ name, size = 18 }) => (
   />
 );
 
+// Small "start of trail" dot marker (where the recorded path begins).
+const startDotIcon = (color) => {
+  if (typeof window === 'undefined' || !window.google) return undefined;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+    <circle cx="9" cy="9" r="6" fill="#ffffff" stroke="${color}" stroke-width="3"/>
+  </svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new window.google.maps.Size(18, 18),
+    anchor: new window.google.maps.Point(9, 9),
+  };
+};
+
 const minutesSince = (iso) => {
   if (!iso) return null;
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return null;
   return Math.max(0, Math.round((Date.now() - t) / 60000));
 };
-
-const prefersDark = () =>
-  typeof window !== 'undefined' &&
-  window.matchMedia &&
-  window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 /**
  * Public, no-login viewer for a single shared vehicle (/track/:token). Styled to
@@ -69,6 +79,8 @@ const PublicTrackingPage = () => {
   const [phase, setPhase] = useState('loading'); // loading | ok | dead | error
   const [vehicle, setVehicle] = useState(null);
   const [trail, setTrail] = useState([]);
+  const [showTrail, setShowTrail] = useState(false);
+  const [trailLoading, setTrailLoading] = useState(false);
   const mapRef = useRef(null);
   const trailFetchedRef = useRef(false);
   const hasDataRef = useRef(false);
@@ -109,11 +121,17 @@ const PublicTrackingPage = () => {
     };
   }, [fetchPosition]);
 
-  useEffect(() => {
-    if (phase !== 'ok' || trailFetchedRef.current) return;
+  // Trail is opt-in (off by default). Toggling on lazily fetches it once.
+  const toggleTrail = useCallback(() => {
+    if (showTrail) {
+      setShowTrail(false);
+      return;
+    }
+    setShowTrail(true);
+    if (trailFetchedRef.current) return;
     trailFetchedRef.current = true;
-    const controller = new AbortController();
-    ShareService.getPublicShareTrail(token, { signal: controller.signal })
+    setTrailLoading(true);
+    ShareService.getPublicShareTrail(token)
       .then((data) => {
         const pts = (data?.points || [])
           .filter((p) => p.latitude != null && p.longitude != null)
@@ -122,9 +140,9 @@ const PublicTrackingPage = () => {
       })
       .catch(() => {
         // Trail is optional; the pin still renders without it.
-      });
-    return () => controller.abort();
-  }, [phase, token]);
+      })
+      .finally(() => setTrailLoading(false));
+  }, [showTrail, token]);
 
   const hasFix = vehicle && vehicle.latitude != null && vehicle.longitude != null;
   const center = useMemo(
@@ -194,14 +212,22 @@ const PublicTrackingPage = () => {
               disableDefaultUI: true,
               zoomControl: true,
               clickableIcons: false,
-              styles: prefersDark() ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
+              styles: LIGHT_MAP_STYLE,
             }}
           >
-            {trail.length > 1 && (
-              <PolylineF
-                path={trail}
-                options={{ strokeColor: statusColor, strokeOpacity: 0.85, strokeWeight: 4 }}
-              />
+            {showTrail && trail.length > 1 && (
+              <>
+                <PolylineF
+                  path={trail}
+                  options={{
+                    strokeColor: statusColor,
+                    strokeOpacity: 0.85,
+                    strokeWeight: 4,
+                    icons: trailArrowIcons(statusColor),
+                  }}
+                />
+                <MarkerF position={trail[0]} icon={startDotIcon(statusColor)} />
+              </>
             )}
             {hasFix && (
               <MarkerF
@@ -213,6 +239,16 @@ const PublicTrackingPage = () => {
         )}
         {phase === 'ok' && !hasFix && (
           <div className="pt-nofix">Location unavailable — waiting for a GPS fix.</div>
+        )}
+        {vehicle?.trailHours > 0 && hasFix && (
+          <button
+            className={`pt-trailbtn ${showTrail ? 'on' : ''}`}
+            onClick={toggleTrail}
+            disabled={trailLoading}
+          >
+            <Icon name="route" size={16} />
+            {trailLoading ? 'Loading…' : showTrail ? 'Hide trail' : 'Show trail'}
+          </button>
         )}
       </div>
 

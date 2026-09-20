@@ -2228,3 +2228,141 @@ html.dark .vcard:hover,
     top: 64px;
   }
 }
+
+/* ---------------- Share Link Dialog ---------------- */
+.sharedlg-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.sharedlg-scrimbtn {
+  position: absolute;
+  inset: 0;
+  border: none;
+  cursor: default;
+  background: rgba(5, 8, 22, 0.55);
+  backdrop-filter: blur(3px);
+}
+.sharedlg {
+  position: relative;
+  width: 380px;
+  max-width: 100%;
+  background: var(--bg-surface, #fff);
+  color: var(--fg-primary, #121214);
+  border: 1px solid var(--border-subtle, #ececee);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+.sharedlg-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sharedlg-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.sharedlg-sub {
+  font-size: 12px;
+  color: var(--fg-secondary, #5d5d5e);
+  margin-top: 2px;
+}
+.sharedlg-x {
+  background: transparent;
+  border: none;
+  color: var(--fg-tertiary, #8b8b8c);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  border-radius: 8px;
+}
+.sharedlg-x:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}
+.sharedlg-field {
+  margin-bottom: 14px;
+}
+.sharedlg-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-secondary, #5d5d5e);
+  margin-bottom: 7px;
+}
+.sharedlg-opts {
+  display: flex;
+  gap: 8px;
+}
+.sharedlg-opts button {
+  flex: 1;
+  padding: 9px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-default, #c6c6c9);
+  background: var(--bg-surface, #fff);
+  color: var(--fg-primary, #121214);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sharedlg-opts button[aria-pressed='true'] {
+  border-color: var(--nova-rage-400, #4469f0);
+  background: var(--nova-rage-a10, rgba(47, 88, 238, 0.1));
+  color: var(--nova-rage-400, #4469f0);
+}
+.sharedlg-opts button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.sharedlg-create {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  background: var(--nova-rage-400, #4469f0);
+  color: #fff;
+  cursor: pointer;
+}
+.sharedlg-create:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.sharedlg-result {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.sharedlg-url {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-default, #c6c6c9);
+  background: var(--bg-subtle, #f8f8fb);
+  color: var(--fg-secondary, #5d5d5e);
+}
+.sharedlg-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  background: var(--nova-fern-600, #187a32);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}

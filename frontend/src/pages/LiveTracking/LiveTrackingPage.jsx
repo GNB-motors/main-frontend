@@ -15,6 +15,7 @@ import {
   resolveVehicleStatus,
   LIGHT_MAP_STYLE,
   DARK_MAP_STYLE,
+  trailArrowIcons,
 } from './liveTracking.shared.js';
 import './LiveTracking.css';
 
@@ -212,6 +213,8 @@ const LiveTrackingPage = () => {
   } = useLivePositions();
   const [vehiclesMeta, setVehiclesMeta] = useState({});
   const { createAndCopy: createShareAndCopy, creating: shareCreating } = useShareLink();
+  // Share dialog: null = closed, else { plate, ttlDays, trailHours, url }.
+  const [shareDialog, setShareDialog] = useState(null);
 
   // Layout & Theme hooks
   useFullPageLayout();
@@ -764,21 +767,32 @@ const LiveTrackingPage = () => {
     showToast('Live tracking link copied to clipboard');
   }, [showToast]);
 
-  // Share Vehicle Link — mints a public, document-style link that exposes ONLY
-  // this vehicle's live location (no login), then copies it to the clipboard.
-  const handleShareVehicle = useCallback(
-    (v) => {
-      showToast(`Creating public link · ${v.plate}`);
-      createShareAndCopy(
-        { resourceType: 'vehicle_location', resource: { registrationNumber: v.plate } },
-        {
-          onDone: () => showToast(`Public tracking link copied · ${v.plate}`),
-          onError: () => showToast(`Could not create link for ${v.plate}`),
+  // Share Vehicle Link — opens a dialog to choose how long the link works and
+  // how much recorded trail a viewer may see, then mints a public,
+  // document-style link that exposes ONLY this vehicle's live location.
+  const handleShareVehicle = useCallback((v) => {
+    setShareDialog({ plate: v.plate, ttlDays: 7, trailHours: 6, url: '' });
+  }, []);
+
+  const submitShareLink = useCallback(() => {
+    if (!shareDialog) return;
+    const { plate, ttlDays, trailHours } = shareDialog;
+    createShareAndCopy(
+      {
+        resourceType: 'vehicle_location',
+        resource: { registrationNumber: plate },
+        ttlDays,
+        options: { trailHours },
+      },
+      {
+        onDone: (url) => {
+          setShareDialog((prev) => (prev ? { ...prev, url } : prev));
+          showToast(`Public link copied · ${plate}`);
         },
-      );
-    },
-    [createShareAndCopy, showToast],
-  );
+        onError: () => showToast(`Could not create link for ${plate}`),
+      },
+    );
+  }, [shareDialog, createShareAndCopy, showToast]);
 
   // Map Controls: Fit fleet
   const handleFitFleet = useCallback(() => {
@@ -938,6 +952,7 @@ const LiveTrackingPage = () => {
                           strokeColor: selectedStatusColor,
                           strokeOpacity: 0.9,
                           strokeWeight: 4,
+                          icons: trailArrowIcons(selectedStatusColor),
                         }}
                       />
                       <MarkerF
@@ -1682,6 +1697,102 @@ const LiveTrackingPage = () => {
         {renderIconSvg('radio', 14)}
         <span>{toastMsg}</span>
       </div>
+
+      {/* Share Link Dialog */}
+      {shareDialog && (
+        <div className="sharedlg-scrim">
+          <button
+            type="button"
+            className="sharedlg-scrimbtn"
+            aria-label="Close share dialog"
+            onClick={() => setShareDialog(null)}
+          />
+          <div className="sharedlg" role="dialog" aria-label="Share vehicle location">
+            <div className="sharedlg-head">
+              <div>
+                <div className="sharedlg-title">Share live location</div>
+                <div className="sharedlg-sub">{shareDialog.plate} · anyone with the link</div>
+              </div>
+              <button
+                className="sharedlg-x"
+                aria-label="Close"
+                onClick={() => setShareDialog(null)}
+              >
+                {renderIconSvg('x', 16)}
+              </button>
+            </div>
+
+            <div className="sharedlg-field">
+              <span className="sharedlg-label">Link works for</span>
+              <div className="sharedlg-opts">
+                {[
+                  { k: 1, label: '24 hours' },
+                  { k: 7, label: '7 days' },
+                  { k: 30, label: '30 days' },
+                ].map((o) => (
+                  <button
+                    key={o.k}
+                    aria-pressed={shareDialog.ttlDays === o.k}
+                    disabled={!!shareDialog.url}
+                    onClick={() => setShareDialog((p) => ({ ...p, ttlDays: o.k }))}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="sharedlg-field">
+              <span className="sharedlg-label">Show recorded trail</span>
+              <div className="sharedlg-opts">
+                {[
+                  { k: 0, label: 'Off' },
+                  { k: 6, label: 'Last 6h' },
+                  { k: 24, label: 'Last 24h' },
+                ].map((o) => (
+                  <button
+                    key={o.k}
+                    aria-pressed={shareDialog.trailHours === o.k}
+                    disabled={!!shareDialog.url}
+                    onClick={() => setShareDialog((p) => ({ ...p, trailHours: o.k }))}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {shareDialog.url ? (
+              <div className="sharedlg-result">
+                <input
+                  className="sharedlg-url"
+                  aria-label="Shareable tracking link"
+                  readOnly
+                  value={shareDialog.url}
+                />
+                <button
+                  className="sharedlg-copy"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(shareDialog.url).catch(() => {});
+                    showToast('Link copied');
+                  }}
+                >
+                  {renderIconSvg('share', 15)}
+                  Copy
+                </button>
+              </div>
+            ) : (
+              <button
+                className="sharedlg-create"
+                disabled={shareCreating}
+                onClick={submitShareLink}
+              >
+                {shareCreating ? 'Creating…' : 'Create link'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

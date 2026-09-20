@@ -87,6 +87,30 @@ export const plateMarkerIcon = (plate, color) => {
   };
 };
 
+/**
+ * Repeating direction arrows for a breadcrumb polyline — gives the trail a clear
+ * sense of travel direction (points run oldest→newest). Used by both the
+ * internal live map and the public share page. Returns undefined until the
+ * Google Maps SDK is ready.
+ */
+export const trailArrowIcons = (color) => {
+  if (typeof window === 'undefined' || !window.google) return undefined;
+  return [
+    {
+      icon: {
+        path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        scale: 2.6,
+        strokeColor: '#ffffff',
+        strokeWeight: 1,
+        fillColor: color,
+        fillOpacity: 1,
+      },
+      offset: '3%',
+      repeat: '110px',
+    },
+  ];
+};
+
 /* Muted map styles shared by the internal live map and the public share page,
    so both render the same understated cartography (light + dark variants). */
 export const LIGHT_MAP_STYLE = [
