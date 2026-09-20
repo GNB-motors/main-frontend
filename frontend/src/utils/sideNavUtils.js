@@ -288,7 +288,6 @@ export const SIDE_NAV_ITEMS = [
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
-      { to: '/audit-trail', label: 'Audit Trail', key: 'fleetIntelligence' },
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
       { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
       { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
@@ -302,7 +301,6 @@ export const SIDE_NAV_ITEMS = [
       '/fleet-alerts',
       '/idling-console',
       '/fleet-coverage',
-      '/audit-trail',
       '/route-intelligence',
       '/erp/trip-windows',
       '/route-deviation',

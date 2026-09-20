@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
 import EmptyState from '../../components/cluster/EmptyState';
@@ -35,12 +36,13 @@ function truncateId(id) {
 }
 
 export default function AuditTrailPage() {
+  const { orgId } = useParams();
   const [type, setType] = useState(ALL);
   const [page, setPage] = useState(1);
 
   const params = useMemo(
-    () => ({ type: type === ALL ? undefined : type, page, limit: PAGE_SIZE }),
-    [type, page],
+    () => ({ type: type === ALL ? undefined : type, page, limit: PAGE_SIZE, orgId }),
+    [type, page, orgId],
   );
 
   const { data, loading, error } = useApi(
@@ -134,7 +136,9 @@ export default function AuditTrailPage() {
     <div className="cluster-page">
       <PageShell
         title="Audit Trail"
-        subtitle="Who changed what, when. FleetEdge account and token events today."
+        description="System activity and token lifecycle events"
+        backPath={`/superadmin/organizations/${orgId}`}
+        backLabel="Organisation"
         count={total}
         actions={
           <ExportButton

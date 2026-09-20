@@ -271,6 +271,14 @@ function App() {
                 </Suspense>
               }
             />
+            <Route
+              path="organizations/:orgId/audit-trail"
+              element={
+                <Suspense fallback={null}>
+                  <AuditTrailPage />
+                </Suspense>
+              }
+            />
             {/* RBAC management */}
             <Route
               path="rbac/permissions"
@@ -348,7 +356,6 @@ function App() {
             <Route path="/fuel-spend" element={<FuelSpendPage />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
-            <Route path="/audit-trail" element={<AuditTrailPage />} />
             <Route path="/route-intelligence" element={<RouteIntelligencePage />} />
             <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
             <Route path="/reports" element={<ReportsPage />} />
