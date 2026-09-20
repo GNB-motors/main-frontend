@@ -3,6 +3,7 @@ import { GoogleMap, useLoadScript, MarkerF, PolylineF, CircleF } from '@react-go
 import apiClient from '../../utils/axiosConfig';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
+import { useShareLink } from '../../hooks/useShareLink';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
 import {
   NOVA_STATUS,
@@ -382,6 +383,7 @@ const LiveTrackingPage = () => {
     refresh: refreshLivePositions,
   } = useLivePositions();
   const [vehiclesMeta, setVehiclesMeta] = useState({});
+  const { createAndCopy: createShareAndCopy, creating: shareCreating } = useShareLink();
 
   // Layout & Theme hooks
   useFullPageLayout();
@@ -934,14 +936,20 @@ const LiveTrackingPage = () => {
     showToast('Live tracking link copied to clipboard');
   }, [showToast]);
 
-  // Share Vehicle Link
+  // Share Vehicle Link — mints a public, document-style link that exposes ONLY
+  // this vehicle's live location (no login), then copies it to the clipboard.
   const handleShareVehicle = useCallback(
     (v) => {
-      const url = `${window.location.origin}${window.location.pathname}?vehicle=${v.plate}`;
-      navigator.clipboard?.writeText(url).catch(() => {});
-      showToast(`Tracking link copied · ${v.plate}`);
+      showToast(`Creating public link · ${v.plate}`);
+      createShareAndCopy(
+        { resourceType: 'vehicle_location', resource: { registrationNumber: v.plate } },
+        {
+          onDone: () => showToast(`Public tracking link copied · ${v.plate}`),
+          onError: () => showToast(`Could not create link for ${v.plate}`),
+        },
+      );
     },
-    [showToast],
+    [createShareAndCopy, showToast],
   );
 
   // Map Controls: Fit fleet
@@ -1737,7 +1745,11 @@ const LiveTrackingPage = () => {
                         360°
                       </button>
 
-                      <button className="act" onClick={() => handleShareVehicle(selectedVehicle)}>
+                      <button
+                        className="act"
+                        disabled={shareCreating}
+                        onClick={() => handleShareVehicle(selectedVehicle)}
+                      >
                         {renderIconSvg('share', 18)}
                         Share
                       </button>

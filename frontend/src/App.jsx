@@ -143,6 +143,7 @@ const RouteProfitabilityPage = lazy(
 const OverspeedPage = lazy(() => import('./pages/Overspeed/OverspeedPage.jsx'));
 const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
+const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('./pages/OwnerAlerts/OwnerAlertsPage.jsx'));
 const GeofencePage = lazy(() => import('./pages/Geofence/GeofencePage.jsx'));
 const GeofenceZonesPage = lazy(() => import('./pages/Geofence/GeofenceZonesPage.jsx'));
@@ -218,6 +219,8 @@ function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/admin/new-user" element={<SignUpPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
+          {/* Public share link — anyone with the token sees only this one vehicle */}
+          <Route path="/track/:token" element={<PublicTrackingPage />} />
 
           {/* Super Admin Routes */}
           <Route
