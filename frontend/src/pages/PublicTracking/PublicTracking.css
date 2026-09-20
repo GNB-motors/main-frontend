@@ -299,14 +299,19 @@
     left: 0;
     right: 0;
     bottom: 0;
-    width: auto;
-    max-width: none;
+    /* Pin the sheet to the viewport width exactly. `left:0;right:0` should do
+       this, but on some in-app/mobile layouts the containing block resolves
+       wider, letting the metrics row overflow — 100vw is the hard guarantee. */
+    width: 100vw;
+    max-width: 100vw;
+    box-sizing: border-box;
     border-radius: 18px 18px 0 0;
     padding: 13px 12px calc(13px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.16);
   }
   .pt-metrics {
     gap: 6px;
+    width: 100%;
   }
   .pt-plate {
     font-size: 18px;
