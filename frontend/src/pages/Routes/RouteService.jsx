@@ -141,6 +141,20 @@ const RouteService = {
       throw error.response?.data || error;
     }
   },
+
+  /**
+   * Get route profitability metrics
+   * @returns {Promise<Array>} List of corridor profitability data
+   */
+  getProfitability: async () => {
+    try {
+      const response = await apiClient.get('/api/routes/profitability');
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to fetch route profitability:', error.response?.data || error.message);
+      return [];
+    }
+  },
 };
 
 export default RouteService;

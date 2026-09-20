@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import RouteService from '../Routes/RouteService';
+import LottieLoader from '../../components/LottieLoader';
 import {
   Unplug,
   Route,
@@ -18,54 +20,29 @@ import {
 } from 'lucide-react';
 import './RouteProfitability.css';
 
-const SAMPLE_CORRIDORS = [
-  {
-    rank: 1,
-    origin: 'Kolkata, WB',
-    destination: 'Jamshedpur, JH',
-    distanceKm: 285,
-    avgRevenue: 42500,
-    avgCost: 31200,
-    marginInr: 11300,
-    marginPct: 26.6,
-    status: 'OPTIMAL',
-  },
-  {
-    rank: 2,
-    origin: 'Durgapur, WB',
-    destination: 'Ranchi, JH',
-    distanceKm: 240,
-    avgRevenue: 36000,
-    avgCost: 27800,
-    marginInr: 8200,
-    marginPct: 22.8,
-    status: 'HEALTHY',
-  },
-  {
-    rank: 3,
-    origin: 'Haldia Port, WB',
-    destination: 'Siliguri, WB',
-    distanceKm: 610,
-    avgRevenue: 85000,
-    avgCost: 71400,
-    marginInr: 13600,
-    marginPct: 16.0,
-    status: 'MONITOR',
-  },
-  {
-    rank: 4,
-    origin: 'Asansol, WB',
-    destination: 'Patna, BR',
-    distanceKm: 375,
-    avgRevenue: 48000,
-    avgCost: 43200,
-    marginInr: 4800,
-    marginPct: 10.0,
-    status: 'LOW MARGIN',
-  },
-];
-
 export default function RouteProfitabilityPage() {
+  const [corridors, setCorridors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCorridors = async () => {
+      try {
+        setLoading(true);
+        const data = await RouteService.getProfitability();
+        setCorridors(data || []);
+      } catch (error) {
+        console.error('Error fetching route profitability:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCorridors();
+  }, []);
+
+  if (loading) {
+    return <LottieLoader isLoading={true} />;
+  }
+
   return (
     <div className="pshell min-h-screen">
       {/* Header */}
@@ -250,60 +227,68 @@ export default function RouteProfitabilityPage() {
               </tr>
             </thead>
             <tbody>
-              {SAMPLE_CORRIDORS.map((c) => (
-                <tr key={c.rank}>
-                  <td style={{ textAlign: 'center' }}>
-                    <span className="num font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                      #{c.rank}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900">{c.origin}</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="font-semibold text-slate-900">{c.destination}</span>
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className="num font-mono text-slate-700">{c.distanceKm} km</span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className="num font-mono font-semibold text-slate-900">
-                      ₹{c.avgRevenue.toLocaleString('en-IN')}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className="num font-mono font-semibold text-slate-600">
-                      ₹{c.avgCost.toLocaleString('en-IN')}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className="num font-mono font-bold text-emerald-700">
-                      +₹{c.marginInr.toLocaleString('en-IN')}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className="num font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      {c.marginPct.toFixed(1)}%
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span
-                      className={`inline-block px-2.5 py-0.5 text-[10px] font-bold uppercase rounded ${
-                        c.status === 'OPTIMAL'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : c.status === 'HEALTHY'
-                            ? 'bg-blue-100 text-blue-800'
-                            : c.status === 'MONITOR'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-rose-100 text-rose-800'
-                      }`}
-                    >
-                      {c.status}
-                    </span>
+              {corridors.length === 0 ? (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
+                    No route profitability data available yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                corridors.map((c) => (
+                  <tr key={c.id || c.rank}>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="num font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        #{c.rank}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-900">{c.origin}</span>
+                        <span className="text-slate-400">→</span>
+                        <span className="font-semibold text-slate-900">{c.destination}</span>
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="num font-mono text-slate-700">{c.distanceKm} km</span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="num font-mono font-semibold text-slate-900">
+                        ₹{c.avgRevenue.toLocaleString('en-IN')}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="num font-mono font-semibold text-slate-600">
+                        ₹{c.avgCost.toLocaleString('en-IN')}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="num font-mono font-bold text-emerald-700">
+                        +₹{c.marginInr.toLocaleString('en-IN')}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className="num font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {c.marginPct.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span
+                        className={`inline-block px-2.5 py-0.5 text-[10px] font-bold uppercase rounded ${
+                          c.status === 'OPTIMAL'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : c.status === 'HEALTHY'
+                              ? 'bg-blue-100 text-blue-800'
+                              : c.status === 'MONITOR'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {c.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
