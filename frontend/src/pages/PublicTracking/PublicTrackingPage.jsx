@@ -240,6 +240,9 @@ const PublicTrackingPage = () => {
         {phase === 'ok' && !hasFix && (
           <div className="pt-nofix">Location unavailable — waiting for a GPS fix.</div>
         )}
+        {showTrail && !trailLoading && trail.length < 2 && (
+          <div className="pt-nofix">No recorded movement in this window.</div>
+        )}
         {vehicle?.trailHours > 0 && hasFix && (
           <button
             className={`pt-trailbtn ${showTrail ? 'on' : ''}`}

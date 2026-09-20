@@ -25,12 +25,13 @@ export const ShareService = {
    * @param {{ resourceType: string, resource: object, label?: string, ttlDays?: number }} params
    * @returns {Promise<{ token, url, resourceType, resource, label, expiresAt }>}
    */
-  createShareLink: async ({ resourceType, resource, label, ttlDays }) => {
+  createShareLink: async ({ resourceType, resource, label, ttlDays, options }) => {
     const { data } = await apiClient.post('/api/share', {
       resourceType,
       resource,
       label,
       ttlDays,
+      options,
     });
     return data?.data || {};
   },
