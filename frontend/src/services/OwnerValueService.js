@@ -31,6 +31,16 @@ export const OwnerValueService = {
 
   /** Per-trip P&L estimate. tripId required. */
   getTripPnl: (params, signal) => get('/api/owner-value/trip-pnl', params, signal),
+
+  /** Per-vehicle actual km/L for a window (default today), worst 4 vs fleet average. */
+  getFuelEfficiency: (params = {}, signal) =>
+    get('/api/owner-value/fuel-efficiency', params, signal),
+
+  /** Today's fuel fills, tank-verification status, and low-tank-before-trip flags. */
+  getRefuellingToday: (signal) => get('/api/owner-value/refuelling-today', {}, signal),
+
+  /** Per-vehicle trip/service/document events over a date window. */
+  getFleetCalendar: (params = {}, signal) => get('/api/owner-value/fleet-calendar', params, signal),
 };
 
 export default OwnerValueService;

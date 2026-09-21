@@ -88,11 +88,6 @@ const Navbar = ({ toggleSidebar }) => {
       return 'AdBlue';
     }
 
-    // Without this the slug fallback renders "Command center", which
-    // contradicts the sidebar label and the page's own heading.
-    if (location.pathname.startsWith('/command-center')) {
-      return 'Overview';
-    }
     if (location.pathname.match(/^\/erp\/trips\/[a-f0-9]{24}$/)) {
       return 'Trip Details';
     }

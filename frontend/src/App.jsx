@@ -69,7 +69,6 @@ const ContactV2 = lazy(() => import('./pages/landing-page-v2/contact-v2/ContactV
 const LoginPage = lazy(() => import('./pages/Login/LoginPage.jsx'));
 const SignUpPage = lazy(() => import('./pages/SignUp/SIgnUpPage.jsx'));
 const ContactPage = lazy(() => import('./pages/Contact/ContactPage.jsx'));
-const CommandCenterPage = lazy(() => import('./pages/CommandCenter/CommandCenterPage.jsx'));
 const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage.jsx'));
 const SettingsPage = lazy(() => import('./pages/Profile/SettingsPage.jsx'));
@@ -345,7 +344,6 @@ function App() {
               </TripCreationProvider>
             }
           >
-            <Route path="/command-center" element={<CommandCenterPage />} />
             <Route path="/digest" element={<DailyDigestPage />} />
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
             <Route path="/idling-console" element={<IdlingConsolePage />} />

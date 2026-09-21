@@ -13,7 +13,6 @@ import {
   Settings,
   LayoutDashboard,
   FileCheck,
-  Gauge,
   ShieldAlert,
   CalendarClock,
   ReceiptText,
@@ -52,24 +51,11 @@ import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js
  * `hoistWhenSole` -> 'erp' | 'fleet'. Agar org ke paas sirf yahi ek module hai,
  *               to ye item apne section se nikal kar sabse upar chala jaata hai
  *               (shared Vehicles/Employees ke bhi upar) — kyunki tab wahi is
- *               org ka landing page hai. Dono module hone par ye hilta nahi;
- *               top slot combined Overview le leta hai.
+ *               org ka landing page hai. Dono module hone par ye hilta nahi.
  *
  * Order matters: ERP/CRM sabse upar hai kyunki wahi ab primary workflow hai.
  */
 export const SIDE_NAV_ITEMS = [
-  // Cross-module landing page. Sirf tab dikhta hai jab dono module hain —
-  // ek hi module wale org ke liye ye combined view ka koi matlab nahi, unke liye
-  // unka apna module home (ERP Home / Fleet Operations) hi top item ban jaata hai.
-  {
-    type: 'link',
-    key: 'overview',
-    access: 'both',
-    to: '/command-center',
-    label: 'Overview',
-    icon: Gauge,
-    end: true,
-  },
   // Fleet-wide daily digest (added by live-map-refresh branch).
   {
     type: 'link',

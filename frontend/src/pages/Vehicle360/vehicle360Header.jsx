@@ -23,7 +23,7 @@ const RING_C = 2 * Math.PI * RING_R;
 export function Breadcrumbs({ reg }) {
   return (
     <nav className="v360-crumbs" aria-label="Breadcrumb">
-      <Link to="/command-center">Fleet</Link>
+      <Link to="/live-tracking">Fleet</Link>
       <span className="v360-crumbs-sep" aria-hidden="true">
         /
       </span>

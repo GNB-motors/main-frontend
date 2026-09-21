@@ -3,6 +3,7 @@ import {
   cleanMsg,
   buildActionItems,
   buildActivityItems,
+  buildCalendarDays,
   buildDocumentAlerts,
   buildUpcomingItems,
   groupUpcomingByDays,
@@ -61,6 +62,67 @@ describe('buildDocumentAlerts', () => {
     expect(alerts[0]).toMatchObject({ registrationNumber: 'B', docType: 'RC' });
     expect(alerts[0].daysLeft).toBeLessThan(0);
     expect(alerts[1]).toMatchObject({ registrationNumber: 'A', docType: 'FITNESS' });
+  });
+});
+
+describe('buildCalendarDays', () => {
+  const inDays = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000).toISOString();
+  const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+
+  it('returns no days and no overdue for no vehicles', () => {
+    expect(buildCalendarDays([])).toEqual({ overdue: [], days: [] });
+    expect(buildCalendarDays(undefined)).toEqual({ overdue: [], days: [] });
+  });
+
+  it('buckets future events by day, sorted ascending', () => {
+    const res = buildCalendarDays([
+      {
+        vehicleId: 'v1',
+        registrationNumber: 'A',
+        events: [
+          { type: 'trip', date: inDays(2), label: 'X → Y', tons: 10 },
+          { type: 'service', date: inDays(1), label: 'Service due' },
+        ],
+      },
+    ]);
+    expect(res.days).toHaveLength(2);
+    expect(res.days[0].items[0]).toMatchObject({ type: 'service', registrationNumber: 'A' });
+    expect(res.days[1].items[0]).toMatchObject({ type: 'trip', tons: 10 });
+  });
+
+  it('routes a past overdue/expired event to `overdue`, and drops a past non-actionable one', () => {
+    const res = buildCalendarDays([
+      {
+        vehicleId: 'v1',
+        registrationNumber: 'A',
+        events: [
+          { type: 'service', date: daysAgo(2), label: 'Service overdue', overdue: true },
+          { type: 'doc', date: daysAgo(1), label: 'RC expired', expired: true },
+          { type: 'trip', date: daysAgo(1), label: 'past trip, not actionable' },
+        ],
+      },
+    ]);
+    expect(res.overdue).toHaveLength(2);
+    expect(res.overdue.map((e) => e.type)).toEqual(['service', 'doc']);
+    expect(res.days).toEqual([]);
+  });
+
+  it('caps the day list at the requested number of days', () => {
+    const res = buildCalendarDays(
+      [
+        {
+          vehicleId: 'v1',
+          registrationNumber: 'A',
+          events: Array.from({ length: 20 }, (_, i) => ({
+            type: 'trip',
+            date: inDays(i),
+            label: `trip ${i}`,
+          })),
+        },
+      ],
+      5,
+    );
+    expect(res.days).toHaveLength(5);
   });
 });
 
