@@ -67,6 +67,7 @@ export function buildActionItems({
       icon: ShieldAlert,
       title: 'Unexplained fuel loss',
       desc: `${formatLitres(totals.siphonSuspectedLossL)} left tanks without explanation today (${formatINR(totals.siphonSuspectedLossInr)}).`,
+      amt: formatINR(totals.siphonSuspectedLossInr),
       to: '/fuel-integrity',
       cta: 'Investigate',
     });
@@ -78,6 +79,7 @@ export function buildActionItems({
       icon: ShieldAlert,
       title: 'Unexplained fuel loss',
       desc: `≈ ${formatINR(m.theftLossInr)} unexplained fuel loss today${top ? ` — most on ${top.registrationNumber}` : ''}.`,
+      amt: formatINR(m.theftLossInr),
       to: '/fuel-integrity',
       cta: 'Investigate',
     });
@@ -89,6 +91,7 @@ export function buildActionItems({
       icon: Fuel,
       title: 'Bill mismatch',
       desc: `${formatINR(m.billFraudSuspectInr)} of fuel bills don't match the tanks.`,
+      amt: formatINR(m.billFraudSuspectInr),
       to: '/fuel-integrity',
       cta: 'Review bills',
     });
@@ -306,60 +309,6 @@ export function groupUpcomingByDays(upcoming) {
     byDays.get(item.days).push(item);
   }
   return [...byDays.entries()].sort(([a], [b]) => a - b).map(([days, items]) => ({ days, items }));
-}
-
-function dayKeyOf(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
-/**
- * Flattens getFleetCalendar()'s per-vehicle events (trip/service/doc) into
- * day-buckets for the calendar section. A past service/document event still
- * carrying its overdue/expired flag goes into `overdue` instead of a day
- * bucket, so it stays visible rather than scrolling off before today.
- */
-export function buildCalendarDays(calendarVehicles, days = 14) {
-  const todayKey = dayKeyOf(new Date());
-  const buckets = new Map();
-  const overdue = [];
-
-  for (const v of calendarVehicles || []) {
-    for (const e of v.events || []) {
-      const item = {
-        vehicleId: v.vehicleId,
-        registrationNumber: v.registrationNumber,
-        model: v.model,
-        type: e.type,
-        label: e.label,
-        date: e.date,
-        tons: e.tons,
-        overdue: Boolean(e.overdue),
-        expired: Boolean(e.expired),
-      };
-      const key = dayKeyOf(e.date);
-      if (key < todayKey) {
-        if (e.overdue || e.expired) overdue.push(item);
-        continue;
-      }
-      if (!buckets.has(key)) buckets.set(key, []);
-      buckets.get(key).push(item);
-    }
-  }
-
-  const dayList = [...buckets.entries()]
-    .sort(([a], [b]) => a - b)
-    .slice(0, days)
-    .map(([key, items]) => ({
-      dateKey: key,
-      date: new Date(key),
-      items: items.sort((a, b) => new Date(a.date) - new Date(b.date)),
-    }));
-
-  overdue.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  return { overdue, days: dayList };
 }
 
 // Breakdown for the "Needs your attention" KPI sub-line, e.g. "2 critical · 1 to review".
