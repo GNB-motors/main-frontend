@@ -205,17 +205,12 @@ const ReceiptApprovalPage = () => {
   }, [items, query]);
 
   // Only READY drafts can be approved
-  const selectableItems = useMemo(
-    () => filtered.filter((d) => d.status === 'READY'),
-    [filtered],
-  );
+  const selectableItems = useMemo(() => filtered.filter((d) => d.status === 'READY'), [filtered]);
 
   const isAllSelected =
-    selectableItems.length > 0 &&
-    selectableItems.every((d) => selectedIds.has(d._id));
+    selectableItems.length > 0 && selectableItems.every((d) => selectedIds.has(d._id));
 
-  const isSomeSelected =
-    selectableItems.some((d) => selectedIds.has(d._id)) && !isAllSelected;
+  const isSomeSelected = selectableItems.some((d) => selectedIds.has(d._id)) && !isAllSelected;
 
   const selectedDrafts = useMemo(
     () => items.filter((d) => selectedIds.has(d._id)),
@@ -248,7 +243,8 @@ const ReceiptApprovalPage = () => {
   const toggleSelectAll = useCallback(() => {
     setSelectedIds((prev) => {
       const allSelectableIds = selectableItems.map((d) => d._id);
-      const allSelected = allSelectableIds.length > 0 && allSelectableIds.every((id) => prev.has(id));
+      const allSelected =
+        allSelectableIds.length > 0 && allSelectableIds.every((id) => prev.has(id));
       const next = new Set(prev);
       if (allSelected) {
         allSelectableIds.forEach((id) => next.delete(id));
@@ -278,14 +274,10 @@ const ReceiptApprovalPage = () => {
         );
       } else {
         // Collect distinct error messages from failed drafts
-        const failureMessages = Array.from(
-          new Set(failed.map((f) => f.message).filter(Boolean)),
-        );
+        const failureMessages = Array.from(new Set(failed.map((f) => f.message).filter(Boolean)));
 
         if (successCount > 0) {
-          toast.success(
-            `Published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`,
-          );
+          toast.success(`Published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`);
         }
 
         if (failureMessages.length > 0) {
@@ -305,8 +297,7 @@ const ReceiptApprovalPage = () => {
       clearSelection();
       await fetchData();
     } catch (err) {
-      const msg =
-        err.response?.data?.message || err.message || 'Error processing bulk approval';
+      const msg = err.response?.data?.message || err.message || 'Error processing bulk approval';
       toast.error(msg);
     } finally {
       setBulkBusy(false);
@@ -319,7 +310,7 @@ const ReceiptApprovalPage = () => {
         <button
           type="button"
           className="ra-header__back"
-          onClick={() => navigate(isSuperadminRoute ? '/superadmin' : '/overview')}
+          onClick={() => navigate(isSuperadminRoute ? '/superadmin' : '/profile')}
         >
           <ArrowLeft size={15} />
           {isSuperadminRoute ? 'Dashboard' : 'Fleet Operations'}
@@ -442,10 +433,7 @@ const ReceiptApprovalPage = () => {
                       className={`ra-clickable ${isSelected ? 'is-selected' : ''}`}
                       onClick={() => navigate(`${basePath}/${d._id}`)}
                     >
-                      <td
-                        className="ra-table__td-select"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <td className="ra-table__td-select" onClick={(e) => e.stopPropagation()}>
                         {canSelect ? (
                           <input
                             type="checkbox"
@@ -546,12 +534,11 @@ const ReceiptApprovalPage = () => {
           onClick={() => !bulkBusy && setShowBulkConfirmModal(false)}
         >
           <div className="ra-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ra-modal__head">
-              Bulk Approve Receipts
-            </div>
+            <div className="ra-modal__head">Bulk Approve Receipts</div>
             <div className="ra-modal__body">
               <p style={{ margin: 0, fontSize: '14px', color: 'var(--foreground)' }}>
-                Are you sure you want to approve and publish <strong>{selectedIds.size}</strong> fuel receipt{selectedIds.size === 1 ? '' : 's'} to the fuel ledger?
+                Are you sure you want to approve and publish <strong>{selectedIds.size}</strong>{' '}
+                fuel receipt{selectedIds.size === 1 ? '' : 's'} to the fuel ledger?
               </p>
               <div className="ra-bulk-summary-box">
                 <div className="ra-bulk-summary-row">

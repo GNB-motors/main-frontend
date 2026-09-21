@@ -119,6 +119,6 @@ describe('ErrorFallback', () => {
     });
     render(<ErrorFallback error={new Error('x')} />);
     fireEvent.click(screen.getByRole('button', { name: 'Go to Dashboard' }));
-    expect(assign).toHaveBeenCalledWith('/overview');
+    expect(assign).toHaveBeenCalledWith('/profile');
   });
 });

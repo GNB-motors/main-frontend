@@ -238,8 +238,8 @@ export const FleetPanel = ({ fleetFailed, fleet, fuel, days }) => {
     >
       <PanelHeader
         title={`Fleet · last ${days} days`}
-        to="/overview"
-        linkLabel="Fleet Operations"
+        to="/live-tracking"
+        linkLabel="Live Tracking"
       />
       <CardContent className="flex flex-1 flex-col p-4 sm:p-5">
         {fleetFailed ? (

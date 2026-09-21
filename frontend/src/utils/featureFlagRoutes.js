@@ -6,7 +6,6 @@ import { hasErpAccess, hasFleetAccess } from './moduleAccess.js';
  * Order = preference (overview first, then logical flow).
  */
 const FLAG_TO_ROUTE = [
-  ['overview', '/overview'],
   ['reports', '/reports'],
   ['vehicles', '/vehicles'],
   ['vehicleActivity', '/refuel-logs'],
@@ -22,9 +21,9 @@ const PROFILE_FALLBACK = '/profile';
  * Resolve the route the user should land on given a feature flag map.
  *
  * Module access decides the home first, mirroring the sidebar (sideNavUtils.js):
- *   - both modules -> `/command-center` (combined Overview)
+ *   - both modules -> `/live-tracking`
  *   - ERP only     -> `/erp` (ERP Home, hoisted to the top of its sidebar)
- *   - Fleet only   -> `/overview` (Fleet Operations)
+ *   - Fleet only   -> `/live-tracking`
  * Only when neither module is present do we fall back to the first enabled
  * flag's route, then `/profile` (always accessible).
  */
@@ -35,9 +34,9 @@ const resolveLandingRoute = (flags) => {
   const erp = hasErpAccess(isEnabled);
   const fleet = hasFleetAccess(isEnabled);
 
-  if (erp && fleet) return '/command-center';
+  if (erp && fleet) return '/live-tracking';
   if (erp) return '/erp';
-  if (fleet) return '/overview';
+  if (fleet) return '/live-tracking';
 
   for (const [key, route] of FLAG_TO_ROUTE) {
     if (isEnabled(key)) return route;
@@ -59,9 +58,4 @@ const fetchAndResolveLandingRoute = async (apiClient) => {
   }
 };
 
-export {
-  FLAG_TO_ROUTE,
-  PROFILE_FALLBACK,
-  resolveLandingRoute,
-  fetchAndResolveLandingRoute,
-};
+export { FLAG_TO_ROUTE, PROFILE_FALLBACK, resolveLandingRoute, fetchAndResolveLandingRoute };

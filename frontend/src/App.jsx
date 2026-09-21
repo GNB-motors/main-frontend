@@ -69,7 +69,6 @@ const ContactV2 = lazy(() => import('./pages/landing-page-v2/contact-v2/ContactV
 const LoginPage = lazy(() => import('./pages/Login/LoginPage.jsx'));
 const SignUpPage = lazy(() => import('./pages/SignUp/SIgnUpPage.jsx'));
 const ContactPage = lazy(() => import('./pages/Contact/ContactPage.jsx'));
-const OverviewPage = lazy(() => import('./pages/Overview/OverviewPage.jsx'));
 const CommandCenterPage = lazy(() => import('./pages/CommandCenter/CommandCenterPage.jsx'));
 const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage.jsx'));
@@ -182,7 +181,6 @@ const ErpAccountsPage = lazy(() => import('./pages/ErpAccounts/ErpAccountsPage.j
 const Account360Page = lazy(() => import('./pages/ErpAccounts/Account360Page.jsx'));
 const DocumentDetailPage = lazy(() => import('./pages/ErpAccounts/DocumentDetailPage.jsx'));
 const DailyDigestPage = lazy(() => import('./pages/DailyDigest/DailyDigestPage.jsx'));
-const CompliancePage = lazy(() => import('./pages/Compliance/CompliancePage.jsx'));
 const FleetAlertsPage = lazy(() => import('./pages/FleetAlerts/FleetAlertsPage.jsx'));
 const IdlingConsolePage = lazy(() => import('./pages/IdlingConsole/IdlingConsolePage.jsx'));
 const FuelSpendPage = lazy(() => import('./pages/FuelSpend/FuelSpendPage.jsx'));
@@ -348,9 +346,7 @@ function App() {
             }
           >
             <Route path="/command-center" element={<CommandCenterPage />} />
-            <Route path="/overview" element={<OverviewPage />} />
             <Route path="/digest" element={<DailyDigestPage />} />
-            <Route path="/compliance" element={<CompliancePage />} />
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
             <Route path="/idling-console" element={<IdlingConsolePage />} />
             <Route path="/fuel-spend" element={<FuelSpendPage />} />

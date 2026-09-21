@@ -1,5 +1,4 @@
 import {
-  Grid,
   FileText,
   Users,
   User,
@@ -229,16 +228,8 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'Fleet', access: 'fleet' },
   {
     type: 'link',
-    key: 'overview',
     access: 'fleet',
     hoistWhenSole: 'fleet',
-    to: '/overview',
-    label: 'Fleet Operations',
-    icon: Grid,
-  },
-  {
-    type: 'link',
-    access: 'fleet',
     to: '/live-tracking',
     label: 'Track',
     icon: Radar,

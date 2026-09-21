@@ -3,6 +3,8 @@ import { Bell, Fuel, Wrench, CalendarClock, RefreshCw } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
+import { VehicleService } from '../Profile/VehicleService.jsx';
+import { getToken } from '../../utils/session.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
 import { DailyBriefService } from '../DailyBrief/DailyBriefService';
@@ -15,6 +17,7 @@ import {
   startOfTodayIST,
   buildActionItems,
   buildActivityItems,
+  buildDocumentAlerts,
   buildUpcomingItems,
   groupUpcomingByDays,
   summarizeActionSeverity,
@@ -38,7 +41,9 @@ export default function DailyDigestPage() {
   const from = startOfTodayIST();
 
   const money$ = useApi((s) => OwnerValueService.getMoney({ from }, s), [from]);
-  const compliance$ = useApi((s) => OwnerValueService.getComplianceRisk({ days: 15 }, s), []);
+  // Same vehicle-document data Vehicle360's Documents tab shows — no separate
+  // "compliance" endpoint.
+  const fleetDashboard$ = useApi(() => VehicleService.getFleetDashboard(getToken()), []);
   const downtime$ = useApi((s) => OwnerValueService.getDowntimeRisk(s), []);
   const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
   const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);
@@ -48,7 +53,7 @@ export default function DailyDigestPage() {
   const brief$ = useApi((s) => DailyBriefService.getBrief({ date: from }, s), [from]);
 
   const { data: money } = money$;
-  const { data: compliance } = compliance$;
+  const { data: fleetDashboard } = fleetDashboard$;
   const { data: downtime } = downtime$;
   const { data: alerts } = alerts$;
   const { data: fuelSummary } = fuel$;
@@ -56,7 +61,11 @@ export default function DailyDigestPage() {
   const { data: brief } = brief$;
 
   const loading =
-    money$.loading || compliance$.loading || downtime$.loading || alerts$.loading || fuel$.loading;
+    money$.loading ||
+    fleetDashboard$.loading ||
+    downtime$.loading ||
+    alerts$.loading ||
+    fuel$.loading;
 
   const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [, forceTick] = useState(0);
@@ -70,13 +79,13 @@ export default function DailyDigestPage() {
   }, []);
 
   const handleRefresh = () => {
-    [money$, compliance$, downtime$, alerts$, fuel$, fleetAlerts$, brief$].forEach((h) =>
+    [money$, fleetDashboard$, downtime$, alerts$, fuel$, fleetAlerts$, brief$].forEach((h) =>
       h.refetch?.(),
     );
   };
 
   const m = money?.money;
-  const documents = compliance?.documents || [];
+  const documents = buildDocumentAlerts(fleetDashboard, 15);
   const serviceVehicles = downtime?.vehicles || [];
   const overdueCount = serviceVehicles.filter((v) => v.risk === 'OVERDUE').length;
 

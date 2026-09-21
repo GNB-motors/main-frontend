@@ -282,7 +282,7 @@ const OrgFeatureFlagsPage = () => {
 
   useEffect(() => {
     if (getUserRole() !== 'SUPER_ADMIN') {
-      navigate('/overview');
+      navigate('/profile');
     }
   }, [navigate]);
 

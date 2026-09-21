@@ -1,5 +1,5 @@
 import { formatLitres } from '../../utils/formatters';
-import { Panel } from '../Overview/components/overview.primitives.jsx';
+import { Panel } from '../../components/overview.primitives.jsx';
 
 export default function AnomalyBreakdownPanel({ defCount, billCount, lossL, affected, onDrill }) {
   return (
