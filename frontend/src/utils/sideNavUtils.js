@@ -259,11 +259,13 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     label: 'Fleet Intelligence',
     icon: ShieldAlert,
+    // Fleet Alerts & Owner Alerts used to live here; they now open from the
+    // Navbar notification bell (NotificationBell.jsx) instead of the sidebar.
     children: [
-      { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
+      { to: '/daily-brief', label: 'Morning Brief', key: 'dailyBrief' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
       { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
       { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
@@ -272,11 +274,10 @@ export const SIDE_NAV_ITEMS = [
       { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
       { to: '/overspeed', label: 'Overspeed', key: 'fleetIntelligence' },
       { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
-      { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
-      '/fleet-alerts',
       '/idling-console',
+      '/daily-brief',
       '/fleet-coverage',
       '/route-intelligence',
       '/erp/trip-windows',
@@ -285,7 +286,6 @@ export const SIDE_NAV_ITEMS = [
       '/route-profitability',
       '/overspeed',
       '/hotspots',
-      '/owner-alerts',
     ],
   },
   {

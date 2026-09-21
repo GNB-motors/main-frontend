@@ -5,6 +5,7 @@ import { applyThemeToRoot } from '../utils/colorTheme';
 import { useTheme } from '../hooks/useTheme';
 import { useTripCreationContext } from '../contexts/TripCreationContext';
 import LocationSwitcher from './LocationSwitcher.jsx';
+import NotificationBell from './NotificationBell.jsx';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -129,6 +130,7 @@ const Navbar = ({ toggleSidebar }) => {
         {/* Active location switcher — always first in the action bar.
                     Renders only when the business has more than one location. */}
         <LocationSwitcher />
+        <NotificationBell />
         <button
           type="button"
           className="theme-toggle"
