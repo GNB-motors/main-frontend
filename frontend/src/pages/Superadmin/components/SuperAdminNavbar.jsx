@@ -17,19 +17,19 @@ const SuperAdminNavbar = ({ toggleSidebar }) => {
     };
 
     return (
-        <header className="navbar">
-            <div className="navbar-left">
-                <button className="menu-toggle" onClick={toggleSidebar}>
+        <header className="superadmin-navbar">
+            <div className="superadmin-navbar-left">
+                <button className="superadmin-menu-toggle" onClick={toggleSidebar}>
                     <Menu />
                 </button>
                 <h2>{getPageTitle()}</h2>
             </div>
-            <div className="navbar-right">
-                <div className="user-info">
-                    <span className="user-name">
+            <div className="superadmin-navbar-right">
+                <div className="superadmin-user-info">
+                    <span className="superadmin-user-name">
                         {getUserFirstName()} {getUserLastName()}
                     </span>
-                    <span className="user-role">Super Admin</span>
+                    <span className="superadmin-user-role">Super Admin</span>
                 </div>
             </div>
         </header>

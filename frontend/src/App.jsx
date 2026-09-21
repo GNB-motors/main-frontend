@@ -104,6 +104,9 @@ const LemuGraphPage = lazy(
   () => import('./pages/Superadmin/components/lemu/graph/LemuGraphPage.jsx'),
 );
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
+const WhatsAppAuditPage = lazy(
+  () => import('./pages/Superadmin/components/WhatsAppAuditPage.jsx'),
+);
 const ReceiptApprovalPage = lazy(
   () => import('./pages/Superadmin/components/ReceiptApprovalPage.jsx'),
 );
@@ -317,6 +320,14 @@ function App() {
               element={
                 <Suspense fallback={null}>
                   <WarehousePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="whatsapp-audit"
+              element={
+                <Suspense fallback={<div style={{ padding: 24 }}>Loading WhatsApp Audit…</div>}>
+                  <WhatsAppAuditPage />
                 </Suspense>
               }
             />

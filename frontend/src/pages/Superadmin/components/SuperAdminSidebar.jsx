@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Grid, UserPlus, LogOut, ToggleRight, KeyRound, ShieldCheck, ScrollText, Database, Network } from 'lucide-react';
+import { Grid, UserPlus, LogOut, ToggleRight, KeyRound, ShieldCheck, ScrollText, Database, Network, MessageSquareWarning } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import { clearSession } from '../../../utils/session';
 import './SuperAdminSidebar.css';
@@ -67,6 +67,11 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
                     <NavLink to="/superadmin/warehouse" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
                         <Database size={20} />
                         <span>Data Warehouse</span>
+                    </NavLink>
+
+                    <NavLink to="/superadmin/whatsapp-audit" className="superadmin-nav-link" onClick={closeSidebarOnMobile}>
+                        <MessageSquareWarning size={20} />
+                        <span>WhatsApp Audit</span>
                     </NavLink>
                 </nav>
             </div>
