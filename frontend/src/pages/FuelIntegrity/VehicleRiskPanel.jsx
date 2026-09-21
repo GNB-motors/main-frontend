@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { formatINR, formatLitres } from '../../utils/formatters';
-import { Panel, StatusPill } from '../Overview/components/overview.primitives.jsx';
+import { Panel, StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
 import { RISK_TONE } from './fiData.js';
 

@@ -29,9 +29,6 @@ export const OwnerValueService = {
   /** DUE_SOON / OVERDUE vehicles with downtime ₹ exposure. */
   getDowntimeRisk: (signal) => get('/api/owner-value/downtime-risk', {}, signal),
 
-  /** Documents expired / expiring within `days` (default 30) with fine exposure. */
-  getComplianceRisk: (params = {}, signal) => get('/api/owner-value/compliance-risk', params, signal),
-
   /** Per-trip P&L estimate. tripId required. */
   getTripPnl: (params, signal) => get('/api/owner-value/trip-pnl', params, signal),
 };

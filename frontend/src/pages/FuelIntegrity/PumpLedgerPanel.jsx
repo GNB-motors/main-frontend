@@ -3,7 +3,7 @@ import { Fuel } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { formatINR, formatLitres, formatNum } from '../../utils/formatters';
 import { FuelIntegrityService } from './FuelIntegrityService.jsx';
-import { Panel } from '../Overview/components/overview.primitives.jsx';
+import { Panel } from '../../components/overview.primitives.jsx';
 
 /**
  * Pump Short-Delivery Ledger (#7). Per-pump rollup of reconciled fills — where

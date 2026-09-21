@@ -77,7 +77,9 @@ const LemuLogsPage = () => {
   const [selectedNodeId, setSelectedNodeId] = useState(() => searchParams.get('node') || null);
   const [drawerOpen, setDrawerOpen] = useState(() => !!searchParams.get('node'));
   const [sort, setSort] = useState('activity');
-  const [findingsExpanded, setFindingsExpanded] = useState(() => searchParams.get('findings') === 'open');
+  const [findingsExpanded, setFindingsExpanded] = useState(
+    () => searchParams.get('findings') === 'open',
+  );
   const [expandedVersions, setExpandedVersions] = useState(() => {
     const v = searchParams.get('v');
     return v ? new Set([Number(v)]) : new Set();
@@ -111,7 +113,7 @@ const LemuLogsPage = () => {
 
   useEffect(() => {
     if (getUserRole() !== 'SUPER_ADMIN') {
-      navigate('/overview');
+      navigate('/profile');
     }
   }, [navigate]);
 
@@ -147,48 +149,58 @@ const LemuLogsPage = () => {
     }
   }, []);
 
-  const loadEvents = useCallback(async (silent = false) => {
-    if (!silent) setEventsLoading(true);
-    setEventsError('');
-    try {
-      const params = { page, limit: PAGE_SIZE };
-      if (severity) params.severity = severity;
-      if (source) params.source = source;
-      if (service.trim()) params.service = service.trim();
-      if (search.trim()) params.search = search.trim();
-      const data = await LemuService.getEvents(params);
-      setEvents(data.data || []);
-      setPagination(data.pagination || { total: 0, page: 1, limit: PAGE_SIZE, pages: 1 });
-    } catch (e) {
-      setEventsError(e.detail || e.message || 'Failed to load events');
-    } finally {
-      setEventsLoading(false);
-    }
-  }, [page, severity, source, service, search]);
+  const loadEvents = useCallback(
+    async (silent = false) => {
+      if (!silent) setEventsLoading(true);
+      setEventsError('');
+      try {
+        const params = { page, limit: PAGE_SIZE };
+        if (severity) params.severity = severity;
+        if (source) params.source = source;
+        if (service.trim()) params.service = service.trim();
+        if (search.trim()) params.search = search.trim();
+        const data = await LemuService.getEvents(params);
+        setEvents(data.data || []);
+        setPagination(data.pagination || { total: 0, page: 1, limit: PAGE_SIZE, pages: 1 });
+      } catch (e) {
+        setEventsError(e.detail || e.message || 'Failed to load events');
+      } finally {
+        setEventsLoading(false);
+      }
+    },
+    [page, severity, source, service, search],
+  );
 
-  const loadTrackers = useCallback(async (silent = false) => {
-    if (!silent) setTrackersLoading(true);
-    setTrackersError('');
-    try {
-      const params = {};
-      if (resolvedFilter) params.resolved = resolvedFilter;
-      const data = await LemuService.getErrorTrackers(params);
-      // Controller responds { data: trackers, summary } — the list and the
-      // header counts come from this ONE response so they cannot disagree.
-      setTrackers(data.trackers || data.data || []);
-      setErrorsSummary(data.summary || null);
-    } catch (e) {
-      setTrackersError(e.detail || e.message || 'Failed to load error trackers');
-    } finally {
-      setTrackersLoading(false);
-    }
-  }, [resolvedFilter]);
+  const loadTrackers = useCallback(
+    async (silent = false) => {
+      if (!silent) setTrackersLoading(true);
+      setTrackersError('');
+      try {
+        const params = {};
+        if (resolvedFilter) params.resolved = resolvedFilter;
+        const data = await LemuService.getErrorTrackers(params);
+        // Controller responds { data: trackers, summary } — the list and the
+        // header counts come from this ONE response so they cannot disagree.
+        setTrackers(data.trackers || data.data || []);
+        setErrorsSummary(data.summary || null);
+      } catch (e) {
+        setTrackersError(e.detail || e.message || 'Failed to load error trackers');
+      } finally {
+        setTrackersLoading(false);
+      }
+    },
+    [resolvedFilter],
+  );
 
   /* Initial loads — page-owned sections fetch up-front, regardless of tab.
      (Manifest/pulse/liveness/topology/attribution/jobs/findings/versions all
      load inside useLemuGraphData.) */
-  useEffect(() => { loadDashboard(); }, [loadDashboard]);
-  useEffect(() => { loadTrackers(); }, [loadTrackers]);
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+  useEffect(() => {
+    loadTrackers();
+  }, [loadTrackers]);
 
   /* Events: debounce filter changes, refetch on page/filter change */
   const eventsTimer = useRef(null);
@@ -213,78 +225,105 @@ const LemuLogsPage = () => {
   }, [autoRefresh, activeTab, loadDashboard, loadJobs, refreshLayer3, loadEvents]);
 
   /* Sync active tab with URL; keep other params intact. */
-  const setTab = useCallback((tabId) => {
-    setActiveTab(tabId);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set('tab', tabId);
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
+  const setTab = useCallback(
+    (tabId) => {
+      setActiveTab(tabId);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('tab', tabId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   /* Resolve a selected node ID to a node object + kind + pulse series
      (shared resolver — the standalone graph page uses the same one). */
   const selectedNode = useLemuSelectedNode({ selectedNodeId, manifest, pulse, jobs, topology });
 
-  const openNode = useCallback((nodeIdValue) => {
-    setSelectedNodeId(nodeIdValue);
-    setDrawerOpen(true);
-    setActiveTab((current) => {
-      if (current !== 'system') {
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.set('tab', 'system');
-          next.set('node', nodeIdValue);
-          return next;
-        }, { replace: true });
-        return 'system';
-      }
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('node', nodeIdValue);
-        return next;
-      }, { replace: true });
-      return current;
-    });
-  }, [setSearchParams]);
+  const openNode = useCallback(
+    (nodeIdValue) => {
+      setSelectedNodeId(nodeIdValue);
+      setDrawerOpen(true);
+      setActiveTab((current) => {
+        if (current !== 'system') {
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev);
+              next.set('tab', 'system');
+              next.set('node', nodeIdValue);
+              return next;
+            },
+            { replace: true },
+          );
+          return 'system';
+        }
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('node', nodeIdValue);
+            return next;
+          },
+          { replace: true },
+        );
+        return current;
+      });
+    },
+    [setSearchParams],
+  );
 
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
     setSelectedNodeId(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete('node');
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('node');
+        return next;
+      },
+      { replace: true },
+    );
   }, [setSearchParams]);
 
   const toggleFindings = useCallback(() => {
     setFindingsExpanded((v) => {
       const next = !v;
-      setSearchParams((prev) => {
-        const p = new URLSearchParams(prev);
-        if (next) p.set('findings', 'open');
-        else p.delete('findings');
-        return p;
-      }, { replace: true });
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          if (next) p.set('findings', 'open');
+          else p.delete('findings');
+          return p;
+        },
+        { replace: true },
+      );
       return next;
     });
   }, [setSearchParams]);
 
-  const toggleVersion = useCallback((version) => {
-    setExpandedVersions((prev) => {
-      const next = new Set(prev);
-      if (next.has(version)) next.delete(version);
-      else next.add(version);
-      setSearchParams((p) => {
-        const params = new URLSearchParams(p);
-        if (next.size) params.set('v', Array.from(next).join(','));
-        else params.delete('v');
-        return params;
-      }, { replace: true });
-      return next;
-    });
-  }, [setSearchParams]);
+  const toggleVersion = useCallback(
+    (version) => {
+      setExpandedVersions((prev) => {
+        const next = new Set(prev);
+        if (next.has(version)) next.delete(version);
+        else next.add(version);
+        setSearchParams(
+          (p) => {
+            const params = new URLSearchParams(p);
+            if (next.size) params.set('v', Array.from(next).join(','));
+            else params.delete('v');
+            return params;
+          },
+          { replace: true },
+        );
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
 
   const resetPageAnd = (setter) => (e) => {
     setPage(1);
@@ -308,11 +347,14 @@ const LemuLogsPage = () => {
     try {
       await LemuService.resolveError(fp, { resolvedBy: getUserEmail() || undefined });
       setTrackers((prev) => prev.filter((t) => t.fingerprint !== fp));
-      setErrorsSummary((prev) => prev && {
-        ...prev,
-        totalUnresolved: Math.max(0, (prev.totalUnresolved ?? 0) - 1),
-        totalResolved: (prev.totalResolved ?? 0) + 1,
-      });
+      setErrorsSummary(
+        (prev) =>
+          prev && {
+            ...prev,
+            totalUnresolved: Math.max(0, (prev.totalUnresolved ?? 0) - 1),
+            totalResolved: (prev.totalResolved ?? 0) + 1,
+          },
+      );
       loadDashboard(true);
     } catch (e) {
       setTrackersError(e.detail || e.message || 'Failed to resolve error');
@@ -344,9 +386,12 @@ const LemuLogsPage = () => {
   const tabButtons = () => {
     let lastGroup = null;
     return TABS.map((tab) => {
-      const separator = tab.group !== lastGroup && lastGroup !== null ? (
-        <span key={`sep-${tab.id}`} className="lemu-tab__sep" aria-hidden="true">‖</span>
-      ) : null;
+      const separator =
+        tab.group !== lastGroup && lastGroup !== null ? (
+          <span key={`sep-${tab.id}`} className="lemu-tab__sep" aria-hidden="true">
+            ‖
+          </span>
+        ) : null;
       lastGroup = tab.group;
       return [
         separator,
@@ -377,7 +422,11 @@ const LemuLogsPage = () => {
 
       <div className="lemu-toolbar">
         <span className="lemu-meta">
-          {graph.jobsCheckedAt && <>Jobs checked <strong>{relativeTime(graph.jobsCheckedAt)}</strong></>}
+          {graph.jobsCheckedAt && (
+            <>
+              Jobs checked <strong>{relativeTime(graph.jobsCheckedAt)}</strong>
+            </>
+          )}
         </span>
         <div className="lemu-toolbar__actions">
           <button

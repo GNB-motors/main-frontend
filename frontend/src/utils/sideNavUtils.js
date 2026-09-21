@@ -1,5 +1,4 @@
 import {
-  Grid,
   FileText,
   Users,
   User,
@@ -229,16 +228,8 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'Fleet', access: 'fleet' },
   {
     type: 'link',
-    key: 'overview',
     access: 'fleet',
     hoistWhenSole: 'fleet',
-    to: '/overview',
-    label: 'Fleet Operations',
-    icon: Grid,
-  },
-  {
-    type: 'link',
-    access: 'fleet',
     to: '/live-tracking',
     label: 'Track',
     icon: Radar,
@@ -283,7 +274,6 @@ export const SIDE_NAV_ITEMS = [
     label: 'Fleet Intelligence',
     icon: ShieldAlert,
     children: [
-      { to: '/compliance', label: 'Compliance', key: 'fleetIntelligence' },
       { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
@@ -300,7 +290,6 @@ export const SIDE_NAV_ITEMS = [
       { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
-      '/compliance',
       '/fleet-alerts',
       '/idling-console',
       '/fleet-coverage',

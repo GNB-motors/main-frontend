@@ -34,7 +34,7 @@ const OrgDetailPage = () => {
 
   useEffect(() => {
     if (getUserRole() !== 'SUPER_ADMIN') {
-      navigate('/overview');
+      navigate('/profile');
     }
   }, [navigate]);
 
@@ -128,12 +128,42 @@ const OrgDetailPage = () => {
 
   const financials = detail?.financials;
   const financialCards = [
-    { label: 'Total Revenue', value: financials ? formatCurrency(financials.totalRevenue) : null, icon: <IndianRupee size={22} />, colorClass: 'green' },
-    { label: 'Total Expenses', value: financials ? formatCurrency(financials.totalExpenses) : null, icon: <Wallet size={22} />, colorClass: 'orange' },
-    { label: 'Net Profit', value: financials ? formatCurrency(financials.netProfit) : null, icon: <TrendingUp size={22} />, colorClass: 'blue' },
-    { label: 'Fuel Cost', value: financials ? formatCurrency(financials.fuelCost) : null, icon: <Fuel size={22} />, colorClass: 'purple' },
-    { label: 'Profit Margin', value: financials ? `${financials.profitMargin}%` : null, icon: <Percent size={22} />, colorClass: 'teal' },
-    { label: 'Trips', value: financials ? formatNumber(financials.tripCount) : null, icon: <RouteIcon size={22} />, colorClass: 'amber' },
+    {
+      label: 'Total Revenue',
+      value: financials ? formatCurrency(financials.totalRevenue) : null,
+      icon: <IndianRupee size={22} />,
+      colorClass: 'green',
+    },
+    {
+      label: 'Total Expenses',
+      value: financials ? formatCurrency(financials.totalExpenses) : null,
+      icon: <Wallet size={22} />,
+      colorClass: 'orange',
+    },
+    {
+      label: 'Net Profit',
+      value: financials ? formatCurrency(financials.netProfit) : null,
+      icon: <TrendingUp size={22} />,
+      colorClass: 'blue',
+    },
+    {
+      label: 'Fuel Cost',
+      value: financials ? formatCurrency(financials.fuelCost) : null,
+      icon: <Fuel size={22} />,
+      colorClass: 'purple',
+    },
+    {
+      label: 'Profit Margin',
+      value: financials ? `${financials.profitMargin}%` : null,
+      icon: <Percent size={22} />,
+      colorClass: 'teal',
+    },
+    {
+      label: 'Trips',
+      value: financials ? formatNumber(financials.tripCount) : null,
+      icon: <RouteIcon size={22} />,
+      colorClass: 'amber',
+    },
   ];
 
   const orgName = detail?.org?.companyName || detail?.org?.ownerEmail || orgId;
@@ -150,7 +180,8 @@ const OrgDetailPage = () => {
 
       <div className="org-detail-toolbar">
         <p className="org-detail-toolbar-hint">
-          Mileage variance and financials below respect this date range. Vehicle counts are all-time.
+          Mileage variance and financials below respect this date range. Vehicle counts are
+          all-time.
         </p>
         <DateRangeFilter value={dateRange} onChange={setDateRange} />
       </div>
@@ -168,7 +199,7 @@ const OrgDetailPage = () => {
             <div className={`stat-icon ${card.colorClass}`}>{card.icon}</div>
             <div className="stat-info">
               <p className="stat-label">{card.label}</p>
-              <h3 className="stat-value">{loading ? '…' : card.value ?? '—'}</h3>
+              <h3 className="stat-value">{loading ? '…' : (card.value ?? '—')}</h3>
             </div>
           </div>
         ))}
@@ -188,7 +219,9 @@ const OrgDetailPage = () => {
             {loading ? (
               <p className="mileage-variance-empty">Loading…</p>
             ) : !baseline || baseline.vehiclesConsidered === 0 ? (
-              <p className="mileage-variance-empty">No completed mileage intervals in this range.</p>
+              <p className="mileage-variance-empty">
+                No completed mileage intervals in this range.
+              </p>
             ) : (
               <div className="mileage-variance-body">
                 <div className="mileage-variance-stat positive">
@@ -206,7 +239,8 @@ const OrgDetailPage = () => {
                   </div>
                 </div>
                 <p className="mileage-variance-footnote">
-                  {baseline.vehiclesConsidered} vehicle{baseline.vehiclesConsidered !== 1 ? 's' : ''} considered
+                  {baseline.vehiclesConsidered} vehicle
+                  {baseline.vehiclesConsidered !== 1 ? 's' : ''} considered
                   {baseline.neutralCount ? `, ${baseline.neutralCount} exactly at baseline` : ''}.
                 </p>
               </div>
@@ -239,7 +273,8 @@ const OrgDetailPage = () => {
                   </div>
                 </div>
                 <p className="mileage-variance-footnote">
-                  {fleetEdge.vehiclesConsidered} vehicle{fleetEdge.vehiclesConsidered !== 1 ? 's' : ''} considered
+                  {fleetEdge.vehiclesConsidered} vehicle
+                  {fleetEdge.vehiclesConsidered !== 1 ? 's' : ''} considered
                   {fleetEdge.neutralCount ? `, ${fleetEdge.neutralCount} exactly at baseline` : ''}.
                 </p>
               </div>
@@ -259,7 +294,7 @@ const OrgDetailPage = () => {
               <div className={`stat-icon ${card.colorClass}`}>{card.icon}</div>
               <div className="stat-info">
                 <p className="stat-label">{card.label}</p>
-                <h3 className="stat-value">{loading ? '…' : card.value ?? '—'}</h3>
+                <h3 className="stat-value">{loading ? '…' : (card.value ?? '—')}</h3>
               </div>
             </div>
           ))}
@@ -272,16 +307,22 @@ const OrgDetailPage = () => {
           <div>
             <h3>Vehicle Analysis</h3>
             <p className="orgs-table-subtitle">
-              {loading ? 'Loading…' : `${sortedVehicles.length} vehicle${sortedVehicles.length !== 1 ? 's' : ''}`}
+              {loading
+                ? 'Loading…'
+                : `${sortedVehicles.length} vehicle${sortedVehicles.length !== 1 ? 's' : ''}`}
             </p>
           </div>
         </div>
 
         <div className="orgs-table-wrapper">
           {loading ? (
-            <div className="empty-state"><p>Loading vehicles…</p></div>
+            <div className="empty-state">
+              <p>Loading vehicles…</p>
+            </div>
           ) : sortedVehicles.length === 0 ? (
-            <div className="empty-state"><p>No vehicles found for this organisation.</p></div>
+            <div className="empty-state">
+              <p>No vehicles found for this organisation.</p>
+            </div>
           ) : (
             <table className="orgs-table">
               <thead>
@@ -310,7 +351,8 @@ const OrgDetailPage = () => {
                     Vs Baseline <SortIcon active={sortKey === 'mileageVariancePct'} dir={sortDir} />
                   </th>
                   <th className="sortable" onClick={() => handleSort('fleetEdgeVariancePct')}>
-                    Vs FleetEdge <SortIcon active={sortKey === 'fleetEdgeVariancePct'} dir={sortDir} />
+                    Vs FleetEdge{' '}
+                    <SortIcon active={sortKey === 'fleetEdgeVariancePct'} dir={sortDir} />
                   </th>
                 </tr>
               </thead>
@@ -324,24 +366,42 @@ const OrgDetailPage = () => {
                       </div>
                     </td>
                     <td>
-                      <span className={`status-badge status-${v.status === 'MAINTENANCE' ? 'pending' : 'active'}`}>
+                      <span
+                        className={`status-badge status-${v.status === 'MAINTENANCE' ? 'pending' : 'active'}`}
+                      >
                         {v.status}
                       </span>
                     </td>
-                    <td><span className="num">{v.tripCount}</span></td>
-                    <td><span className="num expense-value">{formatCurrency(v.totalRevenue)}</span></td>
-                    <td><span className="num expense-value">{formatCurrency(v.totalExpenses)}</span></td>
-                    <td><span className="num expense-value">{formatCurrency(v.netProfit)}</span></td>
-                    <td><span className="num expense-value">{formatCurrency(v.fuelCost)}</span></td>
-                    <td><span className="num">{v.avgMileageKmPerL ?? '—'}</span></td>
                     <td>
-                      <span className={`variance-pill ${v.mileageVariancePct > 0 ? 'positive' : v.mileageVariancePct < 0 ? 'negative' : ''}`}>
+                      <span className="num">{v.tripCount}</span>
+                    </td>
+                    <td>
+                      <span className="num expense-value">{formatCurrency(v.totalRevenue)}</span>
+                    </td>
+                    <td>
+                      <span className="num expense-value">{formatCurrency(v.totalExpenses)}</span>
+                    </td>
+                    <td>
+                      <span className="num expense-value">{formatCurrency(v.netProfit)}</span>
+                    </td>
+                    <td>
+                      <span className="num expense-value">{formatCurrency(v.fuelCost)}</span>
+                    </td>
+                    <td>
+                      <span className="num">{v.avgMileageKmPerL ?? '—'}</span>
+                    </td>
+                    <td>
+                      <span
+                        className={`variance-pill ${v.mileageVariancePct > 0 ? 'positive' : v.mileageVariancePct < 0 ? 'negative' : ''}`}
+                      >
                         {formatPercent(v.mileageVariancePct)}
                       </span>
                     </td>
                     <td>
                       {v.fleetEdgeAvailable ? (
-                        <span className={`variance-pill ${v.fleetEdgeVariancePct > 0 ? 'positive' : v.fleetEdgeVariancePct < 0 ? 'negative' : ''}`}>
+                        <span
+                          className={`variance-pill ${v.fleetEdgeVariancePct > 0 ? 'positive' : v.fleetEdgeVariancePct < 0 ? 'negative' : ''}`}
+                        >
                           {formatPercent(v.fleetEdgeVariancePct)}
                         </span>
                       ) : (

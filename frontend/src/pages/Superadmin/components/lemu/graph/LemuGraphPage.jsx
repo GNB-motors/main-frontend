@@ -45,7 +45,7 @@ const LemuGraphPage = () => {
 
   useEffect(() => {
     if (getUserRole() !== 'SUPER_ADMIN') {
-      navigate('/overview');
+      navigate('/profile');
     }
   }, [navigate]);
 
@@ -57,24 +57,33 @@ const LemuGraphPage = () => {
     topology: data.topology,
   });
 
-  const openNode = useCallback((nodeIdValue) => {
-    setSelectedNodeId(nodeIdValue);
-    setDrawerOpen(true);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set('node', nodeIdValue);
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
+  const openNode = useCallback(
+    (nodeIdValue) => {
+      setSelectedNodeId(nodeIdValue);
+      setDrawerOpen(true);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('node', nodeIdValue);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
     setSelectedNodeId(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete('node');
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('node');
+        return next;
+      },
+      { replace: true },
+    );
   }, [setSearchParams]);
 
   /* Keep local selection state in sync when the URL changes externally. */

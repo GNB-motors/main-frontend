@@ -8,7 +8,15 @@ import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
  */
 
 /** Glass panel wrapper with a consistent header (eyebrow + question + action). */
-export function Panel({ eyebrow, question, action, className = '', bodyClassName = '', children, id }) {
+export function Panel({
+  eyebrow,
+  question,
+  action,
+  className = '',
+  bodyClassName = '',
+  children,
+  id,
+}) {
   return (
     <section id={id} className={`ov-panel flex flex-col p-5 ${className}`}>
       {(eyebrow || action) && (
@@ -67,7 +75,10 @@ export function Trend({ value, unit = '%', goodWhenUp = true, placeholder = 'no 
   const color = good == null ? 'var(--inert)' : good ? 'var(--ok)' : 'var(--critical)';
   const Icon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className="num inline-flex items-center gap-0.5 text-[11px] font-semibold" style={{ color }}>
+    <span
+      className="num inline-flex items-center gap-0.5 text-[11px] font-semibold"
+      style={{ color }}
+    >
       <Icon size={12} />
       {up ? '+' : ''}
       {value}

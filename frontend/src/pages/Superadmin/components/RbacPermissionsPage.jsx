@@ -29,7 +29,7 @@ const RbacPermissionsPage = () => {
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    if (getUserRole() !== 'SUPER_ADMIN') navigate('/overview');
+    if (getUserRole() !== 'SUPER_ADMIN') navigate('/profile');
   }, [navigate]);
 
   const load = useCallback(async () => {

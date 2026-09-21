@@ -1,5 +1,20 @@
-import { OverviewService } from '../Overview/OverviewService.jsx';
+import apiClient from '../../utils/axiosConfig';
 import ErpDashboardService from '../ErpHome/ErpDashboardService';
+
+const getDashboardSummary = async (params = {}) => {
+  const response = await apiClient.get('/api/dashboard/summary', { params });
+  return response.data?.data || response.data || {};
+};
+
+const getFuelAnalytics = async (params = {}) => {
+  const response = await apiClient.get('/api/dashboard/fuel-analytics', { params });
+  return response.data?.data || response.data || {};
+};
+
+const getFinancials = async (params = {}) => {
+  const response = await apiClient.get('/api/dashboard/financials', { params });
+  return response.data?.data || response.data || {};
+};
 
 /**
  * Fans out to both module dashboards and returns whatever came back.
@@ -15,9 +30,9 @@ export const CommandCenterService = {
   load: async (params = {}) => {
     const [erp, fleetSummary, fuel, financials] = await Promise.allSettled([
       ErpDashboardService.getSummary(),
-      OverviewService.getDashboardSummary(params),
-      OverviewService.getFuelAnalytics(params),
-      OverviewService.getFinancials(params),
+      getDashboardSummary(params),
+      getFuelAnalytics(params),
+      getFinancials(params),
     ]);
 
     const erpPayload = valueOf(erp);

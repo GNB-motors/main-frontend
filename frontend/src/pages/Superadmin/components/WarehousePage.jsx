@@ -106,12 +106,13 @@ function CheckRow({ kind, data }) {
       <div className="wh-check-body">
         <div className="wh-check-header">
           <span className="wh-check-name">{CHECK_LABELS[kind]}</span>
-          <StatusBadge status={status} label={status === 'unknown' && !data ? 'Never run' : undefined} />
+          <StatusBadge
+            status={status}
+            label={status === 'unknown' && !data ? 'Never run' : undefined}
+          />
         </div>
         <div className="wh-check-meta">
-          {!data && (
-            <span>Never run — no result persisted for this check.</span>
-          )}
+          {!data && <span>Never run — no result persisted for this check.</span>}
           {data && isReadError(data) && (
             <span className="wh-check-error">Status unreadable — {data.error}</span>
           )}
@@ -199,7 +200,7 @@ const WarehousePage = () => {
 
   useEffect(() => {
     if (getUserRole() !== 'SUPER_ADMIN') {
-      navigate('/overview');
+      navigate('/profile');
     }
   }, [navigate]);
 
@@ -245,7 +246,11 @@ const WarehousePage = () => {
     const statuses = [];
     tableNames.forEach((t) => {
       const checks = status.tables[t];
-      statuses.push(statusOf(checks?.liveness), statusOf(checks?.completeness), statusOf(checks?.correctness));
+      statuses.push(
+        statusOf(checks?.liveness),
+        statusOf(checks?.completeness),
+        statusOf(checks?.correctness),
+      );
     });
     if (statuses.includes('failed')) return 'failed';
     if (statuses.includes('stale')) return 'stale';
@@ -263,21 +268,25 @@ const WarehousePage = () => {
 
       <div className="wh-toolbar">
         <div className="wh-meta">
-          {status?.enabled && (
-            dataAsOf ? (
+          {status?.enabled &&
+            (dataAsOf ? (
               <>
                 Data as of <strong>{relativeTime(dataAsOf)}</strong>
                 {Date.now() - new Date(dataAsOf).getTime() > STALE_AFTER_MS && (
-                  <span className="wh-meta-note"> — stale: reconciliation has not persisted a newer result</span>
+                  <span className="wh-meta-note">
+                    {' '}
+                    — stale: reconciliation has not persisted a newer result
+                  </span>
                 )}
               </>
             ) : (
               'No reconciliation results persisted yet'
-            )
-          )}
+            ))}
           {!status && loading && 'Checking warehouse status…'}
           {status?.enabled === false && (
-            <span className="wh-meta-note">Warehouse disabled or not configured for ClickHouse</span>
+            <span className="wh-meta-note">
+              Warehouse disabled or not configured for ClickHouse
+            </span>
           )}
         </div>
         <button className="wh-refresh-btn" onClick={fetchStatus} disabled={loading}>
@@ -299,10 +308,18 @@ const WarehousePage = () => {
 
       {!error && !loading && status?.enabled && (
         <div className="wh-legend" aria-label="Status legend">
-          <span className="wh-legend__item"><StatusBadge status="ok" /> passed recently</span>
-          <span className="wh-legend__item"><StatusBadge status="stale" /> passed, data older than 3h</span>
-          <span className="wh-legend__item"><StatusBadge status="failed" /> check failed or found a mismatch</span>
-          <span className="wh-legend__item"><StatusBadge status="unknown" /> never run / unreadable</span>
+          <span className="wh-legend__item">
+            <StatusBadge status="ok" /> passed recently
+          </span>
+          <span className="wh-legend__item">
+            <StatusBadge status="stale" /> passed, data older than 3h
+          </span>
+          <span className="wh-legend__item">
+            <StatusBadge status="failed" /> check failed or found a mismatch
+          </span>
+          <span className="wh-legend__item">
+            <StatusBadge status="unknown" /> never run / unreadable
+          </span>
         </div>
       )}
 
@@ -312,7 +329,9 @@ const WarehousePage = () => {
             {overallHealth === 'ok' && <CheckCircle2 size={24} />}
             {overallHealth === 'stale' && <Clock size={24} />}
             {overallHealth === 'failed' && <XCircle size={24} />}
-            {(overallHealth === 'unknown' || overallHealth === 'disabled' || overallHealth === 'empty') && <AlertTriangle size={24} />}
+            {(overallHealth === 'unknown' ||
+              overallHealth === 'disabled' ||
+              overallHealth === 'empty') && <AlertTriangle size={24} />}
           </div>
           <div className="wh-health-body">
             <h3>
