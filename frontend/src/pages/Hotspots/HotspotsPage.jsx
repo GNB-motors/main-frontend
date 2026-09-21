@@ -96,7 +96,7 @@ export default function HotspotsPage() {
     const ok = await confirm({
       title: dismissing ? `Dismiss "${hotspot.name}"?` : `Restore "${hotspot.name}"?`,
       body: dismissing
-        ? 'It will be hidden from the active map and trucks stopping there will pause raising theft alerts.'
+        ? 'It will be hidden from the active map and trucks stopping there will pause raising fuel-risk alerts.'
         : 'It will return to the active map and the automated watch will resume alerting.',
       confirmLabel: dismissing ? 'Dismiss hotspot' : 'Restore hotspot',
       danger: dismissing,
@@ -126,14 +126,14 @@ export default function HotspotsPage() {
       <div className="hs-top-header">
         <div className="hs-title-group">
           <div className="hs-title-row">
-            <h1 className="hs-title">Theft Hotspots</h1>
+            <h1 className="hs-title">Fuel Risk Hotspots</h1>
             <span className="num inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-bold text-amber-700">
               {active.length} active zones
             </span>
           </div>
           <p className="hs-subtitle">
-            Fuel theft & siphoning danger zones — learned automatically from fleet telemetry and
-            network clusters.
+            Fuel-risk zones — fuel theft, siphoning, and off-network (unauthorised-pump) refuels —
+            learned automatically from fleet telemetry and network clusters.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function HotspotsPage() {
           }`}
         >
           <ShieldAlert size={13} />
-          <span>Theft Hotspots</span>
+          <span>Risk Zones</span>
         </button>
         <button
           type="button"
@@ -203,7 +203,7 @@ export default function HotspotsPage() {
               <div className="flex items-center gap-2">
                 <MapPin size={16} className="text-amber-600" />
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  Theft & Siphoning Risk Geospatial Watch
+                  Fuel-Risk Geospatial Watch
                 </span>
               </div>
 
@@ -269,7 +269,7 @@ export default function HotspotsPage() {
             {active.length === 0 && (
               <div className="hs-ambient-badge">
                 <ShieldCheck size={16} className="text-emerald-600" />
-                <span>Corridors Clear · 0 Theft Clusters Detected</span>
+                <span>Corridors Clear · 0 Risk Clusters Detected</span>
               </div>
             )}
 

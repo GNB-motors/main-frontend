@@ -93,6 +93,12 @@ const OrgFeatureFlagsDetailPage = lazy(
   () => import('./pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx'),
 );
 const OrgDetailPage = lazy(() => import('./pages/Superadmin/components/OrgDetailPage.jsx'));
+const FleetEdgeHealthPage = lazy(
+  () => import('./pages/Superadmin/components/FleetEdgeHealthPage.jsx'),
+);
+const FleetEdgeHealthOrgPage = lazy(
+  () => import('./pages/Superadmin/components/FleetEdgeHealthOrgPage.jsx'),
+);
 const RbacPermissionsPage = lazy(
   () => import('./pages/Superadmin/components/RbacPermissionsPage.jsx'),
 );
@@ -273,6 +279,23 @@ function App() {
               element={
                 <Suspense fallback={null}>
                   <AuditTrailPage />
+                </Suspense>
+              }
+            />
+            {/* FleetEdge data-flow health audit */}
+            <Route
+              path="fleetedge-health"
+              element={
+                <Suspense fallback={null}>
+                  <FleetEdgeHealthPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="fleetedge-health/:orgId"
+              element={
+                <Suspense fallback={null}>
+                  <FleetEdgeHealthOrgPage />
                 </Suspense>
               }
             />

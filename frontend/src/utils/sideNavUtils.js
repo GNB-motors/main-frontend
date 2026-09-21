@@ -271,7 +271,7 @@ export const SIDE_NAV_ITEMS = [
       { to: '/route-replay', label: 'Route Replay', key: 'fleetIntelligence' },
       { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
       { to: '/overspeed', label: 'Overspeed', key: 'fleetIntelligence' },
-      { to: '/hotspots', label: 'Theft Hotspots', key: 'fleetIntelligence' },
+      { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
       { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
