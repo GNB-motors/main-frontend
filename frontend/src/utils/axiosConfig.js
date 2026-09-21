@@ -43,6 +43,7 @@ const SLOW_PATH_PREFIXES = [
   '/api/admin/dashboard-stats',
   '/api/admin/platform-fuel-stats',
   '/api/admin/organizations-overview',
+  '/api/admin/organizations/', // per-org drill-downs (detail, fleetedge-health) do cross-collection aggregates
 ];
 
 const isSlowPath = (url = '') => SLOW_PATH_PREFIXES.some((prefix) => url.startsWith(prefix));
