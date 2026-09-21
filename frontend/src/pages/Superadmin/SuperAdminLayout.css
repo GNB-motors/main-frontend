@@ -1,34 +1,36 @@
-/* Super Admin layout. Scoped under .superadmin-layout so its shared class names
-   (.main-content / .page-content) can't leak into and offset the main dashboard
-   layout — those are global class names defined by DashboardLayout.css too. */
+/* Super Admin layout. Scoped under .superadmin-layout so its class names
+   can't leak into or receive styles from the main DashboardLayout.
+   Previously used `.main-content` / `.page-content` which collided with
+   DashboardLayout.css — its ::before scrim overlay and overflow:hidden
+   bled through and froze the UI. */
 .superadmin-layout {
     display: flex;
     min-height: 100vh;
     background-color: #f5f7fa;
 }
 
-.superadmin-layout .main-content {
+.superadmin-layout .superadmin-main {
     flex-grow: 1;
     transition: margin-left 0.3s ease;
     margin-left: 100px; /* SuperAdmin sidebar collapsed width */
     padding-top: 72px;
 }
 
-.superadmin-layout .main-content.sidebar-open {
+.superadmin-layout .superadmin-main.sidebar-open {
     margin-left: 100px;
 }
 
-.superadmin-layout .page-content {
+.superadmin-layout .superadmin-page {
     padding: 24px;
     min-height: calc(100vh - 72px);
 }
 
 @media (max-width: 992px) {
-    .superadmin-layout .main-content {
+    .superadmin-layout .superadmin-main {
         margin-left: 0;
     }
 
-    .superadmin-layout .main-content.sidebar-open {
+    .superadmin-layout .superadmin-main.sidebar-open {
         margin-left: 0;
     }
 }

@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Build-time env: all API calls should be relative so nginx can proxy /api
 # to the Node backend on the same host. Vite only exposes env vars prefixed
@@ -17,7 +17,7 @@ RUN npm ci
 ENV VITE_API_BASE_URL=/api
 
 COPY . .
-RUN npm run build
+RUN npx vite build
 
 # ─── Stage 2: Serve with nginx ───
 FROM nginx:alpine
