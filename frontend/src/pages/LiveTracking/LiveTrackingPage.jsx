@@ -5,6 +5,7 @@ import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useShareLink } from '../../hooks/useShareLink';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
+import { segmentsToPolylines, gradeSummary } from './roadTrail.js';
 import {
   NOVA_STATUS,
   bearingDegrees,
@@ -266,6 +267,9 @@ const LiveTrackingPage = () => {
   const [trailLoading, setTrailLoading] = useState(false);
   const [isTrailVisible, setIsTrailVisible] = useState(false);
   const [trailPoints, setTrailPoints] = useState([]);
+  // Road-followed, speed-graded overlay (empty ⇒ fall back to the raw trail line).
+  const [roadRuns, setRoadRuns] = useState([]);
+  const [roadSummary, setRoadSummary] = useState('');
   const [replayState, setReplayState] = useState({
     on: false,
     playing: false,
@@ -582,6 +586,8 @@ const LiveTrackingPage = () => {
       if (isTrailVisible && !replayState.on) {
         setIsTrailVisible(false);
         setTrailPoints([]);
+        setRoadRuns([]);
+        setRoadSummary('');
         return;
       }
 
@@ -612,6 +618,23 @@ const LiveTrackingPage = () => {
 
       setTrailPoints(points);
       setIsTrailVisible(true);
+
+      // Road-followed, speed-graded overlay — best-effort; the raw line stays as
+      // the fallback so the trail always renders even if road-snap is off/404.
+      try {
+        const road = await LiveTrackingService.getRoadTrail(v.plate);
+        if (road?.segments?.length) {
+          setRoadRuns(segmentsToPolylines(road.segments));
+          setRoadSummary(gradeSummary(road));
+        } else {
+          setRoadRuns([]);
+          setRoadSummary('');
+        }
+      } catch {
+        // Road overlay is optional; the raw trail already renders.
+        setRoadRuns([]);
+        setRoadSummary('');
+      }
 
       if (mapRef.current && window.google) {
         const bounds = new window.google.maps.LatLngBounds();
@@ -943,8 +966,35 @@ const LiveTrackingPage = () => {
                     );
                   })}
 
-                  {/* Breadcrumb Trail (real recorded path from the trail API) */}
-                  {isTrailVisible && trailCoords.length > 1 && (
+                  {/* Road-followed, speed-graded overlay (one polyline per grade run). */}
+                  {isTrailVisible &&
+                    roadRuns.length > 0 &&
+                    roadRuns.map((run, i) => (
+                      <PolylineF
+                        key={`road-${i}-${run.grade}-${run.path[0].lat},${run.path[0].lng}`}
+                        path={run.path}
+                        options={{
+                          strokeColor: run.color,
+                          strokeOpacity: run.estimated ? 0.5 : 0.95,
+                          strokeWeight: run.estimated ? 3 : 5,
+                          ...(run.estimated
+                            ? {
+                                icons: [
+                                  {
+                                    icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
+                                    offset: '0',
+                                    repeat: '12px',
+                                  },
+                                ],
+                              }
+                            : {}),
+                        }}
+                      />
+                    ))}
+
+                  {/* Breadcrumb Trail — raw recorded path. Shown when the road overlay
+                      is unavailable (road-snap off/empty), so the trail always renders. */}
+                  {isTrailVisible && roadRuns.length === 0 && trailCoords.length > 1 && (
                     <>
                       <PolylineF
                         path={trailCoords}
@@ -1617,6 +1667,12 @@ const LiveTrackingPage = () => {
                                 <span className="k">GPS points</span>
                                 <span className="v">{trailPoints.length}</span>
                               </div>
+                              {roadSummary ? (
+                                <div className="kv">
+                                  <span className="k">Road-followed</span>
+                                  <span className="v">{roadSummary}</span>
+                                </div>
+                              ) : null}
                             </>
                           ) : (
                             <div className="secnote">
