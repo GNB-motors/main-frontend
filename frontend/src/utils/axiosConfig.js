@@ -25,7 +25,6 @@ export const SLOW_TIMEOUT = 90000;
  */
 const SLOW_PATH_PREFIXES = [
   '/api/reports',
-  '/api/dashboard',
   '/api/mileage/fleet-overview',
   '/api/mileage/model-comparison',
   '/api/mileage/intervals',
@@ -43,6 +42,7 @@ const SLOW_PATH_PREFIXES = [
   '/api/admin/dashboard-stats',
   '/api/admin/platform-fuel-stats',
   '/api/admin/organizations-overview',
+  '/api/admin/organizations/', // per-org drill-downs (detail, fleetedge-health) do cross-collection aggregates
 ];
 
 const isSlowPath = (url = '') => SLOW_PATH_PREFIXES.some((prefix) => url.startsWith(prefix));

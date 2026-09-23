@@ -259,23 +259,30 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     label: 'Fleet Intelligence',
     icon: ShieldAlert,
+    // Fleet Alerts & Owner Alerts used to live here; they now open from the
+    // Navbar notification bell (NotificationBell.jsx) instead of the sidebar.
     children: [
-      { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
+      { to: '/daily-brief', label: 'Morning Brief', key: 'dailyBrief' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
+      { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
+      { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
+      { to: '/driving-dna', label: 'Driving DNA', key: 'drivingDna' },
       { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
       // Route Intelligence, Deviation, Replay, Profitability and Overspeed
       // used to be five separate entries — now one card-based hub page.
       { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
-      { to: '/hotspots', label: 'Theft Hotspots', key: 'fleetIntelligence' },
-      { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
+      { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
-      '/fleet-alerts',
       '/idling-console',
+      '/daily-brief',
       '/fleet-coverage',
+      '/optimal-speed',
+      '/refuel-advisory',
+      '/driving-dna',
       '/erp/trip-windows',
       '/route-hub',
       '/route-intelligence',
@@ -284,7 +291,6 @@ export const SIDE_NAV_ITEMS = [
       '/route-profitability',
       '/overspeed',
       '/hotspots',
-      '/owner-alerts',
     ],
   },
   {
