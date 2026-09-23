@@ -50,6 +50,69 @@ const EVT_COLOR = {
   insp: '#6A43D8',
 };
 
+/* =============================== Skeletons =============================== */
+
+export function NdKpiStripSkeleton() {
+  return (
+    <div className="nd-kpis">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="nd-kpi">
+          <div className="nd-kpi-top">
+            <span className="nd-sk" style={{ width: 16, height: 16, borderRadius: 4 }} />
+            <span className="nd-sk" style={{ width: '55%', height: 11 }} />
+          </div>
+          <span className="nd-sk" style={{ width: '45%', height: 24, marginTop: 14 }} />
+          <span className="nd-sk" style={{ width: '75%', height: 10, marginTop: 10 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Generic per-card skeleton: mirrors .nd-card / .nd-card-head, with `rows`
+// shimmer bars standing in for whatever list/table content the real card
+// renders. `big` adds one taller block for cards that lead with a stat
+// (e.g. impact card's total, ops row's headline number).
+export function NdCardSkeleton({ rows = 4, rowHeight = 44, big = false }) {
+  return (
+    <div className="nd-card">
+      <div className="nd-card-head">
+        <span className="nd-sk" style={{ width: 140, height: 14 }} />
+        <span className="nd-sp" />
+        <span className="nd-sk" style={{ width: 70, height: 12 }} />
+      </div>
+      {big ? (
+        <div style={{ padding: '0 var(--space-4) var(--space-3)' }}>
+          <span className="nd-sk" style={{ width: '40%', height: 32 }} />
+        </div>
+      ) : null}
+      <div className="nd-sk-rows">
+        {[...Array(rows)].map((_, i) => (
+          <span key={i} className="nd-sk" style={{ height: rowHeight, borderRadius: 12 }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function NdOpsRowSkeleton() {
+  return (
+    <section className="nd-ops">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="nd-card nd-opcard">
+          <div className="nd-card-head">
+            <span className="nd-sk" style={{ width: 110, height: 14 }} />
+          </div>
+          <div style={{ padding: '0 var(--space-4) var(--space-4)' }}>
+            <span className="nd-sk" style={{ width: '50%', height: 30 }} />
+            <span className="nd-sk" style={{ width: '70%', height: 11, marginTop: 10 }} />
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 /* ============================== KPI strip ============================== */
 
 export function NdKpiStrip({ items }) {

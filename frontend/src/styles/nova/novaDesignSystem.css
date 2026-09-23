@@ -2,6 +2,8 @@
  * "Nova Edge Pro" — ported verbatim from Design/Daily Digest (standalone).html,
  * scoped under .nova-digest so these very generic class names (.card, .item,
  * .tab, .pill, .btn…) never leak into the rest of the app's global CSS.
+ * Shared by any page that wants the same look (Daily Digest, Route Hub, …) —
+ * just wrap the page root in className="nova-digest" and import this file.
  * Font files aren't available locally — Google Fonts fallback (Inter/DM
  * Sans/DM Mono), same pattern vehicle360.css already uses for IBM Plex.
  * Dark mode rides the app's own html.dark toggle (useTheme), not a separate
@@ -240,6 +242,34 @@ html.dark .nova-digest {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ---------- skeleton loading ---------- */
+.nd-sk {
+  display: block;
+  border-radius: var(--radius-m);
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 25%,
+    var(--border-default) 37%,
+    var(--bg-subtle) 63%
+  );
+  background-size: 400% 100%;
+  animation: nd-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes nd-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+.nd-sk-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 var(--space-4) var(--space-4);
 }
 
 /* ---------- kpi strip ---------- */

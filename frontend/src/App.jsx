@@ -133,12 +133,7 @@ const AddLocationPage = lazy(() => import('./pages/Locations/AddLocationPage.jsx
 const RefuelLogsPage = lazy(() => import('./pages/Trip/RefuelLogsPage.jsx'));
 const FuelComparisonPage = lazy(() => import('./pages/FuelComparison/FuelComparisonPage.jsx'));
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
-const RouteDeviationPage = lazy(() => import('./pages/RouteDeviation/RouteDeviationPage.jsx'));
-const RouteReplayPage = lazy(() => import('./pages/RouteReplay/RouteReplayPage.jsx'));
-const RouteProfitabilityPage = lazy(
-  () => import('./pages/RouteProfitability/RouteProfitabilityPage.jsx'),
-);
-const OverspeedPage = lazy(() => import('./pages/Overspeed/OverspeedPage.jsx'));
+const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
 const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
@@ -186,9 +181,6 @@ const FuelSpendPage = lazy(() => import('./pages/FuelSpend/FuelSpendPage.jsx'));
 const DefLedgerPage = lazy(() => import('./pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('./pages/FleetCoverage/FleetCoveragePage.jsx'));
 const AuditTrailPage = lazy(() => import('./pages/AuditTrail/AuditTrailPage.jsx'));
-const RouteIntelligencePage = lazy(
-  () => import('./pages/RouteIntelligence/RouteIntelligencePage.jsx'),
-);
 const Vehicle360Page = lazy(() => import('./pages/Vehicle360/Vehicle360Page.jsx'));
 const AccessControlPage = lazy(() => import('./pages/AccessControl/AccessControlPage.jsx'));
 const AssignedEmployeesPage = lazy(() => import('./pages/AccessControl/AssignedEmployeesPage.jsx'));
@@ -350,7 +342,11 @@ function App() {
             <Route path="/fuel-spend" element={<FuelSpendPage />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
-            <Route path="/route-intelligence" element={<RouteIntelligencePage />} />
+            <Route path="/route-hub" element={<RouteHubPage />} />
+            <Route
+              path="/route-intelligence"
+              element={<RedirectWithState to="/route-hub?tab=intelligence" />}
+            />
             <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
@@ -373,10 +369,22 @@ function App() {
                 </Suspense>
               }
             />
-            <Route path="/route-deviation" element={<RouteDeviationPage />} />
-            <Route path="/route-replay" element={<RouteReplayPage />} />
-            <Route path="/route-profitability" element={<RouteProfitabilityPage />} />
-            <Route path="/overspeed" element={<OverspeedPage />} />
+            <Route
+              path="/route-deviation"
+              element={<RedirectWithState to="/route-hub?tab=deviation" />}
+            />
+            <Route
+              path="/route-replay"
+              element={<RedirectWithState to="/route-hub?tab=replay" />}
+            />
+            <Route
+              path="/route-profitability"
+              element={<RedirectWithState to="/route-hub?tab=profitability" />}
+            />
+            <Route
+              path="/overspeed"
+              element={<RedirectWithState to="/route-hub?tab=overspeed" />}
+            />
             <Route path="/hotspots" element={<HotspotsPage />} />
             <Route path="/live-tracking" element={<LiveTrackingPage />} />
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />

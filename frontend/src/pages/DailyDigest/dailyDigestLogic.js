@@ -236,7 +236,7 @@ export function buildActivityItems(m) {
       label: 'Detour waste',
       value: formatInrCompact(m.detourWasteInr),
       sub: 'Cost of detours today',
-      to: '/route-deviation',
+      to: '/route-hub?tab=deviation',
     });
   }
   return activity;

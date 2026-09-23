@@ -265,12 +265,10 @@ export const SIDE_NAV_ITEMS = [
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
-      { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
       { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
-      { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
-      { to: '/route-replay', label: 'Route Replay', key: 'fleetIntelligence' },
-      { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
-      { to: '/overspeed', label: 'Overspeed', key: 'fleetIntelligence' },
+      // Route Intelligence, Deviation, Replay, Profitability and Overspeed
+      // used to be five separate entries — now one card-based hub page.
+      { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
       { to: '/hotspots', label: 'Theft Hotspots', key: 'fleetIntelligence' },
       { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
     ],
@@ -278,8 +276,9 @@ export const SIDE_NAV_ITEMS = [
       '/fleet-alerts',
       '/idling-console',
       '/fleet-coverage',
-      '/route-intelligence',
       '/erp/trip-windows',
+      '/route-hub',
+      '/route-intelligence',
       '/route-deviation',
       '/route-replay',
       '/route-profitability',

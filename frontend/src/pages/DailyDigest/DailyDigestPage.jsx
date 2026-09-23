@@ -30,6 +30,7 @@ import {
 } from './dailyDigestLogic';
 import {
   NdKpiStrip,
+  NdKpiStripSkeleton,
   NdAttentionCard,
   NdImpactCard,
   NdCalendarCard,
@@ -37,9 +38,11 @@ import {
   NdWasteTable,
   NdUpcomingCard,
   NdOpsRow,
+  NdOpsRowSkeleton,
+  NdCardSkeleton,
   NdVehicleDrawer,
 } from './novaDigestComponents.jsx';
-import './novaDigest.css';
+import '../../styles/nova/novaDesignSystem.css';
 
 /**
  * DailyDigest — ported pixel-for-pixel from Design/Daily Digest (standalone).html
@@ -77,6 +80,18 @@ export default function DailyDigestPage() {
     downtime$.loading ||
     alerts$.loading ||
     fuel$.loading;
+
+  // Per-section gates so each card shows its own skeleton only until its
+  // own source data has loaded once — mirrors useApi's "no flash on
+  // refetch" behaviour instead of hiding the whole page behind one flag.
+  const attnLoading = (loading || fleetAlerts$.loading) && !money;
+  const impactLoading = money$.loading && !money;
+  const calendarLoading = calendar$.loading && !calendar;
+  const refuelLoading = refuelling$.loading && !refuelling;
+  const wasteLoading = money$.loading && !money;
+  const upcomingLoading =
+    (downtime$.loading && !downtime) || (fleetDashboard$.loading && !fleetDashboard);
+  const opsLoading = (money$.loading && !money) || (fuelEfficiency$.loading && !fuelEfficiency);
 
   const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [, forceTick] = useState(0);
@@ -260,58 +275,76 @@ export default function DailyDigestPage() {
           </div>
         </header>
 
-        {loading && !money ? (
-          <div className="nd-kpis">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="nd-kpi" style={{ opacity: 0.4 }} />
-            ))}
+        <section>
+          <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
+            Today at a glance
           </div>
+          {loading && !money ? <NdKpiStripSkeleton /> : <NdKpiStrip items={kpis} />}
+        </section>
+
+        <section className="nd-cols" id="nd-attn">
+          {attnLoading ? (
+            <NdCardSkeleton rows={4} rowHeight={64} />
+          ) : (
+            <NdAttentionCard actions={actions} onOpenVehicle={openVehicle} />
+          )}
+          <div className="nd-rightcol">
+            {impactLoading ? (
+              <NdCardSkeleton rows={4} rowHeight={26} big />
+            ) : (
+              <NdImpactCard money={m} />
+            )}
+          </div>
+        </section>
+
+        {calendarLoading ? (
+          <NdCardSkeleton rows={6} rowHeight={40} />
         ) : (
-          <>
-            <section>
-              <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
-                Today at a glance
-              </div>
-              <NdKpiStrip items={kpis} />
-            </section>
-
-            <section className="nd-cols" id="nd-attn">
-              <NdAttentionCard actions={actions} onOpenVehicle={openVehicle} />
-              <div className="nd-rightcol">
-                <NdImpactCard money={m} />
-              </div>
-            </section>
-
-            <NdCalendarCard
-              vehicles={calendar?.vehicles}
-              days={14}
-              onOpenVehicle={openVehicle}
-              selectedVehicleId={
-                calendar?.vehicles?.find((v) => v.registrationNumber === selectedReg)?.vehicleId
-              }
-            />
-
-            <section className="nd-cols nd-cols--half">
-              <NdRefuelCard data={refuelling} onOpenVehicle={openVehicle} />
-              <NdWasteTable
-                idlingTop5={m?.idlingTop5}
-                detourTop5={m?.detourTop5}
-                onOpenVehicle={openVehicle}
-              />
-            </section>
-
-            <section className="nd-cols" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
-              <NdUpcomingCard upcoming={upcoming} onOpenVehicle={openVehicle} />
-            </section>
-
-            <NdOpsRow money={m} fuelEfficiency={fuelEfficiency} onOpenVehicle={openVehicle} />
-
-            <p className="nd-foot">
-              {m?.disclaimer ||
-                'Money figures are estimates generated from FleetEdge telemetry and the fuel, AdBlue and labour prices configured for your account. Idling, detour and siphoning values assume the configured price per litre at the time of the event. Treat them as directional, not as accounting entries.'}
-            </p>
-          </>
+          <NdCalendarCard
+            vehicles={calendar?.vehicles}
+            days={14}
+            onOpenVehicle={openVehicle}
+            selectedVehicleId={
+              calendar?.vehicles?.find((v) => v.registrationNumber === selectedReg)?.vehicleId
+            }
+          />
         )}
+
+        <section className="nd-cols nd-cols--half">
+          {refuelLoading ? (
+            <NdCardSkeleton rows={4} rowHeight={44} />
+          ) : (
+            <NdRefuelCard data={refuelling} onOpenVehicle={openVehicle} />
+          )}
+          {wasteLoading ? (
+            <NdCardSkeleton rows={5} rowHeight={40} />
+          ) : (
+            <NdWasteTable
+              idlingTop5={m?.idlingTop5}
+              detourTop5={m?.detourTop5}
+              onOpenVehicle={openVehicle}
+            />
+          )}
+        </section>
+
+        <section className="nd-cols" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
+          {upcomingLoading ? (
+            <NdCardSkeleton rows={4} rowHeight={36} />
+          ) : (
+            <NdUpcomingCard upcoming={upcoming} onOpenVehicle={openVehicle} />
+          )}
+        </section>
+
+        {opsLoading ? (
+          <NdOpsRowSkeleton />
+        ) : (
+          <NdOpsRow money={m} fuelEfficiency={fuelEfficiency} onOpenVehicle={openVehicle} />
+        )}
+
+        <p className="nd-foot">
+          {m?.disclaimer ||
+            'Money figures are estimates generated from FleetEdge telemetry and the fuel, AdBlue and labour prices configured for your account. Idling, detour and siphoning values assume the configured price per litre at the time of the event. Treat them as directional, not as accounting entries.'}
+        </p>
       </div>
 
       <NdVehicleDrawer vehicle={selectedVehicle} onClose={() => setSelectedReg(null)} />
