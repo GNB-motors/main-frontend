@@ -90,7 +90,10 @@
   padding: 11px 13px;
   cursor: pointer;
   font-family: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .trippipe-stat:hover {
@@ -120,8 +123,12 @@
   padding-top: 3px;
 }
 
-.trippipe-stat.attention .trippipe-stat-value { color: var(--p-warn); }
-.trippipe-stat.idle .trippipe-stat-value { color: var(--p-muted); }
+.trippipe-stat.attention .trippipe-stat-value {
+  color: var(--p-warn);
+}
+.trippipe-stat.idle .trippipe-stat-value {
+  color: var(--p-muted);
+}
 
 /* ── Two tiers, because the seven counts were not seven equal things ───────
    "Awaiting CN" is work for now; "Awaiting payment" is a trip sitting with
@@ -198,7 +205,9 @@
   color: inherit;
 }
 
-.trippipe-chip.attention .trippipe-chip-count { color: var(--p-warn); }
+.trippipe-chip.attention .trippipe-chip-count {
+  color: var(--p-warn);
+}
 
 /* ── Toolbar ──────────────────────────────────────────────────────────────── */
 .trippipe-toolbar {
@@ -389,9 +398,15 @@
   background: var(--p-line);
 }
 
-.trippipe-mini-seg.done { background: var(--p-done); }
-.trippipe-mini-seg.current { background: var(--p-accent); }
-.trippipe-mini-seg.cancelled { background: var(--p-danger); }
+.trippipe-mini-seg.done {
+  background: var(--p-done);
+}
+.trippipe-mini-seg.current {
+  background: var(--p-accent);
+}
+.trippipe-mini-seg.cancelled {
+  background: var(--p-danger);
+}
 
 /* ── Next action — the visual anchor of the row ───────────────────────────── */
 .trippipe-action {
@@ -504,7 +519,9 @@
   padding: 10px 11px;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .trippipe-card:hover {

@@ -18,6 +18,7 @@ import {
   ReceiptText,
   Radar,
   Route,
+  Warehouse,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -307,6 +308,28 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     to: '/routes',
     label: 'Routes',
+    icon: Route,
+  },
+  // Yards trips start and end at. `key: null` on purpose — this is master data the
+  // anchoring depends on, so it must not be behind its own flag: an org with FMS
+  // that never sees this page has no way to make trip start/end correct.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/warehouses',
+    label: 'Warehouses',
+    icon: Warehouse,
+  },
+  // The warehouse-to-warehouse cycle list. Same reasoning as Warehouses above:
+  // `key: null` because it reads the data the yards produce, and hiding it behind
+  // its own flag would leave an FMS org unable to see why its distances look wrong.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/vehicle-tours',
+    label: 'Vehicle Tours',
     icon: Route,
   },
   {

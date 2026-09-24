@@ -79,6 +79,43 @@ function normaliseProfitability(data) {
  * backend route — the hub adds no storage of its own.
  */
 const RouteHubService = {
+  /**
+   * ERP trips for one vehicle, newest first — the replay's trip picker.
+   *
+   * Degrades to [] rather than throwing: an org without the ERP module still gets a
+   * working replay, it just picks by date range as before.
+   */
+  getTripsForVehicle: async (vehicleId, signal) => {
+    if (!vehicleId) return [];
+    try {
+      const res = await apiClient.get('/api/erp/trips', {
+        params: { vehicleId, limit: 50 },
+        signal,
+      });
+      const rows = res.data?.data ?? [];
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Warehouse anchors for an ERP trip — the GPS-proven yard exit and return.
+   *
+   * Returns null rather than throwing: the replay works without a trip context, it
+   * just falls back to labelling the window edges honestly instead of claiming a
+   * trip start it cannot prove.
+   */
+  getTripAnchors: async (erpTripId, signal) => {
+    if (!erpTripId) return null;
+    try {
+      const res = await apiClient.get(`/api/erp/trips/${erpTripId}/anchors`, { signal });
+      return res.data?.data ?? null;
+    } catch {
+      return null;
+    }
+  },
+
   /** Vehicle picker rows: { _id, registrationNumber, model, … }. */
   getVehicles: async (signal) =>
     unwrapList(await apiClient.get('/api/vehicles', { params: { limit: 500 }, signal })),

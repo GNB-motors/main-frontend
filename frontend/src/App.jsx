@@ -140,6 +140,10 @@ const RefuelLogsPage = lazy(() => import('./pages/Trip/RefuelLogsPage.jsx'));
 const FuelComparisonPage = lazy(() => import('./pages/FuelComparison/FuelComparisonPage.jsx'));
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
 const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
+const VehicleWarehousesPage = lazy(
+  () => import('./pages/VehicleWarehouses/VehicleWarehousesPage.jsx'),
+);
+const VehicleToursPage = lazy(() => import('./pages/VehicleTours/VehicleToursPage.jsx'));
 const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
@@ -461,6 +465,8 @@ function App() {
             <Route path="/vehicles/add" element={<AddVehiclePage />} />
             <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
             <Route path="/routes" element={<RoutesPage />} />
+            <Route path="/warehouses" element={<VehicleWarehousesPage />} />
+            <Route path="/vehicle-tours" element={<VehicleToursPage />} />
             <Route path="/routes/add" element={<AddRoutePage />} />
             <Route path="/khata-ledger" element={<KhataLedgerPage />} />
             {/* ISOCL ERP — five workspaces (CRM / Operations / Finance / Approval Center) */}

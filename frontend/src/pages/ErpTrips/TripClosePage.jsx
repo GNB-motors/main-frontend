@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Flag, X, AlertTriangle } from 'lucide-react';
+import { Flag, X, AlertTriangle, Warehouse, MapPin, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Link, useLocation } from 'react-router-dom';
 import TripCloseService from './TripCloseService';
@@ -24,6 +24,8 @@ const TripClosePage = () => {
   const [busy, setBusy] = useState(false);
 
   const [selected, setSelected] = useState(null);
+  // Advisory warehouse check for the close modal — never gates the submit.
+  const [preflight, setPreflight] = useState(null);
   const [form, setForm] = useState({
     unloadedAt: todayInput(),
     unloadLocation: '',
@@ -78,6 +80,11 @@ const TripClosePage = () => {
 
   const openClose = (trip) => {
     setSelected(trip);
+    setPreflight(null);
+    // Fire-and-forget: the modal opens immediately and the banner fills in when the
+    // answer arrives. Waiting on it would make closing a trip feel slower for no gain,
+    // since the check never blocks anything.
+    TripCloseService.getClosePreflight(trip._id).then(setPreflight);
     setForm({
       unloadedAt: todayInput(),
       unloadLocation: trip.toLocation || '',
@@ -88,7 +95,10 @@ const TripClosePage = () => {
     });
   };
 
-  const closeModal = () => setSelected(null);
+  const closeModal = () => {
+    setSelected(null);
+    setPreflight(null);
+  };
 
   const handleClose = async (e) => {
     e.preventDefault();
@@ -104,6 +114,11 @@ const TripClosePage = () => {
           toLocation: form.reportEmptyTo.trim(),
           distanceKm: Number(form.reportEmptyKm),
         };
+      }
+      // Record that the operator saw and accepted the wrong-yard warning, so the
+      // close is auditable later rather than looking like nobody noticed.
+      if (preflight?.status === 'AT_DIFFERENT_WAREHOUSE') {
+        payload.acknowledgedWarehouseMismatch = true;
       }
       await TripCloseService.closeTrip(selected._id, payload);
       toast.success('Trip closed');
@@ -182,7 +197,11 @@ const TripClosePage = () => {
                       </span>
                     </td>
                     <td>
-                      <button type="button" className="btn btn-primary" onClick={() => openClose(t)}>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => openClose(t)}
+                      >
                         Close trip
                       </button>
                     </td>
@@ -243,30 +262,80 @@ const TripClosePage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
         >
-          <div
-            className="erp-modal"
-            role="dialog"
-            aria-modal="true"
-          >
+          <div className="erp-modal" role="dialog" aria-modal="true">
             <div className="erp-modal-header">
               <h2>
                 <Flag size={18} /> Close {selected.tripNumber}
               </h2>
-              <button type="button" className="erp-icon-btn" onClick={closeModal} aria-label="Close">
+              <button
+                type="button"
+                className="erp-icon-btn"
+                onClick={closeModal}
+                aria-label="Close"
+              >
                 <X size={18} />
               </button>
             </div>
 
             <form className="erp-form" onSubmit={handleClose}>
+              {preflight && preflight.status !== 'UNKNOWN' && (
+                <div
+                  className={`erp-callout ${
+                    preflight.status === 'AT_DESIGNATED' ? 'success' : 'warning'
+                  }`}
+                >
+                  {preflight.status === 'AT_DESIGNATED' ? (
+                    <CheckCircle2 size={16} />
+                  ) : preflight.status === 'AT_DIFFERENT_WAREHOUSE' ? (
+                    <Warehouse size={16} />
+                  ) : (
+                    <MapPin size={16} />
+                  )}
+                  <div>
+                    <strong>
+                      {preflight.status === 'AT_DESIGNATED'
+                        ? 'Vehicle is at the designated yard'
+                        : preflight.status === 'AT_DIFFERENT_WAREHOUSE'
+                          ? 'Vehicle is at a different yard'
+                          : 'Vehicle is not at a yard'}
+                    </strong>
+                    <p className="erp-muted">
+                      {preflight.message}
+                      {preflight.distanceKm ? ` (${preflight.distanceKm} km away)` : ''}
+                    </p>
+                    {/* The banner states where the vehicle is; the replay shows how it
+                        got there. Carries the trip id so the timeline is labelled from
+                        the warehouse anchors, not the edges of a date range. */}
+                    {selected.vehicleNumber && (
+                      <Link
+                        to={`/route-hub?tab=replay&v=${encodeURIComponent(
+                          selected.vehicleNumber,
+                        )}&trip=${selected._id}`}
+                        className="erp-callout-link"
+                      >
+                        View this trip&apos;s replay →
+                      </Link>
+                    )}
+                    {preflight.status !== 'AT_DESIGNATED' && (
+                      <p className="erp-muted">
+                        You can still close the trip — this is only a heads-up.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="erp-callout">
                 <AlertTriangle size={16} />
                 <div>
                   <strong>Operational close only</strong>
                   <p className="erp-muted">
-                    Shortage / detention / money is Stage 8. The tanker stays busy until POD
-                    (Stage 7).
+                    Shortage / detention / money is Stage 8. The tanker stays busy until POD (Stage
+                    7).
                   </p>
                 </div>
               </div>
@@ -302,9 +371,7 @@ const TripClosePage = () => {
                 <input
                   type="checkbox"
                   checked={form.reportEmptyEnabled}
-                  onChange={(e) =>
-                    setForm({ ...form, reportEmptyEnabled: e.target.checked })
-                  }
+                  onChange={(e) => setForm({ ...form, reportEmptyEnabled: e.target.checked })}
                 />
                 Add report-empty point (optional)
               </label>

@@ -42,6 +42,21 @@ const TripCloseService = {
     }
   },
 
+  /**
+   * Advisory check for the close modal: is the vehicle at the yard this trip is
+   * meant to finish at? Never blocks the close — the operator decides.
+   * See backend docs/vehicle-warehouse-plan.md §7.
+   */
+  getClosePreflight: async (tripId) => {
+    try {
+      const response = await apiClient.get(`${BASE}/${tripId}/close-preflight`);
+      return response.data?.data ?? response.data ?? null;
+    } catch {
+      // Advisory only — a failure here must never stop someone closing a trip.
+      return null;
+    }
+  },
+
   closeTrip: async (tripId, payload) => {
     try {
       const response = await apiClient.post(`${BASE}/${tripId}/close`, payload);

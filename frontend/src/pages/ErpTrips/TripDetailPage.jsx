@@ -13,6 +13,7 @@ import {
   CreditCard,
   ArrowRight,
   ArrowLeft,
+  Route,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import TripDashboardService from './TripDashboardService';
@@ -31,7 +32,10 @@ import TripFinancials from '../../components/Erp/Trip/TripFinancials';
 import { resolveNextAction } from '../../components/Erp/Trip/tripFinance';
 
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-const day = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+const day = (d) =>
+  d
+    ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
 const stamp = (d) =>
   d
     ? new Date(d).toLocaleString('en-IN', {
@@ -55,7 +59,8 @@ const Facts = ({ items }) => (
   </dl>
 );
 
-const km = (v) => (v == null ? '—' : `${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 1 })} km`);
+const km = (v) =>
+  v == null ? '—' : `${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 1 })} km`;
 
 // Human labels for the telematics reconciliation flags surfaced from the backend.
 const TELEMATICS_FLAGS = {
@@ -99,7 +104,9 @@ const TimelinePanel = ({ events }) => {
         <ol className="trip360-timeline">
           {events.map((e) => (
             <li key={e.seq ?? `${e.jobName}-${e.at}`} className="trip360-timeline-item">
-              <span className="trip360-timeline-label">{EVENT_LABELS[e.jobName] || e.toState || e.jobName}</span>
+              <span className="trip360-timeline-label">
+                {EVENT_LABELS[e.jobName] || e.toState || e.jobName}
+              </span>
               <span className="trip360-timeline-time">{stamp(e.at)}</span>
             </li>
           ))}
@@ -136,7 +143,9 @@ const TelematicsPanel = ({ telematics, plannedKm, onRecompute, recomputing }) =>
       </div>
       <div className="trip360-panel-body">
         {!ready ? (
-          <p className="trip360-muted">{(TELEMATICS_UNAVAILABLE[status] || 'Telematics unavailable') + reason}</p>
+          <p className="trip360-muted">
+            {(TELEMATICS_UNAVAILABLE[status] || 'Telematics unavailable') + reason}
+          </p>
         ) : (
           <>
             <Facts
@@ -150,10 +159,19 @@ const TelematicsPanel = ({ telematics, plannedKm, onRecompute, recomputing }) =>
                       ? `${km(v.extraKm)}${v.extraKmPct != null ? ` (${v.extraKmPct}%)` : ''}`
                       : '—',
                 },
-                { label: 'Laden / Approach / Return', value: `${km(a.ladenKm)} / ${km(a.approachKm)} / ${km(a.returnKm)}` },
-                a.fuelDetourKm ? { label: 'of which fuel detour', value: km(a.fuelDetourKm) } : null,
-                a.serviceKmExcluded ? { label: 'Service (excluded)', value: km(a.serviceKmExcluded) } : null,
-                a.fuelConsumedL != null ? { label: 'Fuel used', value: `${a.fuelConsumedL} L` } : null,
+                {
+                  label: 'Laden / Approach / Return',
+                  value: `${km(a.ladenKm)} / ${km(a.approachKm)} / ${km(a.returnKm)}`,
+                },
+                a.fuelDetourKm
+                  ? { label: 'of which fuel detour', value: km(a.fuelDetourKm) }
+                  : null,
+                a.serviceKmExcluded
+                  ? { label: 'Service (excluded)', value: km(a.serviceKmExcluded) }
+                  : null,
+                a.fuelConsumedL != null
+                  ? { label: 'Fuel used', value: `${a.fuelConsumedL} L` }
+                  : null,
                 a.lastMovementAt ? { label: 'GPS arrival', value: stamp(a.lastMovementAt) } : null,
                 t.confidence ? { label: 'Confidence', value: t.confidence } : null,
               ]}
@@ -374,12 +392,18 @@ const TripDetailPage = () => {
         done: hasUnloading,
         available: hasPod,
         blockedBy: 'POD Receipt',
-        action: { label: hasUnloading ? 'Update unloading' : 'Enter unloading', drawer: 'unloading' },
+        action: {
+          label: hasUnloading ? 'Update unloading' : 'Enter unloading',
+          drawer: 'unloading',
+        },
         facts: u
           ? [
               { label: 'Unloaded', value: `${u.unloadedQty ?? '—'} KL` },
               { label: 'Shortage', value: `${u.shortageQty ?? 0} (${money(u.shortageDeduction)})` },
-              { label: 'Detention', value: `${u.detentionDays ?? 0} d (${money(u.detentionAmount)})` },
+              {
+                label: 'Detention',
+                value: `${u.detentionDays ?? 0} d (${money(u.detentionAmount)})`,
+              },
             ]
           : null,
       },
@@ -414,7 +438,11 @@ const TripDetailPage = () => {
       return stage.hasCn ? 'CN updated' : 'No consignment note yet';
     }
     const facts = (stage.facts || []).filter((f) => f.value);
-    if (facts.length) return facts.slice(0, 3).map((f) => f.value).join(' · ');
+    if (facts.length)
+      return facts
+        .slice(0, 3)
+        .map((f) => f.value)
+        .join(' · ');
     return null;
   };
 
@@ -468,6 +496,17 @@ const TripDetailPage = () => {
             <span className="trip360-chip">
               <CreditCard size={12} /> Credit {money(data.partyId.creditLimit)}
             </span>
+          )}
+          {/* Replay this trip specifically, not a date range that happens to contain
+              it. `trip` carries the ERP id so the timeline can be labelled from the
+              warehouse anchors instead of the edges of the window. */}
+          {data.vehicleNumber && (
+            <Link
+              className="trip360-chip trip360-chip--link"
+              to={`/route-hub?tab=replay&v=${encodeURIComponent(data.vehicleNumber)}&trip=${data._id}`}
+            >
+              <Route size={12} /> View replay
+            </Link>
           )}
         </div>
       </div>
@@ -538,7 +577,9 @@ const TripDetailPage = () => {
                     value: `${data.fromLocation || '—'} → ${data.toLocation || '—'}`,
                   },
                   { label: 'Distance', value: data.totalKm ? `${data.totalKm} km` : null },
-                  data.expectedFreeAt ? { label: 'Free at', value: stamp(data.expectedFreeAt) } : null,
+                  data.expectedFreeAt
+                    ? { label: 'Free at', value: stamp(data.expectedFreeAt) }
+                    : null,
                 ]}
               />
             </div>
@@ -575,11 +616,11 @@ const TripDetailPage = () => {
                       blocked
                         ? undefined
                         : (e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setOpenStageId(stage.id);
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setOpenStageId(stage.id);
+                            }
                           }
-                        }
                     }
                   >
                     <span className="trip360-stage-index">{idx + 1}</span>
@@ -700,7 +741,9 @@ const TripDetailPage = () => {
                         <Facts items={stage.facts} />
                       ) : (
                         <p className="trip360-empty">
-                          {blocked ? `Available once ${stage.blockedBy} is done.` : 'Not recorded yet.'}
+                          {blocked
+                            ? `Available once ${stage.blockedBy} is done.`
+                            : 'Not recorded yet.'}
                         </p>
                       )}
 
@@ -754,7 +797,12 @@ const TripDetailPage = () => {
         trip={data}
         onSuccess={fetchTrip}
       />
-      <PodDrawer isOpen={activeDrawer === 'pod'} onClose={closeDrawer} trip={data} onSuccess={fetchTrip} />
+      <PodDrawer
+        isOpen={activeDrawer === 'pod'}
+        onClose={closeDrawer}
+        trip={data}
+        onSuccess={fetchTrip}
+      />
       <UnloadingDrawer
         isOpen={activeDrawer === 'unloading'}
         onClose={closeDrawer}

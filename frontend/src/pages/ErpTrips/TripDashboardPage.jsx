@@ -1,14 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import {
-  Search,
-  ArrowRight,
-  AlertTriangle,
-  Clock,
-  LayoutGrid,
-  Rows3,
-} from 'lucide-react';
+import { Search, ArrowRight, AlertTriangle, Clock, LayoutGrid, Rows3 } from 'lucide-react';
 import TripDashboardService from './TripDashboardService';
 import PlacementService from '../ErpPlacement/PlacementService';
 import ErpDashboardService from '../ErpHome/ErpDashboardService';
@@ -120,7 +113,9 @@ const badgeClass = (state) => {
 };
 
 const day = (d) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+  d
+    ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
+    : '—';
 
 const MiniLifecycle = ({ state }) => {
   const idx = stageIndex(state);
@@ -299,9 +294,7 @@ const TripDashboardPage = () => {
       <header className="erp-header">
         <div>
           <h1>Trip Pipeline</h1>
-          <p className="erp-subtitle">
-            Where every active trip sits, and what it is waiting on.
-          </p>
+          <p className="erp-subtitle">Where every active trip sits, and what it is waiting on.</p>
         </div>
       </header>
 
@@ -309,36 +302,40 @@ const TripDashboardPage = () => {
       {stats.length > 0 && (
         <>
           <div className="trippipe-summary trippipe-summary--lead">
-            {stats.filter((s) => s.lead).map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className={`trippipe-stat lead ${s.tone || ''} ${
-                  s.key === '' && !state ? 'active' : ''
-                }`}
-                onClick={() => setState(s.key)}
-              >
-                <span className="trippipe-stat-value">{s.value}</span>
-                <span className="trippipe-stat-label">{s.label}</span>
-                {s.hint && <span className="trippipe-stat-hint">{s.hint}</span>}
-              </button>
-            ))}
+            {stats
+              .filter((s) => s.lead)
+              .map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className={`trippipe-stat lead ${s.tone || ''} ${
+                    s.key === '' && !state ? 'active' : ''
+                  }`}
+                  onClick={() => setState(s.key)}
+                >
+                  <span className="trippipe-stat-value">{s.value}</span>
+                  <span className="trippipe-stat-label">{s.label}</span>
+                  {s.hint && <span className="trippipe-stat-hint">{s.hint}</span>}
+                </button>
+              ))}
           </div>
 
           <div className="trippipe-stagerow">
             <span className="trippipe-stagerow-label">By stage</span>
-            {stats.filter((s) => !s.lead).map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className={`trippipe-chip ${s.tone || ''} ${state === s.key ? 'active' : ''}`}
-                onClick={() => setState(state === s.key ? '' : s.key)}
-                aria-pressed={state === s.key}
-              >
-                {s.label}
-                <span className="trippipe-chip-count">{s.value}</span>
-              </button>
-            ))}
+            {stats
+              .filter((s) => !s.lead)
+              .map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className={`trippipe-chip ${s.tone || ''} ${state === s.key ? 'active' : ''}`}
+                  onClick={() => setState(state === s.key ? '' : s.key)}
+                  aria-pressed={state === s.key}
+                >
+                  {s.label}
+                  <span className="trippipe-chip-count">{s.value}</span>
+                </button>
+              ))}
           </div>
         </>
       )}
@@ -386,9 +383,7 @@ const TripDashboardPage = () => {
                       <div className="erp-cell-muted">{p.doId?.material || ''}</div>
                     </td>
                     <td className="erp-cell-muted">
-                      {p.vehicleId?.registrationNumber
-                        || p.vendorId?.name
-                        || '—'}
+                      {p.vehicleId?.registrationNumber || p.vendorId?.name || '—'}
                     </td>
                     <td>
                       {p.plannedQty ?? '—'} {p.qtyUnit || ''}
@@ -419,7 +414,11 @@ const TripDashboardPage = () => {
           />
         </form>
 
-        <select className="trippipe-select" value={state} onChange={(e) => setState(e.target.value)}>
+        <select
+          className="trippipe-select"
+          value={state}
+          onChange={(e) => setState(e.target.value)}
+        >
           <option value="">All stages</option>
           {FILTER_STATES.map((s) => (
             <option key={s} value={s}>

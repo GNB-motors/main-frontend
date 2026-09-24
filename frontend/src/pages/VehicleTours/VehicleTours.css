@@ -1,0 +1,435 @@
+/* Vehicle Tours — warehouse-to-warehouse cycles list + detail drawer. */
+
+.vtour-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+
+.vtour-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.vtour-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #6b7280);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  white-space: nowrap;
+}
+
+.vtour-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.vtour-table td.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.vtour-row {
+  cursor: pointer;
+}
+
+.vtour-row:hover {
+  background: #f9fafb;
+}
+
+.vtour-reg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vtour-out {
+  font-style: normal;
+  color: #2563eb;
+}
+
+.vtour-src {
+  display: block;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.vtour-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.vtour-pill--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.vtour-pill--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.vtour-pill--info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.vtour-pill--open {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* ─── Detail drawer ──────────────────────────────────────────────────────── */
+
+.vtour-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1200;
+}
+
+.vtour-drawer {
+  width: min(520px, 100%);
+  background: var(--surface, #fff);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.vtour-drawer-head,
+.vtour-drawer-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.vtour-drawer-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.vtour-drawer-head > div:first-child {
+  flex: 1;
+}
+
+.vtour-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+}
+
+.vtour-drawer-foot {
+  border-bottom: 0;
+  border-top: 1px solid var(--border, #e5e7eb);
+  justify-content: flex-end;
+}
+
+.vtour-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vtour-drawer-body h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #6b7280);
+}
+
+/* Yard → yard strip */
+
+.vtour-route {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.vtour-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.vtour-node strong {
+  display: block;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vtour-node span {
+  color: var(--text-muted, #6b7280);
+}
+
+.vtour-node.is-open strong {
+  color: #1d4ed8;
+}
+
+.vtour-line {
+  flex: 0 0 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.vtour-line::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.vtour-line span {
+  position: relative;
+  background: var(--surface, #fff);
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+
+.vtour-kind {
+  margin: 0;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.vtour-kind--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.vtour-kind--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.vtour-kind--info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.vtour-flags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vtour-flags li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #92400e;
+}
+
+/* Stats */
+
+.vtour-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.vtour-stat {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vtour-stat.is-warn {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.vtour-stat span {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+}
+
+.vtour-stat strong {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vtour-stat em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.vtour-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+/* Side trips */
+
+.vtour-side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vtour-side-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.vtour-side-list li > div:first-child {
+  min-width: 0;
+}
+
+.vtour-side-list strong {
+  display: block;
+}
+
+.vtour-side-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.vtour-state {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.vtour-muted {
+  color: var(--text-muted, #6b7280);
+  font-size: 12px;
+}
+
+/* Shared */
+
+.vtour-empty,
+.vtour-empty-row {
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.vtour-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted, #6b7280);
+  border: 1px dashed var(--border, #e5e7eb);
+  border-radius: 10px;
+}
+
+.vtour-empty-state h3 {
+  margin: 10px 0 4px;
+  font-size: 15px;
+  color: var(--text, #111827);
+}
+
+.vtour-empty-state p {
+  margin: 0 auto;
+  font-size: 13px;
+  max-width: 46ch;
+}
+
+.vtour-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vtour-btn--primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.vtour-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vtour-icon-btn {
+  border: 0;
+  background: none;
+  padding: 5px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted, #6b7280);
+  display: inline-flex;
+}
+
+.vtour-icon-btn:hover {
+  background: #f3f4f6;
+}
+
+.vtour-spin {
+  animation: vtour-rotate 0.9s linear infinite;
+}
+
+@keyframes vtour-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}

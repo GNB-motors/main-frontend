@@ -38,11 +38,33 @@ function windowForRange(range, from, to) {
 }
 
 /**
+ * The replay window for a picked ERP trip.
+ *
+ * Prefers the warehouse anchors — the yard exit and return are the trip's real
+ * boundaries. Falls back to the ERP timestamps, padded by an hour either side, so an
+ * un-anchored trip still shows the approach and the park rather than cutting the
+ * trail off at a typed timestamp.
+ */
+function tripWindow(t) {
+  const a = t?.warehouseAnchors || {};
+  if (a.exitedAt && a.arrivedAt) {
+    return { from: new Date(a.exitedAt), to: new Date(a.arrivedAt) };
+  }
+  const start = a.exitedAt || t?.dispatchedAt || t?.tripDate;
+  const end = a.arrivedAt || t?.tripClosedAt || t?.unloadedAt || new Date();
+  const PAD_MS = 3600 * 1000;
+  return {
+    from: new Date(new Date(start).getTime() - PAD_MS),
+    to: new Date(new Date(end).getTime() + PAD_MS),
+  };
+}
+
+/**
  * Turns the trail's irregular fixes into something the player can scrub:
  * a positioned, cumulative-distance-tagged frame list keyed on real elapsed
  * time (the mockup could assume one fix per minute; live data cannot).
  */
-function buildTrip(points, overspeedEvents, deviationEvents) {
+function buildTrip(points, overspeedEvents, deviationEvents, anchors = null) {
   const fixes = (points || [])
     .filter((p) => p.latitude != null && p.longitude != null)
     .map((p) => ({
@@ -79,30 +101,73 @@ function buildTrip(points, overspeedEvents, deviationEvents) {
     return Math.max(0, i);
   };
 
+  // Start/end labelling.
+  //
+  // `fixes[0]` is only the oldest fix in the SELECTED RANGE — it is not a trip start.
+  // Pick a different range and the same vehicle gets a different "trip start"; a truck
+  // already doing 38 km/h when the window opens still got labelled as starting there.
+  // So without anchors we say exactly what we know: first/last fix in range.
+  //
+  // With `anchors` (an ERP trip's warehouse geofence crossings) we know the real
+  // thing: when the vehicle left its yard and when it returned to one.
+  const startAnchored = anchors?.exitedAt ? new Date(anchors.exitedAt) : null;
+  const endAnchored = anchors?.arrivedAt ? new Date(anchors.arrivedAt) : null;
+
   const events = [
-    {
-      type: 'start',
-      t: 0,
-      at: fixes[0].at,
-      title: 'Trip start',
-      sub: `First fix at ${fmtT(fixes[0].at)}`,
-    },
+    startAnchored
+      ? {
+          type: 'start',
+          t: 0,
+          at: startAnchored,
+          title: 'Trip start',
+          sub: `Left ${anchors.startWarehouseName || 'the yard'} at ${fmtT(startAnchored)}`,
+        }
+      : {
+          type: 'start',
+          t: 0,
+          at: fixes[0].at,
+          title: 'First fix in range',
+          sub: `Oldest position at ${fmtT(fixes[0].at)} — not a confirmed trip start`,
+        },
   ];
 
-  // A run of 'stationary' gap fixes is the trail's own way of saying the
-  // vehicle sat still through a reporting silence — that's a halt.
+  // A run of 'stationary' gap fixes is the trail's own way of saying the vehicle
+  // sat still through a reporting silence — that's a halt.
+  //
+  // Consecutive stationary gaps are MERGED. Emitting one event per gap fix split a
+  // single 50-minute park into three 17-minute "halts" whose `until` times chained
+  // into each other, which both misreported every stop and inflated the trip-log
+  // count. One unbroken stationary run is one halt.
+  let runStart = null;
+  let runEnd = null;
+  const flushHalt = () => {
+    if (runStart == null) return;
+    const mins = (runEnd.at - runStart.at) / 60000;
+    if (mins >= 15) {
+      events.push({
+        type: 'stop',
+        t: runStart.t,
+        at: runStart.at,
+        title: `Halt · ${hm(mins)}`,
+        sub: `Stationary until ${fmtT(runEnd.at)}`,
+      });
+    }
+    runStart = null;
+    runEnd = null;
+  };
+
   fixes.forEach((f, i) => {
-    if (f.gapType !== 'stationary' || i === 0) return;
-    const mins = (f.at - fixes[i - 1].at) / 60000;
-    if (mins < 15) return;
-    events.push({
-      type: 'stop',
-      t: f.t,
-      at: fixes[i - 1].at,
-      title: `Halt · ${hm(mins)}`,
-      sub: `Stationary until ${fmtT(f.at)}`,
-    });
+    if (i === 0) return;
+    if (f.gapType === 'stationary') {
+      // The halt began at the PREVIOUS fix — that is when the vehicle stopped
+      // moving; `f` is only the first report after the silence.
+      if (runStart == null) runStart = fixes[i - 1];
+      runEnd = f;
+      return;
+    }
+    flushHalt();
   });
+  flushHalt();
 
   (overspeedEvents || []).forEach((e) => {
     const at = new Date(e.startAt);
@@ -132,13 +197,25 @@ function buildTrip(points, overspeedEvents, deviationEvents) {
     });
   });
 
-  events.push({
-    type: 'end',
-    t: 1,
-    at: fixes[fixes.length - 1].at,
-    title: 'Trip end',
-    sub: `Last fix at ${fmtT(fixes[fixes.length - 1].at)}`,
-  });
+  events.push(
+    endAnchored
+      ? {
+          type: 'end',
+          t: 1,
+          at: endAnchored,
+          title: anchors.warehouseMismatch ? 'Trip end · different yard' : 'Trip end',
+          sub: anchors.warehouseMismatch
+            ? `Returned to ${anchors.arrivalWarehouseName || 'another yard'}, not ${anchors.endWarehouseName || 'the designated yard'}`
+            : `Returned to ${anchors.arrivalWarehouseName || 'the yard'} at ${fmtT(endAnchored)}`,
+        }
+      : {
+          type: 'end',
+          t: 1,
+          at: fixes[fixes.length - 1].at,
+          title: 'Last fix in range',
+          sub: `Newest position at ${fmtT(fixes[fixes.length - 1].at)} — not a confirmed trip end`,
+        },
+  );
   events.sort((a, b) => a.t - b.t);
 
   return {
@@ -183,6 +260,12 @@ export default function ReplayView({ params, toast }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // ERP trips for the selected vehicle. Picking one switches the replay from
+  // "whatever fell inside these dates" to the real trip: its window comes from the
+  // GPS-proven yard exit/return, so the timeline's start and end mean something.
+  const [erpTrips, setErpTrips] = useState([]);
+  const [erpTripId, setErpTripId] = useState(params.get('trip') || '');
+
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(4);
@@ -212,10 +295,14 @@ export default function ReplayView({ params, toast }) {
   }, []);
 
   const load = useCallback(
-    async (nextReg = reg, nextRange = range) => {
+    async (nextReg = reg, nextRange = range, nextTripId = erpTripId, tripRow = null) => {
       if (!nextReg) return;
       const vehicle = vehicles.find((v) => v.registrationNumber === nextReg);
-      const win = windowForRange(nextRange, from, to);
+      // A picked trip defines its own window. Anchors first (GPS-proven), falling
+      // back to the ERP timestamps when the trip has not been anchored yet — those
+      // are operator-typed and can be hours off, which is exactly why the labels
+      // stay honest about which source they came from.
+      const win = tripRow ? tripWindow(tripRow) : windowForRange(nextRange, from, to);
       setLoading(true);
       setError(null);
       try {
@@ -247,7 +334,12 @@ export default function ReplayView({ params, toast }) {
           .then((r) => r.records || [])
           .catch(() => []);
 
-        const built = buildTrip(trail.points, os, dev);
+        // When the replay is opened from an ERP trip (?trip=<id>), its warehouse
+        // anchors give the real start/end. Without one the labels stay honest about
+        // being window edges rather than a trip.
+        const anchors = await RouteHubService.getTripAnchors(nextTripId);
+
+        const built = buildTrip(trail.points, os, dev, anchors);
         setTrip(built);
         setT(0);
         setPlaying(false);
@@ -259,13 +351,51 @@ export default function ReplayView({ params, toast }) {
         setLoading(false);
       }
     },
-    [reg, range, from, to, vehicles],
+    [reg, range, from, to, vehicles, erpTripId],
   );
 
   useEffect(() => {
     if (reg && !trip && !loading && !error) load(reg, range);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reg]);
+
+  // ERP trips follow the vehicle selection. Empty list is normal — an org without
+  // the ERP module, or a vehicle that has never run a booked trip.
+  useEffect(() => {
+    const vehicle = vehicles.find((v) => v.registrationNumber === reg);
+    if (!vehicle?._id) {
+      setErpTrips([]);
+      return undefined;
+    }
+    const ac = new AbortController();
+    RouteHubService.getTripsForVehicle(vehicle._id, ac.signal).then(setErpTrips);
+    return () => ac.abort();
+  }, [reg, vehicles]);
+
+  // Deep link (?trip=<id>) — once the trip row is in hand, replay it directly so the
+  // link lands on the trip, not on a date range that happens to contain it.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || !erpTripId || !erpTrips.length) return;
+    const row = erpTrips.find((t) => String(t._id) === String(erpTripId));
+    if (!row) return;
+    deepLinked.current = true;
+    setRange('custom');
+    load(reg, 'custom', erpTripId, row);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [erpTripId, erpTrips]);
+
+  const pickTrip = (id) => {
+    setErpTripId(id);
+    setTrip(null);
+    if (!id) {
+      load(reg, range, '', null);
+      return;
+    }
+    const row = erpTrips.find((t) => String(t._id) === String(id));
+    setRange('custom');
+    load(reg, 'custom', id, row).then(() => toast(`Replaying ${row?.tripNumber || 'trip'}`));
+  };
 
   useLayerGroup(
     mapRef,
@@ -403,7 +533,10 @@ export default function ReplayView({ params, toast }) {
               onChange={(e) => {
                 setReg(e.target.value);
                 setTrip(null);
-                load(e.target.value, range);
+                // The picked trip belongs to the old vehicle; keeping it would replay
+                // one vehicle's window under another's trail.
+                setErpTripId('');
+                load(e.target.value, range, '', null);
               }}
             >
               {vehicles.map((v) => (
@@ -414,12 +547,41 @@ export default function ReplayView({ params, toast }) {
               ))}
             </select>
           </label>
+
+          {/* Only offered when the vehicle actually has booked trips — an org
+              without ERP keeps the plain date-range replay. */}
+          {erpTrips.length > 0 && (
+            <>
+              <span className="lbl">Trip</span>
+              <label className="field">
+                <select
+                  aria-label="ERP trip"
+                  value={erpTripId}
+                  onChange={(e) => pickTrip(e.target.value)}
+                >
+                  <option value="">Date range (no trip)</option>
+                  {erpTrips.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.tripNumber}
+                      {t.tripDate ? ` · ${dkey(new Date(t.tripDate))}` : ''}
+                      {t.warehouseAnchors?.exitedAt ? ' · anchored' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
+
           <Seg
             options={RANGES}
             value={range}
             onChange={(r) => {
               setRange(r);
-              load(reg, r);
+              // Switching back to a date range drops the trip: the timeline would
+              // otherwise still be labelled "left the yard at…" for a window that no
+              // longer matches that trip.
+              setErpTripId('');
+              load(reg, r, '', null);
             }}
           />
           <span className="lbl">From</span>
@@ -447,7 +609,8 @@ export default function ReplayView({ params, toast }) {
             disabled={loading}
             onClick={() => {
               setRange('custom');
-              load(reg, 'custom').then(() => toast(`Replay loaded · ${reg}`));
+              setErpTripId('');
+              load(reg, 'custom', '', null).then(() => toast(`Replay loaded · ${reg}`));
             }}
           >
             <Ico n="route" />
