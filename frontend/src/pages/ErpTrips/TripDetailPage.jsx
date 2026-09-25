@@ -22,6 +22,7 @@ import './TripDetail.css';
 import StatusBadge from '../../components/Erp/StatusBadge';
 import AdvanceDrawer from '../../components/Erp/Drawers/AdvanceDrawer';
 import ConsignmentDrawer from '../../components/Erp/Drawers/ConsignmentDrawer';
+import TripStartDrawer from './TripStartDrawer';
 import TripCloseDrawer from '../../components/Erp/Drawers/TripCloseDrawer';
 import PodDrawer from '../../components/Erp/Drawers/PodDrawer';
 import UnloadingDrawer from '../../components/Erp/Drawers/UnloadingDrawer';
@@ -282,6 +283,7 @@ const TripDetailPage = () => {
     // Only the OPERATIONS lifecycle lives on the stepper now. Sale Bill and
     // Payment are not trip steps — they hang off the receivable / payable
     // documents and render in the state-aware Financials section below.
+    const isPlanned = data.state === 'PLANNED';
     const hasCn = !!data.consignment || data.cnGate === 'UPDATED' || data.loadedQty != null;
     const closed = !!data.tripClosedAt || data.state === 'TRIP_CLOSED';
     const hasPod = !!data.pod || data.state === 'POD_RECEIVED';
@@ -315,6 +317,27 @@ const TripDetailPage = () => {
           { label: 'Trip date', value: day(data.tripDate) },
         ],
       },
+      /**
+       * Only shown while the trip is queued. Starting it is the instant that
+       * cuts the previous trip's telematics window, so it is a deliberate act
+       * rather than something the placement did on the operator's behalf.
+       */
+      ...(isPlanned
+        ? [
+            {
+              id: 'START',
+              label: 'Start trip',
+              icon: Navigation,
+              done: false,
+              available: true,
+              action: { label: 'Start trip', drawer: 'start' },
+              facts: [
+                { label: 'Queued on', value: stamp(data.stageTimestamps?.plannedAt) },
+                { label: 'Expected free', value: stamp(data.expectedFreeAt) },
+              ],
+            },
+          ]
+        : []),
       {
         id: 'ADVANCE_CN',
         label: 'Advance & CN',
@@ -783,6 +806,12 @@ const TripDetailPage = () => {
         onClose={closeDrawer}
         initialTripId={data._id}
         mode="RAISE"
+        onSuccess={fetchTrip}
+      />
+      <TripStartDrawer
+        isOpen={activeDrawer === 'start'}
+        onClose={closeDrawer}
+        trip={data}
         onSuccess={fetchTrip}
       />
       <ConsignmentDrawer

@@ -23,6 +23,8 @@ const stageIndex = (state) => {
   switch (state) {
     case 'CANCELLED':
       return -1;
+    case 'PLANNED':
+      return 1;
     case 'PLACED':
     case 'ADVANCE_PENDING':
     case 'ADVANCE_PAID':
@@ -52,6 +54,10 @@ const nextAction = (trip) => {
   switch (trip.state) {
     case 'CANCELLED':
       return null;
+    // Queued behind a laden trip. Starting it is what cuts the previous trip's
+    // telematics window, so it is a deliberate act and not automatic.
+    case 'PLANNED':
+      return { label: 'Start trip', drawer: 'start' };
     case 'PLACED':
     case 'ADVANCE_PENDING':
     case 'ADVANCE_PAID':
@@ -74,6 +80,7 @@ const nextAction = (trip) => {
 };
 
 const BOARD_COLUMNS = [
+  { state: 'PLANNED', label: 'Planned' },
   { state: 'PLACED', label: 'Placed' },
   { state: 'DISPATCHED', label: 'In transit' },
   { state: 'TRIP_CLOSED', label: 'Closed' },
@@ -85,6 +92,7 @@ const BOARD_COLUMNS = [
 // Only states the backend actually stores. The previous list omitted
 // DISPATCHED, so the busiest state on the board could not be filtered at all.
 const FILTER_STATES = [
+  'PLANNED',
   'PLACED',
   'DISPATCHED',
   'TRIP_CLOSED',
@@ -96,6 +104,8 @@ const FILTER_STATES = [
 
 const badgeClass = (state) => {
   switch (state) {
+    case 'PLANNED':
+      return 'neutral';
     case 'PLACED':
       return 'warning';
     case 'DISPATCHED':
@@ -186,6 +196,11 @@ const TripDashboardPage = () => {
      synthesised as trips, which would corrupt the stage counts and the
      lifecycle bar below. */
   const [pendingPlacements, setPendingPlacements] = useState([]);
+  /* Trips whose telematics window is still open long after the load came off.
+     Nothing closes automatically — a truck that neither reached a yard nor took
+     another load is a real situation, and guessing an end instant would corrupt
+     the cost rather than flag it. */
+  const [staleWindows, setStaleWindows] = useState([]);
 
   const fetchTrips = useCallback(
     async (page = 1) => {
@@ -224,6 +239,26 @@ const TripDashboardPage = () => {
       .then((res) => setPendingPlacements(res?.data || []))
       .catch(() => setPendingPlacements([]));
   }, []);
+
+  const fetchStaleWindows = useCallback(() => {
+    TripDashboardService.listStaleWindows()
+      .then((rows) => setStaleWindows(rows || []))
+      .catch(() => setStaleWindows([]));
+  }, []);
+
+  useEffect(() => {
+    fetchStaleWindows();
+  }, [fetchStaleWindows]);
+
+  const resolveWindow = async (tripId) => {
+    try {
+      await TripDashboardService.resolveWindow(tripId);
+      toast.success('Window closed at unload; the run after it is now unattributed');
+      fetchStaleWindows();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to close the window');
+    }
+  };
 
   const stats = useMemo(() => {
     const p = summary?.pendingCounts;
@@ -297,6 +332,39 @@ const TripDashboardPage = () => {
           <p className="erp-subtitle">Where every active trip sits, and what it is waiting on.</p>
         </div>
       </header>
+
+      {/* ── Trips still counting kilometres long after the load came off ── */}
+      {staleWindows.length > 0 && (
+        <div className="erp-callout warning" style={{ flexDirection: 'column', gap: 8 }}>
+          <span>
+            <strong>
+              {staleWindows.length} trip{staleWindows.length > 1 ? 's are' : ' is'} still counting
+              kilometres after unload.
+            </strong>{' '}
+            The truck has neither reached a yard nor taken another load. Closing the window
+            attributes only the run up to unload; anything after becomes unassigned in Tours.
+          </span>
+          <ul style={{ margin: 0, paddingLeft: 18, width: '100%' }}>
+            {staleWindows.slice(0, 5).map((w) => (
+              <li key={w.tripId} style={{ marginBottom: 4 }}>
+                <Link to={`/erp/trips/${w.tripId}`}>{w.tripNumber}</Link>
+                {' · '}
+                {w.registrationNumber || '—'}
+                {' · '}
+                open {w.openForDays} day{w.openForDays === 1 ? '' : 's'}
+                <button
+                  type="button"
+                  className="btn btn-link"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => resolveWindow(w.tripId)}
+                >
+                  Close at unload
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ── Situational awareness, before the table ── */}
       {stats.length > 0 && (

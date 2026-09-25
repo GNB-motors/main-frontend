@@ -1,13 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle, ArrowLeft, ArrowRight, Ban, CheckCircle2, Info,
-} from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Ban, CheckCircle2, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
 import ErpMasterService from '../ErpMasters/ErpMasterService';
 import PlacementService from './PlacementService';
 
 const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
+
+const dateTimeLabel = (d) =>
+  d
+    ? new Date(d).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : 'an unknown time';
 
 const Row = ({ label, children }) => (
   <div className="erp-detail-row">
@@ -70,6 +78,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
             plannedQty: target.tanker.capacity
               ? Math.min(remaining, target.tanker.capacity) || ''
               : remaining || '',
+            plannedStart: '',
           }
         : {
             vendorId: '',
@@ -83,6 +92,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
             pbRate: '',
             pbRateUnit: 'PER_KL',
             pbRateRemark: '',
+            plannedStart: '',
           },
     );
   }, [target, remaining]);
@@ -114,6 +124,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               ...(form.driverId ? { driverId: form.driverId } : {}),
             }),
         ...(form.plannedQty ? { plannedQty: Number(form.plannedQty) } : {}),
+        ...(form.plannedStart ? { plannedStart: new Date(form.plannedStart).toISOString() } : {}),
       };
       const res = await PlacementService.checkRestrictions(payload);
       setCheck(res.data);
@@ -160,15 +171,43 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
   }, [check, form.previousCargo, order]);
 
   const step1Complete = isHire
-    ? Boolean(form.vendorId && form.hireVehicleNumber?.trim() && form.previousCargo?.trim()
-      && Number(form.plannedQty) > 0)
+    ? Boolean(
+        form.vendorId &&
+        form.hireVehicleNumber?.trim() &&
+        form.previousCargo?.trim() &&
+        Number(form.plannedQty) > 0,
+      )
     : true;
 
   const canSubmit = Boolean(
-    check?.canPlace
-      && Number(form.plannedQty) > 0
-      && (!isHire || (form.hireDriverName?.trim() && form.hireDriverPhone?.trim()))
-      && (!form.pbRate || form.pbRateRemark?.trim().length >= 3),
+    check?.canPlace &&
+    Number(form.plannedQty) > 0 &&
+    (!isHire || (form.hireDriverName?.trim() && form.hireDriverPhone?.trim())) &&
+    (!form.pbRate || form.pbRateRemark?.trim().length >= 3),
+  );
+
+  const turnaround = (check?.warnings || []).find((w) => w.code === 'TIGHT_TURNAROUND');
+
+  /**
+   * The turnaround cushion is measured from here back to when the tanker is
+   * expected free, so scheduling the trip later is what makes a tight placement
+   * acceptable. Left blank the server measures from now.
+   */
+  const plannedStartField = (
+    <div className="erp-field full">
+      <label htmlFor="pl-planned-start">Planned start</label>
+      <input
+        id="pl-planned-start"
+        type="datetime-local"
+        value={form.plannedStart || ''}
+        onChange={(e) => setField('plannedStart', e.target.value)}
+      />
+      <span className="erp-field-hint">
+        {turnaround
+          ? `This tanker frees up around ${dateTimeLabel(turnaround.reason?.expectedFreeAt)}. Push the start later to clear the ${turnaround.reason?.limitHours}h turnaround.`
+          : 'Leave blank to start as soon as the tanker is free.'}
+      </span>
+    </div>
   );
 
   const handleSubmit = async (e) => {
@@ -189,6 +228,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
           hireDriverPhone: form.hireDriverPhone.trim(),
           previousCargo: form.previousCargo.trim().toUpperCase(),
           plannedQty: Number(form.plannedQty),
+          ...(form.plannedStart ? { plannedStart: new Date(form.plannedStart).toISOString() } : {}),
           acknowledgedWarnings,
         };
         if (form.pbRate) {
@@ -203,6 +243,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
           vehicleId: form.vehicleId,
           driverId: form.driverId,
           plannedQty: Number(form.plannedQty),
+          ...(form.plannedStart ? { plannedStart: new Date(form.plannedStart).toISOString() } : {}),
           acknowledgedWarnings,
         });
       }
@@ -233,7 +274,9 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
       {hardBlocks.map((b) => (
         <div className="erp-callout danger" key={b.code}>
           <Ban size={16} />
-          <span><strong>Blocked:</strong> {b.message}</span>
+          <span>
+            <strong>Blocked:</strong> {b.message}
+          </span>
         </div>
       ))}
 
@@ -247,7 +290,12 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
       {check?.warnings?.map((w) => (
         <div className="erp-callout warning" key={w.code}>
           <AlertTriangle size={16} />
-          <span><strong>Needs approval:</strong> {w.message}</span>
+          <span>
+            <strong>
+              {w.code === 'TIGHT_TURNAROUND' ? 'Manager override:' : 'Needs approval:'}
+            </strong>{' '}
+            {w.message}
+          </span>
         </div>
       ))}
 
@@ -312,7 +360,9 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
     >
       {/* The requirement, restated. Everything below is in service of it. */}
       <div className="erp-detail-block">
-        <Row label="Route">{order.fromLocation || '—'} → {order.toLocation || '—'}</Row>
+        <Row label="Route">
+          {order.fromLocation || '—'} → {order.toLocation || '—'}
+        </Row>
         <Row label="Material">{order.material}</Row>
         <Row label="Still required">
           {remaining} {order.qtyUnit}
@@ -322,9 +372,11 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
         </Row>
         {!isHire && (
           <Row label="Tanker capacity">
-            {target.tanker.capacity != null
-              ? `${target.tanker.capacity} ${target.tanker.capacityUnit || ''}`
-              : <span className="erp-cell-muted">not recorded</span>}
+            {target.tanker.capacity != null ? (
+              `${target.tanker.capacity} ${target.tanker.capacityUnit || ''}`
+            ) : (
+              <span className="erp-cell-muted">not recorded</span>
+            )}
           </Row>
         )}
       </div>
@@ -385,6 +437,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
                   : `Up to ${remaining} ${order.qtyUnit} outstanding. Lower it to split across tankers.`}
               </span>
             </div>
+            {plannedStartField}
           </div>
         ) : step === 1 ? (
           <div className="erp-form-grid">
@@ -454,16 +507,26 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
                 required
               />
               <datalist id="pl-materials">
-                {knownMaterials.map((m) => <option key={m} value={m} />)}
+                {knownMaterials.map((m) => (
+                  <option key={m} value={m} />
+                ))}
               </datalist>
               {/* Not an arbitrary field: a hired tanker has no trip history in
                   this system, so this is the only input the material-compatibility
                   check has to work from. */}
               {compat ? (
-                <span className={`erp-inline-verdict ${compat.ok ? (compat.warn ? 'is-warn' : 'is-ok') : 'is-no'}`}>
-                  {compat.ok
-                    ? (compat.warn ? <AlertTriangle size={13} /> : <CheckCircle2 size={13} />)
-                    : <Ban size={13} />}
+                <span
+                  className={`erp-inline-verdict ${compat.ok ? (compat.warn ? 'is-warn' : 'is-ok') : 'is-no'}`}
+                >
+                  {compat.ok ? (
+                    compat.warn ? (
+                      <AlertTriangle size={13} />
+                    ) : (
+                      <CheckCircle2 size={13} />
+                    )
+                  ) : (
+                    <Ban size={13} />
+                  )}
                   {compat.text}
                 </span>
               ) : (
@@ -557,7 +620,9 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
                   {vendors.find((v) => v._id === form.vendorId)?.name || '—'}
                 </Row>
                 <Row label="Tanker">{form.hireVehicleNumber || '—'}</Row>
-                <Row label="Quantity">{form.plannedQty} {order.qtyUnit}</Row>
+                <Row label="Quantity">
+                  {form.plannedQty} {order.qtyUnit}
+                </Row>
                 <Row label="Sale rate">{money(order.sbRate)}</Row>
               </div>
             </div>
