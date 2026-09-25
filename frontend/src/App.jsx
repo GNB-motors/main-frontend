@@ -467,6 +467,7 @@ function App() {
             <Route path="/routes" element={<RoutesPage />} />
             <Route path="/warehouses" element={<VehicleWarehousesPage />} />
             <Route path="/vehicle-tours" element={<VehicleToursPage />} />
+            <Route path="/fleet/vehicle-tours" element={<VehicleToursPage />} />
             <Route path="/routes/add" element={<AddRoutePage />} />
             <Route path="/khata-ledger" element={<KhataLedgerPage />} />
             {/* ISOCL ERP — five workspaces (CRM / Operations / Finance / Approval Center) */}
@@ -517,6 +518,10 @@ function App() {
             <Route
               path="/erp/delivery-orders"
               element={<RedirectWithState to="/erp/pipeline?tab=dos" />}
+            />
+            <Route
+              path="/erp/placement"
+              element={<RedirectWithState to="/erp/pipeline?tab=placement" />}
             />
             <Route
               path="/erp/placement-board"
