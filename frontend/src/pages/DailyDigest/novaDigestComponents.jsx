@@ -52,34 +52,82 @@ const EVT_COLOR = {
 
 /* =============================== Skeletons =============================== */
 
-export function NdKpiStripSkeleton() {
+/**
+ * A loading card keeps its own frame — border, heading, static hint — and
+ * shimmers only the parts still waiting on a response. Replacing the whole
+ * card hid WHAT was loading and moved the layout twice: once when the
+ * skeleton mounted, again when the real card took its place.
+ */
+
+// The real tiles, with their icon and label already in place; only the value
+// and its footnote come from a request.
+export function NdKpiStripSkeleton({ items = [] }) {
+  const tiles = items.length ? items : [...Array(6)].map((_, i) => ({ id: `sk-${i}` }));
   return (
     <div className="nd-kpis">
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="nd-kpi">
-          <div className="nd-kpi-top">
-            <span className="nd-sk" style={{ width: 16, height: 16, borderRadius: 4 }} />
-            <span className="nd-sk" style={{ width: '55%', height: 11 }} />
+      {tiles.map((k) => {
+        const Icon = k.icon;
+        return (
+          <div key={k.id} className={`nd-kpi ${k.accent ? 'nd-kpi--accent' : ''}`.trim()}>
+            <div className="nd-kpi-top">
+              <span className="nd-kpi-label">
+                {Icon ? <Icon size={15} /> : null}
+                {k.label ? (
+                  <span>{k.label}</span>
+                ) : (
+                  <span className="nd-sk" style={{ width: 84, height: 11 }} />
+                )}
+              </span>
+              {k.to ? (
+                <span className="nd-kpi-go">
+                  <ArrowUpRight size={14} />
+                </span>
+              ) : null}
+            </div>
+            <div className="nd-kpi-val">
+              <span className="nd-sk" style={{ width: '45%', height: 24, marginTop: 4 }} />
+            </div>
+            <div className="nd-kpi-foot">
+              <span className="nd-sk" style={{ width: '75%', height: 10 }} />
+            </div>
           </div>
-          <span className="nd-sk" style={{ width: '45%', height: 24, marginTop: 14 }} />
-          <span className="nd-sk" style={{ width: '75%', height: 10, marginTop: 10 }} />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-// Generic per-card skeleton: mirrors .nd-card / .nd-card-head, with `rows`
-// shimmer bars standing in for whatever list/table content the real card
-// renders. `big` adds one taller block for cards that lead with a stat
-// (e.g. impact card's total, ops row's headline number).
-export function NdCardSkeleton({ rows = 4, rowHeight = 44, big = false }) {
+/**
+ * Per-card skeleton. `title` and `hint` are static copy, so they render as
+ * themselves; `pill` and `tabs` stand in for the header bits whose content is
+ * a count, which is the one thing the header cannot know yet.
+ */
+export function NdCardSkeleton({
+  title = null,
+  hint = null,
+  pill = false,
+  tabs = 0,
+  rows = 4,
+  rowHeight = 44,
+  big = false,
+}) {
   return (
     <div className="nd-card">
       <div className="nd-card-head">
-        <span className="nd-sk" style={{ width: 140, height: 14 }} />
+        {title ? <h2>{title}</h2> : <span className="nd-sk" style={{ width: 140, height: 14 }} />}
+        {pill ? (
+          <span className="nd-sk" style={{ width: 26, height: 18, borderRadius: 999 }} />
+        ) : null}
         <span className="nd-sp" />
-        <span className="nd-sk" style={{ width: 70, height: 12 }} />
+        {tabs ? (
+          <div className="nd-tabs">
+            {[...Array(tabs)].map((_, i) => (
+              <span key={i} className="nd-sk" style={{ width: 56, height: 24, borderRadius: 8 }} />
+            ))}
+          </div>
+        ) : hint ? (
+          <span className="nd-hint">{hint}</span>
+        ) : null}
       </div>
       {big ? (
         <div style={{ padding: '0 var(--space-4) var(--space-3)' }}>
@@ -95,13 +143,22 @@ export function NdCardSkeleton({ rows = 4, rowHeight = 44, big = false }) {
   );
 }
 
+// Same three cards NdOpsRow renders, including their accent colour, so the
+// row does not change width or tint when the numbers arrive.
+const OPS_SKELETON_CARDS = [
+  { title: 'Idling waste', c: '#C56200' },
+  { title: 'Detour waste', c: '#2F58EE' },
+  { title: 'Fuel efficiency', c: '#187A32' },
+];
+
 export function NdOpsRowSkeleton() {
   return (
     <section className="nd-ops">
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="nd-card nd-opcard">
+      {OPS_SKELETON_CARDS.map((card) => (
+        <div key={card.title} className="nd-card nd-opcard" style={{ '--c': card.c }}>
           <div className="nd-card-head">
-            <span className="nd-sk" style={{ width: 110, height: 14 }} />
+            <h2>{card.title}</h2>
+            <span className="nd-sp" />
           </div>
           <div style={{ padding: '0 var(--space-4) var(--space-4)' }}>
             <span className="nd-sk" style={{ width: '50%', height: 30 }} />

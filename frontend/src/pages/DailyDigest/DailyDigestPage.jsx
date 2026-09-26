@@ -1,16 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Download,
-  RefreshCw,
-  Sun,
-  Moon,
-  Truck,
-  Package,
-  Fuel,
-  Bell,
-  Calendar,
-  Wrench,
-} from 'lucide-react';
+import { Download, RefreshCw, Sun, Moon, Truck, Fuel, Bell, Calendar, Wrench } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
@@ -151,15 +140,6 @@ export default function DailyDigestPage() {
       accent: true,
     },
     {
-      id: 'load',
-      icon: Package,
-      label: 'Load moving',
-      value: formatNum(m?.loadTonnageInTransit || 0),
-      unit: 't',
-      note: 'dispatched, not yet unloaded',
-      to: '/erp/pipeline',
-    },
-    {
       id: 'fuel',
       icon: Fuel,
       label: 'Fuel spend',
@@ -279,18 +259,24 @@ export default function DailyDigestPage() {
           <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
             Today at a glance
           </div>
-          {loading && !money ? <NdKpiStripSkeleton /> : <NdKpiStrip items={kpis} />}
+          {loading && !money ? <NdKpiStripSkeleton items={kpis} /> : <NdKpiStrip items={kpis} />}
         </section>
 
         <section className="nd-cols" id="nd-attn">
           {attnLoading ? (
-            <NdCardSkeleton rows={4} rowHeight={64} />
+            <NdCardSkeleton title="Needs your attention" pill tabs={3} rows={4} rowHeight={64} />
           ) : (
             <NdAttentionCard actions={actions} onOpenVehicle={openVehicle} />
           )}
           <div className="nd-rightcol">
             {impactLoading ? (
-              <NdCardSkeleton rows={4} rowHeight={26} big />
+              <NdCardSkeleton
+                title={'Today\u2019s \u20b9 impact'}
+                hint="Estimated"
+                rows={4}
+                rowHeight={26}
+                big
+              />
             ) : (
               <NdImpactCard money={m} />
             )}
@@ -298,7 +284,7 @@ export default function DailyDigestPage() {
         </section>
 
         {calendarLoading ? (
-          <NdCardSkeleton rows={6} rowHeight={40} />
+          <NdCardSkeleton title="Fleet calendar" tabs={2} rows={6} rowHeight={40} />
         ) : (
           <NdCalendarCard
             vehicles={calendar?.vehicles}
@@ -312,12 +298,17 @@ export default function DailyDigestPage() {
 
         <section className="nd-cols nd-cols--half">
           {refuelLoading ? (
-            <NdCardSkeleton rows={4} rowHeight={44} />
+            <NdCardSkeleton title="Refuelling today" pill rows={4} rowHeight={44} />
           ) : (
             <NdRefuelCard data={refuelling} onOpenVehicle={openVehicle} />
           )}
           {wasteLoading ? (
-            <NdCardSkeleton rows={5} rowHeight={40} />
+            <NdCardSkeleton
+              title={'Idling & detour waste'}
+              hint={'Today \u00b7 top 5 vehicles'}
+              rows={5}
+              rowHeight={40}
+            />
           ) : (
             <NdWasteTable
               idlingTop5={m?.idlingTop5}
@@ -329,7 +320,13 @@ export default function DailyDigestPage() {
 
         <section className="nd-cols" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
           {upcomingLoading ? (
-            <NdCardSkeleton rows={4} rowHeight={36} />
+            <NdCardSkeleton
+              title="Upcoming"
+              pill
+              hint={'Next 14 days \u00b7 service and documents'}
+              rows={4}
+              rowHeight={36}
+            />
           ) : (
             <NdUpcomingCard upcoming={upcoming} onOpenVehicle={openVehicle} />
           )}
