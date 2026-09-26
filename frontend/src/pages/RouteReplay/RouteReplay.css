@@ -295,3 +295,155 @@
   color: #334155;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
 }
+
+/* ─── Trip legend ────────────────────────────────────────────────────────────
+   Which ERP trips the loaded trail covers, and the way into a single one.
+   Sits between the controls and the map so the answer to "what am I looking
+   at" is read before the polyline, not after. */
+.rr-trip-legend {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.rr-trip-legend-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.rr-trip-provenance {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.rr-trip-clear {
+  margin-left: auto;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rr-trip-clear:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.rr-trip-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rr-trip-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.rr-trip-chip:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.rr-trip-chip.is-active {
+  border-color: #0284c7;
+  background: #e0f2fe;
+  box-shadow: 0 0 0 1px #0284c7 inset;
+}
+
+.rr-trip-chip-no {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.rr-trip-chip-route {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rr-trip-chip-live {
+  font-size: 10px;
+  font-weight: 700;
+  color: #047857;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Optional hour narrowing beside each date. Blank = the whole day, so the
+   date-only flow this page shipped with keeps working untouched. */
+.rr-time-input {
+  height: 30px;
+  padding: 0 6px;
+  font-size: 11.5px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.rr-preset-sep {
+  width: 1px;
+  height: 18px;
+  background: #cbd5e1;
+  margin: 0 2px;
+}
+
+/* ─── Window note ───────────────────────────────────────────────────────────
+   Says what the trail covers and, in range mode, refuses to let the end
+   markers be read as trip boundaries. */
+.rr-window-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.rr-window-note-sep {
+  color: #cbd5e1;
+}
+
+.rr-window-note-trip {
+  color: #047857;
+}
+
+.rr-window-note-range {
+  color: #b45309;
+  font-weight: 500;
+}
