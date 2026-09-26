@@ -7,6 +7,10 @@ const ErpDashboardService = {
     const response = await apiClient.get(`${BASE}/summary`);
     return response.data;
   },
+  getQueue: async (stage, params = {}) => {
+    const response = await apiClient.get(`${BASE}/queue`, { params: { stage, ...params } });
+    return response.data;
+  },
 };
 
 export default ErpDashboardService;
