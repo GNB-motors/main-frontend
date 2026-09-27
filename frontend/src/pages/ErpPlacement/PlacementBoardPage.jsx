@@ -804,7 +804,12 @@ const PlacementBoardPage = ({ embedded = false }) => {
                     {rows.map((t) => {
                       const assignable = t.isAvailable && t.isCompatible !== false;
                       return (
-                        <tr key={t.vehicleId}>
+                        <tr
+                          key={t.vehicleId}
+                          className="clickable"
+                          onClick={() => setTarget({ mode: 'OWN', tanker: t })}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <td>
                             <div className="erp-cell-strong">{t.registrationNumber}</div>
                             {t.model && <div className="erp-cell-muted">{t.model}</div>}
@@ -842,21 +847,43 @@ const PlacementBoardPage = ({ embedded = false }) => {
                             )}
                           </td>
                           <td>
-                            {assignable ? (
-                              <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={() => setTarget({ mode: 'OWN', tanker: t })}
-                              >
-                                Assign {assignQty(t)} {order.qtyUnit}
-                              </button>
-                            ) : (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 6,
+                                alignItems: 'flex-start',
+                              }}
+                            >
                               <span
                                 className={`erp-badge ${BOARD_STATE_TONE[t.boardState] || 'neutral'}`}
                               >
                                 {BOARD_STATE_LABEL[t.boardState] || t.boardState}
                               </span>
-                            )}
+                              {assignable ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTarget({ mode: 'OWN', tanker: t });
+                                  }}
+                                >
+                                  Assign {assignQty(t)} {order.qtyUnit}
+                                </button>
+                              ) : t.boardState === 'ON_TRIP' ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTarget({ mode: 'OWN', tanker: t });
+                                  }}
+                                >
+                                  Place / Queue
+                                </button>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       );
