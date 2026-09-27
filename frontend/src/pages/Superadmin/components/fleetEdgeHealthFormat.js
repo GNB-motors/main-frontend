@@ -39,3 +39,16 @@ const FLOW = {
 export function flowChip(status) {
   return FLOW[status] || { tone: 'inert', text: status || '—' };
 }
+
+/**
+ * Fleet-master membership → { tone, text }. A stale directory row is shown as
+ * such first: it no longer describes the account's fleet, so "not in fleet"
+ * would be a false gap.
+ */
+export function fleetMembershipChip(row) {
+  if (row?.directoryStale) return { tone: 'inert', text: 'Old row' };
+  if (row?.inFleetMaster == null) return { tone: 'inert', text: '—' };
+  return row.inFleetMaster
+    ? { tone: 'ok', text: 'In fleet' }
+    : { tone: 'caution', text: 'Not in fleet' };
+}

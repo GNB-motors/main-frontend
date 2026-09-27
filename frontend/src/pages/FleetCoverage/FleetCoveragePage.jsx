@@ -269,14 +269,14 @@ export default function FleetCoveragePage() {
           <div className="cluster-panel">
             <EmptyState
               title="Coverage data unavailable"
-              hint="Link a FleetEdge account (Settings → FleetEdge accounts) and its vehicle directory appears here."
+              hint="Connect FleetEdge from the GNB Edge Chrome extension and its vehicle directory appears here."
             />
           </div>
         ) : noDirectory ? (
           <div className="cluster-panel">
             <EmptyState
               title="No FleetEdge directory data"
-              hint="Link a FleetEdge account (Settings → FleetEdge accounts) and its vehicle directory appears here."
+              hint="Connect FleetEdge from the GNB Edge Chrome extension and its vehicle directory appears here."
             />
           </div>
         ) : (
@@ -415,6 +415,9 @@ export default function FleetCoveragePage() {
               <p className="text-dim text-xs">
                 {formatNum(linkedCount)} vehicle{linkedCount === 1 ? '' : 's'} linked and reporting
                 normally.
+                {summary.staleFleetEdge > 0
+                  ? ` ${formatNum(summary.staleFleetEdge)} older FleetEdge record${summary.staleFleetEdge === 1 ? '' : 's'} not counted — the account was unlinked or FleetEdge hasn't reported ${summary.staleFleetEdge === 1 ? 'it' : 'them'} for 7 days.`
+                  : ''}
               </p>
             </div>
           </>

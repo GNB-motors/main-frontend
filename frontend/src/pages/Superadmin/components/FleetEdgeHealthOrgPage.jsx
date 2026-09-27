@@ -4,7 +4,12 @@ import { ArrowLeft, Satellite, AlertTriangle } from 'lucide-react';
 import { getUserRole } from '../../../utils/session';
 import useApi from '../../../hooks/useApi';
 import FleetEdgeHealthService from '../../../services/FleetEdgeHealthService';
-import { formatAge, connectionChip, flowChip } from './fleetEdgeHealthFormat.js';
+import {
+  formatAge,
+  connectionChip,
+  flowChip,
+  fleetMembershipChip,
+} from './fleetEdgeHealthFormat.js';
 import '../SuperAdminPage.css';
 import './FleetEdgeHealth.css';
 
@@ -87,6 +92,17 @@ const FleetEdgeHealthOrgPage = () => {
               <strong>{vSummary.noData ?? '—'}</strong>
             </div>
             <div className="stat-card">
+              <span>Not in fleet</span>
+              <strong>{vSummary.notInFleet ?? '—'}</strong>
+            </div>
+            <div
+              className="stat-card"
+              title="No account tag, or not refreshed by FleetEdge for 7 days"
+            >
+              <span>Old rows</span>
+              <strong>{vSummary.staleDirectory ?? '—'}</strong>
+            </div>
+            <div className="stat-card">
               <span>Re-auth needed</span>
               <strong>{aSummary.needsReauth ?? '—'}</strong>
             </div>
@@ -113,6 +129,7 @@ const FleetEdgeHealthOrgPage = () => {
                 <tr>
                   <th>Vehicle</th>
                   <th>Model</th>
+                  <th>Fleet</th>
                   <th>Connection</th>
                   <th>Token expiry</th>
                   <th>Data flow</th>
@@ -130,9 +147,13 @@ const FleetEdgeHealthOrgPage = () => {
                   const feeds = v.backend?.feeds || {};
                   const pos = feeds.position;
                   return (
-                    <tr key={v.vin || v.registrationNumber}>
+                    <tr
+                      key={v.vin || v.registrationNumber}
+                      style={v.directoryStale ? { opacity: 0.55 } : undefined}
+                    >
                       <td className="org-name-cell">{v.registrationNumber || v.vin || '—'}</td>
                       <td>{v.vehicleModel || '—'}</td>
+                      <td>{chip(fleetMembershipChip(v))}</td>
                       <td>{chip(connectionChip(v.connection?.status))}</td>
                       <td>
                         {v.connection?.expiresAt
@@ -174,7 +195,7 @@ const FleetEdgeHealthOrgPage = () => {
                 })}
                 {vehicles.length === 0 && (
                   <tr>
-                    <td colSpan={sinkReachable ? 12 : 11} style={{ padding: 16 }}>
+                    <td colSpan={sinkReachable ? 13 : 12} style={{ padding: 16 }}>
                       No FleetEdge vehicles for this organisation.
                     </td>
                   </tr>
