@@ -145,6 +145,9 @@ const VehicleWarehousesPage = lazy(
 );
 const VehicleToursPage = lazy(() => import('./pages/VehicleTours/VehicleToursPage.jsx'));
 const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
+const PlaceIntelligencePage = lazy(
+  () => import('./pages/PlaceIntelligence/PlaceIntelligencePage.jsx'),
+);
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('./pages/OwnerAlerts/OwnerAlertsPage.jsx'));
@@ -421,6 +424,7 @@ function App() {
               element={<RedirectWithState to="/route-hub?tab=overspeed" />}
             />
             <Route path="/hotspots" element={<HotspotsPage />} />
+            <Route path="/places" element={<PlaceIntelligencePage />} />
             <Route path="/live-tracking" element={<LiveTrackingPage />} />
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
             <Route path="/geofence" element={<GeofencePage />} />

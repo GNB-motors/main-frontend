@@ -276,6 +276,7 @@ export const SIDE_NAV_ITEMS = [
       // used to be five separate entries — now one card-based hub page.
       { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
       { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
+      { to: '/places', label: 'Place Intelligence', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
       '/idling-console',
@@ -292,6 +293,7 @@ export const SIDE_NAV_ITEMS = [
       '/route-profitability',
       '/overspeed',
       '/hotspots',
+      '/places',
     ],
   },
   {
