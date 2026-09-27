@@ -10,9 +10,9 @@ const SuperAdminLayout = () => {
     return (
         <div className="superadmin-layout">
             <SuperAdminSidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
-            <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+            <main className={`superadmin-main ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
                 <SuperAdminNavbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
-                <div className="page-content">
+                <div className="superadmin-page">
                     <Outlet />
                 </div>
             </main>

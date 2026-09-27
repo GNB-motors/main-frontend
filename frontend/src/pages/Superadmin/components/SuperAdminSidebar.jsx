@@ -11,6 +11,7 @@ import {
   Database,
   Network,
   Satellite,
+  MessageSquareWarning,
 } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import { clearSession } from '../../../utils/session';
@@ -111,6 +112,15 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
           >
             <Database size={20} />
             <span>Data Warehouse</span>
+          </NavLink>
+
+          <NavLink
+            to="/superadmin/whatsapp-audit"
+            className="superadmin-nav-link"
+            onClick={closeSidebarOnMobile}
+          >
+            <MessageSquareWarning size={20} />
+            <span>WhatsApp Audit</span>
           </NavLink>
 
           <NavLink
