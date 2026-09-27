@@ -890,6 +890,18 @@
   }
 }
 
+/* VehicleDocumentUpload is shared with AddVehiclePage, where its own
+   920px cap centers a narrow form — inside Vehicle360's full-width card
+   that reads as a wasted margin instead, so let it fill the card here.
+   The individual cards cap at 300px too (same component); widen those as
+   well or the wider grid columns just add empty space beside each card. */
+.v360-card .document-upload-outer-container {
+  max-width: none;
+}
+.v360-card .document-card-wrapper {
+  max-width: 420px;
+}
+
 /* ── Dark theme — the source design is light-only, so this is a
       legibility floor rather than a second design. ─────────────── */
 .dark .v360 {

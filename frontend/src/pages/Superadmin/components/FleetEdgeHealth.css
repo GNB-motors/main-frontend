@@ -1,0 +1,124 @@
+/*
+ * FleetEdge Data Health — superadmin audit page polish.
+ * Everything is scoped under `.feh` so it never leaks into other SuperAdmin
+ * screens or collides with the shared SuperAdminPage.css. Palette matches the
+ * existing light-theme tokens used across the SuperAdmin pages.
+ */
+
+/* ── Status chips (connection + data-flow) ──────────────────────────────────
+   Tones come from fleetEdgeHealthFormat.js: ok | caution | critical | inert.
+   Rendered as pill badges with a leading status dot in the tone colour. */
+.feh .status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.feh .status-chip::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.feh .status-chip--ok {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.feh .status-chip--caution {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.feh .status-chip--critical {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.feh .status-chip--inert {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* ── Summary tiles ──────────────────────────────────────────────────────────
+   The page renders each tile as <span>label</span><strong>value</strong>; the
+   shared .stat-card is a horizontal icon+info layout, so restack it here. */
+.feh .stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.feh .stat-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 16px 18px;
+}
+
+.feh .stat-card > span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.feh .stat-card > strong {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Table readability ──────────────────────────────────────────────────────
+   Freshness/age columns are numeric — align them on tabular figures and give
+   rows a hover so a wide 12-column audit table is easy to scan. */
+.feh .orgs-table tbody td {
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+.feh .orgs-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.feh .orgs-table th,
+.feh .orgs-table td {
+  white-space: nowrap;
+}
+
+/* Keep the free-text note column able to wrap so it never blows out the row. */
+.feh .orgs-table td:last-child {
+  white-space: normal;
+}
+
+/* ── Header accent ──────────────────────────────────────────────────────── */
+.feh .orgs-table-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feh .orgs-table-header h2 svg {
+  color: #4f46e5;
+}
+
+/* Back link spacing on the org drill-down. */
+.feh .orgs-table-view-link svg {
+  vertical-align: middle;
+}

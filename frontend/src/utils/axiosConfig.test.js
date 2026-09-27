@@ -17,7 +17,7 @@ describe('axiosConfig — request budget', () => {
 
   it.each([
     '/api/reports/trip-ledger',
-    '/api/dashboard/overview',
+    '/api/admin/dashboard-stats',
     '/api/mileage/model-comparison',
     '/api/fuel-spend/summary',
     '/api/lemu/warehouse',
@@ -36,7 +36,7 @@ describe('axiosConfig — request budget', () => {
     // OCR and upload paths choose their own budget and must keep it.
     const slow = await applyRequest({ url: '/api/reports/export', timeout: 180000 });
     expect(slow.timeout).toBe(180000);
-    const short = await applyRequest({ url: '/api/dashboard/overview', timeout: 5000 });
+    const short = await applyRequest({ url: '/api/admin/dashboard-stats', timeout: 5000 });
     expect(short.timeout).toBe(5000);
   });
 

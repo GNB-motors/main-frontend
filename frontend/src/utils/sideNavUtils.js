@@ -1,5 +1,4 @@
 import {
-  Grid,
   FileText,
   Users,
   User,
@@ -14,7 +13,6 @@ import {
   Settings,
   LayoutDashboard,
   FileCheck,
-  Gauge,
   ShieldAlert,
   CalendarClock,
   ReceiptText,
@@ -53,24 +51,11 @@ import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js
  * `hoistWhenSole` -> 'erp' | 'fleet'. Agar org ke paas sirf yahi ek module hai,
  *               to ye item apne section se nikal kar sabse upar chala jaata hai
  *               (shared Vehicles/Employees ke bhi upar) — kyunki tab wahi is
- *               org ka landing page hai. Dono module hone par ye hilta nahi;
- *               top slot combined Overview le leta hai.
+ *               org ka landing page hai. Dono module hone par ye hilta nahi.
  *
  * Order matters: ERP/CRM sabse upar hai kyunki wahi ab primary workflow hai.
  */
 export const SIDE_NAV_ITEMS = [
-  // Cross-module landing page. Sirf tab dikhta hai jab dono module hain —
-  // ek hi module wale org ke liye ye combined view ka koi matlab nahi, unke liye
-  // unka apna module home (ERP Home / Fleet Operations) hi top item ban jaata hai.
-  {
-    type: 'link',
-    key: 'overview',
-    access: 'both',
-    to: '/command-center',
-    label: 'Overview',
-    icon: Gauge,
-    end: true,
-  },
   // Fleet-wide daily digest (added by live-map-refresh branch).
   {
     type: 'link',
@@ -229,16 +214,8 @@ export const SIDE_NAV_ITEMS = [
   { type: 'section', label: 'Fleet', access: 'fleet' },
   {
     type: 'link',
-    key: 'overview',
     access: 'fleet',
     hoistWhenSole: 'fleet',
-    to: '/overview',
-    label: 'Fleet Operations',
-    icon: Grid,
-  },
-  {
-    type: 'link',
-    access: 'fleet',
     to: '/live-tracking',
     label: 'Track',
     icon: Radar,
@@ -282,33 +259,38 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     label: 'Fleet Intelligence',
     icon: ShieldAlert,
+    // Fleet Alerts & Owner Alerts used to live here; they now open from the
+    // Navbar notification bell (NotificationBell.jsx) instead of the sidebar.
     children: [
-      { to: '/fleet-alerts', label: 'Fleet Alerts', key: 'fleetIntelligence' },
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
+      { to: '/daily-brief', label: 'Morning Brief', key: 'dailyBrief' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
-      { to: '/route-intelligence', label: 'Route Intelligence', key: 'fleetIntelligence' },
+      { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
+      { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
+      { to: '/driving-dna', label: 'Driving DNA', key: 'drivingDna' },
       { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
-      { to: '/route-deviation', label: 'Route Deviation', key: 'fleetIntelligence' },
-      { to: '/route-replay', label: 'Route Replay', key: 'fleetIntelligence' },
-      { to: '/route-profitability', label: 'Route Profitability', key: 'fleetIntelligence' },
-      { to: '/overspeed', label: 'Overspeed', key: 'fleetIntelligence' },
-      { to: '/hotspots', label: 'Theft Hotspots', key: 'fleetIntelligence' },
-      { to: '/owner-alerts', label: 'Owner Alerts', key: 'fleetIntelligence' },
+      // Route Intelligence, Deviation, Replay, Profitability and Overspeed
+      // used to be five separate entries — now one card-based hub page.
+      { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
+      { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
-      '/fleet-alerts',
       '/idling-console',
+      '/daily-brief',
       '/fleet-coverage',
-      '/route-intelligence',
+      '/optimal-speed',
+      '/refuel-advisory',
+      '/driving-dna',
       '/erp/trip-windows',
+      '/route-hub',
+      '/route-intelligence',
       '/route-deviation',
       '/route-replay',
       '/route-profitability',
       '/overspeed',
       '/hotspots',
-      '/owner-alerts',
     ],
   },
   {

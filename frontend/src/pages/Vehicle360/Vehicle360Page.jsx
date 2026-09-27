@@ -29,7 +29,7 @@ export default function Vehicle360Page() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data, loading, error } = useApi(
+  const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getVehicleProfile(reg, signal),
     [reg],
   );
@@ -149,7 +149,13 @@ export default function Vehicle360Page() {
       {active === 'fuel' ? (
         <FuelPanel recentFuelLogs={p.recentFuelLogs} defBalance={p.defBalance} />
       ) : null}
-      {active === 'documents' ? <DocumentsPanel documents={p.fleetMaster?.documents} /> : null}
+      {active === 'documents' ? (
+        <DocumentsPanel
+          vehicleId={p.fleetMaster?.id}
+          documents={p.fleetMaster?.documents}
+          onChanged={refetch}
+        />
+      ) : null}
       {active === 'trips' ? <TripsPanel /> : null}
       {active === 'drivers' ? (
         <DriversPanel vehicleId={p.fleetMaster?.id} assignedDriver={p.assignedDriver} />

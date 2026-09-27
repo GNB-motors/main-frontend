@@ -9,8 +9,7 @@
  * through this file.
  *
  * The canonical implementations of `inr`/`compactInr`/`num`/`pct` originated in
- * CommandCenterPage and are kept verbatim here so that page's output does not
- * shift when it imports from this module.
+ * the now-removed CommandCenterPage and were kept verbatim here.
  */
 
 /** Full-precision rupees, no paise. e.g. 1200000 → "₹12,00,000" */

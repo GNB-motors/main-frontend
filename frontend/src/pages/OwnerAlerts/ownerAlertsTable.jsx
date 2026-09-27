@@ -1,6 +1,6 @@
 import { AlertTriangle, ShieldAlert, Info, CheckCircle2, Check, Loader2 } from 'lucide-react';
 import StatusChip from '../../components/ui/StatusChip';
-import { StatusPill } from '../Overview/components/overview.primitives.jsx';
+import { StatusPill } from '../../components/overview.primitives.jsx';
 import { formatINR } from '../../utils/formatters';
 import { cleanMsg } from './ownerAlertsModel';
 

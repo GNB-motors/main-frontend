@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Panel } from '../Overview/components/overview.primitives.jsx';
+import { Panel } from '../../components/overview.primitives.jsx';
 import EventsFeedPanel from './EventsFeedPanel.jsx';
 import VehicleRiskPanel from './VehicleRiskPanel.jsx';
 import PumpHonestyPanel from './PumpHonestyPanel.jsx';

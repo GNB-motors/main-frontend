@@ -1,82 +1,126 @@
-import { useEffect, useState } from 'react';
-import { Bell, Fuel, Wrench, CalendarClock, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Download,
+  RefreshCw,
+  Sun,
+  Moon,
+  Truck,
+  Package,
+  Fuel,
+  Bell,
+  Calendar,
+  Wrench,
+} from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
+import { VehicleService } from '../Profile/VehicleService.jsx';
+import { getToken } from '../../utils/session.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
-import { DailyBriefService } from '../DailyBrief/DailyBriefService';
-import { TotalImpactTile, BriefSectionCard } from '../DailyBrief/dailyBriefCards';
-import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
-import PageShell from '../../components/ui/PageShell';
-import { formatInrCompact, formatNum, timeAgo } from '../../utils/formatters';
+import { useTheme } from '../../hooks/useTheme.js';
+import { formatNum } from '../../utils/formatters';
 import { formatDateLongIST } from '../../utils/dateUtils';
 import {
   startOfTodayIST,
   buildActionItems,
-  buildActivityItems,
+  buildDocumentAlerts,
   buildUpcomingItems,
-  groupUpcomingByDays,
   summarizeActionSeverity,
 } from './dailyDigestLogic';
 import {
-  SectionHeader,
-  KpiCard,
-  ActionCard,
-  ActivityCard,
-  UpcomingDayGroup,
-  SectionEmpty,
-} from './dailyDigestCards';
+  NdKpiStrip,
+  NdKpiStripSkeleton,
+  NdAttentionCard,
+  NdImpactCard,
+  NdCalendarCard,
+  NdRefuelCard,
+  NdWasteTable,
+  NdUpcomingCard,
+  NdOpsRow,
+  NdOpsRowSkeleton,
+  NdCardSkeleton,
+  NdVehicleDrawer,
+} from './novaDigestComponents.jsx';
+import '../../styles/nova/novaDesignSystem.css';
 
 /**
- * DailyDigest — "Here is the current state of my fleet, what needs my attention,
- * and what to do next." Composed entirely from existing endpoints; every item
- * links to its evidence. Priority: Needs attention → Upcoming → Operations.
+ * DailyDigest — ported pixel-for-pixel from Design/Daily Digest (standalone).html
+ * ("Nova Edge Pro"), wired to real endpoints instead of the mockup's random
+ * data generator. See novaDigest.css / novaDigestComponents.jsx.
  */
 export default function DailyDigestPage() {
   const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const from = startOfTodayIST();
+  const { isDark, toggleTheme } = useTheme();
 
   const money$ = useApi((s) => OwnerValueService.getMoney({ from }, s), [from]);
-  const compliance$ = useApi((s) => OwnerValueService.getComplianceRisk({ days: 15 }, s), []);
+  const fleetDashboard$ = useApi(() => VehicleService.getFleetDashboard(getToken()), []);
   const downtime$ = useApi((s) => OwnerValueService.getDowntimeRisk(s), []);
   const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
   const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);
   const fleetAlerts$ = useApi((s) => FleetDataService.getFleetAlertSummary({ from }, s), [from]);
-  // Dark-launched (feature flag off = 404) — excluded from the primary loading
-  // gate and rendered only on success, so an org without it sees no trace.
-  const brief$ = useApi((s) => DailyBriefService.getBrief({ date: from }, s), [from]);
+  const fuelEfficiency$ = useApi((s) => OwnerValueService.getFuelEfficiency({ days: 7 }, s), []);
+  const refuelling$ = useApi(() => OwnerValueService.getRefuellingToday(), []);
+  const calendar$ = useApi((s) => OwnerValueService.getFleetCalendar({ days: 14 }, s), []);
 
   const { data: money } = money$;
-  const { data: compliance } = compliance$;
+  const { data: fleetDashboard } = fleetDashboard$;
   const { data: downtime } = downtime$;
   const { data: alerts } = alerts$;
   const { data: fuelSummary } = fuel$;
   const { data: fleetAlertSummary } = fleetAlerts$;
-  const { data: brief } = brief$;
+  const { data: fuelEfficiency } = fuelEfficiency$;
+  const { data: refuelling } = refuelling$;
+  const { data: calendar } = calendar$;
 
   const loading =
-    money$.loading || compliance$.loading || downtime$.loading || alerts$.loading || fuel$.loading;
+    money$.loading ||
+    fleetDashboard$.loading ||
+    downtime$.loading ||
+    alerts$.loading ||
+    fuel$.loading;
+
+  // Per-section gates so each card shows its own skeleton only until its
+  // own source data has loaded once — mirrors useApi's "no flash on
+  // refetch" behaviour instead of hiding the whole page behind one flag.
+  const attnLoading = (loading || fleetAlerts$.loading) && !money;
+  const impactLoading = money$.loading && !money;
+  const calendarLoading = calendar$.loading && !calendar;
+  const refuelLoading = refuelling$.loading && !refuelling;
+  const wasteLoading = money$.loading && !money;
+  const upcomingLoading =
+    (downtime$.loading && !downtime) || (fleetDashboard$.loading && !fleetDashboard);
+  const opsLoading = (money$.loading && !money) || (fuelEfficiency$.loading && !fuelEfficiency);
 
   const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [, forceTick] = useState(0);
+  const [selectedReg, setSelectedReg] = useState(null);
   useEffect(() => {
     if (!loading) setLastUpdated(Date.now());
   }, [loading]);
-  // Re-render every 30s purely so the "Updated Xm ago" text stays current.
   useEffect(() => {
-    const id = setInterval(() => forceTick((n) => n + 1), 30000);
+    const id = setInterval(() => forceTick((n) => n + 1), 60000);
     return () => clearInterval(id);
   }, []);
 
   const handleRefresh = () => {
-    [money$, compliance$, downtime$, alerts$, fuel$, fleetAlerts$, brief$].forEach((h) =>
-      h.refetch?.(),
-    );
+    [
+      money$,
+      fleetDashboard$,
+      downtime$,
+      alerts$,
+      fuel$,
+      fleetAlerts$,
+      fuelEfficiency$,
+      refuelling$,
+      calendar$,
+    ].forEach((h) => h.refetch?.());
+    setLastUpdated(Date.now());
   };
 
   const m = money?.money;
-  const documents = compliance?.documents || [];
+  const documents = buildDocumentAlerts(fleetDashboard, 15);
   const serviceVehicles = downtime?.vehicles || [];
   const overdueCount = serviceVehicles.filter((v) => v.risk === 'OVERDUE').length;
 
@@ -88,159 +132,222 @@ export default function DailyDigestPage() {
     documents,
     serviceVehicles,
   });
-  const activity = buildActivityItems(m);
   const upcoming = buildUpcomingItems({ serviceVehicles, documents });
-  const upcomingByDay = groupUpcomingByDays(upcoming);
+
+  const vehicleCount = fleetDashboard?.length || 0;
+  const activeVehicleCount = (fleetDashboard || []).filter(
+    (v) => v.status !== 'MAINTENANCE',
+  ).length;
+
+  const kpis = [
+    {
+      id: 'active',
+      icon: Truck,
+      label: 'Vehicles active',
+      value: formatNum(activeVehicleCount),
+      unit: `/ ${formatNum(vehicleCount)}`,
+      note: 'not in maintenance',
+      to: '/vehicles/dashboard',
+      accent: true,
+    },
+    {
+      id: 'load',
+      icon: Package,
+      label: 'Load moving',
+      value: formatNum(m?.loadTonnageInTransit || 0),
+      unit: 't',
+      note: 'dispatched, not yet unloaded',
+      to: '/erp/pipeline',
+    },
+    {
+      id: 'fuel',
+      icon: Fuel,
+      label: 'Fuel spend',
+      value: `₹${formatNum(m?.fuelCostInr || 0)}`,
+      note: 'today',
+      to: '/fuel-spend',
+    },
+    {
+      id: 'attn',
+      icon: Bell,
+      label: 'Needs attention',
+      value: formatNum(actions.length),
+      note: summarizeActionSeverity(actions),
+      to: '#nd-attn',
+    },
+    {
+      id: 'up',
+      icon: Calendar,
+      label: 'Upcoming',
+      value: formatNum(upcoming.length),
+      note: 'next 14 days',
+    },
+    {
+      id: 'svc',
+      icon: Wrench,
+      label: 'Overdue service',
+      value: formatNum(overdueCount),
+      note: overdueCount > 0 ? 'needs immediate action' : 'none overdue',
+      to: '/vehicles/service-intelligence',
+    },
+  ];
+
+  // Cross-references the digest's already-fetched datasets by registrationNumber
+  // so opening the drawer needs no extra request — fields with no real source
+  // in any of these responses (live status, odometer, load on board) show "—"
+  // rather than being invented.
+  const selectedVehicle = useMemo(() => {
+    if (!selectedReg) return null;
+    const idlingRow = money?.idlingTop5?.find((r) => r.registrationNumber === selectedReg);
+    const detourRow = money?.detourTop5?.find((r) => r.registrationNumber === selectedReg);
+    const effRow = fuelEfficiency?.worst?.find((r) => r.registrationNumber === selectedReg);
+    const fill = refuelling?.fills?.find((f) => f.registrationNumber === selectedReg);
+    const calVeh = calendar?.vehicles?.find((v) => v.registrationNumber === selectedReg);
+    const lowTank = refuelling?.lowTankBeforeTrip?.find(
+      (v) => v.registrationNumber === selectedReg,
+    );
+    return {
+      registrationNumber: selectedReg,
+      model: calVeh?.model || effRow?.model || null,
+      idleMinutes: idlingRow?.idleMinutes ?? null,
+      detourKm: detourRow?.detourKm ?? null,
+      kmpl: effRow?.kmpl ?? null,
+      fuelLevelL: lowTank?.fuelLevelL ?? null,
+      fill,
+      events: calVeh?.events || [],
+    };
+  }, [selectedReg, money, fuelEfficiency, refuelling, calendar]);
+
+  const openVehicle = (regOrId) => {
+    // Table rows key by registrationNumber already; calendar/gantt rows key
+    // by vehicleId — resolve the id case against the calendar list once.
+    const byId = calendar?.vehicles?.find((v) => v.vehicleId === regOrId);
+    setSelectedReg(byId ? byId.registrationNumber : regOrId);
+  };
+
+  const handleExport = () => {
+    const rows = ['section,vehicle,detail,amount_inr']
+      .concat(
+        actions.map(
+          (a) => `attention,${a.title},"${a.desc}",${(a.amt || '').replace(/[₹,]/g, '')}`,
+        ),
+      )
+      .concat(
+        (money?.idlingTop5 || []).map(
+          (r) => `idling,${r.registrationNumber},${r.idleMinutes} min,${r.idleCostInr}`,
+        ),
+      )
+      .concat(upcoming.map((u) => `upcoming,${u.registrationNumber},${u.kind},`));
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `daily-digest-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 1400 }}>
-      <PageShell
-        title="Daily Digest"
-        subtitle={`${formatDateLongIST(todayIST)} · Your fleet at a glance`}
-        actions={
-          <button
-            className="text-dim flex items-center gap-1.5 self-start text-xs sm:self-auto"
-            onClick={handleRefresh}
-            disabled={loading}
-            title="Refresh"
-          >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Updated {timeAgo(lastUpdated)}
-          </button>
-        }
-      >
-        <div>
-          {loading && !money ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="ov-inset h-20 animate-pulse rounded-2xl" />
-                ))}
-              </div>
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="ov-inset h-24 animate-pulse rounded-2xl" />
-              ))}
-            </div>
+    <div className="nova-digest">
+      <div className="nd-page">
+        <header className="nd-head">
+          <div>
+            <h1>Daily Digest</h1>
+            <div className="nd-sub">{formatDateLongIST(todayIST)} · Your fleet at a glance</div>
+          </div>
+          <div className="nd-headtools">
+            <button type="button" className="nd-btn" onClick={handleExport}>
+              <Download size={15} />
+              Export
+            </button>
+            <button type="button" className="nd-btn" onClick={handleRefresh} disabled={loading}>
+              <span className={loading ? 'nd-spin' : ''}>
+                <RefreshCw size={15} />
+              </span>
+              {loading ? 'Refreshing…' : lastUpdated ? 'Updated' : ''}
+            </button>
+            <button
+              type="button"
+              className="nd-btn nd-btn--icon"
+              aria-label="Toggle theme"
+              onClick={toggleTheme}
+            >
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
+        </header>
+
+        <section>
+          <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
+            Today at a glance
+          </div>
+          {loading && !money ? <NdKpiStripSkeleton /> : <NdKpiStrip items={kpis} />}
+        </section>
+
+        <section className="nd-cols" id="nd-attn">
+          {attnLoading ? (
+            <NdCardSkeleton rows={4} rowHeight={64} />
           ) : (
-            <PanelErrorBoundary name="digest">
-              <section>
-                <SectionHeader label="Today at a glance" />
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5 mt-4">
-                  <KpiCard
-                    icon={Fuel}
-                    label="Fuel spend"
-                    value={formatInrCompact(m?.fuelCostInr || 0)}
-                    sub="Today"
-                    to="/fuel-spend"
-                    accent="var(--gnb-400)"
-                  />
-                  <KpiCard
-                    icon={Bell}
-                    label="Needs attention"
-                    value={formatNum(actions.length)}
-                    sub={summarizeActionSeverity(actions)}
-                    to="/owner-alerts"
-                    accent="var(--critical)"
-                    emphasis={actions.length > 0}
-                  />
-                  <KpiCard
-                    icon={CalendarClock}
-                    label="Upcoming"
-                    value={formatNum(upcoming.length)}
-                    sub="Next 14 days"
-                    accent="var(--caution)"
-                    emphasis={upcoming.length > 0}
-                  />
-                  <KpiCard
-                    icon={Wrench}
-                    label="Overdue service"
-                    value={formatNum(overdueCount)}
-                    sub={overdueCount > 0 ? 'Needs immediate action' : 'None overdue'}
-                    to="/vehicles/service-intelligence"
-                    accent="var(--critical)"
-                    emphasis={overdueCount > 0}
-                  />
-                </div>
-              </section>
-
-              <section className="mt-6 mb-4">
-                <SectionHeader
-                  label="Needs your attention"
-                  count={actions.length}
-                  countTone={actions.length ? 'var(--critical)' : undefined}
-                />
-                {actions.length === 0 ? (
-                  <SectionEmpty
-                    className="mt-4"
-                    title="You're all caught up"
-                    hint="No critical issues need your attention today — everything is operating normally."
-                  />
-                ) : (
-                  <div className="flex flex-col gap-3 mt-4">
-                    {actions.map((item) => (
-                      <ActionCard key={item.id} item={item} />
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {brief && !brief$.error ? (
-                <section className="mt-8">
-                  <SectionHeader label="Today's ₹ impact" />
-                  <div className="mt-4 flex flex-col gap-3">
-                    <TotalImpactTile totalRupees={brief.totalRupees} />
-                    {brief.sections.map((section) => (
-                      <BriefSectionCard key={section.key} section={section} />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              <section className="mt-12">
-                <SectionHeader label="Upcoming" count={upcoming.length || null} />
-                {upcoming.length === 0 ? (
-                  <SectionEmpty
-                    title="No upcoming service items"
-                    hint="Service and document reminders will surface here as due dates approach."
-                  />
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    {upcomingByDay.map((group) => (
-                      <UpcomingDayGroup key={group.days} days={group.days} items={group.items} />
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              <section className="mt-8">
-                <SectionHeader label="Today's operations" />
-                {activity.length === 0 ? (
-                  <SectionEmpty
-                    icon={Fuel}
-                    title="No other activity recorded today"
-                    hint="Idling and detour waste figures appear here as telemetry arrives."
-                  />
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {activity.map((item) => (
-                      <ActivityCard key={item.id} item={item} />
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {money?.disclaimer && (
-                <p
-                  className="text-dim mt-8 border-t pt-4 text-[11px] leading-relaxed"
-                  style={{ borderColor: 'var(--hairline)' }}
-                >
-                  {money.disclaimer}
-                </p>
-              )}
-            </PanelErrorBoundary>
+            <NdAttentionCard actions={actions} onOpenVehicle={openVehicle} />
           )}
-        </div>
-      </PageShell>
+          <div className="nd-rightcol">
+            {impactLoading ? (
+              <NdCardSkeleton rows={4} rowHeight={26} big />
+            ) : (
+              <NdImpactCard money={m} />
+            )}
+          </div>
+        </section>
+
+        {calendarLoading ? (
+          <NdCardSkeleton rows={6} rowHeight={40} />
+        ) : (
+          <NdCalendarCard
+            vehicles={calendar?.vehicles}
+            days={14}
+            onOpenVehicle={openVehicle}
+            selectedVehicleId={
+              calendar?.vehicles?.find((v) => v.registrationNumber === selectedReg)?.vehicleId
+            }
+          />
+        )}
+
+        <section className="nd-cols nd-cols--half">
+          {refuelLoading ? (
+            <NdCardSkeleton rows={4} rowHeight={44} />
+          ) : (
+            <NdRefuelCard data={refuelling} onOpenVehicle={openVehicle} />
+          )}
+          {wasteLoading ? (
+            <NdCardSkeleton rows={5} rowHeight={40} />
+          ) : (
+            <NdWasteTable
+              idlingTop5={m?.idlingTop5}
+              detourTop5={m?.detourTop5}
+              onOpenVehicle={openVehicle}
+            />
+          )}
+        </section>
+
+        <section className="nd-cols" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
+          {upcomingLoading ? (
+            <NdCardSkeleton rows={4} rowHeight={36} />
+          ) : (
+            <NdUpcomingCard upcoming={upcoming} onOpenVehicle={openVehicle} />
+          )}
+        </section>
+
+        {opsLoading ? (
+          <NdOpsRowSkeleton />
+        ) : (
+          <NdOpsRow money={m} fuelEfficiency={fuelEfficiency} onOpenVehicle={openVehicle} />
+        )}
+
+        <p className="nd-foot">
+          {m?.disclaimer ||
+            'Money figures are estimates generated from FleetEdge telemetry and the fuel, AdBlue and labour prices configured for your account. Idling, detour and siphoning values assume the configured price per litre at the time of the event. Treat them as directional, not as accounting entries.'}
+        </p>
+      </div>
+
+      <NdVehicleDrawer vehicle={selectedVehicle} onClose={() => setSelectedReg(null)} />
     </div>
   );
 }

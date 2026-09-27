@@ -107,7 +107,7 @@ const RbacRolesPage = () => {
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    if (getUserRole() !== 'SUPER_ADMIN') navigate('/overview');
+    if (getUserRole() !== 'SUPER_ADMIN') navigate('/profile');
   }, [navigate]);
 
   const selectRole = useCallback((role) => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, HelpCircle, ShieldAlert } from 'lucide-react';
 import { formatINR, formatLitres } from '../../utils/formatters';
-import { StatusPill } from '../Overview/components/overview.primitives.jsx';
+import { StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
 import KaaranService from '../../services/KaaranService';
 

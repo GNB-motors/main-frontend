@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown, Droplets, MapPin } from 'lucide-react';
 import { formatINR, formatLitres } from '../../utils/formatters';
-import { Panel, StatusPill } from '../Overview/components/overview.primitives.jsx';
+import { Panel, StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
 import { formatIST, formatRelativeIST, mapsLink } from './fiDates.js';
 

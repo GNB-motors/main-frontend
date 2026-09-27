@@ -24,7 +24,13 @@ import {
   formatNumber,
 } from './superAdminFormat';
 import { SortIcon } from './components/SortIcon.jsx';
-import { getUserRole, getUserFirstName, getUserLastName, getUserEmail, getUserId } from '../../utils/session';
+import {
+  getUserRole,
+  getUserFirstName,
+  getUserLastName,
+  getUserEmail,
+  getUserId,
+} from '../../utils/session';
 import './SuperAdminPage.css';
 
 // ── component ──────────────────────────────────────────────────────────────
@@ -57,15 +63,15 @@ const SuperAdminPage = () => {
   useEffect(() => {
     const userRole = getUserRole();
     if (userRole !== 'SUPER_ADMIN') {
-      navigate('/overview');
+      navigate('/profile');
       return;
     }
     setUser({
       firstName: getUserFirstName() || '',
-      lastName:  getUserLastName()  || '',
-      email:     getUserEmail()     || '',
-      role:      userRole,
-      userId:    getUserId()        || '',
+      lastName: getUserLastName() || '',
+      email: getUserEmail() || '',
+      role: userRole,
+      userId: getUserId() || '',
     });
   }, [navigate]);
 
@@ -147,7 +153,7 @@ const SuperAdminPage = () => {
       const q = search.toLowerCase();
       return (
         (org.companyName || '').toLowerCase().includes(q) ||
-        (org.ownerEmail  || '').toLowerCase().includes(q)
+        (org.ownerEmail || '').toLowerCase().includes(q)
       );
     })
     .sort((a, b) => {
@@ -166,13 +172,13 @@ const SuperAdminPage = () => {
   const statCards = [
     {
       label: 'Total Organisations',
-      value: statsLoading ? '…' : stats?.totalOrganizations ?? '—',
+      value: statsLoading ? '…' : (stats?.totalOrganizations ?? '—'),
       icon: <Building2 size={22} />,
       colorClass: 'green',
     },
     {
       label: 'Total Vehicles',
-      value: statsLoading ? '…' : stats?.totalVehicles ?? '—',
+      value: statsLoading ? '…' : (stats?.totalVehicles ?? '—'),
       icon: <Car size={22} />,
       colorClass: 'purple',
     },
@@ -181,20 +187,20 @@ const SuperAdminPage = () => {
       value: statsLoading
         ? '…'
         : stats?.totalExpenses != null
-        ? formatCurrency(stats.totalExpenses)
-        : '—',
+          ? formatCurrency(stats.totalExpenses)
+          : '—',
       icon: <IndianRupee size={22} />,
       colorClass: 'orange',
     },
     {
       label: 'Active Vehicles',
-      value: statsLoading ? '…' : stats?.activeVehicles ?? '—',
+      value: statsLoading ? '…' : (stats?.activeVehicles ?? '—'),
       icon: <CarFront size={22} />,
       colorClass: 'teal',
     },
     {
       label: 'Inactive Vehicles',
-      value: statsLoading ? '…' : stats?.inactiveVehicles ?? '—',
+      value: statsLoading ? '…' : (stats?.inactiveVehicles ?? '—'),
       icon: <CarFront size={22} />,
       colorClass: 'red',
     },
@@ -297,7 +303,7 @@ const SuperAdminPage = () => {
               <div className={`stat-icon ${card.colorClass}`}>{card.icon}</div>
               <div className="stat-info">
                 <p className="stat-label">{card.label}</p>
-                <h3 className="stat-value">{fuelLoading ? '…' : card.value ?? '—'}</h3>
+                <h3 className="stat-value">{fuelLoading ? '…' : (card.value ?? '—')}</h3>
                 {fuelError && <span className="stat-change negative">{fuelError}</span>}
               </div>
             </div>
@@ -312,7 +318,9 @@ const SuperAdminPage = () => {
           <div>
             <h3>Organisations Overview</h3>
             <p className="orgs-table-subtitle">
-              {orgsLoading ? 'Loading…' : `${displayedOrgs.length} organisation${displayedOrgs.length !== 1 ? 's' : ''}`}
+              {orgsLoading
+                ? 'Loading…'
+                : `${displayedOrgs.length} organisation${displayedOrgs.length !== 1 ? 's' : ''}`}
             </p>
           </div>
           <div className="orgs-table-actions">
@@ -328,7 +336,11 @@ const SuperAdminPage = () => {
             </div>
             <button
               className="action-btn refresh-btn"
-              onClick={() => { fetchStats(); fetchOrgs(); fetchFuelStats(); }}
+              onClick={() => {
+                fetchStats();
+                fetchOrgs();
+                fetchFuelStats();
+              }}
               title="Refresh data"
             >
               <RefreshCw size={15} />

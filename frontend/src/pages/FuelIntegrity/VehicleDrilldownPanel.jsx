@@ -9,7 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Panel, StatusPill } from '../Overview/components/overview.primitives.jsx';
+import { Panel, StatusPill } from '../../components/overview.primitives.jsx';
 import { toIST } from './fiDates.js';
 
 export default function VehicleDrilldownPanel({

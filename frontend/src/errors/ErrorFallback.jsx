@@ -3,8 +3,9 @@
  * page-level boundaries. Uses window.location (not React Router) so it
  * still works when the router itself is what crashed.
  *
- * "Go to Dashboard" targets /overview rather than /, which is the public
+ * "Go to Dashboard" targets /profile rather than /, which is the public
  * marketing page — sending a signed-in user there looks like a logout.
+ * /profile is used because it's always accessible regardless of module flags.
  */
 import React from 'react';
 
@@ -17,7 +18,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }) => {
         <button
           type="button"
           style={styles.primaryBtn}
-          onClick={() => window.location.assign('/overview')}
+          onClick={() => window.location.assign('/profile')}
         >
           Go to Dashboard
         </button>

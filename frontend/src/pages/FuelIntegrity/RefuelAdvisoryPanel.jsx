@@ -2,7 +2,7 @@ import { Gauge, Fuel, MapPin } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { formatLitres, formatNum } from '../../utils/formatters';
 import { FuelIntegrityService } from './FuelIntegrityService.jsx';
-import { Panel } from '../Overview/components/overview.primitives.jsx';
+import { Panel } from '../../components/overview.primitives.jsx';
 
 /**
  * Refuel Advisory (#16) for the filtered vehicle. Estimated range is DERIVED

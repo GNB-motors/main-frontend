@@ -3,6 +3,7 @@ import {
   cleanMsg,
   buildActionItems,
   buildActivityItems,
+  buildDocumentAlerts,
   buildUpcomingItems,
   groupUpcomingByDays,
   summarizeActionSeverity,
@@ -16,6 +17,50 @@ describe('cleanMsg', () => {
   it('returns other text unchanged, and an empty string for nothing', () => {
     expect(cleanMsg('Something else')).toBe('Something else');
     expect(cleanMsg(null)).toBe('');
+  });
+});
+
+describe('buildDocumentAlerts', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const isoInDays = (n) => new Date(Date.now() + n * DAY_MS).toISOString();
+
+  it('returns nothing for no vehicles or vehicles with no uploaded documents', () => {
+    expect(buildDocumentAlerts([])).toEqual([]);
+    expect(buildDocumentAlerts(undefined)).toEqual([]);
+    expect(
+      buildDocumentAlerts([{ registrationNumber: 'A', documents: { RC: { uploaded: false } } }]),
+    ).toEqual([]);
+  });
+
+  it('skips uploaded documents with no expiryDate, and ones outside the window', () => {
+    const vehicles = [
+      {
+        registrationNumber: 'A',
+        documents: {
+          RC: { uploaded: true, expiryDate: null },
+          INSURANCE: { uploaded: true, expiryDate: isoInDays(90) },
+        },
+      },
+    ];
+    expect(buildDocumentAlerts(vehicles, 15)).toEqual([]);
+  });
+
+  it('includes expired and soon-expiring documents, sorted by daysLeft ascending', () => {
+    const vehicles = [
+      {
+        registrationNumber: 'A',
+        documents: { FITNESS: { uploaded: true, expiryDate: isoInDays(10) } },
+      },
+      {
+        registrationNumber: 'B',
+        documents: { RC: { uploaded: true, expiryDate: isoInDays(-5) } },
+      },
+    ];
+    const alerts = buildDocumentAlerts(vehicles, 15);
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0]).toMatchObject({ registrationNumber: 'B', docType: 'RC' });
+    expect(alerts[0].daysLeft).toBeLessThan(0);
+    expect(alerts[1]).toMatchObject({ registrationNumber: 'A', docType: 'FITNESS' });
   });
 });
 

@@ -69,8 +69,6 @@ const ContactV2 = lazy(() => import('./pages/landing-page-v2/contact-v2/ContactV
 const LoginPage = lazy(() => import('./pages/Login/LoginPage.jsx'));
 const SignUpPage = lazy(() => import('./pages/SignUp/SIgnUpPage.jsx'));
 const ContactPage = lazy(() => import('./pages/Contact/ContactPage.jsx'));
-const OverviewPage = lazy(() => import('./pages/Overview/OverviewPage.jsx'));
-const CommandCenterPage = lazy(() => import('./pages/CommandCenter/CommandCenterPage.jsx'));
 const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage.jsx'));
 const SettingsPage = lazy(() => import('./pages/Profile/SettingsPage.jsx'));
@@ -95,6 +93,12 @@ const OrgFeatureFlagsDetailPage = lazy(
   () => import('./pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx'),
 );
 const OrgDetailPage = lazy(() => import('./pages/Superadmin/components/OrgDetailPage.jsx'));
+const FleetEdgeHealthPage = lazy(
+  () => import('./pages/Superadmin/components/FleetEdgeHealthPage.jsx'),
+);
+const FleetEdgeHealthOrgPage = lazy(
+  () => import('./pages/Superadmin/components/FleetEdgeHealthOrgPage.jsx'),
+);
 const RbacPermissionsPage = lazy(
   () => import('./pages/Superadmin/components/RbacPermissionsPage.jsx'),
 );
@@ -138,12 +142,7 @@ const AddLocationPage = lazy(() => import('./pages/Locations/AddLocationPage.jsx
 const RefuelLogsPage = lazy(() => import('./pages/Trip/RefuelLogsPage.jsx'));
 const FuelComparisonPage = lazy(() => import('./pages/FuelComparison/FuelComparisonPage.jsx'));
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
-const RouteDeviationPage = lazy(() => import('./pages/RouteDeviation/RouteDeviationPage.jsx'));
-const RouteReplayPage = lazy(() => import('./pages/RouteReplay/RouteReplayPage.jsx'));
-const RouteProfitabilityPage = lazy(
-  () => import('./pages/RouteProfitability/RouteProfitabilityPage.jsx'),
-);
-const OverspeedPage = lazy(() => import('./pages/Overspeed/OverspeedPage.jsx'));
+const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
 const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
@@ -185,16 +184,16 @@ const ErpAccountsPage = lazy(() => import('./pages/ErpAccounts/ErpAccountsPage.j
 const Account360Page = lazy(() => import('./pages/ErpAccounts/Account360Page.jsx'));
 const DocumentDetailPage = lazy(() => import('./pages/ErpAccounts/DocumentDetailPage.jsx'));
 const DailyDigestPage = lazy(() => import('./pages/DailyDigest/DailyDigestPage.jsx'));
-const CompliancePage = lazy(() => import('./pages/Compliance/CompliancePage.jsx'));
 const FleetAlertsPage = lazy(() => import('./pages/FleetAlerts/FleetAlertsPage.jsx'));
 const IdlingConsolePage = lazy(() => import('./pages/IdlingConsole/IdlingConsolePage.jsx'));
+const DailyBriefPage = lazy(() => import('./pages/DailyBrief/DailyBriefPage.jsx'));
+const OptimalSpeedPage = lazy(() => import('./pages/OptimalSpeed/OptimalSpeedPage.jsx'));
+const RefuelAdvisoryPage = lazy(() => import('./pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
+const DrivingDnaPage = lazy(() => import('./pages/DrivingDna/DrivingDnaPage.jsx'));
 const FuelSpendPage = lazy(() => import('./pages/FuelSpend/FuelSpendPage.jsx'));
 const DefLedgerPage = lazy(() => import('./pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('./pages/FleetCoverage/FleetCoveragePage.jsx'));
 const AuditTrailPage = lazy(() => import('./pages/AuditTrail/AuditTrailPage.jsx'));
-const RouteIntelligencePage = lazy(
-  () => import('./pages/RouteIntelligence/RouteIntelligencePage.jsx'),
-);
 const Vehicle360Page = lazy(() => import('./pages/Vehicle360/Vehicle360Page.jsx'));
 const AccessControlPage = lazy(() => import('./pages/AccessControl/AccessControlPage.jsx'));
 const AssignedEmployeesPage = lazy(() => import('./pages/AccessControl/AssignedEmployeesPage.jsx'));
@@ -282,6 +281,23 @@ function App() {
                 </Suspense>
               }
             />
+            {/* FleetEdge data-flow health audit */}
+            <Route
+              path="fleetedge-health"
+              element={
+                <Suspense fallback={null}>
+                  <FleetEdgeHealthPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="fleetedge-health/:orgId"
+              element={
+                <Suspense fallback={null}>
+                  <FleetEdgeHealthOrgPage />
+                </Suspense>
+              }
+            />
             {/* RBAC management */}
             <Route
               path="rbac/permissions"
@@ -358,16 +374,21 @@ function App() {
               </TripCreationProvider>
             }
           >
-            <Route path="/command-center" element={<CommandCenterPage />} />
-            <Route path="/overview" element={<OverviewPage />} />
             <Route path="/digest" element={<DailyDigestPage />} />
-            <Route path="/compliance" element={<CompliancePage />} />
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
             <Route path="/idling-console" element={<IdlingConsolePage />} />
+            <Route path="/daily-brief" element={<DailyBriefPage />} />
             <Route path="/fuel-spend" element={<FuelSpendPage />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
-            <Route path="/route-intelligence" element={<RouteIntelligencePage />} />
+            <Route path="/route-hub" element={<RouteHubPage />} />
+            <Route
+              path="/route-intelligence"
+              element={<RedirectWithState to="/route-hub?tab=intelligence" />}
+            />
+            <Route path="/optimal-speed" element={<OptimalSpeedPage />} />
+            <Route path="/refuel-advisory" element={<RefuelAdvisoryPage />} />
+            <Route path="/driving-dna" element={<DrivingDnaPage />} />
             <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
@@ -390,10 +411,22 @@ function App() {
                 </Suspense>
               }
             />
-            <Route path="/route-deviation" element={<RouteDeviationPage />} />
-            <Route path="/route-replay" element={<RouteReplayPage />} />
-            <Route path="/route-profitability" element={<RouteProfitabilityPage />} />
-            <Route path="/overspeed" element={<OverspeedPage />} />
+            <Route
+              path="/route-deviation"
+              element={<RedirectWithState to="/route-hub?tab=deviation" />}
+            />
+            <Route
+              path="/route-replay"
+              element={<RedirectWithState to="/route-hub?tab=replay" />}
+            />
+            <Route
+              path="/route-profitability"
+              element={<RedirectWithState to="/route-hub?tab=profitability" />}
+            />
+            <Route
+              path="/overspeed"
+              element={<RedirectWithState to="/route-hub?tab=overspeed" />}
+            />
             <Route path="/hotspots" element={<HotspotsPage />} />
             <Route path="/live-tracking" element={<LiveTrackingPage />} />
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />

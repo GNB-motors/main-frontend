@@ -7,7 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Panel } from '../Overview/components/overview.primitives.jsx';
+import { Panel } from '../../components/overview.primitives.jsx';
 
 const METRICS = [
   { key: 'volume', label: 'Fuel volume', color: 'var(--gnb-400)', unit: ' L' },

@@ -27,10 +27,8 @@ export function useDowntimeRisk() {
   return useApi((signal) => OwnerValueService.getDowntimeRisk(signal), []);
 }
 
-export function useComplianceRisk({ days = 30 } = {}) {
-  return useApi((signal) => OwnerValueService.getComplianceRisk({ days }, signal), [days]);
-}
-
 export function useTripPnl(tripId) {
-  return useApi((signal) => OwnerValueService.getTripPnl({ tripId }, signal), [tripId], { enabled: Boolean(tripId) });
+  return useApi((signal) => OwnerValueService.getTripPnl({ tripId }, signal), [tripId], {
+    enabled: Boolean(tripId),
+  });
 }

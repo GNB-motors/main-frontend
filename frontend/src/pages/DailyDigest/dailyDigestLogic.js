@@ -67,6 +67,7 @@ export function buildActionItems({
       icon: ShieldAlert,
       title: 'Unexplained fuel loss',
       desc: `${formatLitres(totals.siphonSuspectedLossL)} left tanks without explanation today (${formatINR(totals.siphonSuspectedLossInr)}).`,
+      amt: formatINR(totals.siphonSuspectedLossInr),
       to: '/fuel-integrity',
       cta: 'Investigate',
     });
@@ -78,6 +79,7 @@ export function buildActionItems({
       icon: ShieldAlert,
       title: 'Unexplained fuel loss',
       desc: `≈ ${formatINR(m.theftLossInr)} unexplained fuel loss today${top ? ` — most on ${top.registrationNumber}` : ''}.`,
+      amt: formatINR(m.theftLossInr),
       to: '/fuel-integrity',
       cta: 'Investigate',
     });
@@ -89,6 +91,7 @@ export function buildActionItems({
       icon: Fuel,
       title: 'Bill mismatch',
       desc: `${formatINR(m.billFraudSuspectInr)} of fuel bills don't match the tanks.`,
+      amt: formatINR(m.billFraudSuspectInr),
       to: '/fuel-integrity',
       cta: 'Review bills',
     });
@@ -162,7 +165,7 @@ export function buildActionItems({
       icon: FileWarning,
       title: 'Documents expired',
       desc: `${formatNum(expiredDocs.length)} vehicle documents have expired, including ${sample.join(', ')}${expiredDocs.length > sample.length ? ' and more' : ''}.`,
-      to: '/compliance',
+      to: '/vehicles',
       cta: 'Review documents',
     });
   } else {
@@ -173,7 +176,7 @@ export function buildActionItems({
         icon: FileWarning,
         title: `${d.docType} expired`,
         desc: `${d.registrationNumber} — ${d.docType} expired ${formatNum(-d.daysLeft)} days ago.`,
-        to: '/compliance',
+        to: `/vehicles/${encodeURIComponent(d.registrationNumber)}`,
         cta: 'Review document',
       });
     }
@@ -233,10 +236,39 @@ export function buildActivityItems(m) {
       label: 'Detour waste',
       value: formatInrCompact(m.detourWasteInr),
       sub: 'Cost of detours today',
-      to: '/route-deviation',
+      to: '/route-hub?tab=deviation',
     });
   }
   return activity;
+}
+
+const DOC_ALERT_DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Flattens `VehicleService.getFleetDashboard()` (per-vehicle docType → {uploaded,
+ * expiryDate}) into the flat expired/expiring document list the digest's action
+ * and upcoming builders expect. Reads the same vehicle-document data Vehicle360's
+ * Documents tab shows — no separate "compliance" computation.
+ */
+export function buildDocumentAlerts(vehicles, windowDays = 15) {
+  const now = Date.now();
+  const out = [];
+  for (const v of vehicles || []) {
+    const docs = v.documents || {};
+    for (const docType of Object.keys(docs)) {
+      const doc = docs[docType];
+      if (!doc?.uploaded || !doc.expiryDate) continue;
+      const daysLeft = Math.ceil((new Date(doc.expiryDate).getTime() - now) / DOC_ALERT_DAY_MS);
+      if (Number.isNaN(daysLeft) || daysLeft > windowDays) continue;
+      out.push({
+        registrationNumber: v.registrationNumber,
+        docType,
+        expiryDate: doc.expiryDate,
+        daysLeft,
+      });
+    }
+  }
+  return out.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
 export function buildUpcomingItems({ serviceVehicles, documents }) {
@@ -262,7 +294,7 @@ export function buildUpcomingItems({ serviceVehicles, documents }) {
       registrationNumber: d.registrationNumber,
       kind: d.docType,
       text: `${d.registrationNumber} — ${d.docType} expires in ${formatNum(d.daysLeft)} days.`,
-      to: '/compliance',
+      to: `/vehicles/${encodeURIComponent(d.registrationNumber)}`,
     });
   }
   return upcoming;

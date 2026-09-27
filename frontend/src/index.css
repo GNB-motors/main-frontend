@@ -1824,6 +1824,45 @@ a.ov-action:hover {
   background: #f8fafc;
 }
 
+/* Single-select tab/filter pill — e.g. Daily Digest's severity filter */
+.ov-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--cluster-panel, #fff);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cluster-text-dim);
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+.ov-tab:hover {
+  border-color: var(--gnb-400);
+  background: color-mix(in srgb, var(--gnb-400) 6%, transparent);
+}
+.ov-tab b {
+  font-weight: 600;
+  color: var(--cluster-text);
+  font-variant-numeric: tabular-nums;
+  background: var(--cluster-raised);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+.ov-tab[aria-pressed='true'] {
+  background: var(--cluster-text);
+  border-color: var(--cluster-text);
+  color: rgba(255, 255, 255, 0.75);
+}
+.ov-tab[aria-pressed='true'] b {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
 /* ─────────────────────────────────────────────────────────
    Modern Minimalist Table System (Reference-Grade UI)
    Soft pills, clean progress bars, entity cells & card headers
