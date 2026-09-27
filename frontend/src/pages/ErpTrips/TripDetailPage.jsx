@@ -73,6 +73,14 @@ const TELEMATICS_FLAGS = {
   ARRIVAL_MISMATCH: 'Arrival mismatch',
 };
 
+// Where the trip's fuel figure came from. SINK is FleetEdge's own hourly fuel-used
+// (edge hours pro-rated); SNAPSHOT is our estimate from fuel-level drops, used only
+// when the sink does not cover the trip window.
+const FUEL_SOURCE_NOTE = {
+  SINK: 'FleetEdge',
+  SNAPSHOT: 'estimated from fuel level',
+};
+
 const TELEMATICS_UNAVAILABLE = {
   NO_TELEMATICS: 'No telematics for this vehicle',
   NO_DATA: 'No GPS data in the trip window',
@@ -171,7 +179,10 @@ const TelematicsPanel = ({ telematics, plannedKm, onRecompute, recomputing }) =>
                   ? { label: 'Service (excluded)', value: km(a.serviceKmExcluded) }
                   : null,
                 a.fuelConsumedL != null
-                  ? { label: 'Fuel used', value: `${a.fuelConsumedL} L` }
+                  ? {
+                      label: 'Fuel used',
+                      value: `${a.fuelConsumedL} L${FUEL_SOURCE_NOTE[a.fuelSource] ? ` · ${FUEL_SOURCE_NOTE[a.fuelSource]}` : ''}`,
+                    }
                   : null,
                 a.lastMovementAt ? { label: 'GPS arrival', value: stamp(a.lastMovementAt) } : null,
                 t.confidence ? { label: 'Confidence', value: t.confidence } : null,
