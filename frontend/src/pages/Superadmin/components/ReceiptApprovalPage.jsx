@@ -1,54 +1,81 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
+  MessageSquare,
+  Droplet,
+  Download,
   Search,
-  Inbox,
   Truck,
   ChevronRight,
+  Inbox,
+  Check,
+  CheckCheck,
+  Wallet,
+  BookText,
   Gauge,
-  MessageSquare,
   Radio,
   PencilLine,
-  ArrowLeft,
-  Check,
-  CheckCircle2,
 } from 'lucide-react';
 import apiClient from '../../../utils/axiosConfig';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../../utils/session';
+import {
+  STATUS_META,
+  TABS,
+  checkList,
+  displayStatus,
+  isPending,
+  km,
+  listStats,
+  money,
+  num2,
+  openCount,
+  orgOf,
+  photoOdometerOf,
+  searchFilter,
+  shortDateTime,
+  submitterOf,
+  toCsv,
+  vehicleOf,
+} from './whatsappApprovals.logic';
+import '../../../styles/nova/novaDesignSystem.css';
 import './ReceiptApproval.css';
+
+/* Inbox for fuel bills captured over WhatsApp.
+   Ported from the "WhatsApp Approvals" Nova Edge Pro mockup; the endpoints
+   underneath are unchanged. */
 
 const ODOMETER_MODES = [
   {
     key: 'INTERACTIVE',
     label: 'Ask driver',
-    icon: <MessageSquare size={15} />,
+    icon: <MessageSquare size={13} />,
     hint: 'The bot asks for the odometer — photo, typed reading, or FleetEdge.',
   },
   {
     key: 'FLEETEDGE',
     label: 'Auto FleetEdge',
-    icon: <Radio size={15} />,
+    icon: <Radio size={13} />,
     hint: 'Pull the latest telematics reading; fall back to asking if none.',
   },
   {
     key: 'MANUAL',
     label: 'Manual only',
-    icon: <PencilLine size={15} />,
+    icon: <PencilLine size={13} />,
     hint: 'Only a photo or typed reading — never offer FleetEdge.',
   },
 ];
 
-/* Per-org odometer capture mode — inline control for owners/managers on the
-   org WhatsApp Approvals page. Hidden on the cross-org superadmin route. */
-const OdometerModeControl = () => {
+/* Per-org odometer capture mode. Sits as the fifth tile in the stat strip,
+   which is where the mockup puts it. Hidden on the cross-org superadmin route
+   because there is no single org to set it for. */
+const CaptureTile = () => {
   const { organization } = useFeatureFlags();
   const [mode, setMode] = useState(organization?.whatsappSettings?.odometerMode || 'INTERACTIVE');
   const [saving, setSaving] = useState(false);
 
-  const userRole = (getUserRole() || '').toUpperCase();
-  const canEdit = ['OWNER', 'MANAGER'].includes(userRole);
+  const canEdit = ['OWNER', 'MANAGER'].includes((getUserRole() || '').toUpperCase());
 
   useEffect(() => {
     let alive = true;
@@ -57,7 +84,7 @@ const OdometerModeControl = () => {
       .then((res) => {
         if (alive && res.data?.data?.odometerMode) setMode(res.data.data.odometerMode);
       })
-      .catch(() => {}); // keep the default; PATCH will surface any real error
+      .catch(() => {}); // keep the default; the PATCH below surfaces any real error
     return () => {
       alive = false;
     };
@@ -65,7 +92,7 @@ const OdometerModeControl = () => {
 
   const change = useCallback(
     async (next) => {
-      if (next === mode || saving) return;
+      if (next === mode || saving || !canEdit) return;
       const prev = mode;
       setMode(next);
       setSaving(true);
@@ -79,32 +106,31 @@ const OdometerModeControl = () => {
         setSaving(false);
       }
     },
-    [mode, saving],
+    [mode, saving, canEdit],
   );
 
-  const activeHint = ODOMETER_MODES.find((o) => o.key === mode)?.hint;
+  const hint = ODOMETER_MODES.find((o) => o.key === mode)?.hint;
 
   return (
-    <div className="ra-odo">
-      <div className="ra-odo__head">
-        <span className="ra-odo__title">
-          <Gauge size={16} /> Odometer capture
-        </span>
-        <span className="ra-odo__hint">{activeHint}</span>
+    <div className="capture">
+      <div>
+        <b>
+          <Gauge size={14} />
+          Odometer capture
+        </b>
+        <p>{hint}</p>
       </div>
-      <div className="ra-odo__seg" role="group" aria-label="Odometer capture mode">
-        {ODOMETER_MODES.map((o) => (
+      <div className="seg">
+        {ODOMETER_MODES.map(({ key, label, icon }) => (
           <button
-            key={o.key}
+            key={key}
             type="button"
+            aria-pressed={mode === key}
             disabled={!canEdit || saving}
-            aria-pressed={mode === o.key}
-            className={`ra-odo__btn ${mode === o.key ? 'is-active' : ''}`}
-            onClick={() => change(o.key)}
-            title={o.hint}
+            onClick={() => change(key)}
           >
-            {o.icon}
-            {o.label}
+            {icon}
+            {label}
           </button>
         ))}
       </div>
@@ -112,38 +138,16 @@ const OdometerModeControl = () => {
   );
 };
 
-/* Inbox for WhatsApp fuel-bill drafts captured over WhatsApp.
-   Lists drafts by status; clicking a row opens the review/approve detail. */
-
-const STATUS_TABS = [
-  { key: 'READY', label: 'Pending' },
-  { key: 'PUBLISHED', label: 'Published' },
-  { key: 'REJECTED', label: 'Rejected' },
-  { key: 'CLEARED', label: 'Cleared' },
-  { key: 'ALL', label: 'All' },
-];
-
-const STATUS_BADGE = {
-  READY: 'ra-badge--ready',
-  PUBLISHED: 'ra-badge--published',
-  REJECTED: 'ra-badge--rejected',
-  CLEARED: 'ra-badge--cleared',
-};
-
-const fmtMoney = (n) =>
-  n == null ? '—' : `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-
-const fmtLitres = (n) => (n == null ? '—' : `${Number(n).toLocaleString('en-IN')} L`);
-
-const fmtDate = (d) =>
-  d
-    ? new Date(d).toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '—';
+const StatTile = ({ accent, icon, k, v, n }) => (
+  <div className={`stat ${accent ? 'stat--accent' : ''}`}>
+    <div className="k">
+      {icon}
+      {k}
+    </div>
+    <div className="v">{v}</div>
+    <div className="n">{n}</div>
+  </div>
+);
 
 const ReceiptApprovalPage = () => {
   const navigate = useNavigate();
@@ -157,26 +161,19 @@ const ReceiptApprovalPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
-
-  // Multi-selection state
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [bulkBusy, setBulkBusy] = useState(false);
-  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+  const [picked, setPicked] = useState(() => new Set());
+  const [busy, setBusy] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const [draftsRes, countsRes] = await Promise.all([
-        apiClient.get('/api/whatsapp/admin/drafts', {
-          params: { status, limit: 200 },
-        }),
+        apiClient.get('/api/whatsapp/admin/drafts', { params: { status, limit: 200 } }),
         apiClient.get('/api/whatsapp/admin/drafts/counts').catch(() => null),
       ]);
       setItems(draftsRes.data?.data?.items ?? []);
-      if (countsRes?.data?.data) {
-        setCounts(countsRes.data.data);
-      }
+      if (countsRes?.data?.data) setCounts(countsRes.data.data);
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load receipts');
     } finally {
@@ -186,399 +183,327 @@ const ReceiptApprovalPage = () => {
 
   useEffect(() => {
     fetchData();
-    setSelectedIds(new Set());
+    setPicked(new Set());
   }, [fetchData]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((d) => {
-      const veh = d.vehicleId?.registrationNumber || d.vehicleReg || '';
-      const org = d.orgId?.companyName || '';
-      const plate = d.plateText || '';
-      return (
-        veh.toLowerCase().includes(q) ||
-        org.toLowerCase().includes(q) ||
-        plate.toLowerCase().includes(q)
-      );
-    });
-  }, [items, query]);
+  const rows = useMemo(() => searchFilter(items, query), [items, query]);
+  const stats = useMemo(() => listStats(items, counts), [items, counts]);
 
-  // Only READY drafts can be approved
-  const selectableItems = useMemo(() => filtered.filter((d) => d.status === 'READY'), [filtered]);
+  const pendingRows = useMemo(() => rows.filter(isPending), [rows]);
+  const allChecked = pendingRows.length > 0 && pendingRows.every((d) => picked.has(d._id));
 
-  const isAllSelected =
-    selectableItems.length > 0 && selectableItems.every((d) => selectedIds.has(d._id));
-
-  const isSomeSelected = selectableItems.some((d) => selectedIds.has(d._id)) && !isAllSelected;
-
-  const selectedDrafts = useMemo(
-    () => items.filter((d) => selectedIds.has(d._id)),
-    [items, selectedIds],
+  /* Only bills with nothing open can be published in bulk. The single-bill
+     screen is where a flagged one gets read and decided; letting the bulk bar
+     wave them through would defeat the checks entirely. */
+  const cleanPicked = useMemo(
+    () => items.filter((d) => picked.has(d._id) && isPending(d) && !openCount(d)),
+    [items, picked],
   );
 
-  const totalSelectedLitres = useMemo(
-    () => selectedDrafts.reduce((sum, d) => sum + (Number(d.litres) || 0), 0),
-    [selectedDrafts],
-  );
-
-  const totalSelectedAmount = useMemo(
-    () => selectedDrafts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0),
-    [selectedDrafts],
-  );
-
-  const toggleSelectOne = useCallback((id, e) => {
-    e?.stopPropagation();
-    setSelectedIds((prev) => {
+  const togglePick = (id) =>
+    setPicked((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
-  }, []);
 
-  const toggleSelectAll = useCallback(() => {
-    setSelectedIds((prev) => {
-      const allSelectableIds = selectableItems.map((d) => d._id);
-      const allSelected =
-        allSelectableIds.length > 0 && allSelectableIds.every((id) => prev.has(id));
+  const toggleAll = (checked) =>
+    setPicked((prev) => {
       const next = new Set(prev);
-      if (allSelected) {
-        allSelectableIds.forEach((id) => next.delete(id));
-      } else {
-        allSelectableIds.forEach((id) => next.add(id));
-      }
+      pendingRows.forEach((d) => (checked ? next.add(d._id) : next.delete(d._id)));
       return next;
     });
-  }, [selectableItems]);
 
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
-  }, []);
-
-  const handleBulkApprove = useCallback(async () => {
-    if (selectedIds.size === 0 || bulkBusy) return;
-    setBulkBusy(true);
+  const publishClean = useCallback(async () => {
+    if (!cleanPicked.length || busy) return;
+    setBusy(true);
     try {
-      const ids = Array.from(selectedIds);
+      const ids = cleanPicked.map((d) => d._id);
       const res = await apiClient.post('/api/whatsapp/admin/drafts/bulk-publish', { ids });
-      const data = res.data?.data || {};
-      const { successCount = 0, failureCount = 0, failed = [] } = data;
-
-      if (failureCount === 0) {
+      const { successCount = 0, failureCount = 0, failed = [] } = res.data?.data || {};
+      if (successCount) {
         toast.success(
-          `Successfully published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`,
+          `${successCount} bill${successCount === 1 ? '' : 's'} published to the fuel ledger`,
         );
-      } else {
-        // Collect distinct error messages from failed drafts
-        const failureMessages = Array.from(new Set(failed.map((f) => f.message).filter(Boolean)));
-
-        if (successCount > 0) {
-          toast.success(`Published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`);
-        }
-
-        if (failureMessages.length > 0) {
-          failureMessages.forEach((msg) => {
-            toast.error(msg);
-          });
-        } else {
-          toast.error(
-            failureCount === 1
-              ? '1 receipt failed to publish'
-              : `${failureCount} receipts failed to publish`,
-          );
-        }
       }
-
-      setShowBulkConfirmModal(false);
-      clearSelection();
+      if (failureCount) {
+        const msgs = Array.from(new Set(failed.map((f) => f.message).filter(Boolean)));
+        if (msgs.length) msgs.forEach((m) => toast.error(m));
+        else toast.error(`${failureCount} bill${failureCount === 1 ? '' : 's'} failed to publish`);
+      }
+      setPicked(new Set());
       await fetchData();
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Error processing bulk approval';
-      toast.error(msg);
+      toast.error(err.response?.data?.message || 'Bulk publish failed');
     } finally {
-      setBulkBusy(false);
+      setBusy(false);
     }
-  }, [selectedIds, bulkBusy, clearSelection, fetchData]);
+  }, [cleanPicked, busy, fetchData]);
+
+  const exportCsv = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([toCsv(rows)], { type: 'text/csv' }));
+    a.download = 'whatsapp-fuel-approvals.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success(`${rows.length} bill${rows.length === 1 ? '' : 's'} exported`);
+  };
+
+  const totals = rows.reduce(
+    (acc, d) => ({
+      litres: acc.litres + (Number(d.litres) || 0),
+      amount: acc.amount + (Number(d.amount) || 0),
+    }),
+    { litres: 0, amount: 0 },
+  );
 
   return (
-    <div className="ra-page">
-      <div className="ra-header">
-        <button
-          type="button"
-          className="ra-header__back"
-          onClick={() => navigate(isSuperadminRoute ? '/superadmin' : '/profile')}
-        >
-          <ArrowLeft size={15} />
-          {isSuperadminRoute ? 'Dashboard' : 'Fleet Operations'}
-        </button>
-        <div className="ra-header__bar">
-          <div className="ra-header__icon">
-            <MessageSquare size={22} />
+    <div className="wa-root">
+      <div className="lpage">
+        <header className="head">
+          <div className="mark" aria-hidden="true">
+            <MessageSquare size={24} />
+            <span className="drop">
+              <Droplet size={11} fill="currentColor" />
+            </span>
           </div>
-          <div>
-            <h1 className="ra-header__title">WhatsApp Fuel Approvals</h1>
-            <p className="ra-header__subtitle">
-              Review fuel bills captured over WhatsApp and publish them into the fuel ledger.
-            </p>
+          <div className="htitle">
+            <h1>WhatsApp fuel approvals</h1>
+            <p>Review fuel bills captured over WhatsApp and publish them into the fuel ledger.</p>
           </div>
-        </div>
-      </div>
+          <span className="wa-sp" />
+          <button type="button" className="btn" onClick={exportCsv} disabled={!rows.length}>
+            <Download size={16} />
+            Export
+          </button>
+        </header>
 
-      {!isSuperadminRoute && <OdometerModeControl />}
-
-      <div className="ra-toolbar">
-        <div className="ra-tabs">
-          {STATUS_TABS.map((t) => (
-            <button
-              key={t.key}
-              className={`ra-tab ${status === t.key ? 'is-active' : ''}`}
-              onClick={() => setStatus(t.key)}
-            >
-              {t.label}
-              {t.key !== 'ALL' && counts[t.key] != null && (
-                <span className="ra-tab__count">{counts[t.key]}</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div className="ra-search">
-          <span className="ra-search__icon">
-            <Search size={16} />
-          </span>
-          <input
-            type="text"
-            placeholder="Search vehicle, org, plate"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+        <section className="stats">
+          <StatTile
+            accent
+            icon={<Inbox size={14} />}
+            k="Pending review"
+            v={stats.pendingCount}
+            n={stats.flaggedCount ? `${stats.flaggedCount} with open checks` : 'Nothing flagged'}
           />
-        </div>
-      </div>
+          <StatTile
+            icon={<Check size={14} />}
+            k="Clean bills"
+            v={stats.cleanCount}
+            n="All checks passed"
+          />
+          <StatTile
+            icon={<Wallet size={14} />}
+            k="Pending value"
+            v={`₹${Math.round(stats.pendingValue).toLocaleString('en-IN')}`}
+            n={`${num2(stats.pendingLitres)} L waiting`}
+          />
+          <StatTile
+            icon={<BookText size={14} />}
+            k="Published"
+            v={stats.publishedCount}
+            n="All time"
+          />
+          {!isSuperadminRoute && <CaptureTile />}
+        </section>
 
-      {error && (
-        <div className="ra-alert ra-alert--error" role="alert">
-          {error}
-        </div>
-      )}
+        <section className="card">
+          <div className="bar">
+            <div className="tabs">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className="tab"
+                  aria-pressed={status === t.key}
+                  onClick={() => setStatus(t.key)}
+                >
+                  {t.label}
+                  {t.key !== 'ALL' && counts[t.key] != null && <b>{counts[t.key]}</b>}
+                </button>
+              ))}
+            </div>
+            <span className="wa-sp" />
+            <label className="search">
+              <Search size={15} />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search vehicle, org, driver, station"
+                aria-label="Search vehicle, organisation, driver or station"
+              />
+            </label>
+          </div>
 
-      <div className="ra-card">
-        <div className="ra-table-wrap">
-          <table className="ra-table">
-            <thead>
-              <tr>
-                <th className="ra-table__th-select">
-                  <input
-                    type="checkbox"
-                    className="ra-checkbox"
-                    checked={isAllSelected}
-                    ref={(el) => {
-                      if (el) el.indeterminate = isSomeSelected;
-                    }}
-                    onChange={toggleSelectAll}
-                    disabled={selectableItems.length === 0}
-                    aria-label="Select all ready receipts"
-                  />
-                </th>
-                <th>Vehicle</th>
-                <th>Organization</th>
-                <th className="ra-right">Litres</th>
-                <th className="ra-right">Amount</th>
-                <th className="ra-center">Odometer</th>
-                <th className="ra-center">Status</th>
-                <th>Received</th>
-                <th aria-label="Open" />
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
+          {picked.size > 0 && (
+            <div className="bulk">
+              <span>
+                {picked.size} selected · {cleanPicked.length} clean
+              </span>
+              <span className="wa-sp" />
+              <button type="button" className="btn btn--sm" onClick={() => setPicked(new Set())}>
+                Clear selection
+              </button>
+              <button
+                type="button"
+                className="btn btn--sm btn--primary"
+                onClick={publishClean}
+                disabled={!cleanPicked.length || busy}
+              >
+                {busy ? 'Publishing…' : `Publish ${cleanPicked.length} clean`}
+              </button>
+            </div>
+          )}
+
+          {error && <div className="wa-alert wa-alert--error">{error}</div>}
+
+          <div className="tblwrap">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={9}>
-                    <div className="ra-state">
-                      <div className="ra-spinner" />
-                    </div>
-                  </td>
+                  <th className="cb">
+                    <input
+                      type="checkbox"
+                      checked={allChecked}
+                      disabled={!pendingRows.length}
+                      onChange={(e) => toggleAll(e.target.checked)}
+                      aria-label="Select all pending bills"
+                    />
+                  </th>
+                  <th>Vehicle</th>
+                  <th>Organisation</th>
+                  <th className="num">Litres</th>
+                  <th className="num">Amount</th>
+                  <th className="num">Odometer</th>
+                  <th>Checks</th>
+                  <th>Status</th>
+                  <th>Received</th>
+                  <th aria-label="Open" />
                 </tr>
-              )}
-
-              {!loading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9}>
-                    <div className="ra-state">
-                      <div className="ra-state__icon">
-                        <Inbox size={22} />
-                      </div>
-                      <div className="ra-state__title">No receipts here</div>
-                      <div>
-                        {status === 'READY'
-                          ? 'No fuel bills are waiting for review.'
-                          : 'Nothing to show for this filter.'}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              )}
-
-              {!loading &&
-                filtered.map((d) => {
-                  const veh = d.vehicleId?.registrationNumber || d.vehicleReg || '—';
-                  const isSelected = selectedIds.has(d._id);
-                  const canSelect = d.status === 'READY';
-                  return (
-                    <tr
-                      key={d._id}
-                      className={`ra-clickable ${isSelected ? 'is-selected' : ''}`}
-                      onClick={() => navigate(`${basePath}/${d._id}`)}
-                    >
-                      <td className="ra-table__td-select" onClick={(e) => e.stopPropagation()}>
-                        {canSelect ? (
+              </thead>
+              <tbody>
+                {!loading &&
+                  rows.map((d) => {
+                    const cs = checkList(d);
+                    const okN = cs.filter((c) => c.ok !== false).length;
+                    const odoWarn = cs.find((c) => c.id === 'odo' && c.ok === false);
+                    const photoOdo = photoOdometerOf(d);
+                    const s = STATUS_META[displayStatus(d)] || STATUS_META.CLEARED;
+                    return (
+                      <tr key={d._id} onClick={() => navigate(`${basePath}/${d._id}`)}>
+                        <td className="cb" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
-                            className="ra-checkbox"
-                            checked={isSelected}
-                            onChange={(e) => toggleSelectOne(d._id, e)}
-                            aria-label={`Select receipt for ${veh}`}
+                            checked={picked.has(d._id)}
+                            disabled={!isPending(d)}
+                            onChange={() => togglePick(d._id)}
+                            aria-label={`Select bill for ${vehicleOf(d)}`}
+                            title={`Select bill for ${vehicleOf(d)}`}
                           />
-                        ) : (
-                          <span className="ra-checkbox-placeholder" />
-                        )}
-                      </td>
-                      <td>
-                        <span className="ra-veh">
-                          <span className="ra-veh__avatar">
-                            <Truck size={16} />
+                        </td>
+                        <td>
+                          <div className="veh">
+                            <span className="vi">
+                              <Truck size={17} />
+                            </span>
+                            <div>
+                              <b>{vehicleOf(d)}</b>
+                              <span>{submitterOf(d)}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{orgOf(d)}</td>
+                        <td className="num numv">
+                          {d.litres != null ? `${num2(d.litres)} L` : '—'}
+                        </td>
+                        <td className="num numv">
+                          {money(d.amount)}
+                          {d.rate != null && <span className="sub">₹{d.rate}/L</span>}
+                        </td>
+                        <td className="num numv">
+                          {km(d.odometerReading)}
+                          {odoWarn && photoOdo ? (
+                            <span className="sub warn">Photo shows {km(photoOdo)}</span>
+                          ) : (
+                            <span className="sub">km</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="dots">
+                            {cs.map((c) => (
+                              <i
+                                key={c.id}
+                                title={c.title}
+                                style={{
+                                  '--c':
+                                    c.ok === false
+                                      ? '#C56200'
+                                      : c.ok === null
+                                        ? '#C6C6C9'
+                                        : '#187A32',
+                                }}
+                              />
+                            ))}
+                            <span>
+                              {okN}/{cs.length}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="pill" style={{ '--c': s.c, '--tint': s.tint }}>
+                            <i />
+                            {s.label}
                           </span>
-                          {veh}
-                        </span>
-                      </td>
-                      <td className="ra-muted">{d.orgId?.companyName || '—'}</td>
-                      <td className="ra-right ra-strong">{fmtLitres(d.litres)}</td>
-                      <td className="ra-right ra-strong">{fmtMoney(d.amount)}</td>
-                      <td className="ra-center ra-muted">
-                        {d.odometerReading != null
-                          ? d.odometerReading.toLocaleString('en-IN')
-                          : '—'}
-                      </td>
-                      <td className="ra-center">
-                        <span
-                          className={`ra-badge ${STATUS_BADGE[d.status] || 'ra-badge--cleared'}`}
-                        >
-                          <span className="ra-badge__dot" />
-                          {d.status}
-                        </span>
-                      </td>
-                      <td className="ra-muted">{fmtDate(d.createdAt)}</td>
-                      <td className="ra-right">
-                        <span className="ra-chevron">
-                          <ChevronRight size={18} />
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{shortDateTime(d.createdAt)}</td>
+                        <td>
+                          <span className="chev">
+                            <ChevronRight size={16} />
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+
+          {loading && (
+            <div className="wa-loading">
+              <div className="wa-spin" />
+            </div>
+          )}
+
+          {!loading && !rows.length && (
+            <div className="empty">
+              <span className="ok">
+                <CheckCheck size={24} />
+              </span>
+              <b>{status === 'READY' && !query ? "You're all caught up" : 'Nothing here'}</b>
+              <span>
+                {query
+                  ? 'No bills match your search.'
+                  : status === 'READY'
+                    ? 'New WhatsApp bills will appear here as drivers send them.'
+                    : 'No bills in this state.'}
+              </span>
+            </div>
+          )}
+
+          {!loading && rows.length > 0 && (
+            <div className="tfoot">
+              <span>
+                {rows.length} bill{rows.length === 1 ? '' : 's'} · {num2(totals.litres)} L ·{' '}
+                {money(totals.amount)}
+              </span>
+              <span className="wa-sp" />
+              <span>Click a row to open the receipt</span>
+            </div>
+          )}
+        </section>
       </div>
-
-      {/* Floating bulk action bar */}
-      {selectedIds.size > 0 && (
-        <div className="ra-bulk-bar">
-          <div className="ra-bulk-bar__content">
-            <div className="ra-bulk-bar__left">
-              <span className="ra-bulk-bar__badge">
-                <Check size={14} />
-                {selectedIds.size} Selected
-              </span>
-              <div className="ra-bulk-bar__divider" />
-              <span className="ra-bulk-bar__stat">
-                <span className="ra-bulk-bar__stat-label">Total Litres:</span>
-                <span className="ra-bulk-bar__stat-val">{fmtLitres(totalSelectedLitres)}</span>
-              </span>
-              <div className="ra-bulk-bar__divider" />
-              <span className="ra-bulk-bar__stat">
-                <span className="ra-bulk-bar__stat-label">Total Amount:</span>
-                <span className="ra-bulk-bar__stat-val">{fmtMoney(totalSelectedAmount)}</span>
-              </span>
-            </div>
-            <div className="ra-bulk-bar__actions">
-              <button
-                type="button"
-                className="ra-bulk-btn ra-bulk-btn--ghost"
-                onClick={clearSelection}
-                disabled={bulkBusy}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ra-bulk-btn ra-bulk-btn--primary"
-                onClick={() => setShowBulkConfirmModal(true)}
-                disabled={bulkBusy}
-              >
-                <CheckCircle2 size={16} />
-                Approve {selectedIds.size} {selectedIds.size === 1 ? 'Receipt' : 'Receipts'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {showBulkConfirmModal && (
-        <div
-          className="ra-modal-overlay"
-          onClick={() => !bulkBusy && setShowBulkConfirmModal(false)}
-        >
-          <div className="ra-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ra-modal__head">Bulk Approve Receipts</div>
-            <div className="ra-modal__body">
-              <p style={{ margin: 0, fontSize: '14px', color: 'var(--foreground)' }}>
-                Are you sure you want to approve and publish <strong>{selectedIds.size}</strong>{' '}
-                fuel receipt{selectedIds.size === 1 ? '' : 's'} to the fuel ledger?
-              </p>
-              <div className="ra-bulk-summary-box">
-                <div className="ra-bulk-summary-row">
-                  <span>Selected Receipts:</span>
-                  <strong>{selectedIds.size}</strong>
-                </div>
-                <div className="ra-bulk-summary-row">
-                  <span>Total Fuel Quantity:</span>
-                  <strong>{fmtLitres(totalSelectedLitres)}</strong>
-                </div>
-                <div className="ra-bulk-summary-row">
-                  <span>Total Amount:</span>
-                  <strong>{fmtMoney(totalSelectedAmount)}</strong>
-                </div>
-              </div>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted-foreground)' }}>
-                Fuel log entries will be created atomically for each approved receipt.
-              </p>
-            </div>
-            <div className="ra-modal__foot">
-              <button
-                type="button"
-                className="ra-btn ra-btn--ghost"
-                onClick={() => setShowBulkConfirmModal(false)}
-                disabled={bulkBusy}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ra-btn ra-btn--publish"
-                onClick={handleBulkApprove}
-                disabled={bulkBusy}
-              >
-                {bulkBusy ? 'Publishing…' : `Confirm & Publish (${selectedIds.size})`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
