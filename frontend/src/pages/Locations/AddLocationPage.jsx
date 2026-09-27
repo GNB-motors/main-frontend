@@ -153,7 +153,7 @@ const AddLocationPage = () => {
 
     try {
       if (!formData.name.trim()) {
-        toast.error('Pump Location Name is required');
+        toast.error('Location name is required');
         setIsSubmitting(false);
         return;
       }
@@ -183,10 +183,10 @@ const AddLocationPage = () => {
       <PageHeader
         backLabel="Locations"
         backPath="/locations"
-        title={isEdit ? 'Edit Pump Location' : 'Add New Pump Location'}
+        title={isEdit ? 'Edit Location' : 'Add New Location'}
         description={
           isEdit
-            ? "Update this pump location's details or drag the pin to correct its position."
+            ? "Update this location's details or drag the pin to correct its position."
             : 'Search an address, drop a pin on the map, or type the details in directly.'
         }
         onBack={() => navigate('/locations')}

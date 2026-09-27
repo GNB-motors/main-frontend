@@ -80,7 +80,7 @@ const LocationPage = () => {
   const handleDeleteLocation = useCallback(
     async (location) => {
       const ok = await confirm({
-        title: 'Delete this pump location?',
+        title: 'Delete this location?',
         body: `"${location.name}" will be permanently removed. This action cannot be undone.`,
         confirmLabel: 'Delete location',
         danger: true,
@@ -131,7 +131,7 @@ const LocationPage = () => {
             type="button"
             className="btn-icon edit"
             onClick={() => openEditPage(loc)}
-            title="Edit pump location"
+            title="Edit location"
           >
             <Edit2 size={16} />
           </button>
@@ -139,7 +139,7 @@ const LocationPage = () => {
             type="button"
             className="btn-icon delete"
             onClick={() => handleDeleteLocation(loc)}
-            title="Delete pump location"
+            title="Delete location"
           >
             <Trash2 size={16} />
           </button>
@@ -151,14 +151,14 @@ const LocationPage = () => {
   return (
     <div className="location-page">
       <PageShell
-        title="Pump Location Management"
+        title="Locations"
         count={meta.total}
         actions={
           <div className="flex items-center gap-2">
             <ExportButton
               rows={exportRows}
               columns={EXPORT_COLUMNS}
-              filename="pump-locations"
+              filename="locations"
               disabled={!locations.length}
             />
             <button
@@ -167,7 +167,7 @@ const LocationPage = () => {
               onClick={() => navigate('/locations/add')}
             >
               <Plus size={18} />
-              Add Pump Location
+              Add Location
             </button>
           </div>
         }
@@ -175,7 +175,7 @@ const LocationPage = () => {
           <FilterBar
             searchValue={searchTerm}
             onSearchChange={handleSearchChange}
-            searchPlaceholder="Search pump locations by name, city…"
+            searchPlaceholder="Search locations by name, city…"
           />
         }
         footer={
@@ -191,14 +191,14 @@ const LocationPage = () => {
           loading={loading}
           showing={locations.length}
           total={meta.total}
-          emptyTitle="No pump locations found"
+          emptyTitle="No locations found"
           emptyAction={
             <button
               className="btn btn-primary"
               type="button"
               onClick={() => navigate('/locations/add')}
             >
-              Create your first pump location
+              Create your first location
             </button>
           }
         />
