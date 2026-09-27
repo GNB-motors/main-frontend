@@ -14,8 +14,26 @@ const engineSchema = z
     visits: num,
     distinctVehicles: num,
     reasons: z.array(z.string()).nullish(),
+    leaning: str,
+    purposeAlpha: z.record(z.number()).nullish(),
+    evidence: z.array(z.object({ purpose: str, group: str, stops: num }).passthrough()).nullish(),
+    unexplainedStops: num,
+    stats: z
+      .object({
+        visits: num,
+        trucks: num,
+        medianDwellMin: num,
+        p90DwellMin: num,
+        firstSeenAt: str,
+        lastSeenAt: str,
+      })
+      .passthrough()
+      .nullish(),
+    computedAt: str,
   })
   .passthrough();
+
+const addressSchema = z.object({ formatted: str, locality: str, state: str }).passthrough();
 
 const riskSchema = z
   .object({ theftIncidents: num, unauthRefuelIncidents: num, lastIncidentAt: str })
@@ -37,8 +55,38 @@ export const orgSiteSchema = z
     origins: z.array(z.string()).nullish(),
     engine: engineSchema.nullish(),
     risk: riskSchema.nullish(),
+    address: addressSchema.nullish(),
   })
   .passthrough();
+
+export const siteDetailSchema = z
+  .object({ site: orgSiteSchema, labels: z.array(z.any()).nullish(), report: z.any() })
+  .passthrough();
+
+export const summarySchema = z
+  .object({
+    toReview: num,
+    places: z.object({ confirmed: num, proposed: num, rejected: num }).passthrough().nullish(),
+    riskPlaces: num,
+    unproductive: z.object({ stops: num, hours: num, trucks: num }).passthrough().nullish(),
+    darkZones: num,
+    lastRunAt: str,
+  })
+  .passthrough();
+
+export const globalPlaceListSchema = z.array(
+  z
+    .object({
+      _id: str,
+      placeType: str,
+      name: str,
+      centroidLat: num,
+      centroidLng: num,
+      radiusM: num,
+      polygon: z.array(z.array(z.number())).nullish(),
+    })
+    .passthrough(),
+);
 
 export const siteListSchema = z
   .object({ records: z.array(orgSiteSchema), total: num, page: num, limit: num })

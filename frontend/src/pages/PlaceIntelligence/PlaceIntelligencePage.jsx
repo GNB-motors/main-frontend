@@ -1,63 +1,108 @@
 import { useState } from 'react';
-import { ListChecks, MapPin, Coffee, Route, ShieldCheck } from 'lucide-react';
+import { MapPin, Hourglass, Route, ShieldCheck } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import useApi from '../../hooks/useApi';
 import { getUserRole } from '../../utils/session.js';
-import ReviewQueueTab from './ReviewQueueTab';
-import PlacesTab from './PlacesTab';
-import BreaksTab from './BreaksTab';
+import PlaceIntelligenceService from './PlaceIntelligenceService';
+import SummaryStrip from './SummaryStrip';
+import PlacesView from './PlacesView';
+import BreaksView from './BreaksView';
 import RoutesTab from './RoutesTab';
 import ShadowReportTab from './ShadowReportTab';
-import '../OwnerAlerts/OwnerAlerts.css';
+import './placeIntelligence.css';
 
-const TAB_CLASS =
-  'flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 hover:text-slate-900';
-
-const TABS = [
-  { key: 'queue', label: 'To review', Icon: ListChecks, Panel: ReviewQueueTab },
-  { key: 'places', label: 'All places', Icon: MapPin, Panel: PlacesTab },
-  { key: 'breaks', label: 'Unproductive breaks', Icon: Coffee, Panel: BreaksTab },
-  { key: 'routes', label: 'Routes', Icon: Route, Panel: RoutesTab },
-  {
-    key: 'shadow',
-    label: 'Shadow report',
-    Icon: ShieldCheck,
-    Panel: ShadowReportTab,
-    superAdminOnly: true,
-  },
-];
+/** Where each summary tile leads. */
+const TILE_TARGET = {
+  review: { view: 'places', filter: 'review' },
+  confirmed: { view: 'places', filter: 'confirmed' },
+  risk: { view: 'places', filter: 'risk' },
+  zones: { view: 'places', filter: 'all' },
+  stops: { view: 'stops' },
+};
 
 /**
- * Place Intelligence — every place the org's trucks stop at, what it is and
- * how sure the system is. Only the active tab mounts, so a tab fetches when
- * it is opened, not when the page loads.
+ * Place Intelligence — every place the fleet's trucks stop at, what it is,
+ * why the system thinks so, and the one-click answer that teaches it. Headline
+ * numbers on top; each opens the list behind it. Only the active view mounts,
+ * so a view fetches when it is opened. `version` bumps after every answer so
+ * the numbers, lists and map all refresh together.
  */
 export default function PlaceIntelligencePage() {
-  const [tab, setTab] = useState('queue');
+  const [view, setView] = useState('places');
+  const [filter, setFilter] = useState('review');
+  const [version, setVersion] = useState(0);
+  const [focusId, setFocusId] = useState(null);
   const isSuperAdmin = getUserRole() === 'SUPER_ADMIN';
-  const tabs = TABS.filter((t) => !t.superAdminOnly || isSuperAdmin);
+  const { data: summary } = useApi(
+    (signal) => PlaceIntelligenceService.summary({ signal }),
+    [version],
+  );
+  const bump = () => setVersion((v) => v + 1);
+
+  const pickTile = (key) => {
+    const t = TILE_TARGET[key];
+    setView(t.view);
+    if (t.filter) setFilter(t.filter);
+  };
+  const openPlace = (siteId) => {
+    setFocusId(siteId);
+    setFilter('all');
+    setView('places');
+  };
+
+  const idleHours = summary?.unproductive?.hours;
+  const views = [
+    { key: 'places', label: 'Places', Icon: MapPin },
+    {
+      key: 'stops',
+      label: 'Unexplained stops',
+      Icon: Hourglass,
+      badge: idleHours ? `${idleHours} h` : null,
+    },
+    { key: 'routes', label: 'Routes', Icon: Route },
+    ...(isSuperAdmin ? [{ key: 'shadow', label: 'Shadow report', Icon: ShieldCheck }] : []),
+  ];
+  const activeTile = view === 'stops' ? 'stops' : view === 'places' ? filter : null;
+
   return (
     <PageShell
-      title="Place Intelligence"
-      subtitle="Every place your trucks stop, what it is, and how sure we are. Your answers teach the system."
+      title="Places"
+      subtitle="Every place your trucks stop — what it is, why we think so, and where time and fuel go. Your answers teach the system."
+      freshnessAt={summary?.lastRunAt || null}
     >
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex items-center gap-1.5 p-1.5 bg-white border border-slate-300 rounded-xl shadow-sm w-full md:w-auto overflow-x-auto">
-          {tabs.map((t) => (
-            <TabsTrigger key={t.key} value={t.key} className={TAB_CLASS}>
-              <t.Icon size={14} /> <span>{t.label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {tabs.map((t) => (
-          <TabsContent key={t.key} value={t.key} className="mt-4">
-            <PanelErrorBoundary name={`place-intelligence-${t.key}`}>
-              {tab === t.key ? <t.Panel /> : null}
-            </PanelErrorBoundary>
-          </TabsContent>
+      <SummaryStrip summary={summary} activeKey={activeTile} onPick={pickTile} />
+      <div className="pi-tabs" role="tablist" aria-label="Place Intelligence views">
+        {views.map((v) => (
+          <button
+            type="button"
+            role="tab"
+            key={v.key}
+            aria-selected={view === v.key}
+            className={view === v.key ? 'is-active' : ''}
+            onClick={() => setView(v.key)}
+          >
+            <v.Icon size={14} aria-hidden="true" /> {v.label}
+            {v.badge ? <span className="pi-count pi-count--warn">{v.badge}</span> : null}
+          </button>
         ))}
-      </Tabs>
+      </div>
+      <PanelErrorBoundary name={`place-intelligence-${view}`}>
+        {view === 'places' ? (
+          <PlacesView
+            filter={filter}
+            onFilter={setFilter}
+            version={version}
+            onChanged={bump}
+            initialSelectedId={focusId}
+          />
+        ) : null}
+        {view === 'stops' ? (
+          <BreaksView version={version} onChanged={bump} onOpenPlace={openPlace} />
+        ) : null}
+        {view === 'routes' ? <RoutesTab version={version} /> : null}
+        {view === 'shadow' ? <ShadowReportTab /> : null}
+      </PanelErrorBoundary>
     </PageShell>
   );
 }

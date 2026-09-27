@@ -1,0 +1,1004 @@
+/* Place Intelligence — summary tiles, then list + map/detail (the Warehouses
+   layout), built on the --ds-* tokens so it reads like the rest of the app. */
+
+/* ─── Summary tiles ─────────────────────────────────────────────────────── */
+
+.pi-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pi-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 14px 12px 16px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-radius-md);
+  background: #fff;
+  box-shadow: var(--ds-shadow);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.pi-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--pi-tone, var(--ds-neutral));
+}
+
+.pi-tile:hover {
+  border-color: var(--ds-line2);
+}
+
+.pi-tile.is-active {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--orange-tint);
+}
+
+.pi-tile--warn {
+  --pi-tone: var(--ds-warn);
+}
+.pi-tile--ok {
+  --pi-tone: var(--ds-ok);
+}
+.pi-tile--crit {
+  --pi-tone: var(--ds-crit);
+}
+
+.pi-tile-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink3);
+}
+
+.pi-tile-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ds-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.pi-tile-value small {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink3);
+  margin-left: 4px;
+}
+
+.pi-tile-hint {
+  font-size: 12px;
+  color: var(--ds-ink3);
+}
+
+/* ─── View switch + filters ─────────────────────────────────────────────── */
+
+.pi-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pi-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--ds-line);
+  border-radius: 10px;
+  background: #fff;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.pi-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pi-seg button:hover {
+  background: var(--ds-sunk);
+}
+
+.pi-seg button.is-active {
+  background: var(--orange-solid);
+  color: #fff;
+}
+
+.pi-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ds-sunk);
+  color: var(--ds-ink2);
+}
+
+.pi-seg button.is-active .pi-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.pi-count--warn {
+  background: var(--ds-warn-tint);
+  color: var(--ds-warn-ink);
+}
+
+.pi-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ds-ink3);
+  min-width: 260px;
+}
+
+.pi-search input {
+  border: 0;
+  outline: 0;
+  font-size: 13px;
+  width: 100%;
+  background: none;
+  color: var(--ds-ink);
+}
+
+/* ─── Layout ───────────────────────────────────────────────────────────── */
+
+.pi-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Wide screens: list | opened place | map, so the answer and the map are both
+   in view without scrolling. The map sticks while the detail scrolls. */
+.pi-layout--three {
+  grid-template-columns: minmax(280px, 340px) minmax(400px, 1.1fr) minmax(340px, 1fr);
+}
+
+.pi-layout--three .pi-map-col {
+  position: sticky;
+  top: 12px;
+}
+
+.pi-layout--three .pi-map-col .pi-map {
+  height: calc(100vh - 220px);
+  min-height: 420px;
+}
+
+@media (max-width: 1380px) {
+  .pi-layout--three {
+    grid-template-columns: minmax(280px, 340px) 1fr;
+  }
+  .pi-layout--three .pi-map-col {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .pi-layout--three .pi-map-col .pi-map {
+    height: 300px;
+    min-height: 0;
+  }
+  .pi-layout--three .pi-detail-col {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .pi-layout--three .pi-list {
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 1024px) {
+  .pi-layout,
+  .pi-layout--three {
+    grid-template-columns: 1fr;
+  }
+  .pi-layout--three .pi-map-col,
+  .pi-layout--three .pi-detail-col,
+  .pi-layout--three .pi-list {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+/* The top-level views read as page tabs, lighter than the list filters. */
+.pi-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--ds-line);
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+
+.pi-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ds-ink3);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pi-tabs button:hover {
+  color: var(--ds-ink);
+}
+
+.pi-tabs button.is-active {
+  color: var(--accent-ink);
+  border-bottom-color: var(--orange);
+}
+
+.pi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 220px);
+  min-height: 320px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.pi-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ─── Place card ───────────────────────────────────────────────────────── */
+
+.pi-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.pi-card:hover {
+  border-color: var(--ds-line2);
+}
+
+.pi-card.is-selected {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--orange-tint);
+}
+
+.pi-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pi-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ds-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pi-card-sub {
+  font-size: 12px;
+  color: var(--ds-ink3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pi-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ds-ink2);
+}
+
+.pi-card-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Type badge: the place type's own colour, used on cards, detail and chips. */
+.pi-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--pi-type, #9ca3af);
+}
+
+.pi-badge--hollow {
+  background: #fff;
+  color: var(--pi-type, #9ca3af);
+  border: 2px dashed var(--pi-type, #9ca3af);
+}
+
+.pi-badge--lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.pi-guess {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--pi-type, var(--ds-ink2));
+}
+
+.pi-risk {
+  color: var(--ds-crit-ink);
+  font-weight: 600;
+}
+
+/* ─── Map ──────────────────────────────────────────────────────────────── */
+
+.pi-map {
+  position: relative;
+  height: 360px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--ds-line);
+  background: var(--ds-sunk);
+}
+
+.pi-map-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 13px;
+  color: var(--ds-ink3);
+}
+
+.pi-legend {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-width: calc(100% - 80px);
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--ds-shadow-lg);
+  font-size: 11.5px;
+  color: var(--ds-ink2);
+}
+
+.pi-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pi-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--pi-type, #9ca3af);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--pi-type, #9ca3af);
+}
+
+.pi-dot--hollow {
+  background: #fff;
+  border: 2px solid var(--pi-type, #9ca3af);
+  box-shadow: none;
+}
+
+.pi-dot--zone {
+  border-radius: 2px;
+  background: rgba(71, 85, 105, 0.3);
+  border: 1px dashed #475569;
+  box-shadow: none;
+}
+
+/* ─── Detail ───────────────────────────────────────────────────────────── */
+
+.pi-detail {
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--ds-shadow);
+}
+
+.pi-detail-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+.pi-detail-head h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ds-ink);
+}
+
+.pi-detail-head p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--ds-ink3);
+}
+
+.pi-detail-head-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pi-detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.pi-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+
+.pi-detail-sec {
+  padding: 14px 16px;
+}
+
+.pi-section-title {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ds-ink3);
+}
+
+.pi-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ds-sunk);
+  margin-bottom: 10px;
+}
+
+.pi-verdict strong {
+  font-size: 15px;
+  color: var(--ds-ink);
+}
+
+.pi-verdict span {
+  font-size: 12px;
+  color: var(--ds-ink3);
+}
+
+.pi-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ds-line);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.pi-meter > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pi-type, var(--orange));
+}
+
+.pi-why {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pi-why li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ds-ink2);
+}
+
+.pi-why li svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.pi-why .is-sensor svg,
+.pi-why .is-record svg {
+  color: var(--ds-ok-ink);
+}
+
+.pi-why .is-pattern svg,
+.pi-why .is-map svg {
+  color: var(--ds-ink3);
+}
+
+.pi-why .is-gap svg {
+  color: var(--ds-warn-ink);
+}
+
+.pi-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--ds-sunk);
+}
+
+.pi-bar i {
+  display: block;
+  height: 100%;
+}
+
+.pi-bar-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ds-ink2);
+}
+
+.pi-bar-keys span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pi-bar-keys i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.pi-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.pi-stat {
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--ds-sunk);
+}
+
+.pi-stat dt {
+  font-size: 11.5px;
+  color: var(--ds-ink3);
+}
+
+.pi-stat dd {
+  margin: 1px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ds-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.pi-callout {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.pi-callout--crit {
+  background: var(--ds-crit-tint);
+  color: var(--ds-crit-ink);
+}
+
+.pi-callout--warn {
+  background: var(--ds-warn-tint);
+  color: var(--ds-warn-ink);
+}
+
+.pi-callout--info {
+  background: var(--ds-info-tint);
+  color: var(--accent-ink);
+}
+
+/* ─── Answer ───────────────────────────────────────────────────────────── */
+
+.pi-answer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--ds-line);
+  border-bottom: 1px solid var(--ds-line);
+  background: #fafbfe;
+}
+
+.pi-answer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pi-answer-q {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-ink);
+  margin: 0 0 10px;
+}
+
+.pi-btn-yes {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--ds-ok-ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pi-btn-yes:hover {
+  filter: brightness(1.08);
+}
+
+.pi-btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--ds-ink3);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pi-btn-quiet:hover {
+  background: var(--ds-sunk);
+  color: var(--ds-crit-ink);
+}
+
+.pi-btn-yes:disabled,
+.pi-btn-quiet:disabled,
+.pi-chip:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.pi-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.pi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid var(--ds-line);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pi-chip svg {
+  color: var(--pi-type);
+  flex: 0 0 auto;
+}
+
+.pi-chip:hover {
+  border-color: var(--pi-type);
+  background: color-mix(in srgb, var(--pi-type) 8%, #fff);
+}
+
+.pi-chip.is-current {
+  border-color: var(--pi-type);
+  box-shadow: inset 0 0 0 1px var(--pi-type);
+}
+
+.pi-name {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 9px;
+  font-size: 13px;
+  min-width: 220px;
+  flex: 1;
+}
+
+.pi-note {
+  font-size: 12px;
+  color: var(--ds-ink3);
+  margin: 8px 0 0;
+}
+
+/* ─── Empty / placeholder ──────────────────────────────────────────────── */
+
+.pi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 36px 16px;
+  border: 1px dashed var(--ds-line2);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ds-ink3);
+  font-size: 13px;
+}
+
+.pi-empty strong {
+  font-size: 15px;
+  color: var(--ds-ink);
+}
+
+.pi-empty svg {
+  color: var(--ds-ok-ink);
+}
+
+.pi-skel {
+  height: 64px;
+  border-radius: 10px;
+  background: var(--ds-sunk);
+  animation: pi-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pi-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ─── Unexplained stops ────────────────────────────────────────────────── */
+
+.pi-stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pi-stops li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--ds-sunk);
+  font-size: 13px;
+}
+
+.pi-stops li:last-child {
+  border-bottom: 0;
+}
+
+.pi-plate {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--ds-ink);
+}
+
+.pi-stop-when {
+  color: var(--ds-ink2);
+  min-width: 150px;
+}
+
+.pi-stop-dur {
+  font-weight: 700;
+  color: var(--ds-ink);
+  min-width: 60px;
+}
+
+.pi-stop-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.pi-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+}
+
+.pi-mini:hover {
+  border-color: var(--ds-line2);
+  background: var(--ds-sunk);
+}
+
+.pi-mini:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.pi-answered {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ok-ink);
+}
+
+/* ─── Routes ───────────────────────────────────────────────────────────── */
+
+.pi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #fff;
+}
+
+.pi-table-wrap {
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #fff;
+}
+
+.pi-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink3);
+  padding: 10px 12px;
+  background: var(--ds-sunk);
+  white-space: nowrap;
+}
+
+.pi-table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--ds-sunk);
+  vertical-align: middle;
+}
+
+.pi-table td.pi-num,
+.pi-table th.pi-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pi-table tr.is-open td {
+  background: #fafbff;
+}
+
+.pi-leg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+.pi-leg-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pi-leg-end svg {
+  color: var(--pi-type);
+}
+
+.pi-trav {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.pi-trav li {
+  display: grid;
+  grid-template-columns: 110px 170px 80px 80px 1fr;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 12.5px;
+  color: var(--ds-ink2);
+}
+
+.pi-trav .is-odd {
+  color: var(--ds-warn-ink);
+  font-weight: 600;
+}
+
+.pi-trav .is-ok {
+  color: var(--ds-ok-ink);
+}

@@ -15,6 +15,12 @@ const parsed = async (name, response) => parseSafe(name, schemas, unwrap(respons
  * until resent with `confirmImpact: true` — see isImpactGate in the model.
  */
 export const PlaceIntelligenceService = {
+  summary: async ({ signal } = {}) =>
+    parsed('summarySchema', await apiClient.get(`${BASE}/summary`, { signal })),
+
+  getSite: async (id, { signal } = {}) =>
+    parsed('siteDetailSchema', await apiClient.get(`${BASE}/sites/${id}`, { signal })),
+
   reviewQueue: async ({ limit = 30 } = {}, { signal } = {}) =>
     parsed(
       'reviewQueueSchema',
@@ -29,6 +35,16 @@ export const PlaceIntelligenceService = {
 
   reject: async ({ id, note }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/sites/${id}/reject`, note ? { note } : {}, { signal })),
+
+  retype: async ({ id, siteType }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/sites/${id}/retype`, { siteType }, { signal })),
+
+  /** The global layer (dead zones) around the fleet — no org data by construction. */
+  listGlobalPlaces: async ({ bbox, types }, { signal } = {}) =>
+    parsed(
+      'globalPlaceListSchema',
+      await apiClient.get(`${BASE}/places`, { params: { bbox, types }, signal }),
+    ),
 
   listBreaks: async (params = {}, { signal } = {}) =>
     parsed('breakListSchema', await apiClient.get(`${BASE}/breaks`, { params, signal })),
