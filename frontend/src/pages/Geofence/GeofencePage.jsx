@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MapPin,
   AlertTriangle,
@@ -13,6 +13,7 @@ import {
   XCircle,
   Wifi,
   WifiOff,
+  Plus,
 } from 'lucide-react';
 import { GoogleMap, useLoadScript, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import dayjs from 'dayjs';
@@ -29,6 +30,7 @@ import ExportButton from '../../components/ui/ExportButton';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { toGeofenceLiveVehicle } from './geofenceLive.shared.js';
+import AddZoneDrawer from './AddZoneDrawer.jsx';
 import './Geofence.css';
 
 dayjs.extend(utc);
@@ -45,6 +47,8 @@ const MAP_OPTIONS = {
   zoomControl: true,
   streetViewControl: false,
   mapTypeControl: false,
+  fullscreenControl: true,
+  gestureHandling: 'greedy',
 };
 const FLEET_EDGE_ICONS = {
   Moving:
@@ -170,7 +174,7 @@ const MapLegend = () => (
 );
 
 // ─── Location Row ──────────────────────────────────────────────────────────────
-const LocationRow = ({ location, onResolve, resolvingId }) => {
+const LocationRow = ({ location, onResolve, resolvingId, onCreateZone }) => {
   const [expanded, setExpanded] = useState(false);
   return (
     <>
@@ -193,7 +197,28 @@ const LocationRow = ({ location, onResolve, resolvingId }) => {
         <td className="gf-td gf-td-c">{(location.vehiclesAffected || []).length}</td>
         <td className="gf-td gf-td-c">{formatIST(location.lastSeenAt)}</td>
         <td className="gf-td gf-td-actions">
-          <button className="gf-btn gf-btn-icon" onClick={() => setExpanded((p) => !p)}>
+          {onCreateZone && (
+            <button
+              className="gf-btn gf-btn-icon"
+              onClick={() =>
+                onCreateZone({
+                  lat: location.lat,
+                  lng: location.lng,
+                  name: location.address
+                    ? `Zone - ${location.address.split(',')[0]}`
+                    : 'Risk Anomaly Zone',
+                })
+              }
+              title="Create Custom Geofence Zone around this location"
+            >
+              <Plus size={14} />
+            </button>
+          )}
+          <button
+            className="gf-btn gf-btn-icon"
+            onClick={() => setExpanded((p) => !p)}
+            title="Show stop events"
+          >
             {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           {!location.isResolved && (
@@ -273,6 +298,15 @@ const GeofencePage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [resolvingId, setResolvingId] = useState(null);
   const [selectedLoc, setSelectedLoc] = useState(null);
+  const [showZoneDrawer, setShowZoneDrawer] = useState(false);
+  const [zonePrefillLatLng, setZonePrefillLatLng] = useState(null);
+  const [zonePrefillName, setZonePrefillName] = useState('');
+
+  const handleCreateZone = (opts = {}) => {
+    setZonePrefillLatLng(opts.lat && opts.lng ? { lat: opts.lat, lng: opts.lng } : null);
+    setZonePrefillName(opts.name || '');
+    setShowZoneDrawer(true);
+  };
 
   // Live vehicles arrive on the shared `positions` stream; streamed rows are
   // translated into the live-locations row shape this page has always drawn.
@@ -385,6 +419,25 @@ const GeofencePage = () => {
   const locationFilterCount =
     (severityFilter ? 1 : 0) + (showResolved ? 1 : 0) + (locationNeedle ? 1 : 0);
 
+  const locationsWithPos = useMemo(() => {
+    return filteredLocations.map((loc) => ({
+      ...loc,
+      position: { lat: loc.lat, lng: loc.lng },
+      icon: { url: PIN[loc.severity] || PIN.LOW },
+    }));
+  }, [filteredLocations]);
+
+  const vehicleIcons = useMemo(() => {
+    if (typeof window === 'undefined' || !window.google) return {};
+    const size = new window.google.maps.Size(32, 54);
+    const anchor = new window.google.maps.Point(16, 27);
+    const out = {};
+    for (const [st, url] of Object.entries(FLEET_EDGE_ICONS)) {
+      out[st] = { url, scaledSize: size, anchor };
+    }
+    return out;
+  }, [mapLoaded]);
+
   return (
     <PageShell
       className="gf-page"
@@ -393,6 +446,9 @@ const GeofencePage = () => {
       count={stats?.total ?? null}
       actions={
         <>
+          <button className="gf-btn gf-btn-primary" onClick={() => handleCreateZone()}>
+            <Plus size={14} /> Add Custom Zone
+          </button>
           {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
             <span
               style={{
@@ -513,11 +569,11 @@ const GeofencePage = () => {
               mapRef.current = map;
             }}
           >
-            {locations.map((loc) => (
+            {locationsWithPos.map((loc) => (
               <MarkerF
                 key={loc._id}
-                position={{ lat: loc.lat, lng: loc.lng }}
-                icon={{ url: PIN[loc.severity] || PIN.LOW }}
+                position={loc.position}
+                icon={loc.icon}
                 onClick={() => {
                   setSelectedLoc(loc);
                   setSelectedVehicle(null);
@@ -526,16 +582,12 @@ const GeofencePage = () => {
             ))}
             {/* Live vehicle pins */}
             {liveVehicles.map((v) => {
-              const iconUrl = FLEET_EDGE_ICONS[v.status] || FLEET_EDGE_ICONS.Offline;
+              const iconUrl = vehicleIcons[v.status] || vehicleIcons.Offline;
               return (
                 <MarkerF
-                  key={v.vehicleId}
+                  key={v.vehicleId || v.registrationNumber}
                   position={{ lat: v.lat, lng: v.lng }}
-                  icon={{
-                    url: iconUrl,
-                    scaledSize: new window.google.maps.Size(32, 54),
-                    anchor: new window.google.maps.Point(16, 27),
-                  }}
+                  icon={iconUrl}
                   zIndex={2}
                   onClick={() => {
                     setSelectedVehicle(v);
@@ -563,7 +615,30 @@ const GeofencePage = () => {
                     </strong>{' '}
                     total drop
                   </p>
-                  <SeverityBadge severity={selectedLoc.severity} />
+                  <div style={{ marginTop: 4, marginBottom: 8 }}>
+                    <SeverityBadge severity={selectedLoc.severity} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCreateZone({
+                        lat: selectedLoc.lat,
+                        lng: selectedLoc.lng,
+                        name: selectedLoc.address
+                          ? `Zone - ${selectedLoc.address.split(',')[0]}`
+                          : 'Risk Anomaly Zone',
+                      })
+                    }
+                    className="gf-btn gf-btn-primary"
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      padding: '6px 8px',
+                    }}
+                  >
+                    <Plus size={12} /> Create Geofence Zone
+                  </button>
                 </div>
               </InfoWindowF>
             )}
@@ -687,6 +762,7 @@ const GeofencePage = () => {
                   location={loc}
                   onResolve={handleResolve}
                   resolvingId={resolvingId}
+                  onCreateZone={handleCreateZone}
                 />
               ))}
             </tbody>
@@ -715,6 +791,26 @@ const GeofencePage = () => {
             Next
           </button>
         </div>
+      )}
+
+      {/* Add Custom Zone Drawer */}
+      {showZoneDrawer && (
+        <AddZoneDrawer
+          prefillLatLng={zonePrefillLatLng}
+          prefillName={zonePrefillName}
+          mode="add"
+          onClose={() => {
+            setShowZoneDrawer(false);
+            setZonePrefillLatLng(null);
+            setZonePrefillName('');
+          }}
+          onSaved={() => {
+            setShowZoneDrawer(false);
+            setZonePrefillLatLng(null);
+            setZonePrefillName('');
+            toast.success('Custom geofence zone created successfully');
+          }}
+        />
       )}
     </PageShell>
   );

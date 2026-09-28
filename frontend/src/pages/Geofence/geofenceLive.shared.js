@@ -10,23 +10,26 @@
  */
 export function toGeofenceLiveVehicle(row) {
   if (!row) return null;
+  const status =
+    row.status ||
+    (row.state === 'ACTIVE'
+      ? row.ignition === false
+        ? 'Idling'
+        : 'Moving'
+      : row.state === 'PARKED'
+        ? 'Stopped'
+        : 'Offline');
+
   return {
-    vehicleId: row.registrationNumber || row.vin || null,
-    registrationNumber: row.registrationNumber || row.vin || null,
-    lat: row.latitude ?? null,
-    lng: row.longitude ?? null,
+    vehicleId: row.registrationNumber || row.vin || row.vehicleId || null,
+    registrationNumber: row.registrationNumber || row.vin || row.vehicleNumber || null,
+    lat: row.lat ?? row.latitude ?? null,
+    lng: row.lng ?? row.longitude ?? null,
     speed: row.speed ?? null,
-    status:
-      row.state === 'ACTIVE'
-        ? row.ignition === false
-          ? 'Idling'
-          : 'Moving'
-        : row.state === 'PARKED'
-          ? 'Stopped'
-          : 'Offline',
-    fuelLevel: row.primaryFuelLevel ?? null,
-    odometer: null,
-    lastSeenAt: row.eventDateTime ?? null,
+    status,
+    fuelLevel: row.fuelLevel ?? row.primaryFuelLevel ?? null,
+    odometer: row.odometer ?? null,
+    lastSeenAt: row.lastSeenAt ?? row.eventDateTime ?? null,
     isStale: Boolean(row.isStale),
   };
 }
