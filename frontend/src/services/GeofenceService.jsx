@@ -13,7 +13,6 @@
 import apiClient from '../utils/axiosConfig';
 
 export const GeofenceService = {
-
   // ─── Anomaly API (GeofencePage) ──────────────────────────────────────────
 
   getAnomalyLocations: async (params = {}) => {
@@ -38,10 +37,15 @@ export const GeofenceService = {
 
   resolveAnomalyLocation: async (locationId, resolutionNote = null) => {
     try {
-      const response = await apiClient.put(`api/geofence/locations/${locationId}/resolve`, { resolutionNote });
+      const response = await apiClient.put(`api/geofence/locations/${locationId}/resolve`, {
+        resolutionNote,
+      });
       return response.data;
     } catch (error) {
-      console.error('GeofenceService.resolveAnomalyLocation:', error.response?.data || error.message);
+      console.error(
+        'GeofenceService.resolveAnomalyLocation:',
+        error.response?.data || error.message,
+      );
       throw error.response?.data || { message: 'Failed to resolve location' };
     }
   },
@@ -117,6 +121,15 @@ export const GeofenceService = {
     }
   },
 
+  markAllAlertsRead: async () => {
+    try {
+      const response = await apiClient.put('api/geofence/zones/alerts/read', { all: true });
+      return response.data;
+    } catch (error) {
+      console.error('GeofenceService.markAllAlertsRead:', error.response?.data || error.message);
+    }
+  },
+
   // ─── Live Locations ───────────────────────────────────────────────────────
 
   /**
@@ -132,5 +145,55 @@ export const GeofenceService = {
       console.error('GeofenceService.getLiveLocations:', error.response?.data || error.message);
       return [];
     }
+  },
+
+  // ─── Fuel Risk Hotspots & Drain Map Integration ──────────────────────────
+
+  /**
+   * GET /api/geofence/drain-map (with fallback to /api/hotspots/map)
+   * Fuel-drain hotspot map aggregating fuel drop events and suspicious stops.
+   */
+  getDrainMap: async ({ from, to, bbox, signal } = {}) => {
+    const params = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    if (bbox) params.bbox = bbox;
+    try {
+      const response = await apiClient.get('api/geofence/drain-map', { params, signal });
+      return response.data?.data ?? response.data ?? null;
+    } catch {
+      const response = await apiClient.get('api/hotspots/map', { params, signal });
+      return response.data?.data ?? response.data ?? null;
+    }
+  },
+
+  /**
+   * GET /api/hotspots
+   * Returns org and shared fuel-risk hotspots.
+   */
+  getHotspots: async ({ signal } = {}) => {
+    try {
+      const response = await apiClient.get('api/hotspots', { signal });
+      return response.data?.data ?? response.data ?? [];
+    } catch (error) {
+      console.error('GeofenceService.getHotspots:', error.response?.data || error.message);
+      return [];
+    }
+  },
+
+  dismissHotspot: async (id, { signal } = {}) => {
+    const response = await apiClient.put(`api/hotspots/${id}`, { active: false }, { signal });
+    return response.data?.data ?? null;
+  },
+
+  activateHotspot: async (id, { signal } = {}) => {
+    const response = await apiClient.put(`api/hotspots/${id}`, { active: true }, { signal });
+    return response.data?.data ?? null;
+  },
+
+  provenanceOf: (hotspot) => {
+    if (!hotspot) return 'unknown';
+    if (hotspot.orgId === null || hotspot.orgId === undefined) return 'network';
+    return hotspot.source === 'AUTO_LEARNED' ? 'own-learned' : 'own-manual';
   },
 };
