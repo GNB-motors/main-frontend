@@ -57,8 +57,6 @@ export default function PlaceDetail({ siteId, fallback, version, answer }) {
       <div className="pi-detail-sec">
         <h4 className="pi-section-title">What we think</h4>
         <PlaceVerdict site={site} />
-        <h4 className="pi-section-title">Why</h4>
-        <EvidenceList engine={site.engine} />
         {riskText ? (
           <div className="pi-callout pi-callout--crit">
             <ShieldAlert size={15} aria-hidden="true" />
@@ -66,9 +64,13 @@ export default function PlaceDetail({ siteId, fallback, version, answer }) {
           </div>
         ) : null}
       </div>
+      {/* The decision sits right under the verdict so it is in view without
+          scrolling; the evidence behind it follows. */}
       <ReviewActions key={site._id} site={site} answer={answer} />
       <div className="pi-detail-sec">
-        <h4 className="pi-section-title">What trucks do here</h4>
+        <h4 className="pi-section-title">Why</h4>
+        <EvidenceList engine={site.engine} />
+        <h4 className="pi-section-title pi-section-title--gap">What trucks do here</h4>
         <PurposeBar engine={site.engine} />
         <dl className="pi-stats">
           <div className="pi-stat">

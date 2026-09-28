@@ -144,61 +144,6 @@
   color: var(--ds-warn-ink);
 }
 
-/* ─── One-screen page on desktop ───────────────────────────────────────── */
-
-@media (min-width: 1181px) and (min-height: 640px) {
-  /* Fill .page-content exactly (same escape as .page-white) so it never scrolls. */
-  .pshell.pi-page {
-    margin: calc(-1 * var(--spacing-lg));
-    height: calc(100% + 2 * var(--spacing-lg));
-    min-height: 0;
-    padding: 18px 28px 20px;
-    gap: 14px;
-    overflow: hidden;
-  }
-
-  .pi-page .pshell-body {
-    min-height: 0;
-    gap: 12px;
-  }
-
-  .pi-view {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .pi-view--scroll {
-    overflow-y: auto;
-  }
-
-  .pi-workspace {
-    flex: 1;
-    min-height: 0;
-  }
-
-  .pi-listpanel,
-  .pi-detail-col,
-  .pi-map-col {
-    min-height: 0;
-  }
-
-  .pi-list {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  .pi-detail-col {
-    overflow-y: auto;
-  }
-
-  .pi-map-col .pi-map {
-    height: 100%;
-  }
-}
-
 /* ─── Workspace: three panels, equal height ───────────────────────────── */
 
 .pi-workspace {
@@ -609,6 +554,14 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--ds-ink3);
+}
+
+.pi-detail-sec > :last-child {
+  margin-bottom: 0;
+}
+
+.pi-section-title--gap {
+  margin-top: 18px;
 }
 
 .pi-verdict {
@@ -1096,4 +1049,62 @@
 
 .pi-trav .is-ok {
   color: var(--ds-ok-ink);
+}
+
+/* ─── One-screen page on desktop ───────────────────────────────────────── */
+/* Kept LAST in the file on purpose: these overrides must beat the general
+   .pi-panel / .pi-list rules above (same specificity, so order decides).
+   Moving this block up silently stops the place panel from scrolling. */
+
+@media (min-width: 1181px) and (min-height: 640px) {
+  /* Fill .page-content exactly (same escape as .page-white) so it never scrolls. */
+  .pshell.pi-page {
+    margin: calc(-1 * var(--spacing-lg));
+    height: calc(100% + 2 * var(--spacing-lg));
+    min-height: 0;
+    padding: 18px 28px 20px;
+    gap: 14px;
+    overflow: hidden;
+  }
+
+  .pi-page .pshell-body {
+    min-height: 0;
+    gap: 12px;
+  }
+
+  .pi-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pi-view--scroll {
+    overflow-y: auto;
+  }
+
+  .pi-workspace {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .pi-listpanel,
+  .pi-detail-col,
+  .pi-map-col {
+    min-height: 0;
+  }
+
+  .pi-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .pi-detail-col {
+    overflow-y: auto;
+  }
+
+  .pi-map-col .pi-map {
+    height: 100%;
+  }
 }
