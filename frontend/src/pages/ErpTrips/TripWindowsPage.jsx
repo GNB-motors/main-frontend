@@ -26,8 +26,15 @@ const LEG_TILES = [
   { key: 'returnKm', label: 'Return Distance', hint: 'Return leg after drop' },
   { key: 'fuelDetourKm', label: 'Fuel Detour', hint: 'Route deviation for refueling' },
   { key: 'totalTripKm', label: 'Total Distance', hint: 'Sum of all verified legs' },
-  { key: 'fuelConsumedL', label: 'Total Fuel', hint: 'Sensor measured fuel burn' },
+  { key: 'fuelConsumedL', label: 'Fuel Used', hint: 'FleetEdge fuel used over each trip window' },
 ];
+
+// SNAPSHOT fuel is our fuel-level-drop estimate, used only when FleetEdge's hourly
+// fuel-used does not cover the trip window — marked so it is not read as FleetEdge's own.
+const FUEL_SOURCE_TITLE = {
+  SINK: 'FleetEdge fuel used over the trip window (edge hours pro-rated)',
+  SNAPSHOT: 'Estimated from fuel-level drops — FleetEdge fuel data did not cover this window',
+};
 
 export default function TripWindowsPage() {
   const [inputFrom, setInputFrom] = useState('');
@@ -130,7 +137,7 @@ export default function TripWindowsPage() {
                 <th className="py-2 px-2 text-right">Laden</th>
                 <th className="py-2 px-2 text-right">Approach</th>
                 <th className="py-2 px-2 text-right">Return</th>
-                <th className="py-2 px-2 text-right">Fuel</th>
+                <th className="py-2 px-2 text-right">Fuel Used</th>
                 <th className="py-2 px-2">Status</th>
                 <th className="py-2 pl-2">Flags</th>
               </tr>
@@ -174,8 +181,14 @@ export default function TripWindowsPage() {
                     <td className="num py-2 px-2 text-right">
                       {a.returnKm != null ? formatKm(a.returnKm) : '—'}
                     </td>
-                    <td className="num py-2 px-2 text-right">
+                    <td
+                      className="num py-2 px-2 text-right"
+                      title={a.fuelConsumedL != null ? FUEL_SOURCE_TITLE[a.fuelSource] : undefined}
+                    >
                       {a.fuelConsumedL != null ? formatLitres(a.fuelConsumedL) : '—'}
+                      {a.fuelConsumedL != null && a.fuelSource === 'SNAPSHOT' && (
+                        <div className="text-dim text-[10px]">est.</div>
+                      )}
                     </td>
                     <td className="py-2 px-2">
                       <span className="text-xs font-semibold" style={{ color: status.color }}>

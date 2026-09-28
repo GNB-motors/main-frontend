@@ -866,6 +866,8 @@ export default function RouteIntelligencePage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* PI-DEPRECATED(M5): this "Sites" tab is the old SiteCluster review, superseded
+              by /places. Corridors and Arrivals stay. See main-backend/docs/place-intelligence-deprecations.md. */}
           <TabsContent value="sites" className="space-y-4 mt-4">
             <PanelErrorBoundary name="route-intelligence-sites">
               <TabToolbar

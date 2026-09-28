@@ -41,8 +41,16 @@ import DeliveryOrderService from '../ErpDeliveryOrders/DeliveryOrderService';
 import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
 
+/**
+ * RETURNING is the state the board could not express before: the load is off, so
+ * the tanker can be placed, but it is still running home and those kilometres
+ * still belong to the previous trip. It is placeable — ON_TRIP and NEXT_PLANNED
+ * are not.
+ */
 const BOARD_STATE_LABEL = {
   AVAILABLE: 'Available',
+  RETURNING: 'Returning (placeable)',
+  NEXT_PLANNED: 'Next trip planned',
   ON_TRIP: 'On trip',
   WAITING_UNLOAD: 'Waiting to unload',
   MAINTENANCE: 'In maintenance',
@@ -50,6 +58,8 @@ const BOARD_STATE_LABEL = {
 
 const BOARD_STATE_TONE = {
   AVAILABLE: 'success',
+  RETURNING: 'success',
+  NEXT_PLANNED: 'warning',
   ON_TRIP: 'open',
   WAITING_UNLOAD: 'warning',
   MAINTENANCE: 'danger',
@@ -299,10 +309,22 @@ const PlacementBoardPage = ({ embedded = false }) => {
 
   const reasons = (t) => {
     const list = [];
-    list.push({
-      ok: t.isAvailable,
-      text: t.isAvailable ? 'No active trip' : BOARD_STATE_LABEL[t.boardState] || t.boardState,
-    });
+    if (t.boardState === 'RETURNING') {
+      list.push({
+        ok: true,
+        text: `Unloaded — still running home on ${t.returningFromTrip || 'the previous trip'}`,
+      });
+    } else if (t.boardState === 'NEXT_PLANNED') {
+      list.push({
+        ok: false,
+        text: `Already queued on ${t.plannedTripNumber || 'another trip'}`,
+      });
+    } else {
+      list.push({
+        ok: t.isAvailable,
+        text: t.isAvailable ? 'No active trip' : BOARD_STATE_LABEL[t.boardState] || t.boardState,
+      });
+    }
     if (t.isCompatible !== null) {
       list.push({
         ok: t.isCompatible,
@@ -782,7 +804,12 @@ const PlacementBoardPage = ({ embedded = false }) => {
                     {rows.map((t) => {
                       const assignable = t.isAvailable && t.isCompatible !== false;
                       return (
-                        <tr key={t.vehicleId}>
+                        <tr
+                          key={t.vehicleId}
+                          className="clickable"
+                          onClick={() => setTarget({ mode: 'OWN', tanker: t })}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <td>
                             <div className="erp-cell-strong">{t.registrationNumber}</div>
                             {t.model && <div className="erp-cell-muted">{t.model}</div>}
@@ -820,21 +847,43 @@ const PlacementBoardPage = ({ embedded = false }) => {
                             )}
                           </td>
                           <td>
-                            {assignable ? (
-                              <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={() => setTarget({ mode: 'OWN', tanker: t })}
-                              >
-                                Assign {assignQty(t)} {order.qtyUnit}
-                              </button>
-                            ) : (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 6,
+                                alignItems: 'flex-start',
+                              }}
+                            >
                               <span
                                 className={`erp-badge ${BOARD_STATE_TONE[t.boardState] || 'neutral'}`}
                               >
                                 {BOARD_STATE_LABEL[t.boardState] || t.boardState}
                               </span>
-                            )}
+                              {assignable ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTarget({ mode: 'OWN', tanker: t });
+                                  }}
+                                >
+                                  Assign {assignQty(t)} {order.qtyUnit}
+                                </button>
+                              ) : t.boardState === 'ON_TRIP' ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTarget({ mode: 'OWN', tanker: t });
+                                  }}
+                                >
+                                  Place / Queue
+                                </button>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       );

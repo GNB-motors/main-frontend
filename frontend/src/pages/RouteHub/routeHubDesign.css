@@ -261,12 +261,12 @@ html.dark .nova-rh {
 }
 
 /* ---------- app bar ---------- */
+/* Scrolls away with the page, and carries no surface of its own. The app
+   shell's Navbar is already sticky above this; a second pinned bar under it
+   spent 60px of a screen whose job is showing a map. With the tabs as its
+   only content, the bar around them was chrome holding nothing. */
 .nova-rh .appbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  background: transparent;
 }
 .nova-rh .appbar-in {
   max-width: 1480px;
@@ -284,13 +284,12 @@ html.dark .nova-rh {
   letter-spacing: var(--tracking-compact);
   white-space: nowrap;
 }
+/* No track behind the tabs — the active pill and the hover state are enough
+   to say which is which, and they read against the page just as well. */
 .nova-rh .nav {
   display: flex;
   gap: 4px;
-  padding: 4px;
-  background: var(--bg-subtle);
-  border-radius: var(--radius-full);
-  margin-left: var(--space-4);
+  padding: 4px 0;
   overflow-x: auto;
 }
 .nova-rh .nav a {

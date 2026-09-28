@@ -20,6 +20,12 @@ const CLASSIFICATIONS = [
   { key: 'UNAUTHORIZED_STOP', label: 'Unauthorized / Risk Dwell', zoneType: 'ACCIDENT_PRONE' },
 ];
 
+/**
+ * @deprecated PI-DEPRECATED(M5) Unmapped halts are now answered on the Places
+ * page (/places → "Needs your answer" and "Unexplained stops"). Remove this
+ * drawer and its "Unknown Territory" button in GeofenceZonesPage together with
+ * the backend Kaaran detection sweep. See main-backend/docs/place-intelligence-deprecations.md.
+ */
 export default function UnknownTerritoryDrawer({ isOpen, onClose, onZonePromoted }) {
   const [clusters, setClusters] = useState([]);
   const [loading, setLoading] = useState(false);

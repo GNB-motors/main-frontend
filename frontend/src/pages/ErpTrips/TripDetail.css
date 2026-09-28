@@ -91,6 +91,18 @@
   color: var(--t-warn);
 }
 
+/* A chip that is actually a link — same shape as the rest of the row so it reads as
+   part of the chip group, not a stray button. */
+.trip360-chip--link {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.trip360-chip--link:hover {
+  border-color: var(--t-accent, #2563eb);
+  color: var(--t-accent, #2563eb);
+}
+
 /* ── Stepper ──────────────────────────────────────────────────────────────── */
 .trip360-stepper {
   display: grid;
@@ -286,8 +298,12 @@
   font-weight: 600;
 }
 
-.trip360-money.pos .trip360-money-value { color: var(--t-done); }
-.trip360-money.neg .trip360-money-value { color: var(--signal-high, #e5484d); }
+.trip360-money.pos .trip360-money-value {
+  color: var(--t-done);
+}
+.trip360-money.neg .trip360-money-value {
+  color: var(--signal-high, #e5484d);
+}
 
 /* ── Stage cards ──────────────────────────────────────────────────────────── */
 .trip360-stages {
@@ -302,7 +318,9 @@
   border-radius: 10px;
   background: var(--t-surface);
   padding: 14px 16px;
-  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .trip360-stage.done {
@@ -415,7 +433,10 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   font-family: inherit;
 }
 
@@ -555,8 +576,13 @@
   border-left: 2px solid #e5e7eb;
   padding-left: 10px;
 }
-.trip360-timeline-label { color: #111827; }
-.trip360-timeline-time { color: #6b7280; white-space: nowrap; }
+.trip360-timeline-label {
+  color: #111827;
+}
+.trip360-timeline-time {
+  color: #6b7280;
+  white-space: nowrap;
+}
 
 /* ─── Collapsed stage row ─────────────────────────────────────────────────── */
 /*
@@ -639,10 +665,21 @@
   padding: 14px 18px;
   margin-top: 16px;
 }
-.trip360-action--act { border-left-color: var(--t-accent); background: var(--t-accent-soft); }
-.trip360-action--wait { border-left-color: var(--t-blocked); }
-.trip360-action--blocked { border-left-color: var(--t-warn); background: var(--t-warn-soft); }
-.trip360-action--done { border-left-color: var(--t-done); background: var(--t-done-soft); }
+.trip360-action--act {
+  border-left-color: var(--t-accent);
+  background: var(--t-accent-soft);
+}
+.trip360-action--wait {
+  border-left-color: var(--t-blocked);
+}
+.trip360-action--blocked {
+  border-left-color: var(--t-warn);
+  background: var(--t-warn-soft);
+}
+.trip360-action--done {
+  border-left-color: var(--t-done);
+  background: var(--t-done-soft);
+}
 
 .trip360-action-icon {
   display: flex;
@@ -656,19 +693,48 @@
   color: var(--t-accent);
   flex-shrink: 0;
 }
-.trip360-action--blocked .trip360-action-icon { color: var(--t-warn); }
-.trip360-action--done .trip360-action-icon { color: var(--t-done); }
-.trip360-action--wait .trip360-action-icon { color: var(--t-muted); }
+.trip360-action--blocked .trip360-action-icon {
+  color: var(--t-warn);
+}
+.trip360-action--done .trip360-action-icon {
+  color: var(--t-done);
+}
+.trip360-action--wait .trip360-action-icon {
+  color: var(--t-muted);
+}
 
-.trip360-action-body { flex: 1; min-width: 0; }
-.trip360-action-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.trip360-action-head strong { font-size: 15px; font-weight: 700; color: var(--t-ink); }
-.trip360-action-detail { margin: 3px 0 0; font-size: 13px; color: var(--t-ink-2); }
-.trip360-action-cta { flex-shrink: 0; }
+.trip360-action-body {
+  flex: 1;
+  min-width: 0;
+}
+.trip360-action-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.trip360-action-head strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t-ink);
+}
+.trip360-action-detail {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: var(--t-ink-2);
+}
+.trip360-action-cta {
+  flex-shrink: 0;
+}
 
 @media (max-width: 640px) {
-  .trip360-action { flex-wrap: wrap; }
-  .trip360-action-cta { width: 100%; justify-content: center; }
+  .trip360-action {
+    flex-wrap: wrap;
+  }
+  .trip360-action-cta {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ─── "Accounts only" permission label ────────────────────────────────────────
@@ -690,7 +756,9 @@
 
 /* ─── Financials — receivable / payable / margin, state-aware ─────────────────
    The trip screen explains finance; the Finance module operates it. */
-.trip360-fin { margin-top: 22px; }
+.trip360-fin {
+  margin-top: 22px;
+}
 .trip360-fin-title {
   font-size: 12px;
   font-weight: 700;
@@ -713,7 +781,9 @@
   flex-direction: column;
   gap: 8px;
 }
-.trip360-fin-card--margin { background: #fcfdff; }
+.trip360-fin-card--margin {
+  background: #fcfdff;
+}
 .trip360-fin-card-head {
   display: flex;
   align-items: center;
@@ -734,8 +804,12 @@
   color: var(--t-ink);
   font-variant-numeric: tabular-nums;
 }
-.trip360-fin-amount.pos { color: var(--t-done); }
-.trip360-fin-amount.neg { color: var(--signal-high, #e5484d); }
+.trip360-fin-amount.pos {
+  color: var(--t-done);
+}
+.trip360-fin-amount.neg {
+  color: var(--signal-high, #e5484d);
+}
 .trip360-fin-facts {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -743,7 +817,9 @@
   margin: 0;
   font-size: 12.5px;
 }
-.trip360-fin-facts dt { color: var(--t-muted); }
+.trip360-fin-facts dt {
+  color: var(--t-muted);
+}
 .trip360-fin-facts dd {
   margin: 0;
   text-align: right;
@@ -752,8 +828,17 @@
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
-.trip360-fin-empty { font-size: 12.5px; color: var(--t-muted); margin: 4px 0; }
-.trip360-fin-note { font-size: 11.5px; color: var(--t-muted); margin: 2px 0 0; font-style: italic; }
+.trip360-fin-empty {
+  font-size: 12.5px;
+  color: var(--t-muted);
+  margin: 4px 0;
+}
+.trip360-fin-note {
+  font-size: 11.5px;
+  color: var(--t-muted);
+  margin: 2px 0 0;
+  font-style: italic;
+}
 .trip360-fin-card-foot {
   display: flex;
   align-items: center;
@@ -772,11 +857,17 @@
   text-decoration: none;
   margin-left: auto;
 }
-.trip360-fin-link:hover { text-decoration: underline; }
+.trip360-fin-link:hover {
+  text-decoration: underline;
+}
 
 /* Links styled as buttons (deep-links into the finance module) must not carry
    the browser's default underline. */
-a.trip360-btn { text-decoration: none; }
+a.trip360-btn {
+  text-decoration: none;
+}
 
 /* ─── Activity / audit trail, promoted to a full-width section ─────────────── */
-.trip360-activity { margin-top: 22px; }
+.trip360-activity {
+  margin-top: 22px;
+}

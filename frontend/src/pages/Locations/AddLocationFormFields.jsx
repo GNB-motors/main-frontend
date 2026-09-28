@@ -23,19 +23,6 @@ export const AddLocationFormFields = (props) => {
     <div className="location-form-panel">
       <form onSubmit={onSubmit}>
         <div className="form-group" style={{ marginBottom: '20px' }}>
-          <label style={labelStyle}>Pump Location Name</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={onInputChange}
-            className="search-input"
-            style={{ maxWidth: '100%' }}
-            placeholder="e.g. Pump 1, Main Pump"
-          />
-        </div>
-
-        <div className="form-group" style={{ marginBottom: '20px' }}>
           <label style={labelStyle}>Address</label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
@@ -49,6 +36,19 @@ export const AddLocationFormFields = (props) => {
               />
             </div>
           </div>
+        </div>
+
+        <div className="form-group" style={{ marginBottom: '20px' }}>
+          <label style={labelStyle}>Location Name</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={onInputChange}
+            className="search-input"
+            style={{ maxWidth: '100%' }}
+            placeholder="e.g. Main Warehouse, Customer Site"
+          />
         </div>
 
         <div
@@ -109,7 +109,7 @@ export const AddLocationFormFields = (props) => {
           </button>
           <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
             <Save size={18} />
-            {isSubmitting ? 'Saving...' : isEdit ? 'Update Pump Location' : 'Save Pump Location'}
+            {isSubmitting ? 'Saving...' : isEdit ? 'Update Location' : 'Save Location'}
           </button>
         </div>
       </form>

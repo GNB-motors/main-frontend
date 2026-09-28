@@ -10,6 +10,7 @@ const BASE = '/api/route-intelligence';
  * empty state rather than crashing.
  */
 export const RouteIntelligenceService = {
+  /** @deprecated PI-DEPRECATED(M5) Old SiteCluster review — use PlaceIntelligenceService.listSites. */
   listSites: async ({ status, siteType, page = 1, limit = 25 } = {}, { signal } = {}) => {
     const response = await apiClient.get(`${BASE}/sites`, {
       params: { status, siteType, page, limit },
@@ -18,6 +19,7 @@ export const RouteIntelligenceService = {
     return response.data?.data ?? response.data;
   },
 
+  /** @deprecated PI-DEPRECATED(M5) Use PlaceIntelligenceService.accept (writes through to the SiteCluster). */
   confirmSite: async (id) => {
     const response = await apiClient.post(`${BASE}/sites/${id}/confirm`);
     return response.data?.data ?? response.data;

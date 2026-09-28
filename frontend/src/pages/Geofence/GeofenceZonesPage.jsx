@@ -426,6 +426,7 @@ const GeofenceZonesPage = () => {
             Alerts
             {unreadCount > 0 && <span className="gfz-badge-count">{unreadCount}</span>}
           </button>
+          {/* PI-DEPRECATED(M5): superseded by /places — see UnknownTerritoryDrawer. */}
           <button
             className="gfz-btn gfz-btn-ghost"
             onClick={() => setShowUnknownTerritory(true)}

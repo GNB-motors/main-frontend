@@ -41,6 +41,21 @@ const MAP_STYLE = {
 };
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const SPEEDS = [1, 2, 4, 8, 16];
+/**
+ * Which clock decided a replayed trip's boundary. Shown because "Trip start"
+ * means something different when GPS proved it than when an operator typed it
+ * hours late — the map should not present both as the same fact.
+ */
+const SOURCE_LABEL = {
+  warehouse_exit: 'GPS: left yard',
+  warehouse_arrival: 'GPS: reached yard',
+  telematics_window: 'measured window',
+  dispatched_at: 'typed: dispatch',
+  trip_closed_at: 'typed: trip close',
+  unloaded_at: 'typed: unloaded',
+  trip_date: 'trip date only',
+  now: 'still running',
+};
 const BASE_PLAYBACK_MS = 60000;
 
 const fmtKm = (v) => (v == null ? '—' : `${v.toFixed(1)} km`);
@@ -51,14 +66,34 @@ const fmtDuration = (ms) => {
   return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
 };
 
-export default function RouteReplayPage() {
+export default function RouteReplayPage({ params }) {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
 
-  const [reg, setReg] = useState('');
+  // `?v=` and `?trip=` arrive from a trip's "View replay" link. Seeding state
+  // from them is what makes that link land on the trip instead of a blank page
+  // showing an unrelated week.
+  const [reg, setReg] = useState(() => params?.get('v') || '');
   const [from, setFrom] = useState(dayjs().subtract(7, 'day').format('YYYY-MM-DD'));
   const [to, setTo] = useState(dayjs().format('YYYY-MM-DD'));
+
+  /**
+   * Optional clock times for the two dates. Empty means the whole day, so
+   * picking dates alone still works exactly as before — these only narrow it.
+   * A vehicle can cover three states in one day; a day-resolution window
+   * cannot show which hours were which.
+   */
+  const [fromTime, setFromTime] = useState('');
+  const [toTime, setToTime] = useState('');
+
+  /**
+   * Replay one ERP trip. When set, the server resolves the window from the
+   * trip itself and the date inputs below are ignored — picking a date or a
+   * different vehicle clears it, because at that point the operator is asking
+   * for a range, not a trip.
+   */
+  const [tripId, setTripId] = useState(() => params?.get('trip') || '');
 
   const [trail, setTrail] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -116,26 +151,51 @@ export default function RouteReplayPage() {
     }
   }, [viewMode, map, head]);
 
-  const loadTrail = useCallback(async () => {
-    if (!reg) return;
-    setIsLoading(true);
-    setError(null);
-    setPlaying(false);
-    setProgress(0);
-    try {
-      const data = await LiveTrackingService.getTrail(reg, {
-        from: dayjs(from).startOf('day').toISOString(),
-        to: dayjs(to).endOf('day').toISOString(),
-        limit: 5000,
-      });
-      setTrail(data);
-    } catch (err) {
-      setError(err.detail || 'Could not load the trail for this vehicle.');
-      setTrail(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [reg, from, to]);
+  const loadTrail = useCallback(
+    async (overrideTripId) => {
+      if (!reg) return;
+      // `overrideTripId` lets a click on a trip in the legend load that trip in
+      // the same pass, without waiting a render for the state to settle.
+      const wantTrip = overrideTripId === undefined ? tripId : overrideTripId;
+      setIsLoading(true);
+      setError(null);
+      setPlaying(false);
+      setProgress(0);
+      try {
+        // from/to are always sent: the server ignores them when the trip
+        // resolves a window, and needs them when it cannot (a trip with no
+        // anchors and no stamps, or one this org cannot see).
+        const data = await LiveTrackingService.getTrail(reg, {
+          from: (fromTime
+            ? dayjs(`${from}T${fromTime}`)
+            : dayjs(from).startOf('day')
+          ).toISOString(),
+          to: (toTime ? dayjs(`${to}T${toTime}`) : dayjs(to).endOf('day')).toISOString(),
+          limit: 5000,
+          ...(wantTrip ? { tripId: wantTrip } : {}),
+        });
+        setTrail(data);
+      } catch (err) {
+        setError(err.detail || 'Could not load the trail for this vehicle.');
+        setTrail(null);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [reg, from, to, fromTime, toTime, tripId],
+  );
+
+  // Arriving from a trip link should just show the trip — one shot, so a later
+  // manual Load never re-fires it.
+  const bootstrapped = useRef(false);
+  useEffect(() => {
+    if (bootstrapped.current || !reg) return;
+    bootstrapped.current = true;
+    loadTrail();
+  }, [reg, loadTrail]);
+
+  /** Switching vehicle or date range means "range mode" — drop the trip lock. */
+  const clearTrip = useCallback(() => setTripId(''), []);
 
   // Fit the map to the drawn path whenever a new trail arrives
   useEffect(() => {
@@ -188,7 +248,48 @@ export default function RouteReplayPage() {
 
   const atTime = head ? dayjs(head.at).format('DD MMM YYYY, hh:mm A') : '—';
 
+  /**
+   * What the two end markers actually mean for the trail currently loaded.
+   *
+   * A range replay has no trip boundaries to show: its edges are wherever the
+   * requested window happened to cut the position stream. Saying "trip start"
+   * there invented a fact, and it was wrong most of the time — the truck was
+   * mid-journey at both ends.
+   */
+  const edgeLabels = useMemo(() => {
+    const w = trail?.tripWindow;
+    if (w) {
+      const startWhy = SOURCE_LABEL[w.startSource] || w.startSource || 'unknown source';
+      const endWhy = SOURCE_LABEL[w.endSource] || w.endSource || 'unknown source';
+      return {
+        isTrip: true,
+        start: `Trip start${w.tripNumber ? ` · ${w.tripNumber}` : ''} — ${startWhy}`,
+        end: `Trip end${w.tripNumber ? ` · ${w.tripNumber}` : ''} — ${endWhy}`,
+      };
+    }
+    return {
+      isTrip: false,
+      start: 'First GPS fix in this window — not a trip start',
+      end: 'Last GPS fix in this window — not a trip end',
+    };
+  }, [trail]);
+
+  /** Last N hours, to the minute — the "what happened this shift" question. */
+  const applyHourPreset = (hours) => {
+    clearTrip();
+    const end = dayjs();
+    const start = end.subtract(hours, 'hour');
+    setFrom(start.format('YYYY-MM-DD'));
+    setFromTime(start.format('HH:mm'));
+    setTo(end.format('YYYY-MM-DD'));
+    setToTime(end.format('HH:mm'));
+  };
+
   const applyPreset = (daysAgo) => {
+    clearTrip();
+    // A day preset means whole days; drop any hour narrowing left behind.
+    setFromTime('');
+    setToTime('');
     if (daysAgo === 0) {
       setFrom(dayjs().format('YYYY-MM-DD'));
       setTo(dayjs().format('YYYY-MM-DD'));
@@ -221,7 +322,14 @@ export default function RouteReplayPage() {
             <label htmlFor="rr-vehicle-select" className="rr-field-label">
               Vehicle
             </label>
-            <select id="rr-vehicle-select" value={reg} onChange={(e) => setReg(e.target.value)}>
+            <select
+              id="rr-vehicle-select"
+              value={reg}
+              onChange={(e) => {
+                setReg(e.target.value);
+                clearTrip();
+              }}
+            >
               <option value="">Select a vehicle…</option>
               {vehicles.map((v) => (
                 <option key={v} value={v}>
@@ -242,6 +350,21 @@ export default function RouteReplayPage() {
             <button type="button" className="rr-preset-btn" onClick={() => applyPreset(7)}>
               7 Days
             </button>
+            {/* A month covers a full warehouse-to-warehouse cycle and the trips
+                that ran after it — the "where else did it go" question. */}
+            <button type="button" className="rr-preset-btn" onClick={() => applyPreset(30)}>
+              30 Days
+            </button>
+            <span className="rr-preset-sep" aria-hidden="true" />
+            <button type="button" className="rr-preset-btn" onClick={() => applyHourPreset(6)}>
+              6 Hrs
+            </button>
+            <button type="button" className="rr-preset-btn" onClick={() => applyHourPreset(12)}>
+              12 Hrs
+            </button>
+            <button type="button" className="rr-preset-btn" onClick={() => applyHourPreset(24)}>
+              24 Hrs
+            </button>
           </div>
 
           {/* Date Range */}
@@ -254,8 +377,22 @@ export default function RouteReplayPage() {
               type="date"
               value={from}
               max={to}
-              onChange={(e) => setFrom(e.target.value)}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                clearTrip();
+              }}
               aria-label="From date"
+            />
+            <input
+              className="rr-time-input"
+              type="time"
+              value={fromTime}
+              onChange={(e) => {
+                setFromTime(e.target.value);
+                clearTrip();
+              }}
+              aria-label="From time (optional, defaults to start of day)"
+              title="Optional — leave blank for the start of the day"
             />
           </div>
 
@@ -268,8 +405,22 @@ export default function RouteReplayPage() {
               type="date"
               value={to}
               min={from}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={(e) => {
+                setTo(e.target.value);
+                clearTrip();
+              }}
               aria-label="To date"
+            />
+            <input
+              className="rr-time-input"
+              type="time"
+              value={toTime}
+              onChange={(e) => {
+                setToTime(e.target.value);
+                clearTrip();
+              }}
+              aria-label="To time (optional, defaults to end of day)"
+              title="Optional — leave blank for the end of the day"
             />
           </div>
 
@@ -305,6 +456,88 @@ export default function RouteReplayPage() {
             {dayjs(trail.actualTo).format('DD MMM, hh:mm A')}. Narrow the date range to see an
             earlier part of the trail.
           </span>
+        </div>
+      )}
+
+      {/* What the loaded window actually covers, and — in range mode — what the
+          end markers do NOT mean. Shown for every loaded trail, because the
+          page's old habit was to present a window edge as a trip boundary. */}
+      {!error && trail?.points?.length > 0 && (
+        <div className="rr-window-note">
+          <Clock size={13} />
+          <span>
+            {dayjs(trail.actualFrom).format('DD MMM, hh:mm A')} →{' '}
+            {dayjs(trail.actualTo).format('DD MMM, hh:mm A')}
+          </span>
+          <span className="rr-window-note-sep">·</span>
+          <span className={trail.tripWindow ? 'rr-window-note-trip' : 'rr-window-note-range'}>
+            {trail.tripWindow
+              ? 'S and E are this trip’s own boundaries'
+              : 'S and E are only the first and last fix in this window — not a trip start or end'}
+          </span>
+        </div>
+      )}
+
+      {/* Trips in this trail — the legend, and the way into a single trip.
+          Sourced from TripTelematics, so a stretch is named by the same window
+          the trip's own kilometres were measured over. */}
+      {!error && (trail?.trips?.length > 0 || trail?.tripWindow) && (
+        <div className="rr-trip-legend">
+          <div className="rr-trip-legend-head">
+            <RouteIcon size={14} />
+            <span>
+              {trail.tripWindow
+                ? `Replaying trip ${trail.tripWindow.tripNumber || ''}`.trim()
+                : `${formatNum(trail.trips.length)} trip${trail.trips.length === 1 ? '' : 's'} in this window`}
+            </span>
+            {trail.tripWindow && (
+              <span className="rr-trip-provenance">
+                {SOURCE_LABEL[trail.tripWindow.startSource] || trail.tripWindow.startSource || '—'}
+                {' → '}
+                {SOURCE_LABEL[trail.tripWindow.endSource] || trail.tripWindow.endSource || '—'}
+              </span>
+            )}
+            {tripId && (
+              <button
+                type="button"
+                className="rr-trip-clear"
+                onClick={() => {
+                  setTripId('');
+                  loadTrail('');
+                }}
+              >
+                Show full range
+              </button>
+            )}
+          </div>
+
+          {trail.trips?.length > 0 && (
+            <div className="rr-trip-chips">
+              {trail.trips.map((t) => (
+                <button
+                  key={t.tripId || `${t.startTime}`}
+                  type="button"
+                  className={`rr-trip-chip${t.tripId === tripId ? ' is-active' : ''}`}
+                  onClick={() => {
+                    if (!t.tripId) return;
+                    setTripId(t.tripId);
+                    loadTrail(t.tripId);
+                  }}
+                  title={`${dayjs(t.startTime).format('DD MMM, hh:mm A')} → ${
+                    t.endTime ? dayjs(t.endTime).format('DD MMM, hh:mm A') : 'running'
+                  }`}
+                >
+                  <span className="rr-trip-chip-no">{t.tripNumber || 'Untitled trip'}</span>
+                  {(t.fromLocation || t.toLocation) && (
+                    <span className="rr-trip-chip-route">
+                      {t.fromLocation || '—'} → {t.toLocation || '—'}
+                    </span>
+                  )}
+                  {!t.endTime && <span className="rr-trip-chip-live">running</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -490,13 +723,30 @@ export default function RouteReplayPage() {
                         />
                       ),
                   )}
+                  {/* In range mode these are the first and last FIX in the
+                      window, nothing more — calling them the trip's start and
+                      end is the old lie this page used to tell. Only a replay
+                      pinned to one trip can claim a boundary, and then the
+                      title says which clock proved it. */}
                   <MarkerF
                     position={path[0]}
-                    label={{ text: 'S', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+                    title={edgeLabels.start}
+                    label={{
+                      text: edgeLabels.isTrip ? 'S' : '1',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                    }}
                   />
                   <MarkerF
                     position={path[path.length - 1]}
-                    label={{ text: 'E', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+                    title={edgeLabels.end}
+                    label={{
+                      text: edgeLabels.isTrip ? 'E' : 'N',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                    }}
                   />
                 </>
               )}

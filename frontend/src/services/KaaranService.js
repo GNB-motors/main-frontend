@@ -42,6 +42,8 @@ export const KaaranService = {
   },
 
   // ── Feature #9: Unknown Territory & Learning Loop ──
+  // PI-DEPRECATED(M5): the four territory calls below go with UnknownTerritoryDrawer
+  // (superseded by /places). Driver trends and the pump ledger stay.
   getUnknownTerritories: async (params = {}) => {
     try {
       const res = await apiClient.get('/api/kaaran/territory', { params });
