@@ -68,7 +68,8 @@ export default function PlaceIntelligencePage() {
   return (
     <PageShell
       title="Places"
-      subtitle="Every place your trucks stop — what it is, why we think so, and where time and fuel go. Your answers teach the system."
+      subtitle="Every place your trucks stop, what it is, and where time and fuel go. Your answers teach the system."
+      className="pi-page"
       freshnessAt={summary?.lastRunAt || null}
     >
       <SummaryStrip summary={summary} activeKey={activeTile} onPick={pickTile} />
@@ -87,22 +88,24 @@ export default function PlaceIntelligencePage() {
           </button>
         ))}
       </div>
-      <PanelErrorBoundary name={`place-intelligence-${view}`}>
-        {view === 'places' ? (
-          <PlacesView
-            filter={filter}
-            onFilter={setFilter}
-            version={version}
-            onChanged={bump}
-            initialSelectedId={focusId}
-          />
-        ) : null}
-        {view === 'stops' ? (
-          <BreaksView version={version} onChanged={bump} onOpenPlace={openPlace} />
-        ) : null}
-        {view === 'routes' ? <RoutesTab version={version} /> : null}
-        {view === 'shadow' ? <ShadowReportTab /> : null}
-      </PanelErrorBoundary>
+      <div className={`pi-view${view === 'routes' || view === 'shadow' ? ' pi-view--scroll' : ''}`}>
+        <PanelErrorBoundary name={`place-intelligence-${view}`}>
+          {view === 'places' ? (
+            <PlacesView
+              filter={filter}
+              onFilter={setFilter}
+              version={version}
+              onChanged={bump}
+              initialSelectedId={focusId}
+            />
+          ) : null}
+          {view === 'stops' ? (
+            <BreaksView version={version} onChanged={bump} onOpenPlace={openPlace} />
+          ) : null}
+          {view === 'routes' ? <RoutesTab version={version} /> : null}
+          {view === 'shadow' ? <ShadowReportTab /> : null}
+        </PanelErrorBoundary>
+      </div>
     </PageShell>
   );
 }

@@ -74,7 +74,7 @@ export default function PlacesView({ filter, onFilter, version, onChanged, initi
     review: queueQ.data?.total ?? queue.length,
     ...Object.fromEntries(PLACE_FILTERS.map((f) => [f.key, filterPlaces(sites, f.key).length])),
   };
-  const segs = [{ key: 'review', label: 'Needs your answer' }, ...PLACE_FILTERS];
+  const segs = [{ key: 'review', label: 'To answer' }, ...PLACE_FILTERS];
 
   const markers = list.map((s) => {
     const { type } = effectiveType(s);
@@ -141,46 +141,48 @@ export default function PlacesView({ filter, onFilter, version, onChanged, initi
 
   return (
     <>
-      <div className="pi-toolbar">
-        <div className="pi-seg" role="tablist" aria-label="Which places">
-          {segs.map((f) => (
-            <button
-              type="button"
-              role="tab"
-              key={f.key}
-              aria-selected={filter === f.key}
-              className={filter === f.key ? 'is-active' : ''}
-              onClick={() => onFilter(f.key)}
-            >
-              {f.label}
-              <span
-                className={`pi-count${f.key === 'review' && counts.review ? ' pi-count--warn' : ''}`}
-              >
-                {counts[f.key] ?? 0}
-              </span>
-            </button>
-          ))}
-        </div>
-        <label className="pi-search">
-          <Search size={14} aria-hidden="true" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, town or type"
-            aria-label="Search places"
-          />
-        </label>
-      </div>
-      <div className="pi-layout pi-layout--three">
-        <section className="pi-list" aria-label="Places">
-          {listBody()}
+      <div className="pi-workspace">
+        <section className="pi-panel pi-listpanel" aria-label="Places">
+          <div className="pi-listhead">
+            <label className="pi-search">
+              <Search size={14} aria-hidden="true" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name, town or type"
+                aria-label="Search places"
+              />
+            </label>
+            <div className="pi-filters" role="tablist" aria-label="Which places">
+              {segs.map((f) => (
+                <button
+                  type="button"
+                  role="tab"
+                  key={f.key}
+                  aria-selected={filter === f.key}
+                  className={filter === f.key ? 'is-active' : ''}
+                  onClick={() => onFilter(f.key)}
+                >
+                  {f.label}
+                  <span
+                    className={`pi-count${f.key === 'review' && counts.review ? ' pi-count--warn' : ''}`}
+                  >
+                    {counts[f.key] ?? 0}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="pi-list">{listBody()}</div>
         </section>
-        <section className="pi-detail-col">
+        <section className="pi-panel pi-detail-col" aria-label="Selected place">
           {active ? (
             <PlaceDetail siteId={active._id} fallback={active} version={version} answer={answer} />
-          ) : null}
+          ) : (
+            <p className="pi-placeholder">Pick a place from the list to see what it is and why.</p>
+          )}
         </section>
-        <section className="pi-map-col">
+        <section className="pi-panel pi-map-col" aria-label="Map">
           <PlacesMap
             markers={markers}
             selectedId={activeId}

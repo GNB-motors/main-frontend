@@ -1,26 +1,34 @@
-/* Place Intelligence — summary tiles, then list + map/detail (the Warehouses
-   layout), built on the --ds-* tokens so it reads like the rest of the app. */
+/* Place Intelligence — one screen on desktop: summary tiles and view tabs on
+   top, then a workspace of three equal-height panels (list | place | map).
+   The page itself never scrolls there; only the list and the opened place
+   scroll inside their own panel. Smaller screens fall back to normal page
+   flow. Built on the --ds-* tokens so it reads like the rest of the app. */
 
 /* ─── Summary tiles ─────────────────────────────────────────────────────── */
 
 .pi-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 14px;
+}
+
+@media (max-width: 1100px) {
+  .pi-summary {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
 }
 
 .pi-tile {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
   text-align: left;
-  padding: 12px 14px 12px 16px;
+  padding: 10px 14px 10px 16px;
   border: 1px solid var(--ds-line);
   border-radius: var(--ds-radius-md);
   background: #fff;
-  box-shadow: var(--ds-shadow);
   cursor: pointer;
   overflow: hidden;
   transition:
@@ -62,12 +70,13 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--ds-ink3);
+  white-space: nowrap;
 }
 
 .pi-tile-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.15;
   color: var(--ds-ink);
   font-variant-numeric: tabular-nums;
 }
@@ -76,167 +85,23 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--ds-ink3);
-  margin-left: 4px;
+  margin-left: 3px;
 }
 
 .pi-tile-hint {
   font-size: 12px;
   color: var(--ds-ink3);
-}
-
-/* ─── View switch + filters ─────────────────────────────────────────────── */
-
-.pi-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.pi-seg {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--ds-line);
-  border-radius: 10px;
-  background: #fff;
-  overflow-x: auto;
-  max-width: 100%;
-}
-
-.pi-seg button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 7px;
-  background: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ds-ink2);
-  cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.pi-seg button:hover {
-  background: var(--ds-sunk);
-}
+/* ─── View tabs (the only tab row on the page) ─────────────────────────── */
 
-.pi-seg button.is-active {
-  background: var(--orange-solid);
-  color: #fff;
-}
-
-.pi-count {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--ds-sunk);
-  color: var(--ds-ink2);
-}
-
-.pi-seg button.is-active .pi-count {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-
-.pi-count--warn {
-  background: var(--ds-warn-tint);
-  color: var(--ds-warn-ink);
-}
-
-.pi-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--ds-line2);
-  border-radius: 9px;
-  background: #fff;
-  color: var(--ds-ink3);
-  min-width: 260px;
-}
-
-.pi-search input {
-  border: 0;
-  outline: 0;
-  font-size: 13px;
-  width: 100%;
-  background: none;
-  color: var(--ds-ink);
-}
-
-/* ─── Layout ───────────────────────────────────────────────────────────── */
-
-.pi-layout {
-  display: grid;
-  grid-template-columns: minmax(300px, 380px) 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-/* Wide screens: list | opened place | map, so the answer and the map are both
-   in view without scrolling. The map sticks while the detail scrolls. */
-.pi-layout--three {
-  grid-template-columns: minmax(280px, 340px) minmax(400px, 1.1fr) minmax(340px, 1fr);
-}
-
-.pi-layout--three .pi-map-col {
-  position: sticky;
-  top: 12px;
-}
-
-.pi-layout--three .pi-map-col .pi-map {
-  height: calc(100vh - 220px);
-  min-height: 420px;
-}
-
-@media (max-width: 1380px) {
-  .pi-layout--three {
-    grid-template-columns: minmax(280px, 340px) 1fr;
-  }
-  .pi-layout--three .pi-map-col {
-    position: static;
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .pi-layout--three .pi-map-col .pi-map {
-    height: 300px;
-    min-height: 0;
-  }
-  .pi-layout--three .pi-detail-col {
-    grid-column: 2;
-    grid-row: 2;
-  }
-  .pi-layout--three .pi-list {
-    grid-row: 1 / span 2;
-  }
-}
-
-@media (max-width: 1024px) {
-  .pi-layout,
-  .pi-layout--three {
-    grid-template-columns: 1fr;
-  }
-  .pi-layout--three .pi-map-col,
-  .pi-layout--three .pi-detail-col,
-  .pi-layout--three .pi-list {
-    grid-column: auto;
-    grid-row: auto;
-  }
-}
-
-/* The top-level views read as page tabs, lighter than the list filters. */
 .pi-tabs {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--ds-line);
-  margin-bottom: 14px;
   overflow-x: auto;
 }
 
@@ -244,7 +109,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 10px 14px;
+  padding: 9px 14px;
   border: 0;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
@@ -265,24 +130,257 @@
   border-bottom-color: var(--orange);
 }
 
-.pi-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: calc(100vh - 220px);
-  min-height: 320px;
-  overflow-y: auto;
-  padding: 2px;
+.pi-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ds-sunk);
+  color: var(--ds-ink2);
 }
 
-.pi-right {
+.pi-count--warn {
+  background: var(--ds-warn-tint);
+  color: var(--ds-warn-ink);
+}
+
+/* ─── One-screen page on desktop ───────────────────────────────────────── */
+
+@media (min-width: 1181px) and (min-height: 640px) {
+  /* Fill .page-content exactly (same escape as .page-white) so it never scrolls. */
+  .pshell.pi-page {
+    margin: calc(-1 * var(--spacing-lg));
+    height: calc(100% + 2 * var(--spacing-lg));
+    min-height: 0;
+    padding: 18px 28px 20px;
+    gap: 14px;
+    overflow: hidden;
+  }
+
+  .pi-page .pshell-body {
+    min-height: 0;
+    gap: 12px;
+  }
+
+  .pi-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pi-view--scroll {
+    overflow-y: auto;
+  }
+
+  .pi-workspace {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .pi-listpanel,
+  .pi-detail-col,
+  .pi-map-col {
+    min-height: 0;
+  }
+
+  .pi-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .pi-detail-col {
+    overflow-y: auto;
+  }
+
+  .pi-map-col .pi-map {
+    height: 100%;
+  }
+}
+
+/* ─── Workspace: three panels, equal height ───────────────────────────── */
+
+.pi-workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(380px, 1.15fr) minmax(260px, 1fr);
+  grid-template-areas: 'list detail map';
+  gap: 12px;
+  align-items: stretch;
+}
+
+.pi-listpanel {
+  grid-area: list;
+}
+.pi-detail-col {
+  grid-area: detail;
+}
+.pi-map-col {
+  grid-area: map;
+}
+
+/* Narrow desktop: map above the opened place, list down the left. */
+@media (max-width: 1180px) {
+  .pi-workspace {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    grid-template-rows: 280px auto;
+    grid-template-areas:
+      'list map'
+      'list detail';
+    align-items: start;
+  }
+  .pi-listpanel {
+    align-self: stretch;
+  }
+  .pi-list {
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+  .pi-map-col .pi-map {
+    height: 280px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .pi-workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-template-areas:
+      'list'
+      'map'
+      'detail';
+  }
+  .pi-list {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .pi-map-col .pi-map {
+    height: 300px;
+  }
+}
+
+.pi-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* The opened place scrolls as a whole; its heading stays pinned. */
+.pi-detail-col {
+  display: block;
+  scrollbar-gutter: stable;
+}
+
+.pi-placeholder {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ds-ink3);
+  font-size: 13px;
+}
+
+/* ─── List panel ───────────────────────────────────────────────────────── */
+
+.pi-listhead {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--ds-line);
+  background: #fcfcfd;
+}
+
+.pi-listhead--summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--ds-ink3);
+}
+
+.pi-listhead--summary b {
+  color: var(--ds-ink);
+}
+
+.pi-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ds-ink3);
   min-width: 0;
 }
 
-/* ─── Place card ───────────────────────────────────────────────────────── */
+.pi-search:focus-within {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--orange-tint);
+}
+
+.pi-search input {
+  border: 0;
+  outline: 0;
+  font-size: 13px;
+  width: 100%;
+  min-width: 0;
+  background: none;
+  color: var(--ds-ink);
+}
+
+.pi-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pi-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--ds-line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pi-filters button:hover {
+  border-color: var(--ds-line2);
+}
+
+.pi-filters button.is-active {
+  background: var(--orange-solid);
+  border-color: var(--orange-solid);
+  color: #fff;
+}
+
+.pi-filters button.is-active .pi-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.pi-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pi-list > .pi-empty,
+.pi-list > [aria-busy] {
+  margin: 12px;
+}
+
+/* ─── Place rows ───────────────────────────────────────────────────────── */
 
 .pi-card {
   display: flex;
@@ -290,23 +388,21 @@
   align-items: flex-start;
   width: 100%;
   text-align: left;
-  padding: 10px 12px;
-  border: 1px solid var(--ds-line);
-  border-radius: 10px;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-sunk);
   background: #fff;
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+  transition: background 0.12s;
 }
 
 .pi-card:hover {
-  border-color: var(--ds-line2);
+  background: #f8fafc;
 }
 
 .pi-card.is-selected {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 2px var(--orange-tint);
+  background: var(--orange-tint);
+  box-shadow: inset 3px 0 0 var(--orange);
 }
 
 .pi-card-body {
@@ -393,9 +489,7 @@
 .pi-map {
   position: relative;
   height: 360px;
-  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--ds-line);
   background: var(--ds-sunk);
 }
 
@@ -455,18 +549,19 @@
 /* ─── Detail ───────────────────────────────────────────────────────────── */
 
 .pi-detail {
-  border: 1px solid var(--ds-line);
-  border-radius: 12px;
   background: #fff;
-  box-shadow: var(--ds-shadow);
 }
 
 .pi-detail-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   gap: 12px;
   align-items: flex-start;
   padding: 14px 16px;
   border-bottom: 1px solid var(--ds-line);
+  background: #fff;
 }
 
 .pi-detail-head h3 {

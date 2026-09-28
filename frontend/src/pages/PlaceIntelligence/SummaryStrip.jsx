@@ -70,7 +70,9 @@ export default function SummaryStrip({ summary, activeKey, onPick }) {
             {summary ? t.value : '–'}
             {t.unit && summary ? <small>{t.unit}</small> : null}
           </span>
-          <span className="pi-tile-hint">{t.hint}</span>
+          <span className="pi-tile-hint" title={t.hint}>
+            {t.hint}
+          </span>
         </button>
       ))}
     </div>

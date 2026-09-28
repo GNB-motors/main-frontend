@@ -98,34 +98,44 @@ export default function BreaksView({ version, onChanged, onOpenPlace }) {
   }));
 
   return (
-    <div className="pi-layout pi-layout--three">
-      <section className="pi-list" aria-label="Places with unexplained stops">
-        {groups.map((g) => (
-          <button
-            type="button"
-            key={g.key}
-            className={`pi-card${g.key === active?.key ? ' is-selected' : ''}`}
-            onClick={() => setSelectedKey(g.key)}
-            aria-pressed={g.key === active?.key}
-          >
-            <TypeBadge type={typeOf(g)} hollow />
-            <span className="pi-card-body">
-              <span className="pi-card-title">{titleOf(g)}</span>
-              <span className="pi-card-sub">{subOf(g)}</span>
-              <span className="pi-card-meta">
-                <span className="pi-risk">
-                  <Hourglass size={12} aria-hidden="true" /> {hoursLabel(g.minutes)}
-                </span>
-                <span>{g.stops.length} stops</span>
-                <span>
-                  <Truck size={12} aria-hidden="true" /> {g.trucks.length}
+    <div className="pi-workspace">
+      <section className="pi-panel pi-listpanel" aria-label="Places with unexplained stops">
+        <div className="pi-listhead pi-listhead--summary">
+          <b>
+            {groups.length} place{groups.length === 1 ? '' : 's'}
+          </b>
+          <span>
+            {hoursLabel(groups.reduce((sum, g) => sum + g.minutes, 0))} unexplained · last 7 days
+          </span>
+        </div>
+        <div className="pi-list">
+          {groups.map((g) => (
+            <button
+              type="button"
+              key={g.key}
+              className={`pi-card${g.key === active?.key ? ' is-selected' : ''}`}
+              onClick={() => setSelectedKey(g.key)}
+              aria-pressed={g.key === active?.key}
+            >
+              <TypeBadge type={typeOf(g)} hollow />
+              <span className="pi-card-body">
+                <span className="pi-card-title">{titleOf(g)}</span>
+                <span className="pi-card-sub">{subOf(g)}</span>
+                <span className="pi-card-meta">
+                  <span className="pi-risk">
+                    <Hourglass size={12} aria-hidden="true" /> {hoursLabel(g.minutes)}
+                  </span>
+                  <span>{g.stops.length} stops</span>
+                  <span>
+                    <Truck size={12} aria-hidden="true" /> {g.trucks.length}
+                  </span>
                 </span>
               </span>
-            </span>
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
       </section>
-      <section className="pi-detail-col">
+      <section className="pi-panel pi-detail-col" aria-label="Stops at this place">
         {active ? (
           <BreakStops
             group={active}
@@ -136,7 +146,7 @@ export default function BreaksView({ version, onChanged, onOpenPlace }) {
           />
         ) : null}
       </section>
-      <section className="pi-map-col">
+      <section className="pi-panel pi-map-col" aria-label="Map">
         <PlacesMap markers={markers} selectedId={active?.key} onSelect={setSelectedKey} />
       </section>
     </div>
