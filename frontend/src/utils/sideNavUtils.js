@@ -253,29 +253,24 @@ export const SIDE_NAV_ITEMS = [
       '/trip-management',
     ],
   },
-  // Fleet Intelligence surfaces added by the live-map-refresh / warehouse branch.
+  // Fleet Intelligence surfaces
   {
     type: 'group',
     groupId: 'fleetIntelligence',
+    key: null,
     access: 'fleet',
     label: 'Fleet Intelligence',
     icon: ShieldAlert,
-    // Fleet Alerts & Owner Alerts used to live here; they now open from the
-    // Navbar notification bell (NotificationBell.jsx) instead of the sidebar.
     children: [
-      // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
-      // toggled on per org independently of the rest of this group.
-      { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
-      { to: '/daily-brief', label: 'Morning Brief', key: 'dailyBrief' },
-      { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
-      { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
-      { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
-      { to: '/driving-dna', label: 'Driving DNA', key: 'drivingDna' },
-      { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
-      // Route Intelligence, Deviation, Replay, Profitability and Overspeed
-      // used to be five separate entries — now one card-based hub page.
-      { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
-      { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
+      { to: '/idling-console', label: 'Idling Console' },
+      { to: '/daily-brief', label: 'Morning Brief' },
+      { to: '/fleet-coverage', label: 'Fleet Coverage' },
+      { to: '/optimal-speed', label: 'Optimal Speed' },
+      { to: '/refuel-advisory', label: 'Refuel Advisory' },
+      { to: '/driving-dna', label: 'Driving DNA' },
+      { to: '/erp/trip-windows', label: 'Trip Windows' },
+      { to: '/route-hub', label: 'Route Hub', key: null },
+      { to: '/hotspots', label: 'Fuel Risk Hotspots', key: null },
     ],
     matchRoutes: [
       '/idling-console',
@@ -335,7 +330,7 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'group',
     groupId: 'geofence',
-    key: 'geofence',
+    key: null,
     access: 'fleet',
     label: 'Geofence',
     icon: Navigation,
