@@ -112,7 +112,12 @@
 
   font-family: var(--font-ui);
   color: var(--fg-primary);
-  background: var(--bg-canvas);
+  /* --bg-app (flat white/ink), not --bg-canvas (grey) — .page-content already
+     paints its own grey canvas behind every routed page, so painting a second,
+     slightly different grey here just for this page read as two stacked
+     backgrounds with a visible seam where this page's content stopped short
+     of .page-content's full width. One surface color, not two. */
+  background: var(--bg-app);
   font-size: var(--type-xs);
   -webkit-font-smoothing: antialiased;
 }
@@ -275,7 +280,7 @@ html.dark .nova-digest {
 /* ---------- kpi strip ---------- */
 .nd-kpis {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-3);
 }
 .nd-kpi {
@@ -473,6 +478,8 @@ html.dark .nova-digest {
   gap: 10px;
   padding: 0 var(--space-4) var(--space-4);
   flex: 1 1 auto;
+  max-height: 460px;
+  overflow-y: auto;
 }
 .nd-item {
   position: relative;
@@ -683,6 +690,10 @@ html.dark .nova-digest {
 }
 .nd-tbl tbody tr:hover {
   background: var(--nova-rage-a05);
+}
+.nd-tbl tbody tr[role='button']:focus-visible {
+  outline: 2px solid var(--nova-rage-400);
+  outline-offset: -2px;
 }
 .nd-tbl .nd-num {
   text-align: right;
@@ -916,9 +927,6 @@ html.dark .nd-tab[aria-pressed='true'] {
 }
 .nd-ev--doc {
   background: #c2323a;
-}
-.nd-ev--insp {
-  background: #6a43d8;
 }
 .nd-ev--done {
   background: var(--morning-fog-700);
@@ -1263,11 +1271,28 @@ html.dark .nd-tab[aria-pressed='true'] {
   background: currentColor;
   display: inline-block;
 }
+.nd-opcard {
+  display: flex;
+  flex-direction: column;
+}
 .nd-opcard .nd-big {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 0 var(--space-4) var(--space-3);
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 0 var(--space-4) var(--space-4);
+}
+/* Centers vertically only when nd-big is the card's sole body content
+   (Idling/Detour waste) — the other 2 cards in the row can be much taller
+   (e.g. Fuel efficiency's worst-vehicle bars), which used to leave short
+   cards' numbers stuck at the top-left with dead space below. When nd-big
+   has a sibling (e.g. the populated Fuel efficiency bars list) it keeps its
+   natural height instead, so it doesn't crowd that sibling out. */
+.nd-opcard .nd-big:last-child,
+.nd-opcard .nd-empty {
+  flex: 1;
+  justify-content: center;
 }
 .nd-opcard .nd-big .nd-v {
   font-size: var(--type-2xl);

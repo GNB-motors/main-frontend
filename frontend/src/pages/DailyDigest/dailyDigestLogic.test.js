@@ -62,6 +62,32 @@ describe('buildDocumentAlerts', () => {
     expect(alerts[0].daysLeft).toBeLessThan(0);
     expect(alerts[1]).toMatchObject({ registrationNumber: 'A', docType: 'FITNESS' });
   });
+
+  it('skips documents already acknowledged, and carries vehicleId/documentId for the rest', () => {
+    const vehicles = [
+      {
+        _id: 'veh-a',
+        registrationNumber: 'A',
+        documents: {
+          RC: { id: 'doc-a-rc', uploaded: true, expiryDate: isoInDays(-1), acknowledged: true },
+          FITNESS: {
+            id: 'doc-a-fit',
+            uploaded: true,
+            expiryDate: isoInDays(-2),
+            acknowledged: false,
+          },
+        },
+      },
+    ];
+    const alerts = buildDocumentAlerts(vehicles, 15);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({
+      registrationNumber: 'A',
+      vehicleId: 'veh-a',
+      documentId: 'doc-a-fit',
+      docType: 'FITNESS',
+    });
+  });
 });
 
 describe('buildActionItems', () => {
@@ -136,6 +162,58 @@ describe('buildActionItems', () => {
     expect(actions.filter((a) => a.id.startsWith('doc-'))).toHaveLength(2);
     expect(actions.filter((a) => a.id.startsWith('svc-'))).toHaveLength(1);
   });
+
+  it('gives individual doc-expiry and overdue-service items a resolvable ackId/ackType, but not grouped ones', () => {
+    const documents = [
+      {
+        registrationNumber: 'A',
+        vehicleId: 'veh-a',
+        documentId: 'doc-a',
+        docType: 'RC',
+        daysLeft: -1,
+      },
+    ];
+    const serviceVehicles = [
+      { registrationNumber: 'B', id: 'pred-b', risk: 'OVERDUE', daysUntilDue: -3 },
+    ];
+    const actions = buildActionItems({ documents, serviceVehicles });
+
+    const docAction = actions.find((a) => a.id.startsWith('doc-'));
+    expect(docAction).toMatchObject({
+      ackId: 'doc-a',
+      ackType: 'docExpiry',
+      ackVehicleId: 'veh-a',
+    });
+
+    const svcAction = actions.find((a) => a.id.startsWith('svc-'));
+    expect(svcAction).toMatchObject({ ackId: 'pred-b', ackType: 'maintenance' });
+
+    const groupedDocuments = Array.from({ length: 6 }, (_, i) => ({
+      registrationNumber: `V${i}`,
+      vehicleId: `veh-${i}`,
+      documentId: `doc-${i}`,
+      docType: 'RC',
+      daysLeft: -1,
+    }));
+    const groupedServiceVehicles = Array.from({ length: 5 }, (_, i) => ({
+      registrationNumber: `V${i}`,
+      id: `pred-${i}`,
+      risk: 'OVERDUE',
+      daysUntilDue: -3,
+    }));
+    const groupedActions = buildActionItems({
+      documents: groupedDocuments,
+      serviceVehicles: groupedServiceVehicles,
+    });
+    expect(groupedActions.find((a) => a.id === 'doc-group').ackId).toBeUndefined();
+    expect(groupedActions.find((a) => a.id === 'svc-group').ackId).toBeUndefined();
+  });
+
+  it('tags individually-listed owner-alert items with ackType "ownerAlert"', () => {
+    const records = [{ id: 'alert-1', type: 'EV_LOW_SOC', acknowledged: false }];
+    const actions = buildActionItems({ alerts: { records } });
+    expect(actions[0]).toMatchObject({ ackId: 'alert-1', ackType: 'ownerAlert' });
+  });
 });
 
 describe('summarizeActionSeverity', () => {
@@ -188,6 +266,26 @@ describe('buildUpcomingItems', () => {
       expect.objectContaining({ days: 7, registrationNumber: 'A', kind: 'Service' }),
       expect.objectContaining({ days: 10, registrationNumber: 'C', kind: 'RC' }),
     ]);
+  });
+
+  it('carries risk and due-mileage fields onto service items', () => {
+    const items = buildUpcomingItems({
+      serviceVehicles: [
+        {
+          registrationNumber: 'A',
+          risk: 'DUE_SOON',
+          daysUntilDue: 7,
+          kmUntilDue: 850,
+          projectedServiceDueOdometer: 60000,
+        },
+      ],
+      documents: [],
+    });
+    expect(items[0]).toMatchObject({
+      risk: 'DUE_SOON',
+      kmUntilDue: 850,
+      projectedServiceDueOdometer: 60000,
+    });
   });
 });
 

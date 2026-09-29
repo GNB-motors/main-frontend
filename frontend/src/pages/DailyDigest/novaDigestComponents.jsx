@@ -5,14 +5,21 @@ import {
   ArrowUp,
   ArrowDown,
   Check,
+  Loader2,
   X as XIcon,
   Wrench,
   Route as RouteIcon,
   Fuel as FuelIcon,
   Clock,
+  FileWarning,
 } from 'lucide-react';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
+import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
+import { VehicleService } from '../Profile/VehicleService.jsx';
+import FleetDataService from '../../services/FleetDataService';
+import { SEV } from './dailyDigestLogic';
+import Leaderboard from '../../components/ui/Leaderboard.jsx';
 
 /**
  * "Nova Edge Pro" presentational layer — a pixel-level port of
@@ -33,21 +40,45 @@ function dayOffset(date) {
   return Math.round((d.getTime() - today.getTime()) / DAY_MS);
 }
 
+// A <tr> can't become a <button>, so clickable rows (role="button") need this
+// to be keyboard-reachable — Enter/Space activate it like a real button would.
+function onRowKeyDown(activate) {
+  return (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      activate();
+    }
+  };
+}
+
 // Nova's attention cards only carry 3 tones; CRITICAL and HIGH share the
-// red "high" tone (still told apart by the SEV badge text), MEDIUM is
-// amber, LOW is the AI/nebula purple — matches EVT/SEV in the mockup.
+// red "high" tone (still told apart by the SEV badge text). Colors are
+// derived from dailyDigestLogic's SEV (theme CSS vars), not a second
+// hardcoded palette, so this card respects theme/dark-mode like the rest
+// of the page.
 const NOVA_SEV = {
-  CRITICAL: { c: '#C2323A', tint: 'rgba(229,104,107,.14)' },
-  HIGH: { c: '#C2323A', tint: 'rgba(229,104,107,.14)' },
-  MEDIUM: { c: '#C56200', tint: 'rgba(240,170,72,.16)' },
-  LOW: { c: '#6A43D8', tint: 'rgba(106,67,216,.12)' },
+  CRITICAL: {
+    c: SEV.CRITICAL.color,
+    tint: `color-mix(in srgb, ${SEV.CRITICAL.color} 14%, transparent)`,
+  },
+  HIGH: { c: SEV.HIGH.color, tint: `color-mix(in srgb, ${SEV.HIGH.color} 14%, transparent)` },
+  MEDIUM: { c: SEV.MEDIUM.color, tint: `color-mix(in srgb, ${SEV.MEDIUM.color} 16%, transparent)` },
+  LOW: { c: SEV.LOW.color, tint: `color-mix(in srgb, ${SEV.LOW.color} 12%, transparent)` },
 };
 
+// "insp" (inspection) intentionally omitted — no inspection/roadworthiness
+// scheduling exists anywhere in the backend, so getFleetCalendar can never
+// emit that event type.
 const EVT_COLOR = {
   trip: 'var(--nova-rage-400)',
   service: '#C56200',
   doc: '#C2323A',
-  insp: '#6A43D8',
+};
+
+const EVT_ICON = {
+  trip: RouteIcon,
+  service: Wrench,
+  doc: FileWarning,
 };
 
 /* =============================== Skeletons =============================== */
@@ -172,6 +203,13 @@ export function NdOpsRowSkeleton() {
 
 /* ============================== KPI strip ============================== */
 
+// Smooth-scrolls to an in-page section instead of relying on react-router's
+// hash Link, which only rewrites the URL and never actually scrolls on a
+// client-side navigation (that's browser-native behaviour, not SPA routing).
+function scrollToSection(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 export function NdKpiStrip({ items }) {
   return (
     <div className="nd-kpis">
@@ -184,9 +222,11 @@ export function NdKpiStrip({ items }) {
                 <Icon size={15} />
                 <span>{k.label}</span>
               </span>
-              <span className="nd-kpi-go">
-                <ArrowUpRight size={14} />
-              </span>
+              {k.to ? (
+                <span className="nd-kpi-go">
+                  <ArrowUpRight size={14} />
+                </span>
+              ) : null}
             </div>
             <div className="nd-kpi-val">
               {k.value}
@@ -207,16 +247,27 @@ export function NdKpiStrip({ items }) {
             </div>
           </>
         );
+        const className = `nd-kpi ${k.accent ? 'nd-kpi--accent' : ''}`.trim();
+        // In-page anchors ("#nd-attn") scroll to the section instead of
+        // routing — a hash-only <Link> would silently do nothing.
+        if (k.to?.startsWith('#')) {
+          return (
+            <button
+              key={k.id}
+              type="button"
+              className={className}
+              onClick={() => scrollToSection(k.to.slice(1))}
+            >
+              {body}
+            </button>
+          );
+        }
         return k.to ? (
-          <Link
-            key={k.id}
-            to={k.to}
-            className={`nd-kpi ${k.accent ? 'nd-kpi--accent' : ''}`.trim()}
-          >
+          <Link key={k.id} to={k.to} className={className}>
             {body}
           </Link>
         ) : (
-          <div key={k.id} className={`nd-kpi ${k.accent ? 'nd-kpi--accent' : ''}`.trim()}>
+          <div key={k.id} className={className}>
             {body}
           </div>
         );
@@ -227,23 +278,57 @@ export function NdKpiStrip({ items }) {
 
 /* ========================= Needs your attention ========================= */
 
-export function NdAttentionCard({ actions }) {
+// ackId alone isn't a safe Set key across item types — ackIds now come from
+// three different Mongo collections (UserError, MaintenancePrediction,
+// Vehicle.documents), so a real (if astronomically unlikely) collision would
+// hide the wrong row.
+const resolveKey = (ackType, ackId) => `${ackType || 'ownerAlert'}:${ackId}`;
+
+export function NdAttentionCard({ actions, onResolved }) {
   const [filter, setFilter] = useState('all');
+  // Resolved keys are hidden immediately (optimistic) without waiting for the
+  // parent's refetch, so the row doesn't sit there until the next data pass.
+  const [resolvedKeys, setResolvedKeys] = useState(() => new Set());
+  const [ackingId, setAckingId] = useState(null);
+  const visibleActions = actions.filter(
+    (a) => !a.ackId || !resolvedKeys.has(resolveKey(a.ackType, a.ackId)),
+  );
+
+  const handleResolve = async (action) => {
+    const { ackId, ackType, ackVehicleId } = action;
+    setAckingId(ackId);
+    try {
+      if (ackType === 'maintenance') {
+        await FleetDataService.acknowledgePrediction(ackId);
+      } else if (ackType === 'docExpiry') {
+        await VehicleService.acknowledgeVehicleDocument(ackVehicleId, ackId);
+      } else {
+        await OwnerAlertsService.acknowledgeAlert(ackId);
+      }
+      setResolvedKeys((prev) => new Set(prev).add(resolveKey(ackType, ackId)));
+      onResolved?.(ackType);
+    } catch {
+      // The service call already logs the failure; leave the row visible.
+    } finally {
+      setAckingId(null);
+    }
+  };
+
   const tabs = [
-    { k: 'all', l: 'All', n: actions.length },
+    { k: 'all', l: 'All', n: visibleActions.length },
     {
       k: 'high',
       l: 'High',
-      n: actions.filter((a) => a.sev === 'CRITICAL' || a.sev === 'HIGH').length,
+      n: visibleActions.filter((a) => a.sev === 'CRITICAL' || a.sev === 'HIGH').length,
     },
-    { k: 'medium', l: 'Medium', n: actions.filter((a) => a.sev === 'MEDIUM').length },
+    { k: 'medium', l: 'Medium', n: visibleActions.filter((a) => a.sev === 'MEDIUM').length },
   ];
   const rows =
     filter === 'all'
-      ? actions
+      ? visibleActions
       : filter === 'high'
-        ? actions.filter((a) => a.sev === 'CRITICAL' || a.sev === 'HIGH')
-        : actions.filter((a) => a.sev === 'MEDIUM');
+        ? visibleActions.filter((a) => a.sev === 'CRITICAL' || a.sev === 'HIGH')
+        : visibleActions.filter((a) => a.sev === 'MEDIUM');
 
   return (
     <div className="nd-card">
@@ -304,9 +389,26 @@ export function NdAttentionCard({ actions }) {
                 </div>
                 <div className="nd-item-side">
                   {a.amt ? <span className="nd-item-amt">{a.amt}</span> : null}
-                  <Link to={a.to} className="nd-btn nd-btn--sm">
-                    {a.cta || 'Review'}
-                  </Link>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {a.ackId ? (
+                      <button
+                        type="button"
+                        className="nd-btn nd-btn--sm"
+                        disabled={ackingId === a.ackId}
+                        onClick={() => handleResolve(a)}
+                      >
+                        {ackingId === a.ackId ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Check size={13} />
+                        )}
+                        Resolve
+                      </button>
+                    ) : null}
+                    <Link to={a.to} className="nd-btn nd-btn--sm">
+                      {a.cta || 'Review'}
+                    </Link>
+                  </div>
                 </div>
               </article>
             );
@@ -319,12 +421,18 @@ export function NdAttentionCard({ actions }) {
 
 /* =============================== ₹ impact =============================== */
 
-export function NdImpactCard({ money }) {
+export function NdImpactCard({ money, utilization }) {
   const rows = [
     { key: 'idling', label: 'Idling cost', v: money?.idlingWasteInr || 0, c: '#C56200' },
     { key: 'detour', label: 'Detour cost', v: money?.detourWasteInr || 0, c: '#2F58EE' },
     { key: 'siphon', label: 'Fuel siphon loss', v: money?.theftLossInr || 0, c: '#C2323A' },
     { key: 'mismatch', label: 'Bill mismatch', v: money?.billFraudSuspectInr || 0, c: '#6A43D8' },
+    {
+      key: 'empty',
+      label: 'Empty-running waste',
+      v: utilization?.fleet?.emptyKmWasteInr || 0,
+      c: '#0D9488',
+    },
   ];
   const total = rows.reduce((s, r) => s + r.v, 0);
 
@@ -386,7 +494,7 @@ export function NdCalendarCard({ vehicles, days = 14, onOpenVehicle, selectedVeh
   const rangeLabel = `${formatDateIST(today)} – ${formatDateIST(rangeEnd)} · planned trips`;
 
   return (
-    <section className="nd-card">
+    <section className="nd-card" id="nd-calendar">
       <div className="nd-card-head">
         <h2>Fleet calendar</h2>
         <span className="nd-hint">{rangeLabel}</span>
@@ -412,8 +520,16 @@ export function NdCalendarCard({ vehicles, days = 14, onOpenVehicle, selectedVeh
       </div>
       <div className="nd-legend">
         <span>
-          <i style={{ background: 'var(--nova-rage-400)' }} />
+          <i style={{ background: EVT_COLOR.trip }} />
           Planned trip
+        </span>
+        <span>
+          <i style={{ background: EVT_COLOR.service }} />
+          Service due/overdue
+        </span>
+        <span>
+          <i style={{ background: EVT_COLOR.doc }} />
+          Document expiry
         </span>
         <span>
           <i
@@ -422,7 +538,7 @@ export function NdCalendarCard({ vehicles, days = 14, onOpenVehicle, selectedVeh
           Weekend
         </span>
         <span style={{ marginLeft: 'auto', color: 'var(--fg-tertiary)' }}>
-          Click any vehicle or trip bar for detail
+          Click any vehicle or event for detail
         </span>
       </div>
       {veh.length === 0 ? (
@@ -480,23 +596,24 @@ function NdGantt({ vehicles, days, onOpenVehicle, selectedVehicleId }) {
         </div>
         {vehicles.map((v) => {
           const bars = (v.events || [])
-            .filter((e) => e.type === 'trip' && e.start + e.len > 0 && e.start < days)
+            .filter((e) => e.start + e.len > 0 && e.start < days)
             .map((e, i) => {
               const s = Math.max(0, e.start);
               const end = Math.min(days, e.start + e.len);
               const span = end - s;
-              const past = e.start + e.len <= 0;
+              const past = e.type === 'trip' && e.start + e.len <= 0;
               const label =
                 span >= 3
                   ? `${e.label}${e.tons ? ` · ${e.tons}t` : ''}`
                   : span === 2
                     ? e.label
                     : '';
+              const EvIcon = EVT_ICON[e.type] || RouteIcon;
               return (
                 <button
                   key={i}
                   type="button"
-                  className={`nd-ev ${past ? 'nd-ev--done' : 'nd-ev--trip'} ${span < 2 ? 'nd-narrow' : ''}`.trim()}
+                  className={`nd-ev ${past ? 'nd-ev--done' : `nd-ev--${e.type}`} ${span < 2 ? 'nd-narrow' : ''}`.trim()}
                   style={{
                     left: `calc(${s} * (100% / ${days}) + 3px)`,
                     width: `calc(${span} * (100% / ${days}) - 6px)`,
@@ -504,7 +621,7 @@ function NdGantt({ vehicles, days, onOpenVehicle, selectedVehicleId }) {
                   title={`${e.label}${e.tons ? ` · ${e.tons} t` : ''} · ${e.len} day${e.len > 1 ? 's' : ''}`}
                   onClick={() => onOpenVehicle(v.vehicleId)}
                 >
-                  <RouteIcon size={11} />
+                  <EvIcon size={11} />
                   {label}
                 </button>
               );
@@ -567,7 +684,6 @@ function NdMonth({ vehicles, onOpenVehicle }) {
     const evs = [];
     vehicles.forEach((v) =>
       (v.events || []).forEach((e) => {
-        if (e.type !== 'trip') return;
         const ed = new Date(today);
         ed.setDate(ed.getDate() + e.start);
         if (dkey(ed) === dkey(d)) evs.push({ v, e });
@@ -582,7 +698,12 @@ function NdMonth({ vehicles, onOpenVehicle }) {
       >
         <span className="nd-dnum">{d.getDate()}</span>
         {evs.slice(0, 3).map((x, i2) => (
-          <span key={i2} className="nd-mchip" style={{ background: EVT_COLOR[x.e.type] }}>
+          <span
+            key={i2}
+            className="nd-mchip"
+            style={{ background: EVT_COLOR[x.e.type] }}
+            title={`${x.v.registrationNumber} — ${x.e.label}`}
+          >
             {x.v.registrationNumber.slice(-4)} {x.e.label}
           </span>
         ))}
@@ -660,7 +781,13 @@ export function NdRefuelCard({ data, onOpenVehicle }) {
             </thead>
             <tbody>
               {fills.map((f, i) => (
-                <tr key={`${f.vehicleId}-${i}`} onClick={() => onOpenVehicle(f.vehicleId)}>
+                <tr
+                  key={`${f.vehicleId}-${i}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onOpenVehicle(f.vehicleId)}
+                  onKeyDown={onRowKeyDown(() => onOpenVehicle(f.vehicleId))}
+                >
                   <td>
                     <span className="nd-plate">{f.registrationNumber}</span>
                     <div className="nd-muted" style={{ fontSize: 11 }}>
@@ -763,7 +890,13 @@ export function NdWasteTable({ idlingTop5, detourTop5, onOpenVehicle }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.registrationNumber} onClick={() => onOpenVehicle(r.registrationNumber)}>
+              <tr
+                key={r.registrationNumber}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenVehicle(r.registrationNumber)}
+                onKeyDown={onRowKeyDown(() => onOpenVehicle(r.registrationNumber))}
+              >
                 <td>
                   <span className="nd-plate">{r.registrationNumber}</span>
                 </td>
@@ -836,6 +969,20 @@ export function NdUpcomingCard({ upcoming, onOpenVehicle }) {
                       <span className="nd-evdot" style={{ background: '#C56200' }} />
                       <span className="nd-plate">{u.registrationNumber}</span>
                       <span className="nd-what">{u.kind}</span>
+                      {u.kind === 'Service' && u.risk ? (
+                        <span className="nd-sev">
+                          <i />
+                          {u.risk === 'DUE_SOON' ? 'due soon' : u.risk.toLowerCase()}
+                        </span>
+                      ) : null}
+                      {u.kind === 'Service' &&
+                      (u.kmUntilDue != null || u.projectedServiceDueOdometer != null) ? (
+                        <span className="nd-muted" style={{ fontSize: 11 }}>
+                          {u.kmUntilDue != null
+                            ? `${formatKm(u.kmUntilDue)} left`
+                            : `due at ${formatKm(u.projectedServiceDueOdometer)}`}
+                        </span>
+                      ) : null}
                       <span className="nd-sp" />
                       <span className="nd-when">{when}</span>
                     </button>
@@ -867,26 +1014,46 @@ export function NdOpsRow({ money, fuelEfficiency, onOpenVehicle }) {
           <h2>Idling waste</h2>
           <span className="nd-sp" />
         </div>
-        <div className="nd-big">
-          <span className="nd-v" style={{ color: '#C56200' }}>
-            {formatINR(money?.idlingWasteInr || 0)}
-          </span>
-          <span className="nd-u">
-            {idleMinutesTotal} min outside known loading and customer zones
-          </span>
-        </div>
+        {money?.idlingWasteInr ? (
+          <div className="nd-big">
+            <span className="nd-v" style={{ color: '#C56200' }}>
+              {formatINR(money.idlingWasteInr)}
+            </span>
+            <span className="nd-u">
+              {idleMinutesTotal} min outside known loading and customer zones
+            </span>
+          </div>
+        ) : (
+          <div className="nd-empty">
+            <span className="nd-ok">
+              <Check size={22} />
+            </span>
+            <b>No idling waste today</b>
+            <span>Vehicles idling over 30 min outside known zones appear here.</span>
+          </div>
+        )}
       </div>
       <div className="nd-card nd-opcard" style={{ '--c': '#2F58EE' }}>
         <div className="nd-card-head">
           <h2>Detour waste</h2>
           <span className="nd-sp" />
         </div>
-        <div className="nd-big">
-          <span className="nd-v" style={{ color: '#2F58EE' }}>
-            {formatINR(money?.detourWasteInr || 0)}
-          </span>
-          <span className="nd-u">{detourKmTotal.toFixed(0)} km driven off the planned route</span>
-        </div>
+        {money?.detourWasteInr ? (
+          <div className="nd-big">
+            <span className="nd-v" style={{ color: '#2F58EE' }}>
+              {formatINR(money.detourWasteInr)}
+            </span>
+            <span className="nd-u">{detourKmTotal.toFixed(0)} km driven off the planned route</span>
+          </div>
+        ) : (
+          <div className="nd-empty">
+            <span className="nd-ok">
+              <Check size={22} />
+            </span>
+            <b>No detour waste today</b>
+            <span>Vehicles driving off the planned route appear here.</span>
+          </div>
+        )}
       </div>
       <div className="nd-card nd-opcard" style={{ '--c': '#187A32' }}>
         <div className="nd-card-head">
@@ -948,6 +1115,29 @@ export function NdOpsRow({ money, fuelEfficiency, onOpenVehicle }) {
         )}
       </div>
     </section>
+  );
+}
+
+/* ============================ Driver leaderboard =========================== */
+
+export function NdLeaderboardCard({ leaderboard }) {
+  const drivers = leaderboard?.drivers || [];
+  return (
+    <div className="nd-card">
+      <div className="nd-card-head">
+        <h2>Driver fuel efficiency</h2>
+        <span className="nd-sp" />
+        <span className="nd-hint">Last computed window · km/L</span>
+      </div>
+      <Leaderboard
+        title="Driver fuel efficiency (km/L)"
+        unit="number"
+        metricKey="kmPerL"
+        rows={drivers}
+        rowLabel={(r) => r.driverName || 'Unknown driver'}
+        rowSub={(r) => `${formatKm(r.distanceKm)} · ${formatLitres(r.fuelUsedL)}`}
+      />
+    </div>
   );
 }
 
@@ -1032,6 +1222,85 @@ export function NdVehicleDrawer({ vehicle, onClose }) {
                     <span className="nd-sp" />
                     <span className="nd-when">
                       {vehicle.fill.refuelTime ? formatDateTimeIST(vehicle.fill.refuelTime) : ''}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+              <div className="nd-vd-sec">
+                <span className="nd-eyebrow">Live status</span>
+                {vehicle.profileLoading ? (
+                  <div className="nd-vd-line">
+                    <span className="nd-when">Loading…</span>
+                  </div>
+                ) : vehicle.profile?.health ? (
+                  <div className="nd-vd-grid">
+                    <div className="nd-vd-stat">
+                      <div className="nd-k">Fuel</div>
+                      <div className="nd-v">
+                        {vehicle.profile.health.primaryFuelLevel != null
+                          ? `${vehicle.profile.health.primaryFuelLevel}%`
+                          : '—'}
+                      </div>
+                    </div>
+                    <div className="nd-vd-stat">
+                      <div className="nd-k">DEF</div>
+                      <div className="nd-v">
+                        {vehicle.profile.health.defLevel != null
+                          ? `${vehicle.profile.health.defLevel}%`
+                          : '—'}
+                      </div>
+                    </div>
+                    <div className="nd-vd-stat">
+                      <div className="nd-k">Odometer</div>
+                      <div className="nd-v">
+                        {vehicle.profile.health.canOdo != null
+                          ? formatKm(vehicle.profile.health.canOdo)
+                          : '—'}
+                      </div>
+                    </div>
+                    <div className="nd-vd-stat">
+                      <div className="nd-k">Engine hrs</div>
+                      <div className="nd-v">
+                        {vehicle.profile.health.engineRunHour != null
+                          ? formatNum(vehicle.profile.health.engineRunHour)
+                          : '—'}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="nd-vd-line">
+                    <span className="nd-when">No live telemetry available.</span>
+                  </div>
+                )}
+                {vehicle.profile?.assignedDriver ? (
+                  <div className="nd-vd-line" style={{ marginTop: 10 }}>
+                    <span className="nd-evdot" style={{ background: 'var(--nova-rage-400)' }} />
+                    <span>
+                      {vehicle.profile.assignedDriver.name || 'Driver assigned'}
+                      {vehicle.profile.assignedDriver.group
+                        ? ` · ${vehicle.profile.assignedDriver.group}`
+                        : ''}
+                    </span>
+                  </div>
+                ) : vehicle.profile ? (
+                  <div className="nd-vd-line" style={{ marginTop: 10 }}>
+                    <span className="nd-when">No driver assigned.</span>
+                  </div>
+                ) : null}
+                {vehicle.profile?.prediction ? (
+                  <div className="nd-vd-line" style={{ marginTop: 6 }}>
+                    <span className="nd-evdot" style={{ background: EVT_COLOR.service }} />
+                    <span>
+                      Next service:{' '}
+                      {vehicle.profile.prediction.risk
+                        ? vehicle.profile.prediction.risk.toLowerCase().replace('_', ' ')
+                        : '—'}
+                      {vehicle.profile.prediction.daysUntilDue != null
+                        ? ` · ${formatNum(vehicle.profile.prediction.daysUntilDue)} days`
+                        : ''}
+                      {vehicle.profile.prediction.kmUntilDue != null
+                        ? ` · ${formatKm(vehicle.profile.prediction.kmUntilDue)} left`
+                        : ''}
                     </span>
                   </div>
                 ) : null}

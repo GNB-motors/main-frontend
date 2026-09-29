@@ -361,6 +361,19 @@ const deleteVehicleDocument = async (vehicleId, docId, token) => {
   }
 };
 
+const acknowledgeVehicleDocument = async (vehicleId, docId) => {
+  try {
+    const response = await apiClient.patch(`/api/vehicles/${vehicleId}/documents/${docId}/ack`);
+    return response.data?.data || {};
+  } catch (error) {
+    console.error(
+      'API Error acknowledging vehicle document:',
+      error.response?.data || error.message,
+    );
+    throw error.response?.data || { detail: 'Failed to acknowledge document.' };
+  }
+};
+
 export const VehicleService = {
   getAllVehicles,
   addVehicle,
@@ -373,5 +386,6 @@ export const VehicleService = {
   uploadVehicleDocument,
   getVehicleDocuments,
   deleteVehicleDocument,
+  acknowledgeVehicleDocument,
   getFleetDashboard,
 };

@@ -126,6 +126,13 @@ export function buildActionItems({
       for (const a of records) {
         actions.push({
           id: `alert-${a.id}`,
+          // The underlying OwnerAlerts record id — only individual (non-grouped)
+          // alert-backed items have one, since grouping combines several alerts
+          // into a single row with no single record to acknowledge. Lets the
+          // card offer a real "Resolve" action via PUT /owner-alerts/:id/ack
+          // instead of only a "Review" link away from the page.
+          ackId: a.id,
+          ackType: 'ownerAlert',
           sev: meta.sev,
           icon: meta.icon,
           title: meta.title,
@@ -172,6 +179,12 @@ export function buildActionItems({
     for (const d of expiredDocs) {
       actions.push({
         id: `doc-${d.registrationNumber}-${d.docType}`,
+        // Individual (non-grouped) doc-expiry items carry the underlying
+        // Vehicle.documents sub-id so the card can offer a real "Resolve"
+        // action via PATCH /vehicles/:id/documents/:docId/ack.
+        ackId: d.documentId,
+        ackType: 'docExpiry',
+        ackVehicleId: d.vehicleId,
         sev: 'HIGH',
         icon: FileWarning,
         title: `${d.docType} expired`,
@@ -201,6 +214,11 @@ export function buildActionItems({
     for (const v of overdueVehicles) {
       actions.push({
         id: `svc-${v.registrationNumber}`,
+        // Individual (non-grouped) overdue-service items carry the
+        // underlying MaintenancePrediction id for PUT
+        // /maintenance-predictions/:id/ack.
+        ackId: v.id,
+        ackType: 'maintenance',
         sev: 'HIGH',
         icon: Wrench,
         title: 'Service overdue',
@@ -257,11 +275,13 @@ export function buildDocumentAlerts(vehicles, windowDays = 15) {
     const docs = v.documents || {};
     for (const docType of Object.keys(docs)) {
       const doc = docs[docType];
-      if (!doc?.uploaded || !doc.expiryDate) continue;
+      if (!doc?.uploaded || !doc.expiryDate || doc.acknowledged) continue;
       const daysLeft = Math.ceil((new Date(doc.expiryDate).getTime() - now) / DOC_ALERT_DAY_MS);
       if (Number.isNaN(daysLeft) || daysLeft > windowDays) continue;
       out.push({
         registrationNumber: v.registrationNumber,
+        vehicleId: v._id,
+        documentId: doc.id,
         docType,
         expiryDate: doc.expiryDate,
         daysLeft,
@@ -281,6 +301,9 @@ export function buildUpcomingItems({ serviceVehicles, documents }) {
       days: v.daysUntilDue ?? 0,
       registrationNumber: v.registrationNumber,
       kind: 'Service',
+      risk: v.risk,
+      kmUntilDue: v.kmUntilDue ?? null,
+      projectedServiceDueOdometer: v.projectedServiceDueOdometer ?? null,
       text: `${v.registrationNumber} is due for service in ${formatNum(v.daysUntilDue ?? 0)} days.`,
       to: `/vehicles/${encodeURIComponent(v.registrationNumber)}`,
     });

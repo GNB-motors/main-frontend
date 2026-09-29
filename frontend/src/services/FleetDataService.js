@@ -16,6 +16,17 @@ const get = async (path, params = {}, signal) => {
   }
 };
 
+const put = async (path, body = {}, signal) => {
+  try {
+    const response = await apiClient.put(path, body, { signal });
+    return response.data?.data || {};
+  } catch (error) {
+    if (error?.code === 'ERR_CANCELED') throw error;
+    console.error(`API Error ${path}:`, error.response?.data || error.message);
+    throw error.response?.data || { detail: `Could not update ${path}.` };
+  }
+};
+
 export const FleetDataService = {
   /** Latest live-status reading per vehicle (fuel%, DEF%, odo, engine hrs, service, staleness). */
   getFleetHealth: (signal) => get('/api/vehicle-health', {}, signal),
@@ -47,10 +58,18 @@ export const FleetDataService = {
     get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}`, {}, signal),
 
   /** Service predictions, riskiest first. */
-  getMaintenancePredictions: (params = {}, signal) => get('/api/maintenance-predictions', params, signal),
+  getMaintenancePredictions: (params = {}, signal) =>
+    get('/api/maintenance-predictions', params, signal),
+
+  /** Acknowledge a service prediction (e.g. an overdue row) as reviewed. */
+  acknowledgePrediction: (id, signal) =>
+    put(`/api/maintenance-predictions/${encodeURIComponent(id)}/ack`, {}, signal),
 
   /** Org audit trail (owner only). */
   getAuditLogs: (params = {}, signal) => get('/api/audit-logs', params, signal),
+
+  /** Latest driver fuel-efficiency leaderboard (km/L), ranked. */
+  getDriverLeaderboard: (params = {}, signal) => get('/api/driver-leaderboard', params, signal),
 };
 
 export default FleetDataService;

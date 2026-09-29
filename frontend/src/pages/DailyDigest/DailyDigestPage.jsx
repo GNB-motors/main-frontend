@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, RefreshCw, Sun, Moon, Truck, Fuel, Bell, Calendar, Wrench } from 'lucide-react';
+import {
+  Download,
+  RefreshCw,
+  Sun,
+  Moon,
+  Truck,
+  Fuel,
+  Calendar,
+  Activity,
+  Droplet,
+} from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
@@ -15,7 +25,6 @@ import {
   buildActionItems,
   buildDocumentAlerts,
   buildUpcomingItems,
-  summarizeActionSeverity,
 } from './dailyDigestLogic';
 import {
   NdKpiStrip,
@@ -28,6 +37,7 @@ import {
   NdUpcomingCard,
   NdOpsRow,
   NdOpsRowSkeleton,
+  NdLeaderboardCard,
   NdCardSkeleton,
   NdVehicleDrawer,
 } from './novaDigestComponents.jsx';
@@ -52,6 +62,9 @@ export default function DailyDigestPage() {
   const fuelEfficiency$ = useApi((s) => OwnerValueService.getFuelEfficiency({ days: 7 }, s), []);
   const refuelling$ = useApi(() => OwnerValueService.getRefuellingToday(), []);
   const calendar$ = useApi((s) => OwnerValueService.getFleetCalendar({ days: 14 }, s), []);
+  const utilization$ = useApi((s) => OwnerValueService.getUtilization({ from }, s), [from]);
+  const healthScore$ = useApi((s) => OwnerValueService.getHealthScore(s), []);
+  const driverLeaderboard$ = useApi((s) => FleetDataService.getDriverLeaderboard({}, s), []);
 
   const { data: money } = money$;
   const { data: fleetDashboard } = fleetDashboard$;
@@ -62,25 +75,31 @@ export default function DailyDigestPage() {
   const { data: fuelEfficiency } = fuelEfficiency$;
   const { data: refuelling } = refuelling$;
   const { data: calendar } = calendar$;
+  const { data: utilization } = utilization$;
+  const { data: healthScore } = healthScore$;
+  const { data: driverLeaderboard } = driverLeaderboard$;
 
   const loading =
     money$.loading ||
     fleetDashboard$.loading ||
     downtime$.loading ||
     alerts$.loading ||
-    fuel$.loading;
+    fuel$.loading ||
+    healthScore$.loading ||
+    calendar$.loading;
 
   // Per-section gates so each card shows its own skeleton only until its
   // own source data has loaded once — mirrors useApi's "no flash on
   // refetch" behaviour instead of hiding the whole page behind one flag.
   const attnLoading = (loading || fleetAlerts$.loading) && !money;
-  const impactLoading = money$.loading && !money;
+  const impactLoading = (money$.loading && !money) || (utilization$.loading && !utilization);
   const calendarLoading = calendar$.loading && !calendar;
   const refuelLoading = refuelling$.loading && !refuelling;
   const wasteLoading = money$.loading && !money;
   const upcomingLoading =
     (downtime$.loading && !downtime) || (fleetDashboard$.loading && !fleetDashboard);
   const opsLoading = (money$.loading && !money) || (fuelEfficiency$.loading && !fuelEfficiency);
+  const leaderboardLoading = driverLeaderboard$.loading && !driverLeaderboard;
 
   const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [, forceTick] = useState(0);
@@ -104,6 +123,9 @@ export default function DailyDigestPage() {
       fuelEfficiency$,
       refuelling$,
       calendar$,
+      utilization$,
+      healthScore$,
+      driverLeaderboard$,
     ].forEach((h) => h.refetch?.());
     setLastUpdated(Date.now());
   };
@@ -111,7 +133,6 @@ export default function DailyDigestPage() {
   const m = money?.money;
   const documents = buildDocumentAlerts(fleetDashboard, 15);
   const serviceVehicles = downtime?.vehicles || [];
-  const overdueCount = serviceVehicles.filter((v) => v.risk === 'OVERDUE').length;
 
   const actions = buildActionItems({
     totals: fuelSummary?.totals,
@@ -122,6 +143,32 @@ export default function DailyDigestPage() {
     serviceVehicles,
   });
   const upcoming = buildUpcomingItems({ serviceVehicles, documents });
+
+  // Counts fleet-calendar "trip" events that cover today — both ErpTrip rows
+  // (single-day, dated to tripDate) and ONGOING VehicleMileageInterval rows
+  // (telemetry-detected trips with no ERP record, "automatic" trips; dated to
+  // when they started, with `len` spanning through today). A same-day equality
+  // check on `date` alone would miss a multi-day automatic trip that started
+  // before today and is still running — this checks today falls inside
+  // [date, date + len) instead, same span math the Gantt bars use.
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const dayOffset = (d) => {
+    const day = new Date(d);
+    day.setHours(0, 0, 0, 0);
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return Math.round((day.getTime() - t.getTime()) / DAY_MS);
+  };
+  const tripsToday = (calendar?.vehicles || []).reduce(
+    (n, v) =>
+      n +
+      (v.events || []).filter((e) => {
+        if (e.type !== 'trip') return false;
+        const start = dayOffset(e.date);
+        return start <= 0 && start + (e.len || 1) > 0;
+      }).length,
+    0,
+  );
 
   const vehicleCount = fleetDashboard?.length || 0;
   const activeVehicleCount = (fleetDashboard || []).filter(
@@ -148,34 +195,40 @@ export default function DailyDigestPage() {
       to: '/fuel-spend',
     },
     {
-      id: 'attn',
-      icon: Bell,
-      label: 'Needs attention',
-      value: formatNum(actions.length),
-      note: summarizeActionSeverity(actions),
-      to: '#nd-attn',
-    },
-    {
-      id: 'up',
+      id: 'trips',
       icon: Calendar,
-      label: 'Upcoming',
-      value: formatNum(upcoming.length),
-      note: 'next 14 days',
+      label: 'Trips today',
+      value: formatNum(tripsToday),
+      note: 'scheduled today',
+      to: '#nd-calendar',
     },
     {
-      id: 'svc',
-      icon: Wrench,
-      label: 'Overdue service',
-      value: formatNum(overdueCount),
-      note: overdueCount > 0 ? 'needs immediate action' : 'none overdue',
-      to: '/vehicles/service-intelligence',
+      id: 'def',
+      icon: Droplet,
+      label: 'AdBlue/DEF spend',
+      value: `₹${formatNum(m?.defCostInr || 0)}`,
+      note: 'today',
+    },
+    {
+      id: 'health',
+      icon: Activity,
+      label: 'Fleet health',
+      value: healthScore ? `Grade ${healthScore.grade}` : '—',
+      note: healthScore ? `${formatNum(healthScore.score)}/100 this week` : 'this week',
     },
   ];
 
-  // Cross-references the digest's already-fetched datasets by registrationNumber
-  // so opening the drawer needs no extra request — fields with no real source
-  // in any of these responses (live status, odometer, load on board) show "—"
-  // rather than being invented.
+  // Fetched only while the drawer is open for a given plate — the digest's
+  // own already-loaded datasets below are still used for today-scoped figures
+  // (idling/detour/kmpl/fuel-in-tank/events) that have no equivalent in the
+  // vehicle-profile aggregate, since those are today's-digest-window specific.
+  const vehicleProfile$ = useApi(
+    (s) => FleetDataService.getVehicleProfile(selectedReg, s),
+    [selectedReg],
+    { enabled: Boolean(selectedReg) },
+  );
+  const { data: vehicleProfile, loading: vehicleProfileLoading } = vehicleProfile$;
+
   const selectedVehicle = useMemo(() => {
     if (!selectedReg) return null;
     const idlingRow = money?.idlingTop5?.find((r) => r.registrationNumber === selectedReg);
@@ -186,17 +239,33 @@ export default function DailyDigestPage() {
     const lowTank = refuelling?.lowTankBeforeTrip?.find(
       (v) => v.registrationNumber === selectedReg,
     );
+    const profile = vehicleProfile?.registrationNumber === selectedReg ? vehicleProfile : null;
     return {
       registrationNumber: selectedReg,
-      model: calVeh?.model || effRow?.model || null,
+      model:
+        profile?.fleetMaster?.model ||
+        profile?.fleetEdge?.vehicleModel ||
+        calVeh?.model ||
+        effRow?.model ||
+        null,
       idleMinutes: idlingRow?.idleMinutes ?? null,
       detourKm: detourRow?.detourKm ?? null,
       kmpl: effRow?.kmpl ?? null,
       fuelLevelL: lowTank?.fuelLevelL ?? null,
       fill,
       events: calVeh?.events || [],
+      profile,
+      profileLoading: vehicleProfileLoading && !profile,
     };
-  }, [selectedReg, money, fuelEfficiency, refuelling, calendar]);
+  }, [
+    selectedReg,
+    money,
+    fuelEfficiency,
+    refuelling,
+    calendar,
+    vehicleProfile,
+    vehicleProfileLoading,
+  ]);
 
   const openVehicle = (regOrId) => {
     // Table rows key by registrationNumber already; calendar/gantt rows key
@@ -266,19 +335,27 @@ export default function DailyDigestPage() {
           {attnLoading ? (
             <NdCardSkeleton title="Needs your attention" pill tabs={3} rows={4} rowHeight={64} />
           ) : (
-            <NdAttentionCard actions={actions} onOpenVehicle={openVehicle} />
+            <NdAttentionCard
+              actions={actions}
+              onOpenVehicle={openVehicle}
+              onResolved={(ackType) => {
+                if (ackType === 'maintenance') downtime$.refetch?.();
+                else if (ackType === 'docExpiry') fleetDashboard$.refetch?.();
+                else alerts$.refetch?.();
+              }}
+            />
           )}
           <div className="nd-rightcol">
             {impactLoading ? (
               <NdCardSkeleton
                 title={'Today\u2019s \u20b9 impact'}
                 hint="Estimated"
-                rows={4}
+                rows={5}
                 rowHeight={26}
                 big
               />
             ) : (
-              <NdImpactCard money={m} />
+              <NdImpactCard money={m} utilization={utilization} />
             )}
           </div>
         </section>
@@ -318,7 +395,11 @@ export default function DailyDigestPage() {
           )}
         </section>
 
-        <section className="nd-cols" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
+        <section
+          className="nd-cols"
+          id="nd-upcoming"
+          style={{ gridTemplateColumns: 'minmax(0,1fr)' }}
+        >
           {upcomingLoading ? (
             <NdCardSkeleton
               title="Upcoming"
@@ -336,6 +417,17 @@ export default function DailyDigestPage() {
           <NdOpsRowSkeleton />
         ) : (
           <NdOpsRow money={m} fuelEfficiency={fuelEfficiency} onOpenVehicle={openVehicle} />
+        )}
+
+        {leaderboardLoading ? (
+          <NdCardSkeleton
+            title="Driver fuel efficiency"
+            hint="Last computed window · km/L"
+            rows={5}
+            rowHeight={36}
+          />
+        ) : (
+          <NdLeaderboardCard leaderboard={driverLeaderboard} />
         )}
 
         <p className="nd-foot">
