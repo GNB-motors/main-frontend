@@ -47,9 +47,13 @@ const listRecords = async (token, { recordType, vehicleId, search, page = 1, lim
 
 const createRecord = async (token, payload, attachments) => {
   try {
-    const res = await axios.post(`${API_BASE_URL}/api/maintenance`, buildFormData(payload, attachments), {
-      headers: { ...authHeader(token), 'Content-Type': 'multipart/form-data' },
-    });
+    const res = await axios.post(
+      `${API_BASE_URL}/api/maintenance`,
+      buildFormData(payload, attachments),
+      {
+        headers: { ...authHeader(token), 'Content-Type': 'multipart/form-data' },
+      },
+    );
     return res.data?.data || res.data;
   } catch (err) {
     console.error('createRecord error', err.response?.data || err.message);
@@ -99,6 +103,43 @@ const getAlerts = async (token) => {
   } catch (err) {
     console.error('getAlerts error', err.response?.data || err.message);
     throw err.response?.data || { detail: 'Failed to load alerts' };
+  }
+};
+
+// Mark an alert occurrence as resolved. `fingerprint` must be the value the
+// alert carried in getAlerts()'s response — it pins the exact occurrence.
+const resolveAlert = async (token, alertId, { fingerprint, resolutionNote } = {}) => {
+  try {
+    const res = await axios.put(
+      `${API_BASE_URL}/api/maintenance/alerts/${encodeURIComponent(alertId)}/resolve`,
+      { fingerprint, resolutionNote },
+      { headers: { ...authHeader(token), 'Content-Type': 'application/json' } },
+    );
+    return res.data?.data;
+  } catch (err) {
+    console.error('resolveAlert error', err.response?.data || err.message);
+    throw err.response?.data || { detail: 'Failed to resolve alert' };
+  }
+};
+
+// KPI summary aggregated across every matching record (not just one loaded
+// page) — accepts the same filters as listRecords, minus pagination.
+const getSummary = async (token, { recordType, vehicleId, search } = {}) => {
+  const params = new URLSearchParams();
+  if (recordType) params.set('recordType', recordType);
+  if (vehicleId) params.set('vehicleId', vehicleId);
+  if (search) params.set('search', search);
+  const branchId = activeBranchId();
+  if (branchId) params.set('branchId', branchId);
+
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/maintenance/summary?${params}`, {
+      headers: authHeader(token),
+    });
+    return res.data?.data || { total: 0, totalAmount: 0, last30: 0 };
+  } catch (err) {
+    console.error('getSummary error', err.response?.data || err.message);
+    throw err.response?.data || { detail: 'Failed to load summary' };
   }
 };
 
@@ -152,4 +193,6 @@ export const MaintenanceService = {
   getOptions,
   addOption,
   getAlerts,
+  resolveAlert,
+  getSummary,
 };

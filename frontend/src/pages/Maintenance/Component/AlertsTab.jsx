@@ -1,17 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { AlertTriangle, Bell, FileWarning, RefreshCw, Wrench } from 'lucide-react';
+import { AlertTriangle, Bell, Check, FileWarning, RefreshCw, Wrench } from 'lucide-react';
 import { MaintenanceService } from '../MaintenanceService.jsx';
 import { getToken } from '../../../utils/session.js';
+import NewButton from '../../../components/ui/NewButton';
+import KpiCard from '../../../components/ui/KpiCard';
 
-// Sub-tab keys map to backend alert.type, except 'ALL' / 'CRITICAL' which are filters.
+// Sub-tab keys map to backend alert.type, except 'ALL' / 'CRITICAL' / 'RESOLVED'
+// which are filters over the same alert set.
 const SUB_TABS = [
   { key: 'ALL', label: 'All Alerts' },
   { key: 'CRITICAL', label: 'Critical' },
   { key: 'SERVICE_DUE', label: 'Service' },
   { key: 'HIGH_REPAIR_SPEND', label: 'Repair' },
   { key: 'DOCUMENT_EXPIRY', label: 'Document' },
+  { key: 'RESOLVED', label: 'Resolved' },
 ];
 
 const TYPE_META = {
@@ -42,6 +46,7 @@ const AlertsTab = () => {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [subTab, setSubTab] = useState('ALL');
+  const [resolvingId, setResolvingId] = useState(null);
   const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
@@ -64,26 +69,46 @@ const AlertsTab = () => {
     load();
   }, [load]);
 
-  // Counts for the sub-tab pill badges + KPI cards.
+  const handleResolve = async (alert) => {
+    setResolvingId(alert.id);
+    try {
+      const token = getToken();
+      await MaintenanceService.resolveAlert(token, alert.id, { fingerprint: alert.fingerprint });
+      toast.success('Alert resolved');
+      await load();
+    } catch (err) {
+      toast.error(err?.detail || 'Failed to resolve alert');
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  // Counts for the sub-tab pill badges + KPI cards — all counted over the
+  // active (unresolved) set, so "Active Alerts" reads as the actionable queue.
+  const active = useMemo(() => alerts.filter((a) => !a.resolved), [alerts]);
+  const resolved = useMemo(() => alerts.filter((a) => a.resolved), [alerts]);
+
   const counts = useMemo(() => {
     const byType = { SERVICE_DUE: 0, HIGH_REPAIR_SPEND: 0, DOCUMENT_EXPIRY: 0 };
     let critical = 0;
-    alerts.forEach((a) => {
+    active.forEach((a) => {
       byType[a.type] = (byType[a.type] || 0) + 1;
       if (a.severity === 'CRITICAL') critical += 1;
     });
-    return { total: alerts.length, critical, ...byType };
-  }, [alerts]);
+    return { total: active.length, critical, resolved: resolved.length, ...byType };
+  }, [active, resolved]);
 
   const filtered = useMemo(() => {
-    if (subTab === 'ALL') return alerts;
-    if (subTab === 'CRITICAL') return alerts.filter((a) => a.severity === 'CRITICAL');
-    return alerts.filter((a) => a.type === subTab);
-  }, [alerts, subTab]);
+    if (subTab === 'RESOLVED') return resolved;
+    if (subTab === 'ALL') return active;
+    if (subTab === 'CRITICAL') return active.filter((a) => a.severity === 'CRITICAL');
+    return active.filter((a) => a.type === subTab);
+  }, [active, resolved, subTab]);
 
   const countForTab = (tabKey) => {
     if (tabKey === 'ALL') return counts.total;
     if (tabKey === 'CRITICAL') return counts.critical;
+    if (tabKey === 'RESOLVED') return counts.resolved;
     return counts[tabKey] || 0;
   };
 
@@ -91,11 +116,36 @@ const AlertsTab = () => {
     <>
       {/* KPI strip */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '16px 24px 16px' }}>
-        <Kpi title="Active Alerts" value={counts.total} accent="#3b82f6" icon={<Bell size={18} />} />
-        <Kpi title="Critical" value={counts.critical} accent="#dc2626" icon={<AlertTriangle size={18} />} />
-        <Kpi title="Service Due" value={counts.SERVICE_DUE} accent="#2563eb" icon={<Wrench size={18} />} />
-        <Kpi title="High Repair Spend" value={counts.HIGH_REPAIR_SPEND} accent="#dc2626" icon={<AlertTriangle size={18} />} />
-        <Kpi title="Doc Expiry" value={counts.DOCUMENT_EXPIRY} accent="#ea580c" icon={<FileWarning size={18} />} />
+        <KpiCard
+          title="Active Alerts"
+          value={counts.total}
+          accent="#3b82f6"
+          icon={<Bell size={18} />}
+        />
+        <KpiCard
+          title="Critical"
+          value={counts.critical}
+          accent="#dc2626"
+          icon={<AlertTriangle size={18} />}
+        />
+        <KpiCard
+          title="Service Due"
+          value={counts.SERVICE_DUE}
+          accent="#2563eb"
+          icon={<Wrench size={18} />}
+        />
+        <KpiCard
+          title="High Repair Spend"
+          value={counts.HIGH_REPAIR_SPEND}
+          accent="#dc2626"
+          icon={<AlertTriangle size={18} />}
+        />
+        <KpiCard
+          title="Doc Expiry"
+          value={counts.DOCUMENT_EXPIRY}
+          accent="#ea580c"
+          icon={<FileWarning size={18} />}
+        />
       </div>
 
       {/* Sub-tabs + refresh */}
@@ -111,7 +161,7 @@ const AlertsTab = () => {
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {SUB_TABS.map((t) => {
-            const active = t.key === subTab;
+            const active_ = t.key === subTab;
             const n = countForTab(t.key);
             return (
               <button
@@ -121,9 +171,9 @@ const AlertsTab = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  background: active ? '#1e293b' : '#fff',
-                  color: active ? '#fff' : '#475569',
-                  border: `1px solid ${active ? '#1e293b' : '#e2e8f0'}`,
+                  background: active_ ? '#1e293b' : '#fff',
+                  color: active_ ? '#fff' : '#475569',
+                  border: `1px solid ${active_ ? '#1e293b' : '#e2e8f0'}`,
                   borderRadius: 999,
                   padding: '6px 12px',
                   fontSize: 12,
@@ -141,8 +191,8 @@ const AlertsTab = () => {
                     height: 18,
                     padding: '0 5px',
                     borderRadius: 999,
-                    background: active ? 'rgba(255,255,255,0.18)' : '#f1f5f9',
-                    color: active ? '#fff' : '#475569',
+                    background: active_ ? 'rgba(255,255,255,0.18)' : '#f1f5f9',
+                    color: active_ ? '#fff' : '#475569',
                     fontSize: 11,
                   }}
                 >
@@ -153,44 +203,38 @@ const AlertsTab = () => {
           })}
         </div>
 
-        <button
+        <NewButton
+          variant="secondary"
+          size="sm"
+          type="button"
+          text="Refresh"
+          prependIcon={<RefreshCw size={14} className={loading ? 'spin-anim' : ''} />}
           onClick={load}
           disabled={loading}
-          title="Refresh alerts"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 8,
-            padding: '7px 12px',
-            fontSize: 12,
-            fontWeight: 600,
-            color: '#475569',
-            cursor: loading ? 'wait' : 'pointer',
-          }}
-        >
-          <RefreshCw size={14} className={loading ? 'spin-anim' : ''} />
-          Refresh
-        </button>
+        />
       </div>
 
       {/* Alert list */}
       <div style={{ padding: '0 24px' }}>
-        {loading && alerts.length === 0 && (
-          <div style={emptyBox}>Loading alerts…</div>
-        )}
+        {loading && alerts.length === 0 && <div style={emptyBox}>Loading alerts…</div>}
         {!loading && filtered.length === 0 && (
           <div style={emptyBox}>
-            {alerts.length === 0
-              ? 'No alerts right now. Everything looks healthy.'
-              : 'No alerts in this category.'}
+            {subTab === 'RESOLVED'
+              ? 'No resolved alerts yet.'
+              : alerts.length === 0
+                ? 'No alerts right now. Everything looks healthy.'
+                : 'No alerts in this category.'}
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map((a) => (
-            <AlertCard key={a.id} alert={a} onGoToVehicle={() => navigate('/vehicles/dashboard')} />
+            <AlertCard
+              key={a.id}
+              alert={a}
+              resolving={resolvingId === a.id}
+              onResolve={() => handleResolve(a)}
+              onGoToVehicle={() => navigate('/vehicles/dashboard')}
+            />
           ))}
         </div>
       </div>
@@ -204,7 +248,7 @@ const AlertsTab = () => {
   );
 };
 
-const AlertCard = ({ alert, onGoToVehicle }) => {
+const AlertCard = ({ alert, resolving, onResolve, onGoToVehicle }) => {
   const meta = TYPE_META[alert.type] || { label: alert.type, icon: Bell, color: '#475569' };
   const Icon = meta.icon;
   const sev = SEVERITY_STYLE[alert.severity] || SEVERITY_STYLE.WARNING;
@@ -215,9 +259,9 @@ const AlertCard = ({ alert, onGoToVehicle }) => {
         display: 'flex',
         alignItems: 'flex-start',
         gap: 12,
-        background: '#fff',
+        background: alert.resolved ? '#f8fafc' : '#fff',
         border: '1px solid #e2e8f0',
-        borderLeft: `4px solid ${sev.dot}`,
+        borderLeft: `4px solid ${alert.resolved ? '#16a34a' : sev.dot}`,
         borderRadius: 10,
         padding: '12px 14px',
       }}
@@ -239,9 +283,17 @@ const AlertCard = ({ alert, onGoToVehicle }) => {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            flexWrap: 'wrap',
+            marginBottom: 4,
+          }}
+        >
           <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{meta.label}</span>
-          <SeverityBadge severity={alert.severity} />
+          {alert.resolved ? <ResolvedBadge /> : <SeverityBadge severity={alert.severity} />}
           <button
             onClick={onGoToVehicle}
             style={{
@@ -256,15 +308,27 @@ const AlertCard = ({ alert, onGoToVehicle }) => {
           >
             {alert.vehicleReg}
           </button>
-          {alert.model && (
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>· {alert.model}</span>
-          )}
+          {alert.model && <span style={{ fontSize: 11, color: '#94a3b8' }}>· {alert.model}</span>}
         </div>
         <div style={{ fontSize: 13, color: '#334155' }}>{alert.description}</div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-          Generated {formatTime(alert.createdDate)}
+          {alert.resolved
+            ? `Resolved ${formatTime(alert.resolvedAt)}${alert.resolvedBy ? ` by ${alert.resolvedBy}` : ''}`
+            : `Generated ${formatTime(alert.createdDate)}`}
         </div>
       </div>
+
+      {!alert.resolved && (
+        <NewButton
+          variant="secondary"
+          size="sm"
+          type="button"
+          text={resolving ? 'Resolving…' : 'Resolve'}
+          prependIcon={<Check size={14} />}
+          onClick={onResolve}
+          disabled={resolving}
+        />
+      )}
     </div>
   );
 };
@@ -292,50 +356,24 @@ const SeverityBadge = ({ severity }) => {
   );
 };
 
-const Kpi = ({ title, value, accent, icon }) => (
-  <div
+const ResolvedBadge = () => (
+  <span
     style={{
-      flex: '1 1 180px',
-      minWidth: 170,
-      background: '#fff',
-      border: '1px solid #e2e8f0',
-      borderRadius: 12,
-      padding: '14px 16px',
-      display: 'flex',
+      display: 'inline-flex',
       alignItems: 'center',
-      gap: 12,
-      boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+      gap: 5,
+      background: '#dcfce7',
+      color: '#166534',
+      border: '1px solid #16a34a33',
+      padding: '2px 8px',
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: 700,
     }}
   >
-    <div
-      style={{
-        width: 40,
-        height: 40,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 10,
-        background: `${accent}1a`,
-        color: accent,
-      }}
-    >
-      {icon}
-    </div>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: '#64748b',
-          textTransform: 'uppercase',
-          letterSpacing: 0.4,
-        }}
-      >
-        {title}
-      </div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{value}</div>
-    </div>
-  </div>
+    <Check size={11} />
+    Resolved
+  </span>
 );
 
 const emptyBox = {

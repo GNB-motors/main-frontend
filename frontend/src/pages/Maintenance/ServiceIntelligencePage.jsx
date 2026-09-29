@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Plus, Wrench } from 'lucide-react';
@@ -10,8 +10,9 @@ import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
+import NewButton from '../../components/ui/NewButton';
+import KpiCard from '../../components/ui/KpiCard';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { computeServiceKpi } from './serviceIntelligenceKpi';
 import { buildServiceIntelligenceColumns } from './serviceIntelligenceColumns';
 import '../Profile/VehiclesPage.css';
 
@@ -21,51 +22,8 @@ const TABS = [
   { key: 'ALERTS', label: 'Alerts' },
 ];
 
-const Kpi = ({ title, value, accent, icon }) => (
-  <div
-    style={{
-      flex: '1 1 220px',
-      minWidth: 200,
-      background: '#fff',
-      border: '1px solid #e2e8f0',
-      borderRadius: 12,
-      padding: '16px 18px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 14,
-      boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-    }}
-  >
-    <div
-      style={{
-        width: 44,
-        height: 44,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 10,
-        background: `${accent}1a`,
-        color: accent,
-      }}
-    >
-      {icon}
-    </div>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: '#64748b',
-          textTransform: 'uppercase',
-          letterSpacing: 0.4,
-        }}
-      >
-        {title}
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{value}</div>
-    </div>
-  </div>
-);
+const ITEMS_PER_PAGE = 20;
+const EMPTY_SUMMARY = { total: 0, totalAmount: 0, last30: 0 };
 
 const ServiceIntelligencePage = () => {
   const navigate = useNavigate();
@@ -78,6 +36,10 @@ const ServiceIntelligencePage = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [summary, setSummary] = useState(EMPTY_SUMMARY);
 
   useEffect(() => {
     const handler = () => setThemeColors(getThemeCSS());
@@ -90,7 +52,7 @@ const ServiceIntelligencePage = () => {
   const requestIdRef = useRef(0);
   const isFirstRenderRef = useRef(true);
 
-  const load = useCallback(async (recordType, q) => {
+  const load = useCallback(async (recordType, q, pageNum) => {
     if (recordType === 'ALERTS') {
       setRows([]);
       return;
@@ -99,12 +61,20 @@ const ServiceIntelligencePage = () => {
     setLoading(true);
     try {
       const token = getToken();
-      const res = await MaintenanceService.listRecords(token, {
-        recordType,
-        search: q || undefined,
-      });
+      const [recordsRes, summaryRes] = await Promise.all([
+        MaintenanceService.listRecords(token, {
+          recordType,
+          search: q || undefined,
+          page: pageNum,
+          limit: ITEMS_PER_PAGE,
+        }),
+        MaintenanceService.getSummary(token, { recordType, search: q || undefined }),
+      ]);
       if (myId !== requestIdRef.current) return;
-      setRows(res.data);
+      setRows(recordsRes.data);
+      setTotalPages(recordsRes.meta?.totalPages || 1);
+      setTotalRecords(recordsRes.meta?.total ?? recordsRes.data.length);
+      setSummary(summaryRes);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
       toast.error(err?.detail || 'Failed to load records');
@@ -113,16 +83,21 @@ const ServiceIntelligencePage = () => {
     }
   }, []);
 
-  // Tab change: load immediately. Search change: debounced.
+  // Reset to page 1 when the search term changes.
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  // Tab change: load immediately. Search/page change: debounced.
   useEffect(() => {
     if (isFirstRenderRef.current) {
       isFirstRenderRef.current = false;
-      load(activeTab, '');
+      load(activeTab, '', 1);
       return undefined;
     }
-    const t = setTimeout(() => load(activeTab, search.trim()), 300);
+    const t = setTimeout(() => load(activeTab, search.trim(), page), 300);
     return () => clearTimeout(t);
-  }, [search, activeTab, load]);
+  }, [search, activeTab, page, load]);
 
   const handleDelete = async (row) => {
     const ok = await confirm({
@@ -166,14 +141,16 @@ const ServiceIntelligencePage = () => {
   const switchTab = (tab) => {
     setActiveTab(tab);
     setSearch('');
+    setPage(1);
     isFirstRenderRef.current = true; // re-fire immediate load
+  };
+
+  const handlePageChange = (next) => {
+    if (next >= 1 && next <= totalPages) setPage(next);
   };
 
   const isService = activeTab === 'SERVICE';
   const isAlerts = activeTab === 'ALERTS';
-
-  // KPI summary across the loaded set (current tab).
-  const kpi = useMemo(() => (isAlerts ? null : computeServiceKpi(rows)), [rows, isAlerts]);
 
   const columns = isAlerts
     ? []
@@ -191,7 +168,7 @@ const ServiceIntelligencePage = () => {
       >
         <PageShell
           title="Service Intelligence"
-          subtitle="Manage vehicle service and repair history. Alerts will surface automatically once we wire the rules."
+          subtitle="Manage vehicle service and repair history, and track fleet alerts for overdue service, high repair spend, and expiring documents."
           filters={
             !isAlerts ? (
               <FilterBar
@@ -199,25 +176,13 @@ const ServiceIntelligencePage = () => {
                 onSearchChange={setSearch}
                 searchPlaceholder={`Search workshop, ${isService ? 'service' : 'repair'} type, notes…`}
                 right={
-                  <button
+                  <NewButton
+                    variant="primary"
+                    type="button"
+                    text={isService ? 'Add Service' : 'Add Repair'}
+                    prependIcon={<Plus size={16} />}
                     onClick={goToAdd}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      background: '#2563eb',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '9px 14px',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Plus size={16} />
-                    {isService ? 'Add Service' : 'Add Repair'}
-                  </button>
+                  />
                 }
               />
             ) : null
@@ -238,21 +203,21 @@ const ServiceIntelligencePage = () => {
           ) : (
             <>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '16px 0 20px' }}>
-                <Kpi
+                <KpiCard
                   title={`Total ${isService ? 'Services' : 'Repairs'}`}
-                  value={kpi.total}
+                  value={summary.total}
                   accent="#3b82f6"
                   icon={<Wrench size={18} />}
                 />
-                <Kpi
+                <KpiCard
                   title="Last 30 days"
-                  value={kpi.last30}
+                  value={summary.last30}
                   accent="#f59e0b"
                   icon={<Wrench size={18} />}
                 />
-                <Kpi
+                <KpiCard
                   title="Total Spend"
-                  value={`₹${kpi.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                  value={`₹${summary.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
                   accent="#16a34a"
                   icon={<Wrench size={18} />}
                 />
@@ -263,8 +228,47 @@ const ServiceIntelligencePage = () => {
                 rows={rows}
                 rowKey={(r) => r._id}
                 loading={loading}
-                emptyTitle={`No ${isService ? 'service' : 'repair'} entries yet`}
-                emptyHint={`Click "${isService ? 'Add Service' : 'Add Repair'}" to log one.`}
+                showing={rows.length}
+                total={totalRecords}
+                activeFilters={search.trim() ? 1 : 0}
+                paginated={true}
+                pagination={
+                  totalPages > 1 ? (
+                    <div className="vehicles-pagination-controls">
+                      <button
+                        className="vehicles-pagination-btn"
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page === 1}
+                        type="button"
+                        title="Previous page"
+                      >
+                        <span>←</span>
+                      </button>
+                      <span style={{ fontSize: 13, color: '#5d5d5e', fontWeight: 500 }}>
+                        Page {page} of {totalPages}
+                      </span>
+                      <button
+                        className="vehicles-pagination-btn"
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page === totalPages}
+                        type="button"
+                        title="Next page"
+                      >
+                        <span>→</span>
+                      </button>
+                    </div>
+                  ) : null
+                }
+                emptyTitle={
+                  totalRecords === 0
+                    ? `No ${isService ? 'service' : 'repair'} entries yet`
+                    : `No ${isService ? 'service' : 'repair'} entries match your search`
+                }
+                emptyHint={
+                  totalRecords === 0
+                    ? `Click "${isService ? 'Add Service' : 'Add Repair'}" to log one.`
+                    : 'Try a different workshop, type, or note.'
+                }
               />
             </>
           )}
