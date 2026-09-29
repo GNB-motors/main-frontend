@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Truck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Truck } from 'lucide-react';
 import { VehicleService } from './VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
-import NewButton from '@/components/ui/NewButton';
 import { getToken } from '../../utils/session.js';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -87,16 +86,6 @@ const VehicleDashboardPage = () => {
         <PageShell
           title="Vehicle Dashboard"
           subtitle="Fleet-wide document expiry status. Badges update automatically based on each document's expiry date."
-          actions={
-            <NewButton
-              variant="link"
-              size="xs"
-              text="Vehicles"
-              prependIcon={<ArrowLeft size={14} />}
-              prependGap={6}
-              onClick={() => navigate('/vehicles')}
-            />
-          }
           filters={
             <FilterBar
               searchValue={search}
