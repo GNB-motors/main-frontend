@@ -1,9 +1,10 @@
 /**
  * Pure list logic for the Drivers page: API-shape normalization, client-side
  * vehicle-assignment filtering + sort order, cross-branch move detection,
- * and pagination window generation.
+ * pagination window generation, and typed export column config.
  * Kept framework-free so it is unit-testable (rule 21).
  */
+import { formatRole } from './Component/driverPresenters.js';
 
 /**
  * Normalize a driver/employee record from the API: stable `id`, name parts,
@@ -117,4 +118,38 @@ export function generatePageNumbers(currentPage, totalPages) {
   }
 
   return pages;
+}
+
+export const EMPLOYEE_EXPORT_COLUMNS = [
+  { key: 'name', label: 'Name' },
+  { key: 'role', label: 'Role' },
+  { key: 'mobileNumber', label: 'Contact' },
+  { key: 'email', label: 'Email' },
+  { key: 'assignedVehicle', label: 'Assigned Vehicle' },
+  { key: 'licenseNumber', label: 'License No' },
+  { key: 'status', label: 'Status' },
+];
+
+export function mapDriverForExport(driver) {
+  return {
+    name: driver.name || '',
+    role: formatRole(driver.role, driver.is_superadmin),
+    mobileNumber: driver.mobileNumber || '',
+    email: driver.email || '',
+    assignedVehicle:
+      driver.assignedVehicle && driver.assignedVehicle !== 'Unassigned'
+        ? driver.assignedVehicle
+        : 'Unassigned',
+    licenseNumber: driver.licenseNumber || '',
+    status: driver.branchStatus === 'DEACTIVATED' ? 'Deactivated' : driver.status || 'PENDING',
+  };
+}
+
+export function employeeExportMeta({ search = '', filters = {} } = {}) {
+  const list = [];
+  if (search.trim()) list.push({ label: 'Search', value: search.trim() });
+  if (filters.role) list.push({ label: 'Role', value: formatRole(filters.role) });
+  if (filters.vehicleAssignment)
+    list.push({ label: 'Vehicle assignment', value: filters.vehicleAssignment });
+  return { filters: list, generatedAt: new Date() };
 }

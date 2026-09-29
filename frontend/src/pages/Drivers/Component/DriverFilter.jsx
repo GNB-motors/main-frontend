@@ -15,22 +15,40 @@ export default function DriverFilter({
   onClearFilters,
   activeFilterCount,
   drivers,
+  compact = false,
 }) {
   return (
     <div className="drivers-filter-container">
-      <NewButton
-        variant="secondary"
-        size="lg"
-        iconOnly
-        selected={activeFilterCount > 0}
-        aria-label="Filter employees"
-        onClick={onToggle}
-      >
-        <Filter size={14} />
-        {activeFilterCount > 0 && (
-          <span className="drivers-filter-count-badge">{activeFilterCount}</span>
-        )}
-      </NewButton>
+      {compact ? (
+        <button
+          type="button"
+          className={`dt-tool${activeFilterCount > 0 ? ' dt-tool--active' : ''}`}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label="Filter employees"
+          onClick={onToggle}
+        >
+          <Filter size={13} />
+          Filter
+          {activeFilterCount > 0 && (
+            <span className="drivers-filter-count-badge">{activeFilterCount}</span>
+          )}
+        </button>
+      ) : (
+        <NewButton
+          variant="secondary"
+          size="lg"
+          iconOnly
+          selected={activeFilterCount > 0}
+          aria-label="Filter employees"
+          onClick={onToggle}
+        >
+          <Filter size={14} />
+          {activeFilterCount > 0 && (
+            <span className="drivers-filter-count-badge">{activeFilterCount}</span>
+          )}
+        </NewButton>
+      )}
 
       <FilterDropdown
         isOpen={isOpen}

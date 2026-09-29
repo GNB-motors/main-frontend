@@ -8,8 +8,8 @@ import { getToken, getProfileField } from '../../utils/session.js';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import NewButton from '@/components/ui/NewButton';
 import PageShell from '../../components/ui/PageShell';
-import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
+import ExportButton from '../../components/ui/ExportButton';
 import { useDriverColumns } from './useDriverColumns.jsx';
 import { getInitials, formatRole } from './Component/driverPresenters.js';
 import { EditDriverModal } from './Component/DriverFormModals.jsx';
@@ -28,6 +28,9 @@ import {
   filterAndSortDrivers,
   countActiveDrivers,
   countActiveFilters,
+  EMPLOYEE_EXPORT_COLUMNS,
+  mapDriverForExport,
+  employeeExportMeta,
 } from './driverList.js';
 import { useDriverActions } from './useDriverActions.js';
 
@@ -240,6 +243,27 @@ const DriversPage = () => {
   // The header count reflects only active employees (deactivated are excluded).
   const activeCount = useMemo(() => countActiveDrivers(filteredDrivers), [filteredDrivers]);
 
+  const exportRows = useMemo(() => filteredDrivers.map(mapDriverForExport), [filteredDrivers]);
+
+  // Export must cover every matching employee, not just the currently-loaded
+  // page — pull all pages from the API (capped at the backend's max `limit`
+  // of 1000 per request) before applying the same client-side filter as the table.
+  const fetchAllEmployeesForExport = async () => {
+    const EXPORT_PAGE_LIMIT = 1000;
+    const baseParams = { limit: EXPORT_PAGE_LIMIT };
+    if (searchTerm) baseParams.search = searchTerm;
+    if (filters.role) baseParams.role = filters.role;
+
+    const first = await DriverService.getAllDrivers(businessRefId, { ...baseParams, page: 1 });
+    const all = (first.data || []).map(normalizeDriver);
+    const exportTotalPages = first.meta?.totalPages || 1;
+    for (let page = 2; page <= exportTotalPages; page += 1) {
+      const next = await DriverService.getAllDrivers(businessRefId, { ...baseParams, page });
+      all.push(...(next.data || []).map(normalizeDriver));
+    }
+    return filterAndSortDrivers(all, filters.vehicleAssignment).map(mapDriverForExport);
+  };
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -320,29 +344,6 @@ const DriversPage = () => {
             />
           </>
         }
-        filters={
-          <FilterBar
-            searchValue={searchInput}
-            onSearchChange={handleSearchChange}
-            searchPlaceholder="Employee name or Id"
-            activeCount={activeFilterCount}
-            onClear={handleClearFilters}
-            right={
-              <DriverFilter
-                isOpen={isFilterDropdownOpen}
-                onToggle={toggleFilterDropdown}
-                onClose={() => setIsFilterDropdownOpen(false)}
-                filters={filters}
-                tempFilters={tempFilters}
-                onFilterChange={handleFilterChange}
-                onApplyFilters={handleApplyFilters}
-                onClearFilters={handleClearFilters}
-                activeFilterCount={activeFilterCount}
-                drivers={drivers}
-              />
-            }
-          />
-        }
       >
         {actionError && (
           <div className="drivers-error-message drivers-action-error">{actionError}</div>
@@ -358,6 +359,41 @@ const DriversPage = () => {
           showing={paginatedDrivers.length}
           total={activeCount}
           activeFilters={activeFilterCount}
+          toolbarExtra={
+            <>
+              <div className="dt-search">
+                <Search size={13} aria-hidden />
+                <input
+                  type="search"
+                  value={searchInput}
+                  placeholder="Employee name or Id"
+                  onChange={handleSearchChange}
+                  aria-label="Employee name or Id"
+                />
+              </div>
+              <ExportButton
+                fetchAll={fetchAllEmployeesForExport}
+                columns={EMPLOYEE_EXPORT_COLUMNS}
+                filename="employees"
+                meta={employeeExportMeta({ search: searchTerm, filters })}
+                disabled={!exportRows.length}
+                compact
+              />
+              <DriverFilter
+                isOpen={isFilterDropdownOpen}
+                onToggle={toggleFilterDropdown}
+                onClose={() => setIsFilterDropdownOpen(false)}
+                filters={filters}
+                tempFilters={tempFilters}
+                onFilterChange={handleFilterChange}
+                onApplyFilters={handleApplyFilters}
+                onClearFilters={handleClearFilters}
+                activeFilterCount={activeFilterCount}
+                drivers={drivers}
+                compact
+              />
+            </>
+          }
           paginated={true}
           pagination={
             totalPages > 1 || activeCount > 10 ? (
