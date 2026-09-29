@@ -8,6 +8,7 @@ const FeatureFlagsContext = createContext({
   flags: {},
   permissions: {},
   organization: null,
+  profile: null,
   loading: true,
   isEnabled: () => false,
   hasPermission: () => false,
@@ -24,12 +25,19 @@ export const FeatureFlagsProvider = ({ children }) => {
   // The same /api/auth/me payload already carries the organization, so the
   // company logo rides along with the flags rather than costing a second call.
   const [organization, setOrganization] = useState(null);
+  // Full /api/auth/me payload (profile fields incl. primaryThemeColor), so
+  // DashboardLayout's theme sync can read it here instead of firing its own
+  // redundant /api/auth/me request on every mount.
+  const [profile, setProfile] = useState(null);
 
-  const { data: meResponse, loading, error: meError, refetch } = useApi(
-    (signal) => apiClient.get('/api/auth/me', { signal }),
-    [],
-    { enabled: isAuthenticated() }
-  );
+  const {
+    data: meResponse,
+    loading,
+    error: meError,
+    refetch,
+  } = useApi((signal) => apiClient.get('/api/auth/me', { signal }), [], {
+    enabled: isAuthenticated(),
+  });
 
   useEffect(() => {
     if (!meResponse) return;
@@ -38,6 +46,7 @@ export const FeatureFlagsProvider = ({ children }) => {
     setOrganization(org);
     setFlags(org?.featureFlags ?? {});
     setPermissions(payload?.permissions ?? {});
+    setProfile(payload);
   }, [meResponse]);
 
   useEffect(() => {
@@ -46,6 +55,7 @@ export const FeatureFlagsProvider = ({ children }) => {
     setFlags({});
     setPermissions({});
     setOrganization(null);
+    setProfile(null);
   }, [meError]);
 
   const refresh = useCallback(() => refetch(), [refetch]);
@@ -69,7 +79,17 @@ export const FeatureFlagsProvider = ({ children }) => {
 
   return (
     <FeatureFlagsContext.Provider
-      value={{ flags, permissions, organization, loading, isEnabled, hasPermission, canAccess, refresh }}
+      value={{
+        flags,
+        permissions,
+        organization,
+        profile,
+        loading,
+        isEnabled,
+        hasPermission,
+        canAccess,
+        refresh,
+      }}
     >
       {children}
     </FeatureFlagsContext.Provider>

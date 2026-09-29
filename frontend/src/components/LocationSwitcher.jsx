@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Check, Plus, Search } from 'lucide-react';
 import { useActiveBranch } from '../contexts/BranchContext.jsx';
@@ -10,7 +11,12 @@ import NewEnterpriseIcon from './Icons/NewEnterpriseIcon.jsx';
 import BranchIcon from './Icons/BranchIcon.jsx';
 import Chevron from './Icons/Chevron.jsx';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from './ui/dialog';
 import './LocationSwitcher.css';
 
@@ -30,6 +36,7 @@ const LocationSwitcher = () => {
   const { branchId, branches, activeBranch, loading, setBranch, refresh } = useActiveBranch();
   const { canAccess } = useFeatureFlags();
   const { organization } = useOrganization();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [align, setAlign] = useState('left');
@@ -75,11 +82,25 @@ const LocationSwitcher = () => {
     const changed = String(next || '') !== String(branchId || '');
     setBranch(next);
     setOpen(false);
-    if (changed) window.location.assign(getFirstNavPath(canAccess));
+    // SPA navigation, not a hard reload: setBranch already dispatches
+    // `branchChange` (FeatureFlagsContext refetches /api/auth/me on it) and
+    // DashboardLayout keys `.page-content` on branchId, which remounts the
+    // routed page to refetch its own branch-scoped data. A window.location
+    // reload only duplicated that work and re-fired /api/auth/me again.
+    if (changed) navigate(getFirstNavPath(canAccess));
   };
 
-  const openAddModal = () => { setOpen(false); setName(''); setModalOpen(true); };
-  const closeModal = () => { if (!submitting) { setModalOpen(false); setName(''); } };
+  const openAddModal = () => {
+    setOpen(false);
+    setName('');
+    setModalOpen(true);
+  };
+  const closeModal = () => {
+    if (!submitting) {
+      setModalOpen(false);
+      setName('');
+    }
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -112,9 +133,11 @@ const LocationSwitcher = () => {
         aria-expanded={open}
       >
         <span className="location-switcher-pin">
-          {isEnterprise
-            ? <NewEnterpriseIcon width={18} height={18} />
-            : <BranchIcon width={18} height={18} />}
+          {isEnterprise ? (
+            <NewEnterpriseIcon width={18} height={18} />
+          ) : (
+            <BranchIcon width={18} height={18} />
+          )}
         </span>
         <span className="location-switcher-label">{currentLabel}</span>
         <Chevron size={18} className={`location-switcher-caret ${open ? 'open' : ''}`} />
@@ -141,7 +164,9 @@ const LocationSwitcher = () => {
               className={`ls-row ${isEnterprise ? 'ls-row--active' : ''}`}
               onClick={() => switchTo(null)}
             >
-              <span className="ls-row__icon"><NewEnterpriseIcon width={22} height={22} /></span>
+              <span className="ls-row__icon">
+                <NewEnterpriseIcon width={22} height={22} />
+              </span>
               <span className="ls-row__body">
                 <span className="ls-row__title">{orgName}</span>
                 <span className="ls-row__sub">All locations · Enterprise</span>
@@ -159,7 +184,9 @@ const LocationSwitcher = () => {
                   className={`ls-row ${active ? 'ls-row--active' : ''}`}
                   onClick={() => switchTo(String(b._id))}
                 >
-                  <span className="ls-row__icon"><BranchIcon width={22} height={22} /></span>
+                  <span className="ls-row__icon">
+                    <BranchIcon width={22} height={22} />
+                  </span>
                   <span className="ls-row__body">
                     <span className="ls-row__title">
                       {b.name}
@@ -186,15 +213,24 @@ const LocationSwitcher = () => {
       )}
 
       {/* Add-location modal */}
-      <Dialog open={modalOpen} onOpenChange={(isOpen) => { if (!isOpen) closeModal(); }}>
+      <Dialog
+        open={modalOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) closeModal();
+        }}
+      >
         <DialogContent className="max-w-md p-0">
           <form onSubmit={handleCreate}>
             <DialogHeader>
               <DialogTitle>Add location</DialogTitle>
-              <DialogDescription>Create a new operating location for your enterprise.</DialogDescription>
+              <DialogDescription>
+                Create a new operating location for your enterprise.
+              </DialogDescription>
             </DialogHeader>
             <div className="px-6 py-4">
-              <label htmlFor="new-location-name" className="mb-2 block text-sm font-medium">Location name</label>
+              <label htmlFor="new-location-name" className="mb-2 block text-sm font-medium">
+                Location name
+              </label>
               <input
                 id="new-location-name"
                 type="text"
@@ -208,10 +244,19 @@ const LocationSwitcher = () => {
               />
             </div>
             <DialogFooter>
-              <button type="button" className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50" onClick={closeModal} disabled={submitting}>
+              <button
+                type="button"
+                className="rounded-md border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                onClick={closeModal}
+                disabled={submitting}
+              >
                 Cancel
               </button>
-              <button type="submit" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50" disabled={submitting || !name.trim()}>
+              <button
+                type="submit"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                disabled={submitting || !name.trim()}
+              >
                 {submitting ? 'Adding…' : 'Add location'}
               </button>
             </DialogFooter>
