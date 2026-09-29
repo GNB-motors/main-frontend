@@ -15,9 +15,8 @@ import './Hotspots.css';
 
 const mapContainerStyle = {
   width: '100%',
-  height: 'calc(100vh - 260px)',
-  minHeight: '440px',
-  maxHeight: '620px',
+  height: '580px',
+  minHeight: '520px',
 };
 
 const RANGE_OPTIONS = [
@@ -222,9 +221,14 @@ export default function DrainHotspotMap({ mapLoaded, onCreateZone }) {
         )}
 
         {!loading && !error && buckets.length === 0 && (
-          <div className="hs-ambient-badge">
-            <Droplets size={16} className="text-emerald-600" />
-            <span>No fuel-drain events in this window</span>
+          <div className="hs-status-strip hs-status-strip--emerald">
+            <div
+              className="hs-status-strip-badge"
+              style={{ borderColor: '#10b981', color: '#065f46' }}
+            >
+              <Droplets size={15} className="text-emerald-600" />
+              <span>No fuel-drain events in this window</span>
+            </div>
           </div>
         )}
 
