@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Download } from 'lucide-react';
 import FleetDataService from '../../services/FleetDataService';
 import useApi from '../../hooks/useApi';
 import EmptyState from '../../components/cluster/EmptyState';
@@ -22,6 +23,7 @@ const SEVERITY_COLOR = {
 };
 
 export default function FleetAlertsPage() {
+  const navigate = useNavigate();
   const [type, setType] = useState('');
   const [page, setPage] = useState(1);
   const [vehicleInput, setVehicleInput] = useState('');
@@ -92,18 +94,43 @@ export default function FleetAlertsPage() {
   return (
     <div className="cluster-page">
       <PageShell
-        title="Fleet Alerts"
+        title={
+          <span className="inline-flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="cluster-inset inline-flex items-center justify-center p-1.5 rounded-lg text-xs transition hover:opacity-75"
+              style={{ color: 'var(--cluster-text-dim)' }}
+              title="Go back"
+              aria-label="Go back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span>Fleet Alerts</span>
+          </span>
+        }
         subtitle="Native alerts pushed by FleetEdge — refuels, fuel drains, geofence events, overspeed and SOS."
         actions={
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={!records.length}
-            className="cluster-inset flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75 disabled:opacity-40"
-            style={{ color: 'var(--cluster-text-dim)' }}
-          >
-            <Download size={13} /> CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="cluster-inset flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition hover:opacity-75"
+              style={{ color: 'var(--cluster-text-dim)' }}
+              title="Go back"
+            >
+              <ArrowLeft size={13} /> Back
+            </button>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={!records.length}
+              className="cluster-inset flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75 disabled:opacity-40"
+              style={{ color: 'var(--cluster-text-dim)' }}
+            >
+              <Download size={13} /> CSV
+            </button>
+          </div>
         }
         filters={
           <FilterBar
