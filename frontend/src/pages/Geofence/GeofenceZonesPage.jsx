@@ -7,9 +7,11 @@ import {
   Trash2,
   RefreshCw,
   Bell,
+  BellRing,
   BellOff,
   CheckCircle2,
   ShieldAlert,
+  ShieldCheck,
   ParkingCircle,
   X,
   Wifi,
@@ -22,6 +24,7 @@ import {
   LogIn,
   LogOut,
   Layers,
+  Droplets,
 } from 'lucide-react';
 import {
   GoogleMap,
@@ -37,7 +40,10 @@ import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import AddZoneDrawer from './AddZoneDrawer.jsx';
 import UnknownTerritoryDrawer from './UnknownTerritoryDrawer.jsx';
+import DrainHotspotMap from '../Hotspots/DrainHotspotMap.jsx';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
+import { KaaranService } from '../../services/KaaranService';
+import { formatNum } from '../../utils/formatters';
 import { label, humanise } from '../../lib/vocabulary';
 import { footerSummary } from '../../lib/tableState';
 import PageShell from '../../components/ui/PageShell';
@@ -47,6 +53,7 @@ import { useConfirm } from '../../components/ui/confirmContext';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { toGeofenceLiveVehicle } from './geofenceLive.shared.js';
 import { toast } from 'react-toastify';
+import '../Hotspots/Hotspots.css';
 import './GeofenceZones.css';
 
 dayjs.extend(utc);
@@ -297,13 +304,16 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
     location.pathname.endsWith('/alerts') ||
     searchParams.get('tab') === 'alerts'
       ? 'alerts'
-      : 'zones';
+      : searchParams.get('tab') === 'drain'
+        ? 'drain'
+        : 'zones';
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const [zones, setZones] = useState([]);
   const confirm = useConfirm();
   const [alerts, setAlerts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingTerritoryCount, setPendingTerritoryCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [typeFilter, setTypeFilter] = useState('');
@@ -351,14 +361,16 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
     try {
       const params = { isActive: showResolved ? undefined : 'true', limit: 5000 };
       if (typeFilter) params.zoneType = typeFilter;
-      const [zonesData, alertsData, count] = await Promise.all([
+      const [zonesData, alertsData, count, pendingTerritories] = await Promise.all([
         GeofenceService.getZones(params),
         GeofenceService.getAlerts({ isRead: 'false', limit: 50 }),
         GeofenceService.getUnreadAlertCount(),
+        KaaranService.getUnknownTerritories({ status: 'PENDING' }).catch(() => []),
       ]);
       setZones(zonesData.zones || []);
       setAlerts(alertsData.alerts || []);
       setUnreadCount(count);
+      setPendingTerritoryCount(Array.isArray(pendingTerritories) ? pendingTerritories.length : 0);
     } catch (err) {
       setError(err.message || 'Failed to load zones');
     } finally {
@@ -620,6 +632,12 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
           <Link to="/geofence" className="gfz-btn gfz-btn-ghost">
             <Compass size={14} /> Anomalies
           </Link>
+          <Link to="/hotspots" className="gfz-btn gfz-btn-ghost">
+            <ShieldAlert size={14} /> Risk Hotspots
+          </Link>
+          <Link to="/fleet-alerts" className="gfz-btn gfz-btn-ghost">
+            <BellRing size={14} /> Fleet Alerts
+          </Link>
           {activeTab === 'alerts' && unreadCount > 0 && (
             <button
               className="gfz-btn gfz-btn-ghost"
@@ -665,6 +683,11 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
                 title="Review unmapped dwell clusters and promote to zones"
               >
                 <Compass size={14} /> Unknown Territory
+                {pendingTerritoryCount > 0 && (
+                  <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                    {pendingTerritoryCount}
+                  </span>
+                )}
               </button>
             </>
           )}
@@ -773,7 +796,7 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
             })
       }
     >
-      {/* View Switcher: Zones vs Zone Alerts */}
+      {/* View Switcher: Zones vs Zone Alerts vs Fuel Drain Map */}
       <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
         <button
           type="button"
@@ -785,7 +808,7 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
           }`}
         >
           <MapPin size={13} />
-          <span>Zones &amp; Map ({zones.length})</span>
+          <span>Zones &amp; Surveillance Map ({zones.length})</span>
         </button>
         <button
           type="button"
@@ -804,41 +827,34 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
             </span>
           )}
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('drain')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+            activeTab === 'drain'
+              ? 'bg-white text-sky-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Droplets size={13} />
+          <span>Fuel Drain Map</span>
+        </button>
       </div>
 
-      {activeTab === 'zones' ? (
-        <>
-          {/* KPI Row */}
-          <div className="gfz-kpi-row">
-            <KpiCard
-              icon={AlertTriangle}
-              label="Accident Blackspots"
-              value={accidentCount}
-              colorClass="danger"
-            />
-            <KpiCard
-              icon={ParkingCircle}
-              label="Parking / Rest Stops"
-              value={parkingCount}
-              colorClass="warning"
-            />
-            <KpiCard icon={MapPin} label="Custom Zones" value={customCount} colorClass="info" />
-            <KpiCard
-              icon={Truck}
-              label="Live Vehicles"
-              value={liveVehicles.length}
-              colorClass={liveOnline ? 'success' : 'muted'}
-            />
-            <KpiCard
-              icon={Bell}
-              label="Unread Alerts"
-              value={unreadCount}
-              colorClass={unreadCount > 0 ? 'danger' : 'success'}
-            />
-          </div>
+      {activeTab === 'drain' && (
+        <DrainHotspotMap
+          mapLoaded={mapLoaded}
+          onCreateZone={(zoneData) => {
+            setClickedLatLng(zoneData);
+            setShowDrawer(true);
+          }}
+        />
+      )}
 
+      {activeTab === 'zones' && (
+        <>
           {error && (
-            <div className="gfz-error">
+            <div className="gfz-error mb-3">
               <AlertTriangle size={14} /> {error}
             </div>
           )}
@@ -849,6 +865,285 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
               onClose={() => setShowAlerts(false)}
             />
           )}
+
+          {/* Persistent Framed Map Card with Enclosed KPI Strip & Legend */}
+          <div className="hs-map-card">
+            <div className="hs-map-head">
+              <div className="flex items-center gap-2">
+                <MapPin size={16} className="text-indigo-600" />
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  Geofence Risk Zones &amp; Live Surveillance
+                </span>
+              </div>
+
+              {/* Enclosed KPI Rail */}
+              <div className="hs-kpi-strip">
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-rose-50 text-rose-600 border border-rose-200">
+                    <AlertTriangle size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Accident Prone</span>
+                    <span className="hs-kpi-pill-value">{formatNum(accidentCount)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
+                    <ParkingCircle size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Parking / Rest</span>
+                    <span className="hs-kpi-pill-value">{formatNum(parkingCount)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-indigo-50 text-indigo-600 border border-indigo-200">
+                    <MapPin size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Custom Zones</span>
+                    <span className="hs-kpi-pill-value">{formatNum(customCount)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    <Truck size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Live Fleet</span>
+                    <span className="hs-kpi-pill-value">{formatNum(liveVehicles.length)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span
+                    className={`hs-kpi-pill-icon ${unreadCount > 0 ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}
+                  >
+                    <Bell size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Zone Alerts</span>
+                    <span className={`hs-kpi-pill-value ${unreadCount > 0 ? 'text-rose-600' : ''}`}>
+                      {unreadCount}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    <ShieldCheck size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Surveillance</span>
+                    <span className="hs-kpi-pill-value text-emerald-700">Active</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legend Group */}
+              <div className="hs-legend-group">
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#ef4444' }} />
+                  <span>Accident Prone</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#f59e0b' }} />
+                  <span>Parking / Rest</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#6366f1' }} />
+                  <span>Custom Zone</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#22c55e' }} />
+                  <span>Moving</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#8b5cf6' }} />
+                  <span>Stopped</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#f59e0b' }} />
+                  <span>Idling</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <img src={GEOFENCE_BADGE_SVG} alt="icon" style={{ width: 12, height: 12 }} />
+                  <span>In-Zone Halo</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Ambient status ribbon bar (rendered below header so legend pills are never covered) */}
+            {unreadCount > 0 ? (
+              <div className="hs-status-strip hs-status-strip--amber">
+                <div
+                  className="hs-status-strip-badge"
+                  style={{ borderColor: '#f59e0b', color: '#b45309' }}
+                >
+                  <AlertTriangle size={15} className="text-amber-600" />
+                  <span>
+                    {unreadCount} Active Zone Breach / Halt Alert{unreadCount !== 1 ? 's' : ''}{' '}
+                    Requiring Review
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('alerts')}
+                  className="inline-flex items-center gap-1 rounded-md bg-white border border-amber-300 px-2.5 py-1 text-xs font-semibold text-amber-800 shadow-xs hover:bg-amber-100 transition cursor-pointer"
+                >
+                  Review Alerts Console &rarr;
+                </button>
+              </div>
+            ) : (
+              <div className="hs-status-strip hs-status-strip--emerald">
+                <div
+                  className="hs-status-strip-badge"
+                  style={{ borderColor: '#10b981', color: '#065f46' }}
+                >
+                  <ShieldCheck size={15} className="text-emerald-600" />
+                  <span>Corridors Clear · All Monitored Fleet Inside Authorized Corridors</span>
+                </div>
+              </div>
+            )}
+
+            {/* Main Map */}
+            <div className="gfz-map-wrap" style={{ border: 'none', borderRadius: 0, margin: 0 }}>
+              {mapLoaded ? (
+                <GoogleMap
+                  mapContainerClassName="gfz-map"
+                  center={MAP_CENTER}
+                  zoom={5}
+                  options={MAP_OPTIONS}
+                  onClick={handleMapClick}
+                >
+                  {memoizedZones.map((zone) => (
+                    <React.Fragment key={zone._id}>
+                      <MarkerF
+                        position={zone.position}
+                        icon={zone.markerIcon}
+                        onClick={() => {
+                          setSelectedZone(zone);
+                          setSelectedVehicle(null);
+                        }}
+                      />
+                      {(!zone.geofenceType || zone.geofenceType === 'circular') &&
+                        zone.radiusMetres > 0 && (
+                          <CircleF
+                            center={zone.position}
+                            radius={zone.radiusMetres}
+                            options={zone.circleOptions}
+                          />
+                        )}
+                      {zone.geofenceType === 'polygon' && zone.polygonPath?.length > 2 && (
+                        <PolygonF paths={zone.polygonPath} options={zone.polygonOptions} />
+                      )}
+                    </React.Fragment>
+                  ))}
+
+                  {liveVehicles.map((v) => {
+                    const vId = v.vehicleId || v.registrationNumber;
+                    const inZone = inZoneVehicleIdSet.has(vId);
+                    const iconUrl = vehicleIcons[v.status] || vehicleIcons.Offline;
+
+                    return (
+                      <React.Fragment key={vId}>
+                        {inZone && haloIcon && (
+                          <MarkerF
+                            key={`halo-${vId}`}
+                            position={{ lat: v.lat, lng: v.lng }}
+                            icon={haloIcon}
+                            zIndex={3}
+                          />
+                        )}
+                        <MarkerF
+                          position={{ lat: v.lat, lng: v.lng }}
+                          icon={iconUrl}
+                          zIndex={2}
+                          onClick={() => {
+                            setSelectedVehicle(v);
+                            setSelectedZone(null);
+                          }}
+                        />
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {selectedZone && (
+                    <InfoWindowF
+                      position={{ lat: selectedZone.lat, lng: selectedZone.lng }}
+                      onCloseClick={() => setSelectedZone(null)}
+                    >
+                      <div className="gfz-infowindow">
+                        <p className="gfz-iw-name">{selectedZone.name}</p>
+                        <ZoneTypeBadge zoneType={selectedZone.zoneType} />
+                        {selectedZone.radiusMetres > 0 && (
+                          <p className="gfz-iw-meta">Radius: {selectedZone.radiusMetres}m</p>
+                        )}
+                        {selectedZone.state && (
+                          <p className="gfz-iw-meta">{label('status', selectedZone.state)}</p>
+                        )}
+                        <p className="gfz-iw-meta">
+                          Entry: {selectedZone.alertConfig?.alertOnEntry ? '✅' : '—'} &nbsp; Exit:{' '}
+                          {selectedZone.alertConfig?.alertOnExit ? '✅' : '—'}
+                        </p>
+                      </div>
+                    </InfoWindowF>
+                  )}
+
+                  {selectedVehicle && (
+                    <InfoWindowF
+                      position={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
+                      onCloseClick={() => setSelectedVehicle(null)}
+                    >
+                      <div className="gfz-infowindow">
+                        <p className="gfz-iw-name">
+                          <Truck size={13} style={{ display: 'inline', marginRight: 4 }} />
+                          {selectedVehicle.registrationNumber}
+                        </p>
+                        <p className="gfz-iw-meta">
+                          Status:{' '}
+                          <strong
+                            style={{
+                              color: VEHICLE_STATUS_COLOR[selectedVehicle.status] || '#64748b',
+                            }}
+                          >
+                            {selectedVehicle.status || 'Unknown'}
+                          </strong>
+                        </p>
+                        {selectedVehicle.speed != null && (
+                          <p className="gfz-iw-meta">
+                            Speed: {selectedVehicle.speed?.toFixed(1)} kmph
+                          </p>
+                        )}
+                        {selectedVehicle.fuelLevel != null && (
+                          <p className="gfz-iw-meta">
+                            Fuel: {selectedVehicle.fuelLevel?.toFixed(1)} L
+                          </p>
+                        )}
+                        <p
+                          className={`gfz-iw-meta gfz-iw-time ${selectedVehicle.isStale ? 'gfz-iw-stale' : ''}`}
+                        >
+                          {selectedVehicle.isStale ? '⚠️ Last seen ' : ''}
+                          {fromNow(selectedVehicle.lastSeenAt)}
+                          {selectedVehicle.isStale ? ' — FleetEdge token may be expired' : ''}
+                        </p>
+                      </div>
+                    </InfoWindowF>
+                  )}
+                </GoogleMap>
+              ) : (
+                <div className="gfz-map-placeholder">
+                  <RefreshCw size={18} className="gfz-spin" /> Loading map…
+                </div>
+              )}
+              <p className="gfz-map-hint">
+                💡 Click anywhere on the map to quickly add a custom zone at that location
+              </p>
+            </div>
+          </div>
 
           {/* Filters */}
           <div className="gfz-filter-bar">
@@ -873,143 +1168,6 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
             <span className="gfz-count-label">
               {zones.length} zone{zones.length !== 1 ? 's' : ''}
             </span>
-          </div>
-
-          <MapLegend />
-
-          {/* Main Map */}
-          <div className="gfz-map-wrap">
-            {mapLoaded ? (
-              <GoogleMap
-                mapContainerClassName="gfz-map"
-                center={MAP_CENTER}
-                zoom={5}
-                options={MAP_OPTIONS}
-                onClick={handleMapClick}
-              >
-                {memoizedZones.map((zone) => (
-                  <React.Fragment key={zone._id}>
-                    <MarkerF
-                      position={zone.position}
-                      icon={zone.markerIcon}
-                      onClick={() => {
-                        setSelectedZone(zone);
-                        setSelectedVehicle(null);
-                      }}
-                    />
-                    {(!zone.geofenceType || zone.geofenceType === 'circular') &&
-                      zone.radiusMetres > 0 && (
-                        <CircleF
-                          center={zone.position}
-                          radius={zone.radiusMetres}
-                          options={zone.circleOptions}
-                        />
-                      )}
-                    {zone.geofenceType === 'polygon' && zone.polygonPath?.length > 2 && (
-                      <PolygonF paths={zone.polygonPath} options={zone.polygonOptions} />
-                    )}
-                  </React.Fragment>
-                ))}
-
-                {liveVehicles.map((v) => {
-                  const vId = v.vehicleId || v.registrationNumber;
-                  const inZone = inZoneVehicleIdSet.has(vId);
-                  const iconUrl = vehicleIcons[v.status] || vehicleIcons.Offline;
-
-                  return (
-                    <React.Fragment key={vId}>
-                      {inZone && haloIcon && (
-                        <MarkerF
-                          key={`halo-${vId}`}
-                          position={{ lat: v.lat, lng: v.lng }}
-                          icon={haloIcon}
-                          zIndex={3}
-                        />
-                      )}
-                      <MarkerF
-                        position={{ lat: v.lat, lng: v.lng }}
-                        icon={iconUrl}
-                        zIndex={2}
-                        onClick={() => {
-                          setSelectedVehicle(v);
-                          setSelectedZone(null);
-                        }}
-                      />
-                    </React.Fragment>
-                  );
-                })}
-
-                {selectedZone && (
-                  <InfoWindowF
-                    position={{ lat: selectedZone.lat, lng: selectedZone.lng }}
-                    onCloseClick={() => setSelectedZone(null)}
-                  >
-                    <div className="gfz-infowindow">
-                      <p className="gfz-iw-name">{selectedZone.name}</p>
-                      <ZoneTypeBadge zoneType={selectedZone.zoneType} />
-                      {selectedZone.radiusMetres > 0 && (
-                        <p className="gfz-iw-meta">Radius: {selectedZone.radiusMetres}m</p>
-                      )}
-                      {selectedZone.state && (
-                        <p className="gfz-iw-meta">{label('status', selectedZone.state)}</p>
-                      )}
-                      <p className="gfz-iw-meta">
-                        Entry: {selectedZone.alertConfig?.alertOnEntry ? '✅' : '—'} &nbsp; Exit:{' '}
-                        {selectedZone.alertConfig?.alertOnExit ? '✅' : '—'}
-                      </p>
-                    </div>
-                  </InfoWindowF>
-                )}
-
-                {selectedVehicle && (
-                  <InfoWindowF
-                    position={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
-                    onCloseClick={() => setSelectedVehicle(null)}
-                  >
-                    <div className="gfz-infowindow">
-                      <p className="gfz-iw-name">
-                        <Truck size={13} style={{ display: 'inline', marginRight: 4 }} />
-                        {selectedVehicle.registrationNumber}
-                      </p>
-                      <p className="gfz-iw-meta">
-                        Status:{' '}
-                        <strong
-                          style={{
-                            color: VEHICLE_STATUS_COLOR[selectedVehicle.status] || '#64748b',
-                          }}
-                        >
-                          {selectedVehicle.status || 'Unknown'}
-                        </strong>
-                      </p>
-                      {selectedVehicle.speed != null && (
-                        <p className="gfz-iw-meta">
-                          Speed: {selectedVehicle.speed?.toFixed(1)} kmph
-                        </p>
-                      )}
-                      {selectedVehicle.fuelLevel != null && (
-                        <p className="gfz-iw-meta">
-                          Fuel: {selectedVehicle.fuelLevel?.toFixed(1)} L
-                        </p>
-                      )}
-                      <p
-                        className={`gfz-iw-meta gfz-iw-time ${selectedVehicle.isStale ? 'gfz-iw-stale' : ''}`}
-                      >
-                        {selectedVehicle.isStale ? '⚠️ Last seen ' : ''}
-                        {fromNow(selectedVehicle.lastSeenAt)}
-                        {selectedVehicle.isStale ? ' — FleetEdge token may be expired' : ''}
-                      </p>
-                    </div>
-                  </InfoWindowF>
-                )}
-              </GoogleMap>
-            ) : (
-              <div className="gfz-map-placeholder">
-                <RefreshCw size={18} className="gfz-spin" /> Loading map…
-              </div>
-            )}
-            <p className="gfz-map-hint">
-              💡 Click anywhere on the map to quickly add a custom zone at that location
-            </p>
           </div>
 
           {/* Table */}
@@ -1116,30 +1274,83 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
             </div>
           )}
         </>
-      ) : (
+      )}
+
+      {activeTab === 'alerts' && (
         <>
           {/* Zone Alerts Console View */}
-          <div className="gfz-kpi-row">
-            <KpiCard icon={Bell} label="Total Alerts" value={alerts.length} colorClass="info" />
-            <KpiCard
-              icon={AlertTriangle}
-              label="Unread Alerts"
-              value={unreadCount}
-              colorClass={unreadCount > 0 ? 'danger' : 'success'}
-            />
-            <KpiCard
-              icon={LogIn}
-              label="Entry Events"
-              value={alerts.filter((a) => a.eventType === 'ENTRY').length}
-              colorClass="success"
-            />
-            <KpiCard
-              icon={LogOut}
-              label="Exit Events"
-              value={alerts.filter((a) => a.eventType === 'EXIT').length}
-              colorClass="warning"
-            />
-            <KpiCard icon={MapPin} label="Monitored Zones" value={zones.length} colorClass="info" />
+          <div className="hs-map-card">
+            <div className="hs-map-head">
+              <div className="flex items-center gap-2">
+                <Bell size={16} className="text-amber-600" />
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  Geofence Crossing Alerts &amp; Event Stream
+                </span>
+              </div>
+
+              {/* Enclosed KPI Rail */}
+              <div className="hs-kpi-strip">
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-sky-50 text-sky-600 border border-sky-200">
+                    <Bell size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Total Alerts</span>
+                    <span className="hs-kpi-pill-value">{formatNum(alerts.length)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span
+                    className={`hs-kpi-pill-icon ${unreadCount > 0 ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}
+                  >
+                    <AlertTriangle size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Unread</span>
+                    <span
+                      className={`hs-kpi-pill-value ${unreadCount > 0 ? 'text-rose-600' : 'text-emerald-700'}`}
+                    >
+                      {formatNum(unreadCount)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    <LogIn size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Entry Events</span>
+                    <span className="hs-kpi-pill-value">
+                      {formatNum(alerts.filter((a) => a.eventType === 'ENTRY').length)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
+                    <LogOut size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Exit Events</span>
+                    <span className="hs-kpi-pill-value">
+                      {formatNum(alerts.filter((a) => a.eventType === 'EXIT').length)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-indigo-50 text-indigo-600 border border-indigo-200">
+                    <MapPin size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Monitored Zones</span>
+                    <span className="hs-kpi-pill-value">{formatNum(zones.length)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="gfz-filter-bar">
