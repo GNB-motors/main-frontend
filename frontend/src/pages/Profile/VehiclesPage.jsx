@@ -48,7 +48,6 @@ const VehiclesPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
-  const [accountFilter, setAccountFilter] = useState('all'); // 'all' | 'untagged' | <accountId>
 
   // Update theme colors when component mounts
   useEffect(() => {
@@ -156,16 +155,39 @@ const VehiclesPage = () => {
   // Build a map from accountId → account for fast lookup
   const accountMap = useMemo(() => buildAccountMap(fleetEdgeAccounts), [fleetEdgeAccounts]);
 
-  // --- Filter vehicles by registration number + account ---
+  // --- Filter vehicles by registration number ---
   const filteredVehicles = useMemo(
-    () => filterVehicles(vehicles, { search: searchVehicleNo, accountFilter }),
-    [vehicles, searchVehicleNo, accountFilter],
+    () => filterVehicles(vehicles, { search: searchVehicleNo }),
+    [vehicles, searchVehicleNo],
   );
 
   const exportRows = useMemo(
     () => filteredVehicles.map((v) => mapVehicleForExport(v, accountMap)),
     [filteredVehicles, accountMap],
   );
+
+  // Export must cover every matching vehicle, not just the currently-loaded
+  // page — pull all pages from the API (capped at the backend's max `limit`
+  // of 1000 per request) before applying the same search filter as the table.
+  const fetchAllVehiclesForExport = async () => {
+    const token = getToken();
+    const EXPORT_PAGE_LIMIT = 1000;
+    const first = await VehicleService.getAllVehicles(businessRefId, token, 1, EXPORT_PAGE_LIMIT);
+    const all = (first.data || []).map(normalizeVehicle);
+    const totalPages = first.meta?.totalPages || 1;
+    for (let page = 2; page <= totalPages; page += 1) {
+      const next = await VehicleService.getAllVehicles(
+        businessRefId,
+        token,
+        page,
+        EXPORT_PAGE_LIMIT,
+      );
+      all.push(...(next.data || []).map(normalizeVehicle));
+    }
+    return filterVehicles(all, { search: searchVehicleNo }).map((v) =>
+      mapVehicleForExport(v, accountMap),
+    );
+  };
 
   // Generate page numbers for pagination (similar to DriversPage)
   const generatePageNumbers = () => {
@@ -214,34 +236,7 @@ const VehiclesPage = () => {
     setCurrentPage(1);
   }, [searchVehicleNo]);
 
-  const activeFilterCount = (searchVehicleNo.trim() ? 1 : 0) + (accountFilter !== 'all' ? 1 : 0);
-
-  const clearFilters = () => {
-    setSearchVehicleNo('');
-    setAccountFilter('all');
-    setCurrentPage(1);
-  };
-
-  const accountSelect = fleetEdgeAccounts.length > 0 && (
-    <select
-      value={accountFilter}
-      onChange={(e) => {
-        setAccountFilter(e.target.value);
-        setCurrentPage(1);
-      }}
-      className="vehicles-search-input"
-      style={{ maxWidth: 200, cursor: 'pointer' }}
-      title="Filter by FleetEdge account"
-    >
-      <option value="all">All FleetEdge accounts</option>
-      <option value="untagged">Untagged</option>
-      {fleetEdgeAccounts.map((a) => (
-        <option key={a._id} value={String(a._id)}>
-          {a.friendlyName || a.externalAccountId}
-        </option>
-      ))}
-    </select>
-  );
+  const activeFilterCount = searchVehicleNo.trim() ? 1 : 0;
 
   const columns = useVehicleColumns({
     accountMap,
@@ -257,15 +252,20 @@ const VehiclesPage = () => {
     <div className="vehicles-page-container" style={themeColors}>
       <PageShell
         title="Vehicles"
-        count={filteredVehicles.length}
         actions={
           <>
+            <FilterBar
+              searchValue={searchVehicleNo}
+              onSearchChange={setSearchVehicleNo}
+              searchPlaceholder="Search by vehicle registration number"
+            />
             <ExportButton
-              rows={exportRows}
+              fetchAll={fetchAllVehiclesForExport}
               columns={VEHICLE_EXPORT_COLUMNS}
               filename="vehicles"
-              meta={vehicleExportMeta({ search: searchVehicleNo, accountFilter, accountMap })}
+              meta={vehicleExportMeta({ search: searchVehicleNo, accountMap })}
               disabled={!exportRows.length}
+              newButtonStyle
             />
             <NewButton
               variant="secondary"
@@ -288,16 +288,6 @@ const VehiclesPage = () => {
               disabled={isSubmitting}
             />
           </>
-        }
-        filters={
-          <FilterBar
-            searchValue={searchVehicleNo}
-            onSearchChange={setSearchVehicleNo}
-            searchPlaceholder="Search by vehicle registration number"
-            activeCount={activeFilterCount}
-            onClear={clearFilters}
-            right={accountSelect}
-          />
         }
       >
         {formError && (
@@ -372,7 +362,7 @@ const VehiclesPage = () => {
           emptyHint={
             vehicles.length === 0
               ? 'Click "Add Vehicle" to start.'
-              : 'Try a different registration number or account filter.'
+              : 'Try a different registration number.'
           }
           emptyAction={
             <NewButton

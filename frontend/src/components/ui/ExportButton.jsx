@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import exportTable from '../../lib/exportTable';
+import NewButton from './NewButton/NewButton';
 
 /**
  * ExportButton — the one export affordance for every fleet table.
@@ -21,8 +22,21 @@ import exportTable from '../../lib/exportTable';
  *     fetchAll={async () => (await fetchAllFiltered()).items}
  *     meta={{ filters: activeFilterMeta }}
  *   />
+ *
+ * `compact` renders the trigger as a small pill matching DataTable's own
+ * toolbar (`.dt-tool`) for pages that mount this inside the table instead of
+ * a separate filter row.
  */
-export default function ExportButton({ rows = [], columns = [], filename = 'export', fetchAll = null, meta = {}, disabled = false }) {
+export default function ExportButton({
+  rows = [],
+  columns = [],
+  filename = 'export',
+  fetchAll = null,
+  meta = {},
+  disabled = false,
+  newButtonStyle = false,
+  compact = false,
+}) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const rootRef = useRef(null);
@@ -51,7 +65,9 @@ export default function ExportButton({ rows = [], columns = [], filename = 'expo
       const allRows = fetchAll ? await fetchAll() : rows;
       const safeRows = Array.isArray(allRows) ? allRows : [];
       const result = await exportTable({ rows: safeRows, columns, filename, format, meta });
-      toast.success(`Exported ${result.rows} row${result.rows === 1 ? '' : 's'} to ${format.toUpperCase()}`);
+      toast.success(
+        `Exported ${result.rows} row${result.rows === 1 ? '' : 's'} to ${format.toUpperCase()}`,
+      );
     } catch (err) {
       toast.error(`Export failed: ${err?.message || 'unknown error'}`);
     } finally {
@@ -59,19 +75,51 @@ export default function ExportButton({ rows = [], columns = [], filename = 'expo
     }
   };
 
+  const icon = pending ? (
+    <Loader2 size={14} className="xbtn-spin" aria-hidden="true" />
+  ) : (
+    <Download size={14} aria-hidden="true" />
+  );
+  const label = pending ? 'Exporting…' : 'Export';
+
   return (
     <div className="xbtn" ref={rootRef}>
-      <button
-        type="button"
-        className="pshell-btn"
-        disabled={disabled || pending}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        {pending ? <Loader2 size={14} className="xbtn-spin" aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}
-        {pending ? 'Exporting…' : 'Export'}
-      </button>
+      {compact ? (
+        <button
+          type="button"
+          className="dt-tool"
+          disabled={disabled || pending}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {icon}
+          {label}
+        </button>
+      ) : newButtonStyle ? (
+        <NewButton
+          type="button"
+          variant="secondary"
+          text={label}
+          prependIcon={icon}
+          disabled={disabled || pending}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        />
+      ) : (
+        <button
+          type="button"
+          className="pshell-btn"
+          disabled={disabled || pending}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {icon}
+          {label}
+        </button>
+      )}
       {open && (
         <div className="xbtn-menu" role="menu" aria-label="Export format">
           <button type="button" role="menuitem" className="xbtn-item" onClick={() => run('xlsx')}>

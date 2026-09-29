@@ -1474,6 +1474,57 @@ a.ov-kpi:hover {
   color: #0f172a;
   border-color: #cbd5e1;
 }
+.dt-tool--active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.dt-tool--active:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.dt-tool:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Compact search box for a table's own toolbar (paired with .dt-tool). */
+.dt-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #94a3b8;
+  width: 220px;
+  max-width: 100%;
+  flex: 0 0 auto;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    width 0.2s ease;
+}
+.dt-search:hover {
+  border-color: #cbd5e1;
+}
+.dt-search:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  width: 260px;
+}
+.dt-search input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12.5px;
+  width: 100%;
+}
+.dt-search input::placeholder {
+  color: #94a3b8;
+}
 .dt-cols {
   position: relative;
 }

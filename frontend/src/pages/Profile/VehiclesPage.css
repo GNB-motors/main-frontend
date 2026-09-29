@@ -689,6 +689,29 @@
   background-color: transparent;
 }
 
+/* Let the table card fill the remaining page height instead of shrinking to
+   its row count — a short table stays full height with blank space below the
+   rows rather than leaving grey page background under a stub-sized card.
+   flex-shrink stays 0 throughout so a long table is never clamped/clipped —
+   it still grows past the viewport and the page scrolls, same as before. */
+.vehicles-page-container .pshell {
+  flex: 1 0 auto;
+}
+
+.vehicles-page-container .dt {
+  flex: 1 0 auto;
+}
+
+.vehicles-page-container .dt-scroll {
+  flex: 1 0 auto;
+}
+
+/* Match the search box's height to the NewButton "lg" size it sits beside
+   in the header actions row. */
+.vehicles-page-container .pshell-actions .fbar-search {
+  height: 44px;
+}
+
 .vehicles-content-wrapper {
   flex: 1;
   padding: 0;

@@ -1,22 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowUp, ArrowDown, Columns3, SlidersHorizontal } from 'lucide-react';
+import { ArrowUp, ArrowDown, Columns3 } from 'lucide-react';
 import EmptyState from '../cluster/EmptyState';
-import {
-  nextSort,
-  readDensity,
-  writeDensity,
-  visibleColumns,
-  footerSummary,
-} from '../../lib/tableState';
+import { nextSort, readDensity, visibleColumns, footerSummary } from '../../lib/tableState';
 
 /**
  * DataTable — the one table every fleet list uses (master plan C.2).
  * Sortable headers (asc → desc → none, server-side via onSort when the list
  * is paginated — never a client-side sort of one page presented as the top
- * of the whole), sticky header, column visibility menu, density toggle
- * (remembered), and a footer whose count always names the total.
+ * of the whole), sticky header, column visibility menu, and a footer whose
+ * count always names the total.
  *
  * columns: [{ key, label, sortKey?, sortable?, align?, width?, render?(row) }]
+ * `toolbarExtra` slots a search box / export / filter trigger into the
+ * table's own toolbar (next to the column-visibility menu) for pages that
+ * want those controls inside the table instead of a separate filter row.
  *
  *   <DataTable
  *     columns={COLUMNS} rows={rows} rowKey={(r) => r._id}
@@ -60,18 +57,17 @@ export default function DataTable({
   onSelectionChange = null,
   isRowSelectable = null,
   pagination = null,
+  // Extra controls (search box, export, filter trigger, …) rendered inside the
+  // table's own toolbar, to the left of the column-visibility menu. Additive
+  // and default-off so existing callers that render their own filter row above
+  // the table are untouched.
+  toolbarExtra = null,
 }) {
   const [hidden, setHidden] = useState(() => new Set());
-  const [density, setDensity] = useState(() => readDensity(window.localStorage));
+  const density = readDensity(window.localStorage);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const cols = useMemo(() => visibleColumns(columns, hidden), [columns, hidden]);
-
-  const toggleDensity = () => {
-    const next = density === 'comfortable' ? 'compact' : 'comfortable';
-    setDensity(next);
-    writeDensity(window.localStorage, next);
-  };
 
   const toggleColumn = (key) => {
     setHidden((prev) => {
@@ -137,15 +133,7 @@ export default function DataTable({
           {summary}
         </span>
         <div className="dt-tools-right">
-          <button
-            type="button"
-            className="dt-tool"
-            onClick={toggleDensity}
-            title={density === 'comfortable' ? 'Compact rows' : 'Comfortable rows'}
-            aria-label="Toggle row density"
-          >
-            <SlidersHorizontal size={13} />
-          </button>
+          {toolbarExtra}
           <div className="dt-cols">
             <button
               type="button"
@@ -158,16 +146,18 @@ export default function DataTable({
             </button>
             {menuOpen ? (
               <div className="dt-cols-menu" role="menu">
-                {columns.map((c) => (
-                  <label key={c.key} className="dt-cols-item">
-                    <input
-                      type="checkbox"
-                      checked={!hidden.has(c.key)}
-                      onChange={() => toggleColumn(c.key)}
-                    />
-                    {c.label}
-                  </label>
-                ))}
+                {columns
+                  .filter((c) => c.key !== 'actions')
+                  .map((c) => (
+                    <label key={c.key} className="dt-cols-item">
+                      <input
+                        type="checkbox"
+                        checked={!hidden.has(c.key)}
+                        onChange={() => toggleColumn(c.key)}
+                      />
+                      {c.label}
+                    </label>
+                  ))}
               </div>
             ) : null}
           </div>

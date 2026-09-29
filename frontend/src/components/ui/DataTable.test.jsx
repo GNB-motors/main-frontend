@@ -17,6 +17,25 @@ function renderTable(extraProps = {}) {
   return render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(r) => r._id} {...extraProps} />);
 }
 
+describe('DataTable toolbar', () => {
+  it('has no row-density toggle', () => {
+    const { queryByLabelText } = renderTable();
+    expect(queryByLabelText('Toggle row density')).toBeNull();
+  });
+
+  it('column visibility menu excludes the actions column', () => {
+    const { getByLabelText, container } = renderTable({
+      columns: [...COLUMNS, { key: 'actions', label: 'Actions' }],
+    });
+    fireEvent.click(getByLabelText('Column visibility'));
+    const menu = container.querySelector('.dt-cols-menu');
+    const labels = Array.from(menu.querySelectorAll('.dt-cols-item')).map((el) =>
+      el.textContent.trim(),
+    );
+    expect(labels).toEqual(['Vehicle', 'Driver']);
+  });
+});
+
 describe('DataTable rowClassName', () => {
   it('marks only the row whose predicate matches as selected', () => {
     const { container } = renderTable({
