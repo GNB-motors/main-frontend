@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 import exportTable from '../../lib/exportTable';
 import NewButton from './NewButton/NewButton';
@@ -76,14 +76,14 @@ export default function ExportButton({
   };
 
   const icon = pending ? (
-    <Loader2 size={14} className="xbtn-spin" aria-hidden="true" />
+    <Loader2 size={15} className="xbtn-spin" aria-hidden="true" />
   ) : (
-    <Download size={14} aria-hidden="true" />
+    <Download size={15} aria-hidden="true" />
   );
   const label = pending ? 'Exporting…' : 'Export';
 
   return (
-    <div className="xbtn" ref={rootRef}>
+    <div className={`xbtn ${open ? 'is-open' : ''}`} ref={rootRef}>
       {compact ? (
         <button
           type="button"
@@ -102,6 +102,7 @@ export default function ExportButton({
           variant="secondary"
           text={label}
           prependIcon={icon}
+          appendIcon={<ChevronDown size={14} className="xbtn-chevron" aria-hidden="true" />}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -117,7 +118,8 @@ export default function ExportButton({
           onClick={() => setOpen((v) => !v)}
         >
           {icon}
-          {label}
+          <span>{label}</span>
+          <ChevronDown size={14} className="xbtn-chevron" aria-hidden="true" />
         </button>
       )}
       {open && (

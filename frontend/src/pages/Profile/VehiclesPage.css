@@ -706,10 +706,143 @@
   flex: 1 0 auto;
 }
 
-/* Match the search box's height to the NewButton "lg" size it sits beside
-   in the header actions row. */
-.vehicles-page-container .pshell-actions .fbar-search {
-  height: 44px;
+/* Match the search box's height to the action buttons row */
+.vehicles-page-container .vehicles-header-actions .fbar-search {
+  height: 42px !important;
+  min-height: 42px !important;
+  border-radius: 10px !important;
+}
+
+/* ==========================================================================
+   Uniform & Polished Vehicles Header Action Buttons
+   (Export, Bulk Upload, Add Vehicle)
+   ========================================================================== */
+
+.vehicles-page-container .vehicles-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Ensure .xbtn behaves as an inline-flex element in the flex container */
+.vehicles-page-container .vehicles-actions-btn-group .xbtn {
+  display: inline-flex !important;
+  align-items: stretch !important;
+  position: relative !important;
+}
+
+/* Apply strict, uniform dimensions and typography across all 3 buttons */
+.vehicles-page-container .vehicles-actions-btn-group button {
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  border-radius: 10px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  padding: 0 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group button::before {
+  display: none !important;
+}
+
+/* Secondary Buttons: Export & Bulk Upload */
+.vehicles-page-container .vehicles-actions-btn-group .xbtn button,
+.vehicles-page-container .vehicles-actions-btn-group button:not([class*='primary']) {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  color: #1e293b !important;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group .xbtn button:hover,
+.vehicles-page-container .vehicles-actions-btn-group button:not([class*='primary']):hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  transform: translateY(-1px) !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group .xbtn button:active,
+.vehicles-page-container .vehicles-actions-btn-group button:not([class*='primary']):active {
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+  background: #f1f5f9 !important;
+}
+
+/* Primary Button: Add Vehicle */
+.vehicles-page-container .vehicles-actions-btn-group button[class*='primary'] {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: 1.5px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 2px 8px rgba(37, 99, 235, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group button[class*='primary']:hover {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
+  border-color: #1e40af !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 6px 18px rgba(37, 99, 235, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group button[class*='primary']:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
+}
+
+/* Chevron micro-interaction for Export dropdown */
+.xbtn-chevron {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.65;
+  margin-left: 2px;
+}
+
+.xbtn.is-open .xbtn-chevron {
+  transform: rotate(180deg);
+}
+
+/* Polished dropdown menu for Export */
+.xbtn-menu {
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow:
+    0 10px 25px -5px rgba(15, 23, 42, 0.12),
+    0 8px 10px -6px rgba(15, 23, 42, 0.06) !important;
+  overflow: hidden !important;
+  padding: 6px !important;
+}
+
+.xbtn-item {
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
 }
 
 .vehicles-content-wrapper {

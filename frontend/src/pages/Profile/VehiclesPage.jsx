@@ -253,41 +253,43 @@ const VehiclesPage = () => {
       <PageShell
         title="Vehicles"
         actions={
-          <>
+          <div className="vehicles-header-actions">
             <FilterBar
               searchValue={searchVehicleNo}
               onSearchChange={setSearchVehicleNo}
               searchPlaceholder="Search by vehicle registration number"
             />
-            <ExportButton
-              fetchAll={fetchAllVehiclesForExport}
-              columns={VEHICLE_EXPORT_COLUMNS}
-              filename="vehicles"
-              meta={vehicleExportMeta({ search: searchVehicleNo, accountMap })}
-              disabled={!exportRows.length}
-              newButtonStyle
-            />
-            <NewButton
-              variant="secondary"
-              type="button"
-              text="Bulk Upload"
-              prependIcon={<Upload size={16} />}
-              onClick={() => navigate('/vehicles/bulk-upload')}
-              disabled={isSubmitting}
-            />
-            <NewButton
-              variant="primary"
-              type="button"
-              text="Add Vehicle"
-              prependIcon={<Plus size={16} />}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigate('/vehicles/add');
-              }}
-              disabled={isSubmitting}
-            />
-          </>
+            <div className="vehicles-actions-btn-group">
+              <ExportButton
+                fetchAll={fetchAllVehiclesForExport}
+                columns={VEHICLE_EXPORT_COLUMNS}
+                filename="vehicles"
+                meta={vehicleExportMeta({ search: searchVehicleNo, accountMap })}
+                disabled={!exportRows.length}
+                newButtonStyle
+              />
+              <NewButton
+                variant="secondary"
+                type="button"
+                text="Bulk Upload"
+                prependIcon={<Upload size={15} />}
+                onClick={() => navigate('/vehicles/bulk-upload')}
+                disabled={isSubmitting}
+              />
+              <NewButton
+                variant="primary"
+                type="button"
+                text="Add Vehicle"
+                prependIcon={<Plus size={15} strokeWidth={2.4} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate('/vehicles/add');
+                }}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
         }
       >
         {formError && (
