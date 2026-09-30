@@ -6,8 +6,12 @@ describe('BACKEND_TO_UI / META_BY_KEY', () => {
   it('maps every backend docType to its UI key and back to its metadata', () => {
     expect(BACKEND_TO_UI.RC).toBe('rc');
     expect(BACKEND_TO_UI.NATIONAL_PERMIT).toBe('nationalPermit');
+    expect(BACKEND_TO_UI.ROAD_TAX).toBe('roadTax');
+    expect(BACKEND_TO_UI.PUCC).toBe('pucc');
     expect(META_BY_KEY.rc.sides).toEqual(['FRONT', 'BACK']);
     expect(META_BY_KEY.insurance.sides).toEqual(['SINGLE']);
+    expect(META_BY_KEY.roadTax.sides).toEqual(['SINGLE']);
+    expect(META_BY_KEY.pucc.sides).toEqual(['SINGLE']);
   });
 });
 

@@ -359,7 +359,9 @@ const AddVehiclePage = () => {
                     : 'Draft Unit'}
               </span>
               <span>•</span>
-              <span>{docCount} of 5 compliance documents attached</span>
+              <span>
+                {docCount} of {VEHICLE_DOC_TYPES.length} compliance documents attached
+              </span>
             </div>
           </div>
 

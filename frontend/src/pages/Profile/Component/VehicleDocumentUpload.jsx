@@ -45,6 +45,20 @@ export const VEHICLE_DOC_TYPES = [
     sides: ['SINGLE'],
     description: 'State Transport Authority permit',
   },
+  {
+    key: 'roadTax',
+    label: 'Road Tax',
+    backendType: 'ROAD_TAX',
+    sides: ['SINGLE'],
+    description: 'Commercial vehicle road tax token / receipt',
+  },
+  {
+    key: 'pucc',
+    label: 'PUCC',
+    backendType: 'PUCC',
+    sides: ['SINGLE'],
+    description: 'Pollution Under Control Certificate (Form 59)',
+  },
 ];
 
 const emptySlot = () => ({ file: null, preview: null, imageUrl: null, name: '', isPdf: false });

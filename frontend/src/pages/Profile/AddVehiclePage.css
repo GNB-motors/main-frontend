@@ -184,15 +184,8 @@
   overflow: hidden;
   height: 48px;
   min-width: 220px;
-  transition: all 0.25s ease;
   user-select: none;
-}
-
-.hsrp-plate-hero:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 8px 20px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  cursor: default;
 }
 
 .hsrp-blue-band {
@@ -615,6 +608,14 @@
   box-sizing: border-box !important;
 }
 
+/* When the last row has only one odd card, center it horizontally */
+.add-vehicle-page .document-cards-grid > .document-card-wrapper:nth-child(odd):last-child {
+  grid-column: 1 / -1 !important;
+  max-width: calc(50% - 12px) !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
 /* Individual, self-contained card for every document slot */
 .add-vehicle-page .document-card-wrapper {
   background: #ffffff !important;
@@ -858,6 +859,11 @@
 
   .add-vehicle-page .document-cards-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .add-vehicle-page .document-cards-grid > .document-card-wrapper:nth-child(odd):last-child {
+    max-width: 100% !important;
+    margin: 0 !important;
   }
 }
 
