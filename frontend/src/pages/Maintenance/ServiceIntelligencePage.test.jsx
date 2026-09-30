@@ -225,4 +225,50 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
       ),
     );
   });
+
+  it('filters service records when clicking Periodic / Scheduled filter pill', async () => {
+    const serviceRecords = [
+      {
+        _id: 'srv-1',
+        recordType: 'SERVICE',
+        date: '2026-02-01',
+        workshop: 'City Garage',
+        type: 'Periodic / Scheduled Service',
+        amount: 8000,
+        vehicleId: { registrationNumber: 'DL01AB1111', model: 'Eicher Pro' },
+      },
+      {
+        _id: 'srv-2',
+        recordType: 'SERVICE',
+        date: '2026-02-05',
+        workshop: 'Castrol Auto',
+        type: 'Engine Oil Change',
+        amount: 3500,
+        vehicleId: { registrationNumber: 'DL01AB2222', model: 'Tata 407' },
+      },
+    ];
+
+    MaintenanceService.listRecords.mockResolvedValue({
+      data: serviceRecords,
+      meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
+    });
+    MaintenanceService.getSummary.mockResolvedValue({ total: 2, totalAmount: 11500, last30: 2 });
+
+    render(
+      <MemoryRouter>
+        <ServiceIntelligencePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/Periodic \/ scheduled service/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/Engine oil change/i)).toBeInTheDocument();
+
+    const periodicPill = screen.getByRole('button', { name: /Periodic \/ Scheduled/i });
+    fireEvent.click(periodicPill);
+
+    expect(screen.getByText(/Periodic \/ scheduled service/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Engine oil change/i)).toBeNull();
+  });
 });

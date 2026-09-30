@@ -282,13 +282,29 @@ const ServiceIntelligencePage = () => {
       let brake = 0;
       let electrical = 0;
       rows.forEach((r) => {
-        const t = (r.type || '').toLowerCase();
-        if (t.includes('periodic') || t.includes('scheduled') || t.includes('general'))
+        const t =
+          `${r.type || ''} ${r.serviceType || ''} ${r.maintenanceType || ''} ${r.notes || ''}`.toLowerCase();
+        if (
+          t.includes('periodic') ||
+          t.includes('scheduled') ||
+          t.includes('general') ||
+          t.includes('routine')
+        )
           periodic += 1;
         else if (t.includes('oil') || t.includes('lube') || t.includes('filter')) oil += 1;
-        else if (t.includes('brake') || t.includes('clutch') || t.includes('suspension'))
+        else if (
+          t.includes('brake') ||
+          t.includes('clutch') ||
+          t.includes('suspension') ||
+          t.includes('steering')
+        )
           brake += 1;
-        else if (t.includes('electric') || t.includes('battery') || t.includes('light'))
+        else if (
+          t.includes('electric') ||
+          t.includes('battery') ||
+          t.includes('light') ||
+          t.includes('wiring')
+        )
           electrical += 1;
       });
       return { all: rows.length, periodic, oil, brake, electrical };
@@ -308,26 +324,45 @@ const ServiceIntelligencePage = () => {
       if (activeServiceFilter === 'ALL') return rows;
       if (activeServiceFilter === 'PERIODIC') {
         return rows.filter((r) => {
-          const t = (r.type || '').toLowerCase();
-          return t.includes('periodic') || t.includes('scheduled') || t.includes('general');
+          const t =
+            `${r.type || ''} ${r.serviceType || ''} ${r.maintenanceType || ''} ${r.notes || ''}`.toLowerCase();
+          return (
+            t.includes('periodic') ||
+            t.includes('scheduled') ||
+            t.includes('general') ||
+            t.includes('routine')
+          );
         });
       }
       if (activeServiceFilter === 'OIL') {
         return rows.filter((r) => {
-          const t = (r.type || '').toLowerCase();
+          const t =
+            `${r.type || ''} ${r.serviceType || ''} ${r.maintenanceType || ''} ${r.notes || ''}`.toLowerCase();
           return t.includes('oil') || t.includes('lube') || t.includes('filter');
         });
       }
       if (activeServiceFilter === 'BRAKE') {
         return rows.filter((r) => {
-          const t = (r.type || '').toLowerCase();
-          return t.includes('brake') || t.includes('clutch') || t.includes('suspension');
+          const t =
+            `${r.type || ''} ${r.serviceType || ''} ${r.maintenanceType || ''} ${r.notes || ''}`.toLowerCase();
+          return (
+            t.includes('brake') ||
+            t.includes('clutch') ||
+            t.includes('suspension') ||
+            t.includes('steering')
+          );
         });
       }
       if (activeServiceFilter === 'ELECTRICAL') {
         return rows.filter((r) => {
-          const t = (r.type || '').toLowerCase();
-          return t.includes('electric') || t.includes('battery') || t.includes('light');
+          const t =
+            `${r.type || ''} ${r.serviceType || ''} ${r.maintenanceType || ''} ${r.notes || ''}`.toLowerCase();
+          return (
+            t.includes('electric') ||
+            t.includes('battery') ||
+            t.includes('light') ||
+            t.includes('wiring')
+          );
         });
       }
     }
@@ -352,26 +387,8 @@ const ServiceIntelligencePage = () => {
         <PageShell
           title="Service Intelligence"
           subtitle="Manage vehicle service and repair history, track issue criticality (Axles, Brakes, Tyres), and resolve maintenance alerts."
-          filters={
-            !isAlerts ? (
-              <FilterBar
-                searchValue={search}
-                onSearchChange={setSearch}
-                searchPlaceholder={`Search vehicle, workshop, ${isService ? 'service category' : 'issue type'}, notes…`}
-                right={
-                  <NewButton
-                    variant="primary"
-                    type="button"
-                    text={isService ? 'Add Service' : 'Add Repair'}
-                    prependIcon={<Plus size={16} />}
-                    onClick={goToAdd}
-                  />
-                }
-              />
-            ) : null
-          }
         >
-          {/* Segmented Glassmorphic Tab Bar */}
+          {/* Segmented Glassmorphic Tab Bar - Always stationary at top */}
           <div className="si-tabs-container" role="tablist" aria-label="Service Intelligence Views">
             {TABS.map((t) => {
               const Icon = t.icon;
@@ -394,6 +411,25 @@ const ServiceIntelligencePage = () => {
               );
             })}
           </div>
+
+          {!isAlerts && (
+            <div style={{ margin: '14px 0 6px 0' }}>
+              <FilterBar
+                searchValue={search}
+                onSearchChange={setSearch}
+                searchPlaceholder={`Search vehicle, workshop, ${isService ? 'service category' : 'issue type'}, notes…`}
+                right={
+                  <NewButton
+                    variant="primary"
+                    type="button"
+                    text={isService ? 'Add Service' : 'Add Repair'}
+                    prependIcon={<Plus size={16} />}
+                    onClick={goToAdd}
+                  />
+                }
+              />
+            </div>
+          )}
 
           {isAlerts ? (
             <AlertsTab />
