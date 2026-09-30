@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { GoogleMap, useLoadScript, MarkerF, PolylineF, CircleF } from '@react-google-maps/api';
 import apiClient from '../../utils/axiosConfig';
+import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useShareLink } from '../../hooks/useShareLink';
@@ -70,6 +71,8 @@ const createTrailEndpointIcon = (text, color) => {
 /* ---------------- SVG Icons ---------------- */
 const ICONS = {
   search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  phone:
+    '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   refresh:
     '<path d="M21 3v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 21v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>',
@@ -212,9 +215,8 @@ const LiveTrackingPage = () => {
     speed: 4,
     pts: null,
   });
-  const [replayCurrentPos, setReplayCurrentPos] = useState(null);
-  const [replayRunPath, setReplayRunPath] = useState([]);
-  const [replayBearing, setReplayBearing] = useState(0);
+  const [mapZoom, setMapZoom] = useState(12);
+  const [driverAssignments, setDriverAssignments] = useState({});
 
   // Map & interaction refs
   const mapRef = useRef(null);
@@ -271,6 +273,39 @@ const LiveTrackingPage = () => {
       }
     };
     loadMeta();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch Active Driver ↔ Vehicle Assignments
+  useEffect(() => {
+    let cancelled = false;
+    const loadAssignments = async () => {
+      try {
+        const res = await DriverVehicleAssignmentService.getAssignments();
+        const list = Array.isArray(res) ? res : res?.items || res?.records || [];
+        if (cancelled) return;
+        const map = {};
+        list.forEach((a) => {
+          const vehReg = (a.vehicleId?.registrationNumber || a.registrationNumber || '')
+            .toUpperCase()
+            .trim();
+          const vehId = a.vehicleId?._id || a.vehicleId;
+          if (vehReg) {
+            map[vehReg.replace(/\s+/g, '')] = a;
+            map[vehReg] = a;
+          }
+          if (vehId && typeof vehId === 'string') {
+            map[vehId] = a;
+          }
+        });
+        setDriverAssignments(map);
+      } catch (err) {
+        console.warn('Could not load driver vehicle assignments:', err);
+      }
+    };
+    loadAssignments();
     return () => {
       cancelled = true;
     };
@@ -497,14 +532,11 @@ const LiveTrackingPage = () => {
     return replayState.pts.map(([lat, lng]) => ({ lat, lng }));
   }, [replayState.pts]);
 
-  // Replay animation frame ticker
-  useEffect(() => {
+  // Derived current replay position, animated trail slice, and heading
+  const { replayCurrentPos, replayRunPath, replayBearing } = useMemo(() => {
     if (!replayState.on || !replayState.pts || replayState.pts.length < 2) {
-      setReplayCurrentPos(null);
-      setReplayRunPath([]);
-      return;
+      return { replayCurrentPos: null, replayRunPath: [], replayBearing: 0 };
     }
-
     const pts = replayState.pts;
     const t = Math.max(0, Math.min(1, replayState.t));
     const exact = t * (pts.length - 1);
@@ -515,40 +547,47 @@ const LiveTrackingPage = () => {
     const curLat = p0[0] + (p1[0] - p0[0]) * frac;
     const curLng = p0[1] + (p1[1] - p0[1]) * frac;
     const cur = { lat: curLat, lng: curLng };
-
-    setReplayCurrentPos(cur);
     const pathSlice = pts.slice(0, i + 1).map(([lat, lng]) => ({ lat, lng }));
     pathSlice.push(cur);
-    setReplayRunPath(pathSlice);
-
     const brg = bearingDegrees(p0, p1);
-    setReplayBearing(brg);
+    return { replayCurrentPos: cur, replayRunPath: pathSlice, replayBearing: brg };
+  }, [replayState.on, replayState.pts, replayState.t]);
 
-    if (!replayState.playing) return;
+  // Replay animation frame ticker (decoupled from replayState.t so 60fps loop runs smoothly without tearing down)
+  useEffect(() => {
+    if (!replayState.on || !replayState.playing || !replayState.pts || replayState.pts.length < 2) {
+      lastReplayTimeRef.current = 0;
+      return;
+    }
 
     let animId;
+    const speed = replayState.speed || 1;
+    const duration = 24 / speed;
+
     const step = (ts) => {
-      if (!lastReplayTimeRef.current) lastReplayTimeRef.current = ts;
+      if (!lastReplayTimeRef.current) {
+        lastReplayTimeRef.current = ts;
+      }
       const dt = (ts - lastReplayTimeRef.current) / 1000;
       lastReplayTimeRef.current = ts;
 
-      const duration = 24 / replayState.speed;
-      const nextT = replayState.t + dt / duration;
+      setReplayState((prev) => {
+        if (!prev.playing) return prev;
+        const nextT = prev.t + dt / duration;
+        if (nextT >= 1) {
+          return { ...prev, t: 1, playing: false };
+        }
+        return { ...prev, t: nextT };
+      });
 
-      if (nextT >= 1) {
-        setReplayState((prev) => ({ ...prev, t: 1, playing: false }));
-      } else {
-        setReplayState((prev) => ({ ...prev, t: nextT }));
-        animId = requestAnimationFrame(step);
-      }
+      animId = requestAnimationFrame(step);
     };
 
     animId = requestAnimationFrame(step);
     return () => {
       cancelAnimationFrame(animId);
-      lastReplayTimeRef.current = 0;
     };
-  }, [replayState.on, replayState.playing, replayState.t, replayState.speed, replayState.pts]);
+  }, [replayState.on, replayState.playing, replayState.speed, replayState.pts]);
 
   // Toggle breadcrumb trail
   const toggleTrail = useCallback(
@@ -639,10 +678,49 @@ const LiveTrackingPage = () => {
   // Exit Replay
   const exitReplay = useCallback(() => {
     setReplayState({ on: false, playing: false, t: 0, speed: 4, pts: null });
-    setReplayCurrentPos(null);
-    setReplayRunPath([]);
     setIsTrailVisible(false);
   }, []);
+
+  // Selected vehicle's active driver resolver
+  const selectedDriver = useMemo(() => {
+    if (!selectedVehicle) return null;
+    const cleanPlate = (selectedVehicle.plate || '').toUpperCase().replace(/\s+/g, '');
+    const meta = vehiclesMeta[cleanPlate] || vehiclesMeta[selectedVehicle.plate] || {};
+
+    const assignment =
+      driverAssignments[cleanPlate] ||
+      driverAssignments[selectedVehicle.plate] ||
+      (meta._id ? driverAssignments[meta._id] : null);
+
+    if (assignment) {
+      const d =
+        assignment.driverId && typeof assignment.driverId === 'object' ? assignment.driverId : null;
+      return {
+        name: d?.name || d?.fullName || assignment.driverName || 'Primary Driver',
+        phone: d?.phone || d?.mobileNumber || assignment.driverPhone || null,
+        since: assignment.startDate ? formatDayText(assignment.startDate) : null,
+      };
+    }
+
+    if (meta.assignedDriver) {
+      if (typeof meta.assignedDriver === 'object') {
+        return {
+          name: meta.assignedDriver.name || meta.assignedDriver.fullName || 'Assigned Driver',
+          phone: meta.assignedDriver.phone || meta.assignedDriver.mobileNumber || null,
+        };
+      }
+    }
+
+    if (meta.driverName || meta.driver) {
+      const d = typeof meta.driver === 'object' ? meta.driver : null;
+      return {
+        name: meta.driverName || d?.name || d?.fullName || 'Assigned Driver',
+        phone: meta.driverPhone || meta.driverMobile || d?.phone || null,
+      };
+    }
+
+    return null;
+  }, [selectedVehicle, vehiclesMeta, driverAssignments]);
 
   // Telemetry rotating index
   const [telemetryIndex, setTelemetryIndex] = useState(0);
@@ -661,8 +739,8 @@ const LiveTrackingPage = () => {
     return liveList[telemetryIndex % liveList.length];
   }, [selectedVehicle, vehicles, telemetryIndex]);
 
-  // 360 View Orbit Modal
-  const open360Modal = useCallback(() => {
+  // 360 View Orbit Modal (kept for when 360 view is re-enabled)
+  const _open360Modal = useCallback(() => {
     setModal360Open(true);
   }, []);
 
@@ -735,8 +813,8 @@ const LiveTrackingPage = () => {
     }
   }, [refreshLivePositions, showToast]);
 
-  // Share Page Link
-  const handleShareAll = useCallback(() => {
+  // Share Page Link (kept for when universal share button is restored)
+  const _handleShareAll = useCallback(() => {
     navigator.clipboard?.writeText(window.location.href).catch(() => {});
     showToast('Live tracking link copied to clipboard');
   }, [showToast]);
@@ -916,11 +994,6 @@ const LiveTrackingPage = () => {
             >
               {renderIconSvg('refresh', 16, isRefreshing ? 'spin' : '')}
             </button>
-
-            <button className="btn" onClick={handleShareAll}>
-              {renderIconSvg('share', 15)}
-              <span className="lbl">Share</span>
-            </button>
           </div>
         </div>
 
@@ -944,13 +1017,19 @@ const LiveTrackingPage = () => {
                   center={INDIA_CENTER}
                   zoom={5}
                   onLoad={onMapLoad}
+                  onZoomChanged={() => {
+                    if (mapRef.current) {
+                      const z = mapRef.current.getZoom();
+                      if (typeof z === 'number') setMapZoom(z);
+                    }
+                  }}
                   options={mapOptions}
                 >
                   {/* Fleet Vehicle Markers */}
                   {mapVehicles.map((v) => {
                     const isSelected = v.id === selectedId;
                     if (!v.hasFix) return null;
-                    const icon = createVehicleMarkerIcon(v, isSelected, showLabels);
+                    const icon = createVehicleMarkerIcon(v, isSelected, showLabels, mapZoom);
                     return (
                       <MarkerF
                         key={v.id}
@@ -1167,7 +1246,11 @@ const LiveTrackingPage = () => {
                         className="rp-play"
                         aria-label={replayState.playing ? 'Pause replay' : 'Play replay'}
                         onClick={() =>
-                          setReplayState((prev) => ({ ...prev, playing: !prev.playing }))
+                          setReplayState((prev) => {
+                            const willPlay = !prev.playing;
+                            const nextT = willPlay && prev.t >= 0.999 ? 0 : prev.t;
+                            return { ...prev, playing: willPlay, t: nextT };
+                          })
                         }
                       >
                         {renderIconSvg(replayState.playing ? 'pause' : 'play', 16)}
@@ -1601,6 +1684,7 @@ const LiveTrackingPage = () => {
                         Replay
                       </button>
 
+                      {/* 360 view temporarily disabled
                       <button
                         className="act"
                         aria-pressed={modal360Open}
@@ -1609,6 +1693,7 @@ const LiveTrackingPage = () => {
                         {renderIconSvg('sat', 18)}
                         360°
                       </button>
+                      */}
 
                       <button
                         className="act"
@@ -1680,28 +1765,241 @@ const LiveTrackingPage = () => {
                         </div>
                       </details>
 
-                      <details className="sec">
+                      <details className="sec" open>
                         <summary>
                           {renderIconSvg('user', 16)}
                           Driver &amp; assignment
                           <span className="chev">{renderIconSvg('chevDown', 16)}</span>
                         </summary>
                         <div className="secbody">
-                          <div className="secnote">
-                            No driver assigned to this vehicle in the current shift.
-                          </div>
+                          {selectedDriver ? (
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '10px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                gap: '10px',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: '50%',
+                                    background: '#2563EB',
+                                    color: '#FFFFFF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 700,
+                                    fontSize: '14px',
+                                  }}
+                                >
+                                  {selectedDriver.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div
+                                    style={{ fontWeight: 600, fontSize: '13px', color: '#F1F5F9' }}
+                                  >
+                                    {selectedDriver.name}
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                                    Primary Driver
+                                    {selectedDriver.since ? ` · Since ${selectedDriver.since}` : ''}
+                                  </div>
+                                </div>
+                              </div>
+                              {selectedDriver.phone ? (
+                                <a
+                                  href={`tel:${selectedDriver.phone}`}
+                                  className="btn btn--sm"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '6px 12px',
+                                    background: '#187A32',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    color: '#FFFFFF',
+                                    fontWeight: 600,
+                                    textDecoration: 'none',
+                                    fontSize: '12px',
+                                  }}
+                                >
+                                  {renderIconSvg('phone', 14)}
+                                  Call
+                                </a>
+                              ) : (
+                                <span style={{ fontSize: '11px', color: '#64748B' }}>No phone</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="secnote">
+                              No driver currently assigned to this vehicle in the ledger.
+                            </div>
+                          )}
                         </div>
                       </details>
 
-                      <details className="sec">
+                      <details className="sec" open>
                         <summary>
-                          {renderIconSvg('doc', 16)}
-                          Documents
+                          {renderIconSvg('zap', 16)}
+                          Live Telematics &amp; Diagnostics
                           <span className="chev">{renderIconSvg('chevDown', 16)}</span>
                         </summary>
                         <div className="secbody">
-                          <div className="secnote">
-                            Permit, insurance and fitness records open in Fleet records.
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(2, 1fr)',
+                              gap: '8px',
+                              width: '100%',
+                            }}
+                          >
+                            <div
+                              style={{
+                                padding: '10px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                borderRadius: '10px',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: '10px',
+                                  color: '#94A3B8',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                }}
+                              >
+                                Odometer
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: '#F1F5F9',
+                                  marginTop: '2px',
+                                }}
+                              >
+                                {selectedVehicle.odo != null
+                                  ? `${Number(selectedVehicle.odo).toLocaleString('en-IN')} km`
+                                  : 'Odo N/A'}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                padding: '10px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                borderRadius: '10px',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: '10px',
+                                  color: '#94A3B8',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                }}
+                              >
+                                Heading / Course
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: '#F1F5F9',
+                                  marginTop: '2px',
+                                }}
+                              >
+                                {selectedVehicle.courseDegrees != null
+                                  ? `${Math.round(selectedVehicle.courseDegrees)}°`
+                                  : '0° N'}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                padding: '10px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                borderRadius: '10px',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: '10px',
+                                  color: '#94A3B8',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                }}
+                              >
+                                Telematics State
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: selectedVehicle.live ? '#4ADE80' : '#94A3B8',
+                                  marginTop: '2px',
+                                }}
+                              >
+                                {selectedVehicle.live ? '● Connected' : '○ Standby'}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                padding: '10px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                borderRadius: '10px',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: '10px',
+                                  color: '#94A3B8',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                }}
+                              >
+                                GPS Coordinates
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 500,
+                                  color: '#38BDF8',
+                                  marginTop: '3px',
+                                  cursor: 'pointer',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title="Click to copy coordinates"
+                                onClick={() => {
+                                  if (selectedVehicle.hasFix) {
+                                    navigator.clipboard?.writeText?.(
+                                      `${selectedVehicle.lat}, ${selectedVehicle.lng}`,
+                                    );
+                                    showToast('Coordinates copied to clipboard');
+                                  }
+                                }}
+                              >
+                                {selectedVehicle.hasFix
+                                  ? `${selectedVehicle.lat.toFixed(4)}, ${selectedVehicle.lng.toFixed(4)}`
+                                  : 'No fix'}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </details>

@@ -286,21 +286,40 @@ export const STATUS_THEME = {
  * 1) createVehicleMarkerIcon(vehicleObj, isSelected, showLabel)
  * 2) createVehicleMarkerIcon({ status, courseDegrees, speed, registrationNumber, showLabel, isSelected })
  */
-export const createVehicleMarkerIcon = (arg1, arg2, arg3) => {
+export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
   let v = {};
   let isSelected = false;
   let showLabel = false;
+  let zoom = 12;
 
   if (arg1 && typeof arg1 === 'object') {
     if (typeof arg2 === 'boolean' || typeof arg3 === 'boolean') {
       v = arg1;
       isSelected = !!arg2;
       showLabel = !!arg3;
+      zoom = typeof arg4 === 'number' ? arg4 : 12;
     } else {
       v = arg1;
       isSelected = !!arg1.isSelected;
       showLabel = !!arg1.showLabel;
+      zoom = typeof arg1.zoom === 'number' ? arg1.zoom : typeof arg2 === 'number' ? arg2 : 12;
     }
+  }
+
+  // Relative sizing based on map zoom:
+  // zoom >= 16: close-up, enlarged & crisp
+  // zoom 13-15: standard city view
+  // zoom 10-12: regional overview
+  // zoom < 10: national overview
+  let scale = 1.0;
+  if (zoom >= 16) {
+    scale = 1.25;
+  } else if (zoom >= 13) {
+    scale = 1.0;
+  } else if (zoom >= 10) {
+    scale = 0.85;
+  } else {
+    scale = 0.72;
   }
 
   const rawStatus = (v.status || '').toString().toLowerCase();
@@ -346,9 +365,9 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3) => {
   const hasLabel = (showLabel || isSelected) && plateText.length > 0;
   const shortPlate = plateText.length > 10 ? plateText.slice(-8) : plateText;
 
-  // ViewBox: 96x96 base (or 96x118 with label plate)
+  // ViewBox: 96x96 base (or 96x120 with label plate)
   const vbW = 96;
-  const vbH = hasLabel ? 118 : 96;
+  const vbH = hasLabel ? 120 : 96;
 
   // Render authentic WheelsEye MovingTruckV2 SVG paths inside rotated wrapper:
   // Center of the truck is translated to (48, 48) and rotated around (48, 48)
@@ -404,10 +423,10 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3) => {
     ${
       hasLabel
         ? `
-      <!-- Dynamic Plate Pill Chip Below Marker -->
-      <g transform="translate(48, 106)">
-        <rect x="-38" y="-10" width="76" height="19" rx="5" fill="#0C1020" stroke="${isSelected ? '#4469F0' : '#334155'}" stroke-width="${isSelected ? 2 : 1}"/>
-        <text x="0" y="3.5" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.4">
+      <!-- High-contrast crisp number plate chip -->
+      <g transform="translate(48, 107)">
+        <rect x="-42" y="-11" width="84" height="22" rx="6" fill="#0C1020" stroke="${isSelected ? '#38BDF8' : '#475569'}" stroke-width="${isSelected ? 2 : 1.5}"/>
+        <text x="0" y="4" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="11.5" font-weight="800" text-anchor="middle" letter-spacing="0.5">
           ${shortPlate}
         </text>
       </g>
@@ -416,8 +435,10 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3) => {
     }
   </svg>`;
 
-  const scaledW = 48;
-  const scaledH = hasLabel ? 59 : 48;
+  const scaledW = Math.round(48 * scale);
+  const scaledH = Math.round((hasLabel ? 60 : 48) * scale);
+  const anchorX = Math.round(24 * scale);
+  const anchorY = Math.round(24 * scale);
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
@@ -427,7 +448,7 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3) => {
         : undefined,
     anchor:
       typeof window !== 'undefined' && window.google
-        ? new window.google.maps.Point(24, 24)
+        ? new window.google.maps.Point(anchorX, anchorY)
         : undefined,
   };
 };

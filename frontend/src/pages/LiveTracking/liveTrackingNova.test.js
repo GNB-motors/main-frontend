@@ -149,5 +149,43 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
       expect(decodedOffline).toContain('#9CA3AF'); // clean grey from status bar
       expect(decodedOffline).not.toContain('#F97316');
     });
+
+    it('scales vehicle marker icon and label relatively with map zoom', () => {
+      // Mock window.google.maps.Size and Point if needed
+      window.google = {
+        maps: {
+          Size: class {
+            constructor(w, h) {
+              this.width = w;
+              this.height = h;
+            }
+          },
+          Point: class {
+            constructor(x, y) {
+              this.x = x;
+              this.y = y;
+            }
+          },
+        },
+      };
+
+      const veh = { status: 'moving', plate: 'WB19A1234' };
+
+      // Zoom >= 16 (scale 1.25): scaledW = 48 * 1.25 = 60
+      const iconClose = createVehicleMarkerIcon(veh, false, true, 16);
+      expect(iconClose.scaledSize.width).toBe(60);
+
+      // Zoom 14 (scale 1.0): scaledW = 48 * 1.0 = 48
+      const iconNormal = createVehicleMarkerIcon(veh, false, true, 14);
+      expect(iconNormal.scaledSize.width).toBe(48);
+
+      // Zoom 10 (scale 0.85): scaledW = 48 * 0.85 = 41
+      const iconRegional = createVehicleMarkerIcon(veh, false, true, 10);
+      expect(iconRegional.scaledSize.width).toBe(41);
+
+      // Zoom 5 (scale 0.72): scaledW = 48 * 0.72 = 35
+      const iconNational = createVehicleMarkerIcon(veh, false, true, 5);
+      expect(iconNational.scaledSize.width).toBe(35);
+    });
   });
 });
