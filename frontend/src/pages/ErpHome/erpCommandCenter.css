@@ -85,7 +85,9 @@
 
   /* ---- semantic: light ---- */
   --bg-app: #ffffff;
-  --bg-canvas: var(--morning-fog-800);
+  /* White page canvas — cards keep their border, so they still read as
+     surfaces. Dark mode below is deliberately not changed. */
+  --bg-canvas: #ffffff;
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
   --bg-subtle: var(--morning-fog-900);
@@ -597,7 +599,36 @@ html.dark .nova-cc {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--space-4);
-  align-items: start;
+  /* Both columns share a height. `start` (the mockup's value) let the queue
+     card shrink to however many rows the stage happened to have, so on a quiet
+     stage it sat noticeably shorter than the POD card beside it and the row
+     read as broken. Stretching makes the taller card set the height. */
+  align-items: stretch;
+}
+
+/* The queue card has to fill the height it is now given: header and footer keep
+   their size, the table area takes the slack. Without this the card grows but
+   its contents stay bunched at the top with dead space under them. */
+.nova-cc #queue {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.nova-cc #queue > .qhead,
+.nova-cc #queue > .bulk,
+.nova-cc #queue > .qfoot {
+  flex: none;
+}
+.nova-cc #queue > .tblwrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+/* A clear / loading / no-match queue is the case that made the card short in
+   the first place, so these have to take the slack as well. */
+.nova-cc #queue > .empty {
+  flex: 1 1 auto;
+  justify-content: center;
 }
 /* queue */
 .nova-cc .qhead {
@@ -907,6 +938,50 @@ html.dark .nova-cc .stage[aria-pressed='true'] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* ─── Pipeline rail fits all seven stages ────────────────────────────────────
+   The rail is a fixed repeat(7, minmax(132px, 1fr)) with overflow-x: auto, and
+   it had no responsive rule at all. Seven 132px columns plus the rail padding,
+   the card border and the page gutter need ~1006px of content — and the app's
+   260px sidebar eats into that, so below roughly a 1266px viewport the last
+   stages slid out of view behind a scrollbar that is easy to miss. The mockup
+   never hit this: it has no sidebar.
+
+   The chevron chain only reads as a chain on one row, so the columns are
+   allowed to narrow instead of wrapping. overflow-x stays as the last resort. */
+@media (max-width: 1400px) {
+  .nova-cc .rail {
+    grid-template-columns: repeat(7, minmax(112px, 1fr));
+  }
+  .nova-cc .stage {
+    padding: 11px 10px 12px 18px;
+  }
+  .nova-cc .stage:first-child {
+    padding-left: 11px;
+  }
+}
+@media (max-width: 1180px) {
+  .nova-cc .rail {
+    grid-template-columns: repeat(7, minmax(92px, 1fr));
+    padding: 10px var(--space-3) var(--space-3);
+  }
+  .nova-cc .stage {
+    padding: 10px 8px 11px 16px;
+  }
+  .nova-cc .stage:first-child {
+    padding-left: 9px;
+  }
+  .nova-cc .stage .c {
+    font-size: var(--type-l);
+  }
+  .nova-cc .stage .n,
+  .nova-cc .stage .v {
+    font-size: 10px;
+  }
+  .nova-cc .stage .late {
+    font-size: 9px;
+  }
+}
+
 @media (max-width: 760px) {
   .nova-cc .page {
     padding: var(--space-4) var(--space-4) 40px;

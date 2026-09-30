@@ -108,9 +108,7 @@ const LemuGraphPage = lazy(
   () => import('./pages/Superadmin/components/lemu/graph/LemuGraphPage.jsx'),
 );
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
-const WhatsAppAuditPage = lazy(
-  () => import('./pages/Superadmin/components/WhatsAppAuditPage.jsx'),
-);
+const WhatsAppAuditPage = lazy(() => import('./pages/Superadmin/components/WhatsAppAuditPage.jsx'));
 const ReceiptApprovalPage = lazy(
   () => import('./pages/Superadmin/components/ReceiptApprovalPage.jsx'),
 );
@@ -440,6 +438,7 @@ function App() {
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
             <Route path="/geofence" element={<GeofencePage />} />
             <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
+            <Route path="/geofence/alerts" element={<Navigate to="/geofence/zones" replace />} />
             <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
             <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
             <Route path="/drivers" element={<DriversPage />} />

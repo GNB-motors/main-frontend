@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, MapPin, AlertTriangle, RefreshCw } from 'lucide-react';
 import {
-  GoogleMap, useLoadScript, MarkerF, CircleF, PolygonF, PolylineF,
+  GoogleMap,
+  useLoadScript,
+  MarkerF,
+  CircleF,
+  PolygonF,
+  PolylineF,
 } from '@react-google-maps/api';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
 import './AddZoneDrawer.css';
@@ -27,7 +32,8 @@ const LocationSearch = ({ isLoaded, value, onChange, onSelect, hasError }) => {
   useEffect(() => {
     clearTimeout(debounceRef.current);
     if (!isLoaded || !svcRef.current || !value || value.length < 3) {
-      setSuggestions([]); return;
+      setSuggestions([]);
+      return;
     }
     debounceRef.current = setTimeout(() => {
       svcRef.current.getPlacePredictions(
@@ -38,7 +44,7 @@ const LocationSearch = ({ isLoaded, value, onChange, onSelect, hasError }) => {
           } else {
             setSuggestions([]);
           }
-        }
+        },
       );
     }, 300);
     return () => clearTimeout(debounceRef.current);
@@ -54,14 +60,16 @@ const LocationSearch = ({ isLoaded, value, onChange, onSelect, hasError }) => {
 
   return (
     <div className="azd-location-wrap" ref={wrapperRef}>
-      <div className={`azd-location-input-row ${hasError ? 'azd-error-border' : ''} ${focused ? 'azd-focused' : ''}`}>
+      <div
+        className={`azd-location-input-row ${hasError ? 'azd-error-border' : ''} ${focused ? 'azd-focused' : ''}`}
+      >
         <MapPin size={16} className="azd-pin-icon" />
         <input
           className="azd-location-input"
           type="text"
           placeholder="Search location…"
           value={value}
-          onChange={e => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
         />
@@ -73,8 +81,20 @@ const LocationSearch = ({ isLoaded, value, onChange, onSelect, hasError }) => {
             <li key={s.place_id || i} className="azd-suggestion-item" style={{ padding: 0 }}>
               <button
                 type="button"
-                style={{ background: 'none', border: 'none', padding: '10px 14px', font: 'inherit', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }}
-                onMouseDown={() => { setSuggestions([]); onSelect(s); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '10px 14px',
+                  font: 'inherit',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  width: '100%',
+                  textAlign: 'left',
+                }}
+                onMouseDown={() => {
+                  setSuggestions([]);
+                  onSelect(s);
+                }}
               >
                 {s.description}
               </button>
@@ -92,7 +112,9 @@ const GeoTypeSelect = ({ value, onChange }) => {
   const ref = useRef(null);
 
   useEffect(() => {
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const h = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
@@ -101,27 +123,30 @@ const GeoTypeSelect = ({ value, onChange }) => {
     { value: 'circular', label: 'Circular', icon: '⊙', badge: null },
     { value: 'polygon', label: 'Polygon (Draw on Map)', icon: '⬡', badge: 'NEW' },
   ];
-  const selected = OPTIONS.find(o => o.value === value);
+  const selected = OPTIONS.find((o) => o.value === value);
 
   return (
     <div className="azd-type-wrap" ref={ref}>
       <button
         type="button"
         className={`azd-type-trigger ${open ? 'azd-type-open' : ''}`}
-        onClick={() => setOpen(p => !p)}
+        onClick={() => setOpen((p) => !p)}
       >
         <span className="azd-type-label">{selected ? selected.label : 'Select type'}</span>
         <span className="azd-chevron">{open ? '▴' : '▾'}</span>
       </button>
       {open && (
         <div className="azd-type-dropdown">
-          {OPTIONS.map(o => (
+          {OPTIONS.map((o) => (
             <div
               key={o.value}
               role="button"
               tabIndex={0}
               className={`azd-type-option ${value === o.value ? 'azd-type-selected' : ''}`}
-              onClick={() => { onChange(o.value); setOpen(false); }}
+              onClick={() => {
+                onChange(o.value);
+                setOpen(false);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
@@ -145,9 +170,15 @@ const GeoTypeSelect = ({ value, onChange }) => {
 // Polygon drawing: click to add points, press "Finish Drawing" button when done.
 // NO DrawingManager / 'drawing' library needed.
 const ZoneMapPreview = ({
-  isLoaded, locationLatLng, geofenceType,
-  radiusMetres, polygonPath, onClearShape,
-  draftPoints, onAddPoint, onClearDraft,
+  isLoaded,
+  locationLatLng,
+  geofenceType,
+  radiusMetres,
+  polygonPath,
+  onClearShape,
+  draftPoints,
+  onAddPoint,
+  onClearDraft,
 }) => {
   const [mapInstance, setMapInstance] = useState(null);
   const isDone = polygonPath.length >= 3;
@@ -157,7 +188,7 @@ const ZoneMapPreview = ({
     zoomControl: true,
     streetViewControl: false,
     mapTypeControl: false,
-    draggableCursor: (geofenceType === 'polygon' && !isDone) ? 'crosshair' : undefined,
+    draggableCursor: geofenceType === 'polygon' && !isDone ? 'crosshair' : undefined,
   };
 
   // Pan to location when it changes
@@ -169,10 +200,13 @@ const ZoneMapPreview = ({
   }, [locationLatLng, mapInstance]);
 
   // Handle map click — only collect points when in polygon mode and not done
-  const handleMapClick = useCallback((e) => {
-    if (geofenceType !== 'polygon' || isDone) return;
-    onAddPoint({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-  }, [geofenceType, isDone, onAddPoint]);
+  const handleMapClick = useCallback(
+    (e) => {
+      if (geofenceType !== 'polygon' || isDone) return;
+      onAddPoint({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+    },
+    [geofenceType, isDone, onAddPoint],
+  );
 
   const handleClear = () => {
     onClearDraft();
@@ -198,7 +232,7 @@ const ZoneMapPreview = ({
         center={center}
         zoom={zoom}
         options={mapOptions}
-        onLoad={map => setMapInstance(map)}
+        onLoad={(map) => setMapInstance(map)}
         onClick={handleMapClick}
       >
         {/* ── Circular preview ── */}
@@ -209,8 +243,11 @@ const ZoneMapPreview = ({
               center={locationLatLng}
               radius={radiusMetres}
               options={{
-                strokeColor: '#6366f1', strokeOpacity: 0.9, strokeWeight: 2,
-                fillColor: '#6366f1', fillOpacity: 0.15,
+                strokeColor: '#6366f1',
+                strokeOpacity: 0.9,
+                strokeWeight: 2,
+                fillColor: '#6366f1',
+                fillOpacity: 0.15,
               }}
             />
           </>
@@ -225,25 +262,33 @@ const ZoneMapPreview = ({
         )}
 
         {/* ── Draft point markers ── */}
-        {geofenceType === 'polygon' && !isDone && draftPoints.map((pt, i) => (
-          <MarkerF
-            key={i}
-            position={pt}
-            icon={{
-              path: 'M 0,0 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0',
-              fillColor: '#6366f1', fillOpacity: 1,
-              strokeColor: '#ffffff', strokeWeight: 2, scale: 1,
-            }}
-          />
-        ))}
+        {geofenceType === 'polygon' &&
+          !isDone &&
+          draftPoints.map((pt, i) => (
+            <MarkerF
+              key={i}
+              position={pt}
+              icon={{
+                path: 'M 0,0 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0',
+                fillColor: '#6366f1',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+                scale: 1,
+              }}
+            />
+          ))}
 
         {/* ── Completed polygon ── */}
         {geofenceType === 'polygon' && isDone && (
           <PolygonF
             paths={polygonPath}
             options={{
-              strokeColor: '#6366f1', strokeOpacity: 0.9, strokeWeight: 2,
-              fillColor: '#6366f1', fillOpacity: 0.2,
+              strokeColor: '#6366f1',
+              strokeOpacity: 0.9,
+              strokeWeight: 2,
+              fillColor: '#6366f1',
+              fillOpacity: 0.2,
             }}
           />
         )}
@@ -278,7 +323,14 @@ const ZoneMapPreview = ({
 };
 
 // ─── Main Drawer ────────────────────────────────────────────────────────────────
-const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add' }) => {
+const AddZoneDrawer = ({
+  onClose,
+  onSaved,
+  prefillLatLng,
+  prefillName = '',
+  editZone,
+  mode = 'add',
+}) => {
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
     libraries: GMAPS_LIBS,
@@ -290,14 +342,22 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
   const [draftPoints, setDraftPoints] = useState([]);
   const [locationText, setLocationText] = useState('');
   const [locationLatLng, setLocationLatLng] = useState(
-    isEdit ? { lat: editZone.lat, lng: editZone.lng } : (prefillLatLng || null)
+    isEdit ? { lat: editZone.lat, lng: editZone.lng } : prefillLatLng || null,
   );
-  const [name, setName] = useState(isEdit ? editZone.name : '');
-  const [geofenceType, setGeofenceType] = useState(isEdit ? editZone.geofenceType : '');
+  const [name, setName] = useState(isEdit ? editZone.name : prefillName || '');
+  const [geofenceType, setGeofenceType] = useState(
+    isEdit ? editZone.geofenceType : prefillLatLng ? 'circular' : 'circular',
+  );
   const [radiusMetres, setRadiusMetres] = useState(isEdit ? editZone.radiusMetres : 500);
-  const [alertOnEntry, setAlertOnEntry] = useState(isEdit ? editZone.alertConfig?.alertOnEntry : true);
-  const [alertOnExit, setAlertOnExit] = useState(isEdit ? editZone.alertConfig?.alertOnExit : false);
-  const [polygonPath, setPolygonPath] = useState(isEdit && editZone.polygonPath ? editZone.polygonPath : []);
+  const [alertOnEntry, setAlertOnEntry] = useState(
+    isEdit ? editZone.alertConfig?.alertOnEntry : true,
+  );
+  const [alertOnExit, setAlertOnExit] = useState(
+    isEdit ? editZone.alertConfig?.alertOnExit : false,
+  );
+  const [polygonPath, setPolygonPath] = useState(
+    isEdit && editZone.polygonPath ? editZone.polygonPath : [],
+  );
 
   const [locationError, setLocationError] = useState(false);
   const [nameError, setNameError] = useState(false);
@@ -308,13 +368,15 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
   useEffect(() => {
     const targetLatLng = isEdit ? { lat: editZone.lat, lng: editZone.lng } : prefillLatLng;
     if (!targetLatLng || !isLoaded || !window.google) return;
-    new window.google.maps.Geocoder().geocode(
-      { location: targetLatLng },
-      (results, status) => {
-        if (status === 'OK' && results[0]) setLocationText(results[0].formatted_address);
+    new window.google.maps.Geocoder().geocode({ location: targetLatLng }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        setLocationText(results[0].formatted_address);
+        if (!name && !isEdit && !prefillName) {
+          setName(results[0].formatted_address.split(',')[0] || 'Custom Zone');
+        }
       }
-    );
-  }, [prefillLatLng, isEdit, editZone, isLoaded]);
+    });
+  }, [prefillLatLng, isEdit, editZone, isLoaded, prefillName]);
 
   const handleSuggestionSelect = useCallback((suggestion) => {
     setLocationText(suggestion.description);
@@ -329,14 +391,18 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
             lng: results[0].geometry.location.lng(),
           });
         }
-      }
+      },
     );
   }, []);
 
-  const handleTypeChange = (val) => { setGeofenceType(val); setPolygonPath([]); setDraftPoints([]); };
+  const handleTypeChange = (val) => {
+    setGeofenceType(val);
+    setPolygonPath([]);
+    setDraftPoints([]);
+  };
   const handleClearShape = () => setPolygonPath([]);
   const handleClearDraft = () => setDraftPoints([]);
-  const handleAddPoint = (pt) => setDraftPoints(prev => [...prev, pt]);
+  const handleAddPoint = (pt) => setDraftPoints((prev) => [...prev, pt]);
   const handleFinishDrawing = () => {
     if (draftPoints.length >= 3) {
       setPolygonPath(draftPoints);
@@ -351,31 +417,49 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
     return { lat: +lat.toFixed(7), lng: +lng.toFixed(7) };
   };
 
-  const canSave = name.trim() && geofenceType &&
+  const canSave =
+    name.trim() &&
+    geofenceType &&
     (geofenceType === 'polygon' ? polygonPath.length >= 3 : !!locationLatLng);
 
   const handleSave = async () => {
     let valid = true;
-    if (!locationLatLng && geofenceType !== 'polygon') { setLocationError(true); valid = false; }
-    if (!name.trim()) { setNameError(true); valid = false; }
-    if (!geofenceType) { setSaveError('Please select a geofence type'); return; }
+    if (!locationLatLng && geofenceType !== 'polygon') {
+      setLocationError(true);
+      valid = false;
+    }
+    if (!name.trim()) {
+      setNameError(true);
+      valid = false;
+    }
+    if (!geofenceType) {
+      setSaveError('Please select a geofence type');
+      return;
+    }
     if (geofenceType === 'polygon' && polygonPath.length < 3) {
-      setSaveError('Please draw a polygon with at least 3 points'); return;
+      setSaveError('Please draw a polygon with at least 3 points');
+      return;
     }
     if (!valid) return;
 
     const centroid = geofenceType === 'polygon' ? getCentroid() : locationLatLng;
-    if (!centroid) { setSaveError('Could not determine zone location'); return; }
+    if (!centroid) {
+      setSaveError('Could not determine zone location');
+      return;
+    }
 
-    setSaving(true); setSaveError(null);
+    setSaving(true);
+    setSaveError(null);
     try {
       const payload = {
         name: name.trim(),
-        lat: centroid.lat, lng: centroid.lng,
+        lat: centroid.lat,
+        lng: centroid.lng,
         radiusMetres: geofenceType === 'circular' ? radiusMetres : 0,
         geofenceType,
         polygonPath: geofenceType === 'polygon' ? polygonPath : [],
-        alertOnEntry, alertOnExit,
+        alertOnEntry,
+        alertOnExit,
         cooldownMinutes: 0,
       };
 
@@ -406,31 +490,39 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
       role="button"
       tabIndex={-1}
       aria-label="Close dialog"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       onKeyDown={handleOverlayKeyDown}
     >
       <div className="azd-modal">
-
         {/* ── Header ── */}
         <div className="azd-header">
           <h3 className="azd-title">{mode === 'edit' ? 'Edit Place' : 'Add Custom Zone'}</h3>
-          <button className="azd-close-btn" onClick={onClose}><X size={18} /></button>
+          <button className="azd-close-btn" onClick={onClose}>
+            <X size={18} />
+          </button>
         </div>
 
         {/* ── Content ── */}
         <div className="azd-content">
-
           {/* Left form */}
           <div className="azd-form-col">
             {saveError && (
-              <div className="azd-save-error"><AlertTriangle size={13} /> {saveError}</div>
+              <div className="azd-save-error">
+                <AlertTriangle size={13} /> {saveError}
+              </div>
             )}
 
             <label className="azd-label">Location</label>
             <LocationSearch
               isLoaded={isLoaded}
               value={locationText}
-              onChange={(v) => { setLocationText(v); if (!v) setLocationLatLng(null); setLocationError(false); }}
+              onChange={(v) => {
+                setLocationText(v);
+                if (!v) setLocationLatLng(null);
+                setLocationError(false);
+              }}
               onSelect={handleSuggestionSelect}
               hasError={locationError}
             />
@@ -440,7 +532,10 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
               className={`azd-input ${nameError ? 'azd-input-err' : ''}`}
               placeholder="e.g. Warehouse A"
               value={name}
-              onChange={e => { setName(e.target.value); setNameError(false); }}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameError(false);
+              }}
             />
             {nameError && <p className="azd-error-msg">Name is required</p>}
 
@@ -449,25 +544,30 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
 
             {geofenceType === 'polygon' && polygonPath.length === 0 && (
               <div className="azd-poly-instructions">
-                <p>🖱️ <strong>Click on the map</strong> to place points</p>
-                <p>Points placed: <strong>{draftPoints.length}</strong></p>
+                <p>
+                  🖱️ <strong>Click on the map</strong> to place points
+                </p>
+                <p>
+                  Points placed: <strong>{draftPoints.length}</strong>
+                </p>
                 {draftPoints.length >= 3 && (
-                  <button
-                    type="button"
-                    className="azd-finish-btn"
-                    onClick={handleFinishDrawing}
-                  >
+                  <button type="button" className="azd-finish-btn" onClick={handleFinishDrawing}>
                     ✅ Finish Drawing
                   </button>
                 )}
                 {draftPoints.length > 0 && draftPoints.length < 3 && (
-                  <p className="azd-poly-note">Add {3 - draftPoints.length} more point{3 - draftPoints.length > 1 ? 's' : ''} to finish</p>
+                  <p className="azd-poly-note">
+                    Add {3 - draftPoints.length} more point{3 - draftPoints.length > 1 ? 's' : ''}{' '}
+                    to finish
+                  </p>
                 )}
               </div>
             )}
             {geofenceType === 'polygon' && polygonPath.length >= 3 && (
               <div className="azd-poly-instructions azd-poly-done">
-                <p>✅ Polygon ready — <strong>{polygonPath.length} points</strong></p>
+                <p>
+                  ✅ Polygon ready — <strong>{polygonPath.length} points</strong>
+                </p>
               </div>
             )}
 
@@ -478,9 +578,12 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
                 </label>
                 <input
                   className="azd-slider"
-                  type="range" min="50" max="10000" step="50"
+                  type="range"
+                  min="50"
+                  max="10000"
+                  step="50"
                   value={radiusMetres}
-                  onChange={e => setRadiusMetres(parseInt(e.target.value, 10))}
+                  onChange={(e) => setRadiusMetres(parseInt(e.target.value, 10))}
                 />
               </>
             )}
@@ -489,11 +592,19 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
               <div className="azd-alerts-section">
                 <label className="azd-label">Alert Settings</label>
                 <label className="azd-check">
-                  <input type="checkbox" checked={alertOnEntry} onChange={e => setAlertOnEntry(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={alertOnEntry}
+                    onChange={(e) => setAlertOnEntry(e.target.checked)}
+                  />
                   Alert on Entry
                 </label>
                 <label className="azd-check">
-                  <input type="checkbox" checked={alertOnExit} onChange={e => setAlertOnExit(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={alertOnExit}
+                    onChange={(e) => setAlertOnExit(e.target.checked)}
+                  />
                   Alert on Exit
                 </label>
               </div>
@@ -528,7 +639,6 @@ const AddZoneDrawer = ({ onClose, onSaved, prefillLatLng, editZone, mode = 'add'
             {mode === 'edit' ? 'Update' : 'Save Zone'}
           </button>
         </div>
-
       </div>
     </div>
   );

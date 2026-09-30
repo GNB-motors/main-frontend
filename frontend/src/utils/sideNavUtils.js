@@ -253,15 +253,14 @@ export const SIDE_NAV_ITEMS = [
       '/trip-management',
     ],
   },
-  // Fleet Intelligence surfaces added by the live-map-refresh / warehouse branch.
+  // Fleet Intelligence surfaces
   {
     type: 'group',
     groupId: 'fleetIntelligence',
+    key: null,
     access: 'fleet',
     label: 'Fleet Intelligence',
     icon: ShieldAlert,
-    // Fleet Alerts & Owner Alerts used to live here; they now open from the
-    // Navbar notification bell (NotificationBell.jsx) instead of the sidebar.
     children: [
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
@@ -337,7 +336,7 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'group',
     groupId: 'geofence',
-    key: 'geofence',
+    key: null,
     access: 'fleet',
     label: 'Geofence',
     icon: Navigation,

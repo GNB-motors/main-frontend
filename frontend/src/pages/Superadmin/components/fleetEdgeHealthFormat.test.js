@@ -1,4 +1,9 @@
-import { formatAge, connectionChip, flowChip } from './fleetEdgeHealthFormat.js';
+import {
+  formatAge,
+  connectionChip,
+  flowChip,
+  fleetMembershipChip,
+} from './fleetEdgeHealthFormat.js';
 
 describe('fleetEdgeHealthFormat', () => {
   it('formats ages into human "how long ago"', () => {
@@ -22,5 +27,14 @@ describe('fleetEdgeHealthFormat', () => {
     expect(flowChip('FLOWING').tone).toBe('ok');
     expect(flowChip('STALE').tone).toBe('caution');
     expect(flowChip('NO_DATA').tone).toBe('critical');
+  });
+
+  it('shows a stale directory row as an old row, never as a fleet gap', () => {
+    expect(fleetMembershipChip({ inFleetMaster: true }).text).toBe('In fleet');
+    expect(fleetMembershipChip({ inFleetMaster: false }).text).toBe('Not in fleet');
+    expect(fleetMembershipChip({ inFleetMaster: false, directoryStale: true }).text).toBe(
+      'Old row',
+    );
+    expect(fleetMembershipChip({}).text).toBe('—');
   });
 });

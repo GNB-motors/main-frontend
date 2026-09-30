@@ -2338,3 +2338,11 @@
 .appr-trip-inline--static:hover {
   text-decoration: none;
 }
+
+/* ─── Operations Pipeline: white canvas ───────────────────────────────────────
+   Only this page. `.erp-page` is PageShell's wrapper and is shared by every
+   ERP tab-page, so it is matched here by what it CONTAINS instead of being
+   recoloured for all of them. */
+.erp-page:has(.erp-toolbar.is-pipeline) {
+  background: #ffffff;
+}

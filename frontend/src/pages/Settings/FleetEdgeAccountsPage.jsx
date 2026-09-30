@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { listAccounts, updateAccount, deleteAccount } from '../Profile/FleetEdgeAccountService';
 import { getToken, getUserRole } from '../../utils/session.js';
 import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
 import StatusBadge from './fleetEdgeAccountsStatus';
 import Modal from './fleetEdgeAccountsModal';
-import AddAccountForm from './fleetEdgeAccountsAddForm';
 import RenameForm from './fleetEdgeAccountsRenameForm';
-import DiscoverPanel from './fleetEdgeAccountsDiscoverPanel';
 import DriftTab from './fleetEdgeAccountsDrift';
 
 export default function FleetEdgeAccountsPage() {
@@ -90,17 +88,6 @@ export default function FleetEdgeAccountsPage() {
       title="FleetEdge Accounts"
       subtitle="Manage the FleetEdge accounts supplying data to this organisation"
       count={activeTab === 'accounts' && !loading ? accounts.length : null}
-      actions={
-        isOwner ? (
-          <button
-            onClick={() => setModal({ kind: 'add' })}
-            className="pshell-btn pshell-btn--primary flex items-center gap-2"
-          >
-            <Plus size={15} />
-            Add PULL Account
-          </button>
-        ) : null
-      }
       footer={
         activeTab === 'accounts' && !loading && accounts.length > 0
           ? `${accounts.length} account${accounts.length !== 1 ? 's' : ''}`
@@ -132,7 +119,7 @@ export default function FleetEdgeAccountsPage() {
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
             <p className="text-sm font-semibold text-slate-500">No FleetEdge accounts configured</p>
             <p className="mt-1 text-xs text-slate-400">
-              Add a PULL account to start syncing vehicle data automatically
+              Connect FleetEdge from the GNB Edge Chrome extension to start syncing vehicle data
             </p>
           </div>
         ) : (
@@ -178,15 +165,6 @@ export default function FleetEdgeAccountsPage() {
                     >
                       <Pencil size={15} />
                     </button>
-                    {isOwner && account.source === 'PULL' && (
-                      <button
-                        onClick={() => setModal({ kind: 'discover', account })}
-                        title="Discover vehicles"
-                        className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                      >
-                        <RefreshCw size={15} />
-                      </button>
-                    )}
                     {isOwner && (
                       <>
                         <button
@@ -211,17 +189,6 @@ export default function FleetEdgeAccountsPage() {
           </div>
         ))}
 
-      {modal?.kind === 'add' && (
-        <Modal title="Add PULL FleetEdge Account" onClose={closeModal}>
-          <AddAccountForm
-            onSuccess={() => {
-              closeModal();
-              load();
-            }}
-            onClose={closeModal}
-          />
-        </Modal>
-      )}
       {modal?.kind === 'rename' && (
         <Modal title="Rename Account" onClose={closeModal}>
           <RenameForm
@@ -232,14 +199,6 @@ export default function FleetEdgeAccountsPage() {
             }}
             onClose={closeModal}
           />
-        </Modal>
-      )}
-      {modal?.kind === 'discover' && (
-        <Modal
-          title={`Discover vehicles — ${modal.account.friendlyName || modal.account.externalAccountId}`}
-          onClose={closeModal}
-        >
-          <DiscoverPanel account={modal.account} onClose={closeModal} />
         </Modal>
       )}
     </PageShell>

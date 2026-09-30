@@ -39,9 +39,8 @@ const PROVENANCE_META = {
 
 const mapContainerStyle = {
   width: '100%',
-  height: 'calc(100vh - 215px)',
-  minHeight: '440px',
-  maxHeight: '620px',
+  height: '580px',
+  minHeight: '520px',
 };
 
 const formatLastIncident = (date) => (date ? dayjs(date).fromNow() : 'No recent incidents');
@@ -265,11 +264,16 @@ export default function HotspotsPage() {
               </div>
             </div>
 
-            {/* Ambient status overlay when zero hotspots */}
+            {/* Ambient status ribbon when zero hotspots */}
             {active.length === 0 && (
-              <div className="hs-ambient-badge">
-                <ShieldCheck size={16} className="text-emerald-600" />
-                <span>Corridors Clear · 0 Risk Clusters Detected</span>
+              <div className="hs-status-strip hs-status-strip--emerald">
+                <div
+                  className="hs-status-strip-badge"
+                  style={{ borderColor: '#10b981', color: '#065f46' }}
+                >
+                  <ShieldCheck size={15} className="text-emerald-600" />
+                  <span>Corridors Clear · 0 Risk Clusters Detected</span>
+                </div>
               </div>
             )}
 

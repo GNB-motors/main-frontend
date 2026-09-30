@@ -11,12 +11,12 @@ import {
   summariseBuckets,
   SEVERITY_TIERS,
 } from './drainMapModel.js';
+import './Hotspots.css';
 
 const mapContainerStyle = {
   width: '100%',
-  height: 'calc(100vh - 260px)',
-  minHeight: '440px',
-  maxHeight: '620px',
+  height: '580px',
+  minHeight: '520px',
 };
 
 const RANGE_OPTIONS = [
@@ -34,7 +34,7 @@ const RANGE_OPTIONS = [
  * The map is fetched for the whole fleet over the chosen window; the service
  * also accepts a bbox for viewport-scoped fetching if we later want it.
  */
-export default function DrainHotspotMap({ mapLoaded }) {
+export default function DrainHotspotMap({ mapLoaded, onCreateZone }) {
   const [rangeDays, setRangeDays] = useState(90);
   const [data, setData] = useState(null); // null = loading
   const [error, setError] = useState(null);
@@ -67,6 +67,31 @@ export default function DrainHotspotMap({ mapLoaded }) {
   const buckets = useMemo(() => data?.buckets ?? [], [data]);
   const maxInr = useMemo(() => maxInrOf(buckets), [buckets]);
   const summary = useMemo(() => summariseBuckets(buckets), [buckets]);
+
+  const styledBuckets = useMemo(() => {
+    return buckets.map((b) => {
+      const style = bucketStyle(b, maxInr);
+      return {
+        ...b,
+        center: { lat: b.centerLat, lng: b.centerLng },
+        radiusMeters: style.radiusMeters,
+        circleOptions: {
+          fillColor: style.color,
+          fillOpacity: 0.28,
+          strokeColor: style.color,
+          strokeOpacity: 0.85,
+          strokeWeight: 2,
+          clickable: true,
+        },
+        markerLabel: {
+          text: String(b.count),
+          color: '#0f172a',
+          fontSize: '11px',
+          fontWeight: '700',
+        },
+      };
+    });
+  }, [buckets, maxInr]);
 
   const defaultCenter = useMemo(() => {
     const first = buckets[0];
@@ -196,9 +221,14 @@ export default function DrainHotspotMap({ mapLoaded }) {
         )}
 
         {!loading && !error && buckets.length === 0 && (
-          <div className="hs-ambient-badge">
-            <Droplets size={16} className="text-emerald-600" />
-            <span>No fuel-drain events in this window</span>
+          <div className="hs-status-strip hs-status-strip--emerald">
+            <div
+              className="hs-status-strip-badge"
+              style={{ borderColor: '#10b981', color: '#065f46' }}
+            >
+              <Droplets size={15} className="text-emerald-600" />
+              <span>No fuel-drain events in this window</span>
+            </div>
           </div>
         )}
 
@@ -207,38 +237,24 @@ export default function DrainHotspotMap({ mapLoaded }) {
             mapContainerStyle={mapContainerStyle}
             center={defaultCenter}
             zoom={buckets.length > 0 ? 7 : 5}
-            options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: true }}
+            options={{
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: true,
+              gestureHandling: 'greedy',
+            }}
           >
-            {buckets.map((b) => {
-              const style = bucketStyle(b, maxInr);
-              return (
-                <React.Fragment key={b.cell}>
-                  <CircleF
-                    center={{ lat: b.centerLat, lng: b.centerLng }}
-                    radius={style.radiusMeters}
-                    onClick={() => onCellClick(b)}
-                    options={{
-                      fillColor: style.color,
-                      fillOpacity: 0.28,
-                      strokeColor: style.color,
-                      strokeOpacity: 0.85,
-                      strokeWeight: 2,
-                      clickable: true,
-                    }}
-                  />
-                  <MarkerF
-                    position={{ lat: b.centerLat, lng: b.centerLng }}
-                    onClick={() => onCellClick(b)}
-                    label={{
-                      text: String(b.count),
-                      color: '#0f172a',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                    }}
-                  />
-                </React.Fragment>
-              );
-            })}
+            {styledBuckets.map((b) => (
+              <React.Fragment key={b.cell}>
+                <CircleF
+                  center={b.center}
+                  radius={b.radiusMeters}
+                  onClick={() => onCellClick(b)}
+                  options={b.circleOptions}
+                />
+                <MarkerF position={b.center} onClick={() => onCellClick(b)} label={b.markerLabel} />
+              </React.Fragment>
+            ))}
 
             {selected && (
               <InfoWindowF
@@ -281,6 +297,24 @@ export default function DrainHotspotMap({ mapLoaded }) {
                   <p className="mt-2 text-[10px] text-slate-400">
                     ₹ is an estimate — review before acting.
                   </p>
+                  {onCreateZone && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onCreateZone({
+                          lat: selected.centerLat,
+                          lng: selected.centerLng,
+                          name: addressByCell[selected.cell]
+                            ? `Fuel Drain - ${addressByCell[selected.cell].split(',')[0]}`
+                            : `Fuel Drain Hotspot (${formatLitres(selected.totalLitres)})`,
+                        })
+                      }
+                      className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+                    >
+                      <MapPin size={12} />
+                      <span>Create Custom Geofence Zone</span>
+                    </button>
+                  )}
                 </div>
               </InfoWindowF>
             )}

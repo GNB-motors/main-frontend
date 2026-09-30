@@ -128,15 +128,15 @@
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.07);
   margin-bottom: 18px;
-  height: 360px;
+  height: 580px;
 }
 .gf-map {
   width: 100%;
-  height: 360px;
+  height: 580px;
 }
 .gf-map-placeholder {
   width: 100%;
-  height: 360px;
+  height: 580px;
   display: flex;
   align-items: center;
   justify-content: center;

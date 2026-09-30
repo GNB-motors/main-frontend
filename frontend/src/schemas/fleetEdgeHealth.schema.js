@@ -36,6 +36,8 @@ const vehicleRow = z
     sink: z.object({ reachable: z.boolean().nullish(), lastSeenAt: str }).passthrough().nullish(),
     forwarderGap: z.boolean().nullish(),
     subscriptionExpired: z.boolean().nullish(),
+    inFleetMaster: z.boolean().nullish(),
+    directoryStale: z.boolean().nullish(),
   })
   .passthrough();
 

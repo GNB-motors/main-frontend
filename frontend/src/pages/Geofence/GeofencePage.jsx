@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   MapPin,
   AlertTriangle,
@@ -10,9 +11,13 @@ import {
   Clock,
   Truck,
   ShieldAlert,
+  ShieldCheck,
   XCircle,
   Wifi,
   WifiOff,
+  Plus,
+  Droplets,
+  BellRing,
 } from 'lucide-react';
 import { GoogleMap, useLoadScript, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import dayjs from 'dayjs';
@@ -23,12 +28,16 @@ import { GeofenceService } from '../../services/GeofenceService.jsx';
 import { toast } from 'react-toastify';
 import { humanise } from '../../lib/vocabulary';
 import { footerSummary } from '../../lib/tableState';
+import { formatNum } from '../../utils/formatters';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import ExportButton from '../../components/ui/ExportButton';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { toGeofenceLiveVehicle } from './geofenceLive.shared.js';
+import AddZoneDrawer from './AddZoneDrawer.jsx';
+import DrainHotspotMap from '../Hotspots/DrainHotspotMap.jsx';
+import '../Hotspots/Hotspots.css';
 import './Geofence.css';
 
 dayjs.extend(utc);
@@ -45,6 +54,8 @@ const MAP_OPTIONS = {
   zoomControl: true,
   streetViewControl: false,
   mapTypeControl: false,
+  fullscreenControl: true,
+  gestureHandling: 'greedy',
 };
 const FLEET_EDGE_ICONS = {
   Moving:
@@ -170,7 +181,7 @@ const MapLegend = () => (
 );
 
 // ─── Location Row ──────────────────────────────────────────────────────────────
-const LocationRow = ({ location, onResolve, resolvingId }) => {
+const LocationRow = ({ location, onResolve, resolvingId, onCreateZone }) => {
   const [expanded, setExpanded] = useState(false);
   return (
     <>
@@ -193,7 +204,28 @@ const LocationRow = ({ location, onResolve, resolvingId }) => {
         <td className="gf-td gf-td-c">{(location.vehiclesAffected || []).length}</td>
         <td className="gf-td gf-td-c">{formatIST(location.lastSeenAt)}</td>
         <td className="gf-td gf-td-actions">
-          <button className="gf-btn gf-btn-icon" onClick={() => setExpanded((p) => !p)}>
+          {onCreateZone && (
+            <button
+              className="gf-btn gf-btn-icon"
+              onClick={() =>
+                onCreateZone({
+                  lat: location.lat,
+                  lng: location.lng,
+                  name: location.address
+                    ? `Zone - ${location.address.split(',')[0]}`
+                    : 'Risk Anomaly Zone',
+                })
+              }
+              title="Create Custom Geofence Zone around this location"
+            >
+              <Plus size={14} />
+            </button>
+          )}
+          <button
+            className="gf-btn gf-btn-icon"
+            onClick={() => setExpanded((p) => !p)}
+            title="Show stop events"
+          >
             {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           {!location.isResolved && (
@@ -262,6 +294,10 @@ const locationExportRows = (records) =>
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofencePage = () => {
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get('tab') === 'drain' ? 'drain' : 'anomalies',
+  );
   const [locations, setLocations] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -273,6 +309,15 @@ const GeofencePage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [resolvingId, setResolvingId] = useState(null);
   const [selectedLoc, setSelectedLoc] = useState(null);
+  const [showZoneDrawer, setShowZoneDrawer] = useState(false);
+  const [zonePrefillLatLng, setZonePrefillLatLng] = useState(null);
+  const [zonePrefillName, setZonePrefillName] = useState('');
+
+  const handleCreateZone = (opts = {}) => {
+    setZonePrefillLatLng(opts.lat && opts.lng ? { lat: opts.lat, lng: opts.lng } : null);
+    setZonePrefillName(opts.name || '');
+    setShowZoneDrawer(true);
+  };
 
   // Live vehicles arrive on the shared `positions` stream; streamed rows are
   // translated into the live-locations row shape this page has always drawn.
@@ -385,6 +430,25 @@ const GeofencePage = () => {
   const locationFilterCount =
     (severityFilter ? 1 : 0) + (showResolved ? 1 : 0) + (locationNeedle ? 1 : 0);
 
+  const locationsWithPos = useMemo(() => {
+    return filteredLocations.map((loc) => ({
+      ...loc,
+      position: { lat: loc.lat, lng: loc.lng },
+      icon: { url: PIN[loc.severity] || PIN.LOW },
+    }));
+  }, [filteredLocations]);
+
+  const vehicleIcons = useMemo(() => {
+    if (typeof window === 'undefined' || !window.google) return {};
+    const size = new window.google.maps.Size(32, 54);
+    const anchor = new window.google.maps.Point(16, 27);
+    const out = {};
+    for (const [st, url] of Object.entries(FLEET_EDGE_ICONS)) {
+      out[st] = { url, scaledSize: size, anchor };
+    }
+    return out;
+  }, [mapLoaded]);
+
   return (
     <PageShell
       className="gf-page"
@@ -393,6 +457,18 @@ const GeofencePage = () => {
       count={stats?.total ?? null}
       actions={
         <>
+          <button className="gf-btn gf-btn-primary" onClick={() => handleCreateZone()}>
+            <Plus size={14} /> Add Custom Zone
+          </button>
+          <Link to="/geofence-zones" className="gf-btn gf-btn-ghost">
+            <MapPin size={14} /> Risk Zones
+          </Link>
+          <Link to="/hotspots" className="gf-btn gf-btn-ghost">
+            <ShieldAlert size={14} /> Risk Hotspots
+          </Link>
+          <Link to="/fleet-alerts" className="gf-btn gf-btn-ghost">
+            <BellRing size={14} /> Fleet Alerts
+          </Link>
           {import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false' ? (
             <span
               style={{
@@ -434,287 +510,491 @@ const GeofencePage = () => {
         </>
       }
       filters={
-        <FilterBar
-          searchValue={locationQuery}
-          onSearchChange={(v) => {
-            setLocationQuery(v);
-            setPage(1);
-          }}
-          searchPlaceholder="Search location or vehicle…"
-          activeCount={locationFilterCount}
-          onClear={() => {
-            setLocationQuery('');
-            setSeverityFilter('');
-            setShowResolved(false);
-            setPage(1);
-          }}
-          right={
-            <ExportButton
-              rows={locationExportRows(filteredLocations)}
-              columns={LOCATION_EXPORT_COLUMNS}
-              filename="geofence-anomalies"
-              disabled={loading || !!error}
-              meta={{
-                generatedAt: new Date(),
-                filters: [
-                  ...(locationNeedle
-                    ? [{ label: 'Search (this page)', value: locationQuery.trim() }]
-                    : []),
-                  {
-                    label: 'Severity',
-                    value: severityFilter ? humanise(severityFilter) : 'All severities',
-                  },
-                  { label: 'Status', value: showResolved ? 'Open + resolved' : 'Open only' },
-                ],
-              }}
-            />
-          }
-        />
-      }
-      footer={
-        footerSummary({
-          showing: filteredLocations.length,
-          total: locations.length,
-          activeFilters: locationFilterCount,
-        }) + ' on this page'
-      }
-    >
-      {/* KPI Row */}
-      {stats && (
-        <div className="gf-kpi-row">
-          <KpiCard
-            icon={AlertTriangle}
-            label="Open Anomalies"
-            value={stats.total}
-            colorClass="warning"
-          />
-          <KpiCard icon={XCircle} label="High Severity" value={stats.high} colorClass="danger" />
-          <KpiCard icon={ShieldAlert} label="Medium" value={stats.medium} colorClass="orange" />
-          <KpiCard icon={MapPin} label="Low" value={stats.low} colorClass="info" />
-          <KpiCard
-            icon={CheckCircle2}
-            label="Resolved"
-            value={stats.resolved}
-            colorClass="success"
-          />
-        </div>
-      )}
-
-      {/* Map */}
-      <MapLegend />
-      <div className="gf-map-wrap">
-        {mapLoaded ? (
-          <GoogleMap
-            mapContainerClassName="gf-map"
-            center={MAP_CENTER}
-            zoom={5}
-            options={MAP_OPTIONS}
-            onLoad={(map) => {
-              mapRef.current = map;
-            }}
-          >
-            {locations.map((loc) => (
-              <MarkerF
-                key={loc._id}
-                position={{ lat: loc.lat, lng: loc.lng }}
-                icon={{ url: PIN[loc.severity] || PIN.LOW }}
-                onClick={() => {
-                  setSelectedLoc(loc);
-                  setSelectedVehicle(null);
-                }}
-              />
-            ))}
-            {/* Live vehicle pins */}
-            {liveVehicles.map((v) => {
-              const iconUrl = FLEET_EDGE_ICONS[v.status] || FLEET_EDGE_ICONS.Offline;
-              return (
-                <MarkerF
-                  key={v.vehicleId}
-                  position={{ lat: v.lat, lng: v.lng }}
-                  icon={{
-                    url: iconUrl,
-                    scaledSize: new window.google.maps.Size(32, 54),
-                    anchor: new window.google.maps.Point(16, 27),
-                  }}
-                  zIndex={2}
-                  onClick={() => {
-                    setSelectedVehicle(v);
-                    setSelectedLoc(null);
-                  }}
-                />
-              );
-            })}
-            {selectedLoc && (
-              <InfoWindowF
-                position={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}
-                onCloseClick={() => setSelectedLoc(null)}
-              >
-                <div className="gf-infowindow">
-                  <p className="gf-iw-title">
-                    {selectedLoc.address || (
-                      <PlaceLabel lat={selectedLoc.lat} lng={selectedLoc.lng} showMap={false} />
-                    )}
-                  </p>
-                  <p className="gf-iw-stat">
-                    <strong>{selectedLoc.occurrenceCount}</strong> occurrence
-                    {selectedLoc.occurrenceCount !== 1 ? 's' : ''}
-                    &nbsp;·&nbsp;<strong>
-                      {selectedLoc.totalFuelDropLitres?.toFixed(1)} L
-                    </strong>{' '}
-                    total drop
-                  </p>
-                  <SeverityBadge severity={selectedLoc.severity} />
-                </div>
-              </InfoWindowF>
-            )}
-            {selectedVehicle && (
-              <InfoWindowF
-                position={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
-                onCloseClick={() => setSelectedVehicle(null)}
-              >
-                <div className="gf-infowindow">
-                  <p className="gf-iw-title">
-                    <Truck size={13} style={{ display: 'inline', marginRight: 4 }} />
-                    {selectedVehicle.registrationNumber}
-                  </p>
-                  <p className="gf-iw-stat">
-                    Status:{' '}
-                    <strong
-                      style={{ color: VEHICLE_STATUS_COLOR[selectedVehicle.status] || '#64748b' }}
-                    >
-                      {selectedVehicle.status || 'Unknown'}
-                    </strong>
-                  </p>
-                  {selectedVehicle.speed != null && (
-                    <p className="gf-iw-stat">Speed: {selectedVehicle.speed?.toFixed(1)} kmph</p>
-                  )}
-                  {selectedVehicle.fuelLevel != null && (
-                    <p className="gf-iw-stat">Fuel: {selectedVehicle.fuelLevel?.toFixed(1)} L</p>
-                  )}
-                  <p
-                    className="gf-iw-stat"
-                    style={{ color: '#64748b', fontSize: '11px', marginTop: 4 }}
-                  >
-                    {fromNow(selectedVehicle.lastSeenAt)}
-                  </p>
-                </div>
-              </InfoWindowF>
-            )}
-          </GoogleMap>
-        ) : (
-          <div className="gf-map-placeholder">
-            <RefreshCw size={18} className="gf-spin" />
-            <span>Loading map…</span>
-          </div>
-        )}
-      </div>
-
-      {/* Filters */}
-      <div className="gf-filter-bar">
-        <select
-          className="gf-select"
-          value={severityFilter}
-          onChange={(e) => {
-            setSeverityFilter(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All severities</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
-        </select>
-        <label className="gf-check-label">
-          <input
-            type="checkbox"
-            checked={showResolved}
-            onChange={(e) => {
-              setShowResolved(e.target.checked);
+        activeTab === 'anomalies' ? (
+          <FilterBar
+            searchValue={locationQuery}
+            onSearchChange={(v) => {
+              setLocationQuery(v);
               setPage(1);
             }}
+            searchPlaceholder="Search location or vehicle…"
+            activeCount={locationFilterCount}
+            onClear={() => {
+              setLocationQuery('');
+              setSeverityFilter('');
+              setShowResolved(false);
+              setPage(1);
+            }}
+            right={
+              <ExportButton
+                rows={locationExportRows(filteredLocations)}
+                columns={LOCATION_EXPORT_COLUMNS}
+                filename="geofence-anomalies"
+                disabled={loading || !!error}
+                meta={{
+                  generatedAt: new Date(),
+                  filters: [
+                    ...(locationNeedle
+                      ? [{ label: 'Search (this page)', value: locationQuery.trim() }]
+                      : []),
+                    {
+                      label: 'Severity',
+                      value: severityFilter ? humanise(severityFilter) : 'All severities',
+                    },
+                    { label: 'Status', value: showResolved ? 'Open + resolved' : 'Open only' },
+                  ],
+                }}
+              />
+            }
           />
-          Show resolved
-        </label>
-        <span className="gf-count-label">
-          {stats ? `${stats.total} open location${stats.total !== 1 ? 's' : ''}` : ''}
-        </span>
+        ) : null
+      }
+      footer={
+        activeTab === 'anomalies'
+          ? footerSummary({
+              showing: filteredLocations.length,
+              total: locations.length,
+              activeFilters: locationFilterCount,
+            }) + ' on this page'
+          : null
+      }
+    >
+      {/* View Switcher: Anomalies vs Fuel Drain Map */}
+      <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('anomalies')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+            activeTab === 'anomalies'
+              ? 'bg-white text-indigo-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <ShieldAlert size={13} />
+          <span>Anomaly Incidents ({stats?.total ?? locations.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('drain')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+            activeTab === 'drain'
+              ? 'bg-white text-sky-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Droplets size={13} />
+          <span>Fuel Drain Map</span>
+        </button>
       </div>
 
-      {error && (
-        <div className="gf-error-banner">
-          <AlertTriangle size={15} /> {error}
-        </div>
+      {activeTab === 'drain' && (
+        <DrainHotspotMap mapLoaded={mapLoaded} onCreateZone={handleCreateZone} />
       )}
 
-      {/* Table */}
-      {loading ? (
-        <div className="gf-loading">
-          <RefreshCw size={20} className="gf-spin" />
-          <span>Analysing locations…</span>
-        </div>
-      ) : locations.length === 0 ? (
-        <div className="gf-empty">
-          <CheckCircle2 size={40} color="#22c55e" />
-          <p>No suspicious locations detected.</p>
-          <span>
-            Anomalies appear here after mileage intervals are computed from FleetEdge data.
-          </span>
-        </div>
-      ) : filteredLocations.length === 0 ? (
-        <div className="gf-empty">
-          <AlertTriangle size={40} color="#f59e0b" />
-          <p>No locations on this page match “{locationQuery.trim()}”.</p>
-          <span>Search narrows the loaded page only — try another term or clear the search.</span>
-        </div>
-      ) : (
-        <div className="gf-table-wrap">
-          <table className="gf-table">
-            <thead>
-              <tr>
-                <th className="gf-th">Location</th>
-                <th className="gf-th gf-th-c">Severity</th>
-                <th className="gf-th gf-th-c">Occurrences</th>
-                <th className="gf-th gf-th-r">Total Fuel Drop</th>
-                <th className="gf-th gf-th-c">Vehicles</th>
-                <th className="gf-th gf-th-c">Last Seen</th>
-                <th className="gf-th gf-th-c">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLocations.map((loc) => (
-                <LocationRow
-                  key={loc._id}
-                  location={loc}
-                  onResolve={handleResolve}
-                  resolvingId={resolvingId}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {activeTab === 'anomalies' && (
+        <>
+          {/* Framed Google Map Card with Enclosed KPI Strip & Legend */}
+          <div className="hs-map-card">
+            <div className="hs-map-head">
+              <div className="flex items-center gap-2">
+                <ShieldAlert size={16} className="text-amber-600" />
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  Geofence Anomalies &amp; Fuel Drain Watch
+                </span>
+              </div>
+
+              {/* Enclosed KPI Rail */}
+              <div className="hs-kpi-strip">
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
+                    <AlertTriangle size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Open Anomalies</span>
+                    <span className="hs-kpi-pill-value">{formatNum(stats?.total ?? 0)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-rose-50 text-rose-600 border border-rose-200">
+                    <XCircle size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">High Severity</span>
+                    <span className="hs-kpi-pill-value text-rose-600">
+                      {formatNum(stats?.high ?? 0)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-orange-50 text-orange-600 border border-orange-200">
+                    <ShieldAlert size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Medium</span>
+                    <span className="hs-kpi-pill-value">{formatNum(stats?.medium ?? 0)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-sky-50 text-sky-600 border border-sky-200">
+                    <MapPin size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Low</span>
+                    <span className="hs-kpi-pill-value">{formatNum(stats?.low ?? 0)}</span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    <CheckCircle2 size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Resolved</span>
+                    <span className="hs-kpi-pill-value text-emerald-700">
+                      {formatNum(stats?.resolved ?? 0)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hs-kpi-pill">
+                  <span className="hs-kpi-pill-icon bg-slate-100 text-slate-600 border border-slate-200">
+                    <Truck size={12} />
+                  </span>
+                  <div className="hs-kpi-pill-meta">
+                    <span className="hs-kpi-pill-label">Live Fleet</span>
+                    <span className="hs-kpi-pill-value">{formatNum(liveVehicles.length)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="hs-legend-group">
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#ef4444' }} />
+                  <span>High Risk</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#f59e0b' }} />
+                  <span>Medium Risk</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#eab308' }} />
+                  <span>Low Risk</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#22c55e' }} />
+                  <span>Moving</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#8b5cf6' }} />
+                  <span>Stopped</span>
+                </span>
+                <span className="hs-legend-pill">
+                  <span className="hs-legend-dot" style={{ background: '#f59e0b' }} />
+                  <span>Idling</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Ambient status ribbon bar (rendered below header so legend pills are never covered) */}
+            {stats?.high > 0 ? (
+              <div className="hs-status-strip hs-status-strip--rose">
+                <div
+                  className="hs-status-strip-badge"
+                  style={{ borderColor: '#ef4444', color: '#991b1b' }}
+                >
+                  <AlertTriangle size={15} className="text-rose-600" />
+                  <span>
+                    {stats.high} Critical Fuel Drain Incident{stats.high !== 1 ? 's' : ''} Flagged
+                  </span>
+                </div>
+                <span className="rounded-md bg-white border border-rose-300 px-2.5 py-1 text-[11px] font-bold text-rose-800 shadow-xs">
+                  High Risk Anomaly Detected
+                </span>
+              </div>
+            ) : stats?.total === 0 ? (
+              <div className="hs-status-strip hs-status-strip--emerald">
+                <div
+                  className="hs-status-strip-badge"
+                  style={{ borderColor: '#10b981', color: '#065f46' }}
+                >
+                  <CheckCircle2 size={15} className="text-emerald-600" />
+                  <span>Corridors Clear · No Unexplained Fuel Losses Recorded</span>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Map */}
+            <div className="gf-map-wrap" style={{ border: 'none', borderRadius: 0, margin: 0 }}>
+              {mapLoaded ? (
+                <GoogleMap
+                  mapContainerClassName="gf-map"
+                  center={MAP_CENTER}
+                  zoom={5}
+                  options={MAP_OPTIONS}
+                  onLoad={(map) => {
+                    mapRef.current = map;
+                  }}
+                >
+                  {locationsWithPos.map((loc) => (
+                    <MarkerF
+                      key={loc._id}
+                      position={loc.position}
+                      icon={loc.icon}
+                      onClick={() => {
+                        setSelectedLoc(loc);
+                        setSelectedVehicle(null);
+                      }}
+                    />
+                  ))}
+                  {/* Live vehicle pins */}
+                  {liveVehicles.map((v) => {
+                    const iconUrl = vehicleIcons[v.status] || vehicleIcons.Offline;
+                    return (
+                      <MarkerF
+                        key={v.vehicleId || v.registrationNumber}
+                        position={{ lat: v.lat, lng: v.lng }}
+                        icon={iconUrl}
+                        zIndex={2}
+                        onClick={() => {
+                          setSelectedVehicle(v);
+                          setSelectedLoc(null);
+                        }}
+                      />
+                    );
+                  })}
+                  {selectedLoc && (
+                    <InfoWindowF
+                      position={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}
+                      onCloseClick={() => setSelectedLoc(null)}
+                    >
+                      <div className="gf-infowindow">
+                        <p className="gf-iw-title">
+                          {selectedLoc.address || (
+                            <PlaceLabel
+                              lat={selectedLoc.lat}
+                              lng={selectedLoc.lng}
+                              showMap={false}
+                            />
+                          )}
+                        </p>
+                        <p className="gf-iw-stat">
+                          <strong>{selectedLoc.occurrenceCount}</strong> occurrence
+                          {selectedLoc.occurrenceCount !== 1 ? 's' : ''}
+                          &nbsp;·&nbsp;
+                          <strong>{selectedLoc.totalFuelDropLitres?.toFixed(1)} L</strong> total
+                          drop
+                        </p>
+                        <div style={{ marginTop: 4, marginBottom: 8 }}>
+                          <SeverityBadge severity={selectedLoc.severity} />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleCreateZone({
+                              lat: selectedLoc.lat,
+                              lng: selectedLoc.lng,
+                              name: selectedLoc.address
+                                ? `Zone - ${selectedLoc.address.split(',')[0]}`
+                                : 'Risk Anomaly Zone',
+                            })
+                          }
+                          className="gf-btn gf-btn-primary"
+                          style={{
+                            width: '100%',
+                            justifyContent: 'center',
+                            fontSize: '11px',
+                            padding: '6px 8px',
+                          }}
+                        >
+                          <Plus size={12} /> Create Geofence Zone
+                        </button>
+                      </div>
+                    </InfoWindowF>
+                  )}
+                  {selectedVehicle && (
+                    <InfoWindowF
+                      position={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
+                      onCloseClick={() => setSelectedVehicle(null)}
+                    >
+                      <div className="gf-infowindow">
+                        <p className="gf-iw-title">
+                          <Truck size={13} style={{ display: 'inline', marginRight: 4 }} />
+                          {selectedVehicle.registrationNumber}
+                        </p>
+                        <p className="gf-iw-stat">
+                          Status:{' '}
+                          <strong
+                            style={{
+                              color: VEHICLE_STATUS_COLOR[selectedVehicle.status] || '#64748b',
+                            }}
+                          >
+                            {selectedVehicle.status || 'Unknown'}
+                          </strong>
+                        </p>
+                        {selectedVehicle.speed != null && (
+                          <p className="gf-iw-stat">
+                            Speed: {selectedVehicle.speed?.toFixed(1)} kmph
+                          </p>
+                        )}
+                        {selectedVehicle.fuelLevel != null && (
+                          <p className="gf-iw-stat">
+                            Fuel: {selectedVehicle.fuelLevel?.toFixed(1)} L
+                          </p>
+                        )}
+                        <p
+                          className="gf-iw-stat"
+                          style={{ color: '#64748b', fontSize: '11px', marginTop: 4 }}
+                        >
+                          {fromNow(selectedVehicle.lastSeenAt)}
+                        </p>
+                      </div>
+                    </InfoWindowF>
+                  )}
+                </GoogleMap>
+              ) : (
+                <div className="gf-map-placeholder">
+                  <RefreshCw size={18} className="gf-spin" />
+                  <span>Loading map…</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="gf-filter-bar">
+            <select
+              className="gf-select"
+              value={severityFilter}
+              onChange={(e) => {
+                setSeverityFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All severities</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+            <label className="gf-check-label">
+              <input
+                type="checkbox"
+                checked={showResolved}
+                onChange={(e) => {
+                  setShowResolved(e.target.checked);
+                  setPage(1);
+                }}
+              />
+              Show resolved
+            </label>
+            <span className="gf-count-label">
+              {stats ? `${stats.total} open location${stats.total !== 1 ? 's' : ''}` : ''}
+            </span>
+          </div>
+
+          {error && (
+            <div className="gf-error-banner">
+              <AlertTriangle size={15} /> {error}
+            </div>
+          )}
+
+          {/* Table */}
+          {loading ? (
+            <div className="gf-loading">
+              <RefreshCw size={20} className="gf-spin" />
+              <span>Analysing locations…</span>
+            </div>
+          ) : locations.length === 0 ? (
+            <div className="gf-empty">
+              <CheckCircle2 size={40} color="#22c55e" />
+              <p>No suspicious locations detected.</p>
+              <span>
+                Anomalies appear here after mileage intervals are computed from FleetEdge data.
+              </span>
+            </div>
+          ) : filteredLocations.length === 0 ? (
+            <div className="gf-empty">
+              <AlertTriangle size={40} color="#f59e0b" />
+              <p>No locations on this page match “{locationQuery.trim()}”.</p>
+              <span>
+                Search narrows the loaded page only — try another term or clear the search.
+              </span>
+            </div>
+          ) : (
+            <div className="gf-table-wrap">
+              <table className="gf-table">
+                <thead>
+                  <tr>
+                    <th className="gf-th">Location</th>
+                    <th className="gf-th gf-th-c">Severity</th>
+                    <th className="gf-th gf-th-c">Occurrences</th>
+                    <th className="gf-th gf-th-r">Total Fuel Drop</th>
+                    <th className="gf-th gf-th-c">Vehicles</th>
+                    <th className="gf-th gf-th-c">Last Seen</th>
+                    <th className="gf-th gf-th-c">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLocations.map((loc) => (
+                    <LocationRow
+                      key={loc._id}
+                      location={loc}
+                      onResolve={handleResolve}
+                      resolvingId={resolvingId}
+                      onCreateZone={handleCreateZone}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="gf-pagination">
+              <button
+                className="gf-btn gf-btn-page"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+              <span className="gf-page-label">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                className="gf-btn gf-btn-page"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="gf-pagination">
-          <button
-            className="gf-btn gf-btn-page"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            Previous
-          </button>
-          <span className="gf-page-label">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            className="gf-btn gf-btn-page"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
-            Next
-          </button>
-        </div>
+      {/* Add Custom Zone Drawer */}
+      {showZoneDrawer && (
+        <AddZoneDrawer
+          prefillLatLng={zonePrefillLatLng}
+          prefillName={zonePrefillName}
+          mode="add"
+          onClose={() => {
+            setShowZoneDrawer(false);
+            setZonePrefillLatLng(null);
+            setZonePrefillName('');
+          }}
+          onSaved={() => {
+            setShowZoneDrawer(false);
+            setZonePrefillLatLng(null);
+            setZonePrefillName('');
+            toast.success('Custom geofence zone created successfully');
+          }}
+        />
       )}
     </PageShell>
   );

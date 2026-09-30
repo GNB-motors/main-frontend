@@ -685,7 +685,7 @@ const ErpHomePage = () => {
                 </button>
               </div>
               {body || (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="tblwrap" style={{ overflowX: 'auto' }}>
                   <table className="tbl">
                     {
                       <>
