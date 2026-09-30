@@ -351,7 +351,7 @@ export default function DailyDigestPage() {
                 title={'Today\u2019s \u20b9 impact'}
                 hint="Estimated"
                 rows={5}
-                rowHeight={26}
+                rowHeight={40}
                 big
               />
             ) : (

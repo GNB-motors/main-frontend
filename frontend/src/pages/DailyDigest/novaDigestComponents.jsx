@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion as Motion } from 'framer-motion';
 import {
   ArrowUpRight,
   ArrowUp,
@@ -12,6 +13,12 @@ import {
   Fuel as FuelIcon,
   Clock,
   FileWarning,
+  FileText,
+  TrendingDown,
+  Info,
+  Gauge,
+  Calendar as CalendarIcon,
+  Truck,
 } from 'lucide-react';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
@@ -331,24 +338,49 @@ export function NdAttentionCard({ actions, onResolved }) {
         : visibleActions.filter((a) => a.sev === 'MEDIUM');
 
   return (
-    <div className="nd-card">
+    <div className="nd-card" id="nd-card-attn">
       <div className="nd-card-head">
         <h2>Needs your attention</h2>
         <span className="nd-count-pill">{rows.length}</span>
         <span className="nd-sp" />
-        <div className="nd-tabs">
-          {tabs.map((t) => (
-            <button
-              key={t.k}
-              type="button"
-              className="nd-tab"
-              aria-pressed={filter === t.k}
-              onClick={() => setFilter(t.k)}
-            >
-              {t.l}
-              <b>{t.n}</b>
-            </button>
-          ))}
+        <div className="nd-ios-tabs" role="tablist" aria-label="Filter attention items">
+          {tabs.map((t) => {
+            const isSelected = filter === t.k;
+            return (
+              <button
+                key={t.k}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                className={`nd-ios-tab ${isSelected ? 'nd-ios-tab--active' : ''}`}
+                onClick={() => setFilter(t.k)}
+              >
+                {isSelected && (
+                  <Motion.span
+                    layoutId="ndAttnTabIndicator"
+                    className="nd-ios-tab-indicator"
+                    transition={{
+                      type: 'spring',
+                      stiffness: 450,
+                      damping: 32,
+                    }}
+                  />
+                )}
+                <span className="nd-ios-tab-text">{t.l}</span>
+                <span
+                  className={`nd-ios-tab-badge ${
+                    t.k === 'high' && t.n > 0
+                      ? 'nd-ios-tab-badge--high'
+                      : isSelected
+                        ? 'nd-ios-tab-badge--active'
+                        : ''
+                  }`}
+                >
+                  {t.n}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
       <div className="nd-attn">
@@ -423,18 +455,49 @@ export function NdAttentionCard({ actions, onResolved }) {
 
 export function NdImpactCard({ money, utilization }) {
   const rows = [
-    { key: 'idling', label: 'Idling cost', v: money?.idlingWasteInr || 0, c: '#C56200' },
-    { key: 'detour', label: 'Detour cost', v: money?.detourWasteInr || 0, c: '#2F58EE' },
-    { key: 'siphon', label: 'Fuel siphon loss', v: money?.theftLossInr || 0, c: '#C2323A' },
-    { key: 'mismatch', label: 'Bill mismatch', v: money?.billFraudSuspectInr || 0, c: '#6A43D8' },
+    {
+      key: 'idling',
+      label: 'Idling cost',
+      v: money?.idlingWasteInr || 0,
+      c: '#C56200',
+      tint: 'rgba(197, 98, 0, 0.12)',
+      icon: Clock,
+    },
+    {
+      key: 'detour',
+      label: 'Detour cost',
+      v: money?.detourWasteInr || 0,
+      c: '#2F58EE',
+      tint: 'rgba(47, 88, 238, 0.12)',
+      icon: RouteIcon,
+    },
+    {
+      key: 'siphon',
+      label: 'Fuel siphon loss',
+      v: money?.theftLossInr || 0,
+      c: '#C2323A',
+      tint: 'rgba(194, 50, 58, 0.12)',
+      icon: FuelIcon,
+    },
+    {
+      key: 'mismatch',
+      label: 'Bill mismatch',
+      v: money?.billFraudSuspectInr || 0,
+      c: '#6A43D8',
+      tint: 'rgba(106, 67, 216, 0.12)',
+      icon: FileWarning,
+    },
     {
       key: 'empty',
       label: 'Empty-running waste',
       v: utilization?.fleet?.emptyKmWasteInr || 0,
       c: '#0D9488',
+      tint: 'rgba(13, 148, 136, 0.12)',
+      icon: Gauge,
     },
   ];
   const total = rows.reduce((s, r) => s + r.v, 0);
+  const activeCount = rows.filter((r) => r.v > 0).length;
 
   return (
     <div className="nd-card" id="nd-impact">
@@ -443,26 +506,53 @@ export function NdImpactCard({ money, utilization }) {
         <span className="nd-sp" />
         <span className="nd-hint">Estimated</span>
       </div>
+
       <div className="nd-impact-total">
-        <div className="nd-eyebrow">Total ₹ impact today</div>
-        <div className="nd-v">{formatINR(total)}</div>
-        <div className="nd-n">Across sections reporting a number today</div>
-      </div>
-      <div className="nd-bars">
-        {rows.map((r) => (
-          <div key={r.key} className="nd-bar-row" style={{ '--c': r.c }}>
-            <span className="nd-n">{r.label}</span>
-            <span className="nd-a">{formatINR(r.v)}</span>
-            <span className="nd-t">
-              <span className="nd-f" style={{ width: `${total ? (r.v / total) * 100 : 0}%` }} />
-            </span>
-          </div>
-        ))}
-        <div className="nd-bar-row">
-          <span className="nd-n" style={{ color: 'var(--fg-tertiary)' }}>
-            {money?.disclaimer || 'Estimated from FleetEdge telemetry and configured prices.'}
+        <div className="nd-impact-hero-top">
+          <span className="nd-impact-tag">
+            <TrendingDown size={13} />
+            <span>Total loss today</span>
+          </span>
+          <span className="nd-impact-count-badge">
+            {activeCount > 0 ? `${activeCount} active categories` : 'All nominal'}
           </span>
         </div>
+        <div className="nd-v">{formatINR(total)}</div>
+        <div className="nd-n">Across 5 telemetry &amp; fuel audit channels today</div>
+      </div>
+
+      <div className="nd-impact-list">
+        {rows.map((r) => {
+          const Icon = r.icon;
+          const pct = total > 0 && r.v > 0 ? Math.round((r.v / total) * 100) : 0;
+          return (
+            <div key={r.key} className="nd-impact-item" style={{ '--c': r.c, '--tint': r.tint }}>
+              <div className="nd-impact-item-header">
+                <div className="nd-impact-item-meta">
+                  <span className="nd-impact-ico">
+                    <Icon size={13} />
+                  </span>
+                  <span className="nd-impact-item-name">{r.label}</span>
+                  {pct > 0 && <span className="nd-impact-pct-pill">{pct}%</span>}
+                </div>
+                <span className={`nd-impact-item-amount ${r.v === 0 ? 'nd-zero' : ''}`}>
+                  {formatINR(r.v)}
+                </span>
+              </div>
+              <div className="nd-impact-bar-track">
+                <span className="nd-impact-bar-fill" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="nd-impact-footer">
+        <Info size={12} className="nd-impact-footer-ico" />
+        <span>
+          {money?.disclaimer ||
+            'Calculated from live FleetEdge telemetry & configured fuel pricing.'}
+        </span>
       </div>
     </div>
   );
@@ -491,56 +581,104 @@ export function NdCalendarCard({ vehicles, days = 14, onOpenVehicle, selectedVeh
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const rangeEnd = new Date(today.getTime() + (days - 1) * DAY_MS);
-  const rangeLabel = `${formatDateIST(today)} – ${formatDateIST(rangeEnd)} · planned trips`;
+  const rangeLabel = `${formatDateIST(today)} – ${formatDateIST(rangeEnd)}`;
+
+  // Summary counts for badges and legend
+  const totalEvents = veh.reduce((acc, v) => acc + (v.events?.length || 0), 0);
+  const tripCount = veh.reduce(
+    (acc, v) => acc + (v.events?.filter((e) => e.type === 'trip')?.length || 0),
+    0,
+  );
+  const serviceCount = veh.reduce(
+    (acc, v) => acc + (v.events?.filter((e) => e.type === 'service')?.length || 0),
+    0,
+  );
+  const docCount = veh.reduce(
+    (acc, v) => acc + (v.events?.filter((e) => e.type === 'doc')?.length || 0),
+    0,
+  );
 
   return (
     <section className="nd-card" id="nd-calendar">
-      <div className="nd-card-head">
-        <h2>Fleet calendar</h2>
-        <span className="nd-hint">{rangeLabel}</span>
+      <div className="nd-card-head nd-cal-head">
+        <div className="nd-cal-title-block">
+          <div className="nd-cal-title-row">
+            <span className="nd-cal-title-ico">
+              <CalendarIcon size={16} />
+            </span>
+            <h2>Fleet calendar</h2>
+            <span className="nd-cal-count-pill">{veh.length} vehicles</span>
+            <span className="nd-cal-count-pill nd-cal-count-pill--events">
+              {totalEvents} events
+            </span>
+          </div>
+          <span className="nd-cal-range-pill">
+            <Clock size={12} />
+            {rangeLabel} · planned trips
+          </span>
+        </div>
         <span className="nd-sp" />
-        <div className="nd-tabs" style={{ marginLeft: 8 }}>
+        <div className="nd-ios-tabs" role="tablist" aria-label="Fleet calendar view mode">
           <button
             type="button"
-            className="nd-tab"
-            aria-pressed={view === 'gantt'}
+            role="tab"
+            aria-selected={view === 'gantt'}
+            className={`nd-ios-tab ${view === 'gantt' ? 'nd-ios-tab--active' : ''}`}
             onClick={() => setView('gantt')}
           >
-            {days} days
+            {view === 'gantt' && (
+              <Motion.span
+                layoutId="ndCalViewIndicator"
+                className="nd-ios-tab-indicator"
+                transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+              />
+            )}
+            <span className="nd-ios-tab-text">{days} days</span>
           </button>
           <button
             type="button"
-            className="nd-tab"
-            aria-pressed={view === 'month'}
+            role="tab"
+            aria-selected={view === 'month'}
+            className={`nd-ios-tab ${view === 'month' ? 'nd-ios-tab--active' : ''}`}
             onClick={() => setView('month')}
           >
-            Month
+            {view === 'month' && (
+              <Motion.span
+                layoutId="ndCalViewIndicator"
+                className="nd-ios-tab-indicator"
+                transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+              />
+            )}
+            <span className="nd-ios-tab-text">Month</span>
           </button>
         </div>
       </div>
-      <div className="nd-legend">
-        <span>
-          <i style={{ background: EVT_COLOR.trip }} />
-          Planned trip
+
+      <div className="nd-legend nd-cal-legend">
+        <span className="nd-legend-chip">
+          <i style={{ background: '#3b82f6' }} />
+          <span>Planned trip</span>
+          {tripCount > 0 && <b>{tripCount}</b>}
         </span>
-        <span>
-          <i style={{ background: EVT_COLOR.service }} />
-          Service due/overdue
+        <span className="nd-legend-chip">
+          <i style={{ background: '#f59e0b' }} />
+          <span>Service due/overdue</span>
+          {serviceCount > 0 && <b>{serviceCount}</b>}
         </span>
-        <span>
-          <i style={{ background: EVT_COLOR.doc }} />
-          Document expiry
+        <span className="nd-legend-chip">
+          <i style={{ background: '#ef4444' }} />
+          <span>Document expiry</span>
+          {docCount > 0 && <b>{docCount}</b>}
         </span>
-        <span>
+        <span className="nd-legend-chip nd-legend-chip--muted">
           <i
-            style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-default)' }}
+            style={{ background: 'var(--bg-subtle)', border: '1px dashed var(--border-default)' }}
           />
-          Weekend
+          <span>Weekend</span>
         </span>
-        <span style={{ marginLeft: 'auto', color: 'var(--fg-tertiary)' }}>
-          Click any vehicle or event for detail
-        </span>
+        <span className="nd-legend-hint">Click any vehicle or event for full detail</span>
       </div>
+
       {veh.length === 0 ? (
         <div className="nd-empty">
           <span className="nd-ok">
@@ -563,16 +701,48 @@ export function NdCalendarCard({ vehicles, days = 14, onOpenVehicle, selectedVeh
   );
 }
 
+// Packs vehicle events into non-overlapping vertical lanes so overlapping
+// events (e.g. planned trip + service due on the same day) never clash.
+function packEventLanes(events) {
+  const sorted = [...events].sort((a, b) => a.start - b.start || b.len - a.len);
+  const laneEndTimes = [];
+
+  const packed = sorted.map((e) => {
+    let lane = -1;
+    for (let i = 0; i < laneEndTimes.length; i++) {
+      if (laneEndTimes[i] <= e.start) {
+        lane = i;
+        laneEndTimes[i] = e.start + e.len;
+        break;
+      }
+    }
+    if (lane === -1) {
+      lane = laneEndTimes.length;
+      laneEndTimes.push(e.start + e.len);
+    }
+    return { ...e, lane };
+  });
+
+  return {
+    events: packed,
+    totalLanes: Math.max(1, laneEndTimes.length),
+  };
+}
+
 function NdGantt({ vehicles, days, onOpenVehicle, selectedVehicleId }) {
   const heads = Array.from({ length: days }, (_, i) => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + i);
     const we = [0, 6].includes(d.getDay());
+    const isToday = i === 0;
     return (
-      <div key={i} className={`nd-gcell ${i === 0 ? 'nd-today' : ''} ${we ? 'nd-we' : ''}`.trim()}>
+      <div key={i} className={`nd-gcell ${isToday ? 'nd-today' : ''} ${we ? 'nd-we' : ''}`.trim()}>
         <div className="nd-d">{d.toLocaleDateString('en-IN', { weekday: 'short' })}</div>
-        <div className="nd-n">{d.getDate()}</div>
+        <div className="nd-n-badge">
+          <span>{d.getDate()}</span>
+          {isToday && <span className="nd-today-dot" title="Current Day" />}
+        </div>
       </div>
     );
   });
@@ -582,50 +752,81 @@ function NdGantt({ vehicles, days, onOpenVehicle, selectedVehicleId }) {
     <div className="nd-gantt">
       <div className="nd-grow" style={{ '--days': days }}>
         <div className="nd-ghead nd-gsticky">
-          <span className="nd-eyebrow">Vehicle</span>
+          <span className="nd-vcol-title">
+            <Truck size={13} />
+            <span>VEHICLE</span>
+            <span className="nd-vcol-badge">{vehicles.length}</span>
+          </span>
         </div>
         <div
           className="nd-ghead"
           style={{
             gridColumn: '2 / -1',
             display: 'grid',
-            gridTemplateColumns: `repeat(${days}, minmax(56px, 1fr))`,
+            gridTemplateColumns: `repeat(${days}, minmax(64px, 1fr))`,
           }}
         >
           {heads}
         </div>
         {vehicles.map((v) => {
-          const bars = (v.events || [])
-            .filter((e) => e.start + e.len > 0 && e.start < days)
-            .map((e, i) => {
-              const s = Math.max(0, e.start);
-              const end = Math.min(days, e.start + e.len);
-              const span = end - s;
-              const past = e.type === 'trip' && e.start + e.len <= 0;
-              const label =
-                span >= 3
-                  ? `${e.label}${e.tons ? ` · ${e.tons}t` : ''}`
-                  : span === 2
-                    ? e.label
-                    : '';
-              const EvIcon = EVT_ICON[e.type] || RouteIcon;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  className={`nd-ev ${past ? 'nd-ev--done' : `nd-ev--${e.type}`} ${span < 2 ? 'nd-narrow' : ''}`.trim()}
-                  style={{
-                    left: `calc(${s} * (100% / ${days}) + 3px)`,
-                    width: `calc(${span} * (100% / ${days}) - 6px)`,
-                  }}
-                  title={`${e.label}${e.tons ? ` · ${e.tons} t` : ''} · ${e.len} day${e.len > 1 ? 's' : ''}`}
-                  onClick={() => onOpenVehicle(v.vehicleId)}
-                >
-                  <EvIcon size={11} />
-                  {label}
-                </button>
-              );
-            });
+          const rawEvents = (v.events || []).filter((e) => e.start + e.len > 0 && e.start < days);
+          const { events: packedEvents, totalLanes } = packEventLanes(rawEvents);
+          const laneHeight = 26;
+          const laneGap = 8;
+          const lanePitch = laneHeight + laneGap; // 34px
+          const rowPad = 14;
+          const rowHeight = totalLanes === 1 ? 64 : rowPad * 2 + totalLanes * lanePitch - laneGap;
+
+          const bars = packedEvents.map((e, i) => {
+            const s = Math.max(0, e.start);
+            const end = Math.min(days, e.start + e.len);
+            const span = Math.max(1, end - s);
+            const isOngoing = e.state === 'ONGOING';
+            // An event that covers today or future is not past/done
+            const isDone = e.type === 'trip' && e.start + e.len < 0;
+            const EvIcon = EVT_ICON[e.type] || RouteIcon;
+
+            // Intelligent label that always renders cleanly without overflow
+            let labelText = e.label || '';
+            if (span >= 3) {
+              labelText = `${e.label}${e.tons ? ` · ${e.tons}t` : ''}`;
+            } else if (span === 2) {
+              labelText = e.label;
+            } else if (span === 1) {
+              if (e.type === 'service') labelText = e.overdue ? 'Overdue' : 'Service';
+              else if (e.type === 'doc') labelText = 'Doc Due';
+              else if (isOngoing) labelText = 'Trip';
+              else labelText = e.label?.split('→')[0]?.trim() || 'Trip';
+            }
+
+            const lane = e.lane || 0;
+            const topOffset = totalLanes === 1 ? 18 : rowPad + lane * lanePitch;
+            const barHeight = totalLanes === 1 ? 28 : laneHeight;
+
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`nd-ev nd-ev--${e.type} ${isDone ? 'nd-ev--done' : ''} ${span === 1 ? 'nd-ev--compact' : ''}`.trim()}
+                style={{
+                  left: `calc(${s} * (100% / ${days}) + 4px)`,
+                  width: `calc(${span} * (100% / ${days}) - 8px)`,
+                  minWidth: '38px',
+                  top: `${topOffset}px`,
+                  height: `${barHeight}px`,
+                }}
+                title={`${v.registrationNumber}: ${e.label}${e.tons ? ` · ${e.tons}t` : ''} (${e.len} day${e.len > 1 ? 's' : ''})`}
+                onClick={() => onOpenVehicle(v.vehicleId)}
+              >
+                <span className="nd-ev-ico">
+                  <EvIcon size={totalLanes === 1 ? 12 : 11} />
+                </span>
+                <span className="nd-ev-label">{labelText}</span>
+                {e.tons && span >= 3 && <span className="nd-ev-tons">{e.tons}t</span>}
+              </button>
+            );
+          });
+
           const cells = Array.from({ length: days }, (_, i) => {
             const d = new Date();
             d.setHours(0, 0, 0, 0);
@@ -638,6 +839,7 @@ function NdGantt({ vehicles, days, onOpenVehicle, selectedVehicleId }) {
               />
             );
           });
+
           return (
             <div
               key={v.vehicleId}
@@ -645,26 +847,33 @@ function NdGantt({ vehicles, days, onOpenVehicle, selectedVehicleId }) {
             >
               <button
                 type="button"
-                className="nd-gsticky"
+                className="nd-gsticky nd-vcard"
+                style={{ minHeight: `${rowHeight}px` }}
                 onClick={() => onOpenVehicle(v.vehicleId)}
+                title={`View ${v.registrationNumber} details`}
               >
-                <div className="nd-vname">
-                  <span className="nd-dot" style={{ background: 'var(--morning-fog-500)' }} />
-                  <span className="nd-p">{v.registrationNumber}</span>
+                <div className="nd-vcard-ico">
+                  <Truck size={13} />
                 </div>
-                <div className="nd-vsub">{v.model || '—'}</div>
+                <div className="nd-vcard-info">
+                  <div className="nd-vcard-plate">{v.registrationNumber}</div>
+                  <div className="nd-vcard-model">{v.model || 'Commercial'}</div>
+                </div>
               </button>
-              <div className="nd-gtrackrow">
+              <div className="nd-gtrackrow" style={{ height: `${rowHeight}px` }}>
                 {cells}
                 {bars}
               </div>
             </div>
           );
         })}
-        <span
+        <div
           className="nd-nowline"
-          style={{ left: `calc(208px + (100% - 208px) / ${days} * ${nowPct.toFixed(3)})` }}
-        />
+          style={{ left: `calc(220px + (100% - 220px) / ${days} * ${nowPct.toFixed(3)})` }}
+        >
+          <span className="nd-nowline-tag">NOW</span>
+          <span className="nd-nowline-beam" />
+        </div>
       </div>
     </div>
   );
@@ -681,6 +890,7 @@ function NdMonth({ vehicles, onOpenVehicle }) {
     const d = new Date(first);
     d.setDate(d.getDate() + (i - startPad));
     const off = d.getMonth() !== today.getMonth();
+    const isToday = dkey(d) === dkey(today);
     const evs = [];
     vehicles.forEach((v) =>
       (v.events || []).forEach((e) => {
@@ -693,21 +903,30 @@ function NdMonth({ vehicles, onOpenVehicle }) {
       <button
         key={i}
         type="button"
-        className={`nd-mday ${off ? 'nd-out' : ''} ${dkey(d) === dkey(today) ? 'nd-today' : ''}`.trim()}
+        className={`nd-mday ${off ? 'nd-out' : ''} ${isToday ? 'nd-today' : ''}`.trim()}
         onClick={() => evs[0] && onOpenVehicle(evs[0].v.vehicleId)}
       >
-        <span className="nd-dnum">{d.getDate()}</span>
-        {evs.slice(0, 3).map((x, i2) => (
-          <span
-            key={i2}
-            className="nd-mchip"
-            style={{ background: EVT_COLOR[x.e.type] }}
-            title={`${x.v.registrationNumber} — ${x.e.label}`}
-          >
-            {x.v.registrationNumber.slice(-4)} {x.e.label}
-          </span>
-        ))}
-        {evs.length > 3 ? <span className="nd-mmore">+{evs.length - 3} more</span> : null}
+        <div className="nd-mday-top">
+          <span className={`nd-dnum ${isToday ? 'nd-dnum--today' : ''}`}>{d.getDate()}</span>
+          {evs.length > 0 && <span className="nd-mday-count">{evs.length}</span>}
+        </div>
+        <div className="nd-mday-chips">
+          {evs.slice(0, 3).map((x, i2) => {
+            const EvIcon = EVT_ICON[x.e.type] || RouteIcon;
+            return (
+              <span
+                key={i2}
+                className={`nd-mchip nd-mchip--${x.e.type}`}
+                title={`${x.v.registrationNumber} — ${x.e.label}`}
+              >
+                <EvIcon size={10} className="nd-mchip-ico" />
+                <span className="nd-mchip-reg">{x.v.registrationNumber.slice(-4)}</span>
+                <span className="nd-mchip-lbl">{x.e.label}</span>
+              </span>
+            );
+          })}
+          {evs.length > 3 ? <span className="nd-mmore">+{evs.length - 3} more</span> : null}
+        </div>
       </button>
     );
   });
@@ -918,21 +1137,58 @@ export function NdWasteTable({ idlingTop5, detourTop5, onOpenVehicle }) {
 
 /* ================================ Upcoming =============================== */
 
+const UPCOMING_BUCKETS = [
+  { key: 'today', l: 'Today', s: 0, e: 0, range: 'Due today' },
+  { key: 'tomorrow', l: 'Tomorrow', s: 1, e: 1, range: 'Due tomorrow' },
+  { key: 'this-week', l: 'This week', s: 2, e: 7, range: 'In 2–7 days' },
+  { key: 'next-week', l: 'Next week', s: 8, e: 14, range: 'In 8–14 days' },
+];
+
 export function NdUpcomingCard({ upcoming, onOpenVehicle }) {
-  const buckets = [
-    { l: 'Today', s: 0, e: 0 },
-    { l: 'Tomorrow', s: 1, e: 1 },
-    { l: 'This week', s: 2, e: 7 },
-    { l: 'Next week', s: 8, e: 14 },
-  ];
+  const activeBuckets = useMemo(() => {
+    return UPCOMING_BUCKETS.map((b) => ({
+      ...b,
+      rows: (upcoming || []).filter((u) => u.days >= b.s && u.days <= b.e),
+    })).filter((b) => b.rows.length > 0);
+  }, [upcoming]);
+
+  const serviceCount = (upcoming || []).filter((u) => u.kind === 'Service').length;
+  const docCount = (upcoming || []).filter((u) => u.kind !== 'Service').length;
+
   return (
-    <div className="nd-card">
-      <div className="nd-card-head">
-        <h2>Upcoming</h2>
-        <span className="nd-count-pill">{upcoming.length}</span>
+    <div className="nd-card" id="nd-upcoming-card">
+      <div className="nd-card-head nd-up-head">
+        <div className="nd-up-title-block">
+          <div className="nd-up-title-row">
+            <span className="nd-up-title-ico">
+              <CalendarIcon size={16} />
+            </span>
+            <h2>Upcoming</h2>
+            <span className="nd-count-pill">{upcoming.length}</span>
+            {serviceCount > 0 && (
+              <span className="nd-up-metric-pill nd-up-metric-pill--service">
+                <Wrench size={11} />
+                <span>{serviceCount} service</span>
+              </span>
+            )}
+            {docCount > 0 && (
+              <span className="nd-up-metric-pill nd-up-metric-pill--doc">
+                <FileWarning size={11} />
+                <span>{docCount} documents</span>
+              </span>
+            )}
+          </div>
+          <span className="nd-hint">
+            Next 14 days · scheduled maintenance &amp; document expiries
+          </span>
+        </div>
         <span className="nd-sp" />
-        <span className="nd-hint">Next 14 days · service and documents</span>
+        <span className="nd-up-range-pill">
+          <Clock size={12} />
+          <span>Next 14 days</span>
+        </span>
       </div>
+
       {upcoming.length === 0 ? (
         <div className="nd-empty">
           <span className="nd-ok">
@@ -942,55 +1198,111 @@ export function NdUpcomingCard({ upcoming, onOpenVehicle }) {
           <span>Service and document reminders will surface here as due dates approach.</span>
         </div>
       ) : (
-        <div className="nd-upgrid">
-          {buckets.map((b) => {
-            const rows = upcoming.filter((u) => u.days >= b.s && u.days <= b.e);
-            if (!rows.length) return null;
-            return (
-              <div key={b.l} className="nd-daygroup">
-                <div className="nd-dghead">
+        <div
+          className={`nd-upgrid ${activeBuckets.length === 1 ? 'nd-upgrid--single' : ''}`}
+          style={{ '--up-cols': activeBuckets.length }}
+        >
+          {activeBuckets.map((b) => (
+            <div key={b.key} className="nd-daygroup">
+              <div className="nd-dghead">
+                <div className="nd-dghead-left">
+                  <span className="nd-dg-dot" />
                   <span className="nd-t">{b.l}</span>
-                  <span className="nd-s">
-                    {rows.length} item{rows.length > 1 ? 's' : ''}
+                  <span className="nd-dg-count">
+                    {b.rows.length} item{b.rows.length > 1 ? 's' : ''}
                   </span>
                 </div>
-                {rows.map((u) => {
+                <span className="nd-dg-range">{b.range}</span>
+              </div>
+              <div className="nd-daygroup-list">
+                {b.rows.map((u) => {
+                  const isService = u.kind === 'Service';
+                  const Icon = isService ? Wrench : u.icon || FileText;
+                  let riskLabel = null;
+                  let riskClass = 'upcoming';
+                  if (u.risk === 'DUE_SOON') {
+                    riskLabel = 'Due soon';
+                    riskClass = 'due-soon';
+                  } else if (u.risk === 'OVERDUE') {
+                    riskLabel = 'Overdue';
+                    riskClass = 'overdue';
+                  } else if (u.risk) {
+                    riskLabel = u.risk.toLowerCase().replace(/_/g, ' ');
+                    riskClass = u.risk.toLowerCase().replace(/_/g, '-');
+                  } else if (!isService && u.days <= 7) {
+                    riskLabel = 'Expiring';
+                    riskClass = 'due-soon';
+                  }
+
                   const when =
                     u.days === 0
                       ? 'Today'
-                      : formatDateIST(new Date(Date.now() + u.days * DAY_MS).toISOString());
+                      : u.days === 1
+                        ? 'Tomorrow'
+                        : formatDateIST(new Date(Date.now() + u.days * DAY_MS).toISOString());
+
                   return (
                     <button
                       key={u.id}
                       type="button"
-                      className="nd-urow"
+                      className="nd-upcard"
                       onClick={() => onOpenVehicle(u.registrationNumber)}
+                      title={`View ${u.registrationNumber} details`}
                     >
-                      <span className="nd-evdot" style={{ background: '#C56200' }} />
-                      <span className="nd-plate">{u.registrationNumber}</span>
-                      <span className="nd-what">{u.kind}</span>
-                      {u.kind === 'Service' && u.risk ? (
-                        <span className="nd-sev">
-                          <i />
-                          {u.risk === 'DUE_SOON' ? 'due soon' : u.risk.toLowerCase()}
-                        </span>
-                      ) : null}
-                      {u.kind === 'Service' &&
-                      (u.kmUntilDue != null || u.projectedServiceDueOdometer != null) ? (
-                        <span className="nd-muted" style={{ fontSize: 11 }}>
-                          {u.kmUntilDue != null
-                            ? `${formatKm(u.kmUntilDue)} left`
-                            : `due at ${formatKm(u.projectedServiceDueOdometer)}`}
-                        </span>
-                      ) : null}
-                      <span className="nd-sp" />
-                      <span className="nd-when">{when}</span>
+                      <div className="nd-upcard-top">
+                        <div className="nd-upcard-veh">
+                          <span
+                            className={`nd-upcard-ico nd-upcard-ico--${isService ? 'service' : 'doc'}`}
+                          >
+                            <Icon size={13} />
+                          </span>
+                          <span className="nd-upcard-plate">{u.registrationNumber}</span>
+                          <span className="nd-upcard-kind">{u.kind}</span>
+                        </div>
+                        {riskLabel && (
+                          <div className="nd-upcard-badges">
+                            <span className={`nd-upcard-risk nd-upcard-risk--${riskClass}`}>
+                              <i className="nd-upcard-risk-dot" />
+                              {riskLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="nd-upcard-bot">
+                        <div className="nd-upcard-metric">
+                          {u.kmUntilDue != null ? (
+                            <>
+                              <span className="nd-upcard-metric-val">{formatKm(u.kmUntilDue)}</span>
+                              <span className="nd-upcard-metric-lbl">remaining</span>
+                            </>
+                          ) : u.projectedServiceDueOdometer != null ? (
+                            <>
+                              <span className="nd-upcard-metric-lbl">due at</span>
+                              <span className="nd-upcard-metric-val">
+                                {formatKm(u.projectedServiceDueOdometer)}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="nd-upcard-metric-lbl">expires in</span>
+                              <span className="nd-upcard-metric-val">
+                                {u.days} day{u.days === 1 ? '' : 's'}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="nd-upcard-date">
+                          <Clock size={11} />
+                          <span>{when}</span>
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>
