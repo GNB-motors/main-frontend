@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { AlertTriangle, CheckCircle2, Clock, Truck, ShieldCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Truck,
+  ShieldCheck,
+  FileText,
+  Filter,
+} from 'lucide-react';
 import { VehicleService } from './VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { getToken } from '../../utils/session.js';
@@ -31,7 +39,7 @@ const VehicleDashboardPage = () => {
   // Selected vehicle & doc for WheelsEye-style right side panel
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedDocKey, setSelectedDocKey] = useState(null);
-  const [activeExpiredFilter, setActiveExpiredFilter] = useState(null);
+  const [docFilter, setDocFilter] = useState('ALL');
   const [challanModalOpen, setChallanModalOpen] = useState(false);
 
   useEffect(() => {
@@ -82,20 +90,92 @@ const VehicleDashboardPage = () => {
 
   const kpis = useMemo(() => computeVehicleDashboardKpis(rows), [rows]);
 
-  // Count vehicles with expired document per doc category for WheelsEye filter pills
-  const expiredCounts = useMemo(() => {
-    const counts = {};
-    EXPIRED_FILTER_PILLS.forEach(({ key }) => {
-      counts[key] = rows.filter((r) => bucketFor(r.documents?.[key]) === 'expired').length;
+  // Count vehicles across compliance buckets for the dropdown options
+  const filterOptionsWithCounts = useMemo(() => {
+    let anyExpiredCount = 0;
+    let anyExpiringSoonCount = 0;
+    let anyMissingCount = 0;
+
+    const expiredByDoc = {};
+    const soonByDoc = {};
+
+    DOC_COLS.forEach(({ key }) => {
+      expiredByDoc[key] = 0;
+      soonByDoc[key] = 0;
     });
-    return counts;
+
+    rows.forEach((r) => {
+      let hasExpired = false;
+      let hasSoon = false;
+      let hasMissing = false;
+
+      DOC_COLS.forEach(({ key }) => {
+        const b = bucketFor(r.documents?.[key]);
+        if (b === 'expired') {
+          hasExpired = true;
+          expiredByDoc[key] += 1;
+        } else if (b === 'critical' || b === 'warning') {
+          hasSoon = true;
+          soonByDoc[key] += 1;
+        } else if (b === 'missing') {
+          hasMissing = true;
+        }
+      });
+
+      if (hasExpired) anyExpiredCount += 1;
+      if (hasSoon) anyExpiringSoonCount += 1;
+      if (hasMissing) anyMissingCount += 1;
+    });
+
+    return {
+      anyExpiredCount,
+      anyExpiringSoonCount,
+      anyMissingCount,
+      expiredByDoc,
+      soonByDoc,
+    };
   }, [rows]);
 
-  // Filter rows based on active expired document filter
+  // Filter rows based on active dropdown document filter
   const displayRows = useMemo(() => {
-    if (!activeExpiredFilter) return rows;
-    return rows.filter((r) => bucketFor(r.documents?.[activeExpiredFilter]) === 'expired');
-  }, [rows, activeExpiredFilter]);
+    if (docFilter === 'ALL') return rows;
+
+    if (docFilter === 'EXPIRING_SOON') {
+      return rows.filter((r) =>
+        DOC_COLS.some((col) => {
+          const b = bucketFor(r.documents?.[col.key]);
+          return b === 'critical' || b === 'warning';
+        }),
+      );
+    }
+
+    if (docFilter === 'EXPIRED_ANY') {
+      return rows.filter((r) =>
+        DOC_COLS.some((col) => bucketFor(r.documents?.[col.key]) === 'expired'),
+      );
+    }
+
+    if (docFilter === 'MISSING_ANY') {
+      return rows.filter((r) =>
+        DOC_COLS.some((col) => bucketFor(r.documents?.[col.key]) === 'missing'),
+      );
+    }
+
+    if (docFilter.startsWith('EXPIRED_')) {
+      const docKey = docFilter.replace('EXPIRED_', '');
+      return rows.filter((r) => bucketFor(r.documents?.[docKey]) === 'expired');
+    }
+
+    if (docFilter.startsWith('SOON_')) {
+      const docKey = docFilter.replace('SOON_', '');
+      return rows.filter((r) => {
+        const b = bucketFor(r.documents?.[docKey]);
+        return b === 'critical' || b === 'warning';
+      });
+    }
+
+    return rows;
+  }, [rows, docFilter]);
 
   const goEdit = useCallback(
     (row) =>
@@ -193,43 +273,56 @@ const VehicleDashboardPage = () => {
             />
           }
         >
-          {/* WheelsEye Expired Document Filter Pills Row */}
-          <div
-            className="v-dash-filter-pills-row"
-            role="tablist"
-            aria-label="Expired Document Filter"
-          >
-            {EXPIRED_FILTER_PILLS.map(({ key, label }) => {
-              const count = expiredCounts[key] || 0;
-              const isActive = activeExpiredFilter === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  className={`v-dash-filter-pill ${isActive ? 'v-dash-filter-pill--active' : ''}`}
-                  onClick={() => setActiveExpiredFilter(isActive ? null : key)}
-                  title={
-                    isActive ? `Clear ${label} filter` : `Filter vehicles with expired ${label}`
-                  }
-                >
-                  <span className="v-dash-filter-pill-label">
-                    {label} ({count})
-                  </span>
-                  <span className="v-dash-filter-pill-x" aria-hidden="true">
-                    &times;
-                  </span>
-                </button>
-              );
-            })}
-            {activeExpiredFilter && (
+          {/* Document Compliance Dropdown Filter Bar */}
+          <div className="v-dash-filter-dropdown-bar" aria-label="Document compliance filters">
+            <div className="v-dash-dropdown-wrapper">
+              <label htmlFor="v-dash-doc-filter" className="v-dash-filter-label">
+                <FileText size={15} color="#2563eb" />
+                <span>Document Filter:</span>
+              </label>
+              <select
+                id="v-dash-doc-filter"
+                className="v-dash-filter-select"
+                value={docFilter}
+                onChange={(e) => setDocFilter(e.target.value)}
+              >
+                <option value="ALL">All Documents (No Filter) — ({rows.length} vehicles)</option>
+                <optgroup label="⚡ Quick Status Filters">
+                  <option value="EXPIRING_SOON">
+                    ⚠️ Expiring Soon (&lt; 30 Days) — (
+                    {filterOptionsWithCounts.anyExpiringSoonCount})
+                  </option>
+                  <option value="EXPIRED_ANY">
+                    🔴 Any Expired Document — ({filterOptionsWithCounts.anyExpiredCount})
+                  </option>
+                  <option value="MISSING_ANY">
+                    ⚪ Missing Documents — ({filterOptionsWithCounts.anyMissingCount})
+                  </option>
+                </optgroup>
+                <optgroup label="⚠️ Expiring Soon by Document (< 30 Days)">
+                  {DOC_COLS.map(({ key, label }) => (
+                    <option key={`soon-${key}`} value={`SOON_${key}`}>
+                      Expiring Soon: {label} — ({filterOptionsWithCounts.soonByDoc[key] || 0})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🔴 Expired by Document">
+                  {DOC_COLS.map(({ key, label }) => (
+                    <option key={`exp-${key}`} value={`EXPIRED_${key}`}>
+                      Expired: {label} — ({filterOptionsWithCounts.expiredByDoc[key] || 0})
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            {docFilter !== 'ALL' && (
               <button
                 type="button"
-                className="v-dash-filter-clear-all"
-                onClick={() => setActiveExpiredFilter(null)}
+                className="v-dash-filter-reset-btn"
+                onClick={() => setDocFilter('ALL')}
               >
-                Showing {displayRows.length} of {rows.length} &middot; Clear filter
+                Showing {displayRows.length} of {rows.length} &middot; Clear Filter &times;
               </button>
             )}
           </div>
@@ -282,15 +375,15 @@ const VehicleDashboardPage = () => {
                   row._id === selectedVehicle?._id ? 'v-dash-row--selected' : ''
                 }
                 emptyTitle={
-                  activeExpiredFilter
-                    ? `No vehicles with expired ${EXPIRED_FILTER_PILLS.find((p) => p.key === activeExpiredFilter)?.label || 'document'}`
+                  docFilter !== 'ALL'
+                    ? 'No vehicles matching selected document filter'
                     : 'No vehicles found'
                 }
                 emptyAction={
-                  activeExpiredFilter ? (
+                  docFilter !== 'ALL' ? (
                     <button
                       type="button"
-                      onClick={() => setActiveExpiredFilter(null)}
+                      onClick={() => setDocFilter('ALL')}
                       style={{
                         background: 'none',
                         border: 'none',

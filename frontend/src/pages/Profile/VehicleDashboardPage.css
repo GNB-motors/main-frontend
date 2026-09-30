@@ -133,6 +133,88 @@
   scrollbar-width: thin;
 }
 
+/* WheelsEye Document Filter Dropdown Bar */
+.v-dash-filter-dropdown-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 2px 14px 2px;
+  flex-wrap: wrap;
+}
+
+.v-dash-dropdown-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  padding: 6px 14px 6px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  transition: all 0.15s ease-in-out;
+}
+
+.v-dash-dropdown-wrapper:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.v-dash-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.v-dash-filter-select {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  outline: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-family: inherit;
+  min-width: 260px;
+}
+
+.v-dash-filter-select optgroup {
+  font-weight: 700;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.v-dash-filter-select option {
+  font-weight: 500;
+  color: #0f172a;
+  background: #ffffff;
+  padding: 6px 8px;
+}
+
+.v-dash-filter-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.v-dash-filter-reset-btn:hover {
+  background: #fca5a5;
+  color: #7f1d1d;
+}
+
 /* WheelsEye Filter Pills Row */
 .v-dash-filter-pills-row {
   display: flex;
