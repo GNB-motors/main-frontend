@@ -38,6 +38,16 @@ export default defineConfig(({ mode }) => {
               target: apiOrigin,
               changeOrigin: true,
               secure: true,
+              configure: (proxy) => {
+                proxy.on('error', (_err, _req, res) => {
+                  if (res && !res.headersSent && res.writeHead) {
+                    res.writeHead(502, { 'Content-Type': 'application/json' });
+                  }
+                  if (res && res.end) {
+                    res.end(JSON.stringify({ error: 'Live stream temporarily unavailable' }));
+                  }
+                });
+              },
             },
           },
         }
