@@ -14,6 +14,7 @@ export const DEFAULT_SERVICE_TYPES = [
   'Air Filter / Fuel Filter',
   'Tyre Rotation / Alignment',
   'Full Body / Detailing',
+  'Others / Miscellaneous',
 ];
 
 export const DEFAULT_REPAIR_TYPES = [
@@ -27,6 +28,7 @@ export const DEFAULT_REPAIR_TYPES = [
   'Body / Dent / Paint',
   'Tyre / Puncture',
   'Air Conditioning',
+  'Others / Miscellaneous',
 ];
 
 const mergeUnique = (defaults, fromServer) => {
@@ -40,12 +42,13 @@ const MaintenanceBasicInformationForm = forwardRef(
     {
       recordType,
       vehicles = [],
+      drivers = [],
       options = { workshops: [], serviceTypes: [], repairTypes: [] },
       initialData = {},
       isSubmitting = false,
       onSubmit,
-      onRequestAddWorkshop,    // (searchTerm: string) => void
-      onRequestAddType,        // (searchTerm: string) => void
+      onRequestAddWorkshop, // (searchTerm: string) => void
+      onRequestAddType, // (searchTerm: string) => void
     },
     ref,
   ) => {
@@ -53,6 +56,7 @@ const MaintenanceBasicInformationForm = forwardRef(
 
     const [formData, setFormData] = useState({
       vehicleId: initialData.vehicleId || '',
+      driverId: initialData.driverId || '',
       date: initialData.date || '',
       currentKm: initialData.currentKm || '',
       workshop: initialData.workshop || '',
@@ -61,9 +65,27 @@ const MaintenanceBasicInformationForm = forwardRef(
       notes: initialData.notes || '',
     });
 
+    const [customType, setCustomType] = useState('');
+
     useEffect(() => {
       if (initialData && Object.keys(initialData).length > 0) {
-        setFormData((prev) => ({ ...prev, ...initialData }));
+        const isCustom =
+          initialData.type &&
+          !DEFAULT_SERVICE_TYPES.includes(initialData.type) &&
+          !DEFAULT_REPAIR_TYPES.includes(initialData.type) &&
+          !options.serviceTypes?.includes(initialData.type) &&
+          !options.repairTypes?.includes(initialData.type);
+
+        if (isCustom && initialData.type !== 'Others / Miscellaneous') {
+          setCustomType(initialData.type);
+          setFormData((prev) => ({
+            ...prev,
+            ...initialData,
+            type: 'Others / Miscellaneous',
+          }));
+        } else {
+          setFormData((prev) => ({ ...prev, ...initialData }));
+        }
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialData]);
@@ -72,7 +94,13 @@ const MaintenanceBasicInformationForm = forwardRef(
 
     const handleSubmit = (e) => {
       e.preventDefault();
-      onSubmit?.(formData);
+      const isOther = formData.type === 'Others / Miscellaneous';
+      const resolvedType = isOther ? customType.trim() || 'Others / Miscellaneous' : formData.type;
+
+      onSubmit?.({
+        ...formData,
+        type: resolvedType,
+      });
     };
 
     // SearchableDropdown accepts options that are either strings or { name }.
@@ -88,6 +116,34 @@ const MaintenanceBasicInformationForm = forwardRef(
 
     const selectedVehicleLabel =
       vehicleOptions.find((v) => v._id === formData.vehicleId)?.name || '';
+
+    // Driver options
+    const driverOptions = useMemo(
+      () =>
+        drivers.map((d) => ({
+          _id: d._id,
+          name: `${d.name || d.fullName || 'Driver'}${d.phone ? ` (${d.phone})` : ''}`,
+        })),
+      [drivers],
+    );
+
+    const selectedDriverLabel = driverOptions.find((d) => d._id === formData.driverId)?.name || '';
+
+    const handleVehicleSelect = (opt) => {
+      set('vehicleId', opt._id);
+      const foundVeh = vehicles.find((v) => v._id === opt._id);
+      if (foundVeh && !formData.driverId) {
+        const matchedDriverId =
+          foundVeh.driverId ||
+          foundVeh.assignedDriver?._id ||
+          (typeof foundVeh.assignedDriver === 'string' ? foundVeh.assignedDriver : '') ||
+          foundVeh.driver?._id ||
+          '';
+        if (matchedDriverId) {
+          set('driverId', matchedDriverId);
+        }
+      }
+    };
 
     const workshopList = options.workshops || [];
     const typeList = mergeUnique(
@@ -113,20 +169,31 @@ const MaintenanceBasicInformationForm = forwardRef(
           {/* Form */}
           <div className="basic-info-container">
             <form ref={ref} onSubmit={handleSubmit} className="basic-info-form">
-              {/* Vehicle (full width) */}
+              {/* Row 1: Vehicle & Driver */}
               <div className="basic-info-form-row">
-                <div className="basic-info-form-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="basic-info-form-field">
                   <label className="basic-info-label">Vehicle *</label>
                   <SearchableDropdown
                     options={vehicleOptions}
                     selectedOption={selectedVehicleLabel}
                     placeholder="Select vehicle"
-                    onSelect={(opt) => set('vehicleId', opt._id)}
+                    onSelect={handleVehicleSelect}
+                  />
+                </div>
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Driver (Assigned / Reported by)</label>
+                  <SearchableDropdown
+                    options={driverOptions}
+                    selectedOption={selectedDriverLabel}
+                    placeholder={
+                      driverOptions.length === 0 ? 'Select driver (optional)' : 'Select driver'
+                    }
+                    onSelect={(opt) => set('driverId', opt._id)}
                   />
                 </div>
               </div>
 
-              {/* Date + (Current KM | Amount) */}
+              {/* Row 2: Date & Workshop */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
                   <label className="basic-info-label">
@@ -141,39 +208,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                     disabled={isSubmitting}
                   />
                 </div>
-                {isService ? (
-                  <div className="basic-info-form-field">
-                    <label className="basic-info-label">Current KM</label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="basic-info-input"
-                      value={formData.currentKm}
-                      onChange={(e) => set('currentKm', e.target.value)}
-                      placeholder="e.g., 45230"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                ) : (
-                  <div className="basic-info-form-field">
-                    <label className="basic-info-label">Amount (₹) *</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="basic-info-input"
-                      value={formData.amount}
-                      onChange={(e) => set('amount', e.target.value)}
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Workshop (full width) */}
-              <div className="basic-info-form-row">
-                <div className="basic-info-form-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="basic-info-form-field">
                   <label className="basic-info-label">
                     {isService ? 'Workshop / Service Center *' : 'Workshop Name *'}
                   </label>
@@ -194,9 +229,42 @@ const MaintenanceBasicInformationForm = forwardRef(
                 </div>
               </div>
 
-              {/* Service / Repair Type (full width) */}
+              {/* Row 3: Current KM & Amount */}
               <div className="basic-info-form-row">
-                <div className="basic-info-form-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Current KM</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="basic-info-input"
+                    value={formData.currentKm}
+                    onChange={(e) => set('currentKm', e.target.value)}
+                    placeholder="e.g., 45230"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="basic-info-form-field">
+                  <label className="basic-info-label">Amount (₹) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="basic-info-input"
+                    value={formData.amount}
+                    onChange={(e) => set('amount', e.target.value)}
+                    placeholder="0.00"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Service / Repair Type & Optional Custom Type */}
+              <div className="basic-info-form-row">
+                <div
+                  className="basic-info-form-field"
+                  style={formData.type === 'Others / Miscellaneous' ? {} : { gridColumn: '1 / -1' }}
+                >
                   <label className="basic-info-label">
                     {isService ? 'Service Type *' : 'Repair Type *'}
                   </label>
@@ -211,28 +279,30 @@ const MaintenanceBasicInformationForm = forwardRef(
                     addNewLabel={isService ? 'Add service type' : 'Add repair type'}
                   />
                 </div>
-              </div>
 
-              {/* Amount (service only — repair already used row 2) */}
-              {isService && (
-                <div className="basic-info-form-row">
-                  <div className="basic-info-form-field" style={{ gridColumn: '1 / -1' }}>
-                    <label className="basic-info-label">Amount (₹) *</label>
+                {formData.type === 'Others / Miscellaneous' && (
+                  <div className="basic-info-form-field">
+                    <label className="basic-info-label">
+                      Specify {isService ? 'Service' : 'Repair'} Type *
+                    </label>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      type="text"
                       className="basic-info-input"
-                      value={formData.amount}
-                      onChange={(e) => set('amount', e.target.value)}
+                      value={customType}
+                      onChange={(e) => setCustomType(e.target.value)}
+                      placeholder={
+                        isService
+                          ? 'e.g., CNG Kit Tuning, GPS Calibration'
+                          : 'e.g., Side Mirror, Horn Wiring'
+                      }
                       required
                       disabled={isSubmitting}
                     />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {/* Notes (full width) */}
+              {/* Row 5: Notes / Issue Description */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field" style={{ gridColumn: '1 / -1' }}>
                   <label className="basic-info-label">

@@ -9,6 +9,7 @@ import MaintenanceBasicInformationForm from './Component/MaintenanceBasicInforma
 import AddOptionModal from './Component/AddOptionModal.jsx';
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { VehicleService } from '../Profile/VehicleService.jsx';
+import { DriverService } from '../Drivers/DriverService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { getToken } from '../../utils/session.js';
 import '../Profile/VehiclesPage.css';
@@ -29,6 +30,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
 
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [vehicles, setVehicles] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [options, setOptions] = useState({ workshops: [], serviceTypes: [], repairTypes: [] });
   const [files, setFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +66,12 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
     VehicleService.getAllVehicles(null, token, 1, 1000)
       .then((res) => setVehicles(Array.isArray(res?.data) ? res.data : []))
       .catch(() => setVehicles([]));
+    DriverService.getAllDrivers(null, { limit: 300 })
+      .then((res) => {
+        const list = res?.data?.records || res?.data || res || [];
+        setDrivers(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setDrivers([]));
     MaintenanceService.getOptions(token)
       .then((o) => setOptions(o || { workshops: [], serviceTypes: [], repairTypes: [] }))
       .catch(() => {});
@@ -94,8 +102,10 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
     setOptions((prev) => {
       const next = { ...prev };
       if (addModal.category === 'WORKSHOP') next.workshops = [...(prev.workshops || []), value];
-      if (addModal.category === 'SERVICE_TYPE') next.serviceTypes = [...(prev.serviceTypes || []), value];
-      if (addModal.category === 'REPAIR_TYPE') next.repairTypes = [...(prev.repairTypes || []), value];
+      if (addModal.category === 'SERVICE_TYPE')
+        next.serviceTypes = [...(prev.serviceTypes || []), value];
+      if (addModal.category === 'REPAIR_TYPE')
+        next.repairTypes = [...(prev.repairTypes || []), value];
       return next;
     });
     // Clear the dropdown's stale search term so the user can scroll/pick the
@@ -115,7 +125,13 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
   };
 
   const handleSubmit = async (formData) => {
-    if (!formData.vehicleId || !formData.date || !formData.workshop || !formData.type || formData.amount === '') {
+    if (
+      !formData.vehicleId ||
+      !formData.date ||
+      !formData.workshop ||
+      !formData.type ||
+      formData.amount === ''
+    ) {
       toast.error('Please fill all required fields.');
       return;
     }
@@ -131,6 +147,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
         amount: Number(formData.amount),
         notes: formData.notes || undefined,
       };
+      if (formData.driverId) payload.driverId = formData.driverId;
       if (isService && formData.currentKm !== '') payload.currentKm = Number(formData.currentKm);
 
       await MaintenanceService.createRecord(token, payload, files);
@@ -169,6 +186,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
           ref={formRef}
           recordType={recordType}
           vehicles={vehicles}
+          drivers={drivers}
           options={options}
           initialData={initialData}
           isSubmitting={isSubmitting}
@@ -238,7 +256,12 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
                       <button
                         type="button"
                         onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#94a3b8',
+                        }}
                       >
                         <X size={14} />
                       </button>
@@ -255,13 +278,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
         onCancel={() => navigate(-1)}
         onSubmit={handleFooterSubmit}
         isSubmitting={isSubmitting}
-        submitText={
-          isSubmitting
-            ? 'Saving…'
-            : isService
-              ? 'Add Service'
-              : 'Add Repair'
-        }
+        submitText={isSubmitting ? 'Saving…' : isService ? 'Add Service' : 'Add Repair'}
       />
 
       <AddOptionModal
