@@ -493,7 +493,7 @@
 }
 
 .wa-badge--success { background: var(--wa-ok-bg); color: var(--wa-ok); border: 1px solid var(--wa-ok-border); }
-.wa-badge--failed { background: var(--wa-fail-bg); color: var(--wa-fail); border: 1px solid var(--wa-fail-border); }
+.wa-badge--fail, .wa-badge--failed { background: var(--wa-fail-bg); color: var(--wa-fail); border: 1px solid var(--wa-fail-border); }
 .wa-badge--processing { background: var(--wa-info-bg); color: var(--wa-info); border: 1px solid var(--wa-info-border); }
 .wa-badge--queued { background: var(--wa-warn-bg); color: var(--wa-warn); border: 1px solid var(--wa-warn-border); }
 .wa-badge--neutral { background: var(--wa-bg); color: var(--wa-text-secondary); border: 1px solid var(--wa-border); }
