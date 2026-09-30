@@ -113,7 +113,7 @@ const AlertsTab = () => {
   };
 
   return (
-    <>
+    <div className="si-alerts-wrapper">
       {/* KPI strip */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '16px 24px 16px' }}>
         <KpiCard
@@ -135,7 +135,7 @@ const AlertsTab = () => {
           icon={<Wrench size={18} />}
         />
         <KpiCard
-          title="High Repair Spend"
+          title="High Spend"
           value={counts.HIGH_REPAIR_SPEND}
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
@@ -155,63 +155,44 @@ const AlertsTab = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 24px 12px',
-          gap: 8,
-          flexWrap: 'wrap',
+          gap: 16,
+          flexWrap: 'nowrap',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div
+          className="si-filter-pills-row"
+          style={{ padding: 0, width: 'auto', flex: 1, minWidth: 0 }}
+        >
           {SUB_TABS.map((t) => {
             const active_ = t.key === subTab;
             const n = countForTab(t.key);
             return (
               <button
                 key={t.key}
+                type="button"
                 onClick={() => setSubTab(t.key)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  background: active_ ? '#1e293b' : '#fff',
-                  color: active_ ? '#fff' : '#475569',
-                  border: `1px solid ${active_ ? '#1e293b' : '#e2e8f0'}`,
-                  borderRadius: 999,
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className={`si-filter-pill ${active_ ? 'si-filter-pill--active' : ''}`}
               >
-                {t.label}
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minWidth: 18,
-                    height: 18,
-                    padding: '0 5px',
-                    borderRadius: 999,
-                    background: active_ ? 'rgba(255,255,255,0.18)' : '#f1f5f9',
-                    color: active_ ? '#fff' : '#475569',
-                    fontSize: 11,
-                  }}
-                >
-                  {n}
-                </span>
+                <span>{t.label}</span>
+                <span className="si-filter-pill-count">{n}</span>
               </button>
             );
           })}
         </div>
 
-        <NewButton
-          variant="secondary"
-          size="sm"
-          type="button"
-          text="Refresh"
-          prependIcon={<RefreshCw size={14} className={loading ? 'spin-anim' : ''} />}
-          onClick={load}
-          disabled={loading}
-        />
+        <div style={{ flexShrink: 0, marginLeft: 'auto' }}>
+          <NewButton
+            variant="secondary"
+            size="sm"
+            type="button"
+            text="Refresh"
+            prependIcon={<RefreshCw size={14} className={loading ? 'spin-anim' : ''} />}
+            onClick={load}
+            disabled={loading}
+          />
+        </div>
       </div>
 
       {/* Alert list */}
@@ -244,90 +225,75 @@ const AlertsTab = () => {
         {`@keyframes spin-anim { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
           .spin-anim { animation: spin-anim 0.8s linear infinite; }`}
       </style>
-    </>
+    </div>
   );
 };
 
 const AlertCard = ({ alert, resolving, onResolve, onGoToVehicle }) => {
   const meta = TYPE_META[alert.type] || { label: alert.type, icon: Bell, color: '#475569' };
   const Icon = meta.icon;
-  const sev = SEVERITY_STYLE[alert.severity] || SEVERITY_STYLE.WARNING;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12,
-        background: alert.resolved ? '#f8fafc' : '#fff',
-        border: '1px solid #e2e8f0',
-        borderLeft: `4px solid ${alert.resolved ? '#16a34a' : sev.dot}`,
-        borderRadius: 10,
-        padding: '12px 14px',
-      }}
-    >
+    <div className={`si-alert-card ${alert.resolved ? 'si-alert-card--resolved' : ''}`}>
       <div
+        className={`si-alert-indicator ${
+          alert.resolved
+            ? 'si-alert-indicator--resolved'
+            : alert.severity === 'CRITICAL'
+              ? 'si-alert-indicator--critical'
+              : 'si-alert-indicator--warning'
+        }`}
+      />
+      <div
+        className="si-alert-icon-box"
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: `${meta.color}1a`,
+          background: `${meta.color}18`,
           color: meta.color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
         }}
       >
         <Icon size={18} />
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            flexWrap: 'wrap',
-            marginBottom: 4,
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{meta.label}</span>
+      <div className="si-alert-content">
+        <div className="si-alert-headline-row">
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>{meta.label}</span>
           {alert.resolved ? <ResolvedBadge /> : <SeverityBadge severity={alert.severity} />}
           <button
+            type="button"
             onClick={onGoToVehicle}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              color: '#2563eb',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="si-veh-reg-btn"
+            title={`Open details for ${alert.vehicleReg}`}
           >
-            {alert.vehicleReg}
+            <span className="si-veh-reg-ind">IND</span>
+            <span className="si-veh-reg-num">{alert.vehicleReg}</span>
           </button>
-          {alert.model && <span style={{ fontSize: 11, color: '#94a3b8' }}>· {alert.model}</span>}
+          {alert.model && <span style={{ fontSize: 11.5, color: '#64748b' }}>· {alert.model}</span>}
         </div>
-        <div style={{ fontSize: 13, color: '#334155' }}>{alert.description}</div>
-        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-          {alert.resolved
-            ? `Resolved ${formatTime(alert.resolvedAt)}${alert.resolvedBy ? ` by ${alert.resolvedBy}` : ''}`
-            : `Generated ${formatTime(alert.createdDate)}`}
+        <div className="si-alert-desc">{alert.description}</div>
+        <div className="si-alert-footer">
+          {alert.resolved ? (
+            <span className="si-alert-resolution-pill">
+              <Check size={12} />
+              Resolved {formatTime(alert.resolvedAt)}
+              {alert.resolvedBy ? ` by ${alert.resolvedBy}` : ''}
+            </span>
+          ) : (
+            <span>Generated {formatTime(alert.createdDate)}</span>
+          )}
         </div>
       </div>
 
       {!alert.resolved && (
-        <NewButton
-          variant="secondary"
-          size="sm"
+        <button
           type="button"
-          text={resolving ? 'Resolving…' : 'Resolve'}
-          prependIcon={<Check size={14} />}
+          className="si-action-resolve-btn"
           onClick={onResolve}
           disabled={resolving}
-        />
+          style={{ alignSelf: 'center', padding: '6px 14px', fontSize: 12.5 }}
+        >
+          <Check size={14} />
+          <span>{resolving ? 'Resolving…' : 'Resolve'}</span>
+        </button>
       )}
     </div>
   );
@@ -378,7 +344,7 @@ const ResolvedBadge = () => (
 
 const emptyBox = {
   background: '#fff',
-  border: '1px dashed #e2e8f0',
+  border: '1px dashed #cbd5e1',
   borderRadius: 12,
   padding: '36px 24px',
   textAlign: 'center',

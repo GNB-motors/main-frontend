@@ -9,7 +9,9 @@ vi.mock('./MaintenanceService.jsx', () => ({
   MaintenanceService: {
     listRecords: vi.fn(),
     getSummary: vi.fn(),
+    updateRecord: vi.fn(),
     deleteRecord: vi.fn(),
+    getAlerts: vi.fn(),
   },
 }));
 
@@ -36,6 +38,7 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     MaintenanceService.getSummary.mockResolvedValue({ total: 45, totalAmount: 90000, last30: 5 });
+    MaintenanceService.getAlerts.mockResolvedValue([]);
   });
 
   it('shows the true total from the summary API rather than the loaded page size', async () => {
@@ -99,5 +102,127 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
 
     await waitFor(() => expect(screen.getAllByText('3').length).toBeGreaterThan(0));
     expect(screen.queryByTitle('Next page')).toBeNull();
+  });
+
+  it('switches to Repair tab, displays Priority filter pills, and filters P0 broken axle issues', async () => {
+    const repairRecords = [
+      {
+        _id: 'rep-1',
+        recordType: 'REPAIR',
+        date: '2026-02-10',
+        workshop: 'Tata Workshop NH6',
+        type: 'Axle breakdown',
+        notes: 'Rear axle broken near Kolaghat',
+        amount: 35000,
+        vehicleId: { registrationNumber: 'WB25R9540', model: 'Tata Signa 4825.TK' },
+        attachments: [],
+      },
+      {
+        _id: 'rep-2',
+        recordType: 'REPAIR',
+        date: '2026-02-12',
+        workshop: 'Highway Tyre Point',
+        type: 'Tyre puncture',
+        notes: 'Rear left tyre puncture fixed',
+        amount: 450,
+        vehicleId: { registrationNumber: 'WB11A1234', model: 'Ashok Leyland 2820' },
+        attachments: [],
+      },
+    ];
+
+    MaintenanceService.listRecords.mockResolvedValue({
+      data: repairRecords,
+      meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
+    });
+    MaintenanceService.getSummary.mockResolvedValue({ total: 2, totalAmount: 35450, last30: 2 });
+
+    render(
+      <MemoryRouter>
+        <ServiceIntelligencePage />
+      </MemoryRouter>,
+    );
+
+    // Switch to Repair & Breakdowns tab
+    const repairTab = screen.getByRole('tab', { name: /Repair/i });
+    fireEvent.click(repairTab);
+
+    // Wait for repair records to appear
+    await waitFor(() => expect(screen.getByText('Axle breakdown')).toBeInTheDocument());
+    expect(screen.getByText('Tyre puncture')).toBeInTheDocument();
+
+    // Verify Criticality tags
+    expect(screen.getByText('Critical')).toBeInTheDocument();
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+
+    // Click on P0 Critical filter pill
+    const p0Pill = screen.getByText(/P0 Critical/i);
+    fireEvent.click(p0Pill);
+
+    // Axle breakdown is shown, tyre puncture is filtered out
+    expect(screen.getByText('Axle breakdown')).toBeInTheDocument();
+    expect(screen.queryByText('Tyre puncture')).toBeNull();
+  });
+
+  it('allows resolving an open repair issue via ResolveIssueModal', async () => {
+    const repairRecord = {
+      _id: 'rep-101',
+      recordType: 'REPAIR',
+      date: '2026-03-01',
+      workshop: 'Tata Authorized Center',
+      type: 'Broken Axle',
+      notes: 'Vehicle grounded with axle shaft crack',
+      amount: 25000,
+      vehicleId: { registrationNumber: 'WB25R9999', model: 'Tata Prima' },
+      attachments: [],
+    };
+
+    MaintenanceService.listRecords.mockResolvedValue({
+      data: [repairRecord],
+      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+    });
+    MaintenanceService.getSummary.mockResolvedValue({ total: 1, totalAmount: 25000, last30: 1 });
+    MaintenanceService.updateRecord.mockResolvedValue({
+      ...repairRecord,
+      notes: `${repairRecord.notes} [RESOLVED: Replaced axle with OEM part]`,
+      status: 'RESOLVED',
+    });
+
+    render(
+      <MemoryRouter>
+        <ServiceIntelligencePage />
+      </MemoryRouter>,
+    );
+
+    // Switch to Repair tab
+    fireEvent.click(screen.getByRole('tab', { name: /Repair/i }));
+
+    // Wait for row
+    await waitFor(() => expect(screen.getByText(/Broken axle/i)).toBeInTheDocument());
+
+    // Click the Resolve button
+    const resolveBtn = screen.getByTitle('Mark issue as resolved & roadworthy');
+    fireEvent.click(resolveBtn);
+
+    // Modal opens
+    expect(screen.getByText('Mark Issue as Resolved')).toBeInTheDocument();
+    expect(screen.getAllByText('WB25R9999').length).toBeGreaterThanOrEqual(2);
+
+    // Fill in resolution summary
+    const textarea = screen.getByPlaceholderText(/Replaced rear axle shaft/i);
+    fireEvent.change(textarea, { target: { value: 'Replaced axle with OEM part' } });
+
+    // Submit resolution
+    const submitBtn = screen.getByText('Mark as Resolved & Roadworthy');
+    fireEvent.click(submitBtn);
+
+    await waitFor(() =>
+      expect(MaintenanceService.updateRecord).toHaveBeenCalledWith(
+        'token',
+        'rep-101',
+        expect.objectContaining({
+          notes: expect.stringContaining('[RESOLVED: Replaced axle with OEM part'),
+        }),
+      ),
+    );
   });
 });

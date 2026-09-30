@@ -1,48 +1,108 @@
-import { Paperclip, Trash2 } from 'lucide-react';
+import React from 'react';
+import {
+  Paperclip,
+  Trash2,
+  CheckCircle2,
+  AlertOctagon,
+  AlertTriangle,
+  Wrench,
+  Check,
+} from 'lucide-react';
+import {
+  classifyIssuePriority,
+  isRecordResolved,
+  getResolutionDetails,
+} from './serviceIntelligenceLogic';
 
 /**
- * Cell components for the service-intelligence records table. Kept separate
- * from serviceIntelligenceColumns.jsx because that module exports a plain
- * function; react-refresh requires a file to export components OR
- * non-components, never both (rule 15).
+ * Cell components for the service-intelligence records table.
  */
 
 export const VehicleCell = ({ row, onOpenVehicle }) => {
   const veh = row.vehicleId && typeof row.vehicleId === 'object' ? row.vehicleId : null;
   return (
-    <div>
+    <div className="si-vehicle-cell">
       {veh ? (
         <button
           type="button"
           onClick={() => onOpenVehicle(veh)}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            color: '#0f172a',
-            fontWeight: 700,
-            textAlign: 'left',
-          }}
+          className="si-veh-reg-btn"
+          title={`View vehicle details for ${veh.registrationNumber}`}
         >
-          {veh.registrationNumber}
+          <span className="si-veh-reg-ind">IND</span>
+          <span className="si-veh-reg-num">{veh.registrationNumber}</span>
         </button>
       ) : (
         <span style={{ color: '#94a3b8' }}>—</span>
       )}
-      {veh?.model && <div style={{ fontSize: 11, color: '#94a3b8' }}>{veh.model}</div>}
+      {veh?.model && <div className="si-veh-model-sub">{veh.model}</div>}
     </div>
   );
 };
 
-export const NotesCell = ({ text }) =>
-  text ? (
-    <span title={text} style={{ color: '#475569' }}>
-      {text.length > 60 ? `${text.slice(0, 60)}…` : text}
-    </span>
-  ) : (
-    '—'
+export const PriorityCell = ({ row }) => {
+  const priority = classifyIssuePriority(row);
+
+  const getIcon = () => {
+    switch (priority.code) {
+      case 'P0':
+        return <AlertOctagon size={13} />;
+      case 'P1':
+        return <AlertTriangle size={13} />;
+      case 'P2':
+        return <Wrench size={13} />;
+      default:
+        return <CheckCircle2 size={13} />;
+    }
+  };
+
+  return (
+    <div
+      className={`si-priority-chip si-priority-chip--${priority.code.toLowerCase()}`}
+      title={`${priority.label}: ${priority.subLabel}`}
+    >
+      <span className="si-priority-chip-icon">{getIcon()}</span>
+      <span className="si-priority-chip-code">{priority.code}</span>
+      <span className="si-priority-chip-label">{priority.label.replace(/^P\d\s*/, '')}</span>
+    </div>
   );
+};
+
+export const StatusCell = ({ row }) => {
+  const resolved = isRecordResolved(row);
+  const details = resolved ? getResolutionDetails(row) : null;
+
+  if (resolved) {
+    return (
+      <div
+        className="si-status-chip si-status-chip--resolved"
+        title={details?.resolutionNote ? `Resolved: ${details.resolutionNote}` : 'Resolved'}
+      >
+        <Check size={12} strokeWidth={2.5} />
+        <span>Resolved</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="si-status-chip si-status-chip--open">
+      <span className="si-status-dot" />
+      <span>Open Issue</span>
+    </div>
+  );
+};
+
+export const NotesCell = ({ text }) => {
+  if (!text) return <span style={{ color: '#cbd5e1' }}>—</span>;
+  // Strip resolution tag if present so it doesn't clutter the main issue text
+  const clean = text.replace(/\[RESOLVED:?[^\]]*\]/gi, '').trim();
+
+  return (
+    <span title={clean || text} className="si-notes-text">
+      {clean.length > 55 ? `${clean.slice(0, 55)}…` : clean || text}
+    </span>
+  );
+};
 
 export const FilesCell = ({ attachments }) =>
   Array.isArray(attachments) && attachments.length > 0 ? (
@@ -50,36 +110,44 @@ export const FilesCell = ({ attachments }) =>
       href={attachments[0].publicUrl}
       target="_blank"
       rel="noopener noreferrer"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        fontSize: 12,
-        color: '#2563eb',
-        textDecoration: 'none',
-      }}
+      className="si-files-link"
+      title={`View ${attachments.length} attachment${attachments.length > 1 ? 's' : ''}`}
     >
       <Paperclip size={13} />
-      {attachments.length}
+      <span>{attachments.length}</span>
     </a>
   ) : (
     <span style={{ color: '#cbd5e1' }}>—</span>
   );
 
-export const ActionsCell = ({ onDelete }) => (
-  <button
-    type="button"
-    onClick={onDelete}
-    title="Delete entry"
-    style={{
-      background: '#fff',
-      border: '1px solid #fecaca',
-      color: '#b91c1c',
-      borderRadius: 8,
-      padding: '6px 8px',
-      cursor: 'pointer',
-    }}
-  >
-    <Trash2 size={14} />
-  </button>
-);
+export const ActionsCell = ({ row, onResolve, onDelete }) => {
+  const resolved = isRecordResolved(row);
+
+  return (
+    <div className="si-actions-group">
+      {row.recordType === 'REPAIR' && !resolved && onResolve && (
+        <button
+          type="button"
+          onClick={() => onResolve(row)}
+          className="si-action-resolve-btn"
+          title="Mark issue as resolved & roadworthy"
+        >
+          <CheckCircle2 size={13} />
+          <span>Resolve</span>
+        </button>
+      )}
+
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(row)}
+          title="Delete entry"
+          className="si-action-delete-btn"
+          aria-label="Delete entry"
+        >
+          <Trash2 size={13} />
+        </button>
+      )}
+    </div>
+  );
+};
