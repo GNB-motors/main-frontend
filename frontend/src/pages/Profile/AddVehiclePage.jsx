@@ -1,22 +1,33 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { ChevronRight, ArrowLeft, Truck, Sparkles, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { VehicleService } from './VehicleService.jsx';
 import { listAccounts, reassignVehicleAccount } from './FleetEdgeAccountService.jsx';
 import { useActiveBranch } from '../../contexts/BranchContext.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
-import PageHeader from '../Drivers/Component/PageHeader.jsx';
 import VehicleBasicInformationForm from './Component/VehicleBasicInformationForm.jsx';
 import VehicleDocumentUpload, {
   VEHICLE_DOC_TYPES,
   emptyDocsState,
 } from './Component/VehicleDocumentUpload.jsx';
-import FormFooter from '../Drivers/Component/FormFooter.jsx';
 import { getToken, getProfileField } from '../../utils/session.js';
 import { mapFetchedDocsToUiState } from './addVehicleDocMapping';
 import { ImportVehicleDialog } from './ImportVehicleDialog';
-import { VehicleLocationField, VehicleFleetEdgeAccountField } from './vehicleLocationFields';
 import './VehiclesPage.css';
+import './AddVehiclePage.css';
+
+const formatHSRP = (val) => {
+  if (!val) return '';
+  const clean = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (clean.length > 4) {
+    const state = clean.slice(0, 2);
+    const rto = clean.slice(2, 4);
+    const rest = clean.slice(4);
+    return `${state} ${rto} ${rest}`;
+  }
+  return clean;
+};
 
 const AddVehiclePage = () => {
   const navigate = useNavigate();
@@ -29,6 +40,7 @@ const AddVehiclePage = () => {
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
   const [documents, setDocuments] = useState(emptyDocsState);
+  const [liveRegNumber, setLiveRegNumber] = useState('');
 
   const businessRefId = getProfileField('business_ref_id') || null;
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
@@ -37,6 +49,7 @@ const AddVehiclePage = () => {
   // Owning location (branch) for the new vehicle. Defaults to the active location.
   const { branchId: activeBranchId, branches, activeBranch } = useActiveBranch();
   const [selectedBranchId, setSelectedBranchId] = useState('');
+
   // When the entered registration number already belongs to an enterprise
   // vehicle, we surface the Import Vehicle modal instead of creating a duplicate.
   const [importCandidate, setImportCandidate] = useState(null);
@@ -77,8 +90,11 @@ const AddVehiclePage = () => {
         const vId = editing.id || editing._id;
         setVehicleId(vId);
 
+        const regNo = editing.registration_no || editing.registrationNumber || '';
+        setLiveRegNumber(regNo);
+
         setInitialFormData({
-          registration_no: editing.registration_no || editing.registrationNumber || '',
+          registration_no: regNo,
           chassis_number: editing.chassis_number || editing.chassisNumber || '',
           model: editing.model || '',
           // Absent for orgs without Mileage Integrity — the API projects it out.
@@ -98,6 +114,7 @@ const AddVehiclePage = () => {
         setVehicleId(null);
         setInitialFormData({});
         setDocuments(emptyDocsState());
+        setLiveRegNumber('');
       }
     };
 
@@ -111,9 +128,6 @@ const AddVehiclePage = () => {
     if (!token) {
       toast.warn('No auth token found. Request may fail.');
     }
-
-    // No hard requirement: an empty selection means "Enterprise" (no specific
-    // location), which the backend stores as an enterprise-level vehicle.
 
     // For each docType, collect the new files the user attached (skip slots
     // that hold an existing preview URL with no fresh file). Backend replaces
@@ -226,49 +240,103 @@ const AddVehiclePage = () => {
     }
   };
 
+  const docCount = VEHICLE_DOC_TYPES.reduce((count, { key, sides }) => {
+    const entry = documents[key];
+    if (!entry) return count;
+    const hasSides = sides.some((s) => entry[s]?.preview || entry[s]?.file || entry[s]?.imageUrl);
+    return count + (hasSides ? 1 : 0);
+  }, 0);
+
   return (
-    <div className="vehicles-page-container" style={themeColors}>
-      <div className="vehicles-content-wrapper" style={{ paddingBottom: '80px' }}>
-        <PageHeader
-          backLabel="Vehicles"
-          backPath="/vehicles"
-          currentLabel={isEdit ? initialFormData.registration_no || 'Vehicle' : null}
-          title={isEdit ? 'Edit Vehicle' : 'Add Vehicle'}
-          description={
-            isEdit
-              ? 'Update vehicle information including registration, chassis number, and model.'
-              : 'Configure essential vehicle details, including registration, chassis number, and model.'
-          }
-          onBack={() => navigate(-1)}
-        />
+    <div className="vehicles-page-container add-vehicle-page" style={themeColors}>
+      <div className="add-vehicle-container">
+        {/* Elevated Hero Header */}
+        <div className="add-vehicle-hero">
+          {/* Breadcrumb Navigation & Mode Pill */}
+          <div className="add-vehicle-breadcrumb-row">
+            <div className="add-vehicle-breadcrumb">
+              <button
+                type="button"
+                className="add-vehicle-back-btn"
+                onClick={() => navigate('/vehicles')}
+                aria-label="Back to Vehicles"
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <span
+                className="add-vehicle-crumb-link"
+                onClick={() => navigate('/vehicles')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate('/vehicles');
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                Vehicles
+              </span>
+              <span className="add-vehicle-crumb-separator">
+                <ChevronRight size={14} />
+              </span>
+              <span className="add-vehicle-crumb-current">
+                {isEdit
+                  ? liveRegNumber
+                    ? `${liveRegNumber} (Edit)`
+                    : 'Edit Vehicle'
+                  : 'Add Vehicle'}
+              </span>
+            </div>
 
-        {!isEdit && (activeBranchId || branches.length > 0) && (
-          <VehicleLocationField
-            activeBranchId={activeBranchId}
-            activeBranch={activeBranch}
-            branches={branches}
-            selectedBranchId={selectedBranchId}
-            onChange={setSelectedBranchId}
-          />
-        )}
+            <div className={`add-vehicle-mode-badge ${isEdit ? 'edit' : 'create'}`}>
+              <Sparkles size={13} />
+              <span>{isEdit ? 'Editing Asset' : 'New Fleet Asset'}</span>
+            </div>
+          </div>
 
-        {!isEdit && fleetEdgeAccounts.length > 1 && (
-          <VehicleFleetEdgeAccountField
-            accounts={fleetEdgeAccounts}
-            selectedAccountId={selectedAccountId}
-            onChange={setSelectedAccountId}
-          />
-        )}
+          {/* Title & Authentic Live HSRP Plate */}
+          <div className="add-vehicle-header-main">
+            <div className="add-vehicle-title-col">
+              <h1 className="add-vehicle-heading">
+                <span>{isEdit ? 'Edit Vehicle' : 'Add Vehicle'}</span>
+              </h1>
+              <p className="add-vehicle-subtext">
+                {isEdit
+                  ? 'Update registration details, chassis number, vehicle model, and compliance documentation.'
+                  : 'Configure essential vehicle specifications, telemetry link, terminal assignment, and compliance files.'}
+              </p>
+            </div>
 
+            {/* Live Indian HSRP License Plate Preview */}
+            <div className="hsrp-plate-hero" title="Live High Security Registration Plate preview">
+              <div className="hsrp-blue-band">
+                <span className="hsrp-chakra-symbol">⎈</span>
+                <span className="hsrp-ind-text">IND</span>
+              </div>
+              <div className={`hsrp-number-display ${!liveRegNumber ? 'placeholder' : ''}`}>
+                {liveRegNumber ? formatHSRP(liveRegNumber) : 'MH 04 AB 1234'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 1: Basic Information + Integrated Telematics & Terminal */}
         <VehicleBasicInformationForm
           ref={formRef}
           initialData={initialFormData}
           onSubmit={handleSubmit}
-          onCancel={() => navigate(-1)}
           isSubmitting={isSubmitting}
           isEdit={isEdit}
+          activeBranchId={activeBranchId}
+          activeBranch={activeBranch}
+          branches={branches}
+          selectedBranchId={selectedBranchId}
+          onBranchChange={setSelectedBranchId}
+          fleetEdgeAccounts={fleetEdgeAccounts}
+          selectedAccountId={selectedAccountId}
+          onAccountChange={setSelectedAccountId}
+          onRegistrationChange={setLiveRegNumber}
         />
 
+        {/* Section 2: Compliance Documents Grid (Full Width & Balanced) */}
         <VehicleDocumentUpload
           initialData={documents}
           onDocumentsChange={setDocuments}
@@ -277,13 +345,51 @@ const AddVehiclePage = () => {
         />
       </div>
 
-      <FormFooter
-        onCancel={() => navigate(-1)}
-        onSubmit={handleFooterSubmit}
-        isSubmitting={isSubmitting}
-        isEdit={isEdit}
-        submitText={isEdit ? 'Update Vehicle' : 'Add Vehicle'}
-      />
+      {/* Docked Frosted-Glass Action Bar */}
+      <div className="add-vehicle-footer-bar">
+        <div className="add-vehicle-footer-inner">
+          <div className="add-vehicle-footer-status">
+            <div className="footer-status-pill">
+              <span>Target Asset:</span>
+              <span className="footer-status-plate">
+                {liveRegNumber
+                  ? formatHSRP(liveRegNumber)
+                  : isEdit
+                    ? 'Existing Unit'
+                    : 'Draft Unit'}
+              </span>
+              <span>•</span>
+              <span>{docCount} of 5 compliance documents attached</span>
+            </div>
+          </div>
+
+          <div className="add-vehicle-footer-actions">
+            <button
+              type="button"
+              className="add-vehicle-btn-secondary"
+              onClick={() => navigate(-1)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="add-vehicle-btn-primary"
+              onClick={handleFooterSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span>Saving...</span>
+              ) : (
+                <>
+                  <Truck size={16} />
+                  <span>{isEdit ? 'Update Vehicle' : 'Add Vehicle to Fleet'}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <ImportVehicleDialog
         candidate={importCandidate}

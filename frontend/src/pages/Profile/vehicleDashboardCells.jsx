@@ -1,3 +1,4 @@
+import { Check, XCircle, AlertCircle, HelpCircle } from 'lucide-react';
 import { bucketFor, daysUntil, BUCKET_STYLES } from './vehicleDashboardLogic';
 
 /**
@@ -7,37 +8,65 @@ import { bucketFor, daysUntil, BUCKET_STYLES } from './vehicleDashboardLogic';
  * non-components, never both (rule 15).
  */
 
-export const DocBadge = ({ docEntry }) => {
+export const DocBadge = ({ docEntry, onClick, isSelected = false }) => {
   const bucket = bucketFor(docEntry);
-  const style = BUCKET_STYLES[bucket];
   const days = daysUntil(docEntry?.expiryDate);
 
-  const text = (() => {
-    if (bucket === 'missing') return docEntry?.uploaded ? 'OCR pending' : 'Missing';
-    if (bucket === 'expired') return `Expired ${Math.abs(days)}d ago`;
-    return `${days}d left`;
-  })();
+  let icon = null;
+  let text = '';
+  let badgeClass = 'v-dash-badge';
+
+  if (bucket === 'expired') {
+    icon = <XCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
+    text = 'Expired!';
+    badgeClass += ' v-dash-badge--expired';
+  } else if (bucket === 'healthy') {
+    icon = <Check size={13} strokeWidth={2.6} className="v-dash-badge-icon" />;
+    text = `${days}d left`;
+    badgeClass += ' v-dash-badge--valid';
+  } else if (bucket === 'warning') {
+    icon = <AlertCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
+    text = `${days}d left`;
+    badgeClass += ' v-dash-badge--warning';
+  } else if (bucket === 'critical') {
+    icon = <AlertCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
+    text = `${days}d left`;
+    badgeClass += ' v-dash-badge--critical';
+  } else {
+    // missing or ocr pending
+    icon = <HelpCircle size={13} strokeWidth={2.2} className="v-dash-badge-icon" />;
+    text = docEntry?.uploaded ? 'OCR pending' : 'Missing';
+    badgeClass += ' v-dash-badge--missing';
+  }
+
+  if (isSelected) {
+    badgeClass += ' v-dash-badge--selected';
+  }
+
+  const title = docEntry?.expiryDate
+    ? `Expiry: ${new Date(docEntry.expiryDate).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })}`
+    : docEntry?.uploaded
+      ? 'Uploaded (OCR Processing)'
+      : 'No document uploaded — click to view';
 
   return (
-    <span
-      title={docEntry?.expiryDate ? new Date(docEntry.expiryDate).toLocaleDateString() : ''}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        background: style.bg,
-        color: style.fg,
-        border: `1px solid ${style.dot}33`,
-        padding: '4px 10px',
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
+    <button
+      type="button"
+      className={badgeClass}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
       }}
+      title={title}
+      aria-label={`${text}. ${title}`}
     >
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: style.dot }} />
-      {text}
-    </span>
+      {icon}
+      <span>{text}</span>
+    </button>
   );
 };
 

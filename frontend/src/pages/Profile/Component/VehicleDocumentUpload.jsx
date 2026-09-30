@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
 import React, { useState, useEffect } from 'react';
+import { FileText, CheckCircle2, ShieldCheck } from 'lucide-react';
 import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from '../../Drivers/Component/DocumentCard';
 import { toast } from 'react-toastify';
@@ -9,18 +10,50 @@ import '../../Drivers/Component/DocumentUpload.css';
 // images (front + back) — others are single-page.
 // Backend enum lives in main-backend/app/modules/vehicle/vehicle.model.js.
 export const VEHICLE_DOC_TYPES = [
-  { key: 'rc',             label: 'RC',                backendType: 'RC',              sides: ['FRONT', 'BACK'], description: 'Registration Certificate — upload front and back' },
-  { key: 'insurance',      label: 'Insurance',         backendType: 'INSURANCE',       sides: ['SINGLE'],        description: 'Motor insurance policy / schedule' },
-  { key: 'fitness',        label: 'Fitness Certificate', backendType: 'FITNESS',       sides: ['SINGLE'],        description: 'RTO fitness certificate (Form 38)' },
-  { key: 'permit',         label: 'Permit',            backendType: 'PERMIT',          sides: ['SINGLE'],        description: 'State Transport Authority permit' },
-  { key: 'nationalPermit', label: 'National Permit',   backendType: 'NATIONAL_PERMIT', sides: ['FRONT', 'BACK'], description: 'National Permit — upload front and back' },
+  {
+    key: 'rc',
+    label: 'RC',
+    backendType: 'RC',
+    sides: ['FRONT', 'BACK'],
+    description: 'Registration Certificate — upload front and back',
+  },
+  {
+    key: 'nationalPermit',
+    label: 'National Permit',
+    backendType: 'NATIONAL_PERMIT',
+    sides: ['FRONT', 'BACK'],
+    description: 'National Permit — upload front and back',
+  },
+  {
+    key: 'insurance',
+    label: 'Insurance',
+    backendType: 'INSURANCE',
+    sides: ['SINGLE'],
+    description: 'Motor insurance policy / schedule',
+  },
+  {
+    key: 'fitness',
+    label: 'Fitness Certificate',
+    backendType: 'FITNESS',
+    sides: ['SINGLE'],
+    description: 'RTO fitness certificate (Form 38)',
+  },
+  {
+    key: 'permit',
+    label: 'Permit',
+    backendType: 'PERMIT',
+    sides: ['SINGLE'],
+    description: 'State Transport Authority permit',
+  },
 ];
 
 const emptySlot = () => ({ file: null, preview: null, imageUrl: null, name: '', isPdf: false });
 
 const emptyDocEntry = (sides) => {
   const entry = { documentId: null, expiryDate: null, ocrStatus: null };
-  sides.forEach((side) => { entry[side] = emptySlot(); });
+  sides.forEach((side) => {
+    entry[side] = emptySlot();
+  });
   return entry;
 };
 
@@ -133,7 +166,7 @@ const VehicleDocumentUpload = ({
         return;
       }
       // Clear all sides for this docType since the whole subdoc was removed.
-      const cleared = emptyDocEntry(VEHICLE_DOC_TYPES.find(d => d.key === docKey).sides);
+      const cleared = emptyDocEntry(VEHICLE_DOC_TYPES.find((d) => d.key === docKey).sides);
       const updated = { ...documents, [docKey]: cleared };
       setDocuments(updated);
       onDocumentsChange(updated);
@@ -150,21 +183,53 @@ const VehicleDocumentUpload = ({
     return `Crop ${base} — ${cropperState.side.charAt(0)}${cropperState.side.slice(1).toLowerCase()}`;
   };
 
+  const totalDocTypes = VEHICLE_DOC_TYPES.length;
+  const uploadedCount = VEHICLE_DOC_TYPES.reduce((count, { key, sides }) => {
+    const entry = documents[key];
+    if (!entry) return count;
+    const hasAnySide = sides.some(
+      (side) => entry[side]?.preview || entry[side]?.file || entry[side]?.imageUrl,
+    );
+    return count + (hasAnySide ? 1 : 0);
+  }, 0);
+
   return (
     <div className="document-upload-wrapper">
       <div className="document-upload-outer-container">
         <div className="document-upload-header">
           <div className="document-upload-header-content">
-            <div className="document-upload-icon-wrapper">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M14 2H6C5.44772 2 5 2.44772 5 3V17C5 17.5523 5.44772 18 6 18H14C14.5523 18 15 17.5523 15 17V3C15 2.44772 14.5523 2 14 2Z"
-                      stroke="#454547" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                <path d="M8 6H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M8 10H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M8 14H11" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+            <div className="card-icon-pill emerald">
+              <FileText size={20} />
             </div>
-            <div className="document-upload-title">Documents</div>
+            <div className="card-title-block">
+              <span className="card-title-text">Compliance Documents</span>
+              <span className="card-subtitle-text">
+                Upload verified digital copies for RTO, state permits, and insurance compliance
+              </span>
+            </div>
+          </div>
+
+          <div className="doc-compliance-counter">
+            <div
+              className={`doc-counter-badge ${uploadedCount === totalDocTypes ? 'all-complete' : ''}`}
+            >
+              {uploadedCount === totalDocTypes ? (
+                <>
+                  <CheckCircle2 size={14} />
+                  <span>
+                    All Compliant ({uploadedCount}/{totalDocTypes})
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={14} />
+                  <span>
+                    {uploadedCount} of {totalDocTypes} Attached
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="card-step-badge">Step 2 of 2</div>
           </div>
         </div>
 
@@ -173,16 +238,17 @@ const VehicleDocumentUpload = ({
             {VEHICLE_DOC_TYPES.map(({ key, label, sides, description }) =>
               sides.map((side) => {
                 const slot = documents[key]?.[side] || emptySlot();
-                const cardLabel = side === 'SINGLE'
-                  ? label
-                  : `${label} — ${side.charAt(0)}${side.slice(1).toLowerCase()}`;
+                const cardLabel =
+                  side === 'SINGLE'
+                    ? label
+                    : `${label} — ${side.charAt(0)}${side.slice(1).toLowerCase()}`;
                 return (
                   <DocumentCard
                     key={`${key}-${side}`}
                     documentType={`${key}-${side}`}
                     label={cardLabel}
                     description={description}
-                    preview={slot.preview}
+                    preview={slot.preview || slot.imageUrl}
                     onSelect={() => handleSelect(key, side)}
                     onRemove={() => handleRemove(key, side)}
                     isDisabled={isSubmitting}
@@ -198,7 +264,9 @@ const VehicleDocumentUpload = ({
         src={cropperState.imageSrc}
         isOpen={cropperState.isOpen}
         onCropComplete={handleCropComplete}
-        onCancel={() => setCropperState({ isOpen: false, docKey: null, side: null, imageSrc: null })}
+        onCancel={() =>
+          setCropperState({ isOpen: false, docKey: null, side: null, imageSrc: null })
+        }
         title={cropperTitle()}
         aspectRatio={NaN}
         circularCrop={false}

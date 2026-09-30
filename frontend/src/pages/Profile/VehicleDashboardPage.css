@@ -1,0 +1,1349 @@
+/* ==========================================================================
+   Vehicle Dashboard Page Styles (WheelsEye-inspired SaaS overhaul)
+   ========================================================================== */
+
+/* Maximize width for Vehicle Dashboard */
+.v-dash-page .pshell {
+  padding: 16px 20px 24px 20px;
+}
+
+/* Main Split Layout Container — Fixed equal 580px height with internal vertical scroll */
+.v-dash-split-container {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  height: 580px;
+  max-height: 580px;
+  align-items: stretch;
+  position: relative;
+}
+
+.v-dash-main-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 580px;
+  max-height: 580px;
+  display: flex;
+  flex-direction: column;
+}
+
+.v-dash-main-pane .dt {
+  height: 100% !important;
+  max-height: 580px !important;
+  min-height: 0 !important;
+  flex: 1 1 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+  overflow: hidden !important;
+}
+
+.v-dash-main-pane .dt-tools {
+  flex-shrink: 0 !important;
+}
+
+.v-dash-main-pane .dt-scroll {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  max-height: calc(580px - 44px) !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  scrollbar-width: thin;
+}
+
+/* Compact Table Headers & Cells for Zero Horizontal Scroll */
+.v-dash-main-pane .dt-table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.v-dash-main-pane .dt-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 5;
+  padding: 12px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.v-dash-main-pane .dt-table thead th:first-child,
+.v-dash-main-pane .dt-table tbody td:first-child {
+  min-width: 175px;
+  width: 185px;
+  padding-left: 14px;
+  padding-right: 10px;
+}
+
+.v-dash-main-pane .dt-table tbody td {
+  padding: 9px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.v-dash-side-panel-wrap {
+  width: 360px;
+  min-width: 340px;
+  max-width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 580px;
+  max-height: 580px;
+  z-index: 20;
+}
+
+.v-dash-side-panel-wrap .v-dash-panel,
+.v-dash-panel {
+  height: 100% !important;
+  max-height: 580px !important;
+  min-height: 0 !important;
+  flex: 1 1 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+  overflow: hidden !important;
+  position: relative;
+}
+
+.v-dash-panel-header {
+  flex-shrink: 0 !important;
+}
+
+.v-dash-side-panel-wrap .v-dash-panel-scroll,
+.v-dash-panel-scroll {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  max-height: calc(580px - 58px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px;
+  scrollbar-width: thin;
+}
+
+/* WheelsEye Filter Pills Row */
+.v-dash-filter-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 12px 2px;
+  scrollbar-width: none;
+  width: 100%;
+}
+
+.v-dash-filter-pills-row::-webkit-scrollbar {
+  display: none;
+}
+
+.v-dash-filter-pill {
+  background: #eff6ff;
+  border: 1px solid #60a5fa;
+  color: #2563eb;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.v-dash-filter-pill:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.v-dash-filter-pill--active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.v-dash-filter-pill--active:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.v-dash-filter-pill-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.v-dash-filter-pill-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  color: inherit;
+  opacity: 0.85;
+  line-height: 1;
+}
+
+.v-dash-filter-pill--active .v-dash-filter-pill-x {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.v-dash-filter-clear-all {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: 2px;
+  white-space: nowrap;
+}
+
+.v-dash-filter-clear-all:hover {
+  color: #0f172a;
+}
+
+/* WheelsEye Top-Right Pay Challan Banner (Header action) */
+.v-dash-pay-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.v-dash-pay-banner:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+}
+
+.v-dash-emblem-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.v-dash-pay-banner-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.v-dash-pay-banner-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.v-dash-pay-banner-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.v-dash-pay-banner-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: 4px;
+}
+
+.v-dash-pay-banner-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Table Cell Badges & Interactive Rows
+   ========================================================================== */
+
+.v-dash-vehicle-cell {
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  display: block;
+  width: 100%;
+}
+
+.v-dash-vehicle-cell:hover {
+  background: #eff6ff;
+}
+
+.v-dash-vehicle-cell--active {
+  background: #dbeafe;
+}
+
+.v-dash-row--selected {
+  background-color: #f0f7ff !important;
+}
+
+.v-dash-row--selected td {
+  background-color: #f0f7ff !important;
+}
+
+.v-dash-reg-text {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #0f172a;
+  letter-spacing: 0.3px;
+  line-height: 1.25;
+}
+
+.v-dash-vehicle-cell:hover .v-dash-reg-text {
+  color: #2563eb;
+}
+
+.v-dash-model-text {
+  font-size: 11.5px;
+  color: #475569;
+  margin-top: 3px;
+  line-height: 1.2;
+}
+
+.v-dash-chassis-inline {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: #94a3b8;
+  letter-spacing: 0.2px;
+  margin-top: 2px;
+}
+
+.v-dash-chassis-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #0f172a;
+  letter-spacing: 0.2px;
+}
+
+.v-dash-owner-text {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* WheelsEye Doc Badges in Table */
+.v-dash-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #f8fafc;
+}
+
+.v-dash-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+}
+
+.v-dash-badge-icon {
+  flex-shrink: 0;
+}
+
+/* Expired (Red with cross) */
+.v-dash-badge--expired {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.v-dash-badge--expired:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+/* Valid (Green with tick) */
+.v-dash-badge--valid {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
+}
+
+.v-dash-badge--valid:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+/* Expiring Soon (15-30 days - Amber with alert in circle) */
+.v-dash-badge--warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #d97706;
+}
+
+.v-dash-badge--warning:hover {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+/* Critical (<15 days - Crimson with alert) */
+.v-dash-badge--critical {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #e11d48;
+}
+
+.v-dash-badge--critical:hover {
+  background: #ffe4e6;
+  border-color: #fda4af;
+}
+
+/* Missing / No Info / OCR Pending (Grey with question mark) */
+.v-dash-badge--missing {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.v-dash-badge--missing:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+/* Selected badge highlight */
+.v-dash-badge--selected {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Side Panel Component (.v-dash-panel) — Same Height as Table Card
+   ========================================================================== */
+
+.v-dash-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 580px !important;
+  min-height: 0 !important;
+  flex: 1 1 0 !important;
+  overflow: hidden !important;
+  position: relative;
+}
+
+/* Panel Header */
+.v-dash-panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.v-dash-panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.v-dash-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.v-dash-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.v-dash-back-btn {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.v-dash-back-btn:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.v-dash-panel-scroll {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  max-height: calc(580px - 58px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scrollbar-width: thin;
+}
+
+/* Empty State */
+.v-dash-panel--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fafafa;
+}
+
+.v-dash-empty-content {
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 320px;
+}
+
+.v-dash-empty-illustration {
+  margin-bottom: 18px;
+}
+
+.v-dash-empty-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.v-dash-empty-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+.v-dash-empty-hints {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.v-dash-empty-hint-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.v-dash-hint-bullet {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 11px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Vehicle Header Card in Overview Mode */
+.v-dash-vehicle-header-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.v-dash-vehicle-main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.v-dash-plate-box {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #0f172a;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.v-dash-plate-ind {
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 4px 5px;
+  letter-spacing: 0.5px;
+}
+
+.v-dash-plate-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  padding: 3px 8px;
+  letter-spacing: 0.8px;
+}
+
+.v-dash-copy-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 3px 6px;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.v-dash-copy-btn:hover {
+  color: #0f172a;
+}
+
+.v-dash-edit-link {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.v-dash-edit-link:hover {
+  text-decoration: underline;
+}
+
+.v-dash-vehicle-meta-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.v-dash-chassis-sub {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+/* Challan Summary Card in Overview Mode (WheelsEye Style) */
+.v-dash-challan-summary-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.v-dash-challan-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.v-dash-challan-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.v-dash-challan-text-wrap {
+  flex: 1;
+}
+
+.v-dash-challan-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+}
+
+.v-dash-challan-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.v-dash-challan-verify-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all 0.15s ease;
+}
+
+.v-dash-challan-verify-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* Vehicle Documents Grid Section in Overview Mode */
+.v-dash-docs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.v-dash-docs-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.v-dash-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.v-dash-docs-count-hint {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.v-dash-doc-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+/* WheelsEye 2-Column Document Cards */
+.v-dash-doc-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.v-dash-doc-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+  transform: translateY(-1px);
+}
+
+.v-dash-doc-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.v-dash-doc-icon-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.v-dash-doc-icon-badge--lg {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.v-dash-doc-icon-badge--healthy {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.v-dash-doc-icon-badge--expired {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.v-dash-doc-icon-badge--warning,
+.v-dash-doc-icon-badge--critical {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.v-dash-doc-icon-badge--missing {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.v-dash-card-status {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.v-dash-card-status--valid {
+  color: #16a34a;
+}
+
+.v-dash-card-status--expired {
+  color: #dc2626;
+}
+
+.v-dash-card-status--warning {
+  color: #d97706;
+}
+
+.v-dash-card-status--missing {
+  color: #64748b;
+}
+
+.v-dash-doc-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.v-dash-doc-card-date {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   Document Detail Mode (Scanned Photo Viewer & OCR Info)
+   ========================================================================= */
+
+.v-dash-doc-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.v-dash-doc-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.v-dash-doc-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.v-dash-vehicle-reg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.v-dash-status-pill-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.v-dash-status-pill--valid {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.v-dash-status-pill--expired {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.v-dash-status-pill--warning {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.v-dash-status-pill--missing {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* Scanned Document Viewer Card — Rigid 280px Frame to Prevent Flex Shrinking */
+.v-dash-doc-viewer-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.v-dash-viewer-head {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.v-dash-viewer-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.v-dash-side-tabs {
+  display: flex;
+  background: #e2e8f0;
+  padding: 2px;
+  border-radius: 6px;
+  gap: 2px;
+}
+
+.v-dash-side-tab {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.v-dash-side-tab--active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.v-dash-preview-frame {
+  height: 280px;
+  min-height: 280px;
+  flex-shrink: 0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 12px 12px;
+}
+
+.v-dash-preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.v-dash-spinner {
+  animation: v-dash-spin 1s linear infinite;
+}
+
+@keyframes v-dash-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.v-dash-preview-img-wrap {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #f1f5f9;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.v-dash-preview-img {
+  max-width: 100%;
+  max-height: 260px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+  transition: transform 0.2s ease;
+}
+
+.v-dash-preview-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  border: none;
+}
+
+.v-dash-preview-overlay {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  padding: 4px 6px;
+  border-radius: 8px;
+  z-index: 5;
+}
+
+.v-dash-overlay-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.v-dash-overlay-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.v-dash-preview-empty {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.v-dash-empty-icon {
+  color: #94a3b8;
+}
+
+.v-dash-preview-empty-text {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  max-width: 220px;
+}
+
+/* Metadata & OCR Information Section */
+.v-dash-metadata-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.v-dash-section-subhead {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0;
+}
+
+.v-dash-metadata-grid {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.v-dash-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 12px;
+}
+
+.v-dash-meta-row:last-child {
+  border-bottom: none;
+}
+
+.v-dash-meta-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+}
+
+.v-dash-meta-value {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.v-dash-meta-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.v-dash-ocr-chip {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.v-dash-ocr-chip--success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.v-dash-ocr-chip--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.v-dash-ocr-chip--failed,
+.v-dash-ocr-chip--none {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* Detail Actions */
+.v-dash-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.v-dash-action-btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.v-dash-action-btn--primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.v-dash-action-btn--primary:hover {
+  background: #1d4ed8;
+}
+
+.v-dash-action-btn--secondary {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.v-dash-action-btn--secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.v-dash-action-btn--ghost {
+  background: transparent;
+  color: #64748b;
+}
+
+.v-dash-action-btn--ghost:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Enlarge Modal */
+.v-dash-image-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.v-dash-image-modal-inner {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  background: #0f172a;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.v-dash-image-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: #ffffff;
+  padding: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.v-dash-image-modal-img {
+  max-width: 85vw;
+  max-height: 85vh;
+  object-fit: contain;
+  display: block;
+}
+
+/* Full-Width Legend Bar Spanning Page Bottom */
+.v-dash-legend-bar {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 28px;
+  margin-top: 20px;
+  padding: 14px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  clear: both;
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile & Tablet Responsiveness */
+@media (max-width: 1100px) {
+  .v-dash-split-container {
+    flex-direction: column;
+  }
+
+  .v-dash-side-panel-wrap {
+    width: 100%;
+    max-width: 100%;
+    position: static;
+    height: auto;
+    min-height: auto;
+  }
+}

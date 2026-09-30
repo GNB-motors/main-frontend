@@ -1,0 +1,882 @@
+/* ==========================================================================
+   Add / Edit Vehicle Page — Next-Gen Modern Layout & Design
+   ========================================================================== */
+
+.vehicles-page-container.add-vehicle-page {
+  min-height: 100vh;
+  width: 100%;
+  background: var(--color-bg-subtle, #f8fafc);
+  padding: 0 !important;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Centered High-Capacity Workspace Container (Replaces cramped 920px max-width) */
+.add-vehicle-container {
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 32px 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-sizing: border-box;
+}
+
+/* Force container width overrides on nested components for this page */
+.add-vehicle-page .page-header-container,
+.add-vehicle-page .basic-info-outer-container,
+.add-vehicle-page .document-upload-outer-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+.add-vehicle-page .basic-info-wrapper,
+.add-vehicle-page .document-upload-wrapper {
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+/* ==========================================================================
+   Elevated Hero Header & Live HSRP Registration Plate Preview
+   ========================================================================== */
+
+.add-vehicle-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding-bottom: 4px;
+}
+
+.add-vehicle-breadcrumb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.add-vehicle-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  padding: 4px 12px 4px 6px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.add-vehicle-back-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-vehicle-back-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: translateX(-1px);
+}
+
+.add-vehicle-crumb-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.add-vehicle-crumb-link:hover {
+  color: #2563eb;
+}
+
+.add-vehicle-crumb-separator {
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+}
+
+.add-vehicle-crumb-current {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.add-vehicle-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.add-vehicle-mode-badge.create {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.add-vehicle-mode-badge.edit {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.add-vehicle-header-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.add-vehicle-title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 680px;
+}
+
+.add-vehicle-heading {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-vehicle-subtext {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Live Authentic Indian High-Security Registration Plate (HSRP) */
+.hsrp-plate-hero {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #0f172a;
+  border-radius: 8px;
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  height: 48px;
+  min-width: 220px;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.hsrp-plate-hero:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.hsrp-blue-band {
+  background: linear-gradient(180deg, #0245a3 0%, #002b66 100%);
+  color: #ffffff;
+  width: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 0;
+  flex-shrink: 0;
+  border-right: 1px solid #001f4d;
+}
+
+.hsrp-chakra-symbol {
+  font-size: 11px;
+  line-height: 1;
+  color: #60a5fa;
+  animation: hsrp-glow 3s infinite ease-in-out;
+}
+
+@keyframes hsrp-glow {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+    color: #93c5fd;
+  }
+}
+
+.hsrp-ind-text {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  font-family: 'Inter', sans-serif;
+}
+
+.hsrp-number-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  font-family: 'SF Pro Display', 'Inter', monospace;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #0f172a;
+  text-transform: uppercase;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.hsrp-number-display.placeholder {
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-size: 15px;
+}
+
+/* ==========================================================================
+   Cohesive Card Styling (Basic Information & Documents)
+   ========================================================================== */
+
+.add-vehicle-page .basic-info-outer-container,
+.add-vehicle-page .document-upload-outer-container {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 10px 25px -5px rgba(0, 0, 0, 0.03) !important;
+  padding: 8px !important;
+  outline: none !important;
+  transition: all 0.2s ease;
+}
+
+.add-vehicle-page .basic-info-container,
+.add-vehicle-page .document-upload-container {
+  background: #ffffff !important;
+  border-radius: 14px !important;
+  padding: 28px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Card Headers */
+.add-vehicle-page .basic-info-header,
+.add-vehicle-page .document-upload-header {
+  height: auto !important;
+  padding: 8px 14px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.add-vehicle-page .basic-info-header-content,
+.add-vehicle-page .document-upload-header-content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex: 1;
+}
+
+.card-icon-pill {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-icon-pill.blue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+
+.card-icon-pill.emerald {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #dcfce7;
+}
+
+.card-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-title-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.card-subtitle-text {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.card-step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   Form Grid, Fields, and Inputs
+   ========================================================================== */
+
+.add-vehicle-page .basic-info-form {
+  gap: 24px !important;
+}
+
+.add-vehicle-page .basic-info-form-row {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 24px !important;
+  width: 100% !important;
+}
+
+.add-vehicle-page .basic-info-form-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  position: relative;
+}
+
+.add-vehicle-page .basic-info-label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  margin-bottom: 2px;
+}
+
+.field-badge-optional {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.field-badge-locked {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* Modern Input Controls with Lead Icons */
+.input-with-icon-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.input-lead-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+  z-index: 2;
+}
+
+.input-with-icon-wrapper:focus-within .input-lead-icon {
+  color: #2563eb;
+}
+
+.add-vehicle-page .basic-info-input {
+  width: 100% !important;
+  height: 46px !important;
+  padding: 0 14px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-size: 14px !important;
+  font-family: 'Inter', sans-serif !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+
+.input-with-icon-wrapper .basic-info-input {
+  padding-left: 42px !important;
+}
+
+.add-vehicle-page .basic-info-input:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  outline: none !important;
+}
+
+.add-vehicle-page .basic-info-input.monospace-input {
+  font-family: 'SF Pro Display', 'Inter', monospace !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px !important;
+}
+
+.field-hint-text {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Telematics & Operational Assignment Section (Unified into Form)
+   ========================================================================== */
+
+.telematics-assignment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 10px;
+  padding-top: 24px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.telematics-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.telematics-header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.telematics-header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.telematics-header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.telematics-header-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Locked Location Box */
+.location-locked-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 14px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.location-locked-icon {
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-locked-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+}
+
+.location-locked-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.location-locked-sub {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+/* Telemetry Selector with Live Beacon */
+.telemetry-lead-badge {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #2563eb;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.telemetry-beacon-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: telemetry-pulse 2s infinite;
+}
+
+@keyframes telemetry-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.custom-select-wrapper select {
+  padding-left: 44px !important;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px !important;
+}
+
+/* ==========================================================================
+   Compliance Documents Grid & Upload Overhaul
+   ========================================================================= */
+
+.add-vehicle-page .document-cards-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 24px !important;
+  row-gap: 24px !important;
+  width: 100% !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
+}
+
+/* Individual, self-contained card for every document slot */
+.add-vehicle-page .document-card-wrapper {
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 18px 20px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.add-vehicle-page .document-card-wrapper:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+  transform: translateY(-1px) !important;
+}
+
+.add-vehicle-page .document-card-label {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.add-vehicle-page .document-card {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-self: stretch !important;
+}
+
+/* Contained upload dropzone inside the card — strictly border-box with zero overflow */
+.add-vehicle-page .document-upload-btn {
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  background: #f8fafc !important;
+  border: 1.5px dashed #cbd5e1 !important;
+  border-radius: 12px !important;
+  padding: 18px 16px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+
+.add-vehicle-page .document-upload-btn:hover:not(:disabled) {
+  border-color: #2563eb !important;
+  background: #eff6ff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08) !important;
+  transform: none !important;
+}
+
+.add-vehicle-page .document-upload-content {
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.add-vehicle-page .document-card-preview {
+  border-radius: 12px !important;
+  height: 180px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Document Compliance Status Pill in Header */
+.doc-compliance-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-counter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.doc-counter-badge.all-complete {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
+}
+
+/* ==========================================================================
+   Docked Frosted-Glass Form Action Bar (Footer)
+   ========================================================================== */
+
+.add-vehicle-footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 -8px 24px -4px rgba(15, 23, 42, 0.05);
+  z-index: 100;
+  padding: 14px 0;
+}
+
+.add-vehicle-footer-inner {
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.add-vehicle-footer-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.footer-status-plate {
+  font-family: 'SF Pro Display', 'Inter', monospace;
+  font-weight: 700;
+  color: #0f172a;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.add-vehicle-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-vehicle-btn-secondary {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-vehicle-btn-secondary:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.add-vehicle-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1px solid #1e40af;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-vehicle-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.add-vehicle-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.add-vehicle-btn-primary:disabled,
+.add-vehicle-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+
+@media (max-width: 960px) {
+  .add-vehicle-container {
+    padding: 20px 20px 140px;
+  }
+
+  .add-vehicle-footer-inner {
+    padding: 0 20px;
+  }
+
+  .add-vehicle-header-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hsrp-plate-hero {
+    width: 100%;
+  }
+
+  .add-vehicle-page .document-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .add-vehicle-page .basic-info-form-row {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .add-vehicle-footer-status {
+    display: none;
+  }
+
+  .add-vehicle-footer-actions {
+    width: 100%;
+  }
+
+  .add-vehicle-footer-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+}

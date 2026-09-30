@@ -1,53 +1,79 @@
-import NewButton from '@/components/ui/NewButton';
 import { DOC_COLS } from './vehicleDashboardLogic';
 import { DocBadge } from './vehicleDashboardCells';
 
-/** Column defs for the fleet document-expiry table — one column per DOC_COLS entry. */
-export function buildVehicleDashboardColumns({ onManage }) {
+/**
+ * Column defs for the fleet document-expiry table matching WheelsEye standard:
+ * 1. Vehicle Number (with inline model/chassis)
+ * 2. RC
+ * 3. Insurance
+ * 4. State Permit
+ * 5. National Permit
+ * 6. Road Tax
+ * 7. Fitness
+ * 8. PUCC
+ *
+ * All management and chassis/owner details live in the right-side inspection panel
+ * on click, ensuring zero horizontal scrollbar on standard desktop displays.
+ */
+export function buildVehicleDashboardColumns({
+  onSelectVehicle,
+  onSelectDoc,
+  selectedVehicleId = null,
+  selectedDocKey = null,
+}) {
   const columns = [
     {
       key: 'vehicle',
-      label: 'Vehicle Details',
-      render: (row) => (
-        <div>
-          <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.registrationNumber}</div>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-            {[row.manufacturer, row.model].filter(Boolean).join(' · ') || '—'}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'identifiers',
-      label: 'Chassis & Owner',
-      render: (row) => (
-        <div>
+      label: 'Vehicle Number',
+      render: (row) => {
+        const isVehicleSelected = selectedVehicleId === row._id && !selectedDocKey;
+        return (
           <div
-            style={{
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: 12,
-              color: '#0f172a',
+            className={`v-dash-vehicle-cell${isVehicleSelected ? ' v-dash-vehicle-cell--active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectVehicle?.(row);
+            }}
+            title="Click to view all document & challan details"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectVehicle?.(row);
+              }
             }}
           >
-            {row.chassisNumber || '—'}
+            <div className="v-dash-reg-text">{row.registrationNumber}</div>
+            <div className="v-dash-model-text">
+              {[row.manufacturer, row.model].filter(Boolean).join(' · ') || 'Commercial Vehicle'}
+            </div>
+            {row.chassisNumber && (
+              <div className="v-dash-chassis-inline" title={`Chassis: ${row.chassisNumber}`}>
+                {row.chassisNumber}
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{row.ownerName || '—'}</div>
-        </div>
-      ),
+        );
+      },
     },
   ];
 
   DOC_COLS.forEach(({ key, label }) => {
-    columns.push({ key, label, render: (row) => <DocBadge docEntry={row.documents?.[key]} /> });
-  });
-
-  columns.push({
-    key: 'actions',
-    label: 'Actions',
-    align: 'right',
-    render: (row) => (
-      <NewButton variant="secondary" size="xs" text="Manage" onClick={() => onManage(row)} />
-    ),
+    columns.push({
+      key,
+      label,
+      render: (row) => (
+        <DocBadge
+          docEntry={row.documents?.[key]}
+          onClick={(e) => {
+            e?.stopPropagation?.();
+            onSelectDoc?.(row, key, row.documents?.[key]);
+          }}
+          isSelected={selectedVehicleId === row._id && selectedDocKey === key}
+        />
+      ),
+    });
   });
 
   return columns;

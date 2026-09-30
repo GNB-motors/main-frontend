@@ -3,13 +3,26 @@
  * injectable everywhere so bucket/day-count math is deterministic in tests.
  */
 
-// Document type → display label (must match backend Vehicle.DOCUMENT_TYPES).
+// Document type → display label (matches WheelsEye standard).
 export const DOC_COLS = [
-  { key: 'RC', label: 'RC' },
-  { key: 'INSURANCE', label: 'Insurance' },
+  { key: 'RC', label: 'RC', fullLabel: 'Registration Certificate', short: 'RC' },
+  { key: 'INSURANCE', label: 'Insurance', fullLabel: 'Vehicle Insurance', short: 'INS' },
+  { key: 'PERMIT', label: 'State Permit', fullLabel: 'State Permit', short: 'SP' },
+  { key: 'NATIONAL_PERMIT', label: 'National Permit', fullLabel: 'National Permit', short: 'NP' },
+  { key: 'ROAD_TAX', label: 'Road Tax', fullLabel: 'Road Tax Certificate', short: 'RT' },
+  { key: 'FITNESS', label: 'Fitness', fullLabel: 'Fitness Certificate', short: 'FIT' },
+  { key: 'PUCC', label: 'PUCC', fullLabel: 'PUCC Certificate', short: 'PUC' },
+];
+
+// Quick filter pills matching WheelsEye top bar sequence & labels
+export const EXPIRED_FILTER_PILLS = [
+  { key: 'RC', label: 'Rc' },
   { key: 'FITNESS', label: 'Fitness' },
-  { key: 'PERMIT', label: 'Permit' },
-  { key: 'NATIONAL_PERMIT', label: 'Nat. Permit' },
+  { key: 'INSURANCE', label: 'Insurance' },
+  { key: 'PUCC', label: 'PUCC' },
+  { key: 'PERMIT', label: 'State Permit' },
+  { key: 'NATIONAL_PERMIT', label: 'National Permit' },
+  { key: 'ROAD_TAX', label: 'Road Tax' },
 ];
 
 // Days between today (00:00) and the given Date — negative if past.

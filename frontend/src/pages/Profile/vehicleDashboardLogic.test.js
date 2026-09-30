@@ -4,6 +4,7 @@ import {
   bucketFor,
   computeVehicleDashboardKpis,
   DOC_COLS,
+  EXPIRED_FILTER_PILLS,
 } from './vehicleDashboardLogic';
 
 const NOW = new Date('2026-03-15T00:00:00.000Z');
@@ -77,5 +78,28 @@ describe('computeVehicleDashboardKpis', () => {
     expect(kpis.expired).toBe(1);
     // every other doc slot across both rows (4 columns × 2 rows) has no entry at all → missing
     expect(kpis.missing).toBe(rows.length * (DOC_COLS.length - 1));
+  });
+});
+
+describe('EXPIRED_FILTER_PILLS', () => {
+  it('defines 7 WheelsEye quick filter pills in correct order', () => {
+    expect(EXPIRED_FILTER_PILLS.map((p) => p.key)).toEqual([
+      'RC',
+      'FITNESS',
+      'INSURANCE',
+      'PUCC',
+      'PERMIT',
+      'NATIONAL_PERMIT',
+      'ROAD_TAX',
+    ]);
+    expect(EXPIRED_FILTER_PILLS.map((p) => p.label)).toEqual([
+      'Rc',
+      'Fitness',
+      'Insurance',
+      'PUCC',
+      'State Permit',
+      'National Permit',
+      'Road Tax',
+    ]);
   });
 });
