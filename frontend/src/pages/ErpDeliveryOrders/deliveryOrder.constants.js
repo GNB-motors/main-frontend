@@ -21,14 +21,16 @@ export const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-
 export const todayInput = () => new Date().toISOString().slice(0, 10);
 
 export const shortDate = (v) =>
-  (v
+  v
     ? new Date(v).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    : '—');
+    : '—';
 
 export const EMPTY_FORM = {
   sourceCallTaskId: null,
   partyId: '',
   routeId: '',
+  pickupSiteId: '',
+  dropSiteId: '',
   material: '',
   doDate: todayInput(),
   doType: 'KL_DO',

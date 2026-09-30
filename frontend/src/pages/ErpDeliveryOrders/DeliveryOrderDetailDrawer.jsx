@@ -2,6 +2,20 @@ import React from 'react';
 import { ArrowRight, Check, PhoneCall } from 'lucide-react';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
 import { LIFECYCLE, money, shortDate, stageOf } from './deliveryOrder.constants';
+import { placeMapUrl } from './doPlaces';
+
+/** A pickup/drop point: its name, linked to the pin when the site came populated. */
+const PlaceValue = ({ name, site }) => {
+  if (!name) return <span className="erp-cell-muted">Not set on this older order</span>;
+  const url = placeMapUrl(site);
+  return url ? (
+    <a href={url} target="_blank" rel="noreferrer">
+      {name}
+    </a>
+  ) : (
+    name
+  );
+};
 
 const Row = ({ label, children }) => (
   <div className="erp-detail-row">
@@ -63,9 +77,7 @@ const DeliveryOrderDetailDrawer = ({ order, onClose, onPlace }) => {
                   {state === 'done' ? <Check size={12} /> : idx + 1}
                 </span>
                 <span className="erp-lifecycle-label">{step.label}</span>
-                {state === 'current' && (
-                  <span className="erp-lifecycle-now">{stage.label}</span>
-                )}
+                {state === 'current' && <span className="erp-lifecycle-now">{stage.label}</span>}
               </li>
             );
           })}
@@ -88,6 +100,12 @@ const DeliveryOrderDetailDrawer = ({ order, onClose, onPlace }) => {
               {order.totalKm} km
             </span>
           ) : null}
+        </Row>
+        <Row label="Pickup">
+          <PlaceValue name={order.pickupName} site={order.pickupSiteId} />
+        </Row>
+        <Row label="Drop">
+          <PlaceValue name={order.dropName} site={order.dropSiteId} />
         </Row>
         <Row label="Material">{order.material}</Row>
         <Row label="Quantity">

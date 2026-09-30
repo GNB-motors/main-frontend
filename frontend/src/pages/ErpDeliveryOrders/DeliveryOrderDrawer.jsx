@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle, ArrowRight, CheckCircle2, Info, PhoneCall,
-} from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Info, PhoneCall } from 'lucide-react';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
 import DeliveryOrderService from './DeliveryOrderService';
 import RateMasterService from '../ErpMasters/RateMasterService';
 import { DO_TYPES, money, shortDate, unitFor } from './deliveryOrder.constants';
+import DoPlaceFields from './DoPlaceFields';
+import { placesProblem } from './doPlaces';
 
 const Row = ({ label, children }) => (
   <div className="erp-detail-row">
@@ -15,7 +15,14 @@ const Row = ({ label, children }) => (
 );
 
 const DeliveryOrderDrawer = ({
-  isOpen, onClose, form, setForm, sourceTask = null, parties = [], routes = [], onCreated,
+  isOpen,
+  onClose,
+  form,
+  setForm,
+  sourceTask = null,
+  parties = [],
+  routes = [],
+  onCreated,
 }) => {
   const [saving, setSaving] = useState(false);
   const [rateInfo, setRateInfo] = useState(null);
@@ -45,7 +52,9 @@ const DeliveryOrderDrawer = ({
     DeliveryOrderService.checkCredit(form.partyId)
       .then((res) => !cancelled && setCreditInfo(res.data))
       .catch(() => !cancelled && setCreditInfo(null));
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, form.partyId]);
 
   /**
@@ -96,7 +105,9 @@ const DeliveryOrderDrawer = ({
     })
       .then((res) => !cancelled && setRateInfo(res.data))
       .catch(() => !cancelled && setRateInfo(null));
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, form.partyId, form.routeId, form.material, form.doDate]);
 
   const suggested = useMemo(
@@ -116,9 +127,13 @@ const DeliveryOrderDrawer = ({
     creditInfo && orderValue > 0 && creditInfo.exposure + orderValue >= creditInfo.creditLimit;
 
   const valid = Boolean(
-    form.partyId && form.routeId && form.material.trim() && Number(form.qty) > 0
-      && (!manualRateActive || (Number(form.sbRate) > 0 && form.rateRemark.trim().length >= 3))
-      && (form.doType !== 'VEHICLE_COUNT_DO' || Number(form.vehicleCapacity) > 0),
+    form.partyId &&
+    form.routeId &&
+    !placesProblem(form) &&
+    form.material.trim() &&
+    Number(form.qty) > 0 &&
+    (!manualRateActive || (Number(form.sbRate) > 0 && form.rateRemark.trim().length >= 3)) &&
+    (form.doType !== 'VEHICLE_COUNT_DO' || Number(form.vehicleCapacity) > 0),
   );
 
   const handleSubmit = async (e) => {
@@ -131,6 +146,8 @@ const DeliveryOrderDrawer = ({
       const payload = {
         partyId: form.partyId,
         routeId: form.routeId,
+        pickupSiteId: form.pickupSiteId,
+        dropSiteId: form.dropSiteId,
         material: form.material.trim().toUpperCase(),
         doDate: form.doDate,
         doType: form.doType,
@@ -182,11 +199,7 @@ const DeliveryOrderDrawer = ({
             {/* The next step is a different page, so name it. "Created" alone
                 leaves the user to work out that a DO does nothing until vehicles
                 are placed against it. */}
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => onClose('placement')}
-            >
+            <button type="button" className="btn btn-primary" onClick={() => onClose('placement')}>
               Go to placement
               <ArrowRight size={16} />
             </button>
@@ -210,8 +223,14 @@ const DeliveryOrderDrawer = ({
     >
       {created ? (
         <>
-          <div className={`erp-callout ${created.status === 'PENDING_APPROVAL' ? 'warning' : 'success'}`}>
-            {created.status === 'PENDING_APPROVAL' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+          <div
+            className={`erp-callout ${created.status === 'PENDING_APPROVAL' ? 'warning' : 'success'}`}
+          >
+            {created.status === 'PENDING_APPROVAL' ? (
+              <AlertTriangle size={16} />
+            ) : (
+              <CheckCircle2 size={16} />
+            )}
             <div>
               <strong>
                 {created.status === 'PENDING_APPROVAL'
@@ -227,7 +246,12 @@ const DeliveryOrderDrawer = ({
           </div>
           <div className="erp-detail-block">
             <Row label="Account">{created.partyId?.name || party?.name || '—'}</Row>
-            <Row label="Quantity">{created.qty} {created.qtyUnit}</Row>
+            <Row label="Pickup → drop">
+              {created.pickupName || '—'} → {created.dropName || '—'}
+            </Row>
+            <Row label="Quantity">
+              {created.qty} {created.qtyUnit}
+            </Row>
             <Row label="Rate">
               {money(created.sbRate)}
               {created.rateSource === 'MANUAL' && (
@@ -267,16 +291,20 @@ const DeliveryOrderDrawer = ({
                   {sourceTask.orderMaterial || <span className="erp-cell-muted">not captured</span>}
                 </Row>
                 <Row label="Quantity">
-                  {sourceTask.orderQty != null
-                    ? `${sourceTask.orderQty} ${sourceTask.orderQtyUnit || ''}`
-                    : <span className="erp-cell-muted">not captured</span>}
+                  {sourceTask.orderQty != null ? (
+                    `${sourceTask.orderQty} ${sourceTask.orderQtyUnit || ''}`
+                  ) : (
+                    <span className="erp-cell-muted">not captured</span>
+                  )}
                 </Row>
                 <Row label="Confirmed by">
                   {sourceTask.kamId
                     ? `${sourceTask.kamId.firstName || ''} ${sourceTask.kamId.lastName || ''}`.trim()
                     : '—'}
                 </Row>
-                <Row label="Confirmed on">{shortDate(sourceTask.closedAt || sourceTask.scheduledDate)}</Row>
+                <Row label="Confirmed on">
+                  {shortDate(sourceTask.closedAt || sourceTask.scheduledDate)}
+                </Row>
                 {sourceTask.remarks && <Row label="Notes">{sourceTask.remarks}</Row>}
               </div>
 
@@ -284,8 +312,8 @@ const DeliveryOrderDrawer = ({
                 <div className="erp-callout info">
                   <Info size={16} />
                   <span>
-                    This order was confirmed before the call form captured material and quantity,
-                    so both need filling in below.
+                    This order was confirmed before the call form captured material and quantity, so
+                    both need filling in below.
                   </span>
                 </div>
               )}
@@ -330,14 +358,20 @@ const DeliveryOrderDrawer = ({
                 {suggested.length > 0 && (
                   <optgroup label="Rated for this account and material">
                     {suggested.map((r) => (
-                      <option key={r._id} value={r._id}>{r.name}</option>
+                      <option key={r._id} value={r._id}>
+                        {r.name}
+                      </option>
                     ))}
                   </optgroup>
                 )}
                 {others.length > 0 && (
-                  <optgroup label={suggested.length ? 'Other routes — no rate on file' : 'All routes'}>
+                  <optgroup
+                    label={suggested.length ? 'Other routes — no rate on file' : 'All routes'}
+                  >
                     {others.map((r) => (
-                      <option key={r._id} value={r._id}>{r.name}</option>
+                      <option key={r._id} value={r._id}>
+                        {r.name}
+                      </option>
                     ))}
                   </optgroup>
                 )}
@@ -348,7 +382,12 @@ const DeliveryOrderDrawer = ({
                   rate for this account and material. Others will need a manual rate and approval.
                 </span>
               )}
+              <span className="erp-field-hint">
+                The route sets the price. The exact places are below.
+              </span>
             </div>
+
+            <DoPlaceFields form={form} setField={setField} />
 
             <div className="erp-field">
               <label htmlFor="do-material">
@@ -389,7 +428,9 @@ const DeliveryOrderDrawer = ({
                 onChange={(e) => setField('doType', e.target.value)}
               >
                 {DO_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -410,16 +451,17 @@ const DeliveryOrderDrawer = ({
               />
               {/* Releasing less than was confirmed is legitimate — the rest can
                   go on a second DO — but it should be a visible decision. */}
-              {fromCall && sourceTask.orderQty != null
-                && Number(form.qty) !== Number(sourceTask.orderQty) && (
-                <span className="erp-field-hint">
-                  Confirmed quantity was {sourceTask.orderQty} {sourceTask.orderQtyUnit}.
-                  {Number(form.qty) < Number(sourceTask.orderQty)
-                    && ` Raise another DO later for the remaining ${(
-                      Number(sourceTask.orderQty) - Number(form.qty)
-                    ).toLocaleString('en-IN')}.`}
-                </span>
-              )}
+              {fromCall &&
+                sourceTask.orderQty != null &&
+                Number(form.qty) !== Number(sourceTask.orderQty) && (
+                  <span className="erp-field-hint">
+                    Confirmed quantity was {sourceTask.orderQty} {sourceTask.orderQtyUnit}.
+                    {Number(form.qty) < Number(sourceTask.orderQty) &&
+                      ` Raise another DO later for the remaining ${(
+                        Number(sourceTask.orderQty) - Number(form.qty)
+                      ).toLocaleString('en-IN')}.`}
+                  </span>
+                )}
             </div>
 
             {form.doType === 'VEHICLE_COUNT_DO' && (
@@ -549,9 +591,7 @@ const DeliveryOrderDrawer = ({
                 <span className={`erp-badge ${willBreachCredit ? 'danger' : 'active'}`}>
                   {willBreachCredit ? 'Over limit' : 'Within limit'}
                 </span>
-                <span className="erp-credit-figure">
-                  {money(creditInfo.available)} available
-                </span>
+                <span className="erp-credit-figure">{money(creditInfo.available)} available</span>
               </div>
               <div className="erp-credit-detail erp-cell-muted">
                 Limit {money(creditInfo.creditLimit)} · outstanding {money(creditInfo.exposure)}

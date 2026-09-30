@@ -299,6 +299,10 @@
   color: var(--text-muted, #9ca3af);
 }
 
+.vtour-tele-foot {
+  margin: 6px 0 0;
+}
+
 .vtour-note {
   margin: 0;
   font-size: 12px;

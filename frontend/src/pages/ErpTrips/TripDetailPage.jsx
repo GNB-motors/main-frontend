@@ -31,6 +31,8 @@ import ReceiptDrawer from '../../components/Erp/Drawers/ReceiptDrawer';
 import CurrentActionCard from '../../components/Erp/Trip/CurrentActionCard';
 import TripFinancials from '../../components/Erp/Trip/TripFinancials';
 import { resolveNextAction } from '../../components/Erp/Trip/tripFinance';
+import { placeMapUrl } from '../ErpDeliveryOrders/doPlaces';
+import { dropPrompt } from './gpsDrop';
 
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const day = (d) =>
@@ -502,6 +504,8 @@ const TripDetailPage = () => {
     );
   }
 
+  const suggestion = dropPrompt(data);
+
   return (
     <div className="erp-page trip360">
       {/* ── Identity ── */}
@@ -610,6 +614,36 @@ const TripDetailPage = () => {
                     label: 'Route',
                     value: `${data.fromLocation || '—'} → ${data.toLocation || '—'}`,
                   },
+                  data.gpsPickup?.arrivedAt
+                    ? {
+                        label: 'At pickup (GPS)',
+                        value: `${stamp(data.gpsPickup.arrivedAt)} → ${data.gpsPickup.leftAt ? stamp(data.gpsPickup.leftAt) : 'still there'}`,
+                      }
+                    : null,
+                  data.gpsDrop?.arrivedAt
+                    ? {
+                        label: 'At drop (GPS)',
+                        value: `${stamp(data.gpsDrop.arrivedAt)} → ${data.gpsDrop.leftAt ? stamp(data.gpsDrop.leftAt) : 'still there'}`,
+                      }
+                    : null,
+                  // Exact points from the DO; trips placed before DOs carried them have none.
+                  ...[
+                    ['Pickup', data.pickupName, data.pickupSiteId],
+                    ['Drop', data.dropName, data.dropSiteId],
+                  ].map(([label, name, site]) =>
+                    name
+                      ? {
+                          label,
+                          value: placeMapUrl(site) ? (
+                            <a href={placeMapUrl(site)} target="_blank" rel="noreferrer">
+                              {name}
+                            </a>
+                          ) : (
+                            name
+                          ),
+                        }
+                      : null,
+                  ),
                   { label: 'Distance', value: data.totalKm ? `${data.totalKm} km` : null },
                   data.expectedFreeAt
                     ? { label: 'Free at', value: stamp(data.expectedFreeAt) }
@@ -629,6 +663,23 @@ const TripDetailPage = () => {
 
         {/* Detail — the operations lifecycle */}
         <div className="trip360-stages">
+          {/* GPS saw the truck at the drop. Never closes the trip; a person does. */}
+          {suggestion && (
+            <div className="erp-callout info" style={{ marginBottom: 12 }}>
+              <MapPin size={16} />
+              <span style={{ flex: 1 }}>
+                Truck reached <strong>{suggestion.placeName}</strong> at{' '}
+                {stamp(suggestion.arrivedAt)}
+                {suggestion.stillThere
+                  ? ` and has been there ${suggestion.stayedMin} min.`
+                  : `, stayed ${suggestion.stayedMin} min.`}{' '}
+                Close the trip?
+              </span>
+              <button type="button" className="trip360-btn" onClick={() => openDrawer('close')}>
+                Close trip
+              </button>
+            </div>
+          )}
           {stages.map((stage, idx) => {
             const st = statusOf(stage, idx);
             const Icon = stage.icon;
