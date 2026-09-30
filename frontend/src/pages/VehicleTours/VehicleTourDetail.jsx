@@ -8,7 +8,9 @@ import {
   durationHours,
   formatDuration,
   reconciliation,
+  tourTelematicsView,
 } from './tourLogic.js';
+import TourStops from './TourStops.jsx';
 
 const fmt = (d) => (d ? dayjs(d).format('DD MMM, HH:mm') : '—');
 
@@ -21,6 +23,7 @@ export default function VehicleTourDetail({ tour, busy, onClose, onRollup, onShi
   const isOpen = tour.status === 'OPEN';
   const kind = tour.closeKind ? CLOSE_KIND_LABEL[tour.closeKind] : null;
   const recon = reconciliation(tour);
+  const tele = tourTelematicsView(tour.telematics);
   const canShift = tour.closeKind === 'DIFFERENT_WAREHOUSE' && Boolean(tour.endWarehouseId);
 
   return (
@@ -74,6 +77,8 @@ export default function VehicleTourDetail({ tour, busy, onClose, onRollup, onShi
             </ul>
           )}
 
+          <TourStops tour={tour} />
+
           {/* Distance. An open cycle has none on purpose — a half-finished
               warehouse-to-warehouse span is not a measurable number. */}
           <section className="vtour-stats">
@@ -104,6 +109,46 @@ export default function VehicleTourDetail({ tour, busy, onClose, onRollup, onShi
               </>
             )}
           </section>
+
+          {/* The cycle's own telematics row — fuel and trust for the whole yard-to-yard span. */}
+          {!isOpen && (
+            <section>
+              <h4>Cycle telematics</h4>
+              {tele ? (
+                <>
+                  <div className="vtour-stats">
+                    <div className="vtour-stat">
+                      <span>Fuel used</span>
+                      <strong>{tele.fuelL != null ? `${tele.fuelL} L` : '—'}</strong>
+                      <em>{tele.fuelSource || 'No fuel data'}</em>
+                    </div>
+                    <div className="vtour-stat">
+                      <span>Mileage</span>
+                      <strong>{tele.kmPerL != null ? `${tele.kmPerL} km/L` : '—'}</strong>
+                      <em>whole cycle</em>
+                    </div>
+                    {tele.confidence && (
+                      <div
+                        className={`vtour-stat${tele.confidence.tone === 'warn' ? ' is-warn' : ''}`}
+                      >
+                        <span>Confidence</span>
+                        <strong>{tele.confidence.text}</strong>
+                        <em>{tele.anchored ? 'yard to yard proven' : 'end not at a yard'}</em>
+                      </div>
+                    )}
+                  </div>
+                  <p className="vtour-muted vtour-tele-foot">
+                    {tele.measured ? 'Computed' : 'No distance data — last tried'}{' '}
+                    {fmt(tele.computedAt)}
+                  </p>
+                </>
+              ) : (
+                <p className="vtour-note">
+                  Not measured yet. Recompute to build this cycle&apos;s telematics.
+                </p>
+              )}
+            </section>
+          )}
 
           {/* Side trips — the user's own trips that ran inside this cycle. */}
           <section>

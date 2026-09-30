@@ -43,6 +43,22 @@ const CONFIG = {
       meta: r.vehicleType,
     }),
   },
+  // Exact loading/unloading points of a delivery order (OrgSite). The role puts
+  // places that already served it first; any saved place can still be picked.
+  PICKUP_SITE: {
+    url: '/api/places/erp-sites',
+    label: 'pickup point',
+    searchKey: 'q',
+    params: { role: 'PICKUP' },
+    map: (r) => ({ id: r._id, name: r.name, code: '', meta: r.address }),
+  },
+  DROP_SITE: {
+    url: '/api/places/erp-sites',
+    label: 'drop point',
+    searchKey: 'q',
+    params: { role: 'DROP' },
+    map: (r) => ({ id: r._id, name: r.name, code: '', meta: r.address }),
+  },
   DRIVER: {
     url: '/api/drivers',
     label: 'driver',
@@ -84,15 +100,24 @@ export const searchEntities = async (type, query, { limit = 20, signal } = {}) =
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.rows;
 
   try {
-    const params = { limit };
+    const params = { ...cfg.params, limit };
     if (query) params[cfg.searchKey || 'search'] = query;
     const response = await apiClient.get(cfg.url, { params, signal });
-    const rows = unwrapRows(response.data).map(cfg.map).filter((r) => r.id && r.name);
+    const rows = unwrapRows(response.data)
+      .map(cfg.map)
+      .filter((r) => r.id && r.name);
     cache.set(key, { rows, at: Date.now() });
     return rows;
   } catch (error) {
     if (error?.name === 'CanceledError' || error?.name === 'AbortError') throw error;
     throw decorate(error);
+  }
+};
+
+/** Drop cached searches for these types, e.g. after a new record was created. */
+export const forgetEntitySearches = (...types) => {
+  for (const key of [...cache.keys()]) {
+    if (types.some((t) => key.startsWith(`${t}:`))) cache.delete(key);
   }
 };
 

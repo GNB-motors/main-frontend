@@ -3,15 +3,11 @@ import { AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import TripCloseService from '../../../pages/ErpTrips/TripCloseService';
+import { closeDefaults } from '../../../pages/ErpTrips/gpsDrop';
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
-const TripCloseDrawer = ({ 
-  isOpen, 
-  onClose, 
-  trip = null, 
-  onSuccess 
-}) => {
+const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
   const [form, setForm] = useState({
     unloadedAt: todayInput(),
     unloadLocation: '',
@@ -24,9 +20,11 @@ const TripCloseDrawer = ({
 
   useEffect(() => {
     if (isOpen && trip) {
+      // Starts from where GPS saw the drop, when it did; the user confirms or corrects.
+      const defaults = closeDefaults(trip);
       setForm({
-        unloadedAt: todayInput(),
-        unloadLocation: trip.toLocation || '',
+        unloadedAt: defaults.unloadedAt,
+        unloadLocation: defaults.unloadLocation,
         closeRemarks: '',
         reportEmptyEnabled: false,
         reportEmptyTo: '',
@@ -67,12 +65,7 @@ const TripCloseDrawer = ({
       <button type="button" className="btn btn-secondary" onClick={onClose}>
         Cancel
       </button>
-      <button
-        type="submit"
-        form="close-trip-form"
-        className="btn btn-primary"
-        disabled={busy}
-      >
+      <button type="submit" form="close-trip-form" className="btn btn-primary" disabled={busy}>
         {busy ? 'Closing…' : 'Close Trip'}
       </button>
     </>
@@ -89,17 +82,26 @@ const TripCloseDrawer = ({
       <form id="close-trip-form" onSubmit={handleClose}>
         <div className="erp-form-grid">
           <div className="erp-field">
-            <label>Unloaded date <span className="required">*</span></label>
+            <label>
+              Unloaded date <span className="required">*</span>
+            </label>
             <input
               type="date"
               required
               value={form.unloadedAt}
               onChange={(e) => setForm({ ...form, unloadedAt: e.target.value })}
             />
+            {trip?.gpsDrop?.arrivedAt && (
+              <span className="erp-field-hint">
+                From GPS at the drop point — change it if the unload was another day.
+              </span>
+            )}
           </div>
 
           <div className="erp-field">
-            <label>Unload location <span className="required">*</span></label>
+            <label>
+              Unload location <span className="required">*</span>
+            </label>
             <input
               required
               value={form.unloadLocation}
@@ -117,14 +119,27 @@ const TripCloseDrawer = ({
           </div>
         </div>
 
-        <div className="erp-callout" style={{ marginTop: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+        <div
+          className="erp-callout"
+          style={{ marginTop: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}
+        >
           <AlertTriangle size={20} style={{ marginTop: 4, color: '#f59e0b' }} />
           <div style={{ flex: 1 }}>
             <strong>Report Empty (Optional)</strong>
             <p className="erp-muted" style={{ margin: '4px 0 12px', fontSize: '13px' }}>
-              If the vehicle is reporting empty to another location, record it here to unlock an empty-run advance.
+              If the vehicle is reporting empty to another location, record it here to unlock an
+              empty-run advance.
             </p>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={form.reportEmptyEnabled}
@@ -133,11 +148,13 @@ const TripCloseDrawer = ({
               />
               Enable report empty tracking
             </label>
-            
+
             {form.reportEmptyEnabled && (
               <div className="erp-form-grid" style={{ marginTop: 16 }}>
                 <div className="erp-field">
-                  <label>Report to location <span className="required">*</span></label>
+                  <label>
+                    Report to location <span className="required">*</span>
+                  </label>
                   <input
                     required={form.reportEmptyEnabled}
                     value={form.reportEmptyTo}
@@ -146,7 +163,9 @@ const TripCloseDrawer = ({
                   />
                 </div>
                 <div className="erp-field">
-                  <label>Distance (km) <span className="required">*</span></label>
+                  <label>
+                    Distance (km) <span className="required">*</span>
+                  </label>
                   <input
                     type="number"
                     min="1"
