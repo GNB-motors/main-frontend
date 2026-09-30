@@ -6,6 +6,8 @@ import {
   formatAgoText,
   formatHrsText,
   resolveVehicleStatus,
+  computeMapVehicles,
+  createVehicleMarkerIcon,
 } from './liveTracking.shared.js';
 
 describe('Nova Edge Pro Live Tracking Helpers', () => {
@@ -50,5 +52,102 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
     expect(NOVA_STATUS.stopped.c).toBe('#6A43D8');
     expect(NOVA_STATUS.idling.c).toBe('#C56200');
     expect(NOVA_STATUS.offline.c).toBe('#5D5D5E');
+  });
+
+  describe('computeMapVehicles — selected vehicle icon persistence across tabs', () => {
+    const vMoving = {
+      id: 'v1',
+      plate: 'WB25R9540',
+      status: 'moving',
+      hasFix: true,
+      lat: 22.5,
+      lng: 88.3,
+    };
+    const vStopped = {
+      id: 'v2',
+      plate: 'WB11A1234',
+      status: 'stopped',
+      hasFix: true,
+      lat: 22.6,
+      lng: 88.4,
+    };
+
+    it('returns filteredVehicles when no vehicle is selected', () => {
+      expect(computeMapVehicles([vStopped], null)).toEqual([vStopped]);
+    });
+
+    it('returns filteredVehicles as-is when selected vehicle is already in filtered list', () => {
+      expect(computeMapVehicles([vStopped], vStopped)).toEqual([vStopped]);
+    });
+
+    it('retains selected moving vehicle on map when user switches to stopped tab', () => {
+      // User selected vMoving, then switched tab to "Stopped" (filteredVehicles = [vStopped])
+      const result = computeMapVehicles([vStopped], vMoving);
+      expect(result).toHaveLength(2);
+      expect(result.some((v) => v.id === 'v1')).toBe(true);
+      expect(result.some((v) => v.id === 'v2')).toBe(true);
+    });
+
+    it('does not add selected vehicle if it has no GPS coordinates fix', () => {
+      const vNoFix = {
+        id: 'v3',
+        plate: 'WB99X9999',
+        status: 'offline',
+        hasFix: false,
+        lat: null,
+        lng: null,
+      };
+      expect(computeMapVehicles([vStopped], vNoFix)).toEqual([vStopped]);
+    });
+  });
+
+  describe('createVehicleMarkerIcon — authentic flashlight truck marker', () => {
+    it('generates SVG data URL containing flashlight conical beam and status colors', () => {
+      const icon = createVehicleMarkerIcon({
+        status: 'moving',
+        courseDegrees: 90,
+        plate: 'WB25R9540',
+        isSelected: false,
+      });
+
+      expect(icon).toBeDefined();
+      expect(icon.url).toContain('data:image/svg+xml;charset=UTF-8,');
+      const decodedSvg = decodeURIComponent(
+        icon.url.replace('data:image/svg+xml;charset=UTF-8,', ''),
+      );
+      // Verify forward flashlight conical beam path
+      expect(decodedSvg).toContain('M53.1321 14.2725');
+      // Verify rotation to course degrees (90 deg)
+      expect(decodedSvg).toContain('rotate(90, 48, 48)');
+      // Verify moving green color
+      expect(decodedSvg).toContain('#0C9F41');
+    });
+
+    it('supports (v, isSelected, showLabel) signature and colors by status', () => {
+      const vStopped = { status: 'stopped', courseDegrees: 270, plate: 'WB11A1234' };
+      const icon = createVehicleMarkerIcon(vStopped, true, true);
+      const decoded = decodeURIComponent(icon.url.replace('data:image/svg+xml;charset=UTF-8,', ''));
+      expect(decoded).toContain('#9333EA'); // stopped purple
+      expect(decoded).toContain('rotate(270, 48, 48)');
+      expect(decoded).toContain('WB11A1234'); // plate chip
+    });
+
+    it('distinctly distinguishes idling (orange #F97316) and offline (grey #9CA3AF)', () => {
+      const vIdling = { status: 'idling', courseDegrees: 180, plate: 'WB25R1234' };
+      const iconIdling = createVehicleMarkerIcon(vIdling, false, false);
+      const decodedIdling = decodeURIComponent(
+        iconIdling.url.replace('data:image/svg+xml;charset=UTF-8,', ''),
+      );
+      expect(decodedIdling).toContain('#F97316'); // orangish shade from status bar
+      expect(decodedIdling).not.toContain('#9CA3AF');
+
+      const vOffline = { status: 'offline', courseDegrees: 0, plate: 'WB25R5678' };
+      const iconOffline = createVehicleMarkerIcon(vOffline, false, false);
+      const decodedOffline = decodeURIComponent(
+        iconOffline.url.replace('data:image/svg+xml;charset=UTF-8,', ''),
+      );
+      expect(decodedOffline).toContain('#9CA3AF'); // clean grey from status bar
+      expect(decodedOffline).not.toContain('#F97316');
+    });
   });
 });

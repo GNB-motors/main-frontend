@@ -16,6 +16,8 @@ import {
   LIGHT_MAP_STYLE,
   DARK_MAP_STYLE,
   trailArrowIcons,
+  createVehicleMarkerIcon,
+  computeMapVehicles,
 } from './liveTracking.shared.js';
 import './LiveTracking.css';
 
@@ -24,69 +26,6 @@ const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
   .trim();
 const GOOGLE_MAPS_LIBRARIES = ['places', 'drawing'];
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
-
-const createVehicleMarkerIcon = (v, isSelected, showPlate) => {
-  if (typeof window === 'undefined' || !window.google) return undefined;
-  const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
-  const color = s.c;
-  const isLive = v.live;
-
-  if (!isLive) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-      <circle cx="8" cy="8" r="6" fill="#5D5D5E" stroke="#ffffff" stroke-width="2"/>
-    </svg>`;
-    return {
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-      scaledSize: new window.google.maps.Size(16, 16),
-      anchor: new window.google.maps.Point(8, 8),
-    };
-  }
-
-  if (showPlate || isSelected) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="124" height="48" viewBox="0 0 124 48">
-      <defs>
-        <filter id="sh" x="-10%" y="-10%" width="120%" height="130%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.35"/>
-        </filter>
-      </defs>
-      <g filter="url(#sh)">
-        <rect x="2" y="2" width="120" height="32" rx="7" fill="#0C1020" stroke="${isSelected ? '#4469F0' : color}" stroke-width="${isSelected ? 2.5 : 1.75}"/>
-        <circle cx="14" cy="18" r="5" fill="${color}"/>
-        <text x="25" y="22" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" letter-spacing="0.4">${v.plate}</text>
-        <polygon points="56,34 68,34 62,43" fill="#0C1020"/>
-        <polygon points="57,34 67,34 62,42" fill="${isSelected ? '#4469F0' : color}"/>
-      </g>
-    </svg>`;
-    return {
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-      scaledSize: new window.google.maps.Size(124, 48),
-      anchor: new window.google.maps.Point(62, 45),
-    };
-  }
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="46" viewBox="0 0 40 46">
-    <defs>
-      <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
-      </filter>
-    </defs>
-    <g filter="url(#sh)">
-      <rect x="2" y="2" width="36" height="32" rx="8" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>
-      <polygon points="14,34 26,34 20,43" fill="${color}"/>
-      <path d="M12 13 h10 v8 h-10 z" fill="#FFFFFF"/>
-      <path d="M22 16 h3 l3 3 v2 h-6 z" fill="#FFFFFF"/>
-      <circle cx="15" cy="23" r="2.2" fill="#FFFFFF"/>
-      <circle cx="24" cy="23" r="2.2" fill="#FFFFFF"/>
-      <circle cx="15" cy="23" r="1.1" fill="${color}"/>
-      <circle cx="24" cy="23" r="1.1" fill="${color}"/>
-    </g>
-  </svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(40, 46),
-    anchor: new window.google.maps.Point(20, 44),
-  };
-};
 
 const createReplayTruckIcon = (heading = 0) => {
   if (typeof window === 'undefined' || !window.google) return undefined;
@@ -401,23 +340,51 @@ const LiveTrackingPage = () => {
     return map;
   }, [vehicles]);
 
-  // Counts for filter pills
+  // Counts for the connected status bar cards matching WheelsEye standard
   const counts = useMemo(() => {
     return {
       all: vehicles.length,
-      gps: vehicles.filter((v) => v.live).length,
       moving: vehicles.filter((v) => v.status === 'moving').length,
       stopped: vehicles.filter((v) => v.status === 'stopped').length,
       idling: vehicles.filter((v) => v.status === 'idling').length,
       offline: vehicles.filter((v) => v.status === 'offline').length,
+      breakdown: vehicles.filter(
+        (v) => v.status === 'breakdown' || v.status === 'workshop' || v.inWorkshop || v.isBreakdown,
+      ).length,
+      faulty: vehicles.filter(
+        (v) => v.status === 'faulty' || v.hasFault || (v.alertsCount && v.alertsCount > 0),
+      ).length,
+      geofence: vehicles.filter((v) => v.status === 'geofence' || v.inGeofenceAlert).length,
+      gps: vehicles.filter((v) => v.live).length,
     };
   }, [vehicles]);
 
-  // Filtered vehicles
+  // Filtered vehicles according to the active top status card
   const filteredVehicles = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return vehicles.filter((v) => {
-      const matchesFilter = filter === 'all' || (filter === 'gps' ? v.live : v.status === filter);
+      let matchesFilter = true;
+      if (filter === 'all') {
+        matchesFilter = true;
+      } else if (filter === 'moving') {
+        matchesFilter = v.status === 'moving';
+      } else if (filter === 'stopped') {
+        matchesFilter = v.status === 'stopped';
+      } else if (filter === 'idling') {
+        matchesFilter = v.status === 'idling';
+      } else if (filter === 'offline') {
+        matchesFilter = v.status === 'offline';
+      } else if (filter === 'breakdown') {
+        matchesFilter =
+          v.status === 'breakdown' || v.status === 'workshop' || v.inWorkshop || v.isBreakdown;
+      } else if (filter === 'faulty') {
+        matchesFilter = v.status === 'faulty' || v.hasFault || (v.alertsCount && v.alertsCount > 0);
+      } else if (filter === 'geofence') {
+        matchesFilter = v.status === 'geofence' || v.inGeofenceAlert;
+      } else if (filter === 'gps') {
+        matchesFilter = v.live;
+      }
+
       if (!matchesFilter) return false;
       if (!q) return true;
       return (
@@ -431,6 +398,13 @@ const LiveTrackingPage = () => {
 
   // Selected vehicle object
   const selectedVehicle = selectedId ? byId[selectedId] : null;
+
+  // Vehicles plotted on the Google Map:
+  // Guarantees that if a vehicle is selected, it NEVER vanishes from the map even when
+  // switching filter tabs (e.g. from moving to stopped) or when changing statuses.
+  const mapVehicles = useMemo(() => {
+    return computeMapVehicles(filteredVehicles, selectedVehicle);
+  }, [filteredVehicles, selectedVehicle]);
 
   /* ---------------- Google Map Configuration & State ---------------- */
   const mapOptions = useMemo(
@@ -834,15 +808,47 @@ const LiveTrackingPage = () => {
     setShowLabels((prev) => !prev);
   }, []);
 
-  // Filter definitions
-  const FILTER_TABS = useMemo(
+  // Connected status cards definition matching WheelsEye standard
+  const STATUS_CARDS = useMemo(
     () => [
-      { k: 'all', label: 'All Fleet', count: counts.all, dot: null },
-      { k: 'gps', label: 'GPS Live', count: counts.gps, dot: 'var(--nova-rage-400)' },
-      { k: 'moving', label: 'Moving', count: counts.moving, dot: NOVA_STATUS.moving.c },
-      { k: 'stopped', label: 'Stopped', count: counts.stopped, dot: NOVA_STATUS.stopped.c },
-      { k: 'idling', label: 'Idling', count: counts.idling, dot: NOVA_STATUS.idling.c },
-      { k: 'offline', label: 'Offline', count: counts.offline, dot: NOVA_STATUS.offline.c },
+      { k: 'all', label: 'All', count: counts.all, stripe: '#0A1128', countColor: null },
+      { k: 'moving', label: 'Moving', count: counts.moving, stripe: '#0C9F41', countColor: null },
+      {
+        k: 'stopped',
+        label: 'Stopped',
+        count: counts.stopped,
+        stripe: '#9333EA',
+        countColor: null,
+      },
+      { k: 'idling', label: 'Idling', count: counts.idling, stripe: '#F97316', countColor: null },
+      {
+        k: 'offline',
+        label: 'Offline',
+        count: counts.offline,
+        stripe: '#9CA3AF',
+        countColor: null,
+      },
+      {
+        k: 'breakdown',
+        label: 'Breakdown',
+        count: counts.breakdown,
+        stripe: '#EF4444',
+        countColor: '#EF4444',
+      },
+      {
+        k: 'faulty',
+        label: 'Faulty',
+        count: counts.faulty,
+        stripe: '#84CC16',
+        countColor: '#84CC16',
+      },
+      {
+        k: 'geofence',
+        label: 'Geofence',
+        count: counts.geofence,
+        stripe: '#3B82F6',
+        countColor: null,
+      },
     ],
     [counts],
   );
@@ -863,20 +869,36 @@ const LiveTrackingPage = () => {
             <span>{counts.gps} Live on Map</span>
           </span>
 
-          {/* Filter Chips */}
-          <div className="filters">
-            {FILTER_TABS.map((tab) => (
-              <button
-                key={tab.k}
-                className="chip"
-                aria-pressed={filter === tab.k}
-                onClick={() => setFilter(tab.k)}
-              >
-                {tab.dot && <i style={{ background: tab.dot }} />}
-                {tab.label}
-                <span className="count-pill">{tab.count}</span>
-              </button>
-            ))}
+          {/* Connected Telematics Status Bar Strip (WheelsEye Style) */}
+          <div className="gnb-status-bar" role="tablist" aria-label="Fleet status filters">
+            {STATUS_CARDS.map((card) => {
+              const isActive = filter === card.k;
+              return (
+                <button
+                  key={card.k}
+                  type="button"
+                  role="tab"
+                  className={`gnb-status-card ${isActive ? 'gnb-status-card--active' : ''}`}
+                  aria-selected={isActive}
+                  onClick={() => setFilter(card.k)}
+                >
+                  <span
+                    className="gnb-status-card-count"
+                    style={!isActive && card.countColor ? { color: card.countColor } : undefined}
+                  >
+                    {card.count}
+                  </span>
+                  <span className="gnb-status-card-label">{card.label}</span>
+                  {!isActive && (
+                    <span
+                      className="gnb-status-card-stripe"
+                      style={{ backgroundColor: card.stripe }}
+                    />
+                  )}
+                  {isActive && <span className="gnb-status-card-arrow" />}
+                </button>
+              );
+            })}
           </div>
 
           {/* Topbar Tools */}
@@ -925,7 +947,7 @@ const LiveTrackingPage = () => {
                   options={mapOptions}
                 >
                   {/* Fleet Vehicle Markers */}
-                  {filteredVehicles.map((v) => {
+                  {mapVehicles.map((v) => {
                     const isSelected = v.id === selectedId;
                     if (!v.hasFix) return null;
                     const icon = createVehicleMarkerIcon(v, isSelected, showLabels);
@@ -1095,7 +1117,7 @@ const LiveTrackingPage = () => {
               </button>
             </div>
 
-            {/* Overlay Bottom-Left: Map vs Satellite Segmented Switch */}
+            {/* Overlay Bottom-Left: Map/Satellite Switcher */}
             <div className="ov ov--bl">
               <div className="segmented">
                 <button aria-pressed={mapMode === 'map'} onClick={() => setMapMode('map')}>

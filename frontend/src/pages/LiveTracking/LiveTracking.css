@@ -595,6 +595,141 @@ a:hover {
   }
 }
 
+/* ---------- Discrete Telematics Status Cards Bar (WheelsEye Style) ---------- */
+.gnb-status-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  flex: 1 1 auto;
+  max-width: 920px;
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+  z-index: 5;
+  padding: 1px 1px 6px;
+  scrollbar-width: none;
+}
+
+.gnb-status-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.gnb-status-card {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 66px;
+  padding: 6px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-default, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+  user-select: none;
+  overflow: visible;
+}
+
+:root[data-theme='dark'] .gnb-status-card {
+  background: #141b2d;
+  border-color: #2a3350;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.gnb-status-card:hover:not(.gnb-status-card--active) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme='dark'] .gnb-status-card:hover:not(.gnb-status-card--active) {
+  background: #1c263e;
+  border-color: #3b476d;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.gnb-status-card-count {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--fg-primary, #1e293b);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme='dark'] .gnb-status-card-count {
+  color: #f1f5f9;
+}
+
+.gnb-status-card-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-top: 2px;
+  color: #64748b;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+:root[data-theme='dark'] .gnb-status-card-label {
+  color: #94a3b8;
+}
+
+/* Bottom colored indicator stripe for inactive cards */
+.gnb-status-card-stripe {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  border-bottom-left-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+/* Active card state (dark navy background + white text + downward pointer arrow) */
+.gnb-status-card--active {
+  background: #0a1128 !important;
+  border-color: #0a1128 !important;
+  color: #ffffff !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(10, 17, 40, 0.28);
+  transform: translateY(-1px);
+}
+
+.gnb-status-card--active .gnb-status-card-count {
+  color: #ffffff !important;
+}
+
+.gnb-status-card--active .gnb-status-card-label {
+  color: #e2e8f0 !important;
+  font-weight: 600;
+}
+
+.gnb-status-card-arrow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #0a1128;
+  z-index: 10;
+  pointer-events: none;
+}
+
 .filters {
   display: flex;
   align-items: center;
