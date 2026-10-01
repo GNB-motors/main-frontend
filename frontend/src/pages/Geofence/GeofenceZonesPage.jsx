@@ -337,17 +337,32 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
 
   // Vehicle pins ride the shared `positions` stream (hook handles its own REST
   // fallback). Zone alerts do NOT: the backend `alerts` event carries
-  // owner-alerts via listAlertsSince, which is a different collection from
-  // geofence zone alerts — so those keep the 60s poll below rather than being
-  // wired to an event that would never fire for them.
+  // Fetch and normalize live fleet coordinates
+  const fetchLiveFleet = useCallback(async () => {
+    try {
+      const raw = await GeofenceService.getLiveLocations();
+      return (raw || [])
+        .map(toGeofenceLiveVehicle)
+        .filter((v) => v && Number.isFinite(v.lat) && Number.isFinite(v.lng));
+    } catch {
+      return [];
+    }
+  }, []);
+
   const liveEnabled = import.meta.env.VITE_GEOFENCE_FLEETEDGE_ENABLED !== 'false';
   const { positions: liveVehicles, error: liveError } = useLivePositions({
     enabled: liveEnabled,
-    initialFetch: () => GeofenceService.getLiveLocations(),
+    initialFetch: fetchLiveFleet,
     mapStreamRow: toGeofenceLiveVehicle,
-    fallbackPollMs: 60_000,
+    fallbackPollMs: 15_000,
   });
   const liveOnline = liveEnabled && !liveError;
+
+  const validLiveVehicles = useMemo(() => {
+    return (liveVehicles || [])
+      .map(toGeofenceLiveVehicle)
+      .filter((v) => v && Number.isFinite(v.lat) && Number.isFinite(v.lng));
+  }, [liveVehicles]);
 
   const { isLoaded: mapLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -537,7 +552,7 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
 
   // ── Ultra-fast In-Zone calculation (no native GMaps allocations in loop) ─
   const inZoneVehicleIdSet = useMemo(() => {
-    if (!liveVehicles?.length || !zones?.length) return new Set();
+    if (!validLiveVehicles?.length || !zones?.length) return new Set();
     const set = new Set();
 
     const activeCircles = [];
@@ -568,7 +583,7 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
       }
     }
 
-    for (const v of liveVehicles) {
+    for (const v of validLiveVehicles) {
       const vLat = v.lat;
       const vLng = v.lng;
       if (!Number.isFinite(vLat) || !Number.isFinite(vLng)) continue;
@@ -619,7 +634,7 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
     }
 
     return set;
-  }, [liveVehicles, zones]);
+  }, [validLiveVehicles, zones]);
 
   return (
     <PageShell
@@ -631,9 +646,6 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
         <>
           <Link to="/geofence" className="gfz-btn gfz-btn-ghost">
             <Compass size={14} /> Anomalies
-          </Link>
-          <Link to="/hotspots" className="gfz-btn gfz-btn-ghost">
-            <ShieldAlert size={14} /> Risk Hotspots
           </Link>
           <Link to="/fleet-alerts" className="gfz-btn gfz-btn-ghost">
             <BellRing size={14} /> Fleet Alerts
@@ -1043,7 +1055,7 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
                     </React.Fragment>
                   ))}
 
-                  {liveVehicles.map((v) => {
+                  {validLiveVehicles.map((v) => {
                     const vId = v.vehicleId || v.registrationNumber;
                     const inZone = inZoneVehicleIdSet.has(vId);
                     const iconUrl = vehicleIcons[v.status] || vehicleIcons.Offline;
