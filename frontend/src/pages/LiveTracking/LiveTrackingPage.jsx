@@ -486,6 +486,16 @@ const LiveTrackingPage = () => {
   const onMapLoad = useCallback(
     (map) => {
       mapRef.current = map;
+      const initialZ = map.getZoom();
+      if (typeof initialZ === 'number') {
+        setMapZoom(initialZ);
+      }
+      map.addListener('zoom_changed', () => {
+        const z = map.getZoom();
+        if (typeof z === 'number') {
+          setMapZoom(z);
+        }
+      });
       // Try fitting to live vehicles immediately; if positions haven't loaded
       // yet, the auto-fit effect below handles it once they arrive.
       if (fitToLiveVehicles(map)) {
@@ -1015,7 +1025,7 @@ const LiveTrackingPage = () => {
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={INDIA_CENTER}
-                  zoom={5}
+                  zoom={mapZoom}
                   onLoad={onMapLoad}
                   onZoomChanged={() => {
                     if (mapRef.current) {

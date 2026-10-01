@@ -171,21 +171,39 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
 
       const veh = { status: 'moving', plate: 'WB19A1234' };
 
-      // Zoom >= 16 (scale 1.25): scaledW = 48 * 1.25 = 60
+      // Zoom 16 (scale 1.50): scaledW = 52 * 1.50 = 78
       const iconClose = createVehicleMarkerIcon(veh, false, true, 16);
-      expect(iconClose.scaledSize.width).toBe(60);
+      expect(iconClose.scaledSize.width).toBe(78);
 
-      // Zoom 14 (scale 1.0): scaledW = 48 * 1.0 = 48
+      // Zoom 14 (scale 1.20): scaledW = 52 * 1.20 = 62
       const iconNormal = createVehicleMarkerIcon(veh, false, true, 14);
-      expect(iconNormal.scaledSize.width).toBe(48);
+      expect(iconNormal.scaledSize.width).toBe(62);
 
-      // Zoom 10 (scale 0.85): scaledW = 48 * 0.85 = 41
+      // Zoom 10 (scale 0.78): scaledW = 52 * 0.78 = 41
       const iconRegional = createVehicleMarkerIcon(veh, false, true, 10);
       expect(iconRegional.scaledSize.width).toBe(41);
 
-      // Zoom 5 (scale 0.72): scaledW = 48 * 0.72 = 35
+      // Zoom 5 (scale 0.48): scaledW = 52 * 0.48 = 25
       const iconNational = createVehicleMarkerIcon(veh, false, true, 5);
-      expect(iconNational.scaledSize.width).toBe(35);
+      expect(iconNational.scaledSize.width).toBe(25);
+
+      // Verify strictly monotonic growth as user zooms in
+      expect(iconClose.scaledSize.width).toBeGreaterThan(iconNormal.scaledSize.width);
+      expect(iconNormal.scaledSize.width).toBeGreaterThan(iconRegional.scaledSize.width);
+      expect(iconRegional.scaledSize.width).toBeGreaterThan(iconNational.scaledSize.width);
+
+      // Clutter prevention: unselected vehicles at low zoom omit labels, while close-up or selected show them
+      const iconCloseDecoded = decodeURIComponent(iconClose.url);
+      expect(iconCloseDecoded).toContain('WB19A1234');
+      const iconNationalDecoded = decodeURIComponent(iconNational.url);
+      expect(iconNationalDecoded).not.toContain('WB19A1234');
+      const iconSelectedNational = createVehicleMarkerIcon(
+        { ...veh, isSelected: true },
+        true,
+        true,
+        5,
+      );
+      expect(decodeURIComponent(iconSelectedNational.url)).toContain('WB19A1234');
     });
   });
 });

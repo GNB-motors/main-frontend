@@ -41,7 +41,7 @@ const formatTime = (d) => {
   });
 };
 
-const AlertsTab = () => {
+const AlertsTab = ({ search = '', refreshKey = 0 }) => {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -67,7 +67,7 @@ const AlertsTab = () => {
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   const handleResolve = async (alert) => {
     setResolvingId(alert.id);
@@ -99,11 +99,23 @@ const AlertsTab = () => {
   }, [active, resolved]);
 
   const filtered = useMemo(() => {
-    if (subTab === 'RESOLVED') return resolved;
-    if (subTab === 'ALL') return active;
-    if (subTab === 'CRITICAL') return active.filter((a) => a.severity === 'CRITICAL');
-    return active.filter((a) => a.type === subTab);
-  }, [active, resolved, subTab]);
+    let list = active;
+    if (subTab === 'RESOLVED') list = resolved;
+    else if (subTab === 'ALL') list = active;
+    else if (subTab === 'CRITICAL') list = active.filter((a) => a.severity === 'CRITICAL');
+    else list = active.filter((a) => a.type === subTab);
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((a) => {
+        const text =
+          `${a.vehicleReg || a.registrationNumber || ''} ${a.message || ''} ${a.type || ''} ${a.description || ''} ${a.notes || ''}`.toLowerCase();
+        return text.includes(q);
+      });
+    }
+
+    return list;
+  }, [active, resolved, subTab, search]);
 
   const countForTab = (tabKey) => {
     if (tabKey === 'ALL') return counts.total;
@@ -113,9 +125,9 @@ const AlertsTab = () => {
   };
 
   return (
-    <div className="si-alerts-wrapper">
-      {/* KPI strip */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '16px 24px 16px' }}>
+    <div className="si-alerts-wrapper" style={{ width: '100%' }}>
+      {/* KPI strip with uniform margins matching Service & Repair tabs */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '16px 0 16px 0' }}>
         <KpiCard
           title="Active Alerts"
           value={counts.total}
@@ -154,7 +166,7 @@ const AlertsTab = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 24px 12px',
+          margin: '0 0 16px 0',
           gap: 16,
           flexWrap: 'nowrap',
           width: '100%',
@@ -163,7 +175,7 @@ const AlertsTab = () => {
       >
         <div
           className="si-filter-pills-row"
-          style={{ padding: 0, width: 'auto', flex: 1, minWidth: 0 }}
+          style={{ padding: 0, width: 'auto', flex: 1, minWidth: 0, margin: 0 }}
         >
           {SUB_TABS.map((t) => {
             const active_ = t.key === subTab;
@@ -195,8 +207,8 @@ const AlertsTab = () => {
         </div>
       </div>
 
-      {/* Alert list */}
-      <div style={{ padding: '0 24px' }}>
+      {/* Alert list without lateral padding mismatch */}
+      <div style={{ padding: 0 }}>
         {loading && alerts.length === 0 && <div style={emptyBox}>Loading alerts…</div>}
         {!loading && filtered.length === 0 && (
           <div style={emptyBox}>

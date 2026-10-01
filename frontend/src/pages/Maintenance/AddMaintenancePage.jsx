@@ -10,6 +10,7 @@ import AddOptionModal from './Component/AddOptionModal.jsx';
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import { DriverService } from '../Drivers/DriverService.jsx';
+import { normalizeDriver } from '../Drivers/driverList.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { getToken } from '../../utils/session.js';
 import '../Profile/VehiclesPage.css';
@@ -48,10 +49,23 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
     clearSearch: null,
   });
 
-  // Allow deep-linking to this page with a pre-selected vehicle.
+  // Allow deep-linking or prefilling from driver app / preselected vehicle/driver.
   const initialData = useMemo(() => {
-    const v = location.state?.preselectedVehicleId;
-    return v ? { vehicleId: v } : {};
+    const s = location.state || {};
+    const isApp = !!(
+      s.fromDriverApp ||
+      s.isDriverApp ||
+      s.source === 'DRIVER_APP' ||
+      s.loggedBy === 'DRIVER'
+    );
+    return {
+      vehicleId: s.preselectedVehicleId || s.vehicleId || '',
+      driverId: s.preselectedDriverId || s.driverId || '',
+      driverName: s.driverName || '',
+      isDriverApp: isApp,
+      source: isApp ? 'DRIVER_APP' : s.source || '',
+      ...(s.initialData || {}),
+    };
   }, [location.state]);
 
   useEffect(() => {
@@ -68,8 +82,9 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
       .catch(() => setVehicles([]));
     DriverService.getAllDrivers(null, { limit: 300 })
       .then((res) => {
-        const list = res?.data?.records || res?.data || res || [];
-        setDrivers(Array.isArray(list) ? list : []);
+        const raw = res?.data?.records || res?.data || res || [];
+        const list = Array.isArray(raw) ? raw.map(normalizeDriver) : [];
+        setDrivers(list);
       })
       .catch(() => setDrivers([]));
     MaintenanceService.getOptions(token)

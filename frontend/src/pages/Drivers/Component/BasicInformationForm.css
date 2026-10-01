@@ -228,3 +228,13 @@ input[type='number'] {
   line-height: 1.4;
   color: #6b7280;
 }
+
+/* Hide number input spinners to prevent accidental wheel scrolling */
+.basic-info-input[type='number']::-webkit-inner-spin-button,
+.basic-info-input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.basic-info-input[type='number'] {
+  -moz-appearance: textfield;
+}
