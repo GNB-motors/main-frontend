@@ -77,4 +77,71 @@ describe('MaintenanceBasicInformationForm', () => {
     expect(submittedData.driverId).toBe('dr-2');
     expect(submittedData.amount).toBe('1200');
   });
+
+  it('renders read-only auto-filled badge when service or repair is logged from Driver App', () => {
+    render(
+      <MaintenanceBasicInformationForm
+        recordType="SERVICE"
+        vehicles={dummyVehicles}
+        drivers={dummyDrivers}
+        initialData={{
+          vehicleId: 'veh-1',
+          driverId: 'dr-1',
+          driverName: 'Ramesh Singh',
+          source: 'DRIVER_APP',
+          isDriverApp: true,
+          date: '2026-10-01',
+          amount: '3000',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Driver (Reported via Driver App)')).toBeInTheDocument();
+    expect(screen.getByText('Auto-filled')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Select driver')).not.toBeInTheDocument();
+  });
+
+  it('correctly resolves driver names from employee firstName and lastName', () => {
+    const rawEmployeeDrivers = [
+      { _id: 'emp-1', firstName: 'Vikram', lastName: 'Aditya', mobileNumber: '9988776655' },
+    ];
+
+    render(
+      <MaintenanceBasicInformationForm
+        recordType="SERVICE"
+        vehicles={dummyVehicles}
+        drivers={rawEmployeeDrivers}
+        initialData={{
+          vehicleId: 'veh-1',
+          driverId: 'emp-1',
+          date: '2026-10-01',
+          amount: '1000',
+        }}
+      />,
+    );
+
+    // Should resolve "Vikram Aditya (9988776655)" and NOT "Driver"
+    expect(screen.getByText(/Vikram Aditya/)).toBeInTheDocument();
+  });
+
+  it('blurs numeric input on mouse wheel to prevent accidental value changes', () => {
+    render(
+      <MaintenanceBasicInformationForm
+        recordType="SERVICE"
+        vehicles={dummyVehicles}
+        drivers={dummyDrivers}
+        initialData={{
+          vehicleId: 'veh-1',
+          currentKm: 50000,
+          amount: 2500,
+        }}
+      />,
+    );
+
+    const kmInput = screen.getByPlaceholderText('e.g., 45230');
+    const blurSpy = vi.spyOn(kmInput, 'blur');
+
+    fireEvent.wheel(kmInput);
+    expect(blurSpy).toHaveBeenCalled();
+  });
 });

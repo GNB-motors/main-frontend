@@ -242,3 +242,38 @@ export function buildBanner(lossL, billCount, pricePerL) {
     msg: 'No unexplained fuel loss detected in the selected period.',
   };
 }
+
+// Clean long dealer/pump names into concise, human-readable station names
+export function cleanStationName(raw) {
+  if (!raw) return { displayName: 'Unknown Station', brand: '', location: '' };
+  const str = String(raw).trim();
+  let brand = '';
+  if (/reliance|bp\s*mobility/i.test(str)) brand = 'Reliance BP';
+  else if (/indian\s*oil|iocl/i.test(str)) brand = 'Indian Oil';
+  else if (/bharat\s*petroleum|bpcl/i.test(str)) brand = 'BPCL';
+  else if (/hindustan\s*petroleum|hpcl/i.test(str)) brand = 'HPCL';
+  else if (/nayara/i.test(str)) brand = 'Nayara';
+  else if (/shell/i.test(str)) brand = 'Shell';
+
+  let name = str;
+  const dealerMatch = str.match(/dealer of ([^,]+)/i);
+  if (dealerMatch) {
+    name = dealerMatch[1].trim();
+  } else {
+    const parts = str.split(/[,-]/);
+    name = parts[0].replace(/^M\/s\.?\s+/i, '').trim();
+  }
+
+  const locMatch = str.match(
+    /(NH\s*[-]?\s*\d+|[A-Z0-9\s]+(?:RICE MILL|BYPASS|CROSSING|DIST|ROAD|STATION|HIGHWAY))/i,
+  );
+  const location = locMatch ? locMatch[0].trim() : str.split(',')[1]?.trim() || '';
+
+  return {
+    displayName:
+      brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} · ${name}` : name,
+    brand,
+    location,
+    raw: str,
+  };
+}

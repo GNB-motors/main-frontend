@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { formatDate, formatNumber, formatCurrency } from './mileageIntervalReportUtils';
-import { AlertCell } from './mileageIntervalReportCells';
+import { AlertCell, MileageCell } from './mileageIntervalReportCells';
 
 export function useMileageIntervalReportColumns() {
   return useMemo(
@@ -86,18 +86,7 @@ export function useMileageIntervalReportColumns() {
         key: 'mileage',
         label: 'Mileage',
         align: 'right',
-        render: (row) => (
-          <div
-            className="cell-primary"
-            style={
-              typeof row.mileageKmPerL === 'number'
-                ? { color: '#2563eb', fontWeight: 600 }
-                : undefined
-            }
-          >
-            {typeof row.mileageKmPerL === 'number' ? row.mileageKmPerL.toFixed(2) : '—'}
-          </div>
-        ),
+        render: (row) => <MileageCell value={row.mileageKmPerL} quality={row.quality} />,
       },
       {
         key: 'def',

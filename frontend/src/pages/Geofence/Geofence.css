@@ -403,25 +403,50 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.15s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .gf-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
+}
+.gf-btn-primary {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1.5px solid #1d4ed8;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+}
+.gf-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  border-color: #1e40af;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38);
 }
 .gf-btn-ghost {
-  background: white;
-  border: 1px solid #e2e8f0;
-  color: #334155;
+  background: #ffffff;
+  border: 1.5px solid #3b82f6;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+}
+.gf-btn-ghost svg {
+  color: #2563eb;
 }
 .gf-btn-ghost:hover:not(:disabled) {
-  background: #f1f5f9;
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+.gf-btn-ghost:hover:not(:disabled) svg {
+  color: #1d4ed8;
 }
 .gf-btn-icon {
   background: transparent;

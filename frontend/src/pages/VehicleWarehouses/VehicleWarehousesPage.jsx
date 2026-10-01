@@ -193,7 +193,7 @@ export default function VehicleWarehousesPage() {
             className="pshell-btn pshell-btn--primary"
             onClick={() => setDrawer({ open: true, mode: 'create', initial: null })}
           >
-            <Plus size={15} /> New warehouse
+            <Plus size={15} /> New Warehouse
           </button>
         </>
       }

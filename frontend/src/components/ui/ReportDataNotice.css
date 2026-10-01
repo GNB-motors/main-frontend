@@ -1,0 +1,39 @@
+.rdn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #4b5563;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.rdn strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.rdn--stale {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.rdn--stale strong {
+  color: #78350f;
+}
+
+.rdn--none {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.rdn-hint {
+  color: inherit;
+  opacity: 0.85;
+}

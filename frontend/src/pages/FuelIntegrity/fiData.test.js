@@ -9,6 +9,7 @@ import {
   buildRiskVehicles,
   buildChipDefs,
   buildBanner,
+  cleanStationName,
   RISK_RANK,
 } from './fiData';
 
@@ -254,5 +255,20 @@ describe('buildBanner', () => {
 
   it('is ok when clean', () => {
     expect(buildBanner(0, 0, 95).state).toBe('ok');
+  });
+});
+
+describe('cleanStationName', () => {
+  it('extracts brand and location from dealership names', () => {
+    const raw =
+      'M/s SHREE NIDHI SALES Dealer of Reliance BP Mobility Limited NH19,TARASHAKTI RICE MILL,MZ.PPARAJ';
+    const res = cleanStationName(raw);
+    expect(res.brand).toBe('Reliance BP');
+    expect(res.displayName).toContain('Reliance BP');
+  });
+
+  it('handles empty or null values gracefully', () => {
+    expect(cleanStationName(null).displayName).toBe('Unknown Station');
+    expect(cleanStationName('').displayName).toBe('Unknown Station');
   });
 });

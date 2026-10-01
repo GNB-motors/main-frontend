@@ -831,6 +831,33 @@ a:hover {
 .btn--sm.btn--icon {
   width: 30px;
 }
+.btn.lt-csv-btn {
+  background: #ffffff !important;
+  border: 1.5px solid #3b82f6 !important;
+  color: #2563eb !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-m);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn.lt-csv-btn svg {
+  color: #2563eb !important;
+  stroke: #2563eb !important;
+}
+.btn.lt-csv-btn:hover {
+  background: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+.btn.lt-csv-btn:hover svg {
+  color: #1d4ed8 !important;
+  stroke: #1d4ed8 !important;
+}
 .spin {
   animation: spin 600ms var(--ease-standard);
 }
@@ -2085,109 +2112,6 @@ a:hover {
 .secnote {
   font-size: var(--type-2xs);
   color: var(--fg-secondary);
-}
-
-/* ---------- 360 modal ---------- */
-.modal {
-  position: absolute;
-  inset: 0;
-  z-index: 1600;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-}
-.modal.open {
-  display: flex;
-}
-.modal .scrim {
-  position: absolute;
-  inset: 0;
-  background: var(--bg-scrim);
-  backdrop-filter: blur(6px);
-}
-.modal .sheet {
-  position: relative;
-  width: min(620px, 100%);
-  max-height: 100%;
-  overflow: auto;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  animation: slideup var(--duration-medium) var(--ease-standard);
-}
-@keyframes slideup {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.modal .mhead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.modal .mhead .plate {
-  font-size: var(--type-s);
-  font-weight: 600;
-  letter-spacing: var(--tracking-concise);
-}
-.modal .mhead .sub {
-  color: var(--fg-secondary);
-  font-size: var(--type-2xs);
-}
-.viewport {
-  margin: var(--space-4);
-  height: 250px;
-  border-radius: var(--radius-l);
-  border: 1px solid var(--border-default);
-  background:
-    radial-gradient(120% 90% at 50% 100%, rgba(47, 88, 238, 0.07), transparent 60%),
-    repeating-linear-gradient(90deg, var(--border-subtle) 0 1px, transparent 1px 48px),
-    repeating-linear-gradient(0deg, var(--border-subtle) 0 1px, transparent 1px 48px),
-    var(--bg-subtle);
-  display: grid;
-  place-items: center;
-  gap: var(--space-2);
-  text-align: center;
-  color: var(--fg-secondary);
-}
-.viewport .ring {
-  width: 92px;
-  height: 92px;
-  border-radius: 50%;
-  border: 2px dashed var(--nova-rage-a40);
-  display: grid;
-  place-items: center;
-  color: var(--nova-rage-600);
-  animation: spinslow 18s linear infinite;
-}
-.viewport .ring svg {
-  animation: spinback 18s linear infinite;
-}
-@keyframes spinslow {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes spinback {
-  to {
-    transform: rotate(-360deg);
-  }
-}
-.angles {
-  display: flex;
-  gap: var(--space-2);
-  padding: 0 var(--space-4) var(--space-4);
-  flex-wrap: wrap;
-  align-items: center;
 }
 
 .toast {

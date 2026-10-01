@@ -13,7 +13,6 @@ const Navbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const { stepName } = useTripCreationContext();
   const [activeTripsCount, setActiveTripsCount] = useState(0);
-  const [mileageCount, setMileageCount] = useState(0);
   const [mileageSearch, setMileageSearch] = useState('');
   const [tripSearch, setTripSearch] = useState('');
 
@@ -40,14 +39,11 @@ const Navbar = ({ toggleSidebar }) => {
     };
   }, []);
 
-  // Listen for mileage tracking count + search reset updates
+  // Listen for mileage tracking search reset updates
   useEffect(() => {
-    const handleCount = (e) => setMileageCount(e.detail?.count ?? 0);
     const handleSearchReset = (e) => setMileageSearch(e.detail?.value ?? '');
-    window.addEventListener('mileageCountUpdate', handleCount);
     window.addEventListener('mileageSearchReset', handleSearchReset);
     return () => {
-      window.removeEventListener('mileageCountUpdate', handleCount);
       window.removeEventListener('mileageSearchReset', handleSearchReset);
     };
   }, []);
@@ -79,10 +75,7 @@ const Navbar = ({ toggleSidebar }) => {
     if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
       return '';
     }
-    if (location.pathname.match(/^\/mileage-tracking\/vehicle\/[a-f0-9]+$/)) {
-      return 'Mileage Tracking';
-    }
-    if (location.pathname.match(/^\/mileage-tracking\/[a-f0-9]+$/)) {
+    if (location.pathname.startsWith('/mileage-tracking')) {
       return 'Mileage Tracking';
     }
     if (location.pathname.startsWith('/adblue-tracking')) {
@@ -124,7 +117,6 @@ const Navbar = ({ toggleSidebar }) => {
           <Menu />
         </button>
         <h2>{getPageTitle()}</h2>
-        {isMileageListPage && <span className="navbar-count-badge">{mileageCount}</span>}
       </div>
       <div className="navbar-right">
         {/* Active location switcher — always first in the action bar.

@@ -93,7 +93,9 @@
   font-family: inherit;
   background: #fff;
   color: var(--ff-text);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .ff-search input::placeholder {
@@ -111,7 +113,9 @@
   background: #fff;
   border: 1px solid var(--ff-border);
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 6px 16px rgba(15, 23, 42, 0.05);
   overflow: hidden;
 }
 
@@ -138,8 +142,12 @@
   white-space: nowrap;
 }
 
-.ff-table thead th.ff-center { text-align: center; }
-.ff-table thead th.ff-right  { text-align: right; }
+.ff-table thead th.ff-center {
+  text-align: center;
+}
+.ff-table thead th.ff-right {
+  text-align: right;
+}
 
 .ff-table tbody td {
   padding: 16px 20px;
@@ -152,8 +160,12 @@
   border-bottom: none;
 }
 
-.ff-table td.ff-center { text-align: center; }
-.ff-table td.ff-right  { text-align: right; }
+.ff-table td.ff-center {
+  text-align: center;
+}
+.ff-table td.ff-right {
+  text-align: right;
+}
 
 /* ── Orgs table: always fit the card, no horizontal scrolling ──
    Fixed layout + truncated text cells keep all 7 columns (incl. the
@@ -173,21 +185,35 @@
 }
 
 /* Prevent ellipsis on icon-only columns */
-.ff-table--orgs th[aria-label="Open"],
-.ff-table--orgs th[aria-label="Remove"],
+.ff-table--orgs th[aria-label='Open'],
+.ff-table--orgs th[aria-label='Remove'],
 .ff-table--orgs td.ff-right,
 .ff-table--orgs td.ff-actions {
   overflow: visible;
   text-overflow: clip;
 }
 
-.ff-table--orgs th:nth-child(1) { width: 28%; } /* Organization */
-.ff-table--orgs th:nth-child(2) { width: 24%; } /* Owner Email */
-.ff-table--orgs th:nth-child(3) { width: 18%; } /* GSTIN */
-.ff-table--orgs th:nth-child(4) { width: 110px; } /* Onboarded */
-.ff-table--orgs th:nth-child(5) { width: 160px; } /* Enabled Features */
-.ff-table--orgs th[aria-label="Open"]   { width: 44px; }
-.ff-table--orgs th[aria-label="Remove"] { width: 60px; }
+.ff-table--orgs th:nth-child(1) {
+  width: 28%;
+} /* Organization */
+.ff-table--orgs th:nth-child(2) {
+  width: 24%;
+} /* Owner Email */
+.ff-table--orgs th:nth-child(3) {
+  width: 18%;
+} /* GSTIN */
+.ff-table--orgs th:nth-child(4) {
+  width: 110px;
+} /* Onboarded */
+.ff-table--orgs th:nth-child(5) {
+  width: 160px;
+} /* Enabled Features */
+.ff-table--orgs th[aria-label='Open'] {
+  width: 44px;
+}
+.ff-table--orgs th[aria-label='Remove'] {
+  width: 60px;
+}
 
 .ff-table tbody tr.ff-clickable {
   cursor: pointer;
@@ -252,7 +278,9 @@
 .ff-chevron {
   color: #c4c7cf;
   display: inline-flex;
-  transition: transform 0.15s ease, color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
 }
 
 .ff-clickable:hover .ff-chevron {
@@ -361,8 +389,11 @@
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background-color 0.18s ease, border-color 0.18s ease,
-    box-shadow 0.18s ease, color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease;
   white-space: nowrap;
 }
 
@@ -372,45 +403,61 @@
 }
 
 .ff-btn--primary {
-  background: var(--ff-primary);
-  color: #fff;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: 1.5px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28) !important;
 }
 
 .ff-btn--primary:not(:disabled):hover {
-  background: var(--ff-primary-dark);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--ff-primary) 28%, transparent);
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
+  border-color: #1e40af !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38) !important;
 }
 
 .ff-btn--secondary {
-  background: #fff;
-  color: var(--ff-text);
-  border-color: var(--ff-border);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1.5px solid #3b82f6 !important;
+  color: #2563eb !important;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08) !important;
 }
 
 .ff-btn--secondary:not(:disabled):hover {
-  background: #f9fafb;
-  border-color: #cbd0d8;
+  background: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
 }
 
 .ff-btn--outline-brand {
   background: #fff;
-  color: var(--ff-primary);
-  border-color: color-mix(in srgb, var(--ff-primary) 40%, #fff);
+  color: #2563eb;
+  border: 1.5px solid #3b82f6;
 }
 
 .ff-btn--outline-brand:not(:disabled):hover {
-  background: var(--ff-primary-light);
-  border-color: var(--ff-primary);
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
 }
 
-.ff-btn--ghost {
-  background: transparent;
-  color: var(--ff-text-secondary);
+.ff-btn--ghost,
+.ff-btn--cancel {
+  background: #ffffff !important;
+  color: #dc2626 !important;
+  border: 1.5px solid #ef4444 !important;
+  font-weight: 600 !important;
 }
 
-.ff-btn--ghost:not(:disabled):hover {
-  background: #f1f2f4;
-  color: var(--ff-text);
+.ff-btn--ghost:not(:disabled):hover,
+.ff-btn--cancel:not(:disabled):hover {
+  background: #fef2f2 !important;
+  border-color: #dc2626 !important;
+  color: #b91c1c !important;
+  transform: translateY(-1px);
 }
 
 /* Icon-only button (row actions, modal close) */
@@ -425,7 +472,9 @@
   background: transparent;
   color: #9ca3af;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .ff-icon-btn:hover {
@@ -493,7 +542,9 @@
 }
 
 @keyframes ff-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Modal (matches the app's custom modal pattern) ──────── */
@@ -510,8 +561,12 @@
 }
 
 @keyframes ff-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .ff-modal {
@@ -528,8 +583,14 @@
 }
 
 @keyframes ff-slide-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ff-modal__header {
@@ -592,7 +653,9 @@
   font-family: inherit;
   color: var(--ff-text);
   background: #fff;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .ff-textarea {
@@ -889,7 +952,7 @@
 
 .ff-btn--purge:not(:disabled):hover {
   background: #991b1b;
-  box-shadow: 0 4px 14px rgba(127, 29, 29, 0.40);
+  box-shadow: 0 4px 14px rgba(127, 29, 29, 0.4);
 }
 
 /* Pulsing glow on the purge button when enabled — draws attention to severity */
@@ -898,8 +961,13 @@
 }
 
 @keyframes ff-purge-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(127, 29, 29, 0); }
-  50%       { box-shadow: 0 0 0 4px rgba(127, 29, 29, 0.22); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(127, 29, 29, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(127, 29, 29, 0.22);
+  }
 }
 
 /* Spinner inside purge button */

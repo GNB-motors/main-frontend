@@ -11,6 +11,7 @@ import {
   Droplet,
 } from 'lucide-react';
 import useApi from '../../hooks/useApi';
+import ExportButton from '../../components/ui/ExportButton';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
 import { VehicleService } from '../Profile/VehicleService.jsx';
@@ -92,7 +93,10 @@ export default function DailyDigestPage() {
   // own source data has loaded once — mirrors useApi's "no flash on
   // refetch" behaviour instead of hiding the whole page behind one flag.
   const attnLoading = (loading || fleetAlerts$.loading) && !money;
-  const impactLoading = (money$.loading && !money) || (utilization$.loading && !utilization);
+  const impactLoading =
+    (money$.loading && !money) ||
+    (utilization$.loading && !utilization) ||
+    (downtime$.loading && !downtime);
   const calendarLoading = calendar$.loading && !calendar;
   const refuelLoading = refuelling$.loading && !refuelling;
   const wasteLoading = money$.loading && !money;
@@ -274,25 +278,36 @@ export default function DailyDigestPage() {
     setSelectedReg(byId ? byId.registrationNumber : regOrId);
   };
 
-  const handleExport = () => {
-    const rows = ['section,vehicle,detail,amount_inr']
-      .concat(
-        actions.map(
-          (a) => `attention,${a.title},"${a.desc}",${(a.amt || '').replace(/[₹,]/g, '')}`,
-        ),
-      )
-      .concat(
-        (money?.idlingTop5 || []).map(
-          (r) => `idling,${r.registrationNumber},${r.idleMinutes} min,${r.idleCostInr}`,
-        ),
-      )
-      .concat(upcoming.map((u) => `upcoming,${u.registrationNumber},${u.kind},`));
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `daily-digest-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-  };
+  const digestExportRows = useMemo(
+    () => [
+      ...actions.map((a) => ({
+        section: 'Needs Attention',
+        vehicle: a.title,
+        detail: a.desc,
+        amount: a.amt ? a.amt.replace(/[₹,]/g, '') : '',
+      })),
+      ...(money?.idlingTop5 || []).map((r) => ({
+        section: 'Idling',
+        vehicle: r.registrationNumber,
+        detail: `${r.idleMinutes} min`,
+        amount: r.idleCostInr,
+      })),
+      ...upcoming.map((u) => ({
+        section: 'Upcoming',
+        vehicle: u.registrationNumber,
+        detail: u.kind,
+        amount: '',
+      })),
+    ],
+    [actions, money, upcoming],
+  );
+
+  const digestExportColumns = [
+    { key: 'section', label: 'Section' },
+    { key: 'vehicle', label: 'Vehicle / Item' },
+    { key: 'detail', label: 'Details' },
+    { key: 'amount', label: 'Amount (₹)' },
+  ];
 
   return (
     <div className="nova-digest">
@@ -303,15 +318,27 @@ export default function DailyDigestPage() {
             <div className="nd-sub">{formatDateLongIST(todayIST)} · Your fleet at a glance</div>
           </div>
           <div className="nd-headtools">
-            <button type="button" className="nd-btn" onClick={handleExport}>
-              <Download size={15} />
-              Export
-            </button>
-            <button type="button" className="nd-btn" onClick={handleRefresh} disabled={loading}>
+            <ExportButton
+              rows={digestExportRows}
+              columns={digestExportColumns}
+              filename={`daily-digest-${new Date().toISOString().slice(0, 10)}`}
+              disabled={loading || !digestExportRows.length}
+            />
+            <button
+              type="button"
+              className="nd-btn nd-btn--refresh"
+              onClick={handleRefresh}
+              disabled={loading}
+              title={
+                lastUpdated
+                  ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}`
+                  : 'Refresh'
+              }
+            >
               <span className={loading ? 'nd-spin' : ''}>
                 <RefreshCw size={15} />
               </span>
-              {loading ? 'Refreshing…' : lastUpdated ? 'Updated' : ''}
+              <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
             </button>
             <button
               type="button"
@@ -350,12 +377,17 @@ export default function DailyDigestPage() {
               <NdCardSkeleton
                 title={'Today\u2019s \u20b9 impact'}
                 hint="Estimated"
-                rows={5}
+                rows={11}
                 rowHeight={40}
                 big
               />
             ) : (
-              <NdImpactCard money={m} utilization={utilization} />
+              <NdImpactCard
+                money={m}
+                atRisk={money?.atRisk}
+                utilization={utilization}
+                downtime={downtime}
+              />
             )}
           </div>
         </section>

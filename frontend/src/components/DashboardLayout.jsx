@@ -16,7 +16,7 @@ const DashboardLayoutInner = () => {
   // Re-key the routed page on location switch so every fetch effect re-runs
   // against the newly selected branch (X-Branch-Id changes in the interceptor).
   const { branchId } = useActiveBranch();
-  const { profile } = useFeatureFlags();
+  const { profile, ready } = useFeatureFlags();
 
   React.useEffect(() => {
     // Set all CSS tokens on :root immediately — covers page refresh & login redirect.
@@ -42,6 +42,15 @@ const DashboardLayoutInner = () => {
     storeProfileData(profile);
     if (profile.primaryThemeColor) applyThemeToRoot();
   }, [profile]);
+
+  // Hold the whole shell until the first /api/auth/me has settled: the sidebar
+  // and the landing page both depend on its permissions/flags, and rendering
+  // them first showed an empty/wrong sidebar and a page the user may not be
+  // allowed to see. Only the first load gates — branch-switch refetches keep
+  // the previous payload, so the shell never blanks after that.
+  if (!ready) {
+    return <LottieLoader isLoading size="medium" message="Loading your workspace..." />;
+  }
 
   return (
     <div className="dashboard-layout">

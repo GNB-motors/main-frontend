@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { GoogleMap, useLoadScript, MarkerF, PolylineF, CircleF } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, MarkerF, PolylineF } from '@react-google-maps/api';
 import apiClient from '../../utils/axiosConfig';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { useLivePositions } from '../../hooks/useLivePositions';
@@ -197,10 +197,6 @@ const LiveTrackingPage = () => {
   const [clockTime, setClockTime] = useState('—');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
-
-  // 360 modal state
-  const [modal360Open, setModal360Open] = useState(false);
-  const [modal360Angle, setModal360Angle] = useState('Front');
 
   // Google Maps Load Script
   const { isLoaded, loadError } = useLoadScript({
@@ -491,6 +487,16 @@ const LiveTrackingPage = () => {
   const onMapLoad = useCallback(
     (map) => {
       mapRef.current = map;
+      const initialZ = map.getZoom();
+      if (typeof initialZ === 'number') {
+        setMapZoom(initialZ);
+      }
+      map.addListener('zoom_changed', () => {
+        const z = map.getZoom();
+        if (typeof z === 'number') {
+          setMapZoom(z);
+        }
+      });
       // Try fitting to live vehicles immediately; if positions haven't loaded
       // yet, the auto-fit effect below handles it once they arrive.
       if (fitToLiveVehicles(map)) {
@@ -763,15 +769,6 @@ const LiveTrackingPage = () => {
     return liveList[telemetryIndex % liveList.length];
   }, [selectedVehicle, vehicles, telemetryIndex]);
 
-  // 360 View Orbit Modal (kept for when 360 view is re-enabled)
-  const _open360Modal = useCallback(() => {
-    setModal360Open(true);
-  }, []);
-
-  const close360Modal = useCallback(() => {
-    setModal360Open(false);
-  }, []);
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -781,14 +778,13 @@ const LiveTrackingPage = () => {
         searchInputRef.current?.focus();
       }
       if (e.key === 'Escape') {
-        if (modal360Open) close360Modal();
-        else if (replayState.on) exitReplay();
+        if (replayState.on) exitReplay();
         else setSelectedId(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modal360Open, replayState.on, close360Modal, exitReplay]);
+  }, [replayState.on, exitReplay]);
 
   // CSV Export
   const handleExportCSV = useCallback(() => {
@@ -1039,7 +1035,7 @@ const LiveTrackingPage = () => {
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={INDIA_CENTER}
-                  zoom={5}
+                  zoom={mapZoom}
                   onLoad={onMapLoad}
                   onZoomChanged={() => {
                     if (mapRef.current) {
@@ -1134,21 +1130,6 @@ const LiveTrackingPage = () => {
                         />
                       )}
                     </>
-                  )}
-
-                  {/* 360 Orbit Circle */}
-                  {modal360Open && selectedVehicle && selectedVehicle.hasFix && (
-                    <CircleF
-                      center={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
-                      radius={1400}
-                      options={{
-                        strokeColor: '#4469F0',
-                        strokeOpacity: 0.8,
-                        strokeWeight: 2,
-                        fillColor: '#4469F0',
-                        fillOpacity: 0.08,
-                      }}
-                    />
                   )}
                 </GoogleMap>
               )}
@@ -1392,60 +1373,6 @@ const LiveTrackingPage = () => {
                 </div>
               )}
             </div>
-
-            {/* 360 Degree View Modal */}
-            <div className={`modal ${modal360Open ? 'open' : ''}`}>
-              <button
-                type="button"
-                className="scrim"
-                aria-label="Close vehicle 360 dialog"
-                onClick={close360Modal}
-              />
-              <div className="sheet" role="dialog" aria-label="360 degree vehicle view">
-                <div className="mhead">
-                  <div style={{ flex: 1 }}>
-                    <div className="plate">{selectedVehicle?.plate}</div>
-                    <div className="sub">360° vehicle view</div>
-                  </div>
-                  <button className="dclose" onClick={close360Modal} aria-label="Close">
-                    ×
-                  </button>
-                </div>
-                <div className="viewport">
-                  <div className="ring">{renderIconSvg('sat', 32)}</div>
-                  <div style={{ fontSize: 'var(--type-2xs)' }}>
-                    Drag to orbit the vehicle · scroll to zoom ({modal360Angle} Angle)
-                  </div>
-                </div>
-                <div className="angles">
-                  {['Front', 'Driver side', 'Rear', 'Cargo'].map((ang) => (
-                    <button
-                      key={ang}
-                      className="btn btn--sm"
-                      style={{
-                        background: modal360Angle === ang ? 'var(--nova-rage-a10)' : '',
-                        borderColor: modal360Angle === ang ? 'var(--nova-rage-a20)' : '',
-                        color: modal360Angle === ang ? 'var(--nova-rage-700)' : '',
-                      }}
-                      onClick={() => {
-                        setModal360Angle(ang);
-                        showToast(`${ang} view · ${selectedVehicle?.plate}`);
-                      }}
-                    >
-                      {ang}
-                    </button>
-                  ))}
-                  <span style={{ flex: 1 }} />
-                  <button
-                    className="btn btn--sm"
-                    onClick={() => showToast('360° view link copied')}
-                  >
-                    {renderIconSvg('share', 14)}
-                    Share view
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Rail: Fleet List & Vehicle Detail View */}
@@ -1464,7 +1391,7 @@ const LiveTrackingPage = () => {
                   </div>
                 </div>
 
-                <button className="btn btn--sm" onClick={handleExportCSV}>
+                <button className="btn btn--sm lt-csv-btn" onClick={handleExportCSV}>
                   {renderIconSvg('download', 14)}
                   CSV
                 </button>
@@ -1733,17 +1660,6 @@ const LiveTrackingPage = () => {
                         {renderIconSvg('play', 18)}
                         Replay
                       </button>
-
-                      {/* 360 view temporarily disabled
-                      <button
-                        className="act"
-                        aria-pressed={modal360Open}
-                        onClick={() => open360Modal(selectedVehicle)}
-                      >
-                        {renderIconSvg('sat', 18)}
-                        360°
-                      </button>
-                      */}
 
                       <button
                         className="act"

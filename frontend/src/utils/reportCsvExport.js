@@ -41,6 +41,28 @@ export function buildCsvString(headers, rowArrays) {
   return lines.join('\n');
 }
 
+/**
+ * A server CSV as a real .xlsx workbook. Cells stay text (raw) so dd/mm/yyyy
+ * dates are never re-read as US mm/dd; plain numbers are turned back into
+ * numeric cells so the sheet still sums.
+ *
+ * @param {string} csvText
+ * @returns {ArrayBuffer}
+ */
+export function csvTextToXlsxBuffer(csvText) {
+  const workbook = XLSX.read(csvText, { type: 'string', raw: true });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  Object.keys(sheet).forEach((addr) => {
+    if (addr.startsWith('!')) return;
+    const cell = sheet[addr];
+    if (cell.t === 's' && /^-?\d+(\.\d+)?$/.test(cell.v)) {
+      cell.t = 'n';
+      cell.v = Number(cell.v);
+    }
+  });
+  return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+}
+
 export function getReportExportMime(extension = 'csv') {
   return extension === 'xlsx'
     ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -90,14 +112,21 @@ export async function exportFilteredReportCsv({
 
     if (typeof fetchExport === 'function') {
       const blob = await fetchExport(filters || {});
-      content = blob instanceof Blob ? blob : new Blob([blob], { type: mimeType });
+      if (extension === 'xlsx') {
+        // Export endpoints only produce CSV; a CSV saved under an .xlsx name
+        // opens as a corrupt file, so convert it into a real workbook.
+        const text = blob instanceof Blob ? await blob.text() : String(blob);
+        content = new Blob([csvTextToXlsxBuffer(text)], { type: mimeType });
+      } else {
+        content = blob instanceof Blob ? blob : new Blob([blob], { type: mimeType });
+      }
     } else if (Array.isArray(headers) && Array.isArray(rows) && typeof mapRow === 'function') {
       const rowArrays = rows.map((row) => mapRow(row));
-      
+
       if (extension === 'xlsx') {
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rowArrays]);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
         const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
         content = new Blob([excelBuffer], { type: mimeType });
       } else {

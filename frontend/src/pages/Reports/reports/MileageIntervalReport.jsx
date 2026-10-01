@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import {
   Select,
   SelectContent,
@@ -6,16 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
 import PageShell from '../../../components/ui/PageShell';
+import ReportDataNotice from '../../../components/ui/ReportDataNotice';
+import ReportPagination from './ReportPagination';
 import FilterBar from '../../../components/ui/FilterBar';
 import DataTable from '../../../components/ui/DataTable';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
@@ -30,6 +24,9 @@ import {
   extractVehicleOptions,
   extractDriverOptions,
 } from './mileageIntervalReportUtils.js';
+
+// Server-side row cap of GET /reports/mileage-intervals/export.
+const MILEAGE_EXPORT_CAP = 5000;
 
 const MileageIntervalReport = () => {
   const [rows, setRows] = useState([]);
@@ -117,6 +114,11 @@ const MileageIntervalReport = () => {
     async (extension) => {
       if (isExporting) return;
       setIsExporting(true);
+      if (meta.total > MILEAGE_EXPORT_CAP) {
+        toast.info(
+          `The file holds the newest ${MILEAGE_EXPORT_CAP.toLocaleString('en-IN')} of ${meta.total.toLocaleString('en-IN')} cycles — narrow the dates for the rest.`,
+        );
+      }
       try {
         await exportFilteredReportCsv({
           fetchExport: (filters) =>
@@ -132,7 +134,7 @@ const MileageIntervalReport = () => {
         setIsExporting(false);
       }
     },
-    [isExporting, startDate, endDate, vehicleId, driverId],
+    [isExporting, startDate, endDate, vehicleId, driverId, meta.total],
   );
 
   const clearFilters = () => {
@@ -150,18 +152,6 @@ const MileageIntervalReport = () => {
     (driverId !== 'all' ? 1 : 0);
 
   const columns = useMileageIntervalReportColumns();
-
-  const renderPageItems = () => {
-    const items = [];
-    for (let i = 1; i <= totalPages; i++) {
-      if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
-        items.push(i);
-      } else if (items[items.length - 1] !== '...') {
-        items.push('...');
-      }
-    }
-    return items;
-  };
 
   return (
     <PageShell
@@ -247,50 +237,20 @@ const MileageIntervalReport = () => {
               Showing {(currentPage - 1) * PAGE_SIZE + 1}–
               {Math.min(currentPage * PAGE_SIZE, meta.total)} of {meta.total}
             </span>
-            <Pagination className="mx-0 w-auto justify-end">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => currentPage > 1 && setCurrentPage((p) => p - 1)}
-                    className={
-                      currentPage <= 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'
-                    }
-                  />
-                </PaginationItem>
-                {renderPageItems().map((item, idx) =>
-                  item === '...' ? (
-                    <PaginationItem key={`e-${idx}`}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  ) : (
-                    <PaginationItem key={item}>
-                      <PaginationLink
-                        isActive={currentPage === item}
-                        onClick={() => setCurrentPage(item)}
-                        className="cursor-pointer"
-                      >
-                        {item}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ),
-                )}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => currentPage < totalPages && setCurrentPage((p) => p + 1)}
-                    className={
-                      currentPage >= totalPages
-                        ? 'pointer-events-none opacity-40'
-                        : 'cursor-pointer'
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <ReportPagination page={currentPage} totalPages={totalPages} onPage={setCurrentPage} />
           </div>
         ) : null
       }
     >
       <div className="space-y-4">
+        {rowsResponse && 'dataAsOf' in meta ? (
+          <ReportDataNotice
+            dataAsOf={meta.dataAsOf}
+            label="Latest fuel bill"
+            emptyText="No fuel bills have been logged yet."
+            staleHint="Cycles close only when a full-tank bill is logged, so no newer cycles exist."
+          />
+        ) : null}
         <DataTable
           columns={columns}
           rows={rows}

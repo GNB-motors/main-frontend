@@ -307,19 +307,28 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
   }
 
   // Relative sizing based on map zoom:
-  // zoom >= 16: close-up, enlarged & crisp
-  // zoom 13-15: standard city view
-  // zoom 10-12: regional overview
-  // zoom < 10: national overview
+  // Smoothly increases marker & label dimensions as the client zooms in,
+  // and compacts them when zoomed out to prevent map clutter.
+  const effectiveZoom =
+    typeof zoom === 'number' && !isNaN(zoom) ? Math.max(4, Math.min(20, zoom)) : 12;
+
+  // Continuous, responsive scale curve from zoom 4 (national overview) to zoom 20 (street level):
   let scale = 1.0;
-  if (zoom >= 16) {
-    scale = 1.25;
-  } else if (zoom >= 13) {
-    scale = 1.0;
-  } else if (zoom >= 10) {
-    scale = 0.85;
-  } else {
-    scale = 0.72;
+  if (effectiveZoom >= 17) scale = 1.65;
+  else if (effectiveZoom === 16) scale = 1.5;
+  else if (effectiveZoom === 15) scale = 1.35;
+  else if (effectiveZoom === 14) scale = 1.2;
+  else if (effectiveZoom === 13) scale = 1.08;
+  else if (effectiveZoom === 12) scale = 0.98;
+  else if (effectiveZoom === 11) scale = 0.88;
+  else if (effectiveZoom === 10) scale = 0.78;
+  else if (effectiveZoom === 9) scale = 0.68;
+  else if (effectiveZoom === 8) scale = 0.6;
+  else if (effectiveZoom === 7) scale = 0.54;
+  else scale = 0.48;
+
+  if (isSelected) {
+    scale = Math.max(1.25, Number((scale * 1.18).toFixed(2)));
   }
 
   const rawStatus = (v.status || '').toString().toLowerCase();
@@ -362,12 +371,19 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     v.courseDegrees != null ? Number(v.courseDegrees) : v.heading != null ? Number(v.heading) : 0;
   const heading = isNaN(course) ? 0 : course;
   const plateText = (v.plate || v.registrationNumber || '').toString().trim();
-  const hasLabel = (showLabel || isSelected) && plateText.length > 0;
-  const shortPlate = plateText.length > 10 ? plateText.slice(-8) : plateText;
 
-  // ViewBox: 96x96 base (or 96x120 with label plate)
+  // To avoid unreadable clutter across India when zoomed out (< 10),
+  // labels for unselected vehicles appear once the user zooms into district/city level (zoom >= 10).
+  // Selected vehicles always display their plate label.
+  const hasLabel = Boolean(
+    plateText.length > 0 && (isSelected || (showLabel && effectiveZoom >= 10)),
+  );
+  const shortPlate = plateText.length > 12 ? plateText.slice(-10) : plateText;
+  const labelFontSize = effectiveZoom >= 16 ? 15 : effectiveZoom >= 13 ? 14 : 13;
+
+  // ViewBox: 96x96 base (or 96x124 with label plate)
   const vbW = 96;
-  const vbH = hasLabel ? 120 : 96;
+  const vbH = hasLabel ? 124 : 96;
 
   // Render authentic WheelsEye MovingTruckV2 SVG paths inside rotated wrapper:
   // Center of the truck is translated to (48, 48) and rotated around (48, 48)
@@ -423,10 +439,10 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     ${
       hasLabel
         ? `
-      <!-- High-contrast crisp number plate chip -->
-      <g transform="translate(48, 107)">
-        <rect x="-42" y="-11" width="84" height="22" rx="6" fill="#0C1020" stroke="${isSelected ? '#38BDF8' : '#475569'}" stroke-width="${isSelected ? 2 : 1.5}"/>
-        <text x="0" y="4" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="11.5" font-weight="800" text-anchor="middle" letter-spacing="0.5">
+      <!-- High-contrast crisp prominent number plate chip -->
+      <g transform="translate(48, 108)">
+        <rect x="-45" y="-12" width="90" height="24" rx="6" fill="#0C1020" stroke="${isSelected ? '#38BDF8' : '#94A3B8'}" stroke-width="${isSelected ? 2.5 : 1.5}"/>
+        <text x="0" y="5" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="${labelFontSize}" font-weight="900" text-anchor="middle" letter-spacing="0.5">
           ${shortPlate}
         </text>
       </g>
@@ -435,10 +451,12 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     }
   </svg>`;
 
-  const scaledW = Math.round(48 * scale);
-  const scaledH = Math.round((hasLabel ? 60 : 48) * scale);
-  const anchorX = Math.round(24 * scale);
-  const anchorY = Math.round(24 * scale);
+  const baseW = 52;
+  const baseH = hasLabel ? 68 : 52;
+  const scaledW = Math.round(baseW * scale);
+  const scaledH = Math.round(baseH * scale);
+  const anchorX = Math.round(26 * scale);
+  const anchorY = Math.round(26 * scale);
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
