@@ -9,6 +9,13 @@ import {
   RefreshCw,
   MapPin,
   AlertTriangle,
+  Radio,
+  ShieldCheck,
+  CheckCircle2,
+  Layers,
+  ChevronRight,
+  Info,
+  Navigation,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -178,6 +185,22 @@ export default function VehicleWarehousesPage() {
     [vehicles, selected],
   );
 
+  const totalWarehouses = warehouses.length;
+  const activeWarehouses = useMemo(
+    () => warehouses.filter((w) => w.isActive !== false).length,
+    [warehouses],
+  );
+  const homedVehiclesCount = useMemo(
+    () => vehicles.filter((v) => Boolean(v.homeWarehouseId)).length,
+    [vehicles],
+  );
+  const totalVehiclesCount = vehicles.length;
+  const avgRadiusM = useMemo(() => {
+    if (!warehouses.length) return 300;
+    const sum = warehouses.reduce((acc, w) => acc + (Number(w.geofenceRadiusM) || 300), 0);
+    return Math.round(sum / warehouses.length);
+  }, [warehouses]);
+
   return (
     <PageShell
       title="Warehouses"
@@ -206,6 +229,78 @@ export default function VehicleWarehousesPage() {
       }
       footer={`Showing ${visible.length} of ${warehouses.length} warehouses`}
     >
+      {/* Executive 4-KPI Strip */}
+      <div className="vwh-kpi-grid">
+        <div className="vwh-kpi-card">
+          <div className="vwh-kpi-icon vwh-kpi-icon--blue">
+            <Warehouse size={18} />
+          </div>
+          <div className="vwh-kpi-content">
+            <span className="vwh-kpi-title">Declared Yards</span>
+            <div className="vwh-kpi-value-row">
+              <span className="vwh-kpi-value">{totalWarehouses}</span>
+              <span className="vwh-kpi-badge vwh-kpi-badge--success">
+                {activeWarehouses} Active
+              </span>
+            </div>
+            <span className="vwh-kpi-sub">Physical operational bases</span>
+          </div>
+        </div>
+
+        <div className="vwh-kpi-card">
+          <div className="vwh-kpi-icon vwh-kpi-icon--indigo">
+            <Truck size={18} />
+          </div>
+          <div className="vwh-kpi-content">
+            <span className="vwh-kpi-title">Homed Fleet</span>
+            <div className="vwh-kpi-value-row">
+              <span className="vwh-kpi-value">{homedVehiclesCount}</span>
+              <span className="vwh-kpi-sub-chip">of {totalVehiclesCount} total</span>
+            </div>
+            <span className="vwh-kpi-sub">Anchored to operating yards</span>
+          </div>
+        </div>
+
+        <div className="vwh-kpi-card">
+          <div className="vwh-kpi-icon vwh-kpi-icon--emerald">
+            <Radio size={18} />
+          </div>
+          <div className="vwh-kpi-content">
+            <span className="vwh-kpi-title">Live Yard Presence</span>
+            <div className="vwh-kpi-value-row">
+              <span className="vwh-kpi-value">
+                {selected ? (roster?.inside?.length ?? 0) : totalWarehouses ? 'Monitoring' : '0'}
+              </span>
+              {selected ? (
+                <span className="vwh-kpi-badge vwh-kpi-badge--pulse">
+                  <span className="vwh-pulse-dot" /> in{' '}
+                  {selected.code || selected.name.slice(0, 10)}
+                </span>
+              ) : (
+                <span className="vwh-kpi-badge vwh-kpi-badge--info">GPS Active</span>
+              )}
+            </div>
+            <span className="vwh-kpi-sub">
+              {selected ? 'Inside selected yard' : 'Circular GPS telemetry polling'}
+            </span>
+          </div>
+        </div>
+
+        <div className="vwh-kpi-card">
+          <div className="vwh-kpi-icon vwh-kpi-icon--purple">
+            <ShieldCheck size={18} />
+          </div>
+          <div className="vwh-kpi-content">
+            <span className="vwh-kpi-title">Geofence Boundary</span>
+            <div className="vwh-kpi-value-row">
+              <span className="vwh-kpi-value">{avgRadiusM} m</span>
+              <span className="vwh-kpi-sub-chip">avg radius</span>
+            </div>
+            <span className="vwh-kpi-sub">Auto trip anchors & exit triggers</span>
+          </div>
+        </div>
+      </div>
+
       <div className="vwh-layout">
         <section className="vwh-list" aria-label="Warehouses">
           {loading && !warehouses.length ? (
@@ -218,6 +313,14 @@ export default function VehicleWarehousesPage() {
                 Add the yards your trucks start and finish their trips at. Until then, trip
                 start/end falls back to the dispatch time window.
               </p>
+              <button
+                type="button"
+                className="vwh-btn vwh-btn--primary vwh-btn--sm"
+                style={{ marginTop: 12 }}
+                onClick={() => setDrawer({ open: true, mode: 'create', initial: null })}
+              >
+                <Plus size={14} /> Add First Warehouse
+              </button>
             </div>
           ) : (
             visible.map((w) => (
@@ -235,10 +338,12 @@ export default function VehicleWarehousesPage() {
                   <div className="vwh-card-title">
                     <Warehouse size={16} />
                     <strong>{w.name}</strong>
-                    {w.code ? <span className="vwh-chip">{w.code}</span> : null}
+                    {w.code ? <span className="vwh-chip vwh-chip--code">{w.code}</span> : null}
                     {w.isActive === false ? (
                       <span className="vwh-chip vwh-chip--muted">Inactive</span>
-                    ) : null}
+                    ) : (
+                      <span className="vwh-chip vwh-chip--success">Active</span>
+                    )}
                   </div>
                   <div className="vwh-card-meta">
                     <span>
@@ -247,7 +352,9 @@ export default function VehicleWarehousesPage() {
                     <span>
                       <Truck size={12} /> {w.vehicleCount ?? 0} based here
                     </span>
-                    <span>{w.geofenceRadiusM} m radius</span>
+                    <span>
+                      <ShieldCheck size={12} /> {w.geofenceRadiusM} m radius
+                    </span>
                   </div>
                 </button>
                 <div className="vwh-card-actions">
@@ -255,6 +362,7 @@ export default function VehicleWarehousesPage() {
                     type="button"
                     className="vwh-icon-btn"
                     aria-label={`Edit ${w.name}`}
+                    title="Edit yard"
                     onClick={() => setDrawer({ open: true, mode: 'edit', initial: w })}
                   >
                     <Edit2 size={15} />
@@ -263,6 +371,7 @@ export default function VehicleWarehousesPage() {
                     type="button"
                     className="vwh-icon-btn vwh-icon-btn--danger"
                     aria-label={`Deactivate ${w.name}`}
+                    title="Deactivate yard"
                     onClick={() => handleDeactivate(w)}
                   >
                     <Trash2 size={15} />
@@ -322,7 +431,33 @@ export default function VehicleWarehousesPage() {
           {selected ? (
             <div className="vwh-detail">
               <header className="vwh-detail-head">
-                <h3>{selected.name}</h3>
+                <div className="vwh-detail-title-group">
+                  <div className="vwh-detail-title-row">
+                    <Warehouse size={18} className="vwh-detail-icon" />
+                    <h3>{selected.name}</h3>
+                    {selected.code && (
+                      <span className="vwh-chip vwh-chip--code">{selected.code}</span>
+                    )}
+                    <span
+                      className={`vwh-status-pill ${
+                        selected.isActive === false
+                          ? 'vwh-status-pill--inactive'
+                          : 'vwh-status-pill--active'
+                      }`}
+                    >
+                      {selected.isActive === false ? 'Inactive' : 'Active'}
+                    </span>
+                  </div>
+                  <div className="vwh-detail-sub-row">
+                    <span className="vwh-meta-badge">
+                      <MapPin size={12} />{' '}
+                      {selected.city || selected.address || `${selected.lat}, ${selected.lng}`}
+                    </span>
+                    <span className="vwh-meta-badge vwh-meta-badge--radius">
+                      <ShieldCheck size={12} /> {selected.geofenceRadiusM}m circular geofence
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   className="vwh-btn vwh-btn--primary vwh-btn--sm"
@@ -333,55 +468,62 @@ export default function VehicleWarehousesPage() {
               </header>
 
               <div className="vwh-detail-cols">
-                <div>
+                <div className="vwh-detail-col">
                   <h4>
-                    Based here <span className="vwh-count">{basedHere.length}</span>
+                    <span>Based here</span>
+                    <span className="vwh-count-chip">{basedHere.length}</span>
                   </h4>
                   <ul className="vwh-mini-list">
                     {basedHere.map((v) => (
-                      <li key={v._id}>
-                        <span>{v.registrationNumber}</span>
+                      <li key={v._id} className="vwh-mini-item">
+                        <div className="vwh-veh-pill">
+                          <Truck size={13} />
+                          <span className="vwh-plate-badge">{v.registrationNumber}</span>
+                        </div>
                         <button
                           type="button"
-                          className="vwh-link-btn"
+                          className="vwh-link-btn vwh-link-btn--danger"
                           onClick={() => handleUnassign(v._id)}
+                          title="Remove vehicle from this warehouse"
                         >
                           Remove
                         </button>
                       </li>
                     ))}
-                    {!basedHere.length && <li className="vwh-empty-row">No vehicles assigned.</li>}
+                    {!basedHere.length && (
+                      <li className="vwh-empty-row">No vehicles assigned to this base yet.</li>
+                    )}
                   </ul>
                 </div>
 
-                <div>
+                <div className="vwh-detail-col">
                   <h4>
-                    Inside right now{' '}
-                    <span className="vwh-count">{roster?.inside?.length ?? 0}</span>
+                    <span className="vwh-live-title">
+                      <span className="vwh-pulse-dot" /> Inside Right Now
+                    </span>
+                    <span className="vwh-count-chip">{roster?.inside?.length ?? 0}</span>
                   </h4>
                   {rosterLoading ? (
-                    <p className="vwh-empty-row">Checking…</p>
+                    <p className="vwh-empty-row">Checking live presence…</p>
                   ) : (
                     <ul className="vwh-mini-list">
                       {(roster?.inside || []).map((v) => (
-                        <li key={v.vehicleId}>
-                          <span>
-                            {v.registrationNumber}
-                            {/* A truck parked in a yard that is not its own is the
-                                WAREHOUSE_MISMATCH case the trip close screen will
-                                surface once anchoring lands. */}
+                        <li key={v.vehicleId} className="vwh-mini-item">
+                          <div className="vwh-veh-pill">
+                            <Truck size={13} />
+                            <span className="vwh-plate-badge">{v.registrationNumber}</span>
                             {!v.isHomeWarehouse && (
-                              <em className="vwh-warn" title="Not this vehicle's home yard">
-                                <AlertTriangle size={11} /> visiting
-                              </em>
+                              <span className="vwh-warn" title="Not this vehicle's home yard">
+                                <AlertTriangle size={11} /> Visiting Yard
+                              </span>
                             )}
-                          </span>
-                          <span className="vwh-muted">{fromNow(v.enteredAt)}</span>
+                          </div>
+                          <span className="vwh-time-badge">{fromNow(v.enteredAt)}</span>
                         </li>
                       ))}
                       {!roster?.inside?.length && (
                         <li className="vwh-empty-row">
-                          {roster?.note || 'No vehicles inside the geofence.'}
+                          {roster?.note || 'No vehicles detected inside the geofence.'}
                         </li>
                       )}
                     </ul>
@@ -390,7 +532,76 @@ export default function VehicleWarehousesPage() {
               </div>
             </div>
           ) : (
-            <p className="vwh-hint">Select a warehouse to see its vehicles and live roster.</p>
+            <div className="vwh-overview-card">
+              <div className="vwh-overview-head">
+                <div className="vwh-overview-title">
+                  <div className="vwh-overview-icon-wrap">
+                    <Layers size={18} />
+                  </div>
+                  <div>
+                    <h4>Operating Bases & Geofence Intelligence</h4>
+                    <p>How warehouses anchor trip lifecycles and validate fleet telemetry</p>
+                  </div>
+                </div>
+                <span className="vwh-status-badge vwh-status-badge--info">
+                  <Radio size={12} /> Telemetry Active
+                </span>
+              </div>
+
+              <div className="vwh-overview-body">
+                <p className="vwh-overview-desc">
+                  In GNB Motors, <strong>Warehouses</strong> are physical operating bases (yards,
+                  hubs, or depots) with defined GPS coordinates and circular geofences. When an
+                  assigned vehicle leaves its home yard, the system automatically detects the
+                  geofence departure and begins a <strong>Vehicle Tour</strong> cycle.
+                </p>
+
+                <div className="vwh-flow-grid">
+                  <div className="vwh-flow-step">
+                    <div className="vwh-step-num">1</div>
+                    <div className="vwh-step-info">
+                      <strong>Register Base Yard</strong>
+                      <span>Drop a pin on the map and set geofence radius (minimum 100m).</span>
+                    </div>
+                  </div>
+                  <div className="vwh-flow-step">
+                    <div className="vwh-step-num">2</div>
+                    <div className="vwh-step-info">
+                      <strong>Assign Fleet Vehicles</strong>
+                      <span>
+                        Designate vehicles to their home warehouse to monitor yard returns.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="vwh-flow-step">
+                    <div className="vwh-step-num">3</div>
+                    <div className="vwh-step-info">
+                      <strong>Automated Trip Cycles</strong>
+                      <span>
+                        Boundary crossings auto-open and close full-circuit tours & audits.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="vwh-overview-footer">
+                  <div className="vwh-overview-tip">
+                    <Info size={14} />
+                    <span>
+                      Select any yard on the left list or map to view real-time presence, assigned
+                      trucks, or reassign fleet.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="vwh-btn vwh-btn--primary vwh-btn--sm"
+                    onClick={() => setDrawer({ open: true, mode: 'create', initial: null })}
+                  >
+                    <Plus size={14} /> Add New Yard
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </section>
       </div>
