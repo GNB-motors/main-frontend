@@ -6,6 +6,10 @@ import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useShareLink } from '../../hooks/useShareLink';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
+import RoadService from '../../services/RoadService';
+import RoadTrailLayer from '../../components/map/RoadTrailLayer';
+import RoadTrailLegend from '../../components/map/RoadTrailLegend';
+import { toLayers, summaryOf } from '../../lib/roadTrail';
 import {
   NOVA_STATUS,
   bearingDegrees,
@@ -208,6 +212,7 @@ const LiveTrackingPage = () => {
   const [trailLoading, setTrailLoading] = useState(false);
   const [isTrailVisible, setIsTrailVisible] = useState(false);
   const [trailPoints, setTrailPoints] = useState([]);
+  const [roadTrail, setRoadTrail] = useState(null); // road geometry from our engine (plan P4.10)
   const [replayState, setReplayState] = useState({
     on: false,
     playing: false,
@@ -595,6 +600,7 @@ const LiveTrackingPage = () => {
       if (isTrailVisible && !replayState.on) {
         setIsTrailVisible(false);
         setTrailPoints([]);
+        setRoadTrail(null);
         return;
       }
 
@@ -623,6 +629,12 @@ const LiveTrackingPage = () => {
         return;
       }
 
+      // Road geometry for the same 24 h window the raw trail uses (backend trailDefaultHours = 24).
+      const road = await RoadService.getRoadTrailIfEnabled(v.plate, {
+        from: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+        to: new Date().toISOString(),
+      });
+      setRoadTrail(road);
       setTrailPoints(points);
       setIsTrailVisible(true);
 
@@ -631,7 +643,12 @@ const LiveTrackingPage = () => {
         points.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
         mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
       }
-      showToast(`Trail · ${trailDistanceKm(points).toFixed(1)} km · ${points.length} points`);
+      const roadSummary = summaryOf(road);
+      showToast(
+        roadSummary
+          ? `Trail · ${roadSummary.km.toFixed(1)} km ${roadSummary.label} · ${points.length} points`
+          : `Trail · ${trailDistanceKm(points).toFixed(1)} km straight-line estimate · ${points.length} points`,
+      );
     },
     [isTrailVisible, replayState.on, showToast],
   );
@@ -656,6 +673,12 @@ const LiveTrackingPage = () => {
         return;
       }
 
+      setRoadTrail(
+        await RoadService.getRoadTrailIfEnabled(v.plate, {
+          from: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+          to: new Date().toISOString(),
+        }),
+      );
       setTrailPoints(points);
       setReplayState({
         on: true,
@@ -679,6 +702,7 @@ const LiveTrackingPage = () => {
   const exitReplay = useCallback(() => {
     setReplayState({ on: false, playing: false, t: 0, speed: 4, pts: null });
     setIsTrailVisible(false);
+    setRoadTrail(null);
   }, []);
 
   // Selected vehicle's active driver resolver
@@ -1047,15 +1071,19 @@ const LiveTrackingPage = () => {
                   {/* Breadcrumb Trail (real recorded path from the trail API) */}
                   {isTrailVisible && trailCoords.length > 1 && (
                     <>
-                      <PolylineF
-                        path={trailCoords}
-                        options={{
-                          strokeColor: selectedStatusColor,
-                          strokeOpacity: 0.9,
-                          strokeWeight: 4,
-                          icons: trailArrowIcons(selectedStatusColor),
-                        }}
-                      />
+                      {roadTrail && roadTrail.mode === 'MATCHED' ? (
+                        <RoadTrailLayer trail={roadTrail} color={selectedStatusColor} />
+                      ) : (
+                        <PolylineF
+                          path={trailCoords}
+                          options={{
+                            strokeColor: selectedStatusColor,
+                            strokeOpacity: 0.9,
+                            strokeWeight: 4,
+                            icons: trailArrowIcons(selectedStatusColor),
+                          }}
+                        />
+                      )}
                       <MarkerF
                         position={trailCoords[0]}
                         icon={createTrailEndpointIcon('S', selectedStatusColor)}
@@ -1070,14 +1098,18 @@ const LiveTrackingPage = () => {
                   {/* Trip Replay */}
                   {replayState.on && replayPtsCoords.length > 1 && (
                     <>
-                      <PolylineF
-                        path={replayPtsCoords}
-                        options={{
-                          strokeColor: '#9A9AA5',
-                          strokeOpacity: 0.45,
-                          strokeWeight: 4,
-                        }}
-                      />
+                      {roadTrail && roadTrail.mode === 'MATCHED' ? (
+                        <RoadTrailLayer trail={roadTrail} color="#9A9AA5" fleetColor="#c4b5fd" />
+                      ) : (
+                        <PolylineF
+                          path={replayPtsCoords}
+                          options={{
+                            strokeColor: '#9A9AA5',
+                            strokeOpacity: 0.45,
+                            strokeWeight: 4,
+                          }}
+                        />
+                      )}
                       <PolylineF
                         path={replayRunPath}
                         options={{
@@ -1198,6 +1230,24 @@ const LiveTrackingPage = () => {
 
             {/* Overlay Bottom-Left: Map/Satellite Switcher */}
             <div className="ov ov--bl">
+              {isTrailVisible && roadTrail && (
+                <div
+                  className="road-legend-card"
+                  style={{
+                    background: 'var(--surface, #fff)',
+                    padding: 8,
+                    borderRadius: 8,
+                    marginBottom: 6,
+                    maxWidth: 260,
+                  }}
+                >
+                  <RoadTrailLegend
+                    layers={toLayers(roadTrail)}
+                    calibrated={roadTrail.calibrated}
+                    summary={summaryOf(roadTrail)}
+                  />
+                </div>
+              )}
               <div className="segmented">
                 <button aria-pressed={mapMode === 'map'} onClick={() => setMapMode('map')}>
                   Map

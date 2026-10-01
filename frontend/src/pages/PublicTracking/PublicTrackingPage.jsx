@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom';
 import { GoogleMap, useLoadScript, MarkerF, PolylineF } from '@react-google-maps/api';
 import { ShareService } from '../../services/ShareService';
+import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import {
   INDIA_CENTER,
   POLL_INTERVAL_MS,
@@ -79,6 +80,7 @@ const PublicTrackingPage = () => {
   const [phase, setPhase] = useState('loading'); // loading | ok | dead | error
   const [vehicle, setVehicle] = useState(null);
   const [trail, setTrail] = useState([]);
+  const [road, setRoad] = useState(null); // road geometry from the share link (plan P4.11)
   const [showTrail, setShowTrail] = useState(false);
   const [trailLoading, setTrailLoading] = useState(false);
   const mapRef = useRef(null);
@@ -137,6 +139,7 @@ const PublicTrackingPage = () => {
           .filter((p) => p.latitude != null && p.longitude != null)
           .map((p) => ({ lat: p.latitude, lng: p.longitude }));
         setTrail(pts);
+        setRoad(data?.road?.segments?.length ? data.road : null);
       })
       .catch(() => {
         // Trail is optional; the pin still renders without it.
@@ -220,15 +223,19 @@ const PublicTrackingPage = () => {
           >
             {showTrail && trail.length > 1 && (
               <>
-                <PolylineF
-                  path={trail}
-                  options={{
-                    strokeColor: statusColor,
-                    strokeOpacity: 0.85,
-                    strokeWeight: 4,
-                    icons: trailArrowIcons(statusColor),
-                  }}
-                />
+                {road ? (
+                  <RoadTrailLayer trail={road} color={statusColor} />
+                ) : (
+                  <PolylineF
+                    path={trail}
+                    options={{
+                      strokeColor: statusColor,
+                      strokeOpacity: 0.85,
+                      strokeWeight: 4,
+                      icons: trailArrowIcons(statusColor),
+                    }}
+                  />
+                )}
                 <MarkerF position={trail[0]} icon={startDotIcon(statusColor)} />
               </>
             )}
@@ -309,6 +316,14 @@ const PublicTrackingPage = () => {
             </button>
           )}
 
+          {showTrail && road && (
+            <div className="pt-secure">
+              Road data ©{' '}
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+                OpenStreetMap contributors
+              </a>
+            </div>
+          )}
           <div className="pt-secure">Shared securely · you can only see this one vehicle</div>
         </div>
       )}

@@ -1,34 +1,30 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  GoogleMap,
-  useLoadScript,
-  DirectionsRenderer,
-  Marker,
-  PolylineF,
-} from '@react-google-maps/api';
-import { MapPin, CircleDot, Navigation, Activity, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { GoogleMap, useLoadScript, Marker, PolylineF } from '@react-google-maps/api';
+import { MapPin, CircleDot, ShieldCheck, AlertCircle } from 'lucide-react';
 import { START_MARKER_SVG, END_MARKER_SVG } from './tripReportDetailMapIcons';
 import { toFrames, toLatLngSegments, replayStats } from '../../RouteReplay/routeReplay';
 import { trailWindowForTrip } from './tripReportTrailWindow';
 import { LiveTrackingService } from '../../LiveTracking/LiveTrackingService.jsx';
+import RoadService from '../../../services/RoadService';
+import RoadTrailLayer from '../../../components/map/RoadTrailLayer';
+import RoadTrailLegend from '../../../components/map/RoadTrailLegend';
+import { toLayers, summaryOf } from '../../../lib/roadTrail';
 
 const GOOGLE_MAPS_LIBRARIES = ['places', 'directions'];
 
 /**
- * Map for the trip report detail view. Prefers the breadcrumb trail the truck
- * actually drove (LiveVehiclePositionHistory via /trail, same source the Route
- * Replay page uses — the pure maths lives in routeReplay.js and is reused, not
- * copied). Falls back to planned driving directions between the place names
- * only when the trip has no usable dates or the trail has too few points.
- *
- * Reuses toLatLngSegments to cleanly split polylines at signal-loss and
- * inter-trip breaks, avoiding straight-line jumps across the map.
+ * Map for the trip report detail view (ROAD_INTELLIGENCE plan Task P4.11).
+ * Draws the road the truck actually drove (GET /api/road/trail — solid matched road, dashed inferred or
+ * provisional, dotted raw fixes) and reports ROAD distance. With the road engine off it draws the raw
+ * breadcrumbs split at signal gaps and labels the distance a straight-line estimate.
+ * There is no planned-route fallback any more: it called Google Directions, which the owner ruled out
+ * (2026-10-01). A trip with no usable GPS window says so instead of drawing a route nobody drove.
  */
 const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
-  const [directions, setDirections] = useState(null);
   const [mapPoints, setMapPoints] = useState({ start: null, end: null });
   const [trailSegments, setTrailSegments] = useState([]);
   const [trailStats, setTrailStats] = useState(null);
+  const [roadTrail, setRoadTrail] = useState(null);
   const [trailLoading, setTrailLoading] = useState(false);
   const mapRef = useRef(null);
 
@@ -37,74 +33,38 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
-  const calculateRoute = useCallback(() => {
-    if (!isLoaded || !window.google) return;
-    if (startLoc === '-' || endLoc === '-') return;
-
-    const directionsService = new window.google.maps.DirectionsService();
-    directionsService.route(
-      {
-        origin: startLoc,
-        destination: endLoc,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === 'OK') {
-          setDirections(result);
-          const leg = result.routes[0]?.legs[0];
-          if (leg) {
-            setMapPoints((prev) => ({
-              start: prev.start || { lat: leg.start_location.lat(), lng: leg.start_location.lng() },
-              end: prev.end || { lat: leg.end_location.lat(), lng: leg.end_location.lng() },
-            }));
-          }
-        }
-      },
-    );
-  }, [isLoaded, startLoc, endLoc]);
-
+  // Load the ground covered in this trip's window: raw breadcrumbs, and the road trail when the engine is on.
   useEffect(() => {
-    if (isLoaded) calculateRoute();
-  }, [isLoaded, calculateRoute]);
-
-  // Load the actual ground covered for this trip's window. Any failure or a
-  // too-short trail silently leaves the directions fallback in place.
-  useEffect(() => {
-    if (!isLoaded || !vehicleReg || vehicleReg === '-' || !trip) return;
+    if (!isLoaded || !vehicleReg || vehicleReg === '-' || !trip) return undefined;
     const window_ = trailWindowForTrip(trip);
-    if (!window_) return;
+    if (!window_) return undefined;
     let cancelled = false;
     setTrailLoading(true);
 
-    LiveTrackingService.getTrail(vehicleReg, {
-      from: window_.fromIso,
-      to: window_.toIso,
-      limit: 5000,
-    })
-      .then((trail) => {
+    Promise.all([
+      LiveTrackingService.getTrail(vehicleReg, {
+        from: window_.fromIso,
+        to: window_.toIso,
+        limit: 5000,
+      }).catch(() => null),
+      RoadService.getRoadTrailIfEnabled(vehicleReg, { from: window_.fromIso, to: window_.toIso }),
+    ])
+      .then(([trail, road]) => {
         if (cancelled) return;
         const frames = toFrames(trail?.points);
         if (frames.length >= 2) {
           const segments = toLatLngSegments(frames);
-          const stats = replayStats(frames);
           setTrailSegments(segments);
-          setTrailStats(stats);
-
+          setTrailStats(replayStats(frames));
           const firstPt = segments[0]?.[0];
           const lastSeg = segments[segments.length - 1];
           const lastPt = lastSeg?.[lastSeg.length - 1];
-          if (firstPt && lastPt) {
-            setMapPoints({ start: firstPt, end: lastPt });
-          }
+          if (firstPt && lastPt) setMapPoints({ start: firstPt, end: lastPt });
         } else {
           setTrailSegments([]);
           setTrailStats(null);
         }
-      })
-      .catch(() => {
-        /* directions fallback already rendered */
-        setTrailSegments([]);
-        setTrailStats(null);
+        setRoadTrail(road && road.mode === 'MATCHED' ? road : null);
       })
       .finally(() => {
         if (!cancelled) setTrailLoading(false);
@@ -115,59 +75,59 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
     };
   }, [isLoaded, vehicleReg, trip]);
 
-  // Fit the map to the actual trail when it arrives.
+  const roadLayers = useMemo(() => toLayers(roadTrail), [roadTrail]);
+  const summary = useMemo(() => summaryOf(roadTrail), [roadTrail]);
+
+  // Fit the map to whatever is drawn.
   useEffect(() => {
-    if (!mapRef.current || !window.google || !trailSegments.length) return;
+    if (!mapRef.current || !window.google) return;
+    const paths = roadLayers.length ? roadLayers.map((l) => l.path) : trailSegments;
+    if (!paths.length) return;
     const bounds = new window.google.maps.LatLngBounds();
-    let pointCount = 0;
-    trailSegments.forEach((seg) => {
+    let n = 0;
+    paths.forEach((seg) =>
       seg.forEach((p) => {
         bounds.extend(p);
-        pointCount += 1;
-      });
-    });
-    if (pointCount > 0) {
-      mapRef.current.fitBounds(bounds, 48);
-    }
-  }, [trailSegments]);
+        n += 1;
+      }),
+    );
+    if (n > 0) mapRef.current.fitBounds(bounds, 48);
+  }, [trailSegments, roadLayers]);
 
-  const hasTrail = trailSegments.length > 0;
-  const showDirections = !hasTrail && directions;
+  const hasTrail = trailSegments.length > 0 || roadLayers.length > 0;
+  const groundKm = summary ? summary.km : trailStats ? trailStats.distanceKm : null;
+  const groundLabel = summary ? summary.label : 'straight-line estimate';
 
   return (
     <div className="trip-detail-map-section">
-      {/* Route Provenance & Telemetry Bar */}
       <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
         <div className="flex items-center gap-2">
           {hasTrail ? (
             <span className="inline-flex items-center gap-1 font-semibold text-sky-700 bg-sky-100 px-2 py-0.5 rounded">
               <ShieldCheck size={13} />
-              Actual GPS Trail
+              {roadLayers.length ? 'Road driven' : 'Actual GPS Trail'}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
               <AlertCircle size={13} />
-              Planned Route Fallback
+              No GPS trail for this trip window
             </span>
           )}
           {trailLoading && <span className="text-slate-400">Loading telemetry…</span>}
         </div>
 
-        {trailStats && (
+        {groundKm != null && (
           <div className="flex items-center gap-4 text-slate-600 font-medium">
-            <span title="Actual ground distance derived from GPS fixes">
-              Ground:{' '}
-              <strong className="text-slate-800">{trailStats.distanceKm.toFixed(1)} km</strong>
+            <span title="Distance the truck covered in this trip's window">
+              Ground: <strong className="text-slate-800">{groundKm.toFixed(1)} km</strong>{' '}
+              {groundLabel}
             </span>
             {trip?.distanceKm && (
               <span className="text-slate-400" title="Planned distance from ERP route">
                 Planned: {Number(trip.distanceKm).toFixed(1)} km
               </span>
             )}
-            <span className="text-slate-500">
-              {trailStats.pointCount} fixes ({trailSegments.length} segment
-              {trailSegments.length > 1 ? 's' : ''})
-            </span>
+            {trailStats && <span className="text-slate-500">{trailStats.pointCount} fixes</span>}
           </div>
         )}
       </div>
@@ -200,32 +160,17 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
               fullscreenControl: true,
             }}
           >
-            {showDirections && (
-              <DirectionsRenderer
-                directions={directions}
-                options={{
-                  polylineOptions: {
-                    strokeColor: '#64748b',
-                    strokeWeight: 4,
-                    strokeOpacity: 0.7,
-                    strokeDashstyle: 'dash',
-                  },
-                  suppressMarkers: true,
-                }}
-              />
-            )}
-            {hasTrail &&
+            {roadLayers.length > 0 ? (
+              <RoadTrailLayer layers={roadLayers} color="#0284c7" />
+            ) : (
               trailSegments.map((segment, idx) => (
                 <PolylineF
                   key={`trail-seg-${idx}`}
                   path={segment}
-                  options={{
-                    strokeColor: '#0284c7',
-                    strokeWeight: 4,
-                    strokeOpacity: 0.85,
-                  }}
+                  options={{ strokeColor: '#0284c7', strokeWeight: 4, strokeOpacity: 0.85 }}
                 />
-              ))}
+              ))
+            )}
             {mapPoints.start && (
               <Marker
                 position={mapPoints.start}
@@ -251,6 +196,14 @@ const TripReportRouteMap = ({ startLoc, endLoc, vehicleReg, trip }) => {
           </GoogleMap>
         )}
       </div>
+
+      {roadLayers.length > 0 && (
+        <RoadTrailLegend
+          layers={roadLayers}
+          calibrated={roadTrail?.calibrated}
+          className="px-3 py-2"
+        />
+      )}
 
       <div className="route-info-bar">
         <div className="route-point">
