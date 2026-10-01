@@ -3942,12 +3942,12 @@
   margin-top: 2px;
 }
 
-/* ── Reconciliation Audit Matrix Table (Crisp Borders & Professional Palette) ── */
+/* Reconciliation Audit Matrix Table */
 .mt-recon-card {
-  background: #ffffff;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: var(--mt-card-bg);
+  border: 1px solid var(--mt-border);
+  border-radius: var(--mt-radius-sm);
+  box-shadow: var(--mt-shadow-sm);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -3957,54 +3957,43 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
-  border-bottom: 1.5px solid #cbd5e1;
-  background: #f8fafc;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mt-border);
+  background: var(--mt-bg-subtle);
 }
 
 .mt-recon-card__title {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--mt-text-primary);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-
-.mt-recon-title-icon {
-  color: #2563eb;
+  gap: 6px;
 }
 
 .mt-recon-card__sub {
   margin: 0;
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--mt-text-muted);
 }
 
 .mt-recon-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 12.5px;
+  border-collapse: collapse;
+  font-size: 12px;
 }
 
 .mt-recon-table th {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--mt-bg-subtle);
+  color: var(--mt-text-secondary);
   font-weight: 700;
-  font-size: 11px;
+  font-size: 10.5px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 10px 16px;
-  border-bottom: 2px solid #94a3b8;
-  border-right: 1px solid #cbd5e1;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--mt-border);
   text-align: left;
-}
-
-.mt-recon-table th:last-child {
-  border-right: none;
 }
 
 .mt-recon-table th.text-center,
@@ -4018,267 +4007,50 @@
 }
 
 .mt-recon-table td {
-  padding: 11px 16px;
-  border-bottom: 1px solid #cbd5e1;
-  border-right: 1px solid #e2e8f0;
-  color: #0f172a;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--mt-border);
+  color: var(--mt-text-primary);
   vertical-align: middle;
-  background: #ffffff;
 }
 
-.mt-recon-table td:last-child {
-  border-right: none;
-}
-
-.mt-recon-table tbody tr:last-child td {
+.mt-recon-table tr:last-child td {
   border-bottom: none;
 }
 
-.mt-recon-table tbody tr:hover td {
-  background: #f8fafc;
+.mt-recon-table tr:hover td {
+  background: rgba(37, 99, 235, 0.02);
 }
 
-.dark .mt-recon-card {
-  background: #0f172a;
-  border-color: #334155;
-}
-
-.dark .mt-recon-card__header {
-  background: #1e293b;
-  border-color: #334155;
-}
-
-.dark .mt-recon-card__title {
-  color: #f8fafc;
-}
-
-.dark .mt-recon-card__sub {
-  color: #94a3b8;
-}
-
-.dark .mt-recon-table th {
-  background: #1e293b;
-  color: #cbd5e1;
-  border-bottom-color: #475569;
-  border-right-color: #334155;
-}
-
-.dark .mt-recon-table td {
-  background: #0f172a;
-  color: #f8fafc;
-  border-bottom-color: #334155;
-  border-right-color: #1e293b;
-}
-
-.dark .mt-recon-table tbody tr:hover td {
-  background: #1e293b;
+.dark .mt-recon-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .mt-recon-param {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   font-weight: 600;
-  color: #0f172a;
-}
-
-.dark .mt-recon-param {
-  color: #f8fafc;
-}
-
-.mt-recon-param-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
-  background: #f1f5f9;
-  color: #475569;
-  flex-shrink: 0;
-}
-
-.dark .mt-recon-param-icon {
-  background: #1e293b;
-  color: #94a3b8;
 }
 
 .mt-recon-val {
-  font-size: 13.5px;
+  font-family: var(--mt-font-mono);
   font-weight: 600;
-  color: #0f172a;
-  display: block;
-}
-
-.dark .mt-recon-val {
-  color: #f8fafc;
 }
 
 .mt-recon-sub {
   display: block;
   font-size: 11px;
-  color: #64748b;
+  color: var(--mt-text-muted);
   font-weight: 400;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
-.dark .mt-recon-sub {
-  color: #94a3b8;
-}
-
-.mt-recon-empty {
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.mt-recon-pings {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.dark .mt-recon-pings {
-  color: #94a3b8;
-}
-
-/* Reconciliation Matrix Variance Delta Box */
-.mt-recon-diff {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 10px;
-  border-radius: 6px;
-  min-width: 82px;
-  text-align: center;
-}
-
-.mt-recon-diff__val {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.mt-recon-diff__sub {
-  font-size: 10.5px;
-  font-weight: 500;
-  opacity: 0.85;
-}
-
-.mt-recon-diff--neutral {
-  background: #f8fafc;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-}
-
-.mt-recon-diff--warning {
-  background: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fde68a;
-}
-
-.mt-recon-diff--danger {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.dark .mt-recon-diff--neutral {
-  background: #1e293b;
-  color: #cbd5e1;
-  border-color: #334155;
-}
-
-.dark .mt-recon-diff--warning {
-  background: rgba(217, 119, 6, 0.15);
-  color: #fde68a;
-  border-color: rgba(217, 119, 6, 0.3);
-}
-
-.dark .mt-recon-diff--danger {
-  background: rgba(220, 38, 38, 0.15);
-  color: #fca5a5;
-  border-color: rgba(220, 38, 38, 0.3);
-}
-
-/* Professional Audit Status Tags */
-.mt-status-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 6px;
-  white-space: nowrap;
-}
-
-.mt-status-tag--validated {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.mt-status-tag--flagged {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.mt-status-tag--divergent {
-  background: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fde68a;
-}
-
-.mt-status-tag--synced {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
-}
-
-.mt-status-tag--pending {
-  background: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-}
-
-.dark .mt-status-tag--validated {
-  background: rgba(22, 163, 74, 0.15);
-  color: #86efac;
-  border-color: rgba(22, 163, 74, 0.3);
-}
-
-.dark .mt-status-tag--flagged {
-  background: rgba(220, 38, 38, 0.15);
-  color: #fca5a5;
-  border-color: rgba(220, 38, 38, 0.3);
-}
-
-.dark .mt-status-tag--divergent {
-  background: rgba(217, 119, 6, 0.15);
-  color: #fde68a;
-  border-color: rgba(217, 119, 6, 0.3);
-}
-
-.dark .mt-status-tag--synced {
-  background: #1e293b;
-  color: #94a3b8;
-  border-color: #334155;
-}
-
-.dark .mt-status-tag--pending {
-  background: #1e293b;
-  color: #64748b;
-  border-color: #334155;
-}
-
-/* ── Refuel Slips Table Card (Matching Crisp Borders) ── */
+/* Refuel Slips Table Card */
 .mt-slips-card {
-  background: #ffffff;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: var(--mt-card-bg);
+  border: 1px solid var(--mt-border);
+  border-radius: var(--mt-radius-sm);
+  box-shadow: var(--mt-shadow-sm);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -4288,33 +4060,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
-  border-bottom: 1.5px solid #cbd5e1;
-  background: #f8fafc;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mt-border);
+  background: var(--mt-bg-subtle);
 }
 
 .mt-slips-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
   font-size: 12px;
 }
 
 .mt-slips-table th {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--mt-bg-subtle);
+  color: var(--mt-text-secondary);
   font-weight: 700;
-  font-size: 11px;
+  font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 10px 14px;
-  border-bottom: 2px solid #94a3b8;
-  border-right: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--mt-border);
   text-align: left;
-}
-
-.mt-slips-table th:last-child {
-  border-right: none;
 }
 
 .mt-slips-table th.text-center,
@@ -4328,52 +4094,22 @@
 }
 
 .mt-slips-table td {
-  padding: 10px 14px;
-  border-bottom: 1px solid #cbd5e1;
-  border-right: 1px solid #e2e8f0;
-  color: #0f172a;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--mt-border);
+  color: var(--mt-text-primary);
   vertical-align: middle;
-  background: #ffffff;
 }
 
-.mt-slips-table td:last-child {
-  border-right: none;
-}
-
-.mt-slips-table tbody tr:last-child td {
+.mt-slips-table tr:last-child td {
   border-bottom: none;
 }
 
-.mt-slips-table tbody tr:hover td {
-  background: #f8fafc;
+.mt-slips-table tr:hover td {
+  background: rgba(37, 99, 235, 0.02);
 }
 
-.dark .mt-slips-card {
-  background: #0f172a;
-  border-color: #334155;
-}
-
-.dark .mt-slips-card__header {
-  background: #1e293b;
-  border-color: #334155;
-}
-
-.dark .mt-slips-table th {
-  background: #1e293b;
-  color: #cbd5e1;
-  border-bottom-color: #475569;
-  border-right-color: #334155;
-}
-
-.dark .mt-slips-table td {
-  background: #0f172a;
-  color: #f8fafc;
-  border-bottom-color: #334155;
-  border-right-color: #1e293b;
-}
-
-.dark .mt-slips-table tbody tr:hover td {
-  background: #1e293b;
+.dark .mt-slips-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .mt-slip-tag {

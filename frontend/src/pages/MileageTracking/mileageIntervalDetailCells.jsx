@@ -137,7 +137,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
     <div className="mt-recon-card">
       <div className="mt-recon-card__header">
         <div className="mt-recon-card__title">
-          <Satellite size={16} className="mt-recon-title-icon" />
+          <Satellite size={15} style={{ color: 'var(--mt-primary)' }} />
           <span>Telemetry Reconciliation Matrix</span>
         </div>
         <span className="mt-recon-card__sub">
@@ -164,9 +164,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
           <tr>
             <td>
               <div className="mt-recon-param">
-                <span className="mt-recon-param-icon">
-                  <Route size={14} />
-                </span>
+                <Route size={14} style={{ color: 'var(--mt-purple)' }} />
                 <span>Tracked Distance</span>
               </div>
             </td>
@@ -185,35 +183,38 @@ export const ReconciliationMatrixTable = ({ interval }) => {
             </td>
             <td className="text-center">
               {fe.distanceVariancePct != null ? (
-                <div
-                  className={`mt-recon-diff ${
-                    Math.abs(fe.distanceVariancePct) <= 10
-                      ? 'mt-recon-diff--neutral'
-                      : 'mt-recon-diff--warning'
-                  }`}
+                <span
+                  className="mt-compact-kpi__badge"
+                  style={{
+                    background: distMeta.bg,
+                    color: distMeta.color,
+                    border: `1px solid ${distMeta.color}33`,
+                  }}
                 >
-                  <span className="mt-recon-diff__val">
-                    {fe.distanceVarianceKm != null
-                      ? `${fe.distanceVarianceKm > 0 ? '+' : ''}${fe.distanceVarianceKm.toFixed(1)} km`
-                      : distMeta.label}
-                  </span>
-                  <span className="mt-recon-diff__sub">{distMeta.label}</span>
-                </div>
+                  {fe.distanceVarianceKm != null
+                    ? `${fe.distanceVarianceKm > 0 ? '+' : ''}${fe.distanceVarianceKm.toFixed(1)} km`
+                    : distMeta.label}
+                </span>
               ) : (
-                <span className="mt-recon-empty">—</span>
+                '—'
               )}
             </td>
             <td className="text-center">
               {fe.isFlaggedDistance ? (
-                <span className="mt-status-tag mt-status-tag--flagged">
-                  <AlertTriangle size={12} /> Odo Offset
+                <span className="mt-badge-flagged" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                  <AlertTriangle size={11} /> Odo Offset
                 </span>
               ) : feComputed ? (
-                <span className="mt-status-tag mt-status-tag--validated">
-                  <CheckCircle2 size={12} /> Validated
+                <span
+                  className="mt-badge-validated"
+                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                >
+                  <CheckCircle2 size={11} /> Validated
                 </span>
               ) : (
-                <span className="mt-status-tag mt-status-tag--pending">Pending</span>
+                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                  Pending
+                </span>
               )}
             </td>
           </tr>
@@ -222,9 +223,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
           <tr>
             <td>
               <div className="mt-recon-param">
-                <span className="mt-recon-param-icon">
-                  <Droplets size={14} />
-                </span>
+                <Droplets size={14} style={{ color: 'var(--mt-info)' }} />
                 <span>Fuel Consumed</span>
               </div>
             </td>
@@ -244,35 +243,38 @@ export const ReconciliationMatrixTable = ({ interval }) => {
             </td>
             <td className="text-center">
               {fe.fuelVariancePct != null ? (
-                <div
-                  className={`mt-recon-diff ${
-                    Math.abs(fe.fuelVariancePct) <= 10
-                      ? 'mt-recon-diff--neutral'
-                      : 'mt-recon-diff--danger'
-                  }`}
+                <span
+                  className="mt-compact-kpi__badge"
+                  style={{
+                    background: fuelMeta.bg,
+                    color: fuelMeta.color,
+                    border: `1px solid ${fuelMeta.color}33`,
+                  }}
                 >
-                  <span className="mt-recon-diff__val">
-                    {fe.fuelVarianceL != null
-                      ? `${fe.fuelVarianceL > 0 ? '+' : ''}${fe.fuelVarianceL.toFixed(1)} L`
-                      : fuelMeta.label}
-                  </span>
-                  <span className="mt-recon-diff__sub">{fuelMeta.label}</span>
-                </div>
+                  {fe.fuelVarianceL != null
+                    ? `${fe.fuelVarianceL > 0 ? '+' : ''}${fe.fuelVarianceL.toFixed(1)} L`
+                    : fuelMeta.label}
+                </span>
               ) : (
-                <span className="mt-recon-empty">—</span>
+                '—'
               )}
             </td>
             <td className="text-center">
               {fe.isFlaggedFuel ? (
-                <span className="mt-status-tag mt-status-tag--flagged">
-                  <AlertTriangle size={12} /> Overbilling
+                <span className="mt-badge-flagged" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                  <AlertTriangle size={11} /> Overbilling
                 </span>
               ) : feComputed ? (
-                <span className="mt-status-tag mt-status-tag--validated">
-                  <CheckCircle2 size={12} /> Validated
+                <span
+                  className="mt-badge-validated"
+                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                >
+                  <CheckCircle2 size={11} /> Validated
                 </span>
               ) : (
-                <span className="mt-status-tag mt-status-tag--pending">Pending</span>
+                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                  Pending
+                </span>
               )}
             </td>
           </tr>
@@ -281,52 +283,57 @@ export const ReconciliationMatrixTable = ({ interval }) => {
           <tr>
             <td>
               <div className="mt-recon-param">
-                <span className="mt-recon-param-icon">
-                  <Gauge size={14} />
-                </span>
+                <Gauge size={14} style={{ color: 'var(--mt-primary)' }} />
                 <span>Effective Mileage</span>
               </div>
             </td>
             <td>
-              <span className="mt-recon-val">{fmt(interval.mileageKmPerL, 2, 'km/L')}</span>
+              <span
+                className="mt-recon-val"
+                style={{ color: 'var(--mt-primary)', fontWeight: 700 }}
+              >
+                {fmt(interval.mileageKmPerL, 2, 'km/L')}
+              </span>
               <span className="mt-recon-sub">Bill distance ÷ Invoiced litres</span>
             </td>
             <td>
-              <span className="mt-recon-val">{fmt(fe.mileageKmPerL, 2, 'km/L')}</span>
+              <span className="mt-recon-val" style={{ fontWeight: 700 }}>
+                {fmt(fe.mileageKmPerL, 2, 'km/L')}
+              </span>
               <span className="mt-recon-sub">IoT distance ÷ IoT fuel sensor</span>
             </td>
             <td className="text-center">
               {fe.mileageVariancePct != null ? (
-                <div
-                  className={`mt-recon-diff ${
-                    Math.abs(fe.mileageVariancePct) <= 10
-                      ? 'mt-recon-diff--neutral'
-                      : 'mt-recon-diff--danger'
-                  }`}
+                <span
+                  className="mt-compact-kpi__badge"
+                  style={{
+                    background: mileageMeta.bg,
+                    color: mileageMeta.color,
+                    border: `1px solid ${mileageMeta.color}33`,
+                  }}
                 >
-                  <span className="mt-recon-diff__val">{mileageMeta.label}</span>
-                  {fe.mileageVariance != null && (
-                    <span className="mt-recon-diff__sub">
-                      Δ {fe.mileageVariance > 0 ? '+' : ''}
-                      {fe.mileageVariance.toFixed(2)} km/L
-                    </span>
-                  )}
-                </div>
+                  {mileageMeta.label}
+                </span>
               ) : (
-                <span className="mt-recon-empty">—</span>
+                '—'
               )}
             </td>
             <td className="text-center">
               {fe.isFlaggedMileage ? (
-                <span className="mt-status-tag mt-status-tag--divergent">
-                  <AlertTriangle size={12} /> Divergent
+                <span className="mt-badge-flagged" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                  <AlertTriangle size={11} /> Divergent
                 </span>
               ) : feComputed ? (
-                <span className="mt-status-tag mt-status-tag--validated">
-                  <CheckCircle2 size={12} /> Validated
+                <span
+                  className="mt-badge-validated"
+                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                >
+                  <CheckCircle2 size={11} /> Validated
                 </span>
               ) : (
-                <span className="mt-status-tag mt-status-tag--pending">Pending</span>
+                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                  Pending
+                </span>
               )}
             </td>
           </tr>
@@ -335,9 +342,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
           <tr>
             <td>
               <div className="mt-recon-param">
-                <span className="mt-recon-param-icon">
-                  <Fuel size={14} />
-                </span>
+                <Fuel size={14} style={{ color: 'var(--mt-warning)' }} />
                 <span>DEF / AdBlue</span>
               </div>
             </td>
@@ -351,11 +356,9 @@ export const ReconciliationMatrixTable = ({ interval }) => {
                 {fe.defConsumed != null ? 'Telemetry sensor measurement' : 'Sensor not available'}
               </span>
             </td>
+            <td className="text-center">—</td>
             <td className="text-center">
-              <span className="mt-recon-empty">—</span>
-            </td>
-            <td className="text-center">
-              <span className="mt-recon-empty">—</span>
+              <span style={{ fontSize: '11px', color: 'var(--mt-text-muted)' }}>—</span>
             </td>
           </tr>
 
@@ -363,9 +366,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
           <tr>
             <td>
               <div className="mt-recon-param">
-                <span className="mt-recon-param-icon">
-                  <Clock size={14} />
-                </span>
+                <Clock size={14} style={{ color: 'var(--mt-text-secondary)' }} />
                 <span>Period & Sync</span>
               </div>
             </td>
@@ -382,19 +383,26 @@ export const ReconciliationMatrixTable = ({ interval }) => {
               <span className="mt-recon-sub">{fe.snapshotCount ?? 0} IoT sensor snapshots</span>
             </td>
             <td className="text-center">
-              {fe.snapshotCount ? (
-                <span className="mt-recon-pings">{fe.snapshotCount} pings</span>
-              ) : (
-                <span className="mt-recon-empty">—</span>
-              )}
+              <span
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--mt-text-secondary)',
+                  fontFamily: 'var(--mt-font-mono)',
+                }}
+              >
+                {fe.snapshotCount ? `${fe.snapshotCount} pings` : '—'}
+              </span>
             </td>
             <td className="text-center">
               {feComputed ? (
-                <span className="mt-status-tag mt-status-tag--synced">
-                  <CheckCircle2 size={12} /> Synced
+                <span
+                  className="mt-badge-completed"
+                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                >
+                  {fe.status}
                 </span>
               ) : (
-                <span className="mt-status-tag mt-status-tag--pending">
+                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
                   {fe.status || 'PENDING'}
                 </span>
               )}
