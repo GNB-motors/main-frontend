@@ -105,6 +105,9 @@ const MileageTrackingPage = () => {
   // Client-side filtering by active status tab
   const filteredVehicles = useMemo(() => {
     if (statusTab === 'all') return vehicles;
+    if (statusTab === 'with_mileage') {
+      return vehicles.filter((v) => v.avgMileage != null && v.avgMileage > 0);
+    }
     return vehicles.filter((v) => {
       if (statusTab === 'NO_DATA') return v.healthStatus === 'NO_DATA' || !v.healthStatus;
       return v.healthStatus === statusTab;
@@ -202,9 +205,9 @@ const MileageTrackingPage = () => {
         <div className="mt-kpi-strip">
           {/* Fleet Avg Mileage */}
           <div
-            className={`mt-kpi-card ${statusTab === 'all' ? 'is-active' : ''}`}
-            onClick={() => setStatusTab('all')}
-            title="Click to view all vehicles"
+            className={`mt-kpi-card ${statusTab === 'with_mileage' ? 'is-active' : ''}`}
+            onClick={() => setStatusTab((t) => (t === 'with_mileage' ? 'all' : 'with_mileage'))}
+            title="Filter vehicles with calculated mileage"
           >
             <div className="mt-kpi-card__top">
               <span className="mt-kpi-card__label">Fleet Avg Mileage</span>

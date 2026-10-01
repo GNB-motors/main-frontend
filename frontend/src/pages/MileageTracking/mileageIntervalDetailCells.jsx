@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   Fuel,
   IndianRupee,
@@ -13,6 +14,8 @@ import {
   Droplets,
   Satellite,
   Info,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { fmt, fmtDate, getVarianceMeta } from './mileageIntervalDetailFormat';
 
@@ -21,37 +24,71 @@ import { fmt, fmtDate, getVarianceMeta } from './mileageIntervalDetailFormat';
  * Redesigned for high information density, clean hierarchy, and executive data presentation.
  */
 
-/* ── 1. Structured Telematics Anomaly Alert ── */
+/* ── 1. Collapsible Telematics Anomaly Alert Dropdown Banner ── */
 export const SlimAnomalyAlert = ({ flags }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   if (!flags || flags.length === 0) return null;
 
   return (
-    <div className="mt-anomaly-card">
-      <div className="mt-anomaly-card__header">
-        <div className="mt-anomaly-card__title">
-          <div className="mt-anomaly-card__icon-wrap">
+    <div className={`mt-anomaly-dropdown ${isOpen ? 'is-open' : ''}`}>
+      <div
+        className="mt-anomaly-dropdown__bar"
+        onClick={() => setIsOpen((prev) => !prev)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsOpen((prev) => !prev);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+      >
+        <div className="mt-anomaly-dropdown__left">
+          <div className="mt-anomaly-dropdown__icon-wrap">
             <AlertTriangle size={15} />
           </div>
-          <span className="mt-anomaly-card__heading">Telematics Flags & Anomalies</span>
-          <span className="mt-anomaly-card__badge">
+          <span className="mt-anomaly-dropdown__heading">Telematics Flags & Anomalies</span>
+          <span className="mt-anomaly-dropdown__badge">
             {flags.length} {flags.length === 1 ? 'Anomaly' : 'Anomalies'}
           </span>
+          <span className="mt-anomaly-dropdown__preview">
+            {flags[0]}
+            {flags.length > 1 && ` (+${flags.length - 1} more)`}
+          </span>
         </div>
-        <span className="mt-anomaly-card__sub">
-          Cross-audit between invoiced fuel/odometer and GPS telematics detected the following
-          variances:
-        </span>
+        <button
+          type="button"
+          className="mt-anomaly-dropdown__toggle-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen((prev) => !prev);
+          }}
+          aria-label={isOpen ? 'Collapse anomalies' : 'Expand anomalies'}
+        >
+          <span>{isOpen ? 'Hide Details' : 'View Details'}</span>
+          <ChevronDown
+            size={14}
+            className={`mt-anomaly-dropdown__chevron ${isOpen ? 'is-flipped' : ''}`}
+          />
+        </button>
       </div>
-      <div className="mt-anomaly-card__grid">
-        {flags.map((reason, idx) => (
-          <div key={idx} className="mt-anomaly-card__item">
-            <span className="mt-anomaly-card__bullet">
-              <AlertCircle size={14} />
-            </span>
-            <span className="mt-anomaly-card__text">{reason}</span>
+
+      {isOpen && (
+        <div className="mt-anomaly-dropdown__body">
+          <div className="mt-anomaly-dropdown__grid">
+            {flags.map((reason, idx) => (
+              <div key={idx} className="mt-anomaly-dropdown__item">
+                <span className="mt-anomaly-dropdown__bullet">
+                  <AlertCircle size={14} />
+                </span>
+                <span className="mt-anomaly-dropdown__text">{reason}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -79,7 +116,7 @@ export const CompactKpiCard = (props) => {
     <div className={`mt-compact-kpi mt-compact-kpi--${type}`}>
       <div className="mt-compact-kpi__header">
         <span className="mt-compact-kpi__label">
-          {CardIcon && <CardIcon size={12} />}
+          {CardIcon && <CardIcon size={14} />}
           <span>{title}</span>
         </span>
         {variancePct != null && (
@@ -91,7 +128,7 @@ export const CompactKpiCard = (props) => {
               border: `1px solid ${meta.color}33`,
             }}
           >
-            <VIcon size={10} /> {meta.label}
+            <VIcon size={12} /> {meta.label}
           </span>
         )}
       </div>
@@ -104,16 +141,14 @@ export const CompactKpiCard = (props) => {
       <div className="mt-compact-kpi__footer">
         <span>
           GPS:{' '}
-          <strong style={{ fontFamily: 'var(--mt-font-mono)' }}>
-            {gpsNum != null ? `${gpsNum.toFixed(2)}${unit ? ' ' + unit : ''}` : '—'}
-          </strong>
+          <strong>{gpsNum != null ? `${gpsNum.toFixed(2)}${unit ? ' ' + unit : ''}` : '—'}</strong>
         </span>
         {extraNote ? (
           <span>{extraNote}</span>
         ) : (
           <span>
             Bill:{' '}
-            <strong style={{ fontFamily: 'var(--mt-font-mono)' }}>
+            <strong>
               {sysNum != null ? `${sysNum.toFixed(2)}${unit ? ' ' + unit : ''}` : '—'}
             </strong>
           </span>
@@ -136,280 +171,251 @@ export const ReconciliationMatrixTable = ({ interval }) => {
   return (
     <div className="mt-recon-card">
       <div className="mt-recon-card__header">
-        <div className="mt-recon-card__title">
-          <Satellite size={15} style={{ color: 'var(--mt-primary)' }} />
-          <span>Telemetry Reconciliation Matrix</span>
+        <div>
+          <div className="mt-recon-card__heading">Telemetry Reconciliation Matrix</div>
+          <div className="mt-recon-card__sub">
+            Audit comparison: Invoiced pump slips vs on-board FleetEdge IoT sensors
+          </div>
         </div>
-        <span className="mt-recon-card__sub">
-          Side-by-side comparison: Invoiced refuel records vs on-board IoT telematics
-        </span>
       </div>
 
-      <table className="mt-recon-table">
-        <thead>
-          <tr>
-            <th style={{ width: '22%' }}>Audit Parameter</th>
-            <th style={{ width: '26%' }}>System (Bill-Based)</th>
-            <th style={{ width: '26%' }}>FleetEdge (IoT GPS)</th>
-            <th style={{ width: '13%' }} className="text-center">
-              Variance (Δ)
-            </th>
-            <th style={{ width: '13%' }} className="text-center">
-              Audit Status
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {/* Row 1: Distance */}
-          <tr>
-            <td>
-              <div className="mt-recon-param">
-                <Route size={14} style={{ color: 'var(--mt-purple)' }} />
-                <span>Tracked Distance</span>
-              </div>
-            </td>
-            <td>
-              <span className="mt-recon-val">{fmt(interval.distanceKm, 1, 'km')}</span>
-              <span className="mt-recon-sub">
-                Odometer: {interval.startOdometer?.toLocaleString() || '—'} →{' '}
-                {interval.endOdometer?.toLocaleString() || '—'} km
-              </span>
-            </td>
-            <td>
-              <span className="mt-recon-val">{fmt(fe.distanceKm, 1, 'km')}</span>
-              <span className="mt-recon-sub">
-                {feComputed ? 'Recorded by GPS odometry' : 'Telemetry sync pending'}
-              </span>
-            </td>
-            <td className="text-center">
-              {fe.distanceVariancePct != null ? (
+      <div className="mt-recon-table-wrapper">
+        <table className="mt-recon-table">
+          <thead>
+            <tr>
+              <th style={{ width: '22%' }}>Audit Parameter</th>
+              <th style={{ width: '26%' }}>System (Bill-Based)</th>
+              <th style={{ width: '26%' }}>FleetEdge (IoT GPS)</th>
+              <th style={{ width: '13%' }} className="text-center">
+                Variance (Δ)
+              </th>
+              <th style={{ width: '13%' }} className="text-center">
+                Audit Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Row 1: Distance */}
+            <tr>
+              <td>
+                <div className="mt-recon-param">
+                  <span className="mt-recon-param__name">Tracked Distance</span>
+                </div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmt(interval.distanceKm, 1, 'km')}</div>
+                <div className="mt-recon-sub">
+                  Odometer: {interval.startOdometer?.toLocaleString() || '—'} →{' '}
+                  {interval.endOdometer?.toLocaleString() || '—'} km
+                </div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmt(fe.distanceKm, 1, 'km')}</div>
+                <div className="mt-recon-sub">
+                  {feComputed ? 'Recorded by GPS odometry' : 'Telemetry sync pending'}
+                </div>
+              </td>
+              <td className="text-center">
+                {fe.distanceVariancePct != null ? (
+                  <span
+                    className="mt-variance-pill"
+                    style={{
+                      background: distMeta.bg,
+                      color: distMeta.color,
+                      border: `1px solid ${distMeta.color}33`,
+                    }}
+                  >
+                    {fe.distanceVarianceKm != null
+                      ? `${fe.distanceVarianceKm > 0 ? '+' : ''}${fe.distanceVarianceKm.toFixed(1)} km`
+                      : distMeta.label}
+                  </span>
+                ) : (
+                  <span className="mt-text-muted">—</span>
+                )}
+              </td>
+              <td className="text-center">
+                {fe.isFlaggedDistance ? (
+                  <span className="mt-status-badge mt-status-badge--danger">
+                    <AlertTriangle size={13} /> Odo Offset
+                  </span>
+                ) : feComputed ? (
+                  <span className="mt-status-badge mt-status-badge--success">
+                    <CheckCircle2 size={13} /> Validated
+                  </span>
+                ) : (
+                  <span className="mt-status-badge mt-status-badge--neutral">Pending</span>
+                )}
+              </td>
+            </tr>
+
+            {/* Row 2: Fuel */}
+            <tr>
+              <td>
+                <div className="mt-recon-param">
+                  <span className="mt-recon-param__name">Fuel Consumed</span>
+                </div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmt(interval.fuelConsumedLiters, 2, 'L')}</div>
+                <div className="mt-recon-sub">
+                  {interval.endFuelLogId?.totalAmount
+                    ? `Invoice cost: ₹${interval.endFuelLogId.totalAmount.toLocaleString('en-IN')}`
+                    : 'Billed refuel volume'}
+                </div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmt(fe.fuelConsumedL, 2, 'L')}</div>
+                <div className="mt-recon-sub">
+                  {feComputed ? 'CAN bus fuel flow sensor' : 'Telemetry sync pending'}
+                </div>
+              </td>
+              <td className="text-center">
+                {fe.fuelVariancePct != null ? (
+                  <span
+                    className="mt-variance-pill"
+                    style={{
+                      background: fuelMeta.bg,
+                      color: fuelMeta.color,
+                      border: `1px solid ${fuelMeta.color}33`,
+                    }}
+                  >
+                    {fe.fuelVarianceL != null
+                      ? `${fe.fuelVarianceL > 0 ? '+' : ''}${fe.fuelVarianceL.toFixed(1)} L`
+                      : fuelMeta.label}
+                  </span>
+                ) : (
+                  <span className="mt-text-muted">—</span>
+                )}
+              </td>
+              <td className="text-center">
+                {fe.isFlaggedFuel ? (
+                  <span className="mt-status-badge mt-status-badge--danger">
+                    <AlertTriangle size={13} /> Overbilling
+                  </span>
+                ) : feComputed ? (
+                  <span className="mt-status-badge mt-status-badge--success">
+                    <CheckCircle2 size={13} /> Validated
+                  </span>
+                ) : (
+                  <span className="mt-status-badge mt-status-badge--neutral">Pending</span>
+                )}
+              </td>
+            </tr>
+
+            {/* Row 3: Mileage */}
+            <tr>
+              <td>
+                <div className="mt-recon-param">
+                  <span className="mt-recon-param__name">Effective Mileage</span>
+                </div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmt(interval.mileageKmPerL, 2, 'km/L')}</div>
+                <div className="mt-recon-sub">Bill distance ÷ Invoiced litres</div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmt(fe.mileageKmPerL, 2, 'km/L')}</div>
+                <div className="mt-recon-sub">IoT distance ÷ IoT fuel sensor</div>
+              </td>
+              <td className="text-center">
+                {fe.mileageVariancePct != null ? (
+                  <span
+                    className="mt-variance-pill"
+                    style={{
+                      background: mileageMeta.bg,
+                      color: mileageMeta.color,
+                      border: `1px solid ${mileageMeta.color}33`,
+                    }}
+                  >
+                    {mileageMeta.label}
+                  </span>
+                ) : (
+                  <span className="mt-text-muted">—</span>
+                )}
+              </td>
+              <td className="text-center">
+                {fe.isFlaggedMileage ? (
+                  <span className="mt-status-badge mt-status-badge--warning">
+                    <AlertTriangle size={13} /> Divergent
+                  </span>
+                ) : feComputed ? (
+                  <span className="mt-status-badge mt-status-badge--success">
+                    <CheckCircle2 size={13} /> Validated
+                  </span>
+                ) : (
+                  <span className="mt-status-badge mt-status-badge--neutral">Pending</span>
+                )}
+              </td>
+            </tr>
+
+            {/* Row 4: DEF / AdBlue */}
+            <tr>
+              <td>
+                <div className="mt-recon-param">
+                  <span className="mt-recon-param__name">DEF / AdBlue</span>
+                </div>
+              </td>
+              <td>
+                <div className="mt-recon-val">—</div>
+                <div className="mt-recon-sub">Tracked separately in AdBlue log</div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmt(fe.defConsumed, 2, 'L')}</div>
+                <div className="mt-recon-sub">
+                  {fe.defConsumed != null ? 'Telemetry sensor measurement' : 'Sensor not available'}
+                </div>
+              </td>
+              <td className="text-center">
+                <span className="mt-text-muted">—</span>
+              </td>
+              <td className="text-center">
+                <span className="mt-text-muted">—</span>
+              </td>
+            </tr>
+
+            {/* Row 5: Reconciliation Time & Sync */}
+            <tr>
+              <td>
+                <div className="mt-recon-param">
+                  <span className="mt-recon-param__name">Period & Sensor Sync</span>
+                </div>
+              </td>
+              <td>
+                <div className="mt-recon-val">{fmtDate(interval.startDate)}</div>
+                <div className="mt-recon-sub">to {fmtDate(interval.endDate)}</div>
+              </td>
+              <td>
+                <div className="mt-recon-val">
+                  {feComputed ? fmtDate(fe.computedAt) : 'Awaiting sync'}
+                </div>
+                <div className="mt-recon-sub">{fe.snapshotCount ?? 0} IoT sensor snapshots</div>
+              </td>
+              <td className="text-center">
                 <span
-                  className="mt-compact-kpi__badge"
                   style={{
-                    background: distMeta.bg,
-                    color: distMeta.color,
-                    border: `1px solid ${distMeta.color}33`,
+                    fontSize: '12.5px',
+                    color: 'var(--mt-text-secondary)',
+                    fontWeight: 600,
                   }}
                 >
-                  {fe.distanceVarianceKm != null
-                    ? `${fe.distanceVarianceKm > 0 ? '+' : ''}${fe.distanceVarianceKm.toFixed(1)} km`
-                    : distMeta.label}
+                  {fe.snapshotCount ? `${fe.snapshotCount} pings` : '—'}
                 </span>
-              ) : (
-                '—'
-              )}
-            </td>
-            <td className="text-center">
-              {fe.isFlaggedDistance ? (
-                <span className="mt-badge-flagged" style={{ fontSize: '11px', padding: '2px 8px' }}>
-                  <AlertTriangle size={11} /> Odo Offset
-                </span>
-              ) : feComputed ? (
-                <span
-                  className="mt-badge-validated"
-                  style={{ fontSize: '11px', padding: '2px 8px' }}
-                >
-                  <CheckCircle2 size={11} /> Validated
-                </span>
-              ) : (
-                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
-                  Pending
-                </span>
-              )}
-            </td>
-          </tr>
-
-          {/* Row 2: Fuel */}
-          <tr>
-            <td>
-              <div className="mt-recon-param">
-                <Droplets size={14} style={{ color: 'var(--mt-info)' }} />
-                <span>Fuel Consumed</span>
-              </div>
-            </td>
-            <td>
-              <span className="mt-recon-val">{fmt(interval.fuelConsumedLiters, 2, 'L')}</span>
-              <span className="mt-recon-sub">
-                {interval.endFuelLogId?.totalAmount
-                  ? `Invoice cost: ₹${interval.endFuelLogId.totalAmount.toLocaleString('en-IN')}`
-                  : 'Billed refuel volume'}
-              </span>
-            </td>
-            <td>
-              <span className="mt-recon-val">{fmt(fe.fuelConsumedL, 2, 'L')}</span>
-              <span className="mt-recon-sub">
-                {feComputed ? 'CAN bus fuel flow sensor' : 'Telemetry sync pending'}
-              </span>
-            </td>
-            <td className="text-center">
-              {fe.fuelVariancePct != null ? (
-                <span
-                  className="mt-compact-kpi__badge"
-                  style={{
-                    background: fuelMeta.bg,
-                    color: fuelMeta.color,
-                    border: `1px solid ${fuelMeta.color}33`,
-                  }}
-                >
-                  {fe.fuelVarianceL != null
-                    ? `${fe.fuelVarianceL > 0 ? '+' : ''}${fe.fuelVarianceL.toFixed(1)} L`
-                    : fuelMeta.label}
-                </span>
-              ) : (
-                '—'
-              )}
-            </td>
-            <td className="text-center">
-              {fe.isFlaggedFuel ? (
-                <span className="mt-badge-flagged" style={{ fontSize: '11px', padding: '2px 8px' }}>
-                  <AlertTriangle size={11} /> Overbilling
-                </span>
-              ) : feComputed ? (
-                <span
-                  className="mt-badge-validated"
-                  style={{ fontSize: '11px', padding: '2px 8px' }}
-                >
-                  <CheckCircle2 size={11} /> Validated
-                </span>
-              ) : (
-                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
-                  Pending
-                </span>
-              )}
-            </td>
-          </tr>
-
-          {/* Row 3: Mileage */}
-          <tr>
-            <td>
-              <div className="mt-recon-param">
-                <Gauge size={14} style={{ color: 'var(--mt-primary)' }} />
-                <span>Effective Mileage</span>
-              </div>
-            </td>
-            <td>
-              <span
-                className="mt-recon-val"
-                style={{ color: 'var(--mt-primary)', fontWeight: 700 }}
-              >
-                {fmt(interval.mileageKmPerL, 2, 'km/L')}
-              </span>
-              <span className="mt-recon-sub">Bill distance ÷ Invoiced litres</span>
-            </td>
-            <td>
-              <span className="mt-recon-val" style={{ fontWeight: 700 }}>
-                {fmt(fe.mileageKmPerL, 2, 'km/L')}
-              </span>
-              <span className="mt-recon-sub">IoT distance ÷ IoT fuel sensor</span>
-            </td>
-            <td className="text-center">
-              {fe.mileageVariancePct != null ? (
-                <span
-                  className="mt-compact-kpi__badge"
-                  style={{
-                    background: mileageMeta.bg,
-                    color: mileageMeta.color,
-                    border: `1px solid ${mileageMeta.color}33`,
-                  }}
-                >
-                  {mileageMeta.label}
-                </span>
-              ) : (
-                '—'
-              )}
-            </td>
-            <td className="text-center">
-              {fe.isFlaggedMileage ? (
-                <span className="mt-badge-flagged" style={{ fontSize: '11px', padding: '2px 8px' }}>
-                  <AlertTriangle size={11} /> Divergent
-                </span>
-              ) : feComputed ? (
-                <span
-                  className="mt-badge-validated"
-                  style={{ fontSize: '11px', padding: '2px 8px' }}
-                >
-                  <CheckCircle2 size={11} /> Validated
-                </span>
-              ) : (
-                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
-                  Pending
-                </span>
-              )}
-            </td>
-          </tr>
-
-          {/* Row 4: DEF / AdBlue */}
-          <tr>
-            <td>
-              <div className="mt-recon-param">
-                <Fuel size={14} style={{ color: 'var(--mt-warning)' }} />
-                <span>DEF / AdBlue</span>
-              </div>
-            </td>
-            <td>
-              <span className="mt-recon-val">—</span>
-              <span className="mt-recon-sub">Tracked separately in AdBlue log</span>
-            </td>
-            <td>
-              <span className="mt-recon-val">{fmt(fe.defConsumed, 2, 'L')}</span>
-              <span className="mt-recon-sub">
-                {fe.defConsumed != null ? 'Telemetry sensor measurement' : 'Sensor not available'}
-              </span>
-            </td>
-            <td className="text-center">—</td>
-            <td className="text-center">
-              <span style={{ fontSize: '11px', color: 'var(--mt-text-muted)' }}>—</span>
-            </td>
-          </tr>
-
-          {/* Row 5: Reconciliation Time & Sync */}
-          <tr>
-            <td>
-              <div className="mt-recon-param">
-                <Clock size={14} style={{ color: 'var(--mt-text-secondary)' }} />
-                <span>Period & Sync</span>
-              </div>
-            </td>
-            <td>
-              <span className="mt-recon-val" style={{ fontSize: '11.5px' }}>
-                {fmtDate(interval.startDate)}
-              </span>
-              <span className="mt-recon-sub">to {fmtDate(interval.endDate)}</span>
-            </td>
-            <td>
-              <span className="mt-recon-val" style={{ fontSize: '11.5px' }}>
-                {feComputed ? fmtDate(fe.computedAt) : 'Awaiting sync'}
-              </span>
-              <span className="mt-recon-sub">{fe.snapshotCount ?? 0} IoT sensor snapshots</span>
-            </td>
-            <td className="text-center">
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--mt-text-secondary)',
-                  fontFamily: 'var(--mt-font-mono)',
-                }}
-              >
-                {fe.snapshotCount ? `${fe.snapshotCount} pings` : '—'}
-              </span>
-            </td>
-            <td className="text-center">
-              {feComputed ? (
-                <span
-                  className="mt-badge-completed"
-                  style={{ fontSize: '11px', padding: '2px 8px' }}
-                >
-                  {fe.status}
-                </span>
-              ) : (
-                <span className="mt-badge-pending" style={{ fontSize: '11px', padding: '2px 8px' }}>
-                  {fe.status || 'PENDING'}
-                </span>
-              )}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              </td>
+              <td className="text-center">
+                {feComputed ? (
+                  <span className="mt-status-badge mt-status-badge--success">
+                    <CheckCircle2 size={13} /> Synced
+                  </span>
+                ) : (
+                  <span className="mt-status-badge mt-status-badge--neutral">
+                    {fe.status || 'PENDING'}
+                  </span>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
@@ -422,9 +428,9 @@ export const RefuelSlipsTable = ({ fuelEntries, isOngoing }) => {
     <div className="mt-slips-card">
       <div className="mt-slips-card__header">
         <div className="mt-recon-card__title">
-          <Fuel size={15} style={{ color: 'var(--mt-primary)' }} />
+          <Fuel size={16} style={{ color: 'var(--mt-primary)' }} />
           <span>Refuel Slips Reconciled In This Interval</span>
-          <span className="mt-badge-completed" style={{ fontSize: '10.5px', padding: '1px 7px' }}>
+          <span className="mt-badge-completed" style={{ fontSize: '12px', padding: '2px 8px' }}>
             {fuelEntries.length} receipts
           </span>
         </div>
@@ -472,20 +478,22 @@ export const RefuelSlipsTable = ({ fuelEntries, isOngoing }) => {
                 <td>
                   <span className={`mt-slip-tag ${tagClass}`}>{label}</span>
                 </td>
-                <td style={{ fontSize: '11.5px', color: 'var(--mt-text-secondary)' }}>
+                <td style={{ fontSize: '13px', color: 'var(--mt-text-secondary)' }}>
                   <Clock
-                    size={11}
-                    style={{ display: 'inline', marginRight: 4, verticalAlign: -1 }}
+                    size={13}
+                    style={{ display: 'inline', marginRight: 5, verticalAlign: -1 }}
                   />
                   {fmtDate(log.refuelTime)}
                 </td>
                 <td>
-                  <span style={{ fontWeight: 600, color: 'var(--mt-text-primary)' }}>
+                  <span
+                    style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--mt-text-primary)' }}
+                  >
                     <MapPin
-                      size={11}
+                      size={13}
                       style={{
                         display: 'inline',
-                        marginRight: 4,
+                        marginRight: 5,
                         verticalAlign: -1,
                         color: 'var(--mt-text-muted)',
                       }}
@@ -494,14 +502,14 @@ export const RefuelSlipsTable = ({ fuelEntries, isOngoing }) => {
                   </span>
                 </td>
                 <td className="text-center">
-                  <span style={{ fontFamily: 'var(--mt-font-mono)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 600 }}>
                     {log.odometerReading ? `${log.odometerReading.toLocaleString()} km` : '—'}
                   </span>
                 </td>
                 <td className="text-right">
                   <span
                     style={{
-                      fontFamily: 'var(--mt-font-mono)',
+                      fontSize: '14px',
                       fontWeight: 700,
                       color: 'var(--mt-primary)',
                     }}
@@ -510,7 +518,7 @@ export const RefuelSlipsTable = ({ fuelEntries, isOngoing }) => {
                   </span>
                 </td>
                 <td className="text-right">
-                  <span style={{ fontFamily: 'var(--mt-font-mono)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 600 }}>
                     {log.totalAmount != null
                       ? `₹${log.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
                       : '—'}
@@ -519,8 +527,9 @@ export const RefuelSlipsTable = ({ fuelEntries, isOngoing }) => {
                     <span
                       style={{
                         display: 'block',
-                        fontSize: '10.5px',
+                        fontSize: '12px',
                         color: 'var(--mt-text-muted)',
+                        marginTop: 2,
                       }}
                     >
                       ₹{log.rate}/L

@@ -302,7 +302,7 @@ const MileageTrackingVehicleDetail = () => {
         label: 'Date',
         width: '10%',
         render: (r) => (
-          <span className="mt-mono text-[12px] font-semibold text-slate-800 dark:text-slate-200">
+          <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
             {formatDateIST(r.startDate)}
           </span>
         ),
@@ -326,7 +326,7 @@ const MileageTrackingVehicleDetail = () => {
               </div>
             );
           }
-          return <span className="text-slate-400 font-mono text-xs">—</span>;
+          return <span className="text-slate-400 text-sm">—</span>;
         },
       },
       {
@@ -335,7 +335,7 @@ const MileageTrackingVehicleDetail = () => {
         width: '16%',
         align: 'center',
         render: (r) => (
-          <span className="mt-mono text-[11.5px] font-semibold text-slate-800 dark:text-slate-200">
+          <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
             {r.startOdometer != null ? Number(r.startOdometer).toLocaleString() : '—'}
             {' → '}
             {r.endOdometer != null ? Number(r.endOdometer).toLocaleString() : '...'}
@@ -348,7 +348,7 @@ const MileageTrackingVehicleDetail = () => {
         width: '11%',
         align: 'center',
         render: (r) => (
-          <span className="mt-mono font-medium text-slate-700 dark:text-slate-300">
+          <span className="font-medium text-slate-700 dark:text-slate-300 text-[13.5px]">
             {r.distanceKm != null ? `${r.distanceKm.toFixed(1)} km` : '—'}
           </span>
         ),
@@ -359,7 +359,7 @@ const MileageTrackingVehicleDetail = () => {
         width: '11%',
         align: 'center',
         render: (r) => (
-          <span className="mt-mono font-medium text-slate-700 dark:text-slate-300">
+          <span className="font-medium text-slate-700 dark:text-slate-300 text-[13.5px]">
             {r.fuelConsumedLiters != null ? `${r.fuelConsumedLiters.toFixed(2)} L` : '—'}
           </span>
         ),
@@ -372,11 +372,11 @@ const MileageTrackingVehicleDetail = () => {
         render: (r) =>
           r.mileageKmPerL != null ? (
             <div className="mt-mileage-pill">
-              <span className="mt-mono">{r.mileageKmPerL.toFixed(2)}</span>
+              <span>{r.mileageKmPerL.toFixed(2)}</span>
               <span className="mt-unit">km/L</span>
             </div>
           ) : (
-            <span className="text-slate-400 font-mono">—</span>
+            <span className="text-slate-400 text-sm">—</span>
           ),
       },
       {
@@ -385,7 +385,7 @@ const MileageTrackingVehicleDetail = () => {
         width: '12%',
         align: 'center',
         render: (r) => (
-          <span className="mt-mono font-semibold text-slate-900 dark:text-slate-100">
+          <span className="font-semibold text-slate-900 dark:text-slate-100 text-[13.5px]">
             {r.fuelCost != null
               ? `₹${r.fuelCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
               : '—'}
@@ -454,7 +454,7 @@ const MileageTrackingVehicleDetail = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               type="button"
-              className="mt-btn mt-btn--primary"
+              className="pshell-btn pshell-btn--primary"
               onClick={() => navigate('/mileage-tracking/new')}
               title="Record a fuel entry for this vehicle"
             >
@@ -463,7 +463,7 @@ const MileageTrackingVehicleDetail = () => {
             </button>
             <button
               type="button"
-              className="mt-btn"
+              className="pshell-btn"
               onClick={() => refetch?.()}
               title="Refresh vehicle intervals"
               disabled={isLoading}
@@ -476,7 +476,7 @@ const MileageTrackingVehicleDetail = () => {
               columns={exportColumns}
               filename={`mileage-${regNumber}-${new Date().toISOString().slice(0, 10)}`}
               disabled={isLoading || intervals.length === 0}
-              buttonClass="mt-btn"
+              buttonClass="pshell-btn"
             />
           </div>
         }

@@ -20,7 +20,7 @@ export function buildMileageTrackingColumns({ onOpenVehicle }) {
       width: '14%',
       align: 'center',
       render: (v) => (
-        <span className="mt-mono font-semibold text-slate-700 dark:text-slate-300">
+        <span className="font-semibold text-slate-700 dark:text-slate-300 text-[13.5px]">
           {v.completedTrips ?? 0}
         </span>
       ),
@@ -38,7 +38,7 @@ export function buildMileageTrackingColumns({ onOpenVehicle }) {
       width: '16%',
       align: 'center',
       render: (v) => (
-        <span className="mt-mono text-slate-700 dark:text-slate-300">
+        <span className="text-slate-700 dark:text-slate-300 text-[13.5px]">
           {v.lastOdometer != null ? `${Number(v.lastOdometer).toLocaleString()} km` : '—'}
         </span>
       ),
@@ -49,7 +49,7 @@ export function buildMileageTrackingColumns({ onOpenVehicle }) {
       width: '16%',
       align: 'center',
       render: (v) => (
-        <span className="mt-mono text-slate-600 dark:text-slate-400 text-[11.5px]">
+        <span className="text-slate-600 dark:text-slate-400 text-[13px]">
           {formatMileageDate(v.lastRefuelDate)}
         </span>
       ),

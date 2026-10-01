@@ -9,6 +9,7 @@ import {
   Droplets,
   Route,
   Clock,
+  Calendar,
 } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
@@ -178,28 +179,53 @@ const MileageIntervalDetailPage = () => {
               <span className="mt-plate-badge mt-mono">{vehName}</span>
             </button>
             <span className="mt-breadcrumb__sep">/</span>
-            <span className="mt-breadcrumb__current">Interval Detail</span>
+            <span className="mt-breadcrumb__current">
+              {vehName} ({fmtDateShort(interval.startDate)} –{' '}
+              {fmtDateShort(interval.endDate || interval.startDate)})
+            </span>
           </div>
         }
-        subtitle={`Billing period: ${fmtDateShort(interval.startDate)} → ${fmtDateShort(interval.endDate || interval.startDate)} • Odometer: ${interval.startOdometer?.toLocaleString() || '—'} → ${interval.endOdometer?.toLocaleString() || '—'} km`}
+        subtitle={
+          <span className="mt-detail-subtitle-strip">
+            <span className="mt-meta-chip">
+              <Calendar size={13} className="mt-meta-chip__icon" />
+              <span className="mt-meta-chip__label">Billing period:</span>
+              <span className="mt-meta-chip__val">
+                {fmtDateShort(interval.startDate)}
+                <span className="mt-meta-chip__arrow">→</span>
+                {fmtDateShort(interval.endDate || interval.startDate)}
+              </span>
+            </span>
+            <span className="mt-meta-chip__sep">•</span>
+            <span className="mt-meta-chip">
+              <Gauge size={13} className="mt-meta-chip__icon" />
+              <span className="mt-meta-chip__label">Odometer:</span>
+              <span className="mt-meta-chip__val">
+                {interval.startOdometer != null
+                  ? Number(interval.startOdometer).toLocaleString('en-IN')
+                  : '—'}
+                <span className="mt-meta-chip__arrow">→</span>
+                {interval.endOdometer != null
+                  ? `${Number(interval.endOdometer).toLocaleString('en-IN')} km`
+                  : '—'}
+              </span>
+            </span>
+            {interval.distanceKm != null && (
+              <>
+                <span className="mt-meta-chip__sep">•</span>
+                <span className="mt-meta-chip">
+                  <Route size={13} className="mt-meta-chip__icon" />
+                  <span className="mt-meta-chip__label">Distance:</span>
+                  <span className="mt-meta-chip__val">
+                    {Number(interval.distanceKm).toLocaleString('en-IN')} km
+                  </span>
+                </span>
+              </>
+            )}
+          </span>
+        }
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="mt-btn"
-              onClick={() =>
-                navigate(vehicleId ? `/mileage-tracking/vehicle/${vehicleId}` : '/mileage-tracking')
-              }
-            >
-              <ChevronLeft size={14} />
-              <span>Back to Vehicle</span>
-            </button>
-            <ExportButton
-              rows={exportRows}
-              columns={exportColumns}
-              filename={`mileage-audit-${vehName}-${id}`}
-              buttonClass="mt-btn"
-            />
             {interval.status === 'COMPLETED' ? (
               <span className="mt-badge-completed">
                 <CheckCircle2 size={13} />
@@ -229,6 +255,22 @@ const MileageIntervalDetailPage = () => {
                 <span>GPS Pending</span>
               </span>
             )}
+            <button
+              type="button"
+              className="pshell-btn"
+              onClick={() =>
+                navigate(vehicleId ? `/mileage-tracking/vehicle/${vehicleId}` : '/mileage-tracking')
+              }
+            >
+              <ChevronLeft size={14} />
+              <span>Back to Vehicle</span>
+            </button>
+            <ExportButton
+              rows={exportRows}
+              columns={exportColumns}
+              filename={`mileage-audit-${vehName}-${id}`}
+              buttonClass="pshell-btn"
+            />
           </div>
         }
       >
