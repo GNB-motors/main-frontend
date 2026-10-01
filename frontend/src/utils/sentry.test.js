@@ -1,4 +1,18 @@
-import { installGlobalHandlers } from './sentry.js';
+import { installGlobalHandlers, lemuEndpoint } from './sentry.js';
+
+describe('sentry.js — lemuEndpoint', () => {
+  it('targets the backend mount /api/extension/telemetry/ingest under the API base', () => {
+    // Production base: the gateway strips /v1, so the /api segment must be in the path.
+    expect(lemuEndpoint('https://api.app.gnbedge.in/v1')).toBe(
+      'https://api.app.gnbedge.in/v1/api/extension/telemetry/ingest',
+    );
+    expect(lemuEndpoint('https://api.app.gnbedge.in/v1/')).toBe(
+      'https://api.app.gnbedge.in/v1/api/extension/telemetry/ingest',
+    );
+    // Docker nginx build (VITE_API_BASE_URL=/api): nginx strips the first /api.
+    expect(lemuEndpoint('/api')).toBe('/api/api/extension/telemetry/ingest');
+  });
+});
 
 describe('sentry.js — installGlobalHandlers', () => {
   let target;

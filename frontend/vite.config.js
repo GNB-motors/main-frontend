@@ -7,11 +7,18 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   // The SSE client opens a same-origin /api/live/stream URL. In dev there is no
-  // frontend nginx to proxy it, so forward it to the API origin from .env
-  // (path is preserved: the backend serves /api/live/stream directly).
+  // frontend nginx to proxy it, so forward it to the API from .env the way axios
+  // reaches it: under the base URL's path. With VITE_API_BASE_URL=https://host/v1,
+  // /api/live/stream → https://host/v1/api/live/stream (the gateway strips /v1);
+  // proxying to the bare origin hits an unrouted path and every stream 404s.
   let apiOrigin = null;
+  let apiBasePath = '';
   try {
-    apiOrigin = env.VITE_API_BASE_URL ? new URL(env.VITE_API_BASE_URL).origin : null;
+    if (env.VITE_API_BASE_URL) {
+      const base = new URL(env.VITE_API_BASE_URL);
+      apiOrigin = base.origin;
+      apiBasePath = base.pathname.replace(/\/+$/, '');
+    }
   } catch {
     apiOrigin = null;
   }
@@ -38,6 +45,7 @@ export default defineConfig(({ mode }) => {
               target: apiOrigin,
               changeOrigin: true,
               secure: true,
+              rewrite: (path) => `${apiBasePath}${path}`,
               configure: (proxy) => {
                 proxy.on('error', (_err, _req, res) => {
                   if (res && !res.headersSent && res.writeHead) {

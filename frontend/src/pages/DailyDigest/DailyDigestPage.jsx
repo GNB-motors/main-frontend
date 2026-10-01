@@ -93,7 +93,10 @@ export default function DailyDigestPage() {
   // own source data has loaded once — mirrors useApi's "no flash on
   // refetch" behaviour instead of hiding the whole page behind one flag.
   const attnLoading = (loading || fleetAlerts$.loading) && !money;
-  const impactLoading = (money$.loading && !money) || (utilization$.loading && !utilization);
+  const impactLoading =
+    (money$.loading && !money) ||
+    (utilization$.loading && !utilization) ||
+    (downtime$.loading && !downtime);
   const calendarLoading = calendar$.loading && !calendar;
   const refuelLoading = refuelling$.loading && !refuelling;
   const wasteLoading = money$.loading && !money;
@@ -374,12 +377,17 @@ export default function DailyDigestPage() {
               <NdCardSkeleton
                 title={'Today\u2019s \u20b9 impact'}
                 hint="Estimated"
-                rows={5}
+                rows={11}
                 rowHeight={40}
                 big
               />
             ) : (
-              <NdImpactCard money={m} utilization={utilization} />
+              <NdImpactCard
+                money={m}
+                atRisk={money?.atRisk}
+                utilization={utilization}
+                downtime={downtime}
+              />
             )}
           </div>
         </section>

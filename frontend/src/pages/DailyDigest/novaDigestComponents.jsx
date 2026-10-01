@@ -17,6 +17,10 @@ import {
   TrendingDown,
   Info,
   Gauge,
+  Zap,
+  Droplet,
+  Droplets,
+  MapPinOff,
   Calendar as CalendarIcon,
   Truck,
 } from 'lucide-react';
@@ -338,7 +342,7 @@ export function NdAttentionCard({ actions, onResolved }) {
         : visibleActions.filter((a) => a.sev === 'MEDIUM');
 
   return (
-    <div className="nd-card" id="nd-card-attn">
+    <div className="nd-card nd-card--attn" id="nd-card-attn">
       <div className="nd-card-head">
         <h2>Needs your attention</h2>
         <span className="nd-count-pill">{rows.length}</span>
@@ -453,8 +457,34 @@ export function NdAttentionCard({ actions, onResolved }) {
 
 /* =============================== ₹ impact =============================== */
 
-export function NdImpactCard({ money, utilization }) {
-  const rows = [
+function NdImpactItems({ rows, total }) {
+  return rows.map((r) => {
+    const Icon = r.icon;
+    const pct = total > 0 && r.v > 0 ? Math.round((r.v / total) * 100) : 0;
+    return (
+      <div key={r.key} className="nd-impact-item" style={{ '--c': r.c, '--tint': r.tint }}>
+        <div className="nd-impact-item-header">
+          <div className="nd-impact-item-meta">
+            <span className="nd-impact-ico">
+              <Icon size={13} />
+            </span>
+            <span className="nd-impact-item-name">{r.label}</span>
+            {pct > 0 && <span className="nd-impact-pct-pill">{pct}%</span>}
+          </div>
+          <span className={`nd-impact-item-amount ${r.v === 0 ? 'nd-zero' : ''}`}>
+            {formatINR(r.v)}
+          </span>
+        </div>
+        <div className="nd-impact-bar-track">
+          <span className="nd-impact-bar-fill" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    );
+  });
+}
+
+export function NdImpactCard({ money, atRisk, utilization, downtime }) {
+  const lost = [
     {
       key: 'idling',
       label: 'Idling cost',
@@ -495,12 +525,67 @@ export function NdImpactCard({ money, utilization }) {
       tint: 'rgba(13, 148, 136, 0.12)',
       icon: Gauge,
     },
+    {
+      key: 'speed',
+      label: 'Off-optimal speed',
+      v: money?.speedingLossInr || 0,
+      c: '#B45309',
+      tint: 'rgba(180, 83, 9, 0.12)',
+      icon: Zap,
+    },
+    {
+      key: 'mileage',
+      label: 'Low-mileage loss',
+      v: money?.lowMileageLossInr || 0,
+      c: '#9333EA',
+      tint: 'rgba(147, 51, 234, 0.12)',
+      icon: Droplet,
+    },
   ];
-  const total = rows.reduce((s, r) => s + r.v, 0);
-  const activeCount = rows.filter((r) => r.v > 0).length;
+  // Open exposure, not money lost today — shown apart and never added to the
+  // headline, so the red total keeps meaning "lost today".
+  const risk = [
+    {
+      key: 'downtime',
+      label: 'Service downtime',
+      v: downtime?.totalExposureInr || 0,
+      c: '#C56200',
+      tint: 'rgba(197, 98, 0, 0.12)',
+      icon: Wrench,
+    },
+    {
+      key: 'fines',
+      label: atRisk?.expiredDocCount
+        ? `Document fines (${atRisk.expiredDocCount} expired)`
+        : 'Document fines',
+      v: atRisk?.complianceFineInr || 0,
+      c: '#C2323A',
+      tint: 'rgba(194, 50, 58, 0.12)',
+      icon: FileText,
+    },
+    {
+      key: 'adblue',
+      label: 'AdBlue unreconciled',
+      v: atRisk?.adblueUnreconciledInr || 0,
+      c: '#0D9488',
+      tint: 'rgba(13, 148, 136, 0.12)',
+      icon: Droplets,
+    },
+    {
+      key: 'offpump',
+      label: 'Off-pump refuels',
+      v: atRisk?.offPumpRefuelInr || 0,
+      c: '#2F58EE',
+      tint: 'rgba(47, 88, 238, 0.12)',
+      icon: MapPinOff,
+    },
+  ];
+  const total = lost.reduce((s, r) => s + r.v, 0);
+  const riskTotal = risk.reduce((s, r) => s + r.v, 0);
+  const activeCount = lost.filter((r) => r.v > 0).length;
 
   return (
-    <div className="nd-card" id="nd-impact">
+    <div className="nd-card nd-card--impact" id="nd-impact">
       <div className="nd-card-head">
         <h2>Today&apos;s ₹ impact</h2>
         <span className="nd-sp" />
@@ -518,33 +603,18 @@ export function NdImpactCard({ money, utilization }) {
           </span>
         </div>
         <div className="nd-v">{formatINR(total)}</div>
-        <div className="nd-n">Across 5 telemetry &amp; fuel audit channels today</div>
+        <div className="nd-n">
+          Across {lost.length} loss channels · plus {formatINR(riskTotal)} open exposure at risk
+        </div>
       </div>
 
       <div className="nd-impact-list">
-        {rows.map((r) => {
-          const Icon = r.icon;
-          const pct = total > 0 && r.v > 0 ? Math.round((r.v / total) * 100) : 0;
-          return (
-            <div key={r.key} className="nd-impact-item" style={{ '--c': r.c, '--tint': r.tint }}>
-              <div className="nd-impact-item-header">
-                <div className="nd-impact-item-meta">
-                  <span className="nd-impact-ico">
-                    <Icon size={13} />
-                  </span>
-                  <span className="nd-impact-item-name">{r.label}</span>
-                  {pct > 0 && <span className="nd-impact-pct-pill">{pct}%</span>}
-                </div>
-                <span className={`nd-impact-item-amount ${r.v === 0 ? 'nd-zero' : ''}`}>
-                  {formatINR(r.v)}
-                </span>
-              </div>
-              <div className="nd-impact-bar-track">
-                <span className="nd-impact-bar-fill" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          );
-        })}
+        <NdImpactItems rows={lost} total={total} />
+        <div className="nd-eyebrow nd-bars-sub">
+          At risk
+          <span className="nd-a">{formatINR(riskTotal)}</span>
+        </div>
+        <NdImpactItems rows={risk} total={riskTotal} />
       </div>
 
       <div className="nd-impact-footer">

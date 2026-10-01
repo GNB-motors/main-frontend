@@ -1,7 +1,16 @@
 import { toISTDateString, toISTTimeString, formatDateIST } from '../../utils/dateUtils';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
+import {
+  PlusCircle,
+  Pencil,
+  Trash2,
+  Eye,
+  Fuel,
+  IndianRupee,
+  Gauge,
+  FileWarning,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import './RefuelLogsPage.css';
@@ -16,6 +25,10 @@ import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 import RefuelLogModals from './RefuelLogModals.jsx';
+import KpiCard from '../../components/ui/KpiCard';
+import ReportDataNotice from '../../components/ui/ReportDataNotice';
+import { toStartOfDayIso, toEndOfDayIso } from '../Reports/reports/mileageIntervalReportUtils';
+import { formatINR, formatLitres, formatNum } from '../../utils/formatters';
 import { REFUEL_EXPORT_COLUMNS, buildExportRow } from './refuelLogExport';
 import { getToken, getProfileField } from '../../utils/session.js';
 
@@ -30,10 +43,24 @@ const TAB_TO_FUEL_TYPE = {
 };
 
 const fetchRefuelLogs = async (
-  { page = 1, limit = PAGE_SIZE, fuelType, search, vehicleId } = {},
+  {
+    page = 1,
+    limit = PAGE_SIZE,
+    fuelType,
+    search,
+    vehicleId,
+    startDate,
+    endDate,
+    sortBy,
+    withTotals,
+  } = {},
   signal,
 ) => {
   const params = { page, limit };
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+  if (sortBy) params.sortBy = sortBy;
+  if (withTotals) params.withTotals = true;
   if (fuelType) {
     params.fuelType = fuelType;
   }
@@ -89,12 +116,16 @@ const fetchRefuelLogs = async (
       rawTotalAmount: log.totalAmount ?? null,
       rawOdometer: log.odometerReading,
       rawLocation: log.location,
+      reviewStatus: log.reviewStatus || null,
+      submissionChannel: log.submissionChannel || null,
     }));
     const total = response.data.meta?.total ?? mapped.length;
-    return { logs: mapped, total };
+    return { logs: mapped, total, totals: response.data.meta?.totals || null };
   }
-  return { logs: [], total: 0 };
+  return { logs: [], total: 0, totals: null };
 };
+
+const CHANNEL_LABEL = { APP: 'App', WHATSAPP: 'WhatsApp', FIELD_AGENT: 'Field agent' };
 
 const updateFuelLog = async (id, data) => {
   const response = await apiClient.put(`api/mileage/fuel-log/${id}`, data);
@@ -166,6 +197,8 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   const [vehicles, setVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [logs, setLogs] = useState([]);
+  const [totals, setTotals] = useState(null);
+  const [range, setRange] = useState({ from: '', to: '' });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
@@ -224,6 +257,19 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Report mode (Diesel Report inside Reports): a date range on refuel time,
+  // newest refuel first (bills are often entered days late), and totals over
+  // the whole filter. The standalone Refuel Logs page keeps entry order.
+  const reportParams = useMemo(() => {
+    if (!isFixedFuelType) return {};
+    const params = { sortBy: 'refuelTime' };
+    const startDate = toStartOfDayIso(range.from);
+    const endDate = toEndOfDayIso(range.to);
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    return params;
+  }, [isFixedFuelType, range]);
+
   // Refetch whenever the page, fuel-type tab, search term, or vehicle filter changes (all server-side).
   const {
     data: logsData,
@@ -239,6 +285,8 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
           fuelType: TAB_TO_FUEL_TYPE[activeTab],
           search: debouncedSearch,
           vehicleId: selectedVehicleId || undefined,
+          ...reportParams,
+          withTotals: isFixedFuelType,
         },
         signal,
       ),
@@ -248,6 +296,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         activeTab,
         debouncedSearch,
         vehicleId: selectedVehicleId,
+        reportParams,
       }),
     ],
   );
@@ -255,6 +304,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   useEffect(() => {
     if (logsData) {
       setLogs(logsData.logs);
+      setTotals(logsData.totals);
       setPagination((p) => ({ ...p, total: logsData.total }));
     }
   }, [logsData]);
@@ -395,7 +445,11 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   };
 
   const activeFilterCount =
-    (debouncedSearch ? 1 : 0) + (activeTab !== 'all' ? 1 : 0) + (selectedVehicleId ? 1 : 0);
+    (debouncedSearch ? 1 : 0) +
+    (activeTab !== 'all' ? 1 : 0) +
+    (selectedVehicleId ? 1 : 0) +
+    (range.from ? 1 : 0) +
+    (range.to ? 1 : 0);
 
   // Export carries every filtered row (paginated fetch in chunks), not just
   // the visible page — same contract as the hand-rolled export it replaces.
@@ -412,6 +466,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         fuelType: TAB_TO_FUEL_TYPE[activeTab],
         search: debouncedSearch,
         vehicleId: selectedVehicleId || undefined,
+        ...reportParams,
       });
 
       allLogs.push(...chunkLogs);
@@ -432,6 +487,10 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       value: filterTabs.find((t) => t.id === activeTab)?.label,
     },
     debouncedSearch && { label: 'Search', value: debouncedSearch },
+    (range.from || range.to) && {
+      label: 'Refuelled',
+      value: `${range.from || '…'} → ${range.to || '…'}`,
+    },
     selectedVehicleId && {
       label: 'Vehicle',
       value:
@@ -535,9 +594,31 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       label: 'Type',
       render: (log) => <div className="cell-primary">{log.notes || '-'}</div>,
     },
+    ...(isFixedFuelType
+      ? [
+          {
+            key: 'status',
+            label: 'Status',
+            render: (log) => (
+              <>
+                <div className="cell-primary">
+                  {log.reviewStatus === 'NEEDS_REVIEW' ? (
+                    <span style={{ color: '#b45309', fontWeight: 600 }}>Needs review</span>
+                  ) : log.reviewStatus === 'AUTO_OK' ? (
+                    'Accepted'
+                  ) : (
+                    '—'
+                  )}
+                </div>
+                <div className="cell-secondary">{CHANNEL_LABEL[log.submissionChannel] || '—'}</div>
+              </>
+            ),
+          },
+        ]
+      : []),
     {
       key: 'actions',
-      label: 'Actions',
+      label: isFixedFuelType ? 'Bill' : 'Actions',
       render: (log) => (
         <div className="refuel-actions">
           {log.documentId && (
@@ -555,22 +636,26 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
               <Eye size={14} />
             </button>
           )}
-          <button
-            type="button"
-            className="refuel-action-btn edit"
-            title="Edit"
-            onClick={() => handleEditClick(log)}
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            type="button"
-            className="refuel-action-btn delete"
-            title="Delete"
-            onClick={() => handleDeleteClick(log)}
-          >
-            <Trash2 size={14} />
-          </button>
+          {!isFixedFuelType && (
+            <>
+              <button
+                type="button"
+                className="refuel-action-btn edit"
+                title="Edit"
+                onClick={() => handleEditClick(log)}
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                type="button"
+                className="refuel-action-btn delete"
+                title="Delete"
+                onClick={() => handleDeleteClick(log)}
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
         </div>
       ),
     },
@@ -609,10 +694,21 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
           }
           selectedKeys={[activeTab]}
           onToggleChip={handleTabChange}
+          from={range.from}
+          to={range.to}
+          onRangeChange={
+            isFixedFuelType
+              ? (patch) => {
+                  setRange((prev) => ({ ...prev, ...patch }));
+                  setPagination((p) => ({ ...p, page: 1 }));
+                }
+              : null
+          }
           activeCount={activeFilterCount}
           onClear={() => {
             setSearchTerm('');
             setSelectedVehicleId('');
+            setRange({ from: '', to: '' });
             handleTabChange('all');
           }}
           right={
@@ -648,6 +744,46 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
           : null
       }
     >
+      {isFixedFuelType && totals ? (
+        <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
+          <ReportDataNotice
+            dataAsOf={totals?.lastRefuelAt}
+            label="Latest refuel in this view"
+            emptyText="No fuel bills match these filters."
+            staleHint="Fills after this date have not been logged as bills."
+          />
+          {totals ? (
+            <div className="flex flex-wrap gap-3">
+              <KpiCard
+                title="Litres"
+                value={formatLitres(totals.litres, { decimals: 0 })}
+                accent="#0d9488"
+                icon={<Fuel size={18} />}
+              />
+              <KpiCard
+                title="Amount"
+                value={formatINR(totals.amount)}
+                accent="#2563eb"
+                icon={<IndianRupee size={18} />}
+              />
+              <KpiCard
+                title="Average rate"
+                value={
+                  totals.avgRate != null ? `${formatINR(totals.avgRate, { decimals: 2 })}/L` : '—'
+                }
+                accent="#7c3aed"
+                icon={<Gauge size={18} />}
+              />
+              <KpiCard
+                title="Needs review"
+                value={formatNum(totals.needsReviewCount)}
+                accent="#b45309"
+                icon={<FileWarning size={18} />}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <DataTable
         columns={columns}
         rows={logs}
