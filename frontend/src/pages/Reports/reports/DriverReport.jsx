@@ -1,329 +1,264 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import dayjs from 'dayjs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useMemo, useState } from 'react';
+import { Fuel, Gauge, IndianRupee, Route } from 'lucide-react';
 import {
-    Pagination, PaginationContent, PaginationEllipsis,
-    PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
-} from '@/components/ui/pagination';
-import TableShimmer from '@/components/ui/TableShimmer';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import PageShell from '../../../components/ui/PageShell';
+import FilterBar from '../../../components/ui/FilterBar';
+import DataTable from '../../../components/ui/DataTable';
+import ExportButton from '../../../components/ui/ExportButton';
+import KpiCard from '../../../components/ui/KpiCard';
+import ReportDataNotice from '../../../components/ui/ReportDataNotice';
+import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.jsx';
-import { CsvIcon, ExcelIcon } from '../../../components/Icons';
-import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
+import { formatINR, formatKm, formatLitres, formatNum } from '../../../utils/formatters';
+import { formatDateIST } from '../../../utils/dateUtils';
+import { buildFilterParams, extractDriverOptions } from './mileageIntervalReportUtils';
+import {
+  DRIVER_EXPORT_COLUMNS,
+  FLEET_REPORT_PAGE_SIZE,
+  exportFilterMeta,
+} from './fleetReportUtils';
+import { KmplCell, NameCell } from './fleetReportCells';
+import ReportPagination from './ReportPagination';
 
-const COLUMN_COUNT = 9;
-
-const formatNumber = (value, digits = 0) =>
-    typeof value === 'number' ? value.toLocaleString('en-IN', { maximumFractionDigits: digits }) : '-';
-
-const formatCurrency = (value) =>
-    typeof value === 'number' ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-';
-
-const formatDate = (value) => (value ? dayjs(value).format('DD MMM YYYY') : '-');
-
-// --- **** DriverReport COMPONENT **** ---
 const DriverReport = () => {
-    // State for fetched data, loading, and errors specific to this report
-    const [driverReportData, setDriverReportData] = useState([]);
-    const [isLoadingDrivers, setIsLoadingDrivers] = useState(true);
-    const [driverError, setDriverError] = useState(null);
+  const [range, setRange] = useState({ from: '', to: '' });
+  const [driverId, setDriverId] = useState('all');
+  const [pager, setPager] = useState({ key: '', page: 1 });
 
-    // State for filters
-    const [selectedEmployee, setSelectedEmployee] = useState('all');
-    const [employeeOptions, setEmployeeOptions] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [isExporting, setIsExporting] = useState(false);
-    const itemsPerPage = 10;
+  const { data: employees } = useApi(() => ReportsService.getEmployees({ limit: 1000 }), []);
+  const driverOptions = useMemo(() => extractDriverOptions(employees || []), [employees]);
 
-    // Fetch employee list from employees API
-    useEffect(() => {
-        const fetchEmployees = async () => {
-            try {
-                const data = await ReportsService.getEmployees();
-                const names = [...new Set(data.map(d => `${d.firstName} ${d.lastName}`.trim()).filter(Boolean))];
-                setEmployeeOptions(names);
-            } catch (err) {
-                console.error("Failed to fetch employee list:", err);
-            }
-        };
-        fetchEmployees();
-    }, []);
+  const filters = useMemo(
+    () => buildFilterParams({ startDate: range.from, endDate: range.to, driverId }),
+    [range, driverId],
+  );
+  const filterKey = JSON.stringify(filters);
+  // A filter change starts again at page 1 in the same render, so no request
+  // ever goes out for an old page number under new filters.
+  const page = pager.key === filterKey ? pager.page : 1;
+  const setPage = (next) => setPager({ key: filterKey, page: next });
 
-    // Fetch Driver Data Effect
-    useEffect(() => {
-        const fetchDriverReports = async () => {
-            setIsLoadingDrivers(true);
-            setDriverError(null);
-            try {
-                const data = await ReportsService.getDriverReports();
-                setDriverReportData(data);
-            } catch (err) {
-                console.error("Failed to fetch driver reports:", err);
-                setDriverError(err.detail || "Could not load driver reports.");
-                setDriverReportData([]);
-            } finally {
-                setIsLoadingDrivers(false);
-            }
-        };
+  const {
+    data: response,
+    loading,
+    error,
+    refetch,
+  } = useApi(
+    (signal) =>
+      ReportsService.getDriverReports({ ...filters, page, limit: FLEET_REPORT_PAGE_SIZE }, signal),
+    [filterKey, page],
+  );
 
-        fetchDriverReports();
-    }, []);
+  const rows = response?.data || [];
+  const meta = response?.meta || { total: 0, totalPages: 0 };
+  const summary = response?.summary;
+  const selectedDriverLabel =
+    driverId === 'all'
+      ? 'All drivers'
+      : driverOptions.find((d) => d.id === driverId)?.label || 'Driver';
 
-    // Client-side filtering by selected employee (driver name)
-    const filteredRows = useMemo(() => {
-        let rows = driverReportData;
-        if (selectedEmployee && selectedEmployee !== 'all') {
-            rows = rows.filter(row => row.driverName === selectedEmployee);
-        }
-        return rows;
-    }, [driverReportData, selectedEmployee]);
-
-    // Pagination
-    const totalPages = Math.ceil(filteredRows.length / itemsPerPage) || 1;
-    const paginatedRows = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredRows.slice(start, start + itemsPerPage);
-    }, [filteredRows, currentPage, itemsPerPage]);
-
-    // Reset page when filters change
-    useEffect(() => { setCurrentPage(1); }, [selectedEmployee]);
-
-    const renderPageItems = () => {
-        const items = [];
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
-                items.push(i);
-            } else if (items[items.length - 1] !== '...') {
-                items.push('...');
-            }
-        }
-        return items;
-    };
-
-    const DRIVER_CSV_HEADERS = [
-        'Driver Name', 'Mobile Number', 'Refuels', 'Total Distance (KM)',
-        'Diesel (L)', 'AdBlue (L)', 'Total Fuel Cost (₹)', 'Avg Mileage (km/L)', 'Last Refuel',
-    ];
-
-    const mapDriverCsvRow = (row) => [
-        row.driverName || '-',
-        row.mobileNumber || '-',
-        row.totalRefuels || 0,
-        typeof row.totalDistanceKm === 'number' ? row.totalDistanceKm.toFixed(0) : '-',
-        typeof row.totalDieselLiters === 'number' ? row.totalDieselLiters.toFixed(1) : '-',
-        typeof row.totalAdBlueLiters === 'number' ? row.totalAdBlueLiters.toFixed(1) : '-',
-        typeof row.totalFuelCost === 'number' ? row.totalFuelCost.toFixed(2) : '-',
-        typeof row.avgMileageKmPerL === 'number' ? row.avgMileageKmPerL.toFixed(2) : '-',
-        row.lastRefuelAt ? dayjs(row.lastRefuelAt).format('DD/MM/YYYY') : '-',
-    ];
-
-    const downloadCsv = async (extension) => {
-        if (isExporting) return;
-        setIsExporting(true);
-        try {
-            // Export only the currently filtered rows (selected employee), not the full dataset
-            await exportFilteredReportCsv({
-                headers: DRIVER_CSV_HEADERS,
-                rows: filteredRows,
-                mapRow: mapDriverCsvRow,
-                filenamePrefix: 'driver_report',
-                extension,
-                errorMessage: 'Could not export driver report.',
-            });
-        } catch {
-            // toast handled inside exportFilteredReportCsv
-        } finally {
-            setIsExporting(false);
-        }
-    };
-
-    const handleExportCSV = () => downloadCsv('csv');
-    const handleExportExcel = () => downloadCsv('xlsx');
-
-    const exportBtnStyle = {
-        width: '44px',
-        height: '44px',
-        padding: '6px 8px',
-        background: '#F8F8FB',
-        borderRadius: '8px',
-        border: '1px solid #ECECEE',
-        cursor: 'pointer',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        transition: 'all 0.2s ease',
-    };
-
-    return (
-        <div className="p-6">
-            {/* Header Section */}
-            <div className="report-header-section">
-                <div className="report-header-top">
-                    <h3 className="report-title">Driver Report</h3>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                            onClick={handleExportCSV}
-                            disabled={isExporting}
-                            style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
-                            onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
-                            title="Export filtered rows to CSV"
-                        >
-                            <CsvIcon width={24} height={24} />
-                        </button>
-                        <button
-                            onClick={handleExportExcel}
-                            disabled={isExporting}
-                            style={{ ...exportBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? 'wait' : 'pointer' }}
-                            onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#ECECEE'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#F8F8FB'; }}
-                            title="Export filtered rows to Excel"
-                        >
-                            <ExcelIcon width={22} height={22} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Filter Controls */}
-                <div className="report-filters">
-                    <div className="date-input-group">
-                        <label>Employee Name</label>
-                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                            <SelectTrigger className="h-10 w-[180px] text-sm">
-                                <SelectValue>
-                                    {selectedEmployee === 'all' ? 'All Employees' : selectedEmployee}
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent align="start">
-                                <SelectItem value="all">All Employees</SelectItem>
-                                {employeeOptions.map((name) => (
-                                    <SelectItem key={name} value={name}>
-                                        {name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Loading and Error States */}
-            {isLoadingDrivers && (
-                <div className="report-content">
-                    <TableShimmer columns={COLUMN_COUNT} rows={10} />
-                </div>
-            )}
-            {driverError && !isLoadingDrivers && (
-                <div role="alert" className="my-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {driverError}
-                </div>
-            )}
-
-            {/* Data Table */}
-            {!isLoadingDrivers && !driverError && (
-                <div className="report-content">
-                    <div className="table-wrapper">
-                        <table className="driver-table">
-                            <thead>
-                                <tr className="table-header-row">
-                                    <th>Driver Name</th>
-                                    <th>Mobile Number</th>
-                                    <th>Refuels</th>
-                                    <th>Total Distance</th>
-                                    <th>Diesel (L)</th>
-                                    <th>AdBlue (L)</th>
-                                    <th>Fuel Cost</th>
-                                    <th>Avg Mileage</th>
-                                    <th>Last Refuel</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginatedRows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={COLUMN_COUNT} className="driver-empty-state">
-                                            No driver fuel data found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    paginatedRows.map((row, index) => (
-                                        <tr key={row.id || index} className="trip-table-row">
-                                            <td>
-                                                <div className="cell-primary">{row.driverName || '-'}</div>
-                                            </td>
-                                            <td>
-                                                <div className="cell-primary">{row.mobileNumber || '-'}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{row.totalRefuels || 0}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.totalDistanceKm === 'number' ? `${formatNumber(row.totalDistanceKm)} km` : '-'}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{formatNumber(row.totalDieselLiters, 1)}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{formatNumber(row.totalAdBlueLiters, 1)}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">{formatCurrency(row.totalFuelCost)}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div className="cell-primary">
-                                                    {typeof row.avgMileageKmPerL === 'number' ? `${row.avgMileageKmPerL.toFixed(2)} km/L` : '-'}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="cell-primary">{formatDate(row.lastRefuelAt)}</div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {filteredRows.length > 0 && totalPages > 1 && (
-                        <div className="pagination-wrapper">
-                            <Pagination className="justify-end">
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious
-                                            onClick={() => currentPage > 1 && setCurrentPage(p => p - 1)}
-                                            className={currentPage <= 1 ? 'pointer-events-none opacity-40' : ''}
-                                        />
-                                    </PaginationItem>
-                                    {renderPageItems().map((item, idx) =>
-                                        item === '...' ? (
-                                            <PaginationItem key={`e-${idx}`}>
-                                                <PaginationEllipsis />
-                                            </PaginationItem>
-                                        ) : (
-                                            <PaginationItem key={item}>
-                                                <PaginationLink
-                                                    isActive={currentPage === item}
-                                                    onClick={() => setCurrentPage(item)}
-                                                >
-                                                    {item}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        )
-                                    )}
-                                    <PaginationItem>
-                                        <PaginationNext
-                                            onClick={() => currentPage < totalPages && setCurrentPage(p => p + 1)}
-                                            className={currentPage >= totalPages ? 'pointer-events-none opacity-40' : ''}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
-                        </div>
-                    )}
-                </div>
-            )}
+  const columns = [
+    {
+      key: 'driver',
+      label: 'Driver',
+      render: (r) => (
+        <NameCell primary={r.driverName} secondary={r.mobileNumber} isDeleted={r.isDeleted} />
+      ),
+    },
+    {
+      key: 'bills',
+      label: 'Bills',
+      align: 'right',
+      render: (r) => <div className="cell-primary">{formatNum(r.totalRefuels)}</div>,
+    },
+    {
+      key: 'diesel',
+      label: 'Diesel',
+      align: 'right',
+      render: (r) => <div className="cell-primary">{formatLitres(r.totalDieselLiters)}</div>,
+    },
+    {
+      key: 'adblue',
+      label: 'AdBlue',
+      align: 'right',
+      render: (r) => <div className="cell-primary">{formatLitres(r.totalAdBlueLiters)}</div>,
+    },
+    {
+      key: 'spend',
+      label: 'Fuel spend',
+      align: 'right',
+      render: (r) => (
+        <div className="cell-primary" style={{ fontWeight: 600 }}>
+          {formatINR(r.totalFuelCost)}
         </div>
-    );
+      ),
+    },
+    {
+      key: 'distance',
+      label: 'Distance',
+      align: 'right',
+      render: (r) => (
+        <div className="cell-primary">{r.totalDistanceKm ? formatKm(r.totalDistanceKm) : '—'}</div>
+      ),
+    },
+    {
+      key: 'kmpl',
+      label: 'Mileage',
+      align: 'right',
+      render: (r) => (
+        <KmplCell
+          value={r.avgMileageKmPerL}
+          cycleCount={r.cycleCount}
+          excludedCycleCount={r.excludedCycleCount}
+          plausible={meta.plausibleKmPerL}
+        />
+      ),
+    },
+    {
+      key: 'costPerKm',
+      label: '₹/km',
+      align: 'right',
+      render: (r) => (
+        <div className="cell-primary">
+          {r.costPerKm != null ? formatINR(r.costPerKm, { decimals: 2 }) : '—'}
+        </div>
+      ),
+    },
+    {
+      key: 'lastBill',
+      label: 'Last bill',
+      render: (r) => (
+        <div className="cell-primary">{r.lastRefuelAt ? formatDateIST(r.lastRefuelAt) : '—'}</div>
+      ),
+    },
+  ];
+
+  const activeFilters = (range.from ? 1 : 0) + (range.to ? 1 : 0) + (driverId !== 'all' ? 1 : 0);
+
+  return (
+    <PageShell
+      className="p-6"
+      title="Driver Report"
+      subtitle="Fuel billed by each driver, and mileage over the full-tank cycles they opened"
+      count={meta.total}
+      actions={
+        <ExportButton
+          rows={rows}
+          columns={DRIVER_EXPORT_COLUMNS}
+          filename="driver-report"
+          fetchAll={() =>
+            ReportsService.fetchAllReportRows(ReportsService.getDriverReports, filters)
+          }
+          meta={{
+            filters: exportFilterMeta({
+              ...range,
+              entityLabel: driverId !== 'all' ? selectedDriverLabel : null,
+            }),
+          }}
+          disabled={!rows.length}
+        />
+      }
+      filters={
+        <FilterBar
+          from={range.from}
+          to={range.to}
+          onRangeChange={(patch) => setRange((prev) => ({ ...prev, ...patch }))}
+          activeCount={activeFilters}
+          onClear={() => {
+            setRange({ from: '', to: '' });
+            setDriverId('all');
+          }}
+          right={
+            <div className="date-input-group">
+              <label htmlFor="driver-report-driver">Driver</label>
+              <Select value={driverId} onValueChange={setDriverId}>
+                <SelectTrigger id="driver-report-driver" className="h-9 w-[200px] text-sm">
+                  <SelectValue>{selectedDriverLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectItem value="all">All drivers</SelectItem>
+                  {driverOptions.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
+      }
+      footer={
+        meta.totalPages > 1 ? (
+          <div className="flex w-full items-center justify-end">
+            <ReportPagination page={page} totalPages={meta.totalPages} onPage={setPage} />
+          </div>
+        ) : null
+      }
+    >
+      <div className="space-y-4">
+        {response && 'dataAsOf' in meta ? (
+          <ReportDataNotice
+            dataAsOf={meta.dataAsOf}
+            label="Latest fuel bill"
+            emptyText="No fuel bills have been logged yet."
+            staleHint="Bills logged after that date will show here once they are entered."
+          />
+        ) : null}
+        {summary ? (
+          <div className="flex flex-wrap gap-3">
+            <KpiCard
+              title="Fuel spend"
+              value={formatINR(summary.totalFuelCost)}
+              accent="#2563eb"
+              icon={<IndianRupee size={18} />}
+            />
+            <KpiCard
+              title="Diesel billed"
+              value={formatLitres(summary.totalDieselLiters, { decimals: 0 })}
+              accent="#0d9488"
+              icon={<Fuel size={18} />}
+            />
+            <KpiCard
+              title="Distance in cycles"
+              value={formatKm(summary.totalDistanceKm)}
+              accent="#7c3aed"
+              icon={<Route size={18} />}
+            />
+            <KpiCard
+              title="Average mileage"
+              value={
+                summary.averageKmPerL != null
+                  ? `${formatNum(summary.averageKmPerL, { decimals: 2 })} km/L`
+                  : '—'
+              }
+              accent="#c2410c"
+              icon={<Gauge size={18} />}
+            />
+          </div>
+        ) : null}
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.id}
+          loading={loading}
+          error={error}
+          onRetry={refetch}
+          showing={rows.length}
+          total={meta.total}
+          activeFilters={activeFilters}
+          emptyTitle="No driver fuel data"
+          emptyHint="Try widening the date range or choosing All drivers."
+        />
+      </div>
+    </PageShell>
+  );
 };
 
 export default DriverReport;

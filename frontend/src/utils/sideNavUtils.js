@@ -61,7 +61,7 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'link',
     key: 'fleetIntelligence',
-    access: 'both',
+    access: 'fleet',
     to: '/digest',
     label: 'Daily Digest',
     icon: CalendarClock,

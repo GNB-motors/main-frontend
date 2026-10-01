@@ -10,6 +10,7 @@ const FeatureFlagsContext = createContext({
   organization: null,
   profile: null,
   loading: true,
+  ready: false,
   isEnabled: () => false,
   hasPermission: () => false,
   canAccess: () => false,
@@ -60,6 +61,14 @@ export const FeatureFlagsProvider = ({ children }) => {
 
   const refresh = useCallback(() => refetch(), [refetch]);
 
+  // True once the FIRST /api/auth/me has settled and its payload is in state
+  // (or it failed, or the user isn't authenticated so it never runs). Checking
+  // `profile` rather than `loading` matters: the payload lands in state via the
+  // effect above, one render after `loading` flips false — gating on `loading`
+  // alone would let one render through with empty permissions. Later refetches
+  // (branch switch) keep the previous profile, so this never flips back.
+  const ready = profile !== null || (!loading && !meResponse);
+
   // Permissions are resolved per active branch, so re-fetch when the user
   // switches location (BranchContext dispatches `branchChange`).
   useEffect(() => {
@@ -85,6 +94,7 @@ export const FeatureFlagsProvider = ({ children }) => {
         organization,
         profile,
         loading,
+        ready,
         isEnabled,
         hasPermission,
         canAccess,
