@@ -141,6 +141,15 @@ const TripManagementPage = () => {
     <PageShell
       title="Trip Management"
       count={activePagination.total}
+      actions={
+        <button
+          type="button"
+          className="pshell-btn pshell-btn--primary"
+          onClick={() => navigate('/trip/new')}
+        >
+          <Plus size={16} /> Start New Trip
+        </button>
+      }
       filters={
         <FilterBar
           searchValue={searchQuery}

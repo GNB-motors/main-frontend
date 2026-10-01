@@ -831,6 +831,33 @@ a:hover {
 .btn--sm.btn--icon {
   width: 30px;
 }
+.btn.lt-csv-btn {
+  background: #ffffff !important;
+  border: 1.5px solid #3b82f6 !important;
+  color: #2563eb !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-m);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn.lt-csv-btn svg {
+  color: #2563eb !important;
+  stroke: #2563eb !important;
+}
+.btn.lt-csv-btn:hover {
+  background: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+.btn.lt-csv-btn:hover svg {
+  color: #1d4ed8 !important;
+  stroke: #1d4ed8 !important;
+}
 .spin {
   animation: spin 600ms var(--ease-standard);
 }

@@ -188,7 +188,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
       title="Delivery Orders"
       subtitle="Release confirmed orders, then place vehicles against them"
       actions={
-        <button className="btn btn-secondary" onClick={openManual}>
+        <button className="btn btn-primary" onClick={openManual}>
           <Plus size={18} />
           Manual DO
         </button>

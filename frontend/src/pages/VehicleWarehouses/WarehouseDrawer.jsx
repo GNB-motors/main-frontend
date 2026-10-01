@@ -216,7 +216,12 @@ export default function WarehouseDrawer({ open, mode, initial, isMapLoaded, onCl
         </div>
 
         <footer className="vwh-drawer-foot">
-          <button type="button" className="vwh-btn" onClick={onClose} disabled={saving}>
+          <button
+            type="button"
+            className="vwh-btn vwh-btn--cancel"
+            onClick={onClose}
+            disabled={saving}
+          >
             Cancel
           </button>
           <button

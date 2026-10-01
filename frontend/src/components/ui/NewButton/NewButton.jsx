@@ -1,5 +1,5 @@
-import { forwardRef } from "react";
-import styles from "./NewButton.module.css";
+import { forwardRef } from 'react';
+import styles from './NewButton.module.css';
 
 /**
  * Shared action button — use it for Apply / Cancel / Save / Delete and friends.
@@ -29,120 +29,127 @@ import styles from "./NewButton.module.css";
  */
 
 const VARIANT_CLASS_MAP = {
-    primary: "primary",
-    secondary: "secondary",
-    tertiary: "tertiary",
-    danger: "danger",
-    ghost: "ghost",
-    link: "link",
+  primary: 'primary',
+  secondary: 'secondary',
+  tertiary: 'tertiary',
+  danger: 'danger',
+  cancel: 'cancel',
+  ghost: 'ghost',
+  link: 'link',
 };
 
 const SIZE_CLASS_MAP = {
-    xs: "sizeXs",
-    sm: "sizeSm",
-    md: "sizeMd",
-    lg: "sizeLg",
-    xl: "sizeXl",
+  xs: 'sizeXs',
+  sm: 'sizeSm',
+  md: 'sizeMd',
+  lg: 'sizeLg',
+  xl: 'sizeXl',
 };
 
 const DEFAULT_ICON_GAP = 8;
 
 /** @type {React.ForwardRefExoticComponent<NewButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement> & React.RefAttributes<HTMLButtonElement>>} */
 const NewButton = forwardRef(function NewButton(
-    {
-        variant = "primary",
-        text,
-        children,
-        onClick,
-        size = "lg",
-        type = "button",
-        width,
-        fullWidth = false,
-        fullRounded = false,
-        disabled = false,
-        loading = false,
-        selected = false,
-        iconOnly = false,
-        prependIcon,
-        appendIcon,
-        prependGap = DEFAULT_ICON_GAP,
-        appendGap = DEFAULT_ICON_GAP,
-        className: classNameProp,
-        style: styleProp,
-        ...rest
-    },
-    ref
+  {
+    variant = 'primary',
+    text,
+    children,
+    onClick,
+    size = 'lg',
+    type = 'button',
+    width,
+    fullWidth = false,
+    fullRounded = false,
+    disabled = false,
+    loading = false,
+    selected = false,
+    iconOnly = false,
+    prependIcon,
+    appendIcon,
+    prependGap = DEFAULT_ICON_GAP,
+    appendGap = DEFAULT_ICON_GAP,
+    className: classNameProp,
+    style: styleProp,
+    ...rest
+  },
+  ref,
 ) {
-    const isDisabled = disabled || loading;
+  const isDisabled = disabled || loading;
 
-    const style = { ...styleProp };
-    if (width !== undefined) {
-        style.width = typeof width === "number" ? `${width}px` : width;
-    }
+  const style = { ...styleProp };
+  if (width !== undefined) {
+    style.width = typeof width === 'number' ? `${width}px` : width;
+  }
 
-    const className = [
-        styles.button,
-        styles[SIZE_CLASS_MAP[size] ?? SIZE_CLASS_MAP.lg],
-        styles[VARIANT_CLASS_MAP[variant] ?? VARIANT_CLASS_MAP.primary],
-        fullWidth && styles.fullWidth,
-        fullRounded && styles.fullRounded,
-        iconOnly && styles.iconOnly,
-        selected && styles.selected,
-        loading && styles.loading,
-        isDisabled && styles.disabled,
-        classNameProp,
-    ]
-        .filter(Boolean)
-        .join(" ");
+  const labelCandidate = children ?? text;
+  const isCancelLabel =
+    variant === 'cancel' ||
+    (variant !== 'danger' &&
+      typeof labelCandidate === 'string' &&
+      labelCandidate.trim().toLowerCase() === 'cancel');
 
-    const handleClick = (event) => {
-        if (isDisabled) return;
-        onClick?.(event);
-    };
+  const resolvedVariant = isCancelLabel ? 'cancel' : variant;
 
-    // While loading the spinner takes the leading slot so the button doesn't resize.
-    const leadingIcon = loading ? <span className={styles.spinner} /> : prependIcon;
-    const label = children ?? text;
+  const className = [
+    styles.button,
+    styles[SIZE_CLASS_MAP[size] ?? SIZE_CLASS_MAP.lg],
+    styles[VARIANT_CLASS_MAP[resolvedVariant] ?? VARIANT_CLASS_MAP.primary],
+    fullWidth && styles.fullWidth,
+    fullRounded && styles.fullRounded,
+    iconOnly && styles.iconOnly,
+    selected && styles.selected,
+    loading && styles.loading,
+    isDisabled && styles.disabled,
+    classNameProp,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-    const commonProps = {
-        ...rest,
-        type,
-        className,
-        style,
-        onClick: handleClick,
-        disabled: isDisabled,
-        "aria-busy": loading || undefined,
-        "aria-pressed": selected || undefined,
-    };
+  const handleClick = (event) => {
+    if (isDisabled) return;
+    onClick?.(event);
+  };
 
-    // Icon-only renders its children bare so absolutely-positioned extras (count
-    // badges, dots) still anchor to the button itself.
-    if (iconOnly) {
-        return (
-            <button {...commonProps} ref={ref}>
-                {loading ? <span className={styles.spinner} /> : children}
-            </button>
-        );
-    }
+  // While loading the spinner takes the leading slot so the button doesn't resize.
+  const leadingIcon = loading ? <span className={styles.spinner} /> : prependIcon;
+  const label = children ?? text;
 
+  const commonProps = {
+    ...rest,
+    type,
+    className,
+    style,
+    onClick: handleClick,
+    disabled: isDisabled,
+    'aria-busy': loading || undefined,
+    'aria-pressed': selected || undefined,
+  };
+
+  // Icon-only renders its children bare so absolutely-positioned extras (count
+  // badges, dots) still anchor to the button itself.
+  if (iconOnly) {
     return (
-        <button {...commonProps} ref={ref}>
-            {leadingIcon && (
-                <span
-                    className={styles.prependIcon}
-                    style={{ marginRight: label ? prependGap : 0 }}
-                >
-                    {leadingIcon}
-                </span>
-            )}
-            {label && <span className={styles.buttonText}>{label}</span>}
-            {appendIcon && !loading && (
-                <span className={styles.appendIcon} style={{ marginLeft: label ? appendGap : 0 }}>
-                    {appendIcon}
-                </span>
-            )}
-        </button>
+      <button {...commonProps} ref={ref}>
+        {loading ? <span className={styles.spinner} /> : children}
+      </button>
     );
+  }
+
+  return (
+    <button {...commonProps} ref={ref}>
+      {leadingIcon && (
+        <span className={styles.prependIcon} style={{ marginRight: label ? prependGap : 0 }}>
+          {leadingIcon}
+        </span>
+      )}
+      {label && <span className={styles.buttonText}>{label}</span>}
+      {appendIcon && !loading && (
+        <span className={styles.appendIcon} style={{ marginLeft: label ? appendGap : 0 }}>
+          {appendIcon}
+        </span>
+      )}
+    </button>
+  );
 });
 
 export default NewButton;

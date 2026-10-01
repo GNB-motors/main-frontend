@@ -90,36 +90,39 @@
   color: #94a3b8;
 }
 
-/* Log Fuel button — matches Start Trip / Add Employee */
+/* Log Fuel button — matches primary blue theme */
 .log-fuel-btn {
-  height: 44px;
-  min-width: 112px;
-  padding: 10px 24px;
-  background: var(--primary-color, #3b82f6);
-  box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
-  border-radius: 8px;
-  outline: 1px var(--primary-dark, #1d30b5) solid;
-  outline-offset: -1px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 18px;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1.5px solid #1d4ed8;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  display: flex;
-  border: none;
+  gap: 8px;
+  display: inline-flex;
   cursor: pointer;
-  transition: all 0.2s;
-  color: #f8f8fb;
-  font-size: 14px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .log-fuel-btn:hover {
-  background-color: var(--primary-dark, #1d30b5);
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  border-color: #1e40af;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38);
 }
 
 .log-fuel-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5);
+  background: #1e40af;
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 
 .log-fuel-btn svg {
@@ -1107,36 +1110,44 @@
 }
 
 .mileage-btn-primary {
-  background: var(--primary-color, #3b82f6);
-  color: #f8f8fb;
-  box-shadow: 0px 2px 0px var(--primary-dark, #1d30b5);
-  outline: 1px var(--primary-dark, #1d30b5) solid;
-  outline-offset: -1px;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1.5px solid #1d4ed8;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
 }
 
 .mileage-btn-primary:hover:not(:disabled) {
-  background: var(--primary-dark, #1d30b5);
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  border-color: #1e40af;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38);
 }
 .mileage-btn-primary:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: 0px 1px 0px var(--primary-dark, #1d30b5);
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 .mileage-btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   background: #9ca3af;
   box-shadow: none;
-  outline-color: #9ca3af;
+  border-color: #9ca3af;
 }
 
 .mileage-btn-secondary {
-  background: white;
-  color: #374151;
-  border: 1px solid #dfdfe2;
+  background: #ffffff;
+  color: #dc2626;
+  border: 1.5px solid #ef4444;
+  font-weight: 600;
 }
 
 .mileage-btn-secondary:hover {
-  background: #f8fafc;
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #b91c1c;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {

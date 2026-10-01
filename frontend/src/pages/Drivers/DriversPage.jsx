@@ -332,7 +332,7 @@ const DriversPage = () => {
             />
             <NewButton
               variant="primary"
-              text="Add employee"
+              text="Add Employee"
               prependIcon={<Plus size={16} />}
               onClick={() => navigate('/drivers/add')}
             />
@@ -415,7 +415,7 @@ const DriversPage = () => {
           emptyAction={
             <NewButton
               variant="primary"
-              text="Add employee"
+              text="Add Employee"
               prependIcon={<Plus size={16} />}
               onClick={() => navigate('/drivers/add')}
             />

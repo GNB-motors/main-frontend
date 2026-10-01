@@ -181,21 +181,21 @@ const MileageTrackingPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               type="button"
-              className="mt-btn mt-btn--primary"
+              className="pshell-btn pshell-btn--primary"
               onClick={() => navigate('/mileage-tracking/new')}
               title="Record a new refuel log entry"
             >
-              <Plus size={14} />
+              <Plus size={15} />
               <span>Log Fuel</span>
             </button>
             <button
               type="button"
-              className="mt-btn"
+              className="pshell-btn"
               onClick={() => refetch?.()}
               title="Refresh telemetry overview"
               disabled={isLoading}
             >
-              <RotateCw size={13} className={isLoading ? 'animate-spin' : ''} />
+              <RotateCw size={14} className={isLoading ? 'animate-spin' : ''} />
               <span>Refresh</span>
             </button>
             <ExportButton
@@ -203,7 +203,6 @@ const MileageTrackingPage = () => {
               columns={exportColumns}
               filename={`fleet-mileage-telemetry-${new Date().toISOString().slice(0, 10)}`}
               disabled={isLoading || vehicles.length === 0}
-              buttonClass="mt-btn"
             />
           </div>
         }

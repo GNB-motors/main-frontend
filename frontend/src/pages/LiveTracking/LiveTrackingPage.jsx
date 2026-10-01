@@ -1424,7 +1424,7 @@ const LiveTrackingPage = () => {
                   </div>
                 </div>
 
-                <button className="btn btn--sm" onClick={handleExportCSV}>
+                <button className="btn btn--sm lt-csv-btn" onClick={handleExportCSV}>
                   {renderIconSvg('download', 14)}
                   CSV
                 </button>

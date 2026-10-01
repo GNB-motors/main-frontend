@@ -41,55 +41,116 @@
 }
 
 /* ─── Buttons ─────────────────────────────────────────────────────────────── */
-.erp-page .btn {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
+.erp-page .btn,
+.btn {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 13.5px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  white-space: nowrap;
 }
 
-.erp-page .btn-sm {
-  padding: 6px 12px;
+.erp-page .btn-sm,
+.btn-sm {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
   font-size: 12px;
+  border-radius: 8px;
 }
 
-.erp-page .btn:disabled {
+.erp-page .btn:disabled,
+.btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  transform: none !important;
 }
 
-.erp-page .btn-primary {
-  background: #00c896;
-  color: #fff;
+.erp-page .btn-primary,
+.btn-primary {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: 1.5px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28) !important;
 }
 
-.erp-page .btn-primary:hover:not(:disabled) {
-  background: #00b876;
-  box-shadow: 0 4px 12px rgba(0, 200, 150, 0.2);
+.erp-page .btn-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
+  border-color: #1e40af !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38) !important;
 }
 
-.erp-page .btn-secondary {
-  background: #e2e8f0;
-  color: #1a202c;
+.erp-page .btn-primary:active:not(:disabled),
+.btn-primary:active:not(:disabled) {
+  background: #1e40af !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
 }
 
-.erp-page .btn-secondary:hover:not(:disabled) {
-  background: #cbd5e0;
+.erp-page .btn-secondary,
+.btn-secondary {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1.5px solid #3b82f6 !important;
+  color: #2563eb !important;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08) !important;
 }
 
-.erp-page .btn-danger {
-  background: #e74c3c;
-  color: #fff;
+.erp-page .btn-secondary:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled) {
+  background: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
 }
 
-.erp-page .btn-danger:hover:not(:disabled) {
-  background: #c0392b;
+.erp-page .btn-secondary:active:not(:disabled),
+.btn-secondary:active:not(:disabled) {
+  background: #dbeafe !important;
+  transform: translateY(0) !important;
+}
+
+/* Red Cancel button in modals & forms */
+.erp-modal-footer .btn-secondary,
+.btn-cancel,
+.erp-page .btn-danger,
+.btn-danger {
+  background: #ffffff !important;
+  border: 1.5px solid #ef4444 !important;
+  color: #dc2626 !important;
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.05) !important;
+}
+
+.erp-modal-footer .btn-secondary:hover:not(:disabled),
+.btn-cancel:hover:not(:disabled),
+.erp-page .btn-danger:hover:not(:disabled),
+.btn-danger:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  border-color: #dc2626 !important;
+  color: #b91c1c !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15) !important;
+}
+
+.erp-modal-footer .btn-secondary:active:not(:disabled),
+.btn-cancel:active:not(:disabled),
+.erp-page .btn-danger:active:not(:disabled),
+.btn-danger:active:not(:disabled) {
+  background: #fee2e2 !important;
+  transform: translateY(0) !important;
 }
 
 .btn-icon {

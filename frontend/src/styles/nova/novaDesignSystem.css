@@ -204,23 +204,36 @@ html.dark .nova-digest {
 .nd-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-m);
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  color: var(--fg-primary);
-  font-size: 12px;
-  font-weight: 500;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1.5px solid #3b82f6;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   white-space: nowrap;
-  transition:
-    background var(--duration-micro) var(--ease-standard),
-    border-color var(--duration-micro) var(--ease-standard);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
-.nd-btn:hover {
-  background: var(--nova-rage-a05);
-  border-color: var(--nova-rage-a20);
+.nd-btn:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+.nd-btn:active:not(:disabled) {
+  background: #dbeafe;
+  transform: translateY(0);
+}
+.nd-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .nd-btn--icon {
   width: 36px;
