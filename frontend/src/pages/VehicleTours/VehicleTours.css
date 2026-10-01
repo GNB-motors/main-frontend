@@ -1,74 +1,496 @@
 /* Vehicle Tours — warehouse-to-warehouse cycles list + detail drawer. */
 
+/* ─── Executive 5-KPI Strip ──────────────────────────────────────────────── */
+
+.vtour-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1280px) {
+  .vtour-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .vtour-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .vtour-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vtour-kpi-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 13px 15px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.vtour-kpi-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.vtour-kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+
+.vtour-kpi-icon--blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.vtour-kpi-icon--indigo {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.vtour-kpi-icon--emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.vtour-kpi-icon--amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.vtour-kpi-icon--purple {
+  background: #faf5ff;
+  color: #9333ea;
+}
+
+.vtour-kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.vtour-kpi-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.vtour-kpi-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vtour-kpi-val {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--text, #0f172a);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.vtour-kpi-chip {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.vtour-kpi-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.vtour-kpi-badge--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.vtour-kpi-badge--warn {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.vtour-kpi-badge--pulse {
+  background: #eff6ff;
+  color: #1d4ed8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vtour-kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vtour-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+  animation: vtour-pulse 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes vtour-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+/* ─── Demo Mode Banner ───────────────────────────────────────────────────── */
+
+.vtour-demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.06);
+}
+
+.vtour-demo-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #1e3a8a;
+}
+
+.vtour-demo-banner-content svg {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.vtour-demo-exit-btn {
+  border: 1px solid #93c5fd;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.vtour-demo-exit-btn:hover {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.pshell-btn--active-demo {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #818cf8 !important;
+  font-weight: 600;
+}
+
+/* ─── High-Impact Empty State & Lifecycle Guide ──────────────────────────── */
+
+.vtour-empty-state-card {
+  background: #ffffff;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 14px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.vtour-empty-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.vtour-empty-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.vtour-empty-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.vtour-empty-header p {
+  margin: 5px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #475569;
+  max-width: 75ch;
+}
+
+.vtour-lifecycle-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 20px 0;
+}
+
+@media (max-width: 1024px) {
+  .vtour-lifecycle-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .vtour-lifecycle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vtour-step-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vtour-step-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #2563eb;
+  letter-spacing: 0.05em;
+}
+
+.vtour-step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.vtour-step-icon {
+  color: #2563eb;
+}
+
+.vtour-step-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.vtour-empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8f0;
+  flex-wrap: wrap;
+}
+
+/* ─── Table Modern Polish ────────────────────────────────────────────────── */
+
 .vtour-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border, #e5e7eb);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .vtour-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .vtour-table th {
   text-align: left;
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-muted, #6b7280);
-  padding: 10px 12px;
+  color: var(--text-muted, #64748b);
+  padding: 12px 16px;
+  background: #f8fafc;
   border-bottom: 1px solid var(--border, #e5e7eb);
   white-space: nowrap;
 }
 
 .vtour-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
-}
-
-.vtour-table td.num {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .vtour-row {
   cursor: pointer;
+  transition: background 0.1s ease;
 }
 
 .vtour-row:hover {
-  background: #f9fafb;
+  background: #f8fafc;
 }
 
-.vtour-reg {
+.vtour-veh-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vtour-veh-icon {
+  color: #64748b;
+}
+
+.vtour-plate-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  padding: 2px 8px;
+  border-radius: 5px;
+  letter-spacing: 0.04em;
+}
+
+.vtour-cell-yard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vtour-yard-name {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 13.5px;
+}
+
+.vtour-cell-sub {
+  font-size: 11.5px;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-weight: 600;
-  white-space: nowrap;
+  gap: 4px;
 }
 
-.vtour-out {
-  font-style: normal;
+.vtour-running-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
   color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.vtour-duration-chip {
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vtour-dist-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.vtour-dist-cell strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
 }
 
 .vtour-src {
   display: block;
   font-style: normal;
-  font-size: 10px;
-  color: var(--text-muted, #9ca3af);
+  font-size: 10.5px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.vtour-trips-chip {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
 .vtour-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  padding: 2px 8px;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
   border-radius: 999px;
   white-space: nowrap;
 }
