@@ -165,7 +165,6 @@ const KhataLedgerDriverDetailPage = lazy(
 const KhataLedgerVehicleDetailPage = lazy(
   () => import('./pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx'),
 );
-const TripReportDetailPage = lazy(() => import('./pages/Reports/reports/TripReportDetailPage.jsx'));
 const PartiesPage = lazy(() => import('./pages/ErpMasters/PartiesPage.jsx'));
 const RatesPage = lazy(() => import('./pages/ErpMasters/RatesPage.jsx'));
 const CallTasksPage = lazy(() => import('./pages/ErpCallPlanning/CallTasksPage.jsx'));
@@ -396,7 +395,6 @@ function App() {
             <Route path="/driving-dna" element={<DrivingDnaPage />} />
             <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
             <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
             <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
             <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
             <Route path="/erp/trip-windows" element={<TripWindowsPage />} />
