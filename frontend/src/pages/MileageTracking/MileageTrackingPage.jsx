@@ -54,17 +54,9 @@ const MileageTrackingPage = () => {
     return () => window.removeEventListener('mileageSearchChange', handleSearch);
   }, []);
 
-  // Push total count up to Navbar
-  useEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent('mileageCountUpdate', { detail: { count: pagination.total } }),
-    );
-  }, [pagination.total]);
-
-  // Reset Navbar state on unmount
+  // Reset Navbar search state on unmount
   useEffect(
     () => () => {
-      window.dispatchEvent(new CustomEvent('mileageCountUpdate', { detail: { count: 0 } }));
       window.dispatchEvent(new CustomEvent('mileageSearchReset', { detail: { value: '' } }));
     },
     [],
@@ -175,7 +167,6 @@ const MileageTrackingPage = () => {
     <div className="mt-page-wrapper">
       <PageShell
         title="Mileage Tracking"
-        count={pagination.total}
         subtitle="Fleet fuel efficiency and odometer performance across vehicles"
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
