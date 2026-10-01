@@ -130,7 +130,7 @@ const ComparisonTable = ({
                       <div className="fc-veh-cell">
                         <span className="fc-plate-badge fc-mono">{reg}</span>
                         <div className="fc-driver-subline" title={driver || 'Unassigned driver'}>
-                          <User size={11} className="shrink-0 text-slate-400" />
+                          <User size={12} className="shrink-0 text-slate-400" />
                           <span className="truncate">
                             {driver || (
                               <span className="text-slate-400 font-normal">Unassigned</span>
@@ -148,7 +148,7 @@ const ComparisonTable = ({
                         </span>
                         {durationStr && (
                           <span className="fc-duration-chip">
-                            <Clock size={10} /> {durationStr}
+                            <Clock size={11} /> {durationStr}
                           </span>
                         )}
                       </div>
@@ -156,14 +156,14 @@ const ComparisonTable = ({
 
                     {/* Billed Fuel */}
                     <td className="fc-center">
-                      <span className="fc-mono font-bold text-[13px] text-slate-900 dark:text-slate-100">
+                      <span className="fc-mono font-bold text-sm text-slate-900 dark:text-slate-100">
                         {fmtLitres(billedL)}
                       </span>
                     </td>
 
                     {/* Telematics Fuel */}
                     <td className="fc-center">
-                      <span className="fc-mono font-semibold text-[13px] text-slate-700 dark:text-slate-300">
+                      <span className="fc-mono font-semibold text-sm text-slate-700 dark:text-slate-300">
                         {fmtLitres(telematicsL)}
                       </span>
                     </td>
@@ -190,7 +190,7 @@ const ComparisonTable = ({
                             className="fc-badge fc-badge--danger"
                             title={rec.flagReason || 'Billed fuel exceeds CAN-bus telematics'}
                           >
-                            <AlertTriangle size={11} /> Flagged
+                            <AlertTriangle size={12} /> Flagged
                           </span>
                         ) : isReview ? (
                           <span
@@ -199,13 +199,13 @@ const ComparisonTable = ({
                               rec.reviewReason || 'Odometer or date discrepancy requires review'
                             }
                           >
-                            <Clock size={11} /> Review
+                            <Clock size={12} /> Review
                           </span>
                         ) : rec.status === 'NO_DATA' ? (
                           <span className="fc-badge fc-badge--neutral">No Data</span>
                         ) : (
                           <span className="fc-badge fc-badge--success">
-                            <CheckCircle2 size={11} /> Clean
+                            <CheckCircle2 size={12} /> Clean
                           </span>
                         )}
 
@@ -214,21 +214,21 @@ const ComparisonTable = ({
                             className="fc-sub-badge fc-sub-badge--danger"
                             title={rec.odometerFlagReason || 'Odometer mismatch'}
                           >
-                            <Gauge size={9} /> Odo Diff
+                            <Gauge size={11} /> Odo Diff
                           </span>
                         ) : isReview ? (
                           <span
                             className="fc-sub-badge fc-sub-badge--warning"
                             title="Odometer reading needs confirmation"
                           >
-                            <Gauge size={9} /> Odo Check
+                            <Gauge size={11} /> Odo Check
                           </span>
                         ) : rec.ocrOdometerReading != null ? (
                           <span
                             className="fc-sub-badge fc-sub-badge--success"
                             title="Odometer verified"
                           >
-                            <CheckCircle2 size={9} /> Odo OK
+                            <CheckCircle2 size={11} /> Odo OK
                           </span>
                         ) : null}
                       </div>
@@ -245,7 +245,7 @@ const ComparisonTable = ({
                             title="Review and correct odometer reading"
                             aria-label={`Review ${reg}`}
                           >
-                            <PencilLine size={12} /> Review
+                            <PencilLine size={13} /> Review
                           </button>
                         ) : (
                           <button
@@ -255,7 +255,7 @@ const ComparisonTable = ({
                             title="Audit telematics interval details"
                             aria-label={`Audit ${reg}`}
                           >
-                            <Eye size={12} /> Audit
+                            <Eye size={13} /> Audit
                           </button>
                         )}
                       </div>

@@ -339,16 +339,28 @@ const FuelComparisonPage = () => {
       if (res && res.success !== false) {
         toast.success('Task reconciled and updated successfully');
         handleCloseReview();
-        if (activeDrawerTask && activeDrawerTask._id === taskId) {
+        if (
+          activeDrawerTask &&
+          (activeDrawerTask._id === taskId || activeDrawerTask.id === taskId)
+        ) {
           setActiveDrawerTask(null);
         }
         fetchStatus();
         fetchComparisons();
+        return true;
       } else {
-        toast.error(res?.message || 'Failed to update review task');
+        const errorMsg = res?.message || 'Failed to update review task';
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
-    } catch {
-      toast.error('An error occurred during task reconciliation');
+    } catch (err) {
+      const msg =
+        err?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'An error occurred during task reconciliation';
+      toast.error(msg);
+      throw err;
     }
   };
 
@@ -425,13 +437,13 @@ const FuelComparisonPage = () => {
 
             <button
               type="button"
-              className={`fc-btn fc-btn--secondary ${isSyncing ? 'is-spinning' : ''}`}
+              className="pshell-btn"
               onClick={handleSyncPipeline}
               disabled={isSyncing}
               title="Refresh comparisons and run on-demand backend audit"
               aria-label="Sync comparisons"
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
               <span>{isSyncing ? 'Auditing…' : 'Sync Live'}</span>
             </button>
 
@@ -440,7 +452,7 @@ const FuelComparisonPage = () => {
               columns={exportColumns}
               filename={`fuel-comparison-audit-${activeTab !== 'all' ? activeTab : 'all'}`}
               disabled={records.length === 0}
-              buttonClass="fc-btn fc-btn--primary"
+              buttonClass="pshell-btn pshell-btn--primary"
             />
           </div>
         }
@@ -452,7 +464,7 @@ const FuelComparisonPage = () => {
             <div className="fc-kpi-card__head">
               <span className="fc-kpi-card__title">Total Billed</span>
               <div className="fc-kpi-card__icon fc-kpi-card__icon--blue">
-                <Fuel size={14} />
+                <Fuel size={16} />
               </div>
             </div>
             <div className="fc-kpi-card__val fc-mono">{fmtLitres(kpiMetrics.totalBilled)}</div>
@@ -463,7 +475,7 @@ const FuelComparisonPage = () => {
             <div className="fc-kpi-card__head">
               <span className="fc-kpi-card__title">CAN-bus Telematics</span>
               <div className="fc-kpi-card__icon fc-kpi-card__icon--purple">
-                <Radio size={14} />
+                <Radio size={16} />
               </div>
             </div>
             <div className="fc-kpi-card__val fc-mono">{fmtLitres(kpiMetrics.totalTelematics)}</div>
@@ -481,7 +493,7 @@ const FuelComparisonPage = () => {
             <div className="fc-kpi-card__head">
               <span className="fc-kpi-card__title">Flagged Divergence</span>
               <div className="fc-kpi-card__icon fc-kpi-card__icon--red">
-                <AlertTriangle size={14} />
+                <AlertTriangle size={16} />
               </div>
             </div>
             <div className="fc-kpi-card__val fc-mono text-red-600 dark:text-red-400">
@@ -501,7 +513,7 @@ const FuelComparisonPage = () => {
             <div className="fc-kpi-card__head">
               <span className="fc-kpi-card__title">Verified Clean</span>
               <div className="fc-kpi-card__icon fc-kpi-card__icon--green">
-                <CheckCircle2 size={14} />
+                <CheckCircle2 size={16} />
               </div>
             </div>
             <div className="fc-kpi-card__val fc-mono text-emerald-600 dark:text-emerald-400">
@@ -521,7 +533,7 @@ const FuelComparisonPage = () => {
             <div className="fc-kpi-card__head">
               <span className="fc-kpi-card__title">Needs Review</span>
               <div className="fc-kpi-card__icon fc-kpi-card__icon--amber">
-                <Clock size={14} />
+                <Clock size={16} />
               </div>
             </div>
             <div className="fc-kpi-card__val fc-mono text-amber-600 dark:text-amber-400">
@@ -681,6 +693,10 @@ const FuelComparisonPage = () => {
         isOpen={Boolean(activeDrawerTask)}
         onClose={handleCloseDrawer}
         onReview={handleOpenReview}
+        onApproved={() => {
+          fetchStatus();
+          fetchComparisons();
+        }}
         onPrev={currentDrawerIndex > 0 ? handlePrevDrawer : null}
         onNext={
           currentDrawerIndex >= 0 && currentDrawerIndex < records.length - 1
@@ -693,7 +709,15 @@ const FuelComparisonPage = () => {
 
       {/* Modal for review/reconciliation */}
       {reviewTask && (
-        <ReviewModal task={reviewTask} onClose={handleCloseReview} onSave={handleSaveReview} />
+        <ReviewModal
+          task={reviewTask}
+          onClose={handleCloseReview}
+          onSave={handleSaveReview}
+          onApproved={() => {
+            fetchStatus();
+            fetchComparisons();
+          }}
+        />
       )}
     </div>
   );

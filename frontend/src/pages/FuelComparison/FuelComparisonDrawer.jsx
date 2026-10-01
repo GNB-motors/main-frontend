@@ -22,8 +22,23 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { ReportsService } from '../Reports/ReportsService.jsx';
 import { IST_ZONE, formatDateTimeIST, fmtLitres, fmtKm, fmtDuration } from './formatIST';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const formatForInput = (iso) => {
+  if (!iso) return '';
+  try {
+    const d = dayjs.utc(iso).tz(IST_ZONE);
+    return d.isValid() ? d.format('YYYY-MM-DDTHH:mm') : '';
+  } catch {
+    return '';
+  }
+};
 
 const FuelComparisonDrawer = ({
   task,
@@ -48,10 +63,8 @@ const FuelComparisonDrawer = ({
     if (task) {
       setZoom(1);
       setRotation(0);
-      setFromDate(
-        task.fromDate ? dayjs.utc(task.fromDate).tz(IST_ZONE).format('YYYY-MM-DDTHH:mm') : '',
-      );
-      setToDate(task.toDate ? dayjs.utc(task.toDate).tz(IST_ZONE).format('YYYY-MM-DDTHH:mm') : '');
+      setFromDate(formatForInput(task.fromDate));
+      setToDate(formatForInput(task.toDate));
       setOdometerReading(task.ocrOdometerReading ?? '');
     }
   }, [task]);
@@ -97,11 +110,14 @@ const FuelComparisonDrawer = ({
       if (toDate) updates.toDate = dayjs.tz(toDate, IST_ZONE).utc().toISOString();
       if (odometerReading !== '') updates.odometerReading = parseFloat(odometerReading);
 
-      await ReportsService.approveReviewTask(task._id, updates);
+      const taskId = task._id || task.id;
+      await ReportsService.approveReviewTask(taskId, updates);
       toast.success(`Task for ${vehReg} approved and queued for recalculation`);
       onApproved?.();
     } catch (err) {
-      toast.error(err.detail || 'Failed to approve task');
+      toast.error(
+        err?.detail || err?.response?.data?.message || err?.message || 'Failed to approve task',
+      );
     } finally {
       setSaving(false);
     }
@@ -435,6 +451,7 @@ const FuelComparisonDrawer = ({
                     type="datetime-local"
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
+                    className="fc-input"
                     aria-label="From Timestamp (IST)"
                   />
                 </div>
@@ -445,6 +462,7 @@ const FuelComparisonDrawer = ({
                     type="datetime-local"
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
+                    className="fc-input"
                     aria-label="To Timestamp (IST)"
                   />
                 </div>
@@ -457,6 +475,7 @@ const FuelComparisonDrawer = ({
                     placeholder="Enter verified odometer reading..."
                     value={odometerReading}
                     onChange={(e) => setOdometerReading(e.target.value)}
+                    className="fc-input"
                     aria-label="Corrected Odometer Reading (km)"
                   />
                   <span className="text-[11px] text-slate-500">
