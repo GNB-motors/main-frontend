@@ -2,23 +2,27 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
-  ArrowLeft,
+  ChevronLeft,
   Gauge,
-  Satellite,
   AlertTriangle,
   CheckCircle2,
-  Activity,
   Droplets,
-  XCircle,
-  Info,
+  Route,
+  Clock,
 } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
 import apiClient from '../../utils/axiosConfig';
 import { useApi } from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
-import { fmt, fmtDate, fmtDateShort } from './mileageIntervalDetailFormat';
-import { SectionCard, MetricRow, VarianceBlock, TimelineEntry } from './mileageIntervalDetailCells';
+import ExportButton from '../../components/ui/ExportButton';
+import { fmtDateShort } from './mileageIntervalDetailFormat';
+import {
+  SlimAnomalyAlert,
+  CompactKpiCard,
+  ReconciliationMatrixTable,
+  RefuelSlipsTable,
+} from './mileageIntervalDetailCells';
 
 const MileageIntervalDetailPage = () => {
   const { id } = useParams();
@@ -66,7 +70,7 @@ const MileageIntervalDetailPage = () => {
 
   if (isLoading) {
     return (
-      <PageShell title="Mileage Interval">
+      <PageShell title="Mileage Interval Audit">
         <div className="loading-state">
           <p>Loading interval data...</p>
         </div>
@@ -79,6 +83,7 @@ const MileageIntervalDetailPage = () => {
   const fe = interval.fleetEdge || {};
   const feComputed = fe.status === 'COMPUTED';
   const vehName = interval.vehicleId?.registrationNumber || 'Unknown Vehicle';
+  const vehicleId = interval.vehicleId?._id || interval.vehicleId;
 
   const flags = fe.flagReasons || [];
   const hasAnyFlag = fe.isFlaggedFuel || fe.isFlaggedDistance || fe.isFlaggedMileage;
@@ -95,7 +100,7 @@ const MileageIntervalDetailPage = () => {
     fuelEntries.push({ log: interval.endFuelLogId, label: 'Full Tank (End)', type: 'end' });
   }
 
-  // Total fuel cost: end fill + all partial fills (start fill belongs to the previous interval)
+  // Total fuel cost: end fill + all partial fills
   const endCost = interval.endFuelLogId?.totalAmount || 0;
   const partialCost = (interval.partialFuelLogIds || []).reduce(
     (sum, log) => sum + (log?.totalAmount || 0),
@@ -103,229 +108,197 @@ const MileageIntervalDetailPage = () => {
   );
   const fuelCost = endCost + partialCost || null;
 
-  const routeFuelLog = interval.endFuelLogId || interval.startFuelLogId;
-  const routeSource = routeFuelLog?.routeSource;
-  const routeDestination = routeFuelLog?.routeDestination;
+  const exportColumns = [
+    { key: 'metric', label: 'Metric', type: 'text' },
+    { key: 'systemValue', label: 'System Value', type: 'text' },
+    { key: 'telematicsValue', label: 'FleetEdge GPS Value', type: 'text' },
+    { key: 'variance', label: 'Variance (Δ)', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ];
+
+  const exportRows = [
+    {
+      metric: 'Mileage (km/L)',
+      systemValue:
+        interval.mileageKmPerL != null ? `${interval.mileageKmPerL.toFixed(2)} km/L` : '—',
+      telematicsValue:
+        fe.mileageKmPerL != null ? `${Number(fe.mileageKmPerL).toFixed(2)} km/L` : '—',
+      variance:
+        fe.mileageVariance != null
+          ? `${fe.mileageVariance.toFixed(2)} (${fe.mileageVariancePct?.toFixed(1) || 0}%)`
+          : '—',
+      status: fe.isFlaggedMileage ? 'FLAGGED' : 'OK',
+    },
+    {
+      metric: 'Distance (km)',
+      systemValue: interval.distanceKm != null ? `${interval.distanceKm.toFixed(1)} km` : '—',
+      telematicsValue: fe.distanceKm != null ? `${Number(fe.distanceKm).toFixed(1)} km` : '—',
+      variance:
+        fe.distanceVariance != null
+          ? `${fe.distanceVariance.toFixed(1)} (${fe.distanceVariancePct?.toFixed(1) || 0}%)`
+          : '—',
+      status: fe.isFlaggedDistance ? 'FLAGGED' : 'OK',
+    },
+    {
+      metric: 'Fuel Consumed (L)',
+      systemValue:
+        interval.fuelConsumedLiters != null ? `${interval.fuelConsumedLiters.toFixed(2)} L` : '—',
+      telematicsValue: fe.fuelConsumedL != null ? `${Number(fe.fuelConsumedL).toFixed(2)} L` : '—',
+      variance:
+        fe.fuelVariance != null
+          ? `${fe.fuelVariance.toFixed(2)} (${fe.fuelVariancePct?.toFixed(1) || 0}%)`
+          : '—',
+      status: fe.isFlaggedFuel ? 'FLAGGED' : 'OK',
+    },
+  ];
 
   return (
-    <PageShell
-      title={vehName}
-      subtitle={`${fmtDateShort(interval.startDate)} → ${fmtDateShort(interval.endDate || interval.startDate)}`}
-      actions={
-        <>
-          <button className="mid2-back-btn" onClick={() => navigate(-1)} aria-label="Back">
-            <ArrowLeft size={18} />
-          </button>
-          <span
-            className="mid2-badge"
-            style={
-              interval.status === 'COMPLETED'
-                ? {
-                    background: 'rgba(37,186,76,0.08)',
-                    color: '#15803d',
-                    border: '1px solid rgba(37,186,76,0.2)',
-                  }
-                : {
-                    background: 'rgba(251,191,35,0.08)',
-                    color: '#b45309',
-                    border: '1px solid rgba(251,191,35,0.2)',
-                  }
-            }
-          >
-            {interval.status}
-          </span>
-          {feComputed && hasAnyFlag && (
-            <span
-              className="mid2-badge"
-              style={{
-                background: 'rgba(239,68,68,0.08)',
-                color: '#b91c1c',
-                border: '1px solid rgba(239,68,68,0.2)',
-              }}
+    <div className="mt-page-wrapper">
+      <PageShell
+        title={
+          <div className="mt-breadcrumb">
+            <button
+              type="button"
+              className="mt-breadcrumb__btn"
+              onClick={() => navigate('/mileage-tracking')}
+              title="Return to fleet overview"
             >
-              <AlertTriangle size={12} /> Anomaly Detected
-            </span>
-          )}
-          {feComputed && !hasAnyFlag && (
-            <span
-              className="mid2-badge"
-              style={{
-                background: 'rgba(37,186,76,0.08)',
-                color: '#15803d',
-                border: '1px solid rgba(37,186,76,0.2)',
-              }}
+              <ChevronLeft size={16} />
+              <span>Fleet Overview</span>
+            </button>
+            <span className="mt-breadcrumb__sep">/</span>
+            <button
+              type="button"
+              className="mt-breadcrumb__btn"
+              onClick={() =>
+                navigate(vehicleId ? `/mileage-tracking/vehicle/${vehicleId}` : '/mileage-tracking')
+              }
+              title="Return to vehicle intervals"
             >
-              <CheckCircle2 size={12} /> GPS Validated ✓
-            </span>
-          )}
-        </>
-      }
-    >
-      {feComputed && hasAnyFlag && flags.length > 0 && (
-        <div className="mid2-flag-banner">
-          <AlertTriangle size={18} />
-          <div>
-            <strong>Anomalies detected in FleetEdge comparison</strong>
-            <ul className="mid2-flag-list">
-              {flags.map((f, i) => (
-                <li key={i}>{f}</li>
-              ))}
-            </ul>
+              <span className="mt-plate-badge mt-mono">{vehName}</span>
+            </button>
+            <span className="mt-breadcrumb__sep">/</span>
+            <span className="mt-breadcrumb__current">Interval Detail</span>
           </div>
-        </div>
-      )}
-
-      <div className="mid2-grid-2">
-        <SectionCard title="System Mileage (Bill-Based)" icon={Gauge} iconColor="#2A4FD6">
-          <div className="mid2-metric-list">
-            <MetricRow
-              label="Start Odometer"
-              value={
-                interval.startOdometer != null
-                  ? `${interval.startOdometer.toLocaleString()} km`
-                  : '—'
+        }
+        subtitle={`Billing period: ${fmtDateShort(interval.startDate)} → ${fmtDateShort(interval.endDate || interval.startDate)} • Odometer: ${interval.startOdometer?.toLocaleString() || '—'} → ${interval.endOdometer?.toLocaleString() || '—'} km`}
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="mt-btn"
+              onClick={() =>
+                navigate(vehicleId ? `/mileage-tracking/vehicle/${vehicleId}` : '/mileage-tracking')
               }
+            >
+              <ChevronLeft size={14} />
+              <span>Back to Vehicle</span>
+            </button>
+            <ExportButton
+              rows={exportRows}
+              columns={exportColumns}
+              filename={`mileage-audit-${vehName}-${id}`}
+              buttonClass="mt-btn"
             />
-            <MetricRow
-              label="End Odometer"
-              value={
-                interval.endOdometer != null ? `${interval.endOdometer.toLocaleString()} km` : '—'
-              }
-            />
-            <MetricRow label="Distance" value={fmt(interval.distanceKm, 1, 'km')} />
-            <MetricRow label="Fuel Consumed" value={fmt(interval.fuelConsumedLiters, 2, 'L')} />
-            <MetricRow
-              label="Fuel Cost"
-              value={
-                fuelCost
-                  ? `₹${fuelCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                  : '—'
-              }
-            />
-            {routeSource && (
-              <MetricRow
-                label="Route From"
-                value={`${routeSource.name}${routeSource.city ? `, ${routeSource.city}` : ''}`}
-              />
+            {interval.status === 'COMPLETED' ? (
+              <span className="mt-badge-completed">
+                <CheckCircle2 size={13} />
+                <span>Completed</span>
+              </span>
+            ) : (
+              <span className="mt-badge-ongoing">
+                <Clock size={13} />
+                <span>Ongoing</span>
+              </span>
             )}
-            {routeDestination && (
-              <MetricRow
-                label="Route To"
-                value={`${routeDestination.name}${routeDestination.city ? `, ${routeDestination.city}` : ''}`}
-              />
+            {feComputed && hasAnyFlag && (
+              <span className="mt-badge-flagged">
+                <AlertTriangle size={13} />
+                <span>{flags.length} Flags</span>
+              </span>
             )}
-            <MetricRow label="Mileage" value={fmt(interval.mileageKmPerL, 2, 'km/L')} highlight />
-            <MetricRow label="Period Start" value={fmtDate(interval.startDate)} />
-            <MetricRow label="Period End" value={fmtDate(interval.endDate)} />
+            {feComputed && !hasAnyFlag && (
+              <span className="mt-badge-validated">
+                <CheckCircle2 size={13} />
+                <span>GPS Validated</span>
+              </span>
+            )}
+            {!feComputed && (
+              <span className="mt-badge-pending">
+                <Clock size={13} />
+                <span>GPS Pending</span>
+              </span>
+            )}
           </div>
-        </SectionCard>
+        }
+      >
+        <div className="mt-layer3-wrapper">
+          {/* 1. Slim Anomaly Alert Bar */}
+          {feComputed && hasAnyFlag && flags.length > 0 && <SlimAnomalyAlert flags={flags} />}
 
-        {feComputed ? (
-          <SectionCard title="FleetEdge GPS Validation" icon={Satellite} iconColor="#0891b2">
-            <div className="mid2-metric-list">
-              <MetricRow label="GPS Distance" value={fmt(fe.distanceKm, 1, 'km')} />
-              <MetricRow label="GPS Fuel Consumed" value={fmt(fe.fuelConsumedL, 2, 'L')} />
-              <MetricRow label="GPS Mileage" value={fmt(fe.mileageKmPerL, 2, 'km/L')} highlight />
-              <MetricRow label="DEF Consumed" value={fmt(fe.defConsumed, 2, 'L')} />
-              <MetricRow label="Snapshots" value={fe.snapshotCount ?? '—'} />
-              <MetricRow label="First Snapshot" value={fmtDate(fe.firstSnapshotAt)} />
-              <MetricRow label="Last Snapshot" value={fmtDate(fe.lastSnapshotAt)} />
-              <MetricRow label="Computed At" value={fmtDate(fe.computedAt)} />
-            </div>
-          </SectionCard>
-        ) : (
-          <SectionCard title="FleetEdge GPS Validation" icon={Satellite} iconColor="#6b7280">
-            <div className="mid2-gps-empty">
-              {fe.status === 'FAILED' ? (
-                <>
-                  <XCircle size={40} color="#b91c1c" />
-                  <p className="mid2-gps-empty-title">GPS Validation Failed</p>
-                  <p className="mid2-gps-empty-sub">
-                    {fe.failureReason || 'FleetEdge returned no data for this vehicle.'}
-                  </p>
-                  <p className="mid2-gps-empty-sub">Attempts: {fe.attempts ?? 0}</p>
-                </>
-              ) : (
-                <>
-                  <Satellite size={40} color="#94a3b8" />
-                  <p className="mid2-gps-empty-title">GPS Data Pending</p>
-                  <p className="mid2-gps-empty-sub">
-                    FleetEdge comparison has not been completed yet for this interval. The sync will
-                    run automatically.
-                  </p>
-                </>
-              )}
-            </div>
-          </SectionCard>
-        )}
-      </div>
-
-      {feComputed && (
-        <SectionCard
-          title="Variance Comparison — System vs GPS"
-          icon={Activity}
-          iconColor="#7c3aed"
-        >
-          <div className="mid2-variance-grid">
-            <VarianceBlock
-              label="Distance"
-              system={interval.distanceKm}
-              gps={fe.distanceKm}
-              varianceKm={fe.distanceVarianceKm}
-              variancePct={fe.distanceVariancePct}
-              unit=" km"
-            />
-            <VarianceBlock
-              label="Fuel Consumed"
-              system={interval.fuelConsumedLiters}
-              gps={fe.fuelConsumedL}
-              varianceKm={fe.fuelVarianceL}
-              variancePct={fe.fuelVariancePct}
-              unit=" L"
-            />
-            <VarianceBlock
-              label="Mileage"
-              system={interval.mileageKmPerL}
-              gps={fe.mileageKmPerL}
-              varianceKm={fe.mileageVariance}
+          {/* 2. Compact 3-KPI Executive Strip */}
+          <div className="mt-compact-hero">
+            <CompactKpiCard
+              type="mileage"
+              title="Effective Mileage"
+              icon={Gauge}
+              primaryValue={
+                interval.mileageKmPerL != null ? Number(interval.mileageKmPerL).toFixed(2) : '—'
+              }
+              unit="km/L"
+              systemValue={interval.mileageKmPerL}
+              gpsValue={fe.mileageKmPerL}
               variancePct={fe.mileageVariancePct}
-              unit=" km/L"
+              extraNote={
+                fe.mileageVariance != null
+                  ? `Δ ${fe.mileageVariance > 0 ? '+' : ''}${fe.mileageVariance.toFixed(2)} km/L`
+                  : null
+              }
             />
-          </div>
-          <div className="mid2-variance-legend">
-            <span style={{ color: '#15803d' }}>
-              <CheckCircle2 size={12} /> ≤10% — Normal
-            </span>
-            <span style={{ color: '#c56200' }}>
-              <AlertTriangle size={12} /> 10–50% — Review
-            </span>
-            <span style={{ color: '#b91c1c' }}>
-              <XCircle size={12} /> &gt;50% — Flagged
-            </span>
-          </div>
-        </SectionCard>
-      )}
 
-      <SectionCard title="Fuel Logs in this Interval" icon={Droplets} iconColor="#0891b2">
-        <div className="mid2-timeline">
-          {fuelEntries.map((entry, i) => (
-            <TimelineEntry
-              key={entry.log._id || i}
-              log={entry.log}
-              label={entry.label}
-              type={entry.type}
-              isLast={i === fuelEntries.length - 1}
+            <CompactKpiCard
+              type="distance"
+              title="Tracked Distance"
+              icon={Route}
+              primaryValue={
+                interval.distanceKm != null ? Number(interval.distanceKm).toFixed(1) : '—'
+              }
+              unit="km"
+              systemValue={interval.distanceKm}
+              gpsValue={fe.distanceKm}
+              variancePct={fe.distanceVariancePct}
+              extraNote={`Odo: ${interval.startOdometer?.toLocaleString() || '—'} → ${interval.endOdometer?.toLocaleString() || '—'}`}
             />
-          ))}
-          {!interval.endFuelLogId && (
-            <div className="mid2-tl-ongoing">
-              <Info size={14} /> Interval is still <strong>ONGOING</strong> — awaiting next full
-              tank fill.
-            </div>
-          )}
+
+            <CompactKpiCard
+              type="fuel"
+              title="Fuel Billed"
+              icon={Droplets}
+              primaryValue={
+                interval.fuelConsumedLiters != null
+                  ? Number(interval.fuelConsumedLiters).toFixed(2)
+                  : '—'
+              }
+              unit="L"
+              systemValue={interval.fuelConsumedLiters}
+              gpsValue={fe.fuelConsumedL}
+              variancePct={fe.fuelVariancePct}
+              extraNote={
+                fuelCost
+                  ? `Cost: ₹${fuelCost.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+                  : null
+              }
+            />
+          </div>
+
+          {/* 3. Reconciliation Audit Matrix Table */}
+          <ReconciliationMatrixTable interval={interval} />
+
+          {/* 4. Refuel Receipts Slips Table */}
+          <RefuelSlipsTable fuelEntries={fuelEntries} isOngoing={!interval.endFuelLogId} />
         </div>
-      </SectionCard>
-    </PageShell>
+      </PageShell>
+    </div>
   );
 };
 

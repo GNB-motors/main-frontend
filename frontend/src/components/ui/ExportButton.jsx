@@ -36,6 +36,7 @@ export default function ExportButton({
   disabled = false,
   newButtonStyle = false,
   compact = false,
+  buttonClass = '',
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -111,7 +112,7 @@ export default function ExportButton({
       ) : (
         <button
           type="button"
-          className="pshell-btn"
+          className={buttonClass || 'pshell-btn'}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
