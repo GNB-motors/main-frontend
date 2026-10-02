@@ -16,6 +16,11 @@ import {
   AlertTriangle,
   FileText,
   Check,
+  Search,
+  X,
+  Calendar,
+  Truck,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
@@ -282,6 +287,7 @@ const DATE_PRESETS = [
   { key: '7DAYS', label: 'Last 7 Days' },
   { key: 'THIS_MONTH', label: 'This Month' },
   { key: '30DAYS', label: 'Last 30 Days' },
+  { key: 'CUSTOM', label: 'Custom Range...' },
 ];
 
 const getPresetRange = (presetKey) => {
@@ -406,21 +412,29 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   }, [vehiclesData]);
 
   // Active date preset & handler
-  const activeDatePreset = useMemo(() => {
-    if (!range.from && !range.to) return 'ALL';
-    for (const preset of ['TODAY', 'YESTERDAY', '7DAYS', 'THIS_MONTH', '30DAYS']) {
-      const p = getPresetRange(preset);
-      if (p && p.from === range.from && p.to === range.to) return preset;
-    }
-    return 'CUSTOM';
-  }, [range]);
+  // Date preset state & handlers
+  const [datePreset, setDatePreset] = useState('ALL');
 
-  const handlePresetClick = (presetKey) => {
+  const handlePresetChange = (presetKey) => {
+    setDatePreset(presetKey);
+    if (presetKey === 'CUSTOM') {
+      return;
+    }
     const next = getPresetRange(presetKey);
     if (next) {
       setRange(next);
       setPagination((p) => ({ ...p, page: 1 }));
     }
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setDebouncedSearch('');
+    setSelectedVehicleId('');
+    setDatePreset('ALL');
+    setRange({ from: '', to: '' });
+    handleTabChange('all');
+    setPagination((p) => ({ ...p, page: 1 }));
   };
 
   // Debounce the search box, then snap back to page 1 so results start at the top.
@@ -633,8 +647,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     (debouncedSearch ? 1 : 0) +
     (activeTab !== 'all' ? 1 : 0) +
     (selectedVehicleId ? 1 : 0) +
-    (range.from ? 1 : 0) +
-    (range.to ? 1 : 0);
+    (datePreset !== 'ALL' || range.from || range.to ? 1 : 0);
 
   // Export carries every filtered row (paginated fetch in chunks), not just
   // the visible page — same contract as the hand-rolled export it replaces.
@@ -744,11 +757,18 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
             key: 'fuelType',
             label: 'Fuel Type',
             render: (log) => (
-              <span
-                className={`fuel-type-pill ${log.fuelType ? log.fuelType.toLowerCase() : 'unknown'}`}
-              >
-                {log.fuelType || 'Unknown'}
-              </span>
+              <div>
+                <span
+                  className={`fuel-type-pill ${log.fuelType ? log.fuelType.toLowerCase() : 'unknown'}`}
+                >
+                  {log.fuelType || 'Unknown'}
+                </span>
+                {log.notes && log.notes !== '-' && (
+                  <div className="cell-secondary" style={{ marginTop: 2 }}>
+                    {log.notes}
+                  </div>
+                )}
+              </div>
             ),
           },
         ]
@@ -839,11 +859,15 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         </>
       ),
     },
-    {
-      key: 'notes',
-      label: 'Type',
-      render: (log) => <div className="cell-primary">{log.notes || '-'}</div>,
-    },
+    ...(isFixedFuelType
+      ? [
+          {
+            key: 'notes',
+            label: 'Type',
+            render: (log) => <div className="cell-primary">{log.notes || '-'}</div>,
+          },
+        ]
+      : []),
     ...(isFixedFuelType
       ? [
           {
@@ -939,6 +963,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
 
   return (
     <PageShell
+      className="refuel-pshell"
       title={isFixedFuelType ? reportTitle : 'Refuel Logs'}
       subtitle={
         isFixedFuelType
@@ -958,90 +983,22 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
           meta={{ filters: exportFilters }}
         />
       }
-      filters={
-        <div className="refuel-filters-chassis">
-          <div className="refuel-presets-bar">
-            <span className="refuel-presets-label">Quick Range:</span>
-            <div className="refuel-presets-list">
-              {DATE_PRESETS.map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  className={`refuel-preset-chip ${activeDatePreset === p.key ? 'active' : ''}`}
-                  onClick={() => handlePresetClick(p.key)}
-                >
-                  {p.label}
-                </button>
-              ))}
-              {activeDatePreset === 'CUSTOM' && (
-                <span className="refuel-preset-chip active custom">Custom Range</span>
-              )}
-            </div>
-          </div>
-          <FilterBar
-            searchValue={searchTerm}
-            onSearchChange={setSearchTerm}
-            searchPlaceholder="Search vehicle, driver, or location"
-            chips={
-              isFixedFuelType
-                ? []
-                : filterTabs.map((tab) => ({
-                    key: tab.id,
-                    label: tab.label,
-                    count: totals ? totals[tab.countKey] : undefined,
-                  }))
-            }
-            selectedKeys={[activeTab]}
-            onToggleChip={handleTabChange}
-            from={range.from}
-            to={range.to}
-            onRangeChange={(patch) => {
-              setRange((prev) => ({ ...prev, ...patch }));
-              setPagination((p) => ({ ...p, page: 1 }));
-            }}
-            activeCount={activeFilterCount}
-            onClear={() => {
-              setSearchTerm('');
-              setSelectedVehicleId('');
-              setRange({ from: '', to: '' });
-              handleTabChange('all');
-            }}
-            right={
-              <select
-                className="refuel-filter-select"
-                value={selectedVehicleId}
-                onChange={(e) => {
-                  setSelectedVehicleId(e.target.value);
-                  setPagination((p) => ({ ...p, page: 1 }));
-                }}
-                aria-label="Filter by vehicle"
-              >
-                <option value="">All Vehicles</option>
-                {vehicles.map((v) => (
-                  <option key={v._id || v.id} value={v._id || v.id}>
-                    {v.registrationNumber || v.registration_no || v._id}
-                  </option>
-                ))}
-              </select>
-            }
-          />
-        </div>
-      }
       footer={
         pagination.total > 0
           ? `Showing ${logs.length} of ${pagination.total} logs${activeFilterCount ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}` : ''}`
           : null
       }
     >
-      {isFixedFuelType && totals ? (
-        <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
-          <ReportDataNotice
-            dataAsOf={totals?.lastRefuelAt}
-            label="Latest refuel in this view"
-            emptyText="No fuel bills match these filters."
-            staleHint="Fills after this date have not been logged as bills."
-          />
-          {totals ? (
+      <div className="refuel-page-container">
+        {/* Compact 6-Metric KPI Strip */}
+        {isFixedFuelType && totals ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <ReportDataNotice
+              dataAsOf={totals?.lastRefuelAt}
+              label="Latest refuel in this view"
+              emptyText="No fuel bills match these filters."
+              staleHint="Fills after this date have not been logged as bills."
+            />
             <div className="flex flex-wrap gap-3">
               <KpiCard
                 title="Litres"
@@ -1070,145 +1027,292 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
                 icon={<FileWarning size={18} />}
               />
             </div>
-          ) : null}
-        </div>
-      ) : !isFixedFuelType && totals ? (
-        <div className="refuel-kpi-grid">
-          <div
-            className={`refuel-kpi-card ${activeTab === 'verified' ? 'selected' : ''}`}
-            onClick={() => handleTabChange(activeTab === 'verified' ? 'all' : 'verified')}
-            title="Filter by Verified"
-          >
-            <div
-              className="refuel-kpi-icon"
-              style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}
-            >
-              <CheckCircle size={18} />
-            </div>
-            <div className="refuel-kpi-content">
-              <span className="refuel-kpi-title">Verified</span>
-              <span className="refuel-kpi-value">{formatNum(totals.verified)}</span>
-              <span className="refuel-kpi-hint">Matched with sensor</span>
-            </div>
           </div>
-
-          <div
-            className={`refuel-kpi-card ${activeTab === 'unverified' ? 'selected' : ''}`}
-            onClick={() => handleTabChange(activeTab === 'unverified' ? 'all' : 'unverified')}
-            title="Filter by Unverified (Needs Slip)"
-          >
-            <div
-              className="refuel-kpi-icon"
-              style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#d97706' }}
-            >
-              <AlertCircle size={18} />
-            </div>
-            <div className="refuel-kpi-content">
-              <span className="refuel-kpi-title">Unverified</span>
-              <span className="refuel-kpi-value" style={{ color: '#b45309' }}>
-                {formatNum(totals.unverified)}
-              </span>
-              <span className="refuel-kpi-hint">Needs driver slip</span>
-            </div>
-          </div>
-
-          <div
-            className={`refuel-kpi-card ${activeTab === 'flagged' ? 'selected' : ''}`}
-            onClick={() => handleTabChange(activeTab === 'flagged' ? 'all' : 'flagged')}
-            title="Filter by High Variance"
-          >
-            <div
-              className="refuel-kpi-icon"
-              style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#dc2626' }}
-            >
-              <AlertTriangle size={18} />
-            </div>
-            <div className="refuel-kpi-content">
-              <span className="refuel-kpi-title">Flagged</span>
-              <span className="refuel-kpi-value" style={{ color: '#dc2626' }}>
-                {formatNum(totals.flagged)}
-              </span>
-              <span className="refuel-kpi-hint">Variance flagged</span>
-            </div>
-          </div>
-
-          <div
-            className={`refuel-kpi-card ${activeTab === 'slip_only' ? 'selected' : ''}`}
-            onClick={() => handleTabChange(activeTab === 'slip_only' ? 'all' : 'slip_only')}
-            title="Filter by Slip Only"
-          >
-            <div
-              className="refuel-kpi-icon"
-              style={{ background: 'rgba(100, 116, 139, 0.12)', color: '#475569' }}
-            >
-              <FileText size={18} />
-            </div>
-            <div className="refuel-kpi-content">
-              <span className="refuel-kpi-title">Slip Only</span>
-              <span className="refuel-kpi-value">{formatNum(totals.slipOnly)}</span>
-              <span className="refuel-kpi-hint">No sensor jump</span>
-            </div>
-          </div>
-
-          <div className="refuel-kpi-card stat-only">
-            <div
-              className="refuel-kpi-icon"
-              style={{ background: 'rgba(13, 148, 136, 0.12)', color: '#0d9488' }}
-            >
-              <Fuel size={18} />
-            </div>
-            <div className="refuel-kpi-content">
-              <span className="refuel-kpi-title">Total Litres</span>
-              <span className="refuel-kpi-value mono">
+        ) : !isFixedFuelType && totals ? (
+          <div className="refuel-kpi-grid">
+            {/* Total Litres */}
+            <div className="refuel-kpi-card stat-only">
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Total Litres</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--teal">
+                  <Fuel size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-teal-600 dark:text-teal-400">
                 {formatLitres(totals.totalLitres, { decimals: 0 })}
-              </span>
-              <span className="refuel-kpi-hint">Fuel volume</span>
+              </div>
+              <span className="refuel-kpi-card__hint">Fuel volume</span>
             </div>
+
+            {/* Verified Spend */}
+            <div className="refuel-kpi-card stat-only">
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Verified Spend</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--blue">
+                  <IndianRupee size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-blue-600 dark:text-blue-400">
+                {formatINR(totals.totalSpendInr)}
+              </div>
+              <span className="refuel-kpi-card__hint">From verified slips</span>
+            </div>
+
+            {/* Verified (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                activeTab === 'verified' ? 'is-active' : ''
+              }`}
+              onClick={() => handleTabChange(activeTab === 'verified' ? 'all' : 'verified')}
+              title="Filter by Verified"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Verified</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--green">
+                  <CheckCircle size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-emerald-600 dark:text-emerald-400">
+                {formatNum(totals.verified)}
+              </div>
+              <span className="refuel-kpi-card__hint">Matched with sensor</span>
+            </button>
+
+            {/* Unverified (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                totals.unverified > 0 ? 'refuel-kpi-card--warn' : ''
+              } ${activeTab === 'unverified' ? 'is-active' : ''}`}
+              onClick={() => handleTabChange(activeTab === 'unverified' ? 'all' : 'unverified')}
+              title="Filter by Unverified (Needs Slip)"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Unverified</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--amber">
+                  <AlertCircle size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-amber-600 dark:text-amber-400">
+                {formatNum(totals.unverified)}
+              </div>
+              <span className="refuel-kpi-card__hint">Needs driver slip</span>
+            </button>
+
+            {/* Flagged (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                totals.flagged > 0 ? 'refuel-kpi-card--alert' : ''
+              } ${activeTab === 'flagged' ? 'is-active' : ''}`}
+              onClick={() => handleTabChange(activeTab === 'flagged' ? 'all' : 'flagged')}
+              title="Filter by High Variance"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Flagged</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--red">
+                  <AlertTriangle size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-red-600 dark:text-red-400">
+                {formatNum(totals.flagged)}
+              </div>
+              <span className="refuel-kpi-card__hint">Variance flagged</span>
+            </button>
+
+            {/* Slip Only (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                activeTab === 'slip_only' ? 'is-active' : ''
+              }`}
+              onClick={() => handleTabChange(activeTab === 'slip_only' ? 'all' : 'slip_only')}
+              title="Filter by Slip Only"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Slip Only</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--slate">
+                  <FileText size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-slate-600 dark:text-slate-400">
+                {formatNum(totals.slipOnly)}
+              </div>
+              <span className="refuel-kpi-card__hint">No sensor jump</span>
+            </button>
+          </div>
+        ) : null}
+
+        {/* Unified Single Toolbar: Status Tabs + Inline Filter Controls */}
+        <div className="refuel-toolbar">
+          {/* Segmented Status Tabs */}
+          <div className="refuel-tabs" role="tablist">
+            {filterTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const count = totals ? totals[tab.countKey] : undefined;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`refuel-tab ${isActive ? 'is-active' : ''}`}
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  <span>{tab.label}</span>
+                  {count != null && (
+                    <span
+                      className={`refuel-tab__count ${
+                        tab.id === 'unverified' && count > 0
+                          ? 'refuel-tab__count--warn'
+                          : tab.id === 'flagged' && count > 0
+                            ? 'refuel-tab__count--alert'
+                            : ''
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="refuel-kpi-card stat-only">
-            <div
-              className="refuel-kpi-icon"
-              style={{ background: 'rgba(37, 99, 235, 0.12)', color: '#2563eb' }}
-            >
-              <IndianRupee size={18} />
+          {/* Inline Filter Controls */}
+          <div className="refuel-filters-row">
+            {/* Quick Date Range Preset Select */}
+            <div className="refuel-select-wrap">
+              <Calendar size={13} className="refuel-select-icon" />
+              <select
+                value={datePreset}
+                onChange={(e) => handlePresetChange(e.target.value)}
+                className="refuel-select refuel-select--compact"
+                aria-label="Filter by date range"
+              >
+                {DATE_PRESETS.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="refuel-kpi-content">
-              <span className="refuel-kpi-title">Verified Spend</span>
-              <span className="refuel-kpi-value mono">{formatINR(totals.totalSpendInr)}</span>
-              <span className="refuel-kpi-hint">From verified slips</span>
+
+            {/* Custom Dates Input */}
+            {datePreset === 'CUSTOM' && (
+              <div className="refuel-custom-dates">
+                <input
+                  type="date"
+                  className="refuel-date-input"
+                  value={range.from || ''}
+                  onChange={(e) => {
+                    setRange((prev) => ({ ...prev, from: e.target.value }));
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  aria-label="From date"
+                />
+                <span className="refuel-date-sep">→</span>
+                <input
+                  type="date"
+                  className="refuel-date-input"
+                  value={range.to || ''}
+                  onChange={(e) => {
+                    setRange((prev) => ({ ...prev, to: e.target.value }));
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  aria-label="To date"
+                />
+              </div>
+            )}
+
+            {/* Vehicle Selector */}
+            <div className="refuel-select-wrap">
+              <Truck size={13} className="refuel-select-icon" />
+              <select
+                className="refuel-select refuel-select--compact"
+                value={selectedVehicleId}
+                onChange={(e) => {
+                  setSelectedVehicleId(e.target.value);
+                  setPagination((p) => ({ ...p, page: 1 }));
+                }}
+                aria-label="Filter by vehicle"
+              >
+                <option value="">All Vehicles</option>
+                {vehicles.map((v) => (
+                  <option key={v._id || v.id} value={v._id || v.id}>
+                    {v.registrationNumber || v.registration_no || v._id}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {/* Search Box */}
+            <div className="refuel-search-box">
+              <Search size={13} className="refuel-search-icon" />
+              <input
+                type="text"
+                className="refuel-search-input"
+                placeholder="Search vehicle, driver, or location…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search refuels"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="refuel-search-clear"
+                  onClick={() => setSearchTerm('')}
+                  aria-label="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Reset Filters */}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className="refuel-btn-reset"
+                onClick={handleResetFilters}
+                title="Reset all filters"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
-      ) : null}
-      <DataTable
-        columns={columns}
-        rows={logs}
-        rowKey={(log) => log.id}
-        rowClassName={(log) => {
-          if (log.verificationStatus === 'UNVERIFIED') return 'refuel-row-unverified';
-          if (log.verificationStatus === 'FLAGGED') return 'refuel-row-flagged';
-          return '';
-        }}
-        loading={loading}
-        error={!loading && error ? error : null}
-        onRetry={refetch}
-        showing={logs.length}
-        total={pagination.total}
-        activeFilters={activeFilterCount}
-        onRowClick={(log) => {
-          if (!isFixedFuelType) setComparisonLog(log);
-        }}
-        emptyTitle={isFiltered ? 'No refuel logs match' : 'No refuel logs yet'}
-        emptyHint={isFiltered ? 'Try adjusting your search or clearing filters.' : null}
-        emptyAction={
-          !isFiltered ? (
-            <button className="refuel-empty-action-btn" onClick={() => navigate(newLogPath)}>
-              <PlusCircle size={18} /> {emptyActionLabel}
-            </button>
-          ) : null
-        }
-      />
+
+        {/* DataTable */}
+        <DataTable
+          columns={columns}
+          rows={logs}
+          rowKey={(log) => log.id}
+          rowClassName={(log) => {
+            if (log.verificationStatus === 'UNVERIFIED') return 'refuel-row-unverified';
+            if (log.verificationStatus === 'FLAGGED') return 'refuel-row-flagged';
+            return '';
+          }}
+          loading={loading}
+          error={!loading && error ? error : null}
+          onRetry={refetch}
+          showing={logs.length}
+          total={pagination.total}
+          activeFilters={activeFilterCount}
+          onRowClick={(log) => {
+            if (!isFixedFuelType) setComparisonLog(log);
+          }}
+          emptyTitle={isFiltered ? 'No refuel logs match' : 'No refuel logs yet'}
+          emptyHint={isFiltered ? 'Try adjusting your search or clearing filters.' : null}
+          emptyAction={
+            !isFiltered ? (
+              <button className="refuel-empty-action-btn" onClick={() => navigate(newLogPath)}>
+                <PlusCircle size={18} /> {emptyActionLabel}
+              </button>
+            ) : null
+          }
+        />
+      </div>
 
       {/* Modern Pagination Footer */}
       {!loading && !error && pagination.total > PAGE_SIZE && (

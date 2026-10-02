@@ -82,7 +82,7 @@ describe('RefuelLogsPage', () => {
     apiClient.get.mockResolvedValue(mockFeedResponse);
   });
 
-  it('renders modern PageShell, Quick Presets bar, and KPI cards', async () => {
+  it('renders modern PageShell, unified toolbar with date presets, and KPI cards', async () => {
     render(
       <MemoryRouter>
         <RefuelLogsPage />
@@ -92,14 +92,15 @@ describe('RefuelLogsPage', () => {
     // Header title
     expect(screen.getByText('Refuel Logs')).toBeInTheDocument();
 
-    // Quick range presets
-    expect(screen.getByText('Quick Range:')).toBeInTheDocument();
-    expect(screen.getByText('All Dates')).toBeInTheDocument();
-    expect(screen.getByText('Today')).toBeInTheDocument();
-    expect(screen.getByText('Yesterday')).toBeInTheDocument();
-    expect(screen.getByText('Last 7 Days')).toBeInTheDocument();
-    expect(screen.getByText('This Month')).toBeInTheDocument();
-    expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
+    // Date range preset selector in unified toolbar
+    const dateSelect = screen.getByLabelText('Filter by date range');
+    expect(dateSelect).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'All Dates' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Yesterday' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Last 7 Days' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'This Month' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Last 30 Days' })).toBeInTheDocument();
 
     // Wait for API data to render KPI tiles
     await waitFor(() => {
@@ -136,7 +137,7 @@ describe('RefuelLogsPage', () => {
     expect(screen.getByRole('button', { name: /Upload Bill/i })).toBeInTheDocument();
   });
 
-  it('clicking a Quick Preset updates the date filter and refetches', async () => {
+  it('selecting a date preset updates the date filter and refetches', async () => {
     render(
       <MemoryRouter>
         <RefuelLogsPage />
@@ -147,11 +148,8 @@ describe('RefuelLogsPage', () => {
       expect(screen.getByText('WB25V8040')).toBeInTheDocument();
     });
 
-    const todayButton = screen.getByText('Today');
-    fireEvent.click(todayButton);
-
-    // Expect active preset class applied
-    expect(todayButton).toHaveClass('active');
+    const dateSelect = screen.getByLabelText('Filter by date range');
+    fireEvent.change(dateSelect, { target: { value: 'TODAY' } });
 
     // Expect API was called with date params
     await waitFor(() => {
