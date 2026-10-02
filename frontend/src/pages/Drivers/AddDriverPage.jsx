@@ -388,6 +388,7 @@ const AddDriverPage = () => {
         onSubmit={handleFooterSubmit}
         isSubmitting={isSubmitting}
         isEdit={isEdit}
+        fullWidth
       />
 
       {/* Import Employee — shown when the phone already exists in the enterprise. */}
