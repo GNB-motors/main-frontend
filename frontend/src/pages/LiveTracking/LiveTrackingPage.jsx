@@ -184,9 +184,7 @@ const LiveTrackingPage = () => {
       window.removeEventListener('themeColorChange', handleThemeChange);
     };
   }, []);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRailOpen, setIsRailOpen] = useState(true);
-  const [showLabels, setShowLabels] = useState(false);
   const [mapMode, setMapMode] = useState('map'); // 'map' | 'sat'
   const [isTelemetryOn, setIsTelemetryOn] = useState(true);
 
@@ -786,38 +784,6 @@ const LiveTrackingPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [replayState.on, exitReplay]);
 
-  // CSV Export
-  const handleExportCSV = useCallback(() => {
-    const rows = filteredVehicles;
-    const headers =
-      'plate,model,vin,status,location,fuel_l,ignition,gps,speed_kmh,last_update,lat,lng';
-    const lines = rows.map((v) => {
-      const st = NOVA_STATUS[v.status]?.label || v.status;
-      return [
-        v.plate,
-        `"${v.model || ''}"`,
-        v.vin || '',
-        st,
-        `"${v.area || ''}"`,
-        v.fuel != null ? v.fuel : '',
-        v.ignition,
-        v.gps,
-        v.speed != null ? v.speed : '',
-        `"${v.ago != null ? formatFullStamp(v.ago) : ''}"`,
-        v.hasFix ? v.lat.toFixed(5) : '',
-        v.hasFix ? v.lng.toFixed(5) : '',
-      ].join(',');
-    });
-    const csvContent = [headers, ...lines].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `live-tracking-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    showToast(`${rows.length} vehicles exported to CSV`);
-  }, [filteredVehicles, showToast]);
-
   // Refresh handler
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -866,26 +832,6 @@ const LiveTrackingPage = () => {
     );
   }, [shareDialog, createShareAndCopy, showToast]);
 
-  // Map Controls: Fit fleet
-  const handleFitFleet = useCallback(() => {
-    const map = mapRef.current;
-    if (!map || !window.google) return;
-    const valid = filteredVehicles.filter((v) => v.lat != null && v.lng != null);
-    if (!valid.length) {
-      map.panTo(INDIA_CENTER);
-      map.setZoom(5);
-      return;
-    }
-    if (valid.length === 1) {
-      map.panTo({ lat: valid[0].lat, lng: valid[0].lng });
-      map.setZoom(12);
-      return;
-    }
-    const bounds = new window.google.maps.LatLngBounds();
-    valid.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
-    map.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
-  }, [filteredVehicles]);
-
   // Zoom In / Out
   const handleZoomIn = useCallback(() => {
     if (mapRef.current) mapRef.current.setZoom((mapRef.current.getZoom() || 5) + 1);
@@ -899,11 +845,6 @@ const LiveTrackingPage = () => {
     if (mapRef.current && window.google) {
       window.google.maps.event.trigger(mapRef.current, 'resize');
     }
-  }, []);
-
-  // Toggle vehicle labels
-  const handleToggleLabels = useCallback(() => {
-    setShowLabels((prev) => !prev);
   }, []);
 
   // Connected status cards definition matching WheelsEye standard
@@ -952,7 +893,7 @@ const LiveTrackingPage = () => {
   );
 
   return (
-    <div className={`gnb-lt-page ${isFullscreen ? 'expanded' : ''}`}>
+    <div className="gnb-lt-page">
       {/* Main Console Container */}
       <main className="console">
         {/* Topbar Command Strip */}
@@ -1049,7 +990,7 @@ const LiveTrackingPage = () => {
                   {mapVehicles.map((v) => {
                     const isSelected = v.id === selectedId;
                     if (!v.hasFix) return null;
-                    const icon = createVehicleMarkerIcon(v, isSelected, showLabels, mapZoom);
+                    const icon = createVehicleMarkerIcon(v, isSelected, false, mapZoom);
                     return (
                       <MarkerF
                         key={v.id}
@@ -1161,40 +1102,8 @@ const LiveTrackingPage = () => {
               </button>
             </div>
 
-            {/* Overlay Left-Center: Quick Map Controls */}
+            {/* Overlay Left-Bottom: Zoom Controls */}
             <div className="ov ov--lc">
-              <button
-                className="ctrl"
-                title={isFullscreen ? 'Exit full screen' : 'Expand full screen'}
-                aria-label="Expand"
-                aria-pressed={isFullscreen}
-                onClick={() => {
-                  setIsFullscreen((prev) => !prev);
-                  setTimeout(triggerMapResize, 240);
-                }}
-              >
-                {renderIconSvg('expand', 18)}
-              </button>
-
-              <button
-                className="ctrl"
-                title="Vehicle labels"
-                aria-label="Vehicle labels"
-                aria-pressed={showLabels}
-                onClick={handleToggleLabels}
-              >
-                {renderIconSvg('tag', 18)}
-              </button>
-
-              <button
-                className="ctrl"
-                title="Fit fleet"
-                aria-label="Fit fleet"
-                onClick={handleFitFleet}
-              >
-                {renderIconSvg('locate', 18)}
-              </button>
-
               <button className="ctrl" title="Zoom in" aria-label="Zoom in" onClick={handleZoomIn}>
                 {renderIconSvg('plus', 18)}
               </button>
@@ -1390,11 +1299,6 @@ const LiveTrackingPage = () => {
                         : `${filteredVehicles.length} of ${vehicles.length} vehicles`}
                   </div>
                 </div>
-
-                <button className="btn btn--sm lt-csv-btn" onClick={handleExportCSV}>
-                  {renderIconSvg('download', 14)}
-                  CSV
-                </button>
 
                 <button
                   className="btn btn--sm btn--icon"

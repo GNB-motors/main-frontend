@@ -22,6 +22,7 @@ import DriverTable from './Component/DriverTable.jsx';
 import DriversPagination from './Component/DriversPagination.jsx';
 import DriverFilter from './Component/DriverFilter.jsx';
 import DriverTrendDrawer from './Component/DriverTrendDrawer.jsx';
+import BulkUploadDriversPanel from './BulkUploadDriversPanel.jsx';
 import {
   normalizeDriver,
   normalizeVehicleOption,
@@ -53,6 +54,7 @@ const DriversPage = () => {
   }, []);
 
   const [showTrendsDrawer, setShowTrendsDrawer] = useState(false);
+  const [showBulkPanel, setShowBulkPanel] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -340,7 +342,7 @@ const DriversPage = () => {
               variant="secondary"
               text="Bulk Upload"
               prependIcon={<Upload size={16} />}
-              onClick={() => navigate('/drivers/bulk-upload')}
+              onClick={() => setShowBulkPanel(true)}
             />
           </>
         }
@@ -462,6 +464,12 @@ const DriversPage = () => {
         isLoading={isActionSubmitting}
       />
       <DriverTrendDrawer isOpen={showTrendsDrawer} onClose={() => setShowTrendsDrawer(false)} />
+
+      <BulkUploadDriversPanel
+        isOpen={showBulkPanel}
+        onClose={() => setShowBulkPanel(false)}
+        onUploaded={fetchDrivers}
+      />
     </div>
   );
 };
