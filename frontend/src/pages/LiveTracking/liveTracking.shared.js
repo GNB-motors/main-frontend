@@ -308,7 +308,7 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
 
   // Relative sizing based on map zoom:
   // Smoothly increases marker & label dimensions as the client zooms in,
-  // and compacts them when zoomed out to prevent map clutter.
+  // and maintains a prominent, readable silhouette when zoomed out.
   const effectiveZoom =
     typeof zoom === 'number' && !isNaN(zoom) ? Math.max(4, Math.min(20, zoom)) : 12;
 
@@ -331,7 +331,7 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
   else scale = 0.64;
 
   if (isSelected) {
-    scale = Math.max(1.25, Number((scale * 1.18).toFixed(2)));
+    scale = Math.max(1.35, Number((scale * 1.15).toFixed(2)));
   }
 
   const rawStatus = (v.status || '').toString().toLowerCase();
@@ -382,15 +382,20 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     plateText.length > 0 && (isSelected || (showLabel && effectiveZoom >= 10)),
   );
   const shortPlate = plateText.length > 12 ? plateText.slice(-10) : plateText;
-  const labelFontSize = effectiveZoom >= 16 ? 15 : effectiveZoom >= 13 ? 14 : 13;
+  const labelFontSize = effectiveZoom >= 16 ? 16 : effectiveZoom >= 13 ? 15 : 14;
 
   // ViewBox: 96x96 base (or 96x124 with label plate)
   const vbW = 96;
   const vbH = hasLabel ? 124 : 96;
 
+  const baseW = 56;
+  const baseH = hasLabel ? 72 : 56;
+  const scaledW = Math.round(baseW * scale);
+  const scaledH = Math.round(baseH * scale);
+
   // Render authentic WheelsEye MovingTruckV2 SVG paths inside rotated wrapper:
   // Center of the truck is translated to (48, 48) and rotated around (48, 48)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="0 0 ${vbW} ${vbH}" fill="none">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${scaledW}" height="${scaledH}" viewBox="0 0 ${vbW} ${vbH}" fill="none" data-scale="${scaledW}">
     <defs>
       <filter id="fl-glow" x="-20%" y="-20%" width="140%" height="140%">
         <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.32"/>
@@ -456,22 +461,22 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
 
   // Truck footprint, bumped ~15% for better on-map visibility. Anchor stays at
   // half the base so the marker point sits at the truck's centre.
-  const baseW = 60;
-  const baseH = hasLabel ? 76 : 60;
-  const scaledW = Math.round(baseW * scale);
-  const scaledH = Math.round(baseH * scale);
-  const anchorX = Math.round(30 * scale);
-  const anchorY = Math.round(30 * scale);
+  const footprintBaseW = 60;
+  const footprintBaseH = hasLabel ? 76 : 60;
+  const footprintScaledW = Math.round(footprintBaseW * scale);
+  const footprintScaledH = Math.round(footprintBaseH * scale);
+  const footprintAnchorX = Math.round(30 * scale);
+  const footprintAnchorY = Math.round(30 * scale);
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
     scaledSize:
       typeof window !== 'undefined' && window.google
-        ? new window.google.maps.Size(scaledW, scaledH)
+        ? new window.google.maps.Size(footprintScaledW, footprintScaledH)
         : undefined,
     anchor:
       typeof window !== 'undefined' && window.google
-        ? new window.google.maps.Point(anchorX, anchorY)
+        ? new window.google.maps.Point(footprintAnchorX, footprintAnchorY)
         : undefined,
   };
 };

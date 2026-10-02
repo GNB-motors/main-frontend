@@ -512,7 +512,7 @@ a:hover {
 .gnb-lt-page.expanded {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 99999 !important;
+  z-index: 900 !important;
   width: 100vw !important;
   height: 100vh !important;
   margin: 0 !important;
@@ -699,11 +699,11 @@ a:hover {
 
 /* Active card state (dark navy background + white text + downward pointer arrow) */
 .gnb-status-card--active {
-  background: #0a1128 !important;
-  border-color: #0a1128 !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
   color: #ffffff !important;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(10, 17, 40, 0.28);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
   transform: translateY(-1px);
 }
 
@@ -725,7 +725,7 @@ a:hover {
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 6px solid #0a1128;
+  border-top: 6px solid #2563eb;
   z-index: 10;
   pointer-events: none;
 }
@@ -941,7 +941,7 @@ a:hover {
 }
 .mbtn .eyebrow-mini {
   font-family: var(--font-eyebrow);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 500;
@@ -1101,7 +1101,7 @@ a:hover {
   margin-top: 2px;
 }
 .rp-stat .k {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: var(--tracking-comfortable);
   color: var(--fg-secondary);
@@ -1424,7 +1424,7 @@ a:hover {
 }
 .destcard .ref {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-tertiary);
   margin-top: 3px;
 }
@@ -1536,7 +1536,7 @@ a:hover {
 }
 .fsearch kbd {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-secondary);
   border: 1px solid var(--border-default);
   border-radius: 4px;
@@ -1612,7 +1612,7 @@ a:hover {
   flex-wrap: wrap;
 }
 .vc-model {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--fg-secondary);
   background: var(--bg-surface);
@@ -1631,7 +1631,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1686,7 +1686,7 @@ a:hover {
   margin-top: 8px;
 }
 .vc-time {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-secondary);
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
@@ -1750,7 +1750,7 @@ a:hover {
   position: absolute;
   right: 24px;
   top: -2px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--fg-secondary);
   font-variant-numeric: tabular-nums;
@@ -1920,7 +1920,7 @@ a:hover {
 }
 .droute .eyebrow-mini {
   font-family: var(--font-eyebrow);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--fg-secondary);
@@ -2006,7 +2006,7 @@ a:hover {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-l);
   background: var(--bg-subtle);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--fg-secondary);
   transition: all var(--duration-micro) var(--ease-standard);
