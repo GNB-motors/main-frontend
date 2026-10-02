@@ -168,5 +168,16 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
       const res = filterByDatePreset(items, 'TODAY');
       expect(res).toHaveLength(1);
     });
+
+    it('prioritizes billDatetime over createdAt for refuel date filtering', () => {
+      const today = new Date().toISOString();
+      const lastYear = new Date(Date.now() - 365 * 86400000).toISOString();
+      // Bill dated last year, but received today over WhatsApp
+      const items = [{ billDatetime: lastYear, createdAt: today }];
+      const resToday = filterByDatePreset(items, 'TODAY');
+      expect(resToday).toHaveLength(0); // Not refueled today
+      const resAll = filterByDatePreset(items, 'ALL');
+      expect(resAll).toHaveLength(1);
+    });
   });
 });

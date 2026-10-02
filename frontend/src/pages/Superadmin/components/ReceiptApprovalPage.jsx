@@ -27,6 +27,8 @@ import {
   Sliders,
   Sparkles,
   Receipt,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import apiClient from '../../../utils/axiosConfig';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
@@ -109,6 +111,11 @@ const ReceiptApprovalPage = () => {
   const [dateFilter, setDateFilter] = useState('ALL'); // 'ALL' | 'TODAY' | 'YESTERDAY' | '7DAYS' | '30DAYS'
   const [odoFilter, setOdoFilter] = useState('ALL'); // 'ALL' | 'MISSING' | 'TELEMATICS' | 'PHOTO'
   const [anomalyFilter, setAnomalyFilter] = useState('ALL'); // 'ALL' | 'NEEDS_REVIEW' | 'MATH_VERIFIED'
+  const [sortDirection, setSortDirection] = useState('desc'); // 'desc' (newest refuel date first) | 'asc'
+
+  const toggleSort = () => {
+    setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+  };
 
   // Selection
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -238,8 +245,19 @@ const ReceiptApprovalPage = () => {
       });
     }
 
+    // Sort by Refuel Date (billDatetime), falling back to OCR datetime and createdAt
+    result = [...result].sort((a, b) => {
+      const dateA = new Date(
+        a.billDatetime || a.fuelOcr?.data?.datetime || a.createdAt || 0,
+      ).getTime();
+      const dateB = new Date(
+        b.billDatetime || b.fuelOcr?.data?.datetime || b.createdAt || 0,
+      ).getTime();
+      return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+
     return result;
-  }, [items, query, dateFilter, odoFilter, anomalyFilter]);
+  }, [items, query, dateFilter, odoFilter, anomalyFilter, sortDirection]);
 
   // Compute KPI stats across loaded list
   const kpis = useMemo(() => computeReceiptKpis(items), [items]);
@@ -696,7 +714,21 @@ const ReceiptApprovalPage = () => {
                 <th className="ra-center">Odometer</th>
                 <th className="ra-center">AI Extraction</th>
                 <th className="ra-center">Status</th>
-                <th>Received</th>
+                <th
+                  className="ra-sortable"
+                  onClick={toggleSort}
+                  title={`Sort by refuel date (${sortDirection === 'desc' ? 'Newest first' : 'Oldest first'})`}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span>Refuel Date</span>
+                    {sortDirection === 'desc' ? (
+                      <ArrowDown size={13} style={{ color: 'var(--primary, #2563eb)' }} />
+                    ) : (
+                      <ArrowUp size={13} style={{ color: 'var(--primary, #2563eb)' }} />
+                    )}
+                  </div>
+                </th>
                 <th className="ra-center">Actions</th>
               </tr>
             </thead>
@@ -883,11 +915,31 @@ const ReceiptApprovalPage = () => {
                         </span>
                       </td>
 
-                      {/* Received Timestamp */}
+                      {/* Refuel Timestamp */}
                       <td className="ra-muted" style={{ fontSize: '12px' }}>
-                        <div>{fmtDate(d.createdAt)}</div>
-                        <div style={{ fontSize: '11px', opacity: 0.75 }}>
-                          {fmtRelativeTime(d.createdAt)}
+                        <div
+                          style={{
+                            fontWeight: d.billDatetime ? 600 : 500,
+                            color: 'var(--foreground)',
+                          }}
+                        >
+                          {fmtDate(d.billDatetime || d.fuelOcr?.data?.datetime || d.createdAt)}
+                        </div>
+                        <div
+                          style={{ fontSize: '11px', opacity: 0.75 }}
+                          title={
+                            d.createdAt
+                              ? `Received via WhatsApp: ${fmtDate(d.createdAt)} (${fmtRelativeTime(d.createdAt)})`
+                              : undefined
+                          }
+                        >
+                          {d.billDatetime || d.fuelOcr?.data?.datetime ? (
+                            <span>
+                              {fmtRelativeTime(d.billDatetime || d.fuelOcr?.data?.datetime)}
+                            </span>
+                          ) : (
+                            <span>Recv: {fmtRelativeTime(d.createdAt)}</span>
+                          )}
                         </div>
                       </td>
 

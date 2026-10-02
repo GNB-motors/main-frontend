@@ -266,7 +266,7 @@ export const filterByDatePreset = (items, preset) => {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
   return items.filter((d) => {
-    const rawDate = d.createdAt || d.billDatetime;
+    const rawDate = d.billDatetime || d.fuelOcr?.data?.datetime || d.createdAt;
     if (!rawDate) return false;
     const time = new Date(rawDate).getTime();
     if (isNaN(time)) return false;

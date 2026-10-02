@@ -480,6 +480,19 @@
   white-space: nowrap;
 }
 
+.ra-table th.ra-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.ra-table th.ra-sortable:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--secondary) 85%, var(--primary, #2563eb));
+}
+
 .ra-table td {
   padding: 13px 14px;
   border-bottom: 1px solid var(--border);
