@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   Plus,
@@ -43,14 +43,16 @@ const TABS = [
 
 const ITEMS_PER_PAGE = 20;
 const EMPTY_SUMMARY = { total: 0, totalAmount: 0, last30: 0 };
+const VALID_TABS = ['SERVICE', 'REPAIR', 'ALERTS'];
 
 const ServiceIntelligencePage = () => {
   const navigate = useNavigate();
   const [themeColors, setThemeColors] = useState(getThemeCSS());
-  // Optional focusTab from location.state — set when navigating back from the
-  // add-page so the user lands on the tab they just contributed to.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab')?.toUpperCase();
   const navState = typeof window !== 'undefined' ? window.history.state?.usr || {} : {};
-  const [activeTab, setActiveTab] = useState(navState.focusTab || 'SERVICE');
+  const initialTab = VALID_TABS.includes(urlTab) ? urlTab : navState.focusTab || 'SERVICE';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const confirm = useConfirm();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -244,12 +246,26 @@ const ServiceIntelligencePage = () => {
 
   const switchTab = (tab) => {
     setActiveTab(tab);
+    setSearchParams({ tab: tab.toLowerCase() });
     setSearch('');
     setPage(1);
     setActivePriorityFilter('ALL');
     setActiveServiceFilter('ALL');
     isFirstRenderRef.current = true; // re-fire immediate load
   };
+
+  // Synchronize when URL search parameters change externally
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')?.toUpperCase();
+    if (tabParam && VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+      setSearch('');
+      setPage(1);
+      setActivePriorityFilter('ALL');
+      setActiveServiceFilter('ALL');
+      isFirstRenderRef.current = true;
+    }
+  }, [searchParams, activeTab]);
 
   const handlePageChange = (next) => {
     if (next >= 1 && next <= totalPages) setPage(next);
@@ -390,6 +406,32 @@ const ServiceIntelligencePage = () => {
         <PageShell
           title="Service Intelligence"
           subtitle="Manage vehicle service and repair history, track issue criticality (Axles, Brakes, Tyres), and resolve maintenance alerts."
+          actions={
+            isAlerts ? (
+              <NewButton
+                variant="secondary"
+                type="button"
+                text="Refresh Alerts"
+                prependIcon={
+                  <RefreshCw size={15} className={alertsRefreshing ? 'spin-anim' : ''} />
+                }
+                onClick={() => {
+                  setAlertsRefreshing(true);
+                  setAlertsRefreshKey((prev) => prev + 1);
+                  setTimeout(() => setAlertsRefreshing(false), 600);
+                  toast.info('Refreshing fleet alerts…');
+                }}
+              />
+            ) : (
+              <NewButton
+                variant="primary"
+                type="button"
+                text={isService ? 'Add Service' : 'Add Repair'}
+                prependIcon={<Plus size={16} />}
+                onClick={goToAdd}
+              />
+            )
+          }
         >
           {/* Segmented Glassmorphic Tab Bar - Always stationary at top */}
           <div className="si-tabs-container" role="tablist" aria-label="Service Intelligence Views">
@@ -424,38 +466,12 @@ const ServiceIntelligencePage = () => {
                   ? 'Search alerts by vehicle, category, or notes…'
                   : `Search vehicle, workshop, ${isService ? 'service category' : 'issue type'}, notes…`
               }
-              right={
-                isAlerts ? (
-                  <NewButton
-                    variant="secondary"
-                    type="button"
-                    text="Refresh Alerts"
-                    prependIcon={
-                      <RefreshCw size={15} className={alertsRefreshing ? 'spin-anim' : ''} />
-                    }
-                    onClick={() => {
-                      setAlertsRefreshing(true);
-                      setAlertsRefreshKey((prev) => prev + 1);
-                      setTimeout(() => setAlertsRefreshing(false), 600);
-                      toast.info('Refreshing fleet alerts…');
-                    }}
-                  />
-                ) : (
-                  <NewButton
-                    variant="primary"
-                    type="button"
-                    text={isService ? 'Add Service' : 'Add Repair'}
-                    prependIcon={<Plus size={16} />}
-                    onClick={goToAdd}
-                  />
-                )
-              }
             />
           </div>
 
           <div
             className="si-tab-view-container"
-            style={{ minHeight: '620px', transition: 'all 0.2s ease-in-out', width: '100%' }}
+            style={{ transition: 'all 0.2s ease-in-out', width: '100%' }}
           >
             {isAlerts ? (
               <AlertsTab search={search} refreshKey={alertsRefreshKey} />
@@ -474,7 +490,7 @@ const ServiceIntelligencePage = () => {
                       <KpiCard
                         title="Last 30 days"
                         value={summary.last30}
-                        accent="#f59e0b"
+                        accent="#2563eb"
                         icon={<CalendarCheck size={18} />}
                       />
                       <KpiCard
