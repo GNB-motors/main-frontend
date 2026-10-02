@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { ArrowLeft, Droplets } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import FuelLogForm from '../../components/FuelLogForm/FuelLogForm';
 import PageShell from '../../components/ui/PageShell';
 import './MileageTracking.css';
 
 const MileageFuelLogPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const el = document.querySelector('.page-content');
@@ -34,8 +35,11 @@ const MileageFuelLogPage = () => {
         }
       >
         <FuelLogForm
-          onSuccess={() => navigate('/mileage-tracking')}
-          onCancel={() => navigate('/mileage-tracking')}
+          initialVehicleId={searchParams.get('vehicleId')}
+          initialLitres={searchParams.get('litres')}
+          initialRefuelTime={searchParams.get('refuelTime')}
+          onSuccess={() => navigate(-1)}
+          onCancel={() => navigate(-1)}
         />
       </PageShell>
     </div>

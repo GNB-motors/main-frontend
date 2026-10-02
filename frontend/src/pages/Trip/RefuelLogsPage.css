@@ -948,3 +948,63 @@
 .refuel-form-row .form-group {
   min-width: 0;
 }
+
+/* Unified Refuel Logs styles */
+.refuel-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.refuel-status-badge.verified {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.refuel-status-badge.unverified {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.refuel-status-badge.slip_only {
+  background: rgba(107, 114, 128, 0.1);
+  color: #4b5563;
+}
+
+.refuel-status-badge.flagged {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.refuel-action-btn.primary-action {
+  background: var(--primary-color, #4f46e5);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  white-space: nowrap;
+  width: auto;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.refuel-action-btn.primary-action:hover {
+  background: #4338ca;
+  color: #ffffff;
+}
+
+.refuel-row-unverified td:first-child {
+  border-left: 3px solid #f59e0b;
+}
+
+.refuel-row-flagged td:first-child {
+  border-left: 3px solid #ef4444;
+}

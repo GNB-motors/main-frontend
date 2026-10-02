@@ -194,7 +194,6 @@ const DailyBriefPage = lazy(() => import('./pages/DailyBrief/DailyBriefPage.jsx'
 const OptimalSpeedPage = lazy(() => import('./pages/OptimalSpeed/OptimalSpeedPage.jsx'));
 const RefuelAdvisoryPage = lazy(() => import('./pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
 const DrivingDnaPage = lazy(() => import('./pages/DrivingDna/DrivingDnaPage.jsx'));
-const FuelSpendPage = lazy(() => import('./pages/FuelSpend/FuelSpendPage.jsx'));
 const DefLedgerPage = lazy(() => import('./pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('./pages/FleetCoverage/FleetCoveragePage.jsx'));
 const AuditTrailPage = lazy(() => import('./pages/AuditTrail/AuditTrailPage.jsx'));
@@ -382,7 +381,6 @@ function App() {
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
             <Route path="/idling-console" element={<IdlingConsolePage />} />
             <Route path="/daily-brief" element={<DailyBriefPage />} />
-            <Route path="/fuel-spend" element={<FuelSpendPage />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
             <Route path="/route-hub" element={<RouteHubPage />} />
@@ -461,7 +459,8 @@ function App() {
             <Route path="/model-comparison" element={<ModelComparisonPage />} />
             <Route path="/expected-mileage" element={<ModelComparisonPage />} />
             <Route path="/def-tracking" element={<Navigate to="/adblue-tracking" replace />} />
-            <Route path="/fuel-bills" element={<RefuelLogsPage />} />
+            <Route path="/fuel-bills" element={<Navigate to="/refuel-logs" replace />} />
+            <Route path="/fuel-spend" element={<Navigate to="/refuel-logs" replace />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />

@@ -159,8 +159,8 @@ export function FuelPanel({ recentFuelLogs, defBalance }) {
         <section className="v360-card">
           <div className="v360-card-head">
             <p className="v360-card-title">Fuel bills</p>
-            <Link to="/fuel-spend" className="v360-link">
-              All fuel spend →
+            <Link to="/refuel-logs" className="v360-link">
+              All refuel logs →
             </Link>
           </div>
           {logs.length === 0 ? (

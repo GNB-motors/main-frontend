@@ -29,7 +29,6 @@ const SLOW_PATH_PREFIXES = [
   '/api/mileage/model-comparison',
   '/api/mileage/intervals',
   '/api/adblue-logs/comparison',
-  '/api/fuel-spend',
   '/api/idling-reports',
   '/api/route-intelligence',
   '/api/fleet-coverage',

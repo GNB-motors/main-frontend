@@ -196,7 +196,7 @@ export default function DailyDigestPage() {
       label: 'Fuel spend',
       value: `₹${formatNum(m?.fuelCostInr || 0)}`,
       note: 'today',
-      to: '/fuel-spend',
+      to: '/refuel-logs',
     },
     {
       id: 'trips',
