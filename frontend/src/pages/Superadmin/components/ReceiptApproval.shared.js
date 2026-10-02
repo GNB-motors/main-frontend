@@ -160,10 +160,31 @@ export const getOdometerMeta = (draft) => {
   const reading = draft?.odometerReading;
   const source = (draft?.odometerSource || '').toUpperCase();
   const hasPhoto = !!draft?.odometerPhotoProvided;
-  const adminNotes = (draft?.adminNotes || '').toUpperCase();
-  const isMissing = reading == null || adminNotes.includes('MISSING_ODOMETER');
+  const rawAdminNotes = draft?.adminNotes || '';
+  const adminNotesUpper = rawAdminNotes.toUpperCase();
+  const isMissing = reading == null || adminNotesUpper.includes('MISSING_ODOMETER');
 
   if (isMissing) {
+    if (adminNotesUpper.includes('FLEETEDGE_ODO_MISS')) {
+      const match = rawAdminNotes.match(/\[FLEETEDGE_ODO_MISS:\s*([A-Z_]+)\]\s*([^;,\n]*)/i);
+      const rawReason = match?.[1] || 'TELEMATICS_MISS';
+      const detail = match?.[2] ? match[2].trim() : '';
+      const readable = rawReason
+        .replace(/_/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
+      return {
+        isMissing: true,
+        isTelematicsMiss: true,
+        badgeText: `FE Miss: ${readable}`,
+        badgeClass: 'ra-odo-badge--telematics-miss',
+        icon: 'alert',
+        displayReading: 'FE Miss',
+        detailHint: `FleetEdge telematics missed (${readable})${detail ? `: ${detail}` : ''}. Review telematics window or spread limit.`,
+      };
+    }
+
     return {
       isMissing: true,
       badgeText: 'Missing Odometer',

@@ -155,6 +155,7 @@ const fetchRefuelLogs = async (
       rawOdometer: log.odometerReading,
       rawLocation: log.location,
       reviewStatus: log.reviewStatus || null,
+      reviewReasons: log.reviewReasons || [],
       submissionChannel: log.submissionChannel || null,
     }));
     const total = response.data.meta?.total ?? mapped.length;
@@ -257,6 +258,7 @@ const fetchUnifiedLogs = async (
         rawOdometer: slip.odometerReading || null,
         rawLocation: slipLoc || pumpName || coordString || null,
         reviewStatus: slip.reviewStatus || null,
+        reviewReasons: slip.reviewReasons || [],
         submissionChannel: slip.submissionChannel || null,
         sensorId: sensor.id || null,
         sensorLitres: sensor.litres || null,
@@ -927,12 +929,42 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     {
       key: 'odometer',
       label: 'Odometer',
-      render: (log) => (
-        <>
-          <div className="cell-primary">{log.odometer ? `${log.odometer} km` : '-'}</div>
-          <div className="cell-secondary">Reading</div>
-        </>
-      ),
+      render: (log) => {
+        const hasOdo = log.odometer && log.odometer !== '-';
+        const missReason = (log.reviewReasons || []).find((r) => r.startsWith('ODOMETER_FE_MISS_'));
+        return (
+          <>
+            <div className="cell-primary">
+              {hasOdo ? (
+                `${log.odometer}${String(log.odometer).includes('km') ? '' : ' km'}`
+              ) : missReason ? (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 7px',
+                    borderRadius: '6px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: '#dc2626',
+                    border: '1px solid rgba(239, 68, 68, 0.28)',
+                    display: 'inline-block',
+                    cursor: 'help',
+                  }}
+                  title={`FleetEdge telematics miss: ${missReason.replace('ODOMETER_FE_MISS_', '').replace(/_/g, ' ')}. Review telematics window or spread threshold.`}
+                >
+                  FE Miss (
+                  {missReason.replace('ODOMETER_FE_MISS_', '').toLowerCase().replace(/_/g, ' ')})
+                </span>
+              ) : (
+                '-'
+              )}
+            </div>
+            <div className="cell-secondary">
+              {hasOdo ? 'Reading' : missReason ? 'Telematics gap' : 'No Reading'}
+            </div>
+          </>
+        );
+      },
     },
     ...(isFixedFuelType
       ? [
