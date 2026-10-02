@@ -29,8 +29,13 @@ const COLUMNS = [
     label: 'Vehicle',
     render: (row) => <span className="reg-plate">{row.registrationNumber || '—'}</span>,
   },
-  { key: 'startAt', label: 'Started', render: (row) => formatDateTimeIST(row.startAt) },
-  { key: 'endAt', label: 'Ended', render: (row) => formatDateTimeIST(row.endAt) },
+  {
+    key: 'startAt',
+    label: 'Started',
+    align: 'right',
+    render: (row) => formatDateTimeIST(row.startAt),
+  },
+  { key: 'endAt', label: 'Ended', align: 'right', render: (row) => formatDateTimeIST(row.endAt) },
   {
     key: 'durationMin',
     label: 'Duration',
@@ -123,7 +128,7 @@ export default function IdlingHistoryPanel() {
         emptyHint="Closed idle segments — a vehicle that stopped and then started moving again — show up here."
       />
       {meta.totalPages > 1 ? (
-        <Pagination>
+        <Pagination className="justify-end">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
