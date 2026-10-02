@@ -49,8 +49,8 @@
 }
 
 .pi-tile.is-active {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 2px var(--orange-tint);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .pi-tile--warn {

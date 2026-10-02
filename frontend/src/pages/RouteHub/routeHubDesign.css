@@ -310,8 +310,10 @@ html.dark .nova-rh {
   background: var(--bg-surface);
 }
 .nova-rh .nav a[aria-current='page'] {
-  background: var(--midnight-black-900);
-  color: #fff;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 .nova-rh .nav a b {
   font-size: 10px;
