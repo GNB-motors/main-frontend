@@ -8,6 +8,7 @@ const DeviationView = lazy(() => import('./views/DeviationView.jsx'));
 const ReplayView = lazy(() => import('./views/ReplayView.jsx'));
 const ProfitabilityView = lazy(() => import('./views/ProfitabilityView.jsx'));
 const OverspeedView = lazy(() => import('./views/OverspeedView.jsx'));
+const IntelligenceView = lazy(() => import('./views/IntelligenceView.jsx'));
 
 const VIEWS = [
   { key: 'overview', label: 'Overview', Component: OverviewView },
@@ -15,6 +16,7 @@ const VIEWS = [
   { key: 'replay', label: 'Route replay', Component: ReplayView },
   { key: 'profitability', label: 'Profitability', Component: ProfitabilityView },
   { key: 'overspeed', label: 'Overspeed audit', badge: 'overspeed', Component: OverspeedView },
+  { key: 'intelligence', label: 'Intelligence', Component: IntelligenceView }, // plan P5.6 (maths R22)
 ];
 
 /**

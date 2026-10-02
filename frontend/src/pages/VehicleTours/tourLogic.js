@@ -36,6 +36,7 @@ export const PASS_REASON_LABEL = {
 export const SOURCE_LABEL = {
   odometer: 'Odometer',
   road_snapped: 'Road-matched',
+  road_matched: 'Road distance (our engine)',
   gps_haversine: 'GPS straight-line',
   none: 'Unavailable',
 };

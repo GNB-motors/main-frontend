@@ -34,6 +34,7 @@ const SLOW_PATH_PREFIXES = [
   '/api/route-intelligence',
   '/api/fleet-coverage',
   '/api/livetracking/positions',
+  '/api/road',
   '/api/audit',
   '/api/hotspots',
   '/api/owner-value',
