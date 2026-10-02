@@ -739,7 +739,8 @@
 }
 
 /* Apply strict, uniform dimensions and typography across all 3 buttons */
-.vehicles-page-container .vehicles-actions-btn-group button {
+.vehicles-page-container .vehicles-actions-btn-group > button,
+.vehicles-page-container .vehicles-actions-btn-group > .xbtn > button {
   height: 42px !important;
   min-height: 42px !important;
   max-height: 42px !important;
@@ -751,7 +752,6 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -760,13 +760,14 @@
   white-space: nowrap !important;
 }
 
-.vehicles-page-container .vehicles-actions-btn-group button::before {
+.vehicles-page-container .vehicles-actions-btn-group > button::before,
+.vehicles-page-container .vehicles-actions-btn-group > .xbtn > button::before {
   display: none !important;
 }
 
 /* Secondary Buttons: Export & Bulk Upload (White with Blue border on all sides) */
-.vehicles-page-container .vehicles-actions-btn-group .xbtn button,
-.vehicles-page-container .vehicles-actions-btn-group button:not([class*='primary']) {
+.vehicles-page-container .vehicles-actions-btn-group > .xbtn > button,
+.vehicles-page-container .vehicles-actions-btn-group > button:not([class*='primary']) {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
   border: 1.5px solid #3b82f6 !important;
   color: #2563eb !important;
@@ -775,8 +776,8 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
 }
 
-.vehicles-page-container .vehicles-actions-btn-group .xbtn button:hover,
-.vehicles-page-container .vehicles-actions-btn-group button:not([class*='primary']):hover {
+.vehicles-page-container .vehicles-actions-btn-group > .xbtn > button:hover,
+.vehicles-page-container .vehicles-actions-btn-group > button:not([class*='primary']):hover {
   background: #eff6ff !important;
   border-color: #1d4ed8 !important;
   color: #1d4ed8 !important;
@@ -786,15 +787,15 @@
   transform: translateY(-1px) !important;
 }
 
-.vehicles-page-container .vehicles-actions-btn-group .xbtn button:active,
-.vehicles-page-container .vehicles-actions-btn-group button:not([class*='primary']):active {
+.vehicles-page-container .vehicles-actions-btn-group > .xbtn > button:active,
+.vehicles-page-container .vehicles-actions-btn-group > button:not([class*='primary']):active {
   transform: translateY(0) !important;
   box-shadow: 0 1px 2px rgba(37, 99, 235, 0.05) !important;
   background: #dbeafe !important;
 }
 
 /* Primary Button: Add Vehicle */
-.vehicles-page-container .vehicles-actions-btn-group button[class*='primary'] {
+.vehicles-page-container .vehicles-actions-btn-group > button[class*='primary'] {
   background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
   border: 1.5px solid #1d4ed8 !important;
   color: #ffffff !important;
@@ -803,7 +804,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
 }
 
-.vehicles-page-container .vehicles-actions-btn-group button[class*='primary']:hover {
+.vehicles-page-container .vehicles-actions-btn-group > button[class*='primary']:hover {
   background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
   border-color: #1e40af !important;
   color: #ffffff !important;
@@ -813,7 +814,7 @@
   transform: translateY(-1px) !important;
 }
 
-.vehicles-page-container .vehicles-actions-btn-group button[class*='primary']:active {
+.vehicles-page-container .vehicles-actions-btn-group > button[class*='primary']:active {
   transform: translateY(0) !important;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
 }
@@ -830,7 +831,13 @@
 }
 
 /* Polished dropdown menu for Export */
-.xbtn-menu {
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  right: auto !important;
+  min-width: 250px !important;
+  background: #ffffff !important;
   border-radius: 12px !important;
   border: 1px solid #e2e8f0 !important;
   box-shadow:
@@ -838,11 +845,75 @@
     0 8px 10px -6px rgba(15, 23, 42, 0.06) !important;
   overflow: hidden !important;
   padding: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  z-index: 100 !important;
 }
 
-.xbtn-item {
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu .xbtn-item {
+  height: auto !important;
+  min-height: unset !important;
+  max-height: unset !important;
+  width: 100% !important;
   border-radius: 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 9px 12px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  gap: 10px !important;
+  font-size: 13px !important;
+  font-weight: normal !important;
+  line-height: normal !important;
+  color: #1e293b !important;
+  cursor: pointer !important;
+  transform: none !important;
+  white-space: normal !important;
   transition: all 0.15s ease !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu .xbtn-item:hover,
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu .xbtn-item:focus-visible {
+  background: #eff6ff !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+  color: #1e293b !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu .xbtn-item svg {
+  flex: 0 0 auto !important;
+  margin-top: 2px !important;
+  color: #2563eb !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu .xbtn-item span {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+  text-align: left !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu .xbtn-item strong {
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+  text-align: left !important;
+}
+
+.vehicles-page-container .vehicles-actions-btn-group .xbtn-menu .xbtn-item small {
+  font-size: 11px !important;
+  color: #64748b !important;
+  line-height: 1.3 !important;
+  font-weight: 400 !important;
+  text-align: left !important;
 }
 
 .vehicles-content-wrapper {

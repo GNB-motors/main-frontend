@@ -2532,6 +2532,10 @@ a.ov-action:hover {
     0 10px 25px -5px rgba(15, 23, 42, 0.12),
     0 8px 10px -6px rgba(15, 23, 42, 0.06);
 }
+.xbtn-menu.is-left {
+  right: auto;
+  left: 0;
+}
 .xbtn-item {
   display: flex;
   align-items: flex-start;

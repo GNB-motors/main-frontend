@@ -269,6 +269,7 @@ const VehiclesPage = () => {
                 meta={vehicleExportMeta({ search: searchVehicleNo, accountMap })}
                 disabled={!exportRows.length}
                 newButtonStyle
+                align="left"
               />
               <NewButton
                 variant="secondary"
