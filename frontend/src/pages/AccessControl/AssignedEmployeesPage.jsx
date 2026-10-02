@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Building2, Shield, UserMinus, UserPlus } from 'lucide-react';
-import { PageHeader } from '../Drivers/Component';
 import AccessControlApi from './accessControlService';
 import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
@@ -50,7 +49,9 @@ const AssignedEmployeesPage = () => {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const employeeById = useMemo(
     () => new Map(employees.map((e) => [String(e._id || e.id), e])),
@@ -60,31 +61,40 @@ const AssignedEmployeesPage = () => {
   // Flatten each assignment with the fields the table, the search and the
   // export all read. baseRole is an UPPER_SNAKE enum — humanise it so it is
   // never rendered raw.
-  const rows = useMemo(() => assignments.map((a) => {
-    const emp = employeeById.get(String(a.userId));
-    return {
-      ...a,
-      employeeNameText: employeeName(emp),
-      employeeMobile: emp?.mobileNumber || '',
-      roleName: a.roleId?.name || 'Deleted role',
-      baseRoleLabel: a.roleId?.baseRole ? humanise(a.roleId.baseRole) : '',
-      appliesTo: a.scope === 'BRANCH' ? (a.branchId?.name || 'Location') : 'Enterprise (no location selected)',
-    };
-  }), [assignments, employeeById]);
+  const rows = useMemo(
+    () =>
+      assignments.map((a) => {
+        const emp = employeeById.get(String(a.userId));
+        return {
+          ...a,
+          employeeNameText: employeeName(emp),
+          employeeMobile: emp?.mobileNumber || '',
+          roleName: a.roleId?.name || 'Deleted role',
+          baseRoleLabel: a.roleId?.baseRole ? humanise(a.roleId.baseRole) : '',
+          appliesTo:
+            a.scope === 'BRANCH'
+              ? a.branchId?.name || 'Location'
+              : 'Enterprise (no location selected)',
+        };
+      }),
+    [assignments, employeeById],
+  );
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return rows;
     return rows.filter((r) =>
-      [r.employeeNameText, r.roleName, r.employeeMobile]
-        .some((value) => value.toLowerCase().includes(needle))
+      [r.employeeNameText, r.roleName, r.employeeMobile].some((value) =>
+        value.toLowerCase().includes(needle),
+      ),
     );
   }, [rows, q]);
 
   const columns = [
     { key: 'employeeNameText', label: 'Employee' },
     {
-      key: 'roleName', label: 'Role',
+      key: 'roleName',
+      label: 'Role',
       render: (r) => (
         <>
           <Shield size={14} /> {r.roleName}
@@ -93,13 +103,20 @@ const AssignedEmployeesPage = () => {
       ),
     },
     {
-      key: 'appliesTo', label: 'Applies to',
-      render: (r) => (r.scope === 'BRANCH'
-        ? <><Building2 size={14} /> {r.appliesTo}</>
-        : r.appliesTo),
+      key: 'appliesTo',
+      label: 'Applies to',
+      render: (r) =>
+        r.scope === 'BRANCH' ? (
+          <>
+            <Building2 size={14} /> {r.appliesTo}
+          </>
+        ) : (
+          r.appliesTo
+        ),
     },
     {
-      key: '_revoke', label: '',
+      key: '_revoke',
+      label: '',
       render: (r) => (
         <button
           type="button"
@@ -144,27 +161,29 @@ const AssignedEmployeesPage = () => {
 
   return (
     <div className="ff-page">
-      <PageHeader
-        backLabel="Access Control"
-        backPath="/access-control"
-        currentLabel="Assigned Employees"
-        title="Assigned Employees"
-        description="Everyone with a role assigned across your enterprise and its locations."
-      />
-
-      {error && <div className="ff-alert ff-alert--error" role="alert">{error}</div>}
+      {error && (
+        <div className="ff-alert ff-alert--error" role="alert">
+          {error}
+        </div>
+      )}
 
       <PageShell
-        title="Role assignments"
+        title="Assigned Employees"
+        subtitle="Everyone with a role assigned across your enterprise and its locations."
         count={filtered.length}
-        filters={(
+        actions={
+          <button type="button" className="pshell-btn" onClick={() => window.history.back()}>
+            ← Back to Access Control
+          </button>
+        }
+        filters={
           <FilterBar
             searchValue={q}
             onSearchChange={setQ}
             searchPlaceholder="Search name, role or mobile…"
             activeCount={activeFilterCount({ q })}
             onClear={() => setQ('')}
-            right={(
+            right={
               <ExportButton
                 rows={filtered}
                 columns={exportColumns}
@@ -174,9 +193,9 @@ const AssignedEmployeesPage = () => {
                   generatedAt: new Date(),
                 }}
               />
-            )}
+            }
           />
-        )}
+        }
         footer={footerSummary({
           showing: filtered.length,
           total: assignments.length,
@@ -185,7 +204,9 @@ const AssignedEmployeesPage = () => {
       >
         {!loading && assignments.length === 0 && !error ? (
           <div className="ff-state">
-            <div className="ff-state__icon"><UserPlus size={22} /></div>
+            <div className="ff-state__icon">
+              <UserPlus size={22} />
+            </div>
             <div className="ff-state__title">Nobody has been assigned a role yet</div>
             <div>Assign roles from the Enterprise Roles tab.</div>
           </div>

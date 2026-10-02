@@ -22,22 +22,22 @@
 }
 
 .ac-tab:hover {
-  color: #4f46e5;
+  color: var(--primary-color, #2563eb);
 }
 
 .ac-tab--active {
-  color: #4f46e5;
-  border-bottom-color: #4f46e5;
+  color: var(--primary-color, #2563eb);
+  border-bottom-color: var(--primary-color, #2563eb);
 }
 
 /* Role/tier badges (also reused by AssignedEmployeesPage for baseRoleLabel). */
 .ac-chip {
   display: inline-block;
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 999px;
   margin-left: 8px;
   vertical-align: middle;
@@ -92,11 +92,22 @@
 }
 
 .ac-modal__tree {
-  max-height: 320px;
+  max-height: 420px;
   overflow-y: auto;
   border: 1px solid #e6e8ef;
   border-radius: 10px;
   padding: 0 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.ac-modal__tree::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ac-modal__tree::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 /* Warning callout — assigning a role that replaces an existing one. */
@@ -109,20 +120,20 @@
 /* Full-page sticky Save/Cancel bar — matches Drivers/Component/FormFooter.css
    (same class names, kept as a per-page copy per this codebase's convention). */
 .form-footer {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 12px 24px;
+  padding: 14px 24px;
   border-top: 1px solid #dfdfe2;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
   width: 100%;
   box-sizing: border-box;
-  z-index: 100;
-  min-height: 64px;
+  z-index: 40;
+  min-height: 60px;
+  margin-top: 24px;
 }
 
 .form-footer-content {
