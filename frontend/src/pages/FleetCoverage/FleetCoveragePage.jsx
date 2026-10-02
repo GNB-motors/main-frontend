@@ -79,6 +79,7 @@ export default function FleetCoveragePage() {
   const [addingKey, setAddingKey] = useState(null);
   const [bulkAdding, setBulkAdding] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
+  const [activeTab, setActiveTab] = useState('edge');
 
   const canAddVehicles = ADD_TO_FLEET_ROLES.includes(getUserRole());
   const businessRefId = getProfileField('business_ref_id') || null;
@@ -300,117 +301,162 @@ export default function FleetCoveragePage() {
               />
             </div>
 
-            <div className="mt-4 space-y-4">
-              <TableShell
-                title="On FleetEdge, not in your fleet"
-                caption="These vehicles stream data to your FleetEdge account, but they are invisible to mileage, trips and alerts until you add them to your fleet."
-                actions={
-                  <div className="flex items-center gap-2">
-                    {canAddVehicles && selectedKeys.size > 0 ? (
-                      <NewButton
-                        variant="primary"
-                        size="sm"
-                        text={`Add ${selectedKeys.size} to fleet`}
-                        loading={bulkAdding}
-                        onClick={handleAddSelected}
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-200">
+                <button
+                  type="button"
+                  className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-colors ${
+                    activeTab === 'edge'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                  onClick={() => setActiveTab('edge')}
+                >
+                  <span>On FleetEdge, not in fleet</span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                      activeTab === 'edge'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {onlyEdgeFiltered.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-colors ${
+                    activeTab === 'master'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                  onClick={() => setActiveTab('master')}
+                >
+                  <span>In fleet master, not on FleetEdge</span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                      activeTab === 'master'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {onlyMasterFiltered.length}
+                  </span>
+                </button>
+              </div>
+
+              {activeTab === 'edge' ? (
+                <TableShell
+                  title="On FleetEdge, not in your fleet"
+                  caption="These vehicles stream data to your FleetEdge account, but they are invisible to mileage, trips and alerts until you add them to your fleet."
+                  actions={
+                    <div className="flex items-center gap-2">
+                      {canAddVehicles && selectedKeys.size > 0 ? (
+                        <NewButton
+                          variant="primary"
+                          size="sm"
+                          text={`Add ${selectedKeys.size} to fleet`}
+                          loading={bulkAdding}
+                          onClick={handleAddSelected}
+                        />
+                      ) : null}
+                      <ExportButton
+                        rows={onlyEdgeFiltered}
+                        columns={EDGE_EXPORT_COLUMNS}
+                        filename="fleet-coverage-fleetedge-only"
+                        meta={{
+                          filters: [
+                            { label: 'Search', value: q.trim() || '—' },
+                            { label: 'List', value: 'On FleetEdge, not in your fleet' },
+                          ],
+                          generatedAt: new Date(),
+                        }}
                       />
-                    ) : null}
-                    <ExportButton
+                    </div>
+                  }
+                >
+                  {onlyEdgeFiltered.length === 0 ? (
+                    <div className="px-4 pb-4">
+                      <EmptyState
+                        title={searching ? 'No vehicles match your search' : 'No gap here'}
+                        hint={
+                          searching
+                            ? 'Try a different registration number, model or manufacturer.'
+                            : 'Every vehicle on your FleetEdge account is already in your fleet master.'
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <DataTable
+                      columns={edgeColumns}
                       rows={onlyEdgeFiltered}
-                      columns={EDGE_EXPORT_COLUMNS}
-                      filename="fleet-coverage-fleetedge-only"
+                      rowKey={edgeRowKey}
+                      showing={onlyEdgeFiltered.length}
+                      total={onlyEdge.length}
+                      activeFilters={activeFilterCount({ q })}
+                      emptyTitle="No vehicles match your search"
+                      selectable={canAddVehicles}
+                      selectedKeys={selectedKeys}
+                      onSelectionChange={setSelectedKeys}
+                      isRowSelectable={(v) => isAddableRegistration(v.registrationNumber)}
+                    />
+                  )}
+                  {bulkResult ? (
+                    <div className="px-4 pb-4">
+                      <BulkUploadVehiclesResultSummary result={bulkResult} />
+                      <button
+                        type="button"
+                        className="text-dim mt-2 text-xs underline"
+                        onClick={() => setBulkResult(null)}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  ) : null}
+                </TableShell>
+              ) : (
+                <TableShell
+                  title="In fleet master, not on FleetEdge"
+                  caption="These vehicles exist in your fleet master but your FleetEdge account doesn't report them. Check the registration number or the device mapping."
+                  actions={
+                    <ExportButton
+                      rows={onlyMasterRows}
+                      columns={masterColumns}
+                      filename="fleet-coverage-master-only"
                       meta={{
                         filters: [
                           { label: 'Search', value: q.trim() || '—' },
-                          { label: 'List', value: 'On FleetEdge, not in your fleet' },
+                          { label: 'List', value: 'In fleet master, not on FleetEdge' },
                         ],
                         generatedAt: new Date(),
                       }}
                     />
-                  </div>
-                }
-              >
-                {onlyEdgeFiltered.length === 0 ? (
-                  <div className="px-4 pb-4">
-                    <EmptyState
-                      title={searching ? 'No vehicles match your search' : 'No gap here'}
-                      hint={
-                        searching
-                          ? 'Try a different registration number, model or manufacturer.'
-                          : 'Every vehicle on your FleetEdge account is already in your fleet master.'
-                      }
+                  }
+                >
+                  {onlyMasterFiltered.length === 0 ? (
+                    <div className="px-4 pb-4">
+                      <EmptyState
+                        title={searching ? 'No vehicles match your search' : 'No gap here'}
+                        hint={
+                          searching
+                            ? 'Try a different registration number, model or manufacturer.'
+                            : 'Every vehicle in your fleet master is reporting through FleetEdge.'
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <DataTable
+                      columns={masterColumns}
+                      rows={onlyMasterRows}
+                      rowKey={(v) => v.registrationNumber}
+                      showing={onlyMasterRows.length}
+                      total={onlyMaster.length}
+                      activeFilters={activeFilterCount({ q })}
+                      emptyTitle="No vehicles match your search"
                     />
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={edgeColumns}
-                    rows={onlyEdgeFiltered}
-                    rowKey={edgeRowKey}
-                    showing={onlyEdgeFiltered.length}
-                    total={onlyEdge.length}
-                    activeFilters={activeFilterCount({ q })}
-                    emptyTitle="No vehicles match your search"
-                    selectable={canAddVehicles}
-                    selectedKeys={selectedKeys}
-                    onSelectionChange={setSelectedKeys}
-                    isRowSelectable={(v) => isAddableRegistration(v.registrationNumber)}
-                  />
-                )}
-                {bulkResult ? (
-                  <div className="px-4 pb-4">
-                    <BulkUploadVehiclesResultSummary result={bulkResult} />
-                    <button
-                      type="button"
-                      className="text-dim mt-2 text-xs underline"
-                      onClick={() => setBulkResult(null)}
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                ) : null}
-              </TableShell>
-
-              <TableShell
-                title="In fleet master, not on FleetEdge"
-                caption="These vehicles exist in your fleet master but your FleetEdge account doesn't report them. Check the registration number or the device mapping."
-                actions={
-                  <ExportButton
-                    rows={onlyMasterRows}
-                    columns={masterColumns}
-                    filename="fleet-coverage-master-only"
-                    meta={{
-                      filters: [
-                        { label: 'Search', value: q.trim() || '—' },
-                        { label: 'List', value: 'In fleet master, not on FleetEdge' },
-                      ],
-                      generatedAt: new Date(),
-                    }}
-                  />
-                }
-              >
-                {onlyMasterFiltered.length === 0 ? (
-                  <div className="px-4 pb-4">
-                    <EmptyState
-                      title={searching ? 'No vehicles match your search' : 'No gap here'}
-                      hint={
-                        searching
-                          ? 'Try a different registration number, model or manufacturer.'
-                          : 'Every vehicle in your fleet master is reporting through FleetEdge.'
-                      }
-                    />
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={masterColumns}
-                    rows={onlyMasterRows}
-                    rowKey={(v) => v.registrationNumber}
-                    showing={onlyMasterRows.length}
-                    total={onlyMaster.length}
-                    activeFilters={activeFilterCount({ q })}
-                    emptyTitle="No vehicles match your search"
-                  />
-                )}
-              </TableShell>
+                  )}
+                </TableShell>
+              )}
 
               <p className="text-dim text-xs">
                 {formatNum(linkedCount)} vehicle{linkedCount === 1 ? '' : 's'} linked and reporting

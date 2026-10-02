@@ -43,9 +43,9 @@ const DATE_PRESETS = [
 
 const VARIANCE_OPTIONS = [
   { key: 'ALL', label: 'All Variances' },
-  { key: 'OVERBILLED', label: '⚠️ Flagged Overbilling' },
-  { key: 'CLEAN', label: '✓ Within Tolerance' },
-  { key: 'NO_DATA', label: '⚪ No Telematics' },
+  { key: 'OVERBILLED', label: 'Flagged Overbilling' },
+  { key: 'CLEAN', label: 'Within Tolerance' },
+  { key: 'NO_DATA', label: 'No Telematics' },
 ];
 
 const FuelComparisonPage = () => {
