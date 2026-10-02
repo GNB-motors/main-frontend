@@ -46,7 +46,7 @@ const BulkUploadVehiclesFileStep = ({
       </div>
       <div className="bulk-upload-text-primary">Click to upload spreadsheet</div>
       <div className="bulk-upload-text-secondary">
-        Supports .xlsx files with headers: Vehicle No, Model No, Chassis No
+        Supports .xlsx, .xls and .csv files with headers: Vehicle No, Model, Chassis No
       </div>
       <NewButton
         variant="primary"
@@ -60,7 +60,7 @@ const BulkUploadVehiclesFileStep = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".xlsx,.xls"
+        accept=".xlsx,.xls,.csv"
         onChange={onFileChange}
         style={{ display: 'none' }}
       />

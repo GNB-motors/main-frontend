@@ -1008,6 +1008,104 @@
   background: #fafbff;
 }
 
+/* ─── Places tab: table + detail ───────────────────────────────────────── */
+.pi-placestab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pi-placestab .pi-listhead {
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+}
+.pi-table-state {
+  padding: 8px;
+}
+.pi-places-table tbody tr.pi-row {
+  cursor: pointer;
+}
+.pi-places-table tbody tr.pi-row:hover,
+.pi-places-table tbody tr.pi-row:focus-visible {
+  background: #f6f8ff;
+  outline: none;
+}
+.pi-rowplace {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.pi-rowplace-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+.pi-rowplace-risk {
+  color: #c62828;
+  flex: 0 0 auto;
+}
+.pi-rowwhere {
+  color: var(--ds-ink3);
+}
+.pi-row-go {
+  color: var(--ds-ink3);
+  vertical-align: middle;
+}
+
+.pi-detailpage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pi-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+.pi-back:hover {
+  text-decoration: underline;
+}
+.pi-detailpage-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  gap: 16px;
+  align-items: start;
+}
+.pi-detailpage-main {
+  padding: 0;
+}
+.pi-detail-map {
+  position: sticky;
+  top: 12px;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.pi-detail-map .pi-map {
+  height: 440px;
+}
+@media (max-width: 900px) {
+  .pi-detailpage-body {
+    grid-template-columns: 1fr;
+  }
+  .pi-detail-map {
+    position: static;
+  }
+  .pi-detail-map .pi-map {
+    height: 280px;
+  }
+}
+
 .pi-leg {
   display: flex;
   align-items: center;
@@ -1080,6 +1178,15 @@
   }
 
   .pi-view--scroll {
+    overflow-y: auto;
+  }
+
+  /* Table/detail tabs (Places, Unexplained stops) are the scroll region
+     themselves, since they are not the inner-scrolling .pi-workspace. */
+  .pi-view > .pi-placestab,
+  .pi-view > .pi-detailpage {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 

@@ -7,7 +7,7 @@
   height: 100%;
   padding: 32px;
   background-color: #f8f9fa; /* Light grey background like the image */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   overflow-y: auto;
 }
 
@@ -78,7 +78,7 @@
 }
 
 .checkbox-card input {
-  accent-color: var(--primary-color, #3B82F6);
+  accent-color: var(--primary-color, #3b82f6);
   width: 16px;
   height: 16px;
 }
@@ -117,7 +117,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-color, #3B82F6);
+  color: var(--primary-color, #3b82f6);
   margin-bottom: 16px;
 }
 
@@ -185,7 +185,7 @@
 
 /* Buttons */
 .btn-primary {
-  background-color: var(--primary-color, #3B82F6);
+  background-color: var(--primary-color, #3b82f6);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -209,7 +209,8 @@
   font-size: 14px;
 }
 
-.btn-primary:disabled, .btn-secondary:disabled {
+.btn-primary:disabled,
+.btn-secondary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -224,8 +225,14 @@
   font-size: 12px;
   font-weight: 500;
 }
-.status-valid { background-color: #dcfce7; color: #166534; }
-.status-error { background-color: #fee2e2; color: #991b1b; }
+.status-valid {
+  background-color: #dcfce7;
+  color: #166534;
+}
+.status-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
 
 /* File Info Bar */
 .file-info-bar {
@@ -270,14 +277,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-color, #3B82F6);
+  color: var(--primary-color, #3b82f6);
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .row-action-btn:hover:not(:disabled) {
   background-color: #f0f0f3;
-  color: var(--primary-color, #3B82F6);
+  color: var(--primary-color, #3b82f6);
 }
 
 .row-action-btn:disabled {
@@ -310,4 +317,109 @@
 .row-action-btn.row-action-fix:hover:not(:disabled) {
   background-color: #b91c1c;
   color: white;
+}
+
+/* ─── Panel (drawer) variant ─────────────────────────────────────────────
+   The same flow inside the Vehicles-page side panel: tighter, no full-page
+   grey bleed, scrolls within the drawer body. */
+.bulk-upload-vehicles-container--panel {
+  height: auto;
+  min-height: 100%;
+  padding: 28px 20px 20px; /* a little more top room so the upload sits lower */
+  background-color: #f8fafc;
+  overflow: visible; /* the drawer body is the scroll region, not this */
+}
+
+.bulk-upload-vehicles-container--panel .bulk-upload-toolbar {
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* Compact dropzone so the panel doesn't need a long scroll before the data. */
+.bulk-upload-vehicles-container--panel .bulk-upload-dropzone {
+  padding: 28px 20px;
+}
+
+.bulk-upload-vehicles-container--panel .bulk-upload-icon-circle {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+}
+
+.bulk-upload-vehicles-container--panel .bulk-upload-text-secondary {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.bulk-upload-vehicles-container--panel .bulk-upload-card {
+  margin-bottom: 16px;
+}
+
+/* ─── Column mapping (map any sheet's columns to our fields) ──────────────── */
+.bulk-upload-mapping {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #fff;
+}
+
+.bulk-upload-mapping-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.bulk-upload-mapping-head span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.bulk-upload-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.bulk-upload-map-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bulk-upload-map-field > span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
+
+.bulk-upload-map-field em {
+  color: #dc2626;
+  font-style: normal;
+}
+
+.bulk-upload-map-field select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.bulk-upload-map-field select:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.bulk-upload-map-field select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
 }

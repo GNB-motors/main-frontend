@@ -19,6 +19,7 @@ import { VehicleService } from './VehicleService.jsx';
 import { listAccounts } from './FleetEdgeAccountService.jsx';
 import { getToken, getProfileField } from '../../utils/session.js';
 import { DeleteVehicleModal } from './VehicleModals.jsx';
+import BulkUploadVehiclesPanel from './BulkUploadVehiclesPanel.jsx';
 import { useVehicleColumns } from './useVehicleColumns.jsx';
 import {
   normalizeVehicle,
@@ -48,6 +49,7 @@ const VehiclesPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
+  const [showBulkPanel, setShowBulkPanel] = useState(false);
 
   // Update theme colors when component mounts
   useEffect(() => {
@@ -273,7 +275,7 @@ const VehiclesPage = () => {
                 type="button"
                 text="Bulk Upload"
                 prependIcon={<Upload size={15} />}
-                onClick={() => navigate('/vehicles/bulk-upload')}
+                onClick={() => setShowBulkPanel(true)}
                 disabled={isSubmitting}
               />
               <NewButton
@@ -392,6 +394,13 @@ const VehiclesPage = () => {
         onConfirm={handleRemoveVehicle}
         vehicle={deletingVehicle}
         isLoading={isSubmitting}
+      />
+
+      {/* Bulk Upload Side Panel */}
+      <BulkUploadVehiclesPanel
+        isOpen={showBulkPanel}
+        onClose={() => setShowBulkPanel(false)}
+        onUploaded={() => setRefreshKey((k) => k + 1)}
       />
     </div>
   );
