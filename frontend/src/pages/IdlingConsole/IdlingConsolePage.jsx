@@ -9,7 +9,7 @@ export default function IdlingConsolePage() {
   const [tab, setTab] = useState('live');
 
   return (
-    <div className="cluster-page">
+    <div className="cluster-page idling-console-page">
       <PageShell
         title="Idling Console"
         subtitle="Vehicles idling right now, and a history of past idle segments with an estimated ₹ cost."

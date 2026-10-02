@@ -1438,6 +1438,16 @@ a.ov-kpi:hover {
   align-items: center;
   gap: 10px;
 }
+
+/* Idling Console: right-align the filter row (search + date range). Scoped to
+   this page only — the shared .fbar stays left-aligned everywhere else. The
+   .fbar-right auto margin is neutralised so justify-end actually takes effect. */
+.idling-console-page .fbar {
+  justify-content: flex-end;
+}
+.idling-console-page .fbar-right {
+  margin-left: 0;
+}
 /* Clear all — a quiet ghost button that sits on the same 35px baseline as the
    other controls in the row, instead of a bare underlined hyperlink. Neutral
    ink (clearing is recoverable; red stays reserved for loss). */
