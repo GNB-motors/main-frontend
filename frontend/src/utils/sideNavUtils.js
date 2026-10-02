@@ -154,7 +154,7 @@ export const SIDE_NAV_ITEMS = [
     children: [
       { to: '/erp/pipeline', label: 'Trip Pipeline', key: 'erpOperations' },
       { to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', key: 'erpCnUpdation' },
-      { to: '/erp/trip-windows', label: 'Trip Windows', key: 'erpOperations' },
+      { to: '/erp/trip-windows', label: 'Trip Windows', key: ['erpOperations', 'erpTripClose'] },
     ],
     matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb', '/erp/trip-windows'],
   },
@@ -270,7 +270,6 @@ export const SIDE_NAV_ITEMS = [
       { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
       { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
       { to: '/driving-dna', label: 'Driving DNA', key: 'drivingDna' },
-      { to: '/erp/trip-windows', label: 'Trip Windows', key: 'fleetIntelligence' },
       // Route Intelligence, Deviation, Replay, Profitability and Overspeed
       // used to be five separate entries — now one card-based hub page.
       { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
@@ -284,7 +283,6 @@ export const SIDE_NAV_ITEMS = [
       '/optimal-speed',
       '/refuel-advisory',
       '/driving-dna',
-      '/erp/trip-windows',
       '/route-hub',
       '/route-intelligence',
       '/route-deviation',
@@ -367,7 +365,11 @@ export const getNavGroupId = (group) => group.groupId || group.key;
 
 /** Children visible for the current org's feature flags. */
 export const getVisibleNavChildren = (group, isEnabled) =>
-  (group.children || []).filter((child) => !child.key || isEnabled(child.key));
+  (group.children || []).filter((child) => {
+    if (!child.key) return true;
+    if (Array.isArray(child.key)) return child.key.every((k) => isEnabled(k));
+    return isEnabled(child.key);
+  });
 
 /**
  * Top-level items visible for the current org's feature flags.

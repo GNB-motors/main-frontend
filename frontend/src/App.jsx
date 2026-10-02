@@ -395,7 +395,6 @@ function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
             <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
-            <Route path="/erp/trip-windows" element={<TripWindowsPage />} />
             <Route
               path="/whatsapp-approvals"
               element={
@@ -519,6 +518,7 @@ function App() {
             <Route path="/erp/call-tasks" element={<CallTasksPage />} />
             <Route path="/erp/call-schedules" element={<CallSchedulesPage />} />
             <Route path="/erp/trips/:tripId" element={<ErpTripDetailPage />} />
+            <Route path="/erp/trip-windows" element={<TripWindowsPage />} />
 
             {/* Masters & Settings */}
             <Route path="/erp/parties" element={<PartiesPage />} />
