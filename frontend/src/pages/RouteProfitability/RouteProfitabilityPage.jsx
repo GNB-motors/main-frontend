@@ -191,8 +191,8 @@ export default function RouteProfitabilityPage() {
                 <span>Corridor Intel</span>
                 <ArrowRight size={12} />
               </Link>
-              <Link to="/fuel-spend" className="rp-stream-link">
-                <span>Fuel Spend</span>
+              <Link to="/refuel-logs" className="rp-stream-link">
+                <span>Refuel Logs</span>
                 <ArrowRight size={12} />
               </Link>
             </div>

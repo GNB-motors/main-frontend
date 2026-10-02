@@ -1155,44 +1155,86 @@ a.ov-kpi:hover {
   align-items: center;
   gap: 9px;
 }
-/* Secondary button (artboard §2): white on warm stone lines */
+/* Secondary button (Refresh / Export / Outline): white with blue border on all sides */
 .pshell-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 14px;
+  gap: 8px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px;
   font-size: 13.5px;
-  font-weight: 500;
-  border-radius: 9px;
-  border: 1px solid var(--ds-line2);
-  background: var(--color-white);
-  color: var(--ds-ink2);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 10px;
+  border: 1.5px solid #3b82f6;
+  background: #ffffff;
+  color: #2563eb;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
-.pshell-btn:hover {
-  border-color: var(--ds-ink3);
-  background: var(--ds-sunk);
-  color: var(--ds-ink);
+.pshell-btn:hover:not(:disabled) {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
-.pshell-btn:active {
-  background: var(--ds-line);
+.pshell-btn:active:not(:disabled) {
+  background: #dbeafe;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.05);
 }
-/* Primary: the AA-passing solid orange that carries white text */
+.pshell-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Primary button: solid blue action button */
 .pshell-btn--primary {
-  background: var(--orange-solid);
-  border-color: transparent;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1.5px solid #1d4ed8;
   color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
 }
-.pshell-btn--primary:hover {
-  background: var(--orange-hover);
-  border-color: transparent;
+.pshell-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  border-color: #1e40af;
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38);
 }
-.pshell-btn--primary:active {
-  background: var(--orange-active);
+.pshell-btn--primary:active:not(:disabled) {
+  background: #1e40af;
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+/* Cancel / Destructive action */
+.pshell-btn--cancel,
+.pshell-btn--danger {
+  background: #ffffff;
+  border: 1.5px solid #ef4444;
+  color: #dc2626;
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.05);
+}
+.pshell-btn--cancel:hover:not(:disabled),
+.pshell-btn--danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+.pshell-btn--cancel:active:not(:disabled),
+.pshell-btn--danger:active:not(:disabled) {
+  background: #fee2e2;
+  transform: translateY(0);
 }
 .pshell-footer {
   font-size: 12px;
@@ -1395,6 +1437,16 @@ a.ov-kpi:hover {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+}
+
+/* Idling Console: right-align the filter row (search + date range). Scoped to
+   this page only — the shared .fbar stays left-aligned everywhere else. The
+   .fbar-right auto margin is neutralised so justify-end actually takes effect. */
+.idling-console-page .fbar {
+  justify-content: flex-end;
+}
+.idling-console-page .fbar-right {
+  margin-left: 0;
 }
 /* Clear all — a quiet ghost button that sits on the same 35px baseline as the
    other controls in the row, instead of a bare underlined hyperlink. Neutral
@@ -2319,7 +2371,7 @@ a.ov-action:hover {
 
 /* Event table: flagged rows stand out with a coloured left edge */
 .ov-table tbody tr.fi-row-flag td:first-child {
-  box-shadow: inset 3px 0 0 var(--caution);
+  box-shadow: inset 3px 0 0 #2563eb;
 }
 .ov-table tbody tr.fi-row-crit td:first-child {
   box-shadow: inset 3px 0 0 var(--critical);
@@ -2464,55 +2516,73 @@ a.ov-action:hover {
     animation: none;
   }
 }
+.xbtn-chevron {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 2px;
+  color: #2563eb;
+  opacity: 0.8;
+}
+.xbtn.is-open .xbtn-chevron {
+  transform: rotate(180deg);
+}
 .xbtn-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  z-index: 40;
-  min-width: 240px;
+  z-index: 100;
+  min-width: 250px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   padding: 6px;
-  border-radius: 10px;
-  border: 1px solid var(--hairline);
-  background: var(--cluster-panel, var(--surface, #fff));
-  box-shadow: 0 10px 30px rgba(11, 18, 32, 0.18);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow:
+    0 10px 25px -5px rgba(15, 23, 42, 0.12),
+    0 8px 10px -6px rgba(15, 23, 42, 0.06);
+}
+.xbtn-menu.is-left {
+  right: auto;
+  left: 0;
 }
 .xbtn-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 9px 12px;
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--cluster-text, var(--ink));
+  color: #1e293b;
   cursor: pointer;
   text-align: left;
   font-size: 13px;
+  transition: all 0.15s ease;
 }
 .xbtn-item svg {
   flex: 0 0 auto;
   margin-top: 2px;
-  color: var(--gnb-400);
+  color: #2563eb;
 }
 .xbtn-item span {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 .xbtn-item strong {
   font-weight: 600;
+  color: #0f172a;
 }
 .xbtn-item small {
   font-size: 11px;
-  color: var(--cluster-text-dim, var(--ink-3));
+  color: #64748b;
+  line-height: 1.3;
 }
 .xbtn-item:hover,
 .xbtn-item:focus-visible {
-  background: color-mix(in srgb, var(--gnb-400) 8%, transparent);
+  background: #eff6ff;
   outline: none;
 }
 

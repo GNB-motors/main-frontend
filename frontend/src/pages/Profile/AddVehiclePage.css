@@ -258,23 +258,23 @@
 
 .add-vehicle-page .basic-info-outer-container,
 .add-vehicle-page .document-upload-outer-container {
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
+  background: transparent !important;
+  border: none !important;
   border-radius: 20px !important;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    0 10px 25px -5px rgba(0, 0, 0, 0.03) !important;
+  box-shadow: none !important;
   padding: 8px !important;
   outline: none !important;
   transition: all 0.2s ease;
 }
 
+/* Single flat surface: the inner panel shares the outer card's white so there is
+   no nested "card-in-a-card" grey/white seam. */
 .add-vehicle-page .basic-info-container,
 .add-vehicle-page .document-upload-container {
-  background: #ffffff !important;
+  background: transparent !important;
   border-radius: 14px !important;
   padding: 28px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  box-shadow: none !important;
 }
 
 /* Card Headers */
@@ -417,7 +417,8 @@
   z-index: 2;
 }
 
-.input-with-icon-wrapper:focus-within .input-lead-icon {
+.input-with-icon-wrapper:focus-within .input-lead-icon,
+.custom-select-wrapper:focus-within .input-lead-icon {
   color: #2563eb;
 }
 
@@ -435,8 +436,10 @@
   box-sizing: border-box !important;
 }
 
+.add-vehicle-page .input-with-icon-wrapper .basic-info-input,
 .input-with-icon-wrapper .basic-info-input {
-  padding-left: 42px !important;
+  padding-left: 44px !important;
+  padding-right: 14px !important;
 }
 
 .add-vehicle-page .basic-info-input:focus {
@@ -548,7 +551,7 @@
 /* Telemetry Selector with Live Beacon */
 .telemetry-lead-badge {
   position: absolute;
-  left: 12px;
+  left: 14px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -584,14 +587,28 @@
   align-items: center;
 }
 
+.add-vehicle-page .custom-select-wrapper select,
 .custom-select-wrapper select {
-  padding-left: 44px !important;
   cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 16px 16px !important;
+  padding-left: 44px !important;
+  padding-right: 40px !important;
+}
+
+/* Dedicated spacing when telemetry badge is present */
+.add-vehicle-page .custom-select-wrapper.select-with-telemetry-badge select,
+.add-vehicle-page .custom-select-wrapper select.select-with-telemetry-badge,
+.add-vehicle-page select.select-with-telemetry-badge,
+.custom-select-wrapper.select-with-telemetry-badge select,
+.custom-select-wrapper:has(.telemetry-lead-badge) select {
+  padding-left: 54px !important;
 }
 
 /* ==========================================================================
@@ -745,39 +762,12 @@
 }
 
 .add-vehicle-footer-inner {
-  max-width: 1240px;
   width: 100%;
-  margin: 0 auto;
   padding: 0 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   box-sizing: border-box;
-}
-
-.add-vehicle-footer-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.footer-status-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.footer-status-plate {
-  font-family: 'SF Pro Display', 'Inter', monospace;
-  font-weight: 700;
-  color: #0f172a;
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
 }
 
 .add-vehicle-footer-actions {
@@ -791,16 +781,18 @@
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #475569;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  color: #dc2626;
+  background: #ffffff;
+  border: 1.5px solid #ef4444;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .add-vehicle-btn-secondary:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #b91c1c;
+  transform: translateY(-1px);
 }
 
 .add-vehicle-btn-primary {
@@ -812,21 +804,23 @@
   font-size: 14px;
   font-weight: 600;
   color: #ffffff;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border: 1px solid #1e40af;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 1.5px solid #1d4ed8;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .add-vehicle-btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38);
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  border-color: #1e40af;
 }
 
 .add-vehicle-btn-primary:active:not(:disabled) {
   transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 
 .add-vehicle-btn-primary:disabled,
@@ -871,10 +865,6 @@
   .add-vehicle-page .basic-info-form-row {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
-  }
-
-  .add-vehicle-footer-status {
-    display: none;
   }
 
   .add-vehicle-footer-actions {

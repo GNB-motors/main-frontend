@@ -25,7 +25,17 @@ import {
   positionAt,
   toLatLngPath,
   toLatLngSegments,
+  applyRoadDistance,
 } from './routeReplay.js';
+import RoadService from '../../services/RoadService';
+import RoadTrailLayer from '../../components/map/RoadTrailLayer';
+import RoadTrailLegend from '../../components/map/RoadTrailLegend';
+import {
+  toLayers,
+  clipLayersAt,
+  positionAt as roadPositionAt,
+  summaryOf,
+} from '../../lib/roadTrail';
 import Truck3DErrorBoundary from './truck3d/Truck3DErrorBoundary.jsx';
 import { isWebGLAvailable } from './truck3d/truck3dMaths.js';
 import { formatNum } from '../../utils/formatters';
@@ -96,6 +106,7 @@ export default function RouteReplayPage({ params }) {
   const [tripId, setTripId] = useState(() => params?.get('trip') || '');
 
   const [trail, setTrail] = useState(null);
+  const [roadTrail, setRoadTrail] = useState(null); // road geometry and road distance (plan P4.10)
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -115,7 +126,10 @@ export default function RouteReplayPage({ params }) {
       .filter(Boolean);
   }, [vehiclesRes]);
 
-  const frames = useMemo(() => toFrames(trail?.points), [trail]);
+  const frames = useMemo(
+    () => applyRoadDistance(toFrames(trail?.points), roadTrail?.timeline),
+    [trail, roadTrail],
+  );
   const stats = useMemo(() => replayStats(frames), [frames]);
   const path = useMemo(() => toLatLngPath(frames), [frames]);
   const head = useMemo(() => positionAt(frames, progress), [frames, progress]);
@@ -124,6 +138,16 @@ export default function RouteReplayPage({ params }) {
   const travelledSegments = useMemo(
     () => toLatLngSegments(frames, head?.index ?? 0),
     [frames, head],
+  );
+  // Road geometry (plan P4.10): the travelled part and the truck position follow the road, not chords.
+  const roadLayers = useMemo(() => toLayers(roadTrail), [roadTrail]);
+  const roadTravelled = useMemo(
+    () => (head ? clipLayersAt(roadLayers, head.at) : []),
+    [roadLayers, head],
+  );
+  const truckAt = useMemo(
+    () => (head ? roadPositionAt(roadLayers, head.at) || head : null),
+    [roadLayers, head],
   );
 
   const webglOk = useMemo(() => isWebGLAvailable(), []);
@@ -175,9 +199,18 @@ export default function RouteReplayPage({ params }) {
           ...(wantTrip ? { tripId: wantTrip } : {}),
         });
         setTrail(data);
+        setRoadTrail(
+          data?.actualFrom && data?.actualTo
+            ? await RoadService.getRoadTrailIfEnabled(reg, {
+                from: data.actualFrom,
+                to: data.actualTo,
+              })
+            : null,
+        );
       } catch (err) {
         setError(err.detail || 'Could not load the trail for this vehicle.');
         setTrail(null);
+        setRoadTrail(null);
       } finally {
         setIsLoading(false);
       }
@@ -579,7 +612,11 @@ export default function RouteReplayPage({ params }) {
                 <RouteIcon size={12} />
               </span>
               <div className="rr-kpi-pill-meta">
-                <span className="rr-kpi-pill-label">Distance</span>
+                <span className="rr-kpi-pill-label">
+                  {frames[0]?.distanceSource === 'road'
+                    ? 'Distance on roads'
+                    : 'Distance (straight-line)'}
+                </span>
                 <span className="rr-kpi-pill-value">
                   {stats.distanceKm != null ? fmtKm(stats.distanceKm) : '0.0 km'}
                 </span>
@@ -701,27 +738,44 @@ export default function RouteReplayPage({ params }) {
             >
               {path.length > 1 && (
                 <>
-                  {/* Full path, split at inter-trip gaps */}
-                  {fullSegments.map(
-                    (seg, idx) =>
-                      seg.length > 1 && (
-                        <PolylineF
-                          key={`full-${idx}`}
-                          path={seg}
-                          options={{ strokeColor: '#94a3b8', strokeOpacity: 0.8, strokeWeight: 4 }}
-                        />
-                      ),
-                  )}
-                  {/* Travelled segment, same split */}
-                  {travelledSegments.map(
-                    (seg, idx) =>
-                      seg.length > 1 && (
-                        <PolylineF
-                          key={`travelled-${idx}`}
-                          path={seg}
-                          options={{ strokeColor: '#0284c7', strokeOpacity: 1, strokeWeight: 5 }}
-                        />
-                      ),
+                  {roadLayers.length > 0 ? (
+                    <>
+                      <RoadTrailLayer layers={roadLayers} color="#94a3b8" fleetColor="#c4b5fd" />
+                      <RoadTrailLayer layers={roadTravelled} color="#0284c7" />
+                    </>
+                  ) : (
+                    <>
+                      {/* Full path, split at inter-trip gaps */}
+                      {fullSegments.map(
+                        (seg, idx) =>
+                          seg.length > 1 && (
+                            <PolylineF
+                              key={`full-${idx}`}
+                              path={seg}
+                              options={{
+                                strokeColor: '#94a3b8',
+                                strokeOpacity: 0.8,
+                                strokeWeight: 4,
+                              }}
+                            />
+                          ),
+                      )}
+                      {/* Travelled segment, same split */}
+                      {travelledSegments.map(
+                        (seg, idx) =>
+                          seg.length > 1 && (
+                            <PolylineF
+                              key={`travelled-${idx}`}
+                              path={seg}
+                              options={{
+                                strokeColor: '#0284c7',
+                                strokeOpacity: 1,
+                                strokeWeight: 5,
+                              }}
+                            />
+                          ),
+                      )}
+                    </>
                   )}
                   {/* In range mode these are the first and last FIX in the
                       window, nothing more — calling them the trip's start and
@@ -751,7 +805,11 @@ export default function RouteReplayPage({ params }) {
                 </>
               )}
               {head && (viewMode === '2D' || !truckReady) && (
-                <MarkerF position={{ lat: head.lat, lng: head.lng }} icon={truckIcon} zIndex={99} />
+                <MarkerF
+                  position={{ lat: truckAt.lat, lng: truckAt.lng }}
+                  icon={truckIcon}
+                  zIndex={99}
+                />
               )}
             </GoogleMap>
           ) : (
@@ -776,6 +834,15 @@ export default function RouteReplayPage({ params }) {
             </div>
           )}
         </div>
+
+        {roadLayers.length > 0 && (
+          <RoadTrailLegend
+            layers={roadLayers}
+            calibrated={roadTrail?.calibrated}
+            summary={summaryOf(roadTrail)}
+            className="px-3 py-2"
+          />
+        )}
 
         {/* Playback Control Deck */}
         {frames.length >= 2 && (

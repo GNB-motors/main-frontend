@@ -512,7 +512,7 @@ a:hover {
 .gnb-lt-page.expanded {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 99999 !important;
+  z-index: 900 !important;
   width: 100vw !important;
   height: 100vh !important;
   margin: 0 !important;
@@ -699,11 +699,11 @@ a:hover {
 
 /* Active card state (dark navy background + white text + downward pointer arrow) */
 .gnb-status-card--active {
-  background: #0a1128 !important;
-  border-color: #0a1128 !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
   color: #ffffff !important;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(10, 17, 40, 0.28);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
   transform: translateY(-1px);
 }
 
@@ -725,7 +725,7 @@ a:hover {
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 6px solid #0a1128;
+  border-top: 6px solid #2563eb;
   z-index: 10;
   pointer-events: none;
 }
@@ -875,9 +875,10 @@ a:hover {
   display: none;
 }
 .ov--lc {
-  top: 50%;
+  top: auto;
+  bottom: 72px;
   left: var(--space-3);
-  transform: translateY(-50%);
+  transform: none;
   display: flex;
   flex-direction: column;
   background: var(--bg-surface);
@@ -940,7 +941,7 @@ a:hover {
 }
 .mbtn .eyebrow-mini {
   font-family: var(--font-eyebrow);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 500;
@@ -1100,7 +1101,7 @@ a:hover {
   margin-top: 2px;
 }
 .rp-stat .k {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: var(--tracking-comfortable);
   color: var(--fg-secondary);
@@ -1423,7 +1424,7 @@ a:hover {
 }
 .destcard .ref {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-tertiary);
   margin-top: 3px;
 }
@@ -1535,7 +1536,7 @@ a:hover {
 }
 .fsearch kbd {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-secondary);
   border: 1px solid var(--border-default);
   border-radius: 4px;
@@ -1611,7 +1612,7 @@ a:hover {
   flex-wrap: wrap;
 }
 .vc-model {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--fg-secondary);
   background: var(--bg-surface);
@@ -1630,7 +1631,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1685,7 +1686,7 @@ a:hover {
   margin-top: 8px;
 }
 .vc-time {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--fg-secondary);
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
@@ -1749,7 +1750,7 @@ a:hover {
   position: absolute;
   right: 24px;
   top: -2px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--fg-secondary);
   font-variant-numeric: tabular-nums;
@@ -1919,7 +1920,7 @@ a:hover {
 }
 .droute .eyebrow-mini {
   font-family: var(--font-eyebrow);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--fg-secondary);
@@ -2005,7 +2006,7 @@ a:hover {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-l);
   background: var(--bg-subtle);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--fg-secondary);
   transition: all var(--duration-micro) var(--ease-standard);
@@ -2085,109 +2086,6 @@ a:hover {
 .secnote {
   font-size: var(--type-2xs);
   color: var(--fg-secondary);
-}
-
-/* ---------- 360 modal ---------- */
-.modal {
-  position: absolute;
-  inset: 0;
-  z-index: 1600;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-}
-.modal.open {
-  display: flex;
-}
-.modal .scrim {
-  position: absolute;
-  inset: 0;
-  background: var(--bg-scrim);
-  backdrop-filter: blur(6px);
-}
-.modal .sheet {
-  position: relative;
-  width: min(620px, 100%);
-  max-height: 100%;
-  overflow: auto;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  animation: slideup var(--duration-medium) var(--ease-standard);
-}
-@keyframes slideup {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.modal .mhead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.modal .mhead .plate {
-  font-size: var(--type-s);
-  font-weight: 600;
-  letter-spacing: var(--tracking-concise);
-}
-.modal .mhead .sub {
-  color: var(--fg-secondary);
-  font-size: var(--type-2xs);
-}
-.viewport {
-  margin: var(--space-4);
-  height: 250px;
-  border-radius: var(--radius-l);
-  border: 1px solid var(--border-default);
-  background:
-    radial-gradient(120% 90% at 50% 100%, rgba(47, 88, 238, 0.07), transparent 60%),
-    repeating-linear-gradient(90deg, var(--border-subtle) 0 1px, transparent 1px 48px),
-    repeating-linear-gradient(0deg, var(--border-subtle) 0 1px, transparent 1px 48px),
-    var(--bg-subtle);
-  display: grid;
-  place-items: center;
-  gap: var(--space-2);
-  text-align: center;
-  color: var(--fg-secondary);
-}
-.viewport .ring {
-  width: 92px;
-  height: 92px;
-  border-radius: 50%;
-  border: 2px dashed var(--nova-rage-a40);
-  display: grid;
-  place-items: center;
-  color: var(--nova-rage-600);
-  animation: spinslow 18s linear infinite;
-}
-.viewport .ring svg {
-  animation: spinback 18s linear infinite;
-}
-@keyframes spinslow {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes spinback {
-  to {
-    transform: rotate(-360deg);
-  }
-}
-.angles {
-  display: flex;
-  gap: var(--space-2);
-  padding: 0 var(--space-4) var(--space-4);
-  flex-wrap: wrap;
-  align-items: center;
 }
 
 .toast {
@@ -2352,6 +2250,7 @@ html.dark .vcard:hover,
   }
   .ov--lc {
     top: var(--space-3);
+    bottom: auto;
     transform: none;
     flex-direction: row;
   }

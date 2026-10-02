@@ -1,121 +1,90 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, MapPin, Headphones, Bell, ChevronDown } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import ReportsSidebar from '../../components/ReportsSidebar';
 import '../PageStyles.css';
 import './ReportsPage.css';
 import { getThemeCSS } from '../../utils/colorTheme';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
+import { DEFAULT_REPORT, resolveReport } from './reportCatalog';
 
-// --- IMPORTS FOR SEGREGATED REPORT COMPONENTS ---
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
 import MileageIntervalReport from './reports/MileageIntervalReport.jsx';
-
 import RefuelLogsPage from '../Trip/RefuelLogsPage.jsx';
 import AdBlueComparisonReport from './reports/AdBlueComparisonReport.jsx';
 import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
 
-// --- MAIN REPORTS PAGE COMPONENT ---
+const REPORT_COMPONENTS = {
+  driver: () => <DriverReport />,
+  vehicle: () => <VehicleReport />,
+  mileageIntervals: () => <MileageIntervalReport />,
+  modelComparison: () => <ModelComparisonPage />,
+  dieselReport: () => <RefuelLogsPage fuelType="DIESEL" />,
+  adblueReport: () => <AdBlueComparisonReport />,
+};
+
 const ReportsPage = () => {
-    const [isReportsSidebarOpen] = useState(true);
-    const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
-    const [themeColors, setThemeColors] = useState(getThemeCSS());
-    const [selectedReport, setSelectedReport] = useState('driver'); // Default to driver report
-    const [, setHighlightedOutlierId] = useState(null); // Used for linking
+  const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
+  const [themeColors, setThemeColors] = useState(getThemeCSS());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { isEnabled, loading: flagsLoading } = useFeatureFlags();
 
-    // Removed profile context - profile logic completely removed
+  // The selected report lives in the URL (?report=vehicle) so a refresh or a
+  // shared link opens the same report. Until flags load, trust the URL; after,
+  // fall back to the default if this org cannot open the requested report.
+  const requested = searchParams.get('report') || DEFAULT_REPORT;
+  const selectedReport = flagsLoading ? requested : resolveReport(requested, isEnabled);
+  const setSelectedReport = (id) => setSearchParams({ report: id }, { replace: true });
 
-    // Effect for theme
-    useEffect(() => { setThemeColors(getThemeCSS()); }, []);
+  useEffect(() => {
+    setThemeColors(getThemeCSS());
+  }, []);
 
-    // Remove global page-content padding only for this page
-    useEffect(() => {
-        const pageContentEl = document.querySelector('.page-content');
-        if (pageContentEl) {
-            pageContentEl.classList.add('no-padding');
-        }
-        return () => {
-            if (pageContentEl) {
-                pageContentEl.classList.remove('no-padding');
-            }
-        };
-    }, []);
-
-    // Effect to track main sidebar collapse state
-    useEffect(() => {
-        const checkMainSidebarState = () => {
-            const sidebar = document.querySelector('.sidebar');
-            const isCollapsed = sidebar && !sidebar.classList.contains('open');
-            setIsMainSidebarCollapsed(isCollapsed);
-        };
-        checkMainSidebarState();
-        const observer = new MutationObserver(checkMainSidebarState);
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar) {
-            observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
-        }
-        return () => observer.disconnect();
-    }, []);
-
-    // Function passed down to link reports to the outlier view
-    const handleViewOutliers = (identifier) => { // Identifier can be driver name or vehicle reg no
-        console.log(`Highlighting outliers for: ${identifier}`);
-        setHighlightedOutlierId(identifier);
-        setSelectedReport('outliers');
+  // Remove global page-content padding only for this page
+  useEffect(() => {
+    const pageContentEl = document.querySelector('.page-content');
+    if (pageContentEl) {
+      pageContentEl.classList.add('no-padding');
+    }
+    return () => {
+      if (pageContentEl) {
+        pageContentEl.classList.remove('no-padding');
+      }
     };
+  }, []);
 
-    // Clear highlight when leaving outliers report
-    useEffect(() => {
-        if (selectedReport !== 'outliers') {
-            setHighlightedOutlierId(null);
-        }
-    }, [selectedReport]);
-
-
-    // --- RENDER FUNCTION (Selects which report component to show) ---
-    const renderReport = () => {
-        // Props to pass to all relevant reports (removed profile dependencies)
-        const reportProps = {
-            // Removed businessRefId, isLoadingProfile, profileError - profile logic completely removed
-        };
-
-        switch (selectedReport) {
-            case 'driver':
-                return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
-            case 'vehicle':
-                return <VehicleReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
-            case 'mileageIntervals':
-                return <MileageIntervalReport />;
-            case 'modelComparison':
-                return <ModelComparisonPage />;
-            case 'dieselReport':
-                return <RefuelLogsPage fuelType="DIESEL" />;
-            case 'adblueReport':
-                return <AdBlueComparisonReport />;
-            default:
-                return <DriverReport {...reportProps} handleViewOutliers={handleViewOutliers} />;
-        }
+  // Effect to track main sidebar collapse state
+  useEffect(() => {
+    const checkMainSidebarState = () => {
+      const sidebar = document.querySelector('.sidebar');
+      const isCollapsed = sidebar && !sidebar.classList.contains('open');
+      setIsMainSidebarCollapsed(isCollapsed);
     };
+    checkMainSidebarState();
+    const observer = new MutationObserver(checkMainSidebarState);
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+      observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    }
+    return () => observer.disconnect();
+  }, []);
 
-    // --- RETURN JSX ---
-    return (
-        <div className="reports-page-container" style={themeColors}>
-            {/* Sidebar */}
-            <ReportsSidebar
-                isOpen={isReportsSidebarOpen}
-                isMainSidebarCollapsed={isMainSidebarCollapsed}
-                selectedReport={selectedReport}
-                setSelectedReport={setSelectedReport}
-            />
-            {/* Main Content Area */}
-            <div className={`reports-content ${isReportsSidebarOpen ? 'with-sidebar' : ''} ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}>
-                {/* Top Nav Bar */}
-                {/* Report Content */}
-                <div className="reports-main-content">
-                    {renderReport()} {/* Renders the selected report component */}
-                </div>
-            </div>
-        </div>
-    );
+  const renderReport = REPORT_COMPONENTS[selectedReport] || REPORT_COMPONENTS[DEFAULT_REPORT];
+
+  return (
+    <div className="reports-page-container" style={themeColors}>
+      <ReportsSidebar
+        isOpen
+        selectedReport={selectedReport}
+        setSelectedReport={setSelectedReport}
+      />
+      <div
+        className={`reports-content with-sidebar ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}
+      >
+        <div className="reports-main-content">{renderReport()}</div>
+      </div>
+    </div>
+  );
 };
 
 export default ReportsPage;

@@ -45,6 +45,17 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const navItems = useMemo(() => getVisibleNavItems(canAccess), [canAccess]);
 
   useEffect(() => {
+    // Approval badges belong to the ERP "Approval Center". For an org without
+    // the erpApprovals entitlement that nav group is hidden AND the backend
+    // routes answer 404 (requireFeature hides disabled modules), so polling
+    // them just spams 404s every 30s on every page — including Live Tracking.
+    // Only poll when the Approval Center is actually accessible.
+    if (!canAccess('erpApprovals')) {
+      setApprovalsCount(0);
+      setBillApprovalsCount(0);
+      return undefined;
+    }
+
     const authHeaders = () => {
       const token = getToken();
       if (!token) return null;
@@ -91,7 +102,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
       fetchBillApprovalsCount();
     }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [canAccess]);
 
   // Defensive: ensure :root has the current theme CSS variables on mount and
   // whenever the theme color changes. The Sidebar previously kept a LOCAL

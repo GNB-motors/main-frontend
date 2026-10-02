@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tourTelematicsView } from './tourLogic.js';
+import { tourTelematicsView, SOURCE_LABEL } from './tourLogic.js';
 
 describe('tourTelematicsView', () => {
   it('is null before the cycle has a telematics row', () => {
@@ -34,5 +34,11 @@ describe('tourTelematicsView', () => {
     expect(view.fuelSource).toBeNull();
     expect(view.confidence.tone).toBe('warn');
     expect(view.anchored).toBe(false);
+  });
+});
+
+describe('SOURCE_LABEL', () => {
+  it('labels a road_matched distance source', () => {
+    expect(SOURCE_LABEL.road_matched).toBe('Road distance (our engine)');
   });
 });

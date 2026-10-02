@@ -240,13 +240,6 @@ const AddVehiclePage = () => {
     }
   };
 
-  const docCount = VEHICLE_DOC_TYPES.reduce((count, { key, sides }) => {
-    const entry = documents[key];
-    if (!entry) return count;
-    const hasSides = sides.some((s) => entry[s]?.preview || entry[s]?.file || entry[s]?.imageUrl);
-    return count + (hasSides ? 1 : 0);
-  }, 0);
-
   return (
     <div className="vehicles-page-container add-vehicle-page" style={themeColors}>
       <div className="add-vehicle-container">
@@ -348,23 +341,6 @@ const AddVehiclePage = () => {
       {/* Docked Frosted-Glass Action Bar */}
       <div className="add-vehicle-footer-bar">
         <div className="add-vehicle-footer-inner">
-          <div className="add-vehicle-footer-status">
-            <div className="footer-status-pill">
-              <span>Target Asset:</span>
-              <span className="footer-status-plate">
-                {liveRegNumber
-                  ? formatHSRP(liveRegNumber)
-                  : isEdit
-                    ? 'Existing Unit'
-                    : 'Draft Unit'}
-              </span>
-              <span>•</span>
-              <span>
-                {docCount} of {VEHICLE_DOC_TYPES.length} compliance documents attached
-              </span>
-            </div>
-          </div>
-
           <div className="add-vehicle-footer-actions">
             <button
               type="button"

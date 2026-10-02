@@ -68,6 +68,35 @@ describe('buildExportRow', () => {
     expect(row.fuelTypeLabel).toBe('AdBlue');
     expect(row.fillingTypeLabel).toBe('Partial');
   });
+
+  it('maps an unverified sensor refuel correctly with quantity and empty slip values', () => {
+    const row = buildExportRow({
+      date: '2026-10-01',
+      vehicleNo: 'KA01AB1234',
+      vehicleModel: 'EICHER',
+      driverName: '-',
+      location: 'Highway Pump',
+      rawFuelType: 'DIESEL',
+      rawLitres: 85.5,
+      rawRate: null,
+      rawTotalAmount: null,
+      rawOdometer: null,
+      rawFillingType: null,
+    });
+    expect(row).toEqual({
+      date: '2026-10-01',
+      vehicleNo: 'KA01AB1234',
+      vehicleModel: 'EICHER',
+      driverName: null,
+      location: 'Highway Pump',
+      fuelTypeLabel: 'Diesel',
+      quantity: 85.5,
+      unitPrice: null,
+      totalAmount: null,
+      odometer: null,
+      fillingTypeLabel: '-',
+    });
+  });
 });
 
 describe('REFUEL_EXPORT_COLUMNS', () => {

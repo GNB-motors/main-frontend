@@ -4,6 +4,10 @@
    ========================================================================= */
 
 .ra-page {
+  --primary-color: #2563eb !important;
+  --ra-blue: #2563eb;
+  --ra-blue-dark: #1d4ed8;
+  --ra-blue-light: #eff6ff;
   padding: 8px 12px 60px;
   color: var(--foreground);
   max-width: 1680px;
@@ -33,7 +37,7 @@
 }
 
 .ra-header__back:hover {
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
   transform: translateX(-2px);
 }
 
@@ -56,9 +60,9 @@
   height: 52px;
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(16, 185, 129, 0.12));
-  border: 1px solid color-mix(in srgb, var(--primary-color, #2563eb) 25%, transparent);
+  border: 1px solid color-mix(in srgb, #2563eb 25%, transparent);
   box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,8 +77,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--primary-color, #2563eb);
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 10%, transparent);
+  color: #2563eb;
+  background: color-mix(in srgb, #2563eb 10%, transparent);
   padding: 2px 8px;
   border-radius: 6px;
   margin-bottom: 4px;
@@ -120,13 +124,13 @@
 }
 
 .ra-policy-btn:hover {
-  border-color: color-mix(in srgb, var(--primary-color, #2563eb) 40%, transparent);
-  background: color-mix(in srgb, var(--card) 95%, var(--primary-color, #2563eb));
+  border-color: color-mix(in srgb, #2563eb 40%, transparent);
+  background: color-mix(in srgb, var(--card) 95%, #2563eb);
   transform: translateY(-1px);
 }
 
 .ra-policy-btn strong {
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
 }
 
 /* Refresh Button */
@@ -147,8 +151,8 @@
 }
 
 .ra-refresh-btn:hover:not(:disabled) {
-  border-color: var(--primary-color, #2563eb);
-  color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
+  color: #2563eb;
   transform: translateY(-1px);
 }
 
@@ -189,7 +193,7 @@
 
 .ra-kpi-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--border) 60%, var(--primary-color, #2563eb));
+  border-color: color-mix(in srgb, var(--border) 60%, #2563eb);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
@@ -228,15 +232,15 @@
 }
 
 .ra-kpi-card--pending {
-  border-color: color-mix(in srgb, #f59e0b 35%, var(--border));
-  background: linear-gradient(145deg, var(--card), color-mix(in srgb, var(--card) 92%, #f59e0b));
+  border-color: color-mix(in srgb, #2563eb 35%, var(--border));
+  background: linear-gradient(145deg, var(--card), color-mix(in srgb, var(--card) 94%, #2563eb));
 }
 
 .ra-kpi-card__badge-pulse {
   font-size: 11px;
   font-weight: 700;
-  background: rgba(245, 158, 11, 0.15);
-  color: #d97706;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
   padding: 3px 9px;
   border-radius: 20px;
   display: inline-flex;
@@ -249,8 +253,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 8px #f59e0b;
+  background: #2563eb;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.6);
   animation: ra-pulse 2s infinite;
 }
 
@@ -267,8 +271,8 @@
 }
 
 .ra-kpi-card--alert {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: color-mix(in srgb, var(--card) 95%, #f59e0b);
+  border-color: rgba(37, 99, 235, 0.35);
+  background: color-mix(in srgb, var(--card) 95%, #2563eb);
 }
 
 /* ── Toolbar: Tabs & Filter Strip ── */
@@ -311,7 +315,7 @@
 
 .ra-tab.is-active {
   background: var(--card);
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
@@ -327,8 +331,8 @@
 }
 
 .ra-tab.is-active .ra-tab__count {
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 14%, transparent);
-  color: var(--primary-color, #2563eb);
+  background: color-mix(in srgb, #2563eb 14%, transparent);
+  color: #2563eb;
 }
 
 /* Filter Strip */
@@ -376,7 +380,7 @@
 }
 
 .ra-select-wrap select:focus {
-  border-color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
 }
 
 .ra-clear-filters-btn {
@@ -428,7 +432,7 @@
 }
 
 .ra-search input:focus {
-  border-color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
 }
 
 .ra-search__clear {
@@ -496,7 +500,7 @@
 }
 
 .ra-table tbody tr.is-selected {
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 8%, var(--card));
+  background: color-mix(in srgb, #2563eb 8%, var(--card));
 }
 
 .ra-table__th-select,
@@ -511,7 +515,7 @@
   height: 16px;
   border-radius: 4px;
   cursor: pointer;
-  accent-color: var(--primary-color, #2563eb);
+  accent-color: #2563eb;
 }
 
 .ra-checkbox-placeholder {
@@ -547,21 +551,21 @@
   width: 42px;
   height: 42px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--primary-color, #2563eb) 8%, var(--secondary));
-  border: 1px solid color-mix(in srgb, var(--primary-color, #2563eb) 20%, transparent);
+  background: color-mix(in srgb, #2563eb 8%, var(--secondary));
+  border: 1px solid color-mix(in srgb, #2563eb 20%, transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .ra-slip-thumbnail:hover {
   transform: scale(1.05);
-  border-color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
@@ -596,7 +600,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
 }
 
 .ra-plate-ocr-pill {
@@ -666,7 +670,7 @@
 }
 
 .ra-odo-val--missing {
-  color: #d97706;
+  color: #2563eb;
 }
 
 .ra-odo-badge {
@@ -693,9 +697,9 @@
 }
 
 .ra-odo-badge--missing {
-  background: rgba(245, 158, 11, 0.15);
-  color: #b45309;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(37, 99, 235, 0.25);
 }
 
 /* AI OCR Health Tag */
@@ -722,8 +726,8 @@
 }
 
 .ra-ocr-tag--medium {
-  background: rgba(245, 158, 11, 0.14);
-  color: #d97706;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
 }
 
 .ra-ocr-tag--low {
@@ -754,11 +758,11 @@
 }
 
 .ra-badge--ready {
-  background: rgba(245, 158, 11, 0.14);
-  color: #d97706;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
 }
 .ra-badge--ready .ra-badge__dot {
-  background: #f59e0b;
+  background: #2563eb;
 }
 
 .ra-badge--published {
@@ -808,8 +812,8 @@
 
 .ra-action-icon-btn:hover {
   background: var(--card);
-  border-color: var(--primary-color, #2563eb);
-  color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
+  color: #2563eb;
   transform: scale(1.06);
 }
 
@@ -1083,8 +1087,8 @@
 .ra-drawer__nav-btn:hover,
 .ra-drawer__close:hover {
   background: var(--card);
-  border-color: var(--primary-color, #2563eb);
-  color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
+  color: #2563eb;
 }
 
 .ra-drawer__body {
@@ -1134,8 +1138,8 @@
 
 .ra-drawer__tab.is-active {
   background: var(--card);
-  color: var(--primary-color, #2563eb);
-  border-color: var(--primary-color, #2563eb);
+  color: #2563eb;
+  border-color: #2563eb;
 }
 
 .ra-drawer__canvas {
@@ -1187,8 +1191,8 @@
 }
 
 .ra-drawer__img-tools button:hover {
-  border-color: var(--primary-color, #2563eb);
-  color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
+  color: #2563eb;
 }
 
 .ra-drawer__zoom-pct {
@@ -1208,7 +1212,7 @@
 .ra-drawer__full-link {
   font-size: 11.5px;
   font-weight: 700;
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1224,12 +1228,8 @@
 }
 
 .ra-amount-hero {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--primary-color, #2563eb) 12%, var(--card)),
-    var(--card)
-  );
-  border: 1px solid color-mix(in srgb, var(--primary-color, #2563eb) 25%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, #2563eb 12%, var(--card)), var(--card));
+  border: 1px solid color-mix(in srgb, #2563eb 25%, transparent);
   border-radius: 12px;
   padding: 14px 16px;
 }
@@ -1274,8 +1274,8 @@
 }
 
 .ra-pill-chip--warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: #b45309;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
 }
 
 .ra-section-card {
@@ -1461,7 +1461,7 @@
 }
 
 .ra-modal__textarea:focus {
-  border-color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
 }
 
 .ra-bulk-summary-box {
@@ -1503,13 +1503,13 @@
 }
 
 .ra-policy-card:hover {
-  border-color: color-mix(in srgb, var(--primary-color, #2563eb) 40%, transparent);
-  background: color-mix(in srgb, var(--card) 96%, var(--primary-color, #2563eb));
+  border-color: color-mix(in srgb, #2563eb 40%, transparent);
+  background: color-mix(in srgb, var(--card) 96%, #2563eb);
 }
 
 .ra-policy-card.is-selected {
-  border-color: var(--primary-color, #2563eb);
-  background: color-mix(in srgb, var(--card) 92%, var(--primary-color, #2563eb));
+  border-color: #2563eb;
+  background: color-mix(in srgb, var(--card) 92%, #2563eb);
 }
 
 .ra-policy-card__radio {
@@ -1527,7 +1527,7 @@
 }
 
 .ra-radio-dot.is-checked {
-  border-color: var(--primary-color, #2563eb);
+  border-color: #2563eb;
 }
 
 .ra-radio-dot.is-checked::after {
@@ -1535,7 +1535,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--primary-color, #2563eb);
+  background: #2563eb;
 }
 
 .ra-policy-card__title {
@@ -1588,7 +1588,7 @@
   border-radius: 12px;
   background: var(--secondary);
   border: 1px solid var(--border);
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1671,7 +1671,7 @@
 }
 
 .ra-field--highlight .ra-field__value {
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
   font-weight: 800;
   font-size: 15px;
 }
@@ -1716,7 +1716,7 @@
 }
 
 .ra-back-link:hover {
-  color: var(--primary-color, #2563eb);
+  color: #2563eb;
 }
 
 .ra-actions {
@@ -1776,8 +1776,8 @@
 .ra-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid color-mix(in srgb, var(--primary-color, #2563eb) 20%, transparent);
-  border-top-color: var(--primary-color, #2563eb);
+  border: 3px solid color-mix(in srgb, #2563eb 20%, transparent);
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: ra-spin 0.8s linear infinite;
 }

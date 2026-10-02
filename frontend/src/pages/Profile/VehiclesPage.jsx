@@ -19,6 +19,7 @@ import { VehicleService } from './VehicleService.jsx';
 import { listAccounts } from './FleetEdgeAccountService.jsx';
 import { getToken, getProfileField } from '../../utils/session.js';
 import { DeleteVehicleModal } from './VehicleModals.jsx';
+import BulkUploadVehiclesPanel from './BulkUploadVehiclesPanel.jsx';
 import { useVehicleColumns } from './useVehicleColumns.jsx';
 import {
   normalizeVehicle,
@@ -48,6 +49,7 @@ const VehiclesPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
+  const [showBulkPanel, setShowBulkPanel] = useState(false);
 
   // Update theme colors when component mounts
   useEffect(() => {
@@ -155,11 +157,20 @@ const VehiclesPage = () => {
   // Build a map from accountId → account for fast lookup
   const accountMap = useMemo(() => buildAccountMap(fleetEdgeAccounts), [fleetEdgeAccounts]);
 
-  // --- Filter vehicles by registration number ---
-  const filteredVehicles = useMemo(
-    () => filterVehicles(vehicles, { search: searchVehicleNo }),
-    [vehicles, searchVehicleNo],
-  );
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // --- Filter vehicles by registration number and status ---
+  const filteredVehicles = useMemo(() => {
+    let list = filterVehicles(vehicles, { search: searchVehicleNo });
+    if (statusFilter === 'ACTIVE') {
+      list = list.filter((v) => v.status === 'ACTIVE' || v.isActive);
+    } else if (statusFilter === 'UNASSIGNED') {
+      list = list.filter((v) => !v.assignedDriver && !v.driver_id && !v.assigned_driver_id);
+    } else if (statusFilter === 'FLEETEDGE') {
+      list = list.filter((v) => Boolean(v.fleetEdgeAccountId || v.fleet_edge_vehicle_id));
+    }
+    return list;
+  }, [vehicles, searchVehicleNo, statusFilter]);
 
   const exportRows = useMemo(
     () => filteredVehicles.map((v) => mapVehicleForExport(v, accountMap)),
@@ -252,43 +263,53 @@ const VehiclesPage = () => {
     <div className="vehicles-page-container" style={themeColors}>
       <PageShell
         title="Vehicles"
+        count={totalVehicles}
+        filters={
+          <FilterBar
+            searchValue={searchVehicleNo}
+            onSearchChange={setSearchVehicleNo}
+            searchPlaceholder="Search by vehicle registration number"
+            filterChips={[
+              { id: 'ALL', label: 'All', count: totalVehicles },
+              { id: 'ACTIVE', label: 'Active Fleet' },
+              { id: 'UNASSIGNED', label: 'Unassigned' },
+              { id: 'FLEETEDGE', label: 'FleetEdge Linked' },
+            ]}
+            activeChip={statusFilter}
+            onChipSelect={setStatusFilter}
+          />
+        }
         actions={
-          <div className="vehicles-header-actions">
-            <FilterBar
-              searchValue={searchVehicleNo}
-              onSearchChange={setSearchVehicleNo}
-              searchPlaceholder="Search by vehicle registration number"
+          <div className="vehicles-actions-btn-group">
+            <ExportButton
+              fetchAll={fetchAllVehiclesForExport}
+              columns={VEHICLE_EXPORT_COLUMNS}
+              filename="vehicles"
+              meta={vehicleExportMeta({ search: searchVehicleNo, accountMap })}
+              disabled={!exportRows.length}
+              newButtonStyle
+              align="left"
             />
-            <div className="vehicles-actions-btn-group">
-              <ExportButton
-                fetchAll={fetchAllVehiclesForExport}
-                columns={VEHICLE_EXPORT_COLUMNS}
-                filename="vehicles"
-                meta={vehicleExportMeta({ search: searchVehicleNo, accountMap })}
-                disabled={!exportRows.length}
-                newButtonStyle
-              />
-              <NewButton
-                variant="secondary"
-                type="button"
-                text="Bulk Upload"
-                prependIcon={<Upload size={15} />}
-                onClick={() => navigate('/vehicles/bulk-upload')}
-                disabled={isSubmitting}
-              />
-              <NewButton
-                variant="primary"
-                type="button"
-                text="Add Vehicle"
-                prependIcon={<Plus size={15} strokeWidth={2.4} />}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  navigate('/vehicles/add');
-                }}
-                disabled={isSubmitting}
-              />
-            </div>
+            <NewButton
+              variant="secondary"
+              type="button"
+              text="Bulk Upload"
+              prependIcon={<Upload size={15} />}
+              onClick={() => setShowBulkPanel(true)}
+              disabled={isSubmitting}
+            />
+            <NewButton
+              variant="primary"
+              type="button"
+              text="Add Vehicle"
+              prependIcon={<Plus size={15} strokeWidth={2.4} />}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate('/vehicles/add');
+              }}
+              disabled={isSubmitting}
+            />
           </div>
         }
       >
@@ -392,6 +413,13 @@ const VehiclesPage = () => {
         onConfirm={handleRemoveVehicle}
         vehicle={deletingVehicle}
         isLoading={isSubmitting}
+      />
+
+      {/* Bulk Upload Side Panel */}
+      <BulkUploadVehiclesPanel
+        isOpen={showBulkPanel}
+        onClose={() => setShowBulkPanel(false)}
+        onUploaded={() => setRefreshKey((k) => k + 1)}
       />
     </div>
   );

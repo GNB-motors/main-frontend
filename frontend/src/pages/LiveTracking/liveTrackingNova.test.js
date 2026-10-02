@@ -171,21 +171,39 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
 
       const veh = { status: 'moving', plate: 'WB19A1234' };
 
-      // Zoom >= 16 (scale 1.25): scaledW = 48 * 1.25 = 60
+      // Zoom 16 (scale 1.50): scaledW = 60 * 1.50 = 90
       const iconClose = createVehicleMarkerIcon(veh, false, true, 16);
-      expect(iconClose.scaledSize.width).toBe(60);
+      expect(iconClose.scaledSize.width).toBe(90);
 
-      // Zoom 14 (scale 1.0): scaledW = 48 * 1.0 = 48
+      // Zoom 14 (scale 1.30): scaledW = 60 * 1.30 = 78
       const iconNormal = createVehicleMarkerIcon(veh, false, true, 14);
-      expect(iconNormal.scaledSize.width).toBe(48);
+      expect(iconNormal.scaledSize.width).toBe(78);
 
-      // Zoom 10 (scale 0.85): scaledW = 48 * 0.85 = 41
+      // Zoom 10 (scale 0.96): scaledW = round(60 * 0.96) = 58
       const iconRegional = createVehicleMarkerIcon(veh, false, true, 10);
-      expect(iconRegional.scaledSize.width).toBe(41);
+      expect(iconRegional.scaledSize.width).toBe(58);
 
-      // Zoom 5 (scale 0.72): scaledW = 48 * 0.72 = 35
+      // Zoom 5 (scale 0.64): scaledW = round(60 * 0.64) = 38
       const iconNational = createVehicleMarkerIcon(veh, false, true, 5);
-      expect(iconNational.scaledSize.width).toBe(35);
+      expect(iconNational.scaledSize.width).toBe(38);
+
+      // Verify strictly monotonic growth as user zooms in
+      expect(iconClose.scaledSize.width).toBeGreaterThan(iconNormal.scaledSize.width);
+      expect(iconNormal.scaledSize.width).toBeGreaterThan(iconRegional.scaledSize.width);
+      expect(iconRegional.scaledSize.width).toBeGreaterThan(iconNational.scaledSize.width);
+
+      // Clutter prevention: unselected vehicles at low zoom omit labels, while close-up or selected show them
+      const iconCloseDecoded = decodeURIComponent(iconClose.url);
+      expect(iconCloseDecoded).toContain('WB19A1234');
+      const iconNationalDecoded = decodeURIComponent(iconNational.url);
+      expect(iconNationalDecoded).not.toContain('WB19A1234');
+      const iconSelectedNational = createVehicleMarkerIcon(
+        { ...veh, isSelected: true },
+        true,
+        true,
+        5,
+      );
+      expect(decodeURIComponent(iconSelectedNational.url)).toContain('WB19A1234');
     });
   });
 });

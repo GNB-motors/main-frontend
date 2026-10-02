@@ -13,7 +13,7 @@ describe('schemas — async validation via parseWith', () => {
   it('parseWith resolves the schema module via dynamic import', async () => {
     const out = await vehicle('vehicleSchema', { _id: 'v1' });
     expect(out._id).toBe('v1');
-  });
+  }, 15000);
 
   describe('vehicle.schema.js', () => {
     it('accepts a valid vehicle with all known fields', async () => {

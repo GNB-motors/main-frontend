@@ -77,10 +77,6 @@ const FieldAgentFuelPage = () => {
     fetchLogs();
   }, [fetchLogs]);
 
-  const applyFilters = () => {
-    setPage(1);
-    setFilters(draft);
-  };
   const clearFilters = () => {
     const reset = buildDefaultFilters();
     setDraft(reset);
@@ -118,42 +114,76 @@ const FieldAgentFuelPage = () => {
             searchValue={logQuery}
             onSearchChange={setLogQuery}
             searchPlaceholder="Search vehicle, agent or location…"
+            from={draft.from}
+            to={draft.to}
+            onRangeChange={({ from, to }) => {
+              setDraft((d) => ({ ...d, from, to }));
+              setFilters((f) => ({ ...f, from, to }));
+            }}
             activeCount={logFilterCount}
             onClear={() => {
               setLogQuery('');
               clearFilters();
             }}
             right={
-              <ExportButton
-                rows={buildLogExportRows(filteredLogs)}
-                columns={LOG_EXPORT_COLUMNS}
-                filename="field-agent-fuel"
-                disabled={loading || !!error}
-                meta={{
-                  generatedAt: new Date(),
-                  filters: [
-                    ...(logQuery.trim()
-                      ? [{ label: 'Search (this page)', value: logQuery.trim() }]
-                      : []),
-                    {
-                      label: 'Vehicle',
-                      value: selectedVehicle?.registrationNumber || 'All vehicles',
-                    },
-                    { label: 'From', value: filters.from || '—' },
-                    { label: 'To', value: filters.to || '—' },
-                  ],
-                }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <select
+                  value={draft.vehicleId}
+                  onChange={(e) => {
+                    const vehicleId = e.target.value;
+                    setDraft((d) => ({ ...d, vehicleId }));
+                    setFilters((f) => ({ ...f, vehicleId }));
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border, #e2e8f0)',
+                    fontSize: '13px',
+                    background: 'var(--card, #fff)',
+                    color: 'var(--foreground, #0f172a)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">All Vehicles</option>
+                  {groupVehiclesByOrg(vehicles).map(([orgName, orgVehicles]) => (
+                    <optgroup key={orgName} label={orgName}>
+                      {orgVehicles.map((v) => (
+                        <option key={v._id} value={v._id}>
+                          {v.registrationNumber || v._id}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <ExportButton
+                  rows={buildLogExportRows(filteredLogs)}
+                  columns={LOG_EXPORT_COLUMNS}
+                  filename="field-agent-fuel"
+                  disabled={loading || !!error}
+                  meta={{
+                    generatedAt: new Date(),
+                    filters: [
+                      ...(logQuery.trim()
+                        ? [{ label: 'Search (this page)', value: logQuery.trim() }]
+                        : []),
+                      {
+                        label: 'Vehicle',
+                        value: selectedVehicle?.registrationNumber || 'All vehicles',
+                      },
+                      { label: 'From', value: filters.from || '—' },
+                      { label: 'To', value: filters.to || '—' },
+                    ],
+                  }}
+                />
+              </div>
             }
           />
         }
-        footer={
-          footerSummary({
-            showing: filteredLogs.length,
-            total: meta.total,
-            activeFilters: logFilterCount,
-          }) + ' on this page'
-        }
+        footer={footerSummary({
+          showing: filteredLogs.length,
+          total: meta.total,
+          activeFilters: logFilterCount,
+        })}
       >
         <div className="fa-fuel-kpis">
           <KpiCard
@@ -171,57 +201,6 @@ const FieldAgentFuelPage = () => {
             label="Total Spend"
             value={fmtMoney(stats.totalSpend)}
           />
-        </div>
-
-        <div className="fa-fuel-filters">
-          <div className="fa-fuel-field">
-            <label>Vehicle</label>
-            <select
-              value={draft.vehicleId}
-              onChange={(e) => setDraft({ ...draft, vehicleId: e.target.value })}
-            >
-              <option value="">All Vehicles</option>
-              {groupVehiclesByOrg(vehicles).map(([orgName, orgVehicles]) => (
-                <optgroup key={orgName} label={orgName}>
-                  {orgVehicles.map((v) => (
-                    <option key={v._id} value={v._id}>
-                      {v.registrationNumber || v._id}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-          <div className="fa-fuel-field">
-            <label>From</label>
-            <input
-              type="date"
-              value={draft.from}
-              max={draft.to || undefined}
-              onChange={(e) => setDraft({ ...draft, from: e.target.value })}
-            />
-          </div>
-          <div className="fa-fuel-field">
-            <label>To</label>
-            <input
-              type="date"
-              value={draft.to}
-              min={draft.from || undefined}
-              onChange={(e) => setDraft({ ...draft, to: e.target.value })}
-            />
-          </div>
-          <div className="fa-fuel-filter-actions">
-            <button
-              className="fa-fuel-btn fa-fuel-btn-primary"
-              onClick={applyFilters}
-              disabled={loading}
-            >
-              <Search size={15} /> Apply
-            </button>
-            <button className="fa-fuel-btn" onClick={clearFilters} disabled={loading}>
-              Clear
-            </button>
-          </div>
         </div>
 
         <div className="fa-fuel-table-wrap">

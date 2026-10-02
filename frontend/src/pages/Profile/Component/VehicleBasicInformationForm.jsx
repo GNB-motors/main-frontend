@@ -248,13 +248,13 @@ const VehicleBasicInformationForm = forwardRef(
                           </div>
                         </div>
                       ) : (
-                        <div className="custom-select-wrapper">
+                        <div className="custom-select-wrapper select-with-lead-icon">
                           <Building2 size={16} className="input-lead-icon" />
                           <select
                             id="vehicle-branch-select"
                             value={selectedBranchId}
                             onChange={(e) => onBranchChange(e.target.value)}
-                            className="basic-info-input"
+                            className="basic-info-input select-with-lead-icon"
                             disabled={isSubmitting}
                             aria-label="Operating Location"
                           >
@@ -282,7 +282,7 @@ const VehicleBasicInformationForm = forwardRef(
                         <span className="field-badge-optional">Optional</span>
                       </label>
 
-                      <div className="custom-select-wrapper">
+                      <div className="custom-select-wrapper select-with-telemetry-badge">
                         <div className="telemetry-lead-badge">
                           <Radio size={15} />
                           <span className="telemetry-beacon-dot" />
@@ -291,7 +291,7 @@ const VehicleBasicInformationForm = forwardRef(
                           id="vehicle-fleetedge-select"
                           value={selectedAccountId}
                           onChange={(e) => onAccountChange(e.target.value)}
-                          className="basic-info-input"
+                          className="basic-info-input select-with-telemetry-badge"
                           disabled={isSubmitting}
                           aria-label="FleetEdge Telemetry Account"
                         >

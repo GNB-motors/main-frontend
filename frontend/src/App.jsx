@@ -165,7 +165,6 @@ const KhataLedgerDriverDetailPage = lazy(
 const KhataLedgerVehicleDetailPage = lazy(
   () => import('./pages/KhataLedger/KhataLedgerVehicleDetailPage.jsx'),
 );
-const TripReportDetailPage = lazy(() => import('./pages/Reports/reports/TripReportDetailPage.jsx'));
 const PartiesPage = lazy(() => import('./pages/ErpMasters/PartiesPage.jsx'));
 const RatesPage = lazy(() => import('./pages/ErpMasters/RatesPage.jsx'));
 const CallTasksPage = lazy(() => import('./pages/ErpCallPlanning/CallTasksPage.jsx'));
@@ -195,7 +194,6 @@ const DailyBriefPage = lazy(() => import('./pages/DailyBrief/DailyBriefPage.jsx'
 const OptimalSpeedPage = lazy(() => import('./pages/OptimalSpeed/OptimalSpeedPage.jsx'));
 const RefuelAdvisoryPage = lazy(() => import('./pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
 const DrivingDnaPage = lazy(() => import('./pages/DrivingDna/DrivingDnaPage.jsx'));
-const FuelSpendPage = lazy(() => import('./pages/FuelSpend/FuelSpendPage.jsx'));
 const DefLedgerPage = lazy(() => import('./pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('./pages/FleetCoverage/FleetCoveragePage.jsx'));
 const AuditTrailPage = lazy(() => import('./pages/AuditTrail/AuditTrailPage.jsx'));
@@ -383,7 +381,6 @@ function App() {
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
             <Route path="/idling-console" element={<IdlingConsolePage />} />
             <Route path="/daily-brief" element={<DailyBriefPage />} />
-            <Route path="/fuel-spend" element={<FuelSpendPage />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
             <Route path="/route-hub" element={<RouteHubPage />} />
@@ -396,7 +393,6 @@ function App() {
             <Route path="/driving-dna" element={<DrivingDnaPage />} />
             <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
             <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/reports/trip/:id" element={<TripReportDetailPage />} />
             <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
             <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
             <Route path="/erp/trip-windows" element={<TripWindowsPage />} />
@@ -438,7 +434,10 @@ function App() {
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
             <Route path="/geofence" element={<GeofencePage />} />
             <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
-            <Route path="/geofence/alerts" element={<Navigate to="/geofence/zones" replace />} />
+            <Route
+              path="/geofence/alerts"
+              element={<Navigate to="/geofence/zones?tab=alerts" replace />}
+            />
             <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
             <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
             <Route path="/drivers" element={<DriversPage />} />
@@ -463,7 +462,8 @@ function App() {
             <Route path="/model-comparison" element={<ModelComparisonPage />} />
             <Route path="/expected-mileage" element={<ModelComparisonPage />} />
             <Route path="/def-tracking" element={<Navigate to="/adblue-tracking" replace />} />
-            <Route path="/fuel-bills" element={<RefuelLogsPage />} />
+            <Route path="/fuel-bills" element={<Navigate to="/refuel-logs" replace />} />
+            <Route path="/fuel-spend" element={<Navigate to="/refuel-logs" replace />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />

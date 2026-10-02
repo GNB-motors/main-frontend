@@ -5,6 +5,7 @@ const BulkUploadVehiclesResultSummary = ({ result }) => {
   if (!result) return null;
 
   const created = result.createdCount ?? result.data?.createdCount ?? 0;
+  const updated = result.updatedCount ?? result.data?.updatedCount ?? 0;
   const errors = result.errors ?? result.data?.errors ?? [];
 
   const handleDownloadErrors = () => {
@@ -39,6 +40,11 @@ const BulkUploadVehiclesResultSummary = ({ result }) => {
           <div>
             Created: <strong>{created}</strong>
           </div>
+          {updated > 0 && (
+            <div>
+              Updated: <strong>{updated}</strong>
+            </div>
+          )}
           <div>
             Errors: <strong>{errors.length}</strong>
           </div>

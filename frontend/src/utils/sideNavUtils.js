@@ -61,7 +61,7 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'link',
     key: 'fleetIntelligence',
-    access: 'both',
+    access: 'fleet',
     to: '/digest',
     label: 'Daily Digest',
     icon: CalendarClock,
@@ -235,19 +235,19 @@ export const SIDE_NAV_ITEMS = [
     label: 'Fuel Management',
     icon: Fuel,
     children: [
+      { to: '/refuel-logs', label: 'Refuel Logs', key: 'fuelIntegrity' },
       { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
       { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
       // Live-map-refresh / warehouse branch additions.
       { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
-      { to: '/fuel-spend', label: 'Fuel Spend', key: 'fuelIntegrity' },
       { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
       { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: 'fuelIntegrity' },
     ],
     matchRoutes: [
+      '/refuel-logs',
       '/mileage-tracking',
       '/fuel-comparison',
       '/fuel-integrity',
-      '/fuel-spend',
       '/def-ledger',
       '/field-agent-fuel',
       '/trip-management',

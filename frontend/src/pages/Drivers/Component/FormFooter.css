@@ -8,7 +8,7 @@
   justify-content: center;
   align-items: center;
   padding: 12px 24px;
-  border-top: 1px solid var(--core-morning-fog-solids-morning-fog-700, #DFDFE2);
+  border-top: 1px solid var(--core-morning-fog-solids-morning-fog-700, #dfdfe2);
   background: var(--core-semantics-universal-white, white);
   width: 100%;
   box-sizing: border-box;
@@ -24,6 +24,11 @@
   align-items: center;
 }
 
+/* Opt-in: let the actions reach the page's right edge (used by Add Employee). */
+.form-footer-content.is-full {
+  max-width: none;
+}
+
 .form-footer-actions {
   display: flex;
   justify-content: flex-end;
@@ -35,7 +40,7 @@
   .form-footer {
     padding: 12px 16px;
   }
-  
+
   .form-footer-actions {
     flex-direction: row;
     width: 100%;

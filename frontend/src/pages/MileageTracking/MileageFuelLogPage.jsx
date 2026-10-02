@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { ArrowLeft, Droplets } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import FuelLogForm from '../../components/FuelLogForm/FuelLogForm';
 import PageShell from '../../components/ui/PageShell';
 import './MileageTracking.css';
 
 const MileageFuelLogPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const el = document.querySelector('.page-content');
@@ -23,7 +24,11 @@ const MileageFuelLogPage = () => {
         subtitle="Fill in the fuel details and upload supporting documents."
         actions={
           <>
-            <button className="mileage-back-circle" onClick={() => navigate('/mileage-tracking')}>
+            <button
+              className="mileage-back-circle"
+              onClick={() => navigate('/refuel-logs')}
+              aria-label="Back to refuel logs"
+            >
               <ArrowLeft size={18} />
             </button>
             <div className="mileage-header-icon-badge">
@@ -34,8 +39,11 @@ const MileageFuelLogPage = () => {
         }
       >
         <FuelLogForm
-          onSuccess={() => navigate('/mileage-tracking')}
-          onCancel={() => navigate('/mileage-tracking')}
+          initialVehicleId={searchParams.get('vehicleId')}
+          initialLitres={searchParams.get('litres')}
+          initialRefuelTime={searchParams.get('refuelTime')}
+          onSuccess={() => navigate('/refuel-logs')}
+          onCancel={() => navigate('/refuel-logs')}
         />
       </PageShell>
     </div>

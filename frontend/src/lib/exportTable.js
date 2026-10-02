@@ -78,8 +78,10 @@ export function metaRows(meta = {}) {
 }
 
 function buildCsv(columns, rows, meta) {
-  const head = columns.map((c) => escapeCsvCell(c.label));
-  const body = rows.map((r) => columns.map((c) => escapeCsvCell(cellValue(r?.[c.key], c.type))));
+  const head = columns.map((c) => escapeCsvCell(c.label || c.header || c.key));
+  const body = rows.map((r) =>
+    columns.map((c) => escapeCsvCell(cellValue(r?.[c.key], c.type || c.format))),
+  );
   const lines = [...metaRows(meta), head, ...body]
     .map((line) => (Array.isArray(line) ? line.join(',') : line))
     .join('\r\n');
@@ -102,8 +104,8 @@ function triggerDownload(content, filename, mimeType, binary = false) {
 
 async function buildXlsx(columns, rows, meta) {
   const XLSX = await import('xlsx');
-  const header = columns.map((c) => c.label);
-  const body = rows.map((r) => columns.map((c) => cellValue(r?.[c.key], c.type)));
+  const header = columns.map((c) => c.label || c.header || c.key);
+  const body = rows.map((r) => columns.map((c) => cellValue(r?.[c.key], c.type || c.format)));
   const sheetData = [...metaRows(meta), header, ...body];
 
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
@@ -112,9 +114,11 @@ async function buildXlsx(columns, rows, meta) {
 
   // Column widths + number formats, sized from content.
   ws['!cols'] = columns.map((c) => {
-    const values = rows.slice(0, 200).map((r) => cellValue(r?.[c.key], c.type));
+    const colType = c.type || c.format;
+    const values = rows.slice(0, 200).map((r) => cellValue(r?.[c.key], colType));
+    const labelStr = String(c.label || c.header || c.key);
     const widest = Math.max(
-      String(c.label).length,
+      labelStr.length,
       ...values.map((v) => (v instanceof Date ? 12 : String(v ?? '').length)),
     );
     return { wch: Math.min(Math.max(widest + 2, 8), 42) };
@@ -123,13 +127,14 @@ async function buildXlsx(columns, rows, meta) {
   // Apply ₹ / number formats to typed columns.
   const range = XLSX.utils.decode_range(ws['!ref']);
   columns.forEach((c, i) => {
-    if (c.type !== 'number' && c.type !== 'currency' && c.type !== 'date') return;
+    const colType = c.type || c.format;
+    if (colType !== 'number' && colType !== 'currency' && colType !== 'date') return;
     for (let r = headerRowIndex + 1; r <= range.e.r; r += 1) {
       const addr = XLSX.utils.encode_cell({ r, c: i });
       const cell = ws[addr];
       if (!cell) continue;
-      if (c.type === 'date') cell.z = 'dd mmm yyyy';
-      else if (c.type === 'currency') cell.z = '₹#,##,##0';
+      if (colType === 'date') cell.z = 'dd mmm yyyy';
+      else if (colType === 'currency') cell.z = '₹#,##,##0';
       else cell.z = '#,##0.##';
     }
   });

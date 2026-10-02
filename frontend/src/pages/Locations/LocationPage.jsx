@@ -11,16 +11,8 @@ import LocationService from './LocationService';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
-import ExportButton from '../../components/ui/ExportButton';
 import { useConfirm } from '../../components/ui/confirmContext';
 import './LocationPage.css';
-
-const EXPORT_COLUMNS = [
-  { key: 'name', label: 'Name' },
-  { key: 'pincode', label: 'Pincode' },
-  { key: 'address', label: 'Address' },
-  { key: 'cityState', label: 'City / State' },
-];
 
 const LocationPage = () => {
   const [locations, setLocations] = useState([]);
@@ -97,13 +89,6 @@ const LocationPage = () => {
     [confirm, fetchLocations, meta.page, searchTerm],
   );
 
-  const exportRows = locations.map((loc) => ({
-    name: loc.name,
-    pincode: loc.pincode || '',
-    address: loc.address,
-    cityState: [loc.city, loc.state].filter(Boolean).join(', '),
-  }));
-
   const columns = [
     { key: 'name', label: 'Name', render: (loc) => loc.name },
     { key: 'pincode', label: 'Pincode', render: (loc) => loc.pincode || '-' },
@@ -155,12 +140,6 @@ const LocationPage = () => {
         count={meta.total}
         actions={
           <div className="flex items-center gap-2">
-            <ExportButton
-              rows={exportRows}
-              columns={EXPORT_COLUMNS}
-              filename="locations"
-              disabled={!locations.length}
-            />
             <button
               className="btn btn-primary"
               type="button"

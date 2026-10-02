@@ -36,6 +36,8 @@ export default function ExportButton({
   disabled = false,
   newButtonStyle = false,
   compact = false,
+  buttonClass = '',
+  align = 'right',
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -83,7 +85,10 @@ export default function ExportButton({
   const label = pending ? 'Exporting…' : 'Export';
 
   return (
-    <div className={`xbtn ${open ? 'is-open' : ''}`} ref={rootRef}>
+    <div
+      className={`xbtn ${open ? 'is-open' : ''} ${align === 'left' ? 'xbtn--left' : ''}`}
+      ref={rootRef}
+    >
       {compact ? (
         <button
           type="button"
@@ -103,6 +108,7 @@ export default function ExportButton({
           text={label}
           prependIcon={icon}
           appendIcon={<ChevronDown size={14} className="xbtn-chevron" aria-hidden="true" />}
+          appendGap={4}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -111,7 +117,7 @@ export default function ExportButton({
       ) : (
         <button
           type="button"
-          className="pshell-btn"
+          className={buttonClass || 'pshell-btn'}
           disabled={disabled || pending}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -123,7 +129,11 @@ export default function ExportButton({
         </button>
       )}
       {open && (
-        <div className="xbtn-menu" role="menu" aria-label="Export format">
+        <div
+          className={`xbtn-menu ${align === 'left' ? 'is-left' : ''}`}
+          role="menu"
+          aria-label="Export format"
+        >
           <button type="button" role="menuitem" className="xbtn-item" onClick={() => run('xlsx')}>
             <FileSpreadsheet size={14} aria-hidden="true" />
             <span>

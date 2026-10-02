@@ -11,56 +11,47 @@ export const HealthStatusBadge = ({ status }) => {
   switch (status) {
     case 'GOOD':
       return (
-        <span
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            color: '#187A32',
-            fontSize: '13px',
-            fontWeight: 500,
-          }}
-        >
-          <CheckCircle2 size={14} style={{ marginRight: 4 }} /> Good
+        <span className="mt-status-badge mt-status-badge--success">
+          <CheckCircle2 size={12} /> Good
         </span>
       );
     case 'NEEDS_REVIEW':
       return (
-        <span
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            color: '#C56200',
-            fontSize: '13px',
-            fontWeight: 500,
-          }}
-        >
-          <Clock size={14} style={{ marginRight: 4 }} /> Stale Data
+        <span className="mt-status-badge mt-status-badge--warning">
+          <Clock size={12} /> Stale Data
         </span>
       );
     case 'NO_DATA':
       return (
-        <span
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            color: '#dc2626',
-            fontSize: '13px',
-            fontWeight: 500,
-          }}
-        >
-          <AlertCircle size={14} style={{ marginRight: 4 }} /> No Data
+        <span className="mt-status-badge mt-status-badge--danger">
+          <AlertCircle size={12} /> No Data
         </span>
       );
     default:
-      return '-';
+      return <span className="mt-status-badge mt-status-badge--neutral">—</span>;
   }
 };
 
-export const AvgMileageCell = ({ value }) =>
-  value ? <span style={{ color: '#2563eb', fontWeight: 600 }}>{value.toFixed(2)}</span> : '-';
+export const AvgMileageCell = ({ value }) => {
+  if (value == null || value === 0) {
+    return <span className="text-slate-400 font-mono">—</span>;
+  }
+  return (
+    <div className="mt-mileage-pill">
+      <span className="mt-mono">{value.toFixed(2)}</span>
+      <span className="mt-unit">km/L</span>
+    </div>
+  );
+};
 
 export const ViewLogsButton = ({ onClick }) => (
-  <button type="button" className="mt-viewlogs" onClick={onClick}>
-    View logs <ChevronRight size={14} />
+  <button
+    type="button"
+    className="mt-action-btn"
+    onClick={onClick}
+    title="Inspect vehicle intervals"
+  >
+    <span>Logs</span>
+    <ChevronRight size={13} />
   </button>
 );

@@ -16,6 +16,7 @@ import { getToken } from '../../utils/session.js';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
+import NewButton from '@/components/ui/NewButton';
 import {
   computeVehicleDashboardKpis,
   DOC_COLS,
@@ -227,38 +228,15 @@ const VehicleDashboardPage = () => {
         style={{ paddingBottom: 48, alignItems: 'stretch' }}
       >
         <PageShell
-          title="Documents And Challans"
+          title="Vehicle Compliance & Documents"
           subtitle="Fleet-wide document compliance and live expiry tracking. Badges update automatically."
           actions={
-            /* WheelsEye Pay Challan Box in top right header */
-            <div
-              className="v-dash-pay-banner"
-              role="button"
-              tabIndex={0}
+            <NewButton
+              variant="primary"
+              text="Check & Pay Challans"
+              prependIcon={<ShieldCheck size={16} />}
               onClick={() => setChallanModalOpen(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') setChallanModalOpen(true);
-              }}
-              title="Open Parivahan / ULIP live challan check"
-            >
-              <div className="v-dash-emblem-badge">
-                <ShieldCheck size={20} color="#16a34a" />
-              </div>
-              <div className="v-dash-pay-banner-info">
-                <span className="v-dash-pay-banner-title">Directly pay Your Challan</span>
-                <span className="v-dash-pay-banner-sub">MoRTH Parivahan / ULIP Gateway</span>
-              </div>
-              <button
-                type="button"
-                className="v-dash-pay-banner-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setChallanModalOpen(true);
-                }}
-              >
-                Pay / Check
-              </button>
-            </div>
+            />
           }
           filters={
             <FilterBar

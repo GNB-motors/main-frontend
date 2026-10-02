@@ -1,23 +1,59 @@
 import { toISTDateString, toISTTimeString, formatDateIST } from '../../utils/dateUtils';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
+import dayjs from 'dayjs';
+import {
+  Plus,
+  PlusCircle,
+  Pencil,
+  Trash2,
+  Eye,
+  Fuel,
+  IndianRupee,
+  Gauge,
+  FileWarning,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  FileText,
+  Check,
+  Search,
+  X,
+  Calendar,
+  Truck,
+  RotateCcw,
+  MapPin,
+  ExternalLink,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import './RefuelLogsPage.css';
 import '../../components/JourneySetupModal/modal.css';
 import apiClient from '../../utils/axiosConfig';
 import useApi from '../../hooks/useApi';
-import ChevronIcon from './assets/ChevronIcon.jsx';
 import DocumentService from './services/DocumentService';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import PageShell from '../../components/ui/PageShell';
-import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
+import NewButton from '../../components/ui/NewButton/NewButton';
 import RefuelLogModals from './RefuelLogModals.jsx';
+import KpiCard from '../../components/ui/KpiCard';
+import ReportDataNotice from '../../components/ui/ReportDataNotice';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from '../../components/ui/pagination';
+import { toStartOfDayIso, toEndOfDayIso } from '../Reports/reports/mileageIntervalReportUtils';
+import { formatINR, formatLitres, formatNum } from '../../utils/formatters';
 import { REFUEL_EXPORT_COLUMNS, buildExportRow } from './refuelLogExport';
 import { getToken, getProfileField } from '../../utils/session.js';
+import RefuelComparisonDrawer from './RefuelComparisonDrawer';
 
 const PAGE_SIZE = 10;
 
@@ -30,10 +66,24 @@ const TAB_TO_FUEL_TYPE = {
 };
 
 const fetchRefuelLogs = async (
-  { page = 1, limit = PAGE_SIZE, fuelType, search, vehicleId } = {},
+  {
+    page = 1,
+    limit = PAGE_SIZE,
+    fuelType,
+    search,
+    vehicleId,
+    startDate,
+    endDate,
+    sortBy,
+    withTotals,
+  } = {},
   signal,
 ) => {
   const params = { page, limit };
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+  if (sortBy) params.sortBy = sortBy;
+  if (withTotals) params.withTotals = true;
   if (fuelType) {
     params.fuelType = fuelType;
   }
@@ -48,6 +98,21 @@ const fetchRefuelLogs = async (
   if (response.data.status === 'success') {
     const mapped = response.data.data.map((log) => ({
       id: log._id,
+      slipId: log._id,
+      slip: {
+        id: log._id,
+        litres: log.litres,
+        totalAmount: log.totalAmount,
+        rate: log.rate,
+        location: log.location,
+        documentId: log.documentId,
+        odometerDocId: log.odometerDocId,
+        submissionChannel: log.submissionChannel,
+        fuelType: log.fuelType,
+        fillingType: log.fillingType,
+        odometerReading: log.odometerReading,
+      },
+      sensor: null,
       date: log.refuelTime ? toISTDateString(log.refuelTime) : null,
       time: log.refuelTime ? toISTTimeString(log.refuelTime) : null,
       vehicleNo: log.vehicleId?.registrationNumber || '-',
@@ -89,20 +154,137 @@ const fetchRefuelLogs = async (
       rawTotalAmount: log.totalAmount ?? null,
       rawOdometer: log.odometerReading,
       rawLocation: log.location,
+      reviewStatus: log.reviewStatus || null,
+      submissionChannel: log.submissionChannel || null,
     }));
     const total = response.data.meta?.total ?? mapped.length;
-    return { logs: mapped, total };
+    return { logs: mapped, total, totals: response.data.meta?.totals || null };
   }
-  return { logs: [], total: 0 };
+  return { logs: [], total: 0, totals: null };
 };
 
+const fetchUnifiedLogs = async (
+  { page = 1, limit = PAGE_SIZE, status, search, vehicleId, startDate, endDate } = {},
+  signal,
+) => {
+  const params = { page, limit };
+  if (startDate) params.from = startDate;
+  if (endDate) params.to = endDate;
+  if (status && status !== 'all') params.status = status;
+  if (search) params.search = search;
+  if (vehicleId) params.vehicle = vehicleId;
+
+  const response = await apiClient.get('api/fuel-logs/unified', { params, signal });
+  if (response.data.status === 'success') {
+    const { data, meta } = response.data;
+    const mapped = data.map((row) => {
+      const slip = row.slip || {};
+      const sensor = row.sensor || {};
+      const effectiveLitres = slip.litres != null ? slip.litres : row.litres;
+
+      const lat =
+        sensor.lat != null && !isNaN(Number(sensor.lat))
+          ? Number(sensor.lat)
+          : row.lat != null && !isNaN(Number(row.lat))
+            ? Number(row.lat)
+            : null;
+      const lng =
+        sensor.lng != null && !isNaN(Number(sensor.lng))
+          ? Number(sensor.lng)
+          : row.lng != null && !isNaN(Number(row.lng))
+            ? Number(row.lng)
+            : null;
+      const hasCoords = lat != null && lng != null;
+      const coordString = hasCoords ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : null;
+
+      const slipLoc =
+        slip.location && String(slip.location).trim() !== '' && String(slip.location).trim() !== '-'
+          ? String(slip.location).trim()
+          : null;
+      const pumpName =
+        sensor.fuelPumpName &&
+        String(sensor.fuelPumpName).trim() !== '' &&
+        String(sensor.fuelPumpName).trim() !== '-'
+          ? String(sensor.fuelPumpName).trim()
+          : null;
+
+      const resolvedLocation = slipLoc || pumpName || coordString || '-';
+
+      return {
+        id: row.id,
+        slipId:
+          slip.id ||
+          (row.id && String(row.id).startsWith('log_') ? String(row.id).replace('log_', '') : null),
+        source: row.source,
+        verificationStatus: row.verificationStatus,
+        slip: row.slip || null,
+        sensor: row.sensor || null,
+        date: row.at ? toISTDateString(row.at) : null,
+        time: row.at ? toISTTimeString(row.at) : null,
+        vehicleNo: row.vehicleNumber || '-',
+        vehicleModel: row.vehicleModel || '-',
+        vehicleId: row.vehicleId,
+        driverName: slip.driverName || '-',
+        driverPhone: '-',
+        location: resolvedLocation,
+        vendor: '-',
+        fuelType: slip.fuelType ? slip.fuelType.toLowerCase() : 'diesel',
+        quantity: row.litres != null ? row.litres : '-',
+        unitPrice: slip.rate || null,
+        totalAmount: slip.totalAmount || '-',
+        odometer: slip.odometerReading
+          ? slip.odometerSource === 'FLEETEDGE'
+            ? `${slip.odometerReading} (FE)`
+            : slip.odometerReading
+          : '-',
+        rawOdometerSource: slip.odometerSource || null,
+        paymentMethod: '-',
+        notes: slip.fillingType
+          ? slip.fillingType === 'FULL_TANK'
+            ? 'Full Tank'
+            : slip.fillingType
+          : '-',
+        documentId: slip.documentId || null,
+        odometerDocId: slip.odometerDocId || null,
+        loggedBy: slip.loggedBy || null,
+        createdAt: slip.createdAt || null,
+        refuelTime: slip.refuelTime || row.at,
+        rawFuelType: slip.fuelType || (row.verificationStatus === 'UNVERIFIED' ? 'DIESEL' : null),
+        rawFillingType: slip.fillingType || null,
+        rawLitres: effectiveLitres,
+        rawRate: slip.rate || null,
+        rawTotalAmount: slip.totalAmount ?? null,
+        rawOdometer: slip.odometerReading || null,
+        rawLocation: slipLoc || pumpName || coordString || null,
+        reviewStatus: slip.reviewStatus || null,
+        submissionChannel: slip.submissionChannel || null,
+        sensorId: sensor.id || null,
+        sensorLitres: sensor.litres || null,
+        sensorBillVarianceL: sensor.billVarianceL || null,
+        sensorBillFlag: sensor.billFlag || false,
+        sensorConfirmationStatus: sensor.confirmationStatus || null,
+        lat,
+        lng,
+        sensorLat: lat,
+        sensorLng: lng,
+      };
+    });
+    return { logs: mapped, total: meta.total, totals: meta };
+  }
+  return { logs: [], total: 0, totals: null };
+};
+
+const CHANNEL_LABEL = { APP: 'App', WHATSAPP: 'WhatsApp', FIELD_AGENT: 'Field agent' };
+
 const updateFuelLog = async (id, data) => {
-  const response = await apiClient.put(`api/mileage/fuel-log/${id}`, data);
+  const cleanId = String(id).replace(/^log_/, '');
+  const response = await apiClient.put(`api/mileage/fuel-log/${cleanId}`, data);
   return response.data;
 };
 
 const deleteFuelLog = async (id) => {
-  const response = await apiClient.delete(`api/mileage/fuel-log/${id}`);
+  const cleanId = String(id).replace(/^log_/, '');
+  const response = await apiClient.delete(`api/mileage/fuel-log/${cleanId}`);
   return response.data;
 };
 
@@ -127,10 +309,59 @@ const fromDatetimeLocal = (localString) => {
 };
 
 const filterTabs = [
-  { id: 'all', label: 'All' },
-  { id: 'diesel', label: 'Diesel' },
-  { id: 'adblue', label: 'AdBlue' },
+  { id: 'all', label: 'All Refuels', countKey: 'total' },
+  { id: 'verified', label: 'Verified', countKey: 'verified' },
+  { id: 'unverified', label: 'Unverified', countKey: 'unverified' },
+  { id: 'slip_only', label: 'Slip Only', countKey: 'slipOnly' },
+  { id: 'flagged', label: 'Flagged', countKey: 'flagged' },
 ];
+
+const DATE_PRESETS = [
+  { key: 'ALL', label: 'All Dates' },
+  { key: 'TODAY', label: 'Today' },
+  { key: 'YESTERDAY', label: 'Yesterday' },
+  { key: '7DAYS', label: 'Last 7 Days' },
+  { key: 'THIS_MONTH', label: 'This Month' },
+  { key: '30DAYS', label: 'Last 30 Days' },
+  { key: 'CUSTOM', label: 'Custom Range...' },
+];
+
+const getPresetRange = (presetKey) => {
+  const now = dayjs();
+  switch (presetKey) {
+    case 'ALL':
+      return { from: '', to: '' };
+    case 'TODAY':
+      return {
+        from: now.format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    case 'YESTERDAY': {
+      const y = now.subtract(1, 'day');
+      return {
+        from: y.format('YYYY-MM-DD'),
+        to: y.format('YYYY-MM-DD'),
+      };
+    }
+    case '7DAYS':
+      return {
+        from: now.subtract(6, 'day').format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    case 'THIS_MONTH':
+      return {
+        from: now.startOf('month').format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    case '30DAYS':
+      return {
+        from: now.subtract(29, 'day').format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    default:
+      return null;
+  }
+};
 
 const formatDate = (dateStr) => formatDateIST(dateStr);
 
@@ -154,7 +385,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   const isAdBluePage = fixedFuelType === 'ADBLUE';
   const reportTitle = title || (isAdBluePage ? 'AdBlue Report' : 'Diesel Report');
   const newLogPath = isAdBluePage ? '/adblue-tracking/new' : '/mileage-tracking/new';
-  const emptyActionLabel = isAdBluePage ? 'Log AdBlue' : 'Add Refuel Log';
+  const emptyActionLabel = isAdBluePage ? 'Log AdBlue' : 'Log Fuel';
   const tabParam = searchParams.get('tab');
   const activeTab = isFixedFuelType
     ? fixedFuelType.toLowerCase()
@@ -166,6 +397,8 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   const [vehicles, setVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [logs, setLogs] = useState([]);
+  const [totals, setTotals] = useState(null);
+  const [range, setRange] = useState({ from: '', to: '' });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
@@ -187,6 +420,9 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   // Delete confirmation state
   const [deletingLog, setDeletingLog] = useState(null);
 
+  // Comparison drawer state
+  const [comparisonLog, setComparisonLog] = useState(null);
+
   useEffect(() => {
     const pageContentEl = document.querySelector('.page-content');
     if (pageContentEl) {
@@ -200,20 +436,42 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     };
   }, []);
 
-  // Fetch vehicles for the filter dropdown if this is a report page
-  const { data: vehiclesData } = useApi(
-    async () => {
-      const token = getToken();
-      const orgId = getProfileField('business_ref_id') || null;
-      if (!token) return null;
-      return VehicleService.getAllVehicles(orgId, token, 1, 1000);
-    },
-    [],
-    { enabled: isFixedFuelType },
-  );
+  // Fetch vehicles for the filter dropdown
+  const { data: vehiclesData } = useApi(async () => {
+    const token = getToken();
+    const orgId = getProfileField('business_ref_id') || null;
+    if (!token) return null;
+    return VehicleService.getAllVehicles(orgId, token, 1, 1000);
+  }, []);
   useEffect(() => {
     if (vehiclesData?.data) setVehicles(vehiclesData.data);
   }, [vehiclesData]);
+
+  // Active date preset & handler
+  // Date preset state & handlers
+  const [datePreset, setDatePreset] = useState('ALL');
+
+  const handlePresetChange = (presetKey) => {
+    setDatePreset(presetKey);
+    if (presetKey === 'CUSTOM') {
+      return;
+    }
+    const next = getPresetRange(presetKey);
+    if (next) {
+      setRange(next);
+      setPagination((p) => ({ ...p, page: 1 }));
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setDebouncedSearch('');
+    setSelectedVehicleId('');
+    setDatePreset('ALL');
+    setRange({ from: '', to: '' });
+    handleTabChange('all');
+    setPagination((p) => ({ ...p, page: 1 }));
+  };
 
   // Debounce the search box, then snap back to page 1 so results start at the top.
   useEffect(() => {
@@ -224,7 +482,18 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Refetch whenever the page, fuel-type tab, search term, or vehicle filter changes (all server-side).
+  // Date range filter params for refuel time.
+  const dateParams = useMemo(() => {
+    const startDate = toStartOfDayIso(range.from);
+    const endDate = toEndOfDayIso(range.to);
+    const params = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    if (isFixedFuelType) params.sortBy = 'refuelTime';
+    return params;
+  }, [isFixedFuelType, range]);
+
+  // Refetch whenever the page, status/fuel tab, search term, vehicle, or date filter changes.
   const {
     data: logsData,
     loading,
@@ -232,22 +501,37 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     refetch,
   } = useApi(
     (signal) =>
-      fetchRefuelLogs(
-        {
-          page: pagination.page,
-          limit: pagination.limit,
-          fuelType: TAB_TO_FUEL_TYPE[activeTab],
-          search: debouncedSearch,
-          vehicleId: selectedVehicleId || undefined,
-        },
-        signal,
-      ),
+      isFixedFuelType
+        ? fetchRefuelLogs(
+            {
+              page: pagination.page,
+              limit: pagination.limit,
+              fuelType: TAB_TO_FUEL_TYPE[activeTab],
+              search: debouncedSearch,
+              vehicleId: selectedVehicleId || undefined,
+              ...dateParams,
+              withTotals: isFixedFuelType,
+            },
+            signal,
+          )
+        : fetchUnifiedLogs(
+            {
+              page: pagination.page,
+              limit: pagination.limit,
+              status: activeTab,
+              search: debouncedSearch,
+              vehicleId: selectedVehicleId || undefined,
+              ...dateParams,
+            },
+            signal,
+          ),
     [
       JSON.stringify({
         page: pagination.page,
         activeTab,
         debouncedSearch,
         vehicleId: selectedVehicleId,
+        dateParams,
       }),
     ],
   );
@@ -255,6 +539,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   useEffect(() => {
     if (logsData) {
       setLogs(logsData.logs);
+      setTotals(logsData.totals);
       setPagination((p) => ({ ...p, total: logsData.total }));
     }
   }, [logsData]);
@@ -395,7 +680,10 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   };
 
   const activeFilterCount =
-    (debouncedSearch ? 1 : 0) + (activeTab !== 'all' ? 1 : 0) + (selectedVehicleId ? 1 : 0);
+    (debouncedSearch ? 1 : 0) +
+    (activeTab !== 'all' ? 1 : 0) +
+    (selectedVehicleId ? 1 : 0) +
+    (datePreset !== 'ALL' || range.from || range.to ? 1 : 0);
 
   // Export carries every filtered row (paginated fetch in chunks), not just
   // the visible page — same contract as the hand-rolled export it replaces.
@@ -404,15 +692,25 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     let currentPage = 1;
     let hasMore = true;
 
-    // Backend max limit is 1000, so we fetch in chunks until we get all logs
+    // Fetch all logs in chunks
     while (hasMore) {
-      const { logs: chunkLogs, total } = await fetchRefuelLogs({
-        page: currentPage,
-        limit: 1000,
-        fuelType: TAB_TO_FUEL_TYPE[activeTab],
-        search: debouncedSearch,
-        vehicleId: selectedVehicleId || undefined,
-      });
+      const { logs: chunkLogs, total } = isFixedFuelType
+        ? await fetchRefuelLogs({
+            page: currentPage,
+            limit: 1000,
+            fuelType: TAB_TO_FUEL_TYPE[activeTab],
+            search: debouncedSearch,
+            vehicleId: selectedVehicleId || undefined,
+            ...dateParams,
+          })
+        : await fetchUnifiedLogs({
+            page: currentPage,
+            limit: 200,
+            status: activeTab,
+            search: debouncedSearch,
+            vehicleId: selectedVehicleId || undefined,
+            ...dateParams,
+          });
 
       allLogs.push(...chunkLogs);
 
@@ -428,10 +726,14 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
 
   const exportFilters = [
     activeTab !== 'all' && {
-      label: 'Fuel type',
+      label: isFixedFuelType ? 'Fuel type' : 'Status',
       value: filterTabs.find((t) => t.id === activeTab)?.label,
     },
     debouncedSearch && { label: 'Search', value: debouncedSearch },
+    (range.from || range.to) && {
+      label: 'Refuelled',
+      value: `${range.from || '…'} → ${range.to || '…'}`,
+    },
     selectedVehicleId && {
       label: 'Vehicle',
       value:
@@ -478,12 +780,51 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     {
       key: 'location',
       label: 'Location',
-      render: (log) => (
-        <>
-          <div className="cell-primary">{log.location || '-'}</div>
-          <div className="cell-secondary">{log.vendor || '--'}</div>
-        </>
-      ),
+      render: (log) => {
+        const hasCoords = log.lat != null && log.lng != null && !isNaN(log.lat) && !isNaN(log.lng);
+        const mapUrl = hasCoords ? `https://www.google.com/maps?q=${log.lat},${log.lng}` : null;
+        const isCoordsLocation =
+          hasCoords &&
+          (!log.location ||
+            log.location === '-' ||
+            /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(String(log.location).trim()));
+
+        return (
+          <>
+            <div className="cell-primary flex items-center gap-1.5">
+              {hasCoords ? (
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer group"
+                  title={`Open Google Maps coordinates (${log.lat}, ${log.lng})`}
+                >
+                  <MapPin size={12} className="shrink-0 text-blue-500 group-hover:text-blue-700" />
+                  <span>
+                    {isCoordsLocation
+                      ? `${Number(log.lat).toFixed(4)}, ${Number(log.lng).toFixed(4)}`
+                      : log.location}
+                  </span>
+                  <ExternalLink size={10} className="shrink-0 opacity-60 group-hover:opacity-100" />
+                </a>
+              ) : (
+                <span>{log.location || '-'}</span>
+              )}
+            </div>
+            <div className="cell-secondary">
+              {hasCoords && !isCoordsLocation ? (
+                <span className="font-mono text-[11px] text-slate-500">
+                  {`${Number(log.lat).toFixed(4)}, ${Number(log.lng).toFixed(4)}`}
+                </span>
+              ) : (
+                log.vendor || '--'
+              )}
+            </div>
+          </>
+        );
+      },
     },
     ...(!isFixedFuelType
       ? [
@@ -491,12 +832,53 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
             key: 'fuelType',
             label: 'Fuel Type',
             render: (log) => (
-              <span
-                className={`fuel-type-pill ${log.fuelType ? log.fuelType.toLowerCase() : 'unknown'}`}
-              >
-                {log.fuelType || 'Unknown'}
-              </span>
+              <div>
+                <span
+                  className={`fuel-type-pill ${log.fuelType ? log.fuelType.toLowerCase() : 'unknown'}`}
+                >
+                  {log.fuelType || 'Unknown'}
+                </span>
+                {log.notes && log.notes !== '-' && (
+                  <div className="cell-secondary" style={{ marginTop: 2 }}>
+                    {log.notes}
+                  </div>
+                )}
+              </div>
             ),
+          },
+        ]
+      : []),
+    ...(!isFixedFuelType
+      ? [
+          {
+            key: 'verificationStatus',
+            label: 'Status',
+            render: (log) => {
+              const statusClass = log.verificationStatus
+                ? log.verificationStatus.toLowerCase()
+                : 'unknown';
+              let label = log.verificationStatus;
+              let icon = null;
+              if (log.verificationStatus === 'VERIFIED') {
+                label = 'Verified';
+                icon = <Check size={12} />;
+              } else if (log.verificationStatus === 'UNVERIFIED') {
+                label = 'Unverified';
+                icon = <AlertCircle size={12} />;
+              } else if (log.verificationStatus === 'FLAGGED') {
+                label = 'Flagged';
+                icon = <AlertTriangle size={12} />;
+              } else if (log.verificationStatus === 'SLIP_ONLY') {
+                label = 'Slip Only';
+                icon = <FileText size={12} />;
+              }
+              return (
+                <span className={`refuel-status-badge ${statusClass}`}>
+                  {icon}
+                  <span>{label}</span>
+                </span>
+              );
+            },
           },
         ]
       : []),
@@ -505,20 +887,42 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       label: 'Quantity (L)',
       render: (log) => (
         <>
-          <div className="cell-primary">{log.quantity || '-'}</div>
-          <div className="cell-secondary">Litres</div>
+          <div className="cell-primary font-mono">
+            {log.quantity != null && log.quantity !== '-' ? `${log.quantity} L` : '-'}
+          </div>
+          <div className="cell-secondary">
+            {log.verificationStatus === 'UNVERIFIED' ? 'Sensor Jump' : 'Billed Volume'}
+          </div>
         </>
       ),
     },
     {
       key: 'unitPrice',
-      label: 'Unit Price',
-      render: (log) => formatCurrency(log.unitPrice),
+      label: 'Rate / L',
+      render: (log) => {
+        if (log.verificationStatus === 'UNVERIFIED') {
+          return (
+            <span style={{ color: 'var(--cluster-text-dim, #94a3b8)', fontSize: 12 }}>
+              Pending Bill
+            </span>
+          );
+        }
+        return formatCurrency(log.unitPrice);
+      },
     },
     {
       key: 'totalAmount',
       label: 'Total Amount',
-      render: (log) => formatCurrency(log.totalAmount === '-' ? null : log.totalAmount),
+      render: (log) => {
+        if (log.verificationStatus === 'UNVERIFIED') {
+          return (
+            <span style={{ color: 'var(--cluster-text-dim, #94a3b8)', fontSize: 12 }}>
+              Pending Bill
+            </span>
+          );
+        }
+        return formatCurrency(log.totalAmount === '-' ? null : log.totalAmount);
+      },
     },
     {
       key: 'odometer',
@@ -530,14 +934,53 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         </>
       ),
     },
-    {
-      key: 'notes',
-      label: 'Type',
-      render: (log) => <div className="cell-primary">{log.notes || '-'}</div>,
-    },
+    ...(isFixedFuelType
+      ? [
+          {
+            key: 'notes',
+            label: 'Type',
+            render: (log) => <div className="cell-primary">{log.notes || '-'}</div>,
+          },
+        ]
+      : []),
+    ...(isFixedFuelType
+      ? [
+          {
+            key: 'status',
+            label: 'Status',
+            render: (log) => (
+              <>
+                <div className="cell-primary">
+                  {log.reviewStatus === 'NEEDS_REVIEW' ? (
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: 'rgba(37, 99, 235, 0.1)',
+                        color: '#1d4ed8',
+                        border: '1px solid rgba(37, 99, 235, 0.25)',
+                      }}
+                    >
+                      Needs review
+                    </span>
+                  ) : log.reviewStatus === 'AUTO_OK' ? (
+                    'Accepted'
+                  ) : (
+                    '—'
+                  )}
+                </div>
+                <div className="cell-secondary">{CHANNEL_LABEL[log.submissionChannel] || '—'}</div>
+              </>
+            ),
+          },
+        ]
+      : []),
     {
       key: 'actions',
-      label: 'Actions',
+      label: isFixedFuelType ? 'Bill' : 'Actions',
       render: (log) => (
         <div className="refuel-actions">
           {log.documentId && (
@@ -555,22 +998,50 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
               <Eye size={14} />
             </button>
           )}
-          <button
-            type="button"
-            className="refuel-action-btn edit"
-            title="Edit"
-            onClick={() => handleEditClick(log)}
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            type="button"
-            className="refuel-action-btn delete"
-            title="Delete"
-            onClick={() => handleDeleteClick(log)}
-          >
-            <Trash2 size={14} />
-          </button>
+          {!isFixedFuelType && (
+            <>
+              {log.verificationStatus === 'UNVERIFIED' ? (
+                <button
+                  type="button"
+                  className="refuel-action-btn primary-action"
+                  title="Upload Bill"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(
+                      `/mileage-tracking/new?vehicleId=${log.vehicleId || ''}&refuelTime=${log.refuelTime || ''}&litres=${log.sensorLitres || ''}`,
+                    );
+                  }}
+                >
+                  <PlusCircle size={14} /> Upload Bill
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="refuel-action-btn edit"
+                  title="Edit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditClick(log);
+                  }}
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
+              {log.verificationStatus !== 'UNVERIFIED' && (
+                <button
+                  type="button"
+                  className="refuel-action-btn delete"
+                  title="Delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteClick(log);
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </>
+          )}
         </div>
       ),
     },
@@ -580,6 +1051,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
 
   return (
     <PageShell
+      className="refuel-pshell"
       title={isFixedFuelType ? reportTitle : 'Refuel Logs'}
       subtitle={
         isFixedFuelType
@@ -588,48 +1060,279 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       }
       count={pagination.total}
       actions={
-        <ExportButton
-          rows={logs.map(buildExportRow)}
-          columns={REFUEL_EXPORT_COLUMNS}
-          filename={
-            isAdBluePage ? 'adblue-report' : isFixedFuelType ? 'diesel-report' : 'refuel-logs'
-          }
-          fetchAll={fetchAllLogsForExport}
-          disabled={!logs.length}
-          meta={{ filters: exportFilters }}
-        />
+        <>
+          <ExportButton
+            rows={logs.map(buildExportRow)}
+            columns={REFUEL_EXPORT_COLUMNS}
+            filename={
+              isAdBluePage ? 'adblue-report' : isFixedFuelType ? 'diesel-report' : 'refuel-logs'
+            }
+            fetchAll={fetchAllLogsForExport}
+            disabled={!logs.length}
+            meta={{ filters: exportFilters }}
+          />
+          <NewButton
+            variant="primary"
+            size="md"
+            text={isAdBluePage ? 'Log AdBlue' : 'Log Fuel'}
+            prependIcon={<Plus size={16} />}
+            onClick={() => navigate(newLogPath)}
+          />
+        </>
       }
-      filters={
-        <FilterBar
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder="Search vehicle, driver, or location"
-          chips={
-            isFixedFuelType ? [] : filterTabs.map((tab) => ({ key: tab.id, label: tab.label }))
-          }
-          selectedKeys={[activeTab]}
-          onToggleChip={handleTabChange}
-          activeCount={activeFilterCount}
-          onClear={() => {
-            setSearchTerm('');
-            setSelectedVehicleId('');
-            handleTabChange('all');
-          }}
-          right={
-            isFixedFuelType ? (
+
+      footer={
+        pagination.total > 0
+          ? `Showing ${logs.length} of ${pagination.total} logs${activeFilterCount ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}` : ''}`
+          : null
+      }
+    >
+      <div className="refuel-page-container">
+        {/* Compact 6-Metric KPI Strip */}
+        {isFixedFuelType && totals ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <ReportDataNotice
+              dataAsOf={totals?.lastRefuelAt}
+              label="Latest refuel in this view"
+              emptyText="No fuel bills match these filters."
+              staleHint="Fills after this date have not been logged as bills."
+            />
+            <div className="flex flex-wrap gap-3">
+              <KpiCard
+                title="Litres"
+                value={formatLitres(totals.litres, { decimals: 0 })}
+                accent="#0d9488"
+                icon={<Fuel size={18} />}
+              />
+              <KpiCard
+                title="Amount"
+                value={formatINR(totals.amount)}
+                accent="#2563eb"
+                icon={<IndianRupee size={18} />}
+              />
+              <KpiCard
+                title="Average rate"
+                value={
+                  totals.avgRate != null ? `${formatINR(totals.avgRate, { decimals: 2 })}/L` : '—'
+                }
+                accent="#7c3aed"
+                icon={<Gauge size={18} />}
+              />
+              <KpiCard
+                title="Needs review"
+                value={formatNum(totals.needsReviewCount)}
+                accent="#2563eb"
+                icon={<FileWarning size={18} />}
+              />
+            </div>
+          </div>
+        ) : !isFixedFuelType && totals ? (
+          <div className="refuel-kpi-grid">
+            {/* Total Litres */}
+            <div className="refuel-kpi-card stat-only">
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Total Litres</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--teal">
+                  <Fuel size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-teal-600 dark:text-teal-400">
+                {formatLitres(totals.totalLitres, { decimals: 0 })}
+              </div>
+              <span className="refuel-kpi-card__hint">Fuel volume</span>
+            </div>
+
+            {/* Verified Spend */}
+            <div className="refuel-kpi-card stat-only">
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Verified Spend</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--blue">
+                  <IndianRupee size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-blue-600 dark:text-blue-400">
+                {formatINR(totals.totalSpendInr)}
+              </div>
+              <span className="refuel-kpi-card__hint">From verified slips</span>
+            </div>
+
+            {/* Verified (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                activeTab === 'verified' ? 'is-active' : ''
+              }`}
+              onClick={() => handleTabChange(activeTab === 'verified' ? 'all' : 'verified')}
+              title="Filter by Verified"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Verified</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--green">
+                  <CheckCircle size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-emerald-600 dark:text-emerald-400">
+                {formatNum(totals.verified)}
+              </div>
+              <span className="refuel-kpi-card__hint">Matched with sensor</span>
+            </button>
+
+            {/* Unverified (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                totals.unverified > 0 ? 'refuel-kpi-card--warn' : ''
+              } ${activeTab === 'unverified' ? 'is-active' : ''}`}
+              onClick={() => handleTabChange(activeTab === 'unverified' ? 'all' : 'unverified')}
+              title="Filter by Unverified (Needs Slip)"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Unverified</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--amber">
+                  <AlertCircle size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-amber-600 dark:text-amber-400">
+                {formatNum(totals.unverified)}
+              </div>
+              <span className="refuel-kpi-card__hint">Needs driver slip</span>
+            </button>
+
+            {/* Flagged (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                totals.flagged > 0 ? 'refuel-kpi-card--alert' : ''
+              } ${activeTab === 'flagged' ? 'is-active' : ''}`}
+              onClick={() => handleTabChange(activeTab === 'flagged' ? 'all' : 'flagged')}
+              title="Filter by High Variance"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Flagged</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--red">
+                  <AlertTriangle size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-red-600 dark:text-red-400">
+                {formatNum(totals.flagged)}
+              </div>
+              <span className="refuel-kpi-card__hint">Variance flagged</span>
+            </button>
+
+            {/* Slip Only (Interactive) */}
+            <button
+              type="button"
+              className={`refuel-kpi-card refuel-kpi-card--interactive ${
+                activeTab === 'slip_only' ? 'is-active' : ''
+              }`}
+              onClick={() => handleTabChange(activeTab === 'slip_only' ? 'all' : 'slip_only')}
+              title="Filter by Slip Only"
+            >
+              <div className="refuel-kpi-card__head">
+                <span className="refuel-kpi-card__title">Slip Only</span>
+                <div className="refuel-kpi-card__icon refuel-kpi-card__icon--slate">
+                  <FileText size={16} />
+                </div>
+              </div>
+              <div className="refuel-kpi-card__val text-slate-600 dark:text-slate-400">
+                {formatNum(totals.slipOnly)}
+              </div>
+              <span className="refuel-kpi-card__hint">No sensor jump</span>
+            </button>
+          </div>
+        ) : null}
+
+        {/* Unified Single Toolbar: Status Tabs + Inline Filter Controls */}
+        <div className="refuel-toolbar">
+          {/* Segmented Status Tabs */}
+          <div className="refuel-tabs" role="tablist">
+            {filterTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const count = totals ? totals[tab.countKey] : undefined;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`refuel-tab ${isActive ? 'is-active' : ''}`}
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  <span>{tab.label}</span>
+                  {count != null && (
+                    <span
+                      className={`refuel-tab__count ${
+                        tab.id === 'unverified' && count > 0
+                          ? 'refuel-tab__count--warn'
+                          : tab.id === 'flagged' && count > 0
+                            ? 'refuel-tab__count--alert'
+                            : ''
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Inline Filter Controls */}
+          <div className="refuel-filters-row">
+            {/* Quick Date Range Preset Select */}
+            <div className="refuel-select-wrap">
+              <Calendar size={13} className="refuel-select-icon" />
               <select
-                className="refuel-filter-select"
+                value={datePreset}
+                onChange={(e) => handlePresetChange(e.target.value)}
+                className="refuel-select refuel-select--compact"
+                aria-label="Filter by date range"
+              >
+                {DATE_PRESETS.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Custom Dates Input */}
+            {datePreset === 'CUSTOM' && (
+              <div className="refuel-custom-dates">
+                <input
+                  type="date"
+                  className="refuel-date-input"
+                  value={range.from || ''}
+                  onChange={(e) => {
+                    setRange((prev) => ({ ...prev, from: e.target.value }));
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  aria-label="From date"
+                />
+                <span className="refuel-date-sep">→</span>
+                <input
+                  type="date"
+                  className="refuel-date-input"
+                  value={range.to || ''}
+                  onChange={(e) => {
+                    setRange((prev) => ({ ...prev, to: e.target.value }));
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  aria-label="To date"
+                />
+              </div>
+            )}
+
+            {/* Vehicle Selector */}
+            <div className="refuel-select-wrap">
+              <Truck size={13} className="refuel-select-icon" />
+              <select
+                className="refuel-select refuel-select--compact"
                 value={selectedVehicleId}
                 onChange={(e) => {
                   setSelectedVehicleId(e.target.value);
                   setPagination((p) => ({ ...p, page: 1 }));
                 }}
-                style={{
-                  padding: '0.4rem 0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  outline: 'none',
-                }}
+                aria-label="Filter by vehicle"
               >
                 <option value="">All Vehicles</option>
                 {vehicles.map((v) => (
@@ -638,75 +1341,114 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Search Box */}
+            <div className="refuel-search-box">
+              <Search size={13} className="refuel-search-icon" />
+              <input
+                type="text"
+                className="refuel-search-input"
+                placeholder="Search vehicle, driver, or location…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search refuels"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="refuel-search-clear"
+                  onClick={() => setSearchTerm('')}
+                  aria-label="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Reset Filters */}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                className="refuel-btn-reset"
+                onClick={handleResetFilters}
+                title="Reset all filters"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* DataTable */}
+        <DataTable
+          columns={columns}
+          rows={logs}
+          rowKey={(log) => log.id}
+          rowClassName={(log) => {
+            if (log.verificationStatus === 'UNVERIFIED') return 'refuel-row-unverified';
+            if (log.verificationStatus === 'FLAGGED') return 'refuel-row-flagged';
+            if (log.verificationStatus === 'VERIFIED') return 'refuel-row-verified';
+            if (log.verificationStatus === 'SLIP_ONLY') return 'refuel-row-slip-only';
+            return '';
+          }}
+          loading={loading}
+          error={!loading && error ? error : null}
+          onRetry={refetch}
+          showing={logs.length}
+          total={pagination.total}
+          activeFilters={activeFilterCount}
+          onRowClick={(log) => {
+            if (!isFixedFuelType) setComparisonLog(log);
+          }}
+          emptyTitle={isFiltered ? 'No refuel logs match' : 'No refuel logs yet'}
+          emptyHint={isFiltered ? 'Try adjusting your search or clearing filters.' : null}
+          emptyAction={
+            !isFiltered ? (
+              <button className="refuel-empty-action-btn" onClick={() => navigate(newLogPath)}>
+                <PlusCircle size={18} /> {emptyActionLabel}
+              </button>
             ) : null
           }
         />
-      }
-      footer={
-        pagination.total > 0
-          ? `Showing ${logs.length} of ${pagination.total} logs${activeFilterCount ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}` : ''}`
-          : null
-      }
-    >
-      <DataTable
-        columns={columns}
-        rows={logs}
-        rowKey={(log) => log.id}
-        loading={loading}
-        error={!loading && error ? error : null}
-        onRetry={refetch}
-        showing={logs.length}
-        total={pagination.total}
-        activeFilters={activeFilterCount}
-        emptyTitle={isFiltered ? 'No refuel logs match' : 'No refuel logs yet'}
-        emptyHint={isFiltered ? 'Try adjusting your search or clearing filters.' : null}
-        emptyAction={
-          !isFiltered ? (
-            <button className="refuel-empty-action-btn" onClick={() => navigate(newLogPath)}>
-              <PlusCircle size={18} /> {emptyActionLabel}
-            </button>
-          ) : null
-        }
-      />
+      </div>
 
-      {/* Pagination Footer */}
-      {!loading && !error && pagination.total > 0 && (
-        <div className="refuel-pagination-controls">
-          <button
-            className="refuel-pagination-btn"
-            onClick={() => handlePageChange(pagination.page - 1)}
-            disabled={pagination.page === 1 || totalPages <= 1}
-          >
-            <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
-          </button>
-
-          {generatePageNumbers().map((page, index) => {
-            if (page === '...') {
-              return (
-                <div key={`overflow-${index}`} className="refuel-page-overflow">
-                  <span>...</span>
-                </div>
-              );
-            }
-            return (
-              <button
-                key={page}
-                className={`refuel-page-number ${pagination.page === page ? 'refuel-page-number-current' : ''}`}
-                onClick={() => handlePageChange(page)}
-                disabled={totalPages <= 1}
-              >
-                <span>{page}</span>
-              </button>
-            );
-          })}
-
-          <button
-            className="refuel-pagination-btn"
-            onClick={() => handlePageChange(pagination.page + 1)}
-            disabled={pagination.page === totalPages || totalPages <= 1}
-          >
-            <ChevronIcon size={12} style={{ transform: 'rotate(-90deg)' }} />
-          </button>
+      {/* Modern Pagination Footer */}
+      {!loading && !error && pagination.total > PAGE_SIZE && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          <Pagination className="justify-end">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                />
+              </PaginationItem>
+              {generatePageNumbers().map((p, index) =>
+                p === '...' ? (
+                  <PaginationItem key={`ellipsis-${index}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={`page-${p}`}>
+                    <PaginationLink
+                      isActive={pagination.page === p}
+                      onClick={() => handlePageChange(p)}
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                ),
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page >= totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 
@@ -722,6 +1464,18 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         onDeleteConfirm={handleDeleteConfirm}
         viewImageUrl={viewImageUrl}
         onViewImageClose={() => setViewImageUrl(null)}
+      />
+
+      <RefuelComparisonDrawer
+        open={!!comparisonLog}
+        onClose={() => setComparisonLog(null)}
+        log={comparisonLog}
+        onViewPhoto={handleViewDocument}
+        onUploadBill={(log) => {
+          navigate(
+            `/mileage-tracking/new?vehicleId=${log.vehicleId || ''}&refuelTime=${log.refuelTime || ''}&litres=${log.sensorLitres || ''}`,
+          );
+        }}
       />
     </PageShell>
   );

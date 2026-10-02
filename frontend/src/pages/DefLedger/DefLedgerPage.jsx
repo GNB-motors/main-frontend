@@ -7,6 +7,7 @@ import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import FreshnessBadge from '../../components/cluster/FreshnessBadge';
 import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
+import FilterBar from '../../components/ui/FilterBar';
 import ExportButton from '../../components/ui/ExportButton';
 import { formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
@@ -50,10 +51,12 @@ function FlagsDrawer({ vehicle, onClose }) {
       }
     >
       {flags.length === 0 ? (
-        <EmptyState
-          title="No flags on this vehicle"
-          hint="Claimed DEF and measured consumption are in line. Flags appear here when a persistent gap shows up."
-        />
+        <div className="py-12 px-6">
+          <EmptyState
+            title="No flags on this vehicle"
+            hint="Claimed DEF and measured consumption are in line. Flags appear here when a persistent gap shows up."
+          />
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {flags.map((f, i) => (
@@ -65,7 +68,7 @@ function FlagsDrawer({ vehicle, onClose }) {
                 ) : null}
               </div>
               <p className="text-sm leading-relaxed">{f.message}</p>
-              <span className="num text-dim text-[11px]">{formatDateTimeIST(f.at)}</span>
+              <span className="num text-dim text-xs">{formatDateTimeIST(f.at)}</span>
             </div>
           ))}
         </div>
@@ -76,6 +79,8 @@ function FlagsDrawer({ vehicle, onClose }) {
 
 export default function DefLedgerPage() {
   const [selected, setSelected] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getDefLedger(signal),
@@ -84,6 +89,19 @@ export default function DefLedgerPage() {
 
   const vehicles = useMemo(() => data?.vehicles || [], [data]);
   const totals = data?.totals || {};
+
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      const reg = (v.registrationNumber || '').toLowerCase();
+      if (search && !reg.includes(search.toLowerCase().trim())) return false;
+      const flags = v.flagCount ?? (v.flags || []).length;
+      const balance = v.expectedBalanceL;
+      if (statusFilter === 'flagged') return flags > 0;
+      if (statusFilter === 'deficit') return balance != null && balance < 0;
+      if (statusFilter === 'balanced') return balance != null && balance >= 0 && flags === 0;
+      return true;
+    });
+  }, [vehicles, search, statusFilter]);
 
   const columns = [
     {
@@ -146,10 +164,43 @@ export default function DefLedgerPage() {
         count={totals.vehicles ?? vehicles.length}
         actions={
           <ExportButton
-            rows={vehicles}
+            rows={filteredVehicles}
             columns={EXPORT_COLUMNS}
             filename="def-ledger"
-            disabled={!vehicles.length}
+            disabled={!filteredVehicles.length}
+          />
+        }
+        filters={
+          <FilterBar
+            searchPlaceholder="Search vehicle registration…"
+            searchValue={search}
+            onSearchChange={setSearch}
+            filterChips={[
+              { id: 'all', label: 'All', count: vehicles.length },
+              {
+                id: 'flagged',
+                label: 'Has Flags',
+                count: vehicles.filter((v) => (v.flagCount ?? (v.flags || []).length) > 0).length,
+              },
+              {
+                id: 'deficit',
+                label: 'Balance Deficit',
+                count: vehicles.filter((v) => v.expectedBalanceL != null && v.expectedBalanceL < 0)
+                  .length,
+              },
+              {
+                id: 'balanced',
+                label: 'Balanced',
+                count: vehicles.filter(
+                  (v) =>
+                    v.expectedBalanceL != null &&
+                    v.expectedBalanceL >= 0 &&
+                    (v.flagCount ?? (v.flags || []).length) === 0,
+                ).length,
+              },
+            ]}
+            activeChip={statusFilter}
+            onChipSelect={setStatusFilter}
           />
         }
         footer="Balance is claimed minus consumed. A negative balance means the vehicle used more DEF than was billed — please review those vehicles first."
@@ -181,12 +232,12 @@ export default function DefLedgerPage() {
           <div className="mt-4">
             <DataTable
               columns={columns}
-              rows={vehicles}
+              rows={filteredVehicles}
               rowKey={(v) => v.vehicleId || v.registrationNumber}
               loading={loading}
               error={error && !data ? error : null}
               onRetry={refetch}
-              showing={vehicles.length}
+              showing={filteredVehicles.length}
               total={totals.vehicles ?? vehicles.length}
               onRowClick={(v) => setSelected(v)}
               emptyTitle="No DEF data yet"

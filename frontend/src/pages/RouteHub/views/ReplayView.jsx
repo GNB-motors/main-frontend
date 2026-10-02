@@ -4,6 +4,15 @@ import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, pinIcon, truckIcon } from '../routeHubMap';
 import { Seg } from '../routeHubShared.jsx';
 import { dkey, fmtT, haversineKm, hm } from '../routeHubFormat';
+import RoadService from '../../../services/RoadService';
+import {
+  toLayers,
+  clipLayersAt,
+  positionAt as roadPositionAt,
+  distanceAtTime,
+  toLatLngPairs,
+} from '../../../lib/roadTrail';
+import { addRoadLayers } from '../../../lib/roadTrailLeaflet';
 
 const EVC = { start: '#187A32', stop: '#6A43D8', os: '#F0AA48', dev: '#C2323A', end: '#1E1E20' };
 const RANGES = [
@@ -64,7 +73,7 @@ function tripWindow(t) {
  * a positioned, cumulative-distance-tagged frame list keyed on real elapsed
  * time (the mockup could assume one fix per minute; live data cannot).
  */
-function buildTrip(points, overspeedEvents, deviationEvents, anchors = null) {
+function buildTrip(points, overspeedEvents, deviationEvents, anchors = null, road = null) {
   const fixes = (points || [])
     .filter((p) => p.latitude != null && p.longitude != null)
     .map((p) => ({
@@ -77,9 +86,15 @@ function buildTrip(points, overspeedEvents, deviationEvents, anchors = null) {
 
   if (fixes.length < 2) return null;
 
+  // Road distance when the road engine has this window (plan P4.11; maths R2); otherwise straight lines.
+  const matched = road && road.mode === 'MATCHED';
+  const timeline =
+    matched && Array.isArray(road.timeline) && road.timeline.length > 1 ? road.timeline : null;
+  const base = timeline ? distanceAtTime(timeline, fixes[0].at.getTime()) : 0;
   let acc = 0;
   fixes.forEach((f, i) => {
-    if (i > 0) acc += haversineKm(fixes[i - 1].ll, f.ll);
+    if (timeline) acc = (distanceAtTime(timeline, f.at.getTime()) - base) / 1000;
+    else if (i > 0) acc += haversineKm(fixes[i - 1].ll, f.ll);
     f.km = acc;
   });
 
@@ -223,6 +238,8 @@ function buildTrip(points, overspeedEvents, deviationEvents, anchors = null) {
     path,
     events,
     km: acc,
+    distanceSource: timeline ? 'road' : 'straight-line',
+    roadLayers: matched ? toLayers(road) : [],
     durationMin: span / 60000,
     peak: speeds.length ? Math.max(...speeds) : 0,
     avg: moving.length ? Math.round(moving.reduce((a, b) => a + b, 0) / moving.length) : 0,
@@ -339,7 +356,11 @@ export default function ReplayView({ params, toast }) {
         // being window edges rather than a trip.
         const anchors = await RouteHubService.getTripAnchors(nextTripId);
 
-        const built = buildTrip(trail.points, os, dev, anchors);
+        const road = await RoadService.getRoadTrailIfEnabled(nextReg, {
+          from: win.from.toISOString(),
+          to: win.to.toISOString(),
+        });
+        const built = buildTrip(trail.points, os, dev, anchors, road);
         setTrip(built);
         setT(0);
         setPlaying(false);
@@ -401,13 +422,17 @@ export default function ReplayView({ params, toast }) {
     mapRef,
     (group, map) => {
       if (!trip) return;
-      L.polyline(trip.path, {
-        color: '#9A9AA5',
-        weight: 4,
-        opacity: 0.6,
-        dashArray: '2 8',
-        lineCap: 'round',
-      }).addTo(group);
+      if (trip.roadLayers.length) {
+        addRoadLayers(L, group, trip.roadLayers, { color: '#9A9AA5', fleetColor: '#c4b5fd' });
+      } else {
+        L.polyline(trip.path, {
+          color: '#9A9AA5',
+          weight: 4,
+          opacity: 0.6,
+          dashArray: '2 8',
+          lineCap: 'round',
+        }).addTo(group);
+      }
       runRef.current = L.polyline([trip.path[0]], {
         color: '#2F58EE',
         weight: 5,
@@ -452,8 +477,20 @@ export default function ReplayView({ params, toast }) {
   // them directly instead of re-rendering the map on every tick.
   useEffect(() => {
     if (!trip || !frame || !truckRef.current || !runRef.current) return;
-    truckRef.current.setLatLng(frame.ll);
-    runRef.current.setLatLngs(trip.path.slice(0, frame.upto).concat([frame.ll]));
+    const onRoad = trip.roadLayers.length
+      ? roadPositionAt(trip.roadLayers, frame.at.getTime())
+      : null;
+    truckRef.current.setLatLng(onRoad ? [onRoad.lat, onRoad.lng] : frame.ll);
+    if (trip.roadLayers.length) {
+      const travelled = clipLayersAt(trip.roadLayers, frame.at.getTime()).filter(
+        (l) => l.kind !== 'RAW',
+      );
+      runRef.current.setLatLngs(
+        travelled.length ? travelled.map((l) => toLatLngPairs(l.path)) : [frame.ll],
+      );
+    } else {
+      runRef.current.setLatLngs(trip.path.slice(0, frame.upto).concat([frame.ll]));
+    }
     const el = truckRef.current.getElement()?.querySelector('.rh-truck');
     if (el) el.classList.toggle('fast', (frame.speed || 0) > 60);
     if (persp === 'follow' && mapRef.current)
@@ -503,7 +540,12 @@ export default function ReplayView({ params, toast }) {
     () =>
       trip
         ? [
-            ['split', 'Distance', `${trip.km.toFixed(1)} km`, 'var(--nova-rage-600)'],
+            [
+              'split',
+              trip.distanceSource === 'road' ? 'Distance on roads' : 'Distance (straight-line)',
+              `${trip.km.toFixed(1)} km`,
+              'var(--nova-rage-600)',
+            ],
             ['clock', 'Duration', hm(trip.durationMin), '#187A32'],
             ['gauge', 'Avg speed', `${trip.avg} km/h`, '#C56200'],
             ['zap', 'Peak speed', `${trip.peak} km/h`, '#C2323A'],

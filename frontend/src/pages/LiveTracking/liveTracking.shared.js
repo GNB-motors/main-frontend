@@ -307,19 +307,31 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
   }
 
   // Relative sizing based on map zoom:
-  // zoom >= 16: close-up, enlarged & crisp
-  // zoom 13-15: standard city view
-  // zoom 10-12: regional overview
-  // zoom < 10: national overview
+  // Smoothly increases marker & label dimensions as the client zooms in,
+  // and maintains a prominent, readable silhouette when zoomed out.
+  const effectiveZoom =
+    typeof zoom === 'number' && !isNaN(zoom) ? Math.max(4, Math.min(20, zoom)) : 12;
+
+  // Responsive scale curve from zoom 4 (national overview) to zoom 20 (street level).
+  // The zoomed-out / page-open range (<=13) is deliberately kept large so trucks
+  // read clearly on first load, when the map is fitted out to the whole fleet;
+  // high zoom is left near its original size (the view was never too small there).
   let scale = 1.0;
-  if (zoom >= 16) {
-    scale = 1.25;
-  } else if (zoom >= 13) {
-    scale = 1.0;
-  } else if (zoom >= 10) {
-    scale = 0.85;
-  } else {
-    scale = 0.72;
+  if (effectiveZoom >= 17) scale = 1.65;
+  else if (effectiveZoom === 16) scale = 1.5;
+  else if (effectiveZoom === 15) scale = 1.4;
+  else if (effectiveZoom === 14) scale = 1.3;
+  else if (effectiveZoom === 13) scale = 1.2;
+  else if (effectiveZoom === 12) scale = 1.12;
+  else if (effectiveZoom === 11) scale = 1.04;
+  else if (effectiveZoom === 10) scale = 0.96;
+  else if (effectiveZoom === 9) scale = 0.88;
+  else if (effectiveZoom === 8) scale = 0.8;
+  else if (effectiveZoom === 7) scale = 0.72;
+  else scale = 0.64;
+
+  if (isSelected) {
+    scale = Math.max(1.35, Number((scale * 1.15).toFixed(2)));
   }
 
   const rawStatus = (v.status || '').toString().toLowerCase();
@@ -362,16 +374,28 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     v.courseDegrees != null ? Number(v.courseDegrees) : v.heading != null ? Number(v.heading) : 0;
   const heading = isNaN(course) ? 0 : course;
   const plateText = (v.plate || v.registrationNumber || '').toString().trim();
-  const hasLabel = (showLabel || isSelected) && plateText.length > 0;
-  const shortPlate = plateText.length > 10 ? plateText.slice(-8) : plateText;
 
-  // ViewBox: 96x96 base (or 96x120 with label plate)
+  // To avoid unreadable clutter across India when zoomed out (< 10),
+  // labels for unselected vehicles appear once the user zooms into district/city level (zoom >= 10).
+  // Selected vehicles always display their plate label.
+  const hasLabel = Boolean(
+    plateText.length > 0 && (isSelected || (showLabel && effectiveZoom >= 10)),
+  );
+  const shortPlate = plateText.length > 12 ? plateText.slice(-10) : plateText;
+  const labelFontSize = effectiveZoom >= 16 ? 16 : effectiveZoom >= 13 ? 15 : 14;
+
+  // ViewBox: 96x96 base (or 96x124 with label plate)
   const vbW = 96;
-  const vbH = hasLabel ? 120 : 96;
+  const vbH = hasLabel ? 124 : 96;
+
+  const baseW = 56;
+  const baseH = hasLabel ? 72 : 56;
+  const scaledW = Math.round(baseW * scale);
+  const scaledH = Math.round(baseH * scale);
 
   // Render authentic WheelsEye MovingTruckV2 SVG paths inside rotated wrapper:
   // Center of the truck is translated to (48, 48) and rotated around (48, 48)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${vbW}" height="${vbH}" viewBox="0 0 ${vbW} ${vbH}" fill="none">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${scaledW}" height="${scaledH}" viewBox="0 0 ${vbW} ${vbH}" fill="none" data-scale="${scaledW}">
     <defs>
       <filter id="fl-glow" x="-20%" y="-20%" width="140%" height="140%">
         <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.32"/>
@@ -423,10 +447,10 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     ${
       hasLabel
         ? `
-      <!-- High-contrast crisp number plate chip -->
-      <g transform="translate(48, 107)">
-        <rect x="-42" y="-11" width="84" height="22" rx="6" fill="#0C1020" stroke="${isSelected ? '#38BDF8' : '#475569'}" stroke-width="${isSelected ? 2 : 1.5}"/>
-        <text x="0" y="4" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="11.5" font-weight="800" text-anchor="middle" letter-spacing="0.5">
+      <!-- High-contrast crisp prominent number plate chip -->
+      <g transform="translate(48, 108)">
+        <rect x="-45" y="-12" width="90" height="24" rx="6" fill="#0C1020" stroke="${isSelected ? '#38BDF8' : '#94A3B8'}" stroke-width="${isSelected ? 2.5 : 1.5}"/>
+        <text x="0" y="5" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="${labelFontSize}" font-weight="900" text-anchor="middle" letter-spacing="0.5">
           ${shortPlate}
         </text>
       </g>
@@ -435,20 +459,24 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     }
   </svg>`;
 
-  const scaledW = Math.round(48 * scale);
-  const scaledH = Math.round((hasLabel ? 60 : 48) * scale);
-  const anchorX = Math.round(24 * scale);
-  const anchorY = Math.round(24 * scale);
+  // Truck footprint, bumped ~15% for better on-map visibility. Anchor stays at
+  // half the base so the marker point sits at the truck's centre.
+  const footprintBaseW = 60;
+  const footprintBaseH = hasLabel ? 76 : 60;
+  const footprintScaledW = Math.round(footprintBaseW * scale);
+  const footprintScaledH = Math.round(footprintBaseH * scale);
+  const footprintAnchorX = Math.round(30 * scale);
+  const footprintAnchorY = Math.round(30 * scale);
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
     scaledSize:
       typeof window !== 'undefined' && window.google
-        ? new window.google.maps.Size(scaledW, scaledH)
+        ? new window.google.maps.Size(footprintScaledW, footprintScaledH)
         : undefined,
     anchor:
       typeof window !== 'undefined' && window.google
-        ? new window.google.maps.Point(anchorX, anchorY)
+        ? new window.google.maps.Point(footprintAnchorX, footprintAnchorY)
         : undefined,
   };
 };

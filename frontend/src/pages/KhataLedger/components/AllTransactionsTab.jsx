@@ -283,15 +283,16 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="pshell-btn pshell-btn--cancel"
+              style={{ height: 38, minHeight: 38, padding: '0 18px', borderRadius: 8 }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
+              className="pshell-btn pshell-btn--primary"
+              style={{ height: 38, minHeight: 38, padding: '0 20px', borderRadius: 8 }}
             >
               {saving ? 'Saving...' : editingExpense ? 'Update' : 'Add Expense'}
             </button>
@@ -421,8 +422,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
             setEditingExpense(null);
             setModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm"
-          style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
+          className="pshell-btn pshell-btn--primary"
         >
           <Plus size={18} />
           Add Expense

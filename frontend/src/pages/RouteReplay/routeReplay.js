@@ -16,6 +16,8 @@
  *    figure is the one that reconciles with distance travelled.
  */
 
+import { distanceAtTime } from '../../lib/roadTrail';
+
 const EARTH_RADIUS_KM = 6371;
 const toRad = (deg) => (deg * Math.PI) / 180;
 const toDeg = (rad) => (rad * 180) / Math.PI;
@@ -104,6 +106,34 @@ export function toFrames(points) {
 export function groundSpeedKmph(legKm, legMs) {
   if (!legMs || legMs <= 0) return null;
   return legKm / (legMs / 3600000);
+}
+
+/**
+ * Replace straight-line leg distances with road distances when the road engine has a timeline for this
+ * window (ROAD_INTELLIGENCE plan Task P4.10; maths R2). timeline = [[tMs, cumulative road metres], ...]
+ * from GET /api/road/trail. Inside an unknown gap the road clock does not move, so no distance is invented.
+ * Without a timeline the frames keep their straight-line figures, marked as such.
+ */
+export function applyRoadDistance(frames, timeline) {
+  if (!frames || !frames.length) return [];
+  if (!Array.isArray(timeline) || timeline.length < 2) {
+    return frames.map((f) => ({ ...f, distanceSource: 'straight-line' }));
+  }
+  const base = distanceAtTime(timeline, frames[0].at);
+  let prevKm = 0;
+  return frames.map((f, i) => {
+    const km = (distanceAtTime(timeline, f.at) - base) / 1000;
+    const legKm = i === 0 ? 0 : Math.max(0, km - prevKm);
+    const legMs = i === 0 ? 0 : f.at - frames[i - 1].at;
+    prevKm = km;
+    return {
+      ...f,
+      legKm,
+      cumulativeKm: km,
+      groundSpeedKmph: i === 0 || f.isBreak ? null : groundSpeedKmph(legKm, legMs),
+      distanceSource: 'road',
+    };
+  });
 }
 
 /** Rollup for the replay's stats strip. Distance is ground truth, not planned. */

@@ -209,6 +209,8 @@ const SlotUpload = ({
 const FuelLogForm = ({
   initialVehicleId,
   initialDriverId,
+  initialLitres,
+  initialRefuelTime,
   lockVehicle = false,
   lockDriver = false,
   onSuccess,
@@ -231,7 +233,7 @@ const FuelLogForm = ({
   const [formData, setFormData] = useState({
     fuelType: 'DIESEL',
     fillingType: 'PARTIAL',
-    litres: '',
+    litres: initialLitres || '',
     rate: '',
     odometerReading: '',
     location: '',
@@ -306,10 +308,21 @@ const FuelLogForm = ({
 
   useEffect(() => {
     if (initialVehicleId && vehicles.length) {
-      const match = vehicles.find((v) => v.id === initialVehicleId);
+      const targetStr = String(initialVehicleId).trim().toUpperCase();
+      const match = vehicles.find(
+        (v) =>
+          String(v.id) === String(initialVehicleId) ||
+          (v.name && v.name.toUpperCase() === targetStr),
+      );
       if (match) setSelectedVehicle(match);
     }
   }, [initialVehicleId, vehicles]);
+
+  useEffect(() => {
+    if (initialLitres != null && initialLitres !== '' && !formData.litres) {
+      setFormData((prev) => ({ ...prev, litres: String(initialLitres) }));
+    }
+  }, [initialLitres]);
 
   useEffect(() => {
     if (initialDriverId && drivers.length) {
@@ -471,7 +484,7 @@ const FuelLogForm = ({
         });
         odoDocId = odoRes.data.data?._id || odoRes.data._id || '';
       }
-      let refuelTimeStr;
+      let refuelTimeStr = initialRefuelTime;
       const ocrDatetime =
         fixedDocs.fuel?.ocrData?.datetime || fixedDocs.fuel?.ocrData?.extractedData?.datetime;
       if (ocrDatetime) {

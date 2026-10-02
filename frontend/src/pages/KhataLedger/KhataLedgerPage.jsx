@@ -53,16 +53,14 @@ const KhataLedgerPage = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-            <BookOpen size={24} style={{ color: 'var(--primary-color, #4f46e5)' }} />
+            <BookOpen size={24} style={{ color: '#2563eb' }} />
             Khata Ledger
           </h1>
-          <p className="text-sm text-muted-foreground">Track all expenses by driver, truck, assignment, or as a flat list</p>
+          <p className="text-sm text-muted-foreground">
+            Track all expenses by driver, truck, assignment, or as a flat list
+          </p>
         </div>
-        <button
-          onClick={() => setFuelModalOpen(true)}
-          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm"
-          style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
-        >
+        <button onClick={() => setFuelModalOpen(true)} className="pshell-btn pshell-btn--primary">
           <Fuel size={18} />
           Add Fuel
         </button>

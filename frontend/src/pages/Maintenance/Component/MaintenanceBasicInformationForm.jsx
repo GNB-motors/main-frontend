@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
 import React, { useState, useEffect, useMemo, forwardRef } from 'react';
-import { Wrench } from 'lucide-react';
+import { Wrench, Smartphone, Lock } from 'lucide-react';
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
 import '../../Drivers/Component/BasicInformationForm.css';
 
@@ -117,17 +117,52 @@ const MaintenanceBasicInformationForm = forwardRef(
     const selectedVehicleLabel =
       vehicleOptions.find((v) => v._id === formData.vehicleId)?.name || '';
 
-    // Driver options
+    // Driver options with robust name and phone number resolution from employee records
     const driverOptions = useMemo(
       () =>
-        drivers.map((d) => ({
-          _id: d._id,
-          name: `${d.name || d.fullName || 'Driver'}${d.phone ? ` (${d.phone})` : ''}`,
-        })),
+        drivers.map((d) => {
+          const id = d._id || d.id;
+          const firstName = (d.firstName || d.first_name || '').trim();
+          const lastName = (d.lastName || d.last_name || '').trim();
+          const combined = [firstName, lastName].filter(Boolean).join(' ');
+
+          const displayName =
+            (d.name && d.name.trim() !== '' && d.name.trim().toLowerCase() !== 'driver'
+              ? d.name.trim()
+              : '') ||
+            combined ||
+            (d.fullName && d.fullName.trim() !== '' ? d.fullName.trim() : '') ||
+            (d.employeeId ? `Employee ${d.employeeId}` : '') ||
+            (d.name ? d.name.trim() : '') ||
+            'Driver';
+
+          const phone = d.mobileNumber || d.mobile_number || d.mobile || d.phone || '';
+          const roleTag = d.role && d.role !== 'DRIVER' ? ` · ${d.role}` : '';
+          const label = `${displayName}${phone ? ` (${phone})` : ''}${roleTag}`;
+
+          return {
+            _id: id,
+            name: label,
+            rawName: displayName,
+          };
+        }),
       [drivers],
     );
 
-    const selectedDriverLabel = driverOptions.find((d) => d._id === formData.driverId)?.name || '';
+    const selectedDriverOption = driverOptions.find((d) => d._id === formData.driverId);
+    const selectedDriverLabel =
+      selectedDriverOption?.name ||
+      initialData.driverName ||
+      (initialData.driver ? `${initialData.driver.name || ''}` : '') ||
+      '';
+
+    const isDriverAppSource = !!(
+      initialData.isDriverApp ||
+      initialData.fromDriverApp ||
+      initialData.source === 'DRIVER_APP' ||
+      initialData.source === 'driver_app' ||
+      initialData.loggedBy === 'DRIVER'
+    );
 
     const handleVehicleSelect = (opt) => {
       set('vehicleId', opt._id);
@@ -180,16 +215,58 @@ const MaintenanceBasicInformationForm = forwardRef(
                     onSelect={handleVehicleSelect}
                   />
                 </div>
+
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Driver (Assigned / Reported by)</label>
-                  <SearchableDropdown
-                    options={driverOptions}
-                    selectedOption={selectedDriverLabel}
-                    placeholder={
-                      driverOptions.length === 0 ? 'Select driver (optional)' : 'Select driver'
-                    }
-                    onSelect={(opt) => set('driverId', opt._id)}
-                  />
+                  {isDriverAppSource ? (
+                    <>
+                      <label className="basic-info-label">Driver (Reported via Driver App)</label>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '8px 12px',
+                          background: '#f8fafc',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: 8,
+                          minHeight: 40,
+                        }}
+                      >
+                        <Smartphone size={16} color="#2563eb" />
+                        <span style={{ fontWeight: 600, fontSize: 13, color: '#1e293b', flex: 1 }}>
+                          {selectedDriverLabel ||
+                            initialData.driverName ||
+                            'Driver (Auto-filled from App)'}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            background: '#dbeafe',
+                            color: '#1d4ed8',
+                            borderRadius: 12,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          Auto-filled
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="basic-info-label">Driver (Assigned / Reported by)</label>
+                      <SearchableDropdown
+                        options={driverOptions}
+                        selectedOption={selectedDriverLabel}
+                        placeholder={
+                          driverOptions.length === 0 ? 'Select driver (optional)' : 'Select driver'
+                        }
+                        onSelect={(opt) => set('driverId', opt._id)}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -229,7 +306,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                 </div>
               </div>
 
-              {/* Row 3: Current KM & Amount */}
+              {/* Row 3: Current KM & Amount (mouse wheel disabled) */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
                   <label className="basic-info-label">Current KM</label>
@@ -239,6 +316,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                     className="basic-info-input"
                     value={formData.currentKm}
                     onChange={(e) => set('currentKm', e.target.value)}
+                    onWheel={(e) => e.currentTarget.blur()}
                     placeholder="e.g., 45230"
                     disabled={isSubmitting}
                   />
@@ -252,6 +330,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                     className="basic-info-input"
                     value={formData.amount}
                     onChange={(e) => set('amount', e.target.value)}
+                    onWheel={(e) => e.currentTarget.blur()}
                     placeholder="0.00"
                     required
                     disabled={isSubmitting}

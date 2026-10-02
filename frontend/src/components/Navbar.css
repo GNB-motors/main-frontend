@@ -113,18 +113,21 @@
 
 .btn-primary,
 .trip-action-btn {
-  /* Uses the dynamic root variable set by DashboardLayout */
-  background: var(--primary-color, #3b82f6) !important;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: 1.5px solid #1d4ed8 !important;
+  border-radius: 10px !important;
   color: #ffffff !important;
-  /* Neutralized shadow so it looks good on any color */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28) !important;
   white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-primary:hover,
 .trip-action-btn:hover {
-  background: var(--primary-dark, #1d30b5) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
+  border-color: #1e40af !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38) !important;
   transform: translateY(-1px);
 }
 

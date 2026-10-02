@@ -174,6 +174,7 @@ export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfi
                   className="si-form-input"
                   value={finalCost}
                   onChange={(e) => setFinalCost(e.target.value)}
+                  onWheel={(e) => e.currentTarget.blur()}
                   placeholder="e.g. 8500"
                   required
                 />

@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { GoogleMap, useLoadScript, MarkerF, PolylineF, CircleF } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, MarkerF, PolylineF } from '@react-google-maps/api';
 import apiClient from '../../utils/axiosConfig';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useShareLink } from '../../hooks/useShareLink';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
+import RoadService from '../../services/RoadService';
+import RoadTrailLayer from '../../components/map/RoadTrailLayer';
+import RoadTrailLegend from '../../components/map/RoadTrailLegend';
+import { toLayers, summaryOf } from '../../lib/roadTrail';
 import {
   NOVA_STATUS,
   bearingDegrees,
@@ -17,9 +21,9 @@ import {
   LIGHT_MAP_STYLE,
   DARK_MAP_STYLE,
   trailArrowIcons,
-  createVehicleMarkerIcon,
   computeMapVehicles,
 } from './liveTracking.shared.js';
+import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import './LiveTracking.css';
 
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
@@ -28,11 +32,15 @@ const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
 const GOOGLE_MAPS_LIBRARIES = ['places', 'drawing'];
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
-const createReplayTruckIcon = (heading = 0) => {
+const createReplayTruckIcon = (heading = 0, zoom = 12) => {
   if (typeof window === 'undefined' || !window.google) return undefined;
+  const effectiveZ =
+    typeof zoom === 'number' && !isNaN(zoom) ? Math.max(4, Math.min(20, zoom)) : 12;
+  const sz = Math.round(38 + (effectiveZ - 4) * 3.2);
+  const center = Math.round(sz / 2);
   // Clean directional "navigation cursor": soft halo + white disc + a crisp
   // green arrow that rotates to the direction of travel.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 48 48" data-scale="${sz}">
     <defs>
       <filter id="rsh" x="-40%" y="-40%" width="180%" height="180%">
         <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#0B3D1A" flood-opacity="0.35"/>
@@ -50,8 +58,8 @@ const createReplayTruckIcon = (heading = 0) => {
   </svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(48, 48),
-    anchor: new window.google.maps.Point(24, 24),
+    scaledSize: new window.google.maps.Size(sz, sz),
+    anchor: new window.google.maps.Point(center, center),
   };
 };
 
@@ -180,9 +188,7 @@ const LiveTrackingPage = () => {
       window.removeEventListener('themeColorChange', handleThemeChange);
     };
   }, []);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRailOpen, setIsRailOpen] = useState(true);
-  const [showLabels, setShowLabels] = useState(false);
   const [mapMode, setMapMode] = useState('map'); // 'map' | 'sat'
   const [isTelemetryOn, setIsTelemetryOn] = useState(true);
 
@@ -194,10 +200,6 @@ const LiveTrackingPage = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
 
-  // 360 modal state
-  const [modal360Open, setModal360Open] = useState(false);
-  const [modal360Angle, setModal360Angle] = useState('Front');
-
   // Google Maps Load Script
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -208,6 +210,7 @@ const LiveTrackingPage = () => {
   const [trailLoading, setTrailLoading] = useState(false);
   const [isTrailVisible, setIsTrailVisible] = useState(false);
   const [trailPoints, setTrailPoints] = useState([]);
+  const [roadTrail, setRoadTrail] = useState(null); // road geometry from our engine (plan P4.10)
   const [replayState, setReplayState] = useState({
     on: false,
     playing: false,
@@ -221,6 +224,9 @@ const LiveTrackingPage = () => {
   // Map & interaction refs
   const mapRef = useRef(null);
   const didAutoFitRef = useRef(false);
+  // Tracks the last vehicle we zoomed to, so the gentle select-zoom fires once
+  // per new pick — not on every live position update of the followed vehicle.
+  const zoomedSelectionRef = useRef(null);
   const lastReplayTimeRef = useRef(0);
   const searchInputRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -476,7 +482,10 @@ const LiveTrackingPage = () => {
       live.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
       map.fitBounds(bounds, { top: 80, right: 80, bottom: 80, left: 80 });
       window.google.maps.event.addListenerOnce(map, 'idle', () => {
-        if ((map.getZoom() || 5) > 12) map.setZoom(12);
+        // Land a little closer than a bare fit — one notch in, capped so a tight
+        // cluster doesn't rocket to street level and a spread fleet still nudges in.
+        const z = map.getZoom() || 6;
+        map.setZoom(Math.min(z + 1, 13));
       });
       return true;
     },
@@ -486,6 +495,16 @@ const LiveTrackingPage = () => {
   const onMapLoad = useCallback(
     (map) => {
       mapRef.current = map;
+      const initialZ = map.getZoom();
+      if (typeof initialZ === 'number') {
+        setMapZoom(initialZ);
+      }
+      map.addListener('zoom_changed', () => {
+        const z = map.getZoom();
+        if (typeof z === 'number') {
+          setMapZoom(z);
+        }
+      });
       // Try fitting to live vehicles immediately; if positions haven't loaded
       // yet, the auto-fit effect below handles it once they arrive.
       if (fitToLiveVehicles(map)) {
@@ -507,11 +526,22 @@ const LiveTrackingPage = () => {
   // Pan / focus when selected vehicle changes
   useEffect(() => {
     if (!selectedVehicle || !selectedVehicle.hasFix || !mapRef.current) return;
-    mapRef.current.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
-    if ((mapRef.current.getZoom() || 5) < 12) {
-      mapRef.current.setZoom(12);
+    const map = mapRef.current;
+    map.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
+    // Gentle zoom-in only when a NEW vehicle is picked — not on every live
+    // update of the one we're already following (that would fight the user's
+    // own zoom/pan). Never zoom back out if they're already closer in.
+    if (zoomedSelectionRef.current !== selectedVehicle.id) {
+      if ((map.getZoom() || 5) < 14) map.setZoom(14);
+      zoomedSelectionRef.current = selectedVehicle.id;
     }
   }, [selectedVehicle]);
+
+  // Clearing the selection re-arms the gentle zoom, so re-picking the same
+  // vehicle later zooms in again.
+  useEffect(() => {
+    if (!selectedId) zoomedSelectionRef.current = null;
+  }, [selectedId]);
 
   const selectedStatusColor = useMemo(() => {
     if (!selectedVehicle) return '#187A32';
@@ -595,6 +625,7 @@ const LiveTrackingPage = () => {
       if (isTrailVisible && !replayState.on) {
         setIsTrailVisible(false);
         setTrailPoints([]);
+        setRoadTrail(null);
         return;
       }
 
@@ -623,6 +654,12 @@ const LiveTrackingPage = () => {
         return;
       }
 
+      // Road geometry for the same 24 h window the raw trail uses (backend trailDefaultHours = 24).
+      const road = await RoadService.getRoadTrailIfEnabled(v.plate, {
+        from: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+        to: new Date().toISOString(),
+      });
+      setRoadTrail(road);
       setTrailPoints(points);
       setIsTrailVisible(true);
 
@@ -631,7 +668,12 @@ const LiveTrackingPage = () => {
         points.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
         mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
       }
-      showToast(`Trail · ${trailDistanceKm(points).toFixed(1)} km · ${points.length} points`);
+      const roadSummary = summaryOf(road);
+      showToast(
+        roadSummary
+          ? `Trail · ${roadSummary.km.toFixed(1)} km ${roadSummary.label} · ${points.length} points`
+          : `Trail · ${trailDistanceKm(points).toFixed(1)} km straight-line estimate · ${points.length} points`,
+      );
     },
     [isTrailVisible, replayState.on, showToast],
   );
@@ -656,6 +698,12 @@ const LiveTrackingPage = () => {
         return;
       }
 
+      setRoadTrail(
+        await RoadService.getRoadTrailIfEnabled(v.plate, {
+          from: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+          to: new Date().toISOString(),
+        }),
+      );
       setTrailPoints(points);
       setReplayState({
         on: true,
@@ -679,6 +727,7 @@ const LiveTrackingPage = () => {
   const exitReplay = useCallback(() => {
     setReplayState({ on: false, playing: false, t: 0, speed: 4, pts: null });
     setIsTrailVisible(false);
+    setRoadTrail(null);
   }, []);
 
   // Selected vehicle's active driver resolver
@@ -739,15 +788,6 @@ const LiveTrackingPage = () => {
     return liveList[telemetryIndex % liveList.length];
   }, [selectedVehicle, vehicles, telemetryIndex]);
 
-  // 360 View Orbit Modal (kept for when 360 view is re-enabled)
-  const _open360Modal = useCallback(() => {
-    setModal360Open(true);
-  }, []);
-
-  const close360Modal = useCallback(() => {
-    setModal360Open(false);
-  }, []);
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -757,46 +797,13 @@ const LiveTrackingPage = () => {
         searchInputRef.current?.focus();
       }
       if (e.key === 'Escape') {
-        if (modal360Open) close360Modal();
-        else if (replayState.on) exitReplay();
+        if (replayState.on) exitReplay();
         else setSelectedId(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modal360Open, replayState.on, close360Modal, exitReplay]);
-
-  // CSV Export
-  const handleExportCSV = useCallback(() => {
-    const rows = filteredVehicles;
-    const headers =
-      'plate,model,vin,status,location,fuel_l,ignition,gps,speed_kmh,last_update,lat,lng';
-    const lines = rows.map((v) => {
-      const st = NOVA_STATUS[v.status]?.label || v.status;
-      return [
-        v.plate,
-        `"${v.model || ''}"`,
-        v.vin || '',
-        st,
-        `"${v.area || ''}"`,
-        v.fuel != null ? v.fuel : '',
-        v.ignition,
-        v.gps,
-        v.speed != null ? v.speed : '',
-        `"${v.ago != null ? formatFullStamp(v.ago) : ''}"`,
-        v.hasFix ? v.lat.toFixed(5) : '',
-        v.hasFix ? v.lng.toFixed(5) : '',
-      ].join(',');
-    });
-    const csvContent = [headers, ...lines].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `live-tracking-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    showToast(`${rows.length} vehicles exported to CSV`);
-  }, [filteredVehicles, showToast]);
+  }, [replayState.on, exitReplay]);
 
   // Refresh handler
   const handleRefresh = useCallback(async () => {
@@ -846,26 +853,6 @@ const LiveTrackingPage = () => {
     );
   }, [shareDialog, createShareAndCopy, showToast]);
 
-  // Map Controls: Fit fleet
-  const handleFitFleet = useCallback(() => {
-    const map = mapRef.current;
-    if (!map || !window.google) return;
-    const valid = filteredVehicles.filter((v) => v.lat != null && v.lng != null);
-    if (!valid.length) {
-      map.panTo(INDIA_CENTER);
-      map.setZoom(5);
-      return;
-    }
-    if (valid.length === 1) {
-      map.panTo({ lat: valid[0].lat, lng: valid[0].lng });
-      map.setZoom(12);
-      return;
-    }
-    const bounds = new window.google.maps.LatLngBounds();
-    valid.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
-    map.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
-  }, [filteredVehicles]);
-
   // Zoom In / Out
   const handleZoomIn = useCallback(() => {
     if (mapRef.current) mapRef.current.setZoom((mapRef.current.getZoom() || 5) + 1);
@@ -879,11 +866,6 @@ const LiveTrackingPage = () => {
     if (mapRef.current && window.google) {
       window.google.maps.event.trigger(mapRef.current, 'resize');
     }
-  }, []);
-
-  // Toggle vehicle labels
-  const handleToggleLabels = useCallback(() => {
-    setShowLabels((prev) => !prev);
   }, []);
 
   // Connected status cards definition matching WheelsEye standard
@@ -932,7 +914,7 @@ const LiveTrackingPage = () => {
   );
 
   return (
-    <div className={`gnb-lt-page ${isFullscreen ? 'expanded' : ''}`}>
+    <div className="gnb-lt-page">
       {/* Main Console Container */}
       <main className="console">
         {/* Topbar Command Strip */}
@@ -1015,7 +997,7 @@ const LiveTrackingPage = () => {
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={INDIA_CENTER}
-                  zoom={5}
+                  zoom={mapZoom}
                   onLoad={onMapLoad}
                   onZoomChanged={() => {
                     if (mapRef.current) {
@@ -1025,37 +1007,34 @@ const LiveTrackingPage = () => {
                   }}
                   options={mapOptions}
                 >
-                  {/* Fleet Vehicle Markers */}
-                  {mapVehicles.map((v) => {
-                    const isSelected = v.id === selectedId;
-                    if (!v.hasFix) return null;
-                    const icon = createVehicleMarkerIcon(v, isSelected, showLabels, mapZoom);
-                    return (
-                      <MarkerF
-                        key={v.id}
-                        position={{ lat: v.lat, lng: v.lng }}
-                        icon={icon}
-                        zIndex={isSelected ? 1000 : v.live ? 500 : 100}
-                        onClick={() => {
-                          setSelectedId(v.id);
-                          setIsRailOpen(true);
-                        }}
-                      />
-                    );
-                  })}
+                  {/* Fleet Vehicle Markers — imperative markers that glide between
+                      SSE fixes instead of teleporting (see AnimatedVehicleMarkers). */}
+                  <AnimatedVehicleMarkers
+                    vehicles={mapVehicles}
+                    selectedId={selectedId}
+                    mapZoom={mapZoom}
+                    onSelect={(id) => {
+                      setSelectedId(id);
+                      setIsRailOpen(true);
+                    }}
+                  />
 
                   {/* Breadcrumb Trail (real recorded path from the trail API) */}
                   {isTrailVisible && trailCoords.length > 1 && (
                     <>
-                      <PolylineF
-                        path={trailCoords}
-                        options={{
-                          strokeColor: selectedStatusColor,
-                          strokeOpacity: 0.9,
-                          strokeWeight: 4,
-                          icons: trailArrowIcons(selectedStatusColor),
-                        }}
-                      />
+                      {roadTrail && roadTrail.mode === 'MATCHED' ? (
+                        <RoadTrailLayer trail={roadTrail} color={selectedStatusColor} />
+                      ) : (
+                        <PolylineF
+                          path={trailCoords}
+                          options={{
+                            strokeColor: selectedStatusColor,
+                            strokeOpacity: 0.9,
+                            strokeWeight: 4,
+                            icons: trailArrowIcons(selectedStatusColor),
+                          }}
+                        />
+                      )}
                       <MarkerF
                         position={trailCoords[0]}
                         icon={createTrailEndpointIcon('S', selectedStatusColor)}
@@ -1070,14 +1049,18 @@ const LiveTrackingPage = () => {
                   {/* Trip Replay */}
                   {replayState.on && replayPtsCoords.length > 1 && (
                     <>
-                      <PolylineF
-                        path={replayPtsCoords}
-                        options={{
-                          strokeColor: '#9A9AA5',
-                          strokeOpacity: 0.45,
-                          strokeWeight: 4,
-                        }}
-                      />
+                      {roadTrail && roadTrail.mode === 'MATCHED' ? (
+                        <RoadTrailLayer trail={roadTrail} color="#9A9AA5" fleetColor="#c4b5fd" />
+                      ) : (
+                        <PolylineF
+                          path={replayPtsCoords}
+                          options={{
+                            strokeColor: '#9A9AA5',
+                            strokeOpacity: 0.45,
+                            strokeWeight: 4,
+                          }}
+                        />
+                      )}
                       <PolylineF
                         path={replayRunPath}
                         options={{
@@ -1096,27 +1079,13 @@ const LiveTrackingPage = () => {
                       />
                       {replayCurrentPos && (
                         <MarkerF
+                          key={`replay-${Math.round(mapZoom * 2) / 2}`}
                           position={replayCurrentPos}
-                          icon={createReplayTruckIcon(replayBearing)}
+                          icon={createReplayTruckIcon(replayBearing, mapZoom)}
                           zIndex={1200}
                         />
                       )}
                     </>
-                  )}
-
-                  {/* 360 Orbit Circle */}
-                  {modal360Open && selectedVehicle && selectedVehicle.hasFix && (
-                    <CircleF
-                      center={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
-                      radius={1400}
-                      options={{
-                        strokeColor: '#4469F0',
-                        strokeOpacity: 0.8,
-                        strokeWeight: 2,
-                        fillColor: '#4469F0',
-                        fillOpacity: 0.08,
-                      }}
-                    />
                   )}
                 </GoogleMap>
               )}
@@ -1148,40 +1117,8 @@ const LiveTrackingPage = () => {
               </button>
             </div>
 
-            {/* Overlay Left-Center: Quick Map Controls */}
+            {/* Overlay Left-Bottom: Zoom Controls */}
             <div className="ov ov--lc">
-              <button
-                className="ctrl"
-                title={isFullscreen ? 'Exit full screen' : 'Expand full screen'}
-                aria-label="Expand"
-                aria-pressed={isFullscreen}
-                onClick={() => {
-                  setIsFullscreen((prev) => !prev);
-                  setTimeout(triggerMapResize, 240);
-                }}
-              >
-                {renderIconSvg('expand', 18)}
-              </button>
-
-              <button
-                className="ctrl"
-                title="Vehicle labels"
-                aria-label="Vehicle labels"
-                aria-pressed={showLabels}
-                onClick={handleToggleLabels}
-              >
-                {renderIconSvg('tag', 18)}
-              </button>
-
-              <button
-                className="ctrl"
-                title="Fit fleet"
-                aria-label="Fit fleet"
-                onClick={handleFitFleet}
-              >
-                {renderIconSvg('locate', 18)}
-              </button>
-
               <button className="ctrl" title="Zoom in" aria-label="Zoom in" onClick={handleZoomIn}>
                 {renderIconSvg('plus', 18)}
               </button>
@@ -1198,6 +1135,24 @@ const LiveTrackingPage = () => {
 
             {/* Overlay Bottom-Left: Map/Satellite Switcher */}
             <div className="ov ov--bl">
+              {isTrailVisible && roadTrail && (
+                <div
+                  className="road-legend-card"
+                  style={{
+                    background: 'var(--surface, #fff)',
+                    padding: 8,
+                    borderRadius: 8,
+                    marginBottom: 6,
+                    maxWidth: 260,
+                  }}
+                >
+                  <RoadTrailLegend
+                    layers={toLayers(roadTrail)}
+                    calibrated={roadTrail.calibrated}
+                    summary={summaryOf(roadTrail)}
+                  />
+                </div>
+              )}
               <div className="segmented">
                 <button aria-pressed={mapMode === 'map'} onClick={() => setMapMode('map')}>
                   Map
@@ -1342,60 +1297,6 @@ const LiveTrackingPage = () => {
                 </div>
               )}
             </div>
-
-            {/* 360 Degree View Modal */}
-            <div className={`modal ${modal360Open ? 'open' : ''}`}>
-              <button
-                type="button"
-                className="scrim"
-                aria-label="Close vehicle 360 dialog"
-                onClick={close360Modal}
-              />
-              <div className="sheet" role="dialog" aria-label="360 degree vehicle view">
-                <div className="mhead">
-                  <div style={{ flex: 1 }}>
-                    <div className="plate">{selectedVehicle?.plate}</div>
-                    <div className="sub">360° vehicle view</div>
-                  </div>
-                  <button className="dclose" onClick={close360Modal} aria-label="Close">
-                    ×
-                  </button>
-                </div>
-                <div className="viewport">
-                  <div className="ring">{renderIconSvg('sat', 32)}</div>
-                  <div style={{ fontSize: 'var(--type-2xs)' }}>
-                    Drag to orbit the vehicle · scroll to zoom ({modal360Angle} Angle)
-                  </div>
-                </div>
-                <div className="angles">
-                  {['Front', 'Driver side', 'Rear', 'Cargo'].map((ang) => (
-                    <button
-                      key={ang}
-                      className="btn btn--sm"
-                      style={{
-                        background: modal360Angle === ang ? 'var(--nova-rage-a10)' : '',
-                        borderColor: modal360Angle === ang ? 'var(--nova-rage-a20)' : '',
-                        color: modal360Angle === ang ? 'var(--nova-rage-700)' : '',
-                      }}
-                      onClick={() => {
-                        setModal360Angle(ang);
-                        showToast(`${ang} view · ${selectedVehicle?.plate}`);
-                      }}
-                    >
-                      {ang}
-                    </button>
-                  ))}
-                  <span style={{ flex: 1 }} />
-                  <button
-                    className="btn btn--sm"
-                    onClick={() => showToast('360° view link copied')}
-                  >
-                    {renderIconSvg('share', 14)}
-                    Share view
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Rail: Fleet List & Vehicle Detail View */}
@@ -1413,11 +1314,6 @@ const LiveTrackingPage = () => {
                         : `${filteredVehicles.length} of ${vehicles.length} vehicles`}
                   </div>
                 </div>
-
-                <button className="btn btn--sm" onClick={handleExportCSV}>
-                  {renderIconSvg('download', 14)}
-                  CSV
-                </button>
 
                 <button
                   className="btn btn--sm btn--icon"
@@ -1683,17 +1579,6 @@ const LiveTrackingPage = () => {
                         {renderIconSvg('play', 18)}
                         Replay
                       </button>
-
-                      {/* 360 view temporarily disabled
-                      <button
-                        className="act"
-                        aria-pressed={modal360Open}
-                        onClick={() => open360Modal(selectedVehicle)}
-                      >
-                        {renderIconSvg('sat', 18)}
-                        360°
-                      </button>
-                      */}
 
                       <button
                         className="act"

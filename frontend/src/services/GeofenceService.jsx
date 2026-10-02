@@ -17,7 +17,7 @@ export const GeofenceService = {
 
   getAnomalyLocations: async (params = {}) => {
     try {
-      const response = await apiClient.get('api/geofence/locations', { params });
+      const response = await apiClient.get('/api/geofence/locations', { params });
       return response.data || { locations: [], total: 0, page: 1, totalPages: 1 };
     } catch (error) {
       console.error('GeofenceService.getAnomalyLocations:', error.response?.data || error.message);
@@ -27,7 +27,7 @@ export const GeofenceService = {
 
   getAnomalyStats: async () => {
     try {
-      const response = await apiClient.get('api/geofence/stats');
+      const response = await apiClient.get('/api/geofence/stats');
       return response.data || { total: 0, high: 0, medium: 0, low: 0, resolved: 0 };
     } catch (error) {
       console.error('GeofenceService.getAnomalyStats:', error.response?.data || error.message);
@@ -37,7 +37,7 @@ export const GeofenceService = {
 
   resolveAnomalyLocation: async (locationId, resolutionNote = null) => {
     try {
-      const response = await apiClient.put(`api/geofence/locations/${locationId}/resolve`, {
+      const response = await apiClient.put(`/api/geofence/locations/${locationId}/resolve`, {
         resolutionNote,
       });
       return response.data;
@@ -54,7 +54,7 @@ export const GeofenceService = {
 
   getZones: async (params = {}) => {
     try {
-      const response = await apiClient.get('api/geofence/zones', { params });
+      const response = await apiClient.get('/api/geofence/zones', { params });
       return response.data || { zones: [], total: 0, page: 1, totalPages: 1 };
     } catch (error) {
       console.error('GeofenceService.getZones:', error.response?.data || error.message);
@@ -64,7 +64,7 @@ export const GeofenceService = {
 
   createZone: async (data) => {
     try {
-      const response = await apiClient.post('api/geofence/zones', data);
+      const response = await apiClient.post('/api/geofence/zones', data);
       return response.data;
     } catch (error) {
       console.error('GeofenceService.createZone:', error.response?.data || error.message);
@@ -74,7 +74,7 @@ export const GeofenceService = {
 
   updateZone: async (zoneId, data) => {
     try {
-      const response = await apiClient.put(`api/geofence/zones/${zoneId}`, data);
+      const response = await apiClient.put(`/api/geofence/zones/${zoneId}`, data);
       return response.data;
     } catch (error) {
       console.error('GeofenceService.updateZone:', error.response?.data || error.message);
@@ -84,7 +84,7 @@ export const GeofenceService = {
 
   deleteZone: async (zoneId) => {
     try {
-      await apiClient.delete(`api/geofence/zones/${zoneId}`);
+      await apiClient.delete(`/api/geofence/zones/${zoneId}`);
     } catch (error) {
       console.error('GeofenceService.deleteZone:', error.response?.data || error.message);
       throw error.response?.data || { message: 'Failed to delete zone' };
@@ -95,7 +95,7 @@ export const GeofenceService = {
 
   getAlerts: async (params = {}) => {
     try {
-      const response = await apiClient.get('api/geofence/zones/alerts', { params });
+      const response = await apiClient.get('/api/geofence/zones/alerts', { params });
       return response.data || { alerts: [], total: 0, page: 1, totalPages: 1 };
     } catch (error) {
       console.error('GeofenceService.getAlerts:', error.response?.data || error.message);
@@ -105,7 +105,7 @@ export const GeofenceService = {
 
   getUnreadAlertCount: async () => {
     try {
-      const response = await apiClient.get('api/geofence/zones/alerts/unread-count');
+      const response = await apiClient.get('/api/geofence/zones/alerts/unread-count');
       return response.data?.count || 0;
     } catch (error) {
       console.error('GeofenceService.getUnreadAlertCount:', error.response?.data || error.message);
@@ -115,7 +115,7 @@ export const GeofenceService = {
 
   markAlertsRead: async (alertIds) => {
     try {
-      await apiClient.put('api/geofence/zones/alerts/read', { alertIds });
+      await apiClient.put('/api/geofence/zones/alerts/read', { alertIds });
     } catch (error) {
       console.error('GeofenceService.markAlertsRead:', error.response?.data || error.message);
     }
@@ -123,7 +123,7 @@ export const GeofenceService = {
 
   markAllAlertsRead: async () => {
     try {
-      const response = await apiClient.put('api/geofence/zones/alerts/read', { all: true });
+      const response = await apiClient.put('/api/geofence/zones/alerts/read', { all: true });
       return response.data;
     } catch (error) {
       console.error('GeofenceService.markAllAlertsRead:', error.response?.data || error.message);
@@ -133,16 +133,27 @@ export const GeofenceService = {
   // ─── Live Locations ───────────────────────────────────────────────────────
 
   /**
-   * GET /api/geofence/live-locations
-   * Returns the latest FleetEdgeSnapshot for every vehicle in the org.
-   * Called by the polling hook every 60 seconds to refresh the map.
+   * GET /api/geofence/live-locations with fallback to /api/livetracking/positions
+   * Returns current active live telemetry for all vehicles in the org.
    */
   getLiveLocations: async () => {
     try {
-      const response = await apiClient.get('api/geofence/live-locations');
-      return response.data?.vehicles || [];
+      const response = await apiClient.get('/api/geofence/live-locations');
+      const vehicles = response.data?.vehicles;
+      if (Array.isArray(vehicles) && vehicles.length > 0) {
+        return vehicles;
+      }
     } catch (error) {
-      console.error('GeofenceService.getLiveLocations:', error.response?.data || error.message);
+      console.warn('GeofenceService.getLiveLocations primary call error:', error.message);
+    }
+
+    // Direct fallback to livetracking positions endpoint which is verified in telemetry
+    try {
+      const posRes = await apiClient.get('/api/livetracking/positions');
+      const records = posRes.data?.data?.records || posRes.data?.data || [];
+      return Array.isArray(records) ? records : [];
+    } catch (error) {
+      console.error('GeofenceService.getLiveLocations fallback error:', error.message);
       return [];
     }
   },
@@ -159,10 +170,10 @@ export const GeofenceService = {
     if (to) params.to = to;
     if (bbox) params.bbox = bbox;
     try {
-      const response = await apiClient.get('api/geofence/drain-map', { params, signal });
+      const response = await apiClient.get('/api/geofence/drain-map', { params, signal });
       return response.data?.data ?? response.data ?? null;
     } catch {
-      const response = await apiClient.get('api/hotspots/map', { params, signal });
+      const response = await apiClient.get('/api/hotspots/map', { params, signal });
       return response.data?.data ?? response.data ?? null;
     }
   },
@@ -173,7 +184,7 @@ export const GeofenceService = {
    */
   getHotspots: async ({ signal } = {}) => {
     try {
-      const response = await apiClient.get('api/hotspots', { signal });
+      const response = await apiClient.get('/api/hotspots', { signal });
       return response.data?.data ?? response.data ?? [];
     } catch (error) {
       console.error('GeofenceService.getHotspots:', error.response?.data || error.message);
@@ -182,12 +193,12 @@ export const GeofenceService = {
   },
 
   dismissHotspot: async (id, { signal } = {}) => {
-    const response = await apiClient.put(`api/hotspots/${id}`, { active: false }, { signal });
+    const response = await apiClient.put(`/api/hotspots/${id}`, { active: false }, { signal });
     return response.data?.data ?? null;
   },
 
   activateHotspot: async (id, { signal } = {}) => {
-    const response = await apiClient.put(`api/hotspots/${id}`, { active: true }, { signal });
+    const response = await apiClient.put(`/api/hotspots/${id}`, { active: true }, { signal });
     return response.data?.data ?? null;
   },
 

@@ -32,15 +32,15 @@ import './Hotspots.css';
 dayjs.extend(relativeTime);
 
 const PROVENANCE_META = {
-  'own-learned': { label: 'Learned from your fleet', color: '#D98E13', text: '#1F2937' },
+  'own-learned': { label: 'Learned from your fleet', color: '#6366F1', text: '#FFFFFF' },
   network: { label: 'Learned across network', color: '#2563EB', text: '#FFFFFF' },
   'own-manual': { label: 'Added manually', color: '#64748B', text: '#FFFFFF' },
 };
 
 const mapContainerStyle = {
   width: '100%',
-  height: '580px',
-  minHeight: '520px',
+  height: 'calc(100vh - 280px)',
+  minHeight: '420px',
 };
 
 const formatLastIncident = (date) => (date ? dayjs(date).fromNow() : 'No recent incidents');

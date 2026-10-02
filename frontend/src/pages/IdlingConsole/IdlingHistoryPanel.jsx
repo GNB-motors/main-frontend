@@ -29,8 +29,13 @@ const COLUMNS = [
     label: 'Vehicle',
     render: (row) => <span className="reg-plate">{row.registrationNumber || '—'}</span>,
   },
-  { key: 'startAt', label: 'Started', render: (row) => formatDateTimeIST(row.startAt) },
-  { key: 'endAt', label: 'Ended', render: (row) => formatDateTimeIST(row.endAt) },
+  {
+    key: 'startAt',
+    label: 'Started',
+    align: 'right',
+    render: (row) => formatDateTimeIST(row.startAt),
+  },
+  { key: 'endAt', label: 'Ended', align: 'right', render: (row) => formatDateTimeIST(row.endAt) },
   {
     key: 'durationMin',
     label: 'Duration',
@@ -54,7 +59,7 @@ const COLUMNS = [
     render: (row) => (
       <span className="num">
         {formatINR(row.rupees)}
-        <span className="text-dim ml-1 text-[11px]">({formatLitres(row.litres)})</span>
+        <span className="text-dim ml-1 text-xs">({formatLitres(row.litres)})</span>
       </span>
     ),
   },
@@ -62,12 +67,12 @@ const COLUMNS = [
     key: 'closedReason',
     label: 'Ended because',
     render: (row) => (
-      <span className="text-dim text-[11px]">{CLOSED_REASON_LABEL[row.closedReason] || '—'}</span>
+      <span className="text-dim text-xs">{CLOSED_REASON_LABEL[row.closedReason] || '—'}</span>
     ),
   },
 ];
 
-/** Past (closed) idle segments — paginated server-side, filtered by vehicle client-side. */
+/** Past (closed) idle segments — paginated server-side, filtered by vehicle. */
 export default function IdlingHistoryPanel() {
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [range, setRange] = useState({ from: '', to: '' });
@@ -81,10 +86,16 @@ export default function IdlingHistoryPanel() {
   } = useApi(
     (signal) =>
       IdlingConsoleService.getHistory(
-        { from: range.from || undefined, to: range.to || undefined, page, limit: PAGE_SIZE },
+        {
+          from: range.from || undefined,
+          to: range.to || undefined,
+          page,
+          limit: PAGE_SIZE,
+          search: vehicleQuery.trim() || undefined,
+        },
         { signal },
       ),
-    [range.from, range.to, page],
+    [range.from, range.to, page, vehicleQuery],
   );
 
   const meta = result?.meta || { total: 0, totalPages: 1 };
@@ -99,11 +110,16 @@ export default function IdlingHistoryPanel() {
     setPage(1);
   };
 
+  const handleSearchChange = (val) => {
+    setVehicleQuery(val);
+    setPage(1);
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <FilterBar
         searchValue={vehicleQuery}
-        onSearchChange={setVehicleQuery}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Filter by vehicle"
         from={range.from}
         to={range.to}
@@ -123,7 +139,7 @@ export default function IdlingHistoryPanel() {
         emptyHint="Closed idle segments — a vehicle that stopped and then started moving again — show up here."
       />
       {meta.totalPages > 1 ? (
-        <Pagination>
+        <Pagination className="justify-end">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious

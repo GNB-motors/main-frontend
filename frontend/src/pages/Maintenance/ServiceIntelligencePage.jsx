@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   Plus,
@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Zap,
   CalendarCheck,
+  RefreshCw,
 } from 'lucide-react';
 import { MaintenanceService } from './MaintenanceService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
@@ -42,14 +43,16 @@ const TABS = [
 
 const ITEMS_PER_PAGE = 20;
 const EMPTY_SUMMARY = { total: 0, totalAmount: 0, last30: 0 };
+const VALID_TABS = ['SERVICE', 'REPAIR', 'ALERTS'];
 
 const ServiceIntelligencePage = () => {
   const navigate = useNavigate();
   const [themeColors, setThemeColors] = useState(getThemeCSS());
-  // Optional focusTab from location.state — set when navigating back from the
-  // add-page so the user lands on the tab they just contributed to.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab')?.toUpperCase();
   const navState = typeof window !== 'undefined' ? window.history.state?.usr || {} : {};
-  const [activeTab, setActiveTab] = useState(navState.focusTab || 'SERVICE');
+  const initialTab = VALID_TABS.includes(urlTab) ? urlTab : navState.focusTab || 'SERVICE';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const confirm = useConfirm();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -69,6 +72,8 @@ const ServiceIntelligencePage = () => {
 
   // Active alerts count for tab badge
   const [activeAlertsCount, setActiveAlertsCount] = useState(0);
+  const [alertsRefreshKey, setAlertsRefreshKey] = useState(0);
+  const [alertsRefreshing, setAlertsRefreshing] = useState(false);
 
   useEffect(() => {
     const handler = () => setThemeColors(getThemeCSS());
@@ -241,12 +246,26 @@ const ServiceIntelligencePage = () => {
 
   const switchTab = (tab) => {
     setActiveTab(tab);
+    setSearchParams({ tab: tab.toLowerCase() });
     setSearch('');
     setPage(1);
     setActivePriorityFilter('ALL');
     setActiveServiceFilter('ALL');
     isFirstRenderRef.current = true; // re-fire immediate load
   };
+
+  // Synchronize when URL search parameters change externally
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')?.toUpperCase();
+    if (tabParam && VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+      setSearch('');
+      setPage(1);
+      setActivePriorityFilter('ALL');
+      setActiveServiceFilter('ALL');
+      isFirstRenderRef.current = true;
+    }
+  }, [searchParams, activeTab]);
 
   const handlePageChange = (next) => {
     if (next >= 1 && next <= totalPages) setPage(next);
@@ -387,6 +406,32 @@ const ServiceIntelligencePage = () => {
         <PageShell
           title="Service Intelligence"
           subtitle="Manage vehicle service and repair history, track issue criticality (Axles, Brakes, Tyres), and resolve maintenance alerts."
+          actions={
+            isAlerts ? (
+              <NewButton
+                variant="secondary"
+                type="button"
+                text="Refresh Alerts"
+                prependIcon={
+                  <RefreshCw size={15} className={alertsRefreshing ? 'spin-anim' : ''} />
+                }
+                onClick={() => {
+                  setAlertsRefreshing(true);
+                  setAlertsRefreshKey((prev) => prev + 1);
+                  setTimeout(() => setAlertsRefreshing(false), 600);
+                  toast.info('Refreshing fleet alerts…');
+                }}
+              />
+            ) : (
+              <NewButton
+                variant="primary"
+                type="button"
+                text={isService ? 'Add Service' : 'Add Repair'}
+                prependIcon={<Plus size={16} />}
+                onClick={goToAdd}
+              />
+            )
+          }
         >
           {/* Segmented Glassmorphic Tab Bar - Always stationary at top */}
           <div className="si-tabs-container" role="tablist" aria-label="Service Intelligence Views">
@@ -412,309 +457,307 @@ const ServiceIntelligencePage = () => {
             })}
           </div>
 
-          {!isAlerts && (
-            <div style={{ margin: '14px 0 6px 0' }}>
-              <FilterBar
-                searchValue={search}
-                onSearchChange={setSearch}
-                searchPlaceholder={`Search vehicle, workshop, ${isService ? 'service category' : 'issue type'}, notes…`}
-                right={
-                  <NewButton
-                    variant="primary"
-                    type="button"
-                    text={isService ? 'Add Service' : 'Add Repair'}
-                    prependIcon={<Plus size={16} />}
-                    onClick={goToAdd}
+          <div style={{ margin: '14px 0 6px 0' }}>
+            <FilterBar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder={
+                isAlerts
+                  ? 'Search alerts by vehicle, category, or notes…'
+                  : `Search vehicle, workshop, ${isService ? 'service category' : 'issue type'}, notes…`
+              }
+            />
+          </div>
+
+          <div
+            className="si-tab-view-container"
+            style={{ transition: 'all 0.2s ease-in-out', width: '100%' }}
+          >
+            {isAlerts ? (
+              <AlertsTab search={search} refreshKey={alertsRefreshKey} />
+            ) : (
+              <>
+                {/* Upgraded KPI Stats Strip */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '16px 0 16px' }}>
+                  <KpiCard
+                    title={`Total ${isService ? 'Services' : 'Repairs'}`}
+                    value={summary.total}
+                    accent={isService ? '#2563eb' : '#dc2626'}
+                    icon={isService ? <Wrench size={18} /> : <AlertOctagon size={18} />}
                   />
-                }
-              />
-            </div>
-          )}
+                  {isService ? (
+                    <>
+                      <KpiCard
+                        title="Last 30 days"
+                        value={summary.last30}
+                        accent="#2563eb"
+                        icon={<CalendarCheck size={18} />}
+                      />
+                      <KpiCard
+                        title="Total Spend"
+                        value={`₹${summary.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                        accent="#16a34a"
+                        icon={<Wrench size={18} />}
+                      />
+                      <KpiCard
+                        title="Average Service Cost"
+                        value={formatCurrencyINR(
+                          summary.total > 0 ? summary.totalAmount / summary.total : 0,
+                        )}
+                        accent="#0284c7"
+                        icon={<Droplets size={18} />}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <KpiCard
+                        title="Critical (P0 Grounded)"
+                        value={filterCounts.p0 ?? 0}
+                        accent="#dc2626"
+                        icon={<AlertOctagon size={18} />}
+                      />
+                      <KpiCard
+                        title="Open Issues"
+                        value={filterCounts.open ?? 0}
+                        accent="#e11d48"
+                        icon={<AlertTriangle size={18} />}
+                      />
+                      <KpiCard
+                        title="Total Spend"
+                        value={`₹${summary.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                        accent="#16a34a"
+                        icon={<Wrench size={18} />}
+                      />
+                    </>
+                  )}
+                </div>
 
-          {isAlerts ? (
-            <AlertsTab />
-          ) : (
-            <>
-              {/* Upgraded KPI Stats Strip */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '16px 0 16px' }}>
-                <KpiCard
-                  title={`Total ${isService ? 'Services' : 'Repairs'}`}
-                  value={summary.total}
-                  accent={isService ? '#2563eb' : '#dc2626'}
-                  icon={isService ? <Wrench size={18} /> : <AlertOctagon size={18} />}
+                {/* Priority & Category Quick Filter Pills Bar */}
+                <div className="si-filter-pills-row" role="toolbar" aria-label="Issue filters">
+                  {isService ? (
+                    <>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activeServiceFilter === 'ALL' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActiveServiceFilter('ALL')}
+                      >
+                        <span>All Services</span>
+                        <span className="si-filter-pill-count">{filterCounts.all ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activeServiceFilter === 'PERIODIC' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActiveServiceFilter('PERIODIC')}
+                      >
+                        <CalendarCheck size={13} />
+                        <span>Periodic / Scheduled</span>
+                        <span className="si-filter-pill-count">{filterCounts.periodic ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activeServiceFilter === 'OIL' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActiveServiceFilter('OIL')}
+                      >
+                        <Droplets size={13} />
+                        <span>Oil & Lubrication</span>
+                        <span className="si-filter-pill-count">{filterCounts.oil ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activeServiceFilter === 'BRAKE' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActiveServiceFilter('BRAKE')}
+                      >
+                        <ShieldAlert size={13} />
+                        <span>Brakes & Suspension</span>
+                        <span className="si-filter-pill-count">{filterCounts.brake ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activeServiceFilter === 'ELECTRICAL' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActiveServiceFilter('ELECTRICAL')}
+                      >
+                        <Zap size={13} />
+                        <span>Electrical & Battery</span>
+                        <span className="si-filter-pill-count">{filterCounts.electrical ?? 0}</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activePriorityFilter === 'ALL' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActivePriorityFilter('ALL')}
+                      >
+                        <span>All Issues</span>
+                        <span className="si-filter-pill-count">{filterCounts.all ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activePriorityFilter === 'P0' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActivePriorityFilter('P0')}
+                        style={
+                          activePriorityFilter !== 'P0'
+                            ? { borderColor: '#fca5a5', color: '#dc2626' }
+                            : {}
+                        }
+                      >
+                        <AlertOctagon
+                          size={13}
+                          color={activePriorityFilter === 'P0' ? '#fff' : '#dc2626'}
+                        />
+                        <span>P0 Critical (Axle / Engine / Brakes)</span>
+                        <span className="si-filter-pill-count">{filterCounts.p0 ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activePriorityFilter === 'P1' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActivePriorityFilter('P1')}
+                        style={
+                          activePriorityFilter !== 'P1'
+                            ? { borderColor: '#fdba74', color: '#ea580c' }
+                            : {}
+                        }
+                      >
+                        <AlertTriangle
+                          size={13}
+                          color={activePriorityFilter === 'P1' ? '#fff' : '#ea580c'}
+                        />
+                        <span>P1 High (Clutch / Suspension)</span>
+                        <span className="si-filter-pill-count">{filterCounts.p1 ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activePriorityFilter === 'P2' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActivePriorityFilter('P2')}
+                        style={
+                          activePriorityFilter !== 'P2'
+                            ? { borderColor: '#fde047', color: '#ca8a04' }
+                            : {}
+                        }
+                      >
+                        <Wrench
+                          size={13}
+                          color={activePriorityFilter === 'P2' ? '#fff' : '#ca8a04'}
+                        />
+                        <span>P2 Medium (Tyres / Roadside)</span>
+                        <span className="si-filter-pill-count">{filterCounts.p2 ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activePriorityFilter === 'P3' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActivePriorityFilter('P3')}
+                        style={
+                          activePriorityFilter !== 'P3'
+                            ? { borderColor: '#86efac', color: '#16a34a' }
+                            : {}
+                        }
+                      >
+                        <CheckCircle2
+                          size={13}
+                          color={activePriorityFilter === 'P3' ? '#fff' : '#16a34a'}
+                        />
+                        <span>P3 Routine / Minor</span>
+                        <span className="si-filter-pill-count">{filterCounts.p3 ?? 0}</span>
+                      </button>
+                      <div
+                        style={{
+                          width: 1,
+                          height: 22,
+                          background: '#e2e8f0',
+                          margin: '0 4px',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activePriorityFilter === 'OPEN' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActivePriorityFilter('OPEN')}
+                        style={
+                          activePriorityFilter !== 'OPEN'
+                            ? { borderColor: '#fecdd3', color: '#e11d48' }
+                            : {}
+                        }
+                      >
+                        <span className="si-status-dot" />
+                        <span>Open Issues</span>
+                        <span className="si-filter-pill-count">{filterCounts.open ?? 0}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`si-filter-pill ${activePriorityFilter === 'RESOLVED' ? 'si-filter-pill--active' : ''}`}
+                        onClick={() => setActivePriorityFilter('RESOLVED')}
+                        style={
+                          activePriorityFilter !== 'RESOLVED'
+                            ? { borderColor: '#bbf7d0', color: '#16a34a' }
+                            : {}
+                        }
+                      >
+                        <Check
+                          size={13}
+                          color={activePriorityFilter === 'RESOLVED' ? '#fff' : '#16a34a'}
+                        />
+                        <span>Resolved</span>
+                        <span className="si-filter-pill-count">{filterCounts.resolved ?? 0}</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Data Table */}
+                <DataTable
+                  columns={columns}
+                  rows={displayedRows}
+                  rowKey={(r) => r._id}
+                  loading={loading}
+                  showing={displayedRows.length}
+                  total={totalRecords}
+                  activeFilters={
+                    (search.trim() ? 1 : 0) +
+                    (activePriorityFilter !== 'ALL' ? 1 : 0) +
+                    (activeServiceFilter !== 'ALL' ? 1 : 0)
+                  }
+                  paginated={true}
+                  pagination={
+                    totalPages > 1 ? (
+                      <div className="vehicles-pagination-controls">
+                        <button
+                          className="vehicles-pagination-btn"
+                          onClick={() => handlePageChange(page - 1)}
+                          disabled={page === 1}
+                          type="button"
+                          title="Previous page"
+                        >
+                          <span>←</span>
+                        </button>
+                        <span style={{ fontSize: 13, color: '#5d5d5e', fontWeight: 500 }}>
+                          Page {page} of {totalPages}
+                        </span>
+                        <button
+                          className="vehicles-pagination-btn"
+                          onClick={() => handlePageChange(page + 1)}
+                          disabled={page === totalPages}
+                          type="button"
+                          title="Next page"
+                        >
+                          <span>→</span>
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                  emptyTitle={
+                    totalRecords === 0
+                      ? `No ${isService ? 'service' : 'repair'} entries yet`
+                      : `No ${isService ? 'service' : 'repair'} entries match your filters`
+                  }
+                  emptyHint={
+                    totalRecords === 0
+                      ? `Click "${isService ? 'Add Service' : 'Add Repair'}" to log one.`
+                      : 'Try selecting "All Issues" or clearing search query.'
+                  }
                 />
-                {isService ? (
-                  <>
-                    <KpiCard
-                      title="Last 30 days"
-                      value={summary.last30}
-                      accent="#f59e0b"
-                      icon={<CalendarCheck size={18} />}
-                    />
-                    <KpiCard
-                      title="Total Spend"
-                      value={`₹${summary.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-                      accent="#16a34a"
-                      icon={<Wrench size={18} />}
-                    />
-                    <KpiCard
-                      title="Average Service Cost"
-                      value={formatCurrencyINR(
-                        summary.total > 0 ? summary.totalAmount / summary.total : 0,
-                      )}
-                      accent="#0284c7"
-                      icon={<Droplets size={18} />}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <KpiCard
-                      title="Critical (P0 Grounded)"
-                      value={filterCounts.p0 ?? 0}
-                      accent="#dc2626"
-                      icon={<AlertOctagon size={18} />}
-                    />
-                    <KpiCard
-                      title="Open Issues"
-                      value={filterCounts.open ?? 0}
-                      accent="#e11d48"
-                      icon={<AlertTriangle size={18} />}
-                    />
-                    <KpiCard
-                      title="Total Spend"
-                      value={`₹${summary.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-                      accent="#16a34a"
-                      icon={<Wrench size={18} />}
-                    />
-                  </>
-                )}
-              </div>
-
-              {/* Priority & Category Quick Filter Pills Bar */}
-              <div className="si-filter-pills-row" role="toolbar" aria-label="Issue filters">
-                {isService ? (
-                  <>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activeServiceFilter === 'ALL' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActiveServiceFilter('ALL')}
-                    >
-                      <span>All Services</span>
-                      <span className="si-filter-pill-count">{filterCounts.all ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activeServiceFilter === 'PERIODIC' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActiveServiceFilter('PERIODIC')}
-                    >
-                      <CalendarCheck size={13} />
-                      <span>Periodic / Scheduled</span>
-                      <span className="si-filter-pill-count">{filterCounts.periodic ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activeServiceFilter === 'OIL' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActiveServiceFilter('OIL')}
-                    >
-                      <Droplets size={13} />
-                      <span>Oil & Lubrication</span>
-                      <span className="si-filter-pill-count">{filterCounts.oil ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activeServiceFilter === 'BRAKE' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActiveServiceFilter('BRAKE')}
-                    >
-                      <ShieldAlert size={13} />
-                      <span>Brakes & Suspension</span>
-                      <span className="si-filter-pill-count">{filterCounts.brake ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activeServiceFilter === 'ELECTRICAL' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActiveServiceFilter('ELECTRICAL')}
-                    >
-                      <Zap size={13} />
-                      <span>Electrical & Battery</span>
-                      <span className="si-filter-pill-count">{filterCounts.electrical ?? 0}</span>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activePriorityFilter === 'ALL' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActivePriorityFilter('ALL')}
-                    >
-                      <span>All Issues</span>
-                      <span className="si-filter-pill-count">{filterCounts.all ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activePriorityFilter === 'P0' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActivePriorityFilter('P0')}
-                      style={
-                        activePriorityFilter !== 'P0'
-                          ? { borderColor: '#fca5a5', color: '#dc2626' }
-                          : {}
-                      }
-                    >
-                      <AlertOctagon
-                        size={13}
-                        color={activePriorityFilter === 'P0' ? '#fff' : '#dc2626'}
-                      />
-                      <span>P0 Critical (Axle / Engine / Brakes)</span>
-                      <span className="si-filter-pill-count">{filterCounts.p0 ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activePriorityFilter === 'P1' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActivePriorityFilter('P1')}
-                      style={
-                        activePriorityFilter !== 'P1'
-                          ? { borderColor: '#fdba74', color: '#ea580c' }
-                          : {}
-                      }
-                    >
-                      <AlertTriangle
-                        size={13}
-                        color={activePriorityFilter === 'P1' ? '#fff' : '#ea580c'}
-                      />
-                      <span>P1 High (Clutch / Suspension)</span>
-                      <span className="si-filter-pill-count">{filterCounts.p1 ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activePriorityFilter === 'P2' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActivePriorityFilter('P2')}
-                      style={
-                        activePriorityFilter !== 'P2'
-                          ? { borderColor: '#fde047', color: '#ca8a04' }
-                          : {}
-                      }
-                    >
-                      <Wrench
-                        size={13}
-                        color={activePriorityFilter === 'P2' ? '#fff' : '#ca8a04'}
-                      />
-                      <span>P2 Medium (Tyres / Roadside)</span>
-                      <span className="si-filter-pill-count">{filterCounts.p2 ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activePriorityFilter === 'P3' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActivePriorityFilter('P3')}
-                      style={
-                        activePriorityFilter !== 'P3'
-                          ? { borderColor: '#86efac', color: '#16a34a' }
-                          : {}
-                      }
-                    >
-                      <CheckCircle2
-                        size={13}
-                        color={activePriorityFilter === 'P3' ? '#fff' : '#16a34a'}
-                      />
-                      <span>P3 Routine / Minor</span>
-                      <span className="si-filter-pill-count">{filterCounts.p3 ?? 0}</span>
-                    </button>
-                    <div
-                      style={{
-                        width: 1,
-                        height: 22,
-                        background: '#e2e8f0',
-                        margin: '0 4px',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activePriorityFilter === 'OPEN' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActivePriorityFilter('OPEN')}
-                      style={
-                        activePriorityFilter !== 'OPEN'
-                          ? { borderColor: '#fecdd3', color: '#e11d48' }
-                          : {}
-                      }
-                    >
-                      <span className="si-status-dot" />
-                      <span>Open Issues</span>
-                      <span className="si-filter-pill-count">{filterCounts.open ?? 0}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`si-filter-pill ${activePriorityFilter === 'RESOLVED' ? 'si-filter-pill--active' : ''}`}
-                      onClick={() => setActivePriorityFilter('RESOLVED')}
-                      style={
-                        activePriorityFilter !== 'RESOLVED'
-                          ? { borderColor: '#bbf7d0', color: '#16a34a' }
-                          : {}
-                      }
-                    >
-                      <Check
-                        size={13}
-                        color={activePriorityFilter === 'RESOLVED' ? '#fff' : '#16a34a'}
-                      />
-                      <span>Resolved</span>
-                      <span className="si-filter-pill-count">{filterCounts.resolved ?? 0}</span>
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Data Table */}
-              <DataTable
-                columns={columns}
-                rows={displayedRows}
-                rowKey={(r) => r._id}
-                loading={loading}
-                showing={displayedRows.length}
-                total={totalRecords}
-                activeFilters={
-                  (search.trim() ? 1 : 0) +
-                  (activePriorityFilter !== 'ALL' ? 1 : 0) +
-                  (activeServiceFilter !== 'ALL' ? 1 : 0)
-                }
-                paginated={true}
-                pagination={
-                  totalPages > 1 ? (
-                    <div className="vehicles-pagination-controls">
-                      <button
-                        className="vehicles-pagination-btn"
-                        onClick={() => handlePageChange(page - 1)}
-                        disabled={page === 1}
-                        type="button"
-                        title="Previous page"
-                      >
-                        <span>←</span>
-                      </button>
-                      <span style={{ fontSize: 13, color: '#5d5d5e', fontWeight: 500 }}>
-                        Page {page} of {totalPages}
-                      </span>
-                      <button
-                        className="vehicles-pagination-btn"
-                        onClick={() => handlePageChange(page + 1)}
-                        disabled={page === totalPages}
-                        type="button"
-                        title="Next page"
-                      >
-                        <span>→</span>
-                      </button>
-                    </div>
-                  ) : null
-                }
-                emptyTitle={
-                  totalRecords === 0
-                    ? `No ${isService ? 'service' : 'repair'} entries yet`
-                    : `No ${isService ? 'service' : 'repair'} entries match your filters`
-                }
-                emptyHint={
-                  totalRecords === 0
-                    ? `Click "${isService ? 'Add Service' : 'Add Repair'}" to log one.`
-                    : 'Try selecting "All Issues" or clearing search query.'
-                }
-              />
-            </>
-          )}
+              </>
+            )}
+          </div>
         </PageShell>
 
         {/* Modal for marking repair issues as resolved */}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { Hourglass, Truck, CircleCheck } from 'lucide-react';
+import { Hourglass, CircleCheck, ArrowLeft, ChevronRight } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
@@ -22,9 +22,10 @@ import {
 } from './placeIntelligenceModel';
 
 /**
- * Unexplained stop time — stops nothing explains that are not statutory rest
- * or a queue — grouped by the place they happened at, worst place first. An
- * answer takes the stop off this list and teaches the engine about the place.
+ * Unexplained stop time — stops nothing explains that are not statutory rest or
+ * a queue — as a plain table grouped by the place they happened at, worst place
+ * first. Click a row to go inside, see each stop, and answer it (with a small
+ * map of that one place). An answer takes the stop off the list.
  */
 export default function BreaksView({ version, onChanged, onOpenPlace }) {
   const [selectedKey, setSelectedKey] = useState(null);
@@ -40,7 +41,7 @@ export default function BreaksView({ version, onChanged, onOpenPlace }) {
   );
   const sitesById = new Map((sitesQ.data?.records || []).map((s) => [s._id, s]));
   const groups = groupBreaks(breaksQ.data?.records || []);
-  const active = groups.find((g) => g.key === selectedKey) || groups[0] || null;
+  const active = groups.find((g) => g.key === selectedKey) || null;
 
   const titleOf = (g) => {
     const site = g.siteId && sitesById.get(g.siteId);
@@ -88,67 +89,98 @@ export default function BreaksView({ version, onChanged, onOpenPlace }) {
       />
     );
 
-  const markers = groups.map((g) => ({
-    id: g.key,
-    lat: g.lat,
-    lng: g.lng,
-    color: g.key === active?.key ? '#c62828' : typeStyle(typeOf(g)).color,
-    hollow: false,
-    title: `${titleOf(g)} — ${hoursLabel(g.minutes)}`,
-  }));
-
-  return (
-    <div className="pi-workspace">
-      <section className="pi-panel pi-listpanel" aria-label="Places with unexplained stops">
-        <div className="pi-listhead pi-listhead--summary">
-          <b>
-            {groups.length} place{groups.length === 1 ? '' : 's'}
-          </b>
-          <span>
-            {hoursLabel(groups.reduce((sum, g) => sum + g.minutes, 0))} unexplained · last 7 days
-          </span>
+  // ─── Detail ("inside" one place's stops) ──────────────────────────────────
+  if (active) {
+    const marker = {
+      id: active.key,
+      lat: active.lat,
+      lng: active.lng,
+      color: typeStyle(typeOf(active)).color,
+      hollow: false,
+      title: `${titleOf(active)} — ${hoursLabel(active.minutes)}`,
+    };
+    return (
+      <div className="pi-detailpage">
+        <button type="button" className="pi-back" onClick={() => setSelectedKey(null)}>
+          <ArrowLeft size={15} aria-hidden="true" /> Back to all stops
+        </button>
+        <div className="pi-detailpage-body">
+          <section className="pi-panel pi-detailpage-main" aria-label="Stops at this place">
+            <BreakStops
+              group={active}
+              title={titleOf(active)}
+              busy={busy}
+              onAnswer={answer}
+              onOpenPlace={onOpenPlace}
+            />
+          </section>
+          <aside className="pi-detail-map" aria-label="Map">
+            <PlacesMap markers={[marker]} selectedId={active.key} onSelect={() => {}} />
+          </aside>
         </div>
-        <div className="pi-list">
-          {groups.map((g) => (
-            <button
-              type="button"
-              key={g.key}
-              className={`pi-card${g.key === active?.key ? ' is-selected' : ''}`}
-              onClick={() => setSelectedKey(g.key)}
-              aria-pressed={g.key === active?.key}
-            >
-              <TypeBadge type={typeOf(g)} hollow />
-              <span className="pi-card-body">
-                <span className="pi-card-title">{titleOf(g)}</span>
-                <span className="pi-card-sub">{subOf(g)}</span>
-                <span className="pi-card-meta">
+      </div>
+    );
+  }
+
+  // ─── Table (places with unexplained stops) ────────────────────────────────
+  const total = groups.reduce((sum, g) => sum + g.minutes, 0);
+  return (
+    <div className="pi-placestab">
+      <div className="pi-listhead pi-listhead--summary">
+        <b>
+          {groups.length} place{groups.length === 1 ? '' : 's'}
+        </b>
+        <span>{hoursLabel(total)} unexplained · last 7 days</span>
+      </div>
+      <div className="pi-table-wrap">
+        <table className="pi-table pi-places-table">
+          <thead>
+            <tr>
+              <th>Place</th>
+              <th>Where</th>
+              <th className="pi-num">Unexplained</th>
+              <th className="pi-num">Stops</th>
+              <th className="pi-num">Trucks</th>
+              <th aria-label="Open" />
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((g) => (
+              <tr
+                key={g.key}
+                className="pi-row"
+                tabIndex={0}
+                role="button"
+                onClick={() => setSelectedKey(g.key)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedKey(g.key);
+                  }
+                }}
+              >
+                <td>
+                  <span className="pi-rowplace">
+                    <TypeBadge type={typeOf(g)} hollow />
+                    <span className="pi-rowplace-name">{titleOf(g)}</span>
+                  </span>
+                </td>
+                <td className="pi-rowwhere">{subOf(g)}</td>
+                <td className="pi-num">
                   <span className="pi-risk">
                     <Hourglass size={12} aria-hidden="true" /> {hoursLabel(g.minutes)}
                   </span>
-                  <span>{g.stops.length} stops</span>
-                  <span>
-                    <Truck size={12} aria-hidden="true" /> {g.trucks.length}
-                  </span>
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
-      <section className="pi-panel pi-detail-col" aria-label="Stops at this place">
-        {active ? (
-          <BreakStops
-            group={active}
-            title={titleOf(active)}
-            busy={busy}
-            onAnswer={answer}
-            onOpenPlace={onOpenPlace}
-          />
-        ) : null}
-      </section>
-      <section className="pi-panel pi-map-col" aria-label="Map">
-        <PlacesMap markers={markers} selectedId={active?.key} onSelect={setSelectedKey} />
-      </section>
+                </td>
+                <td className="pi-num">{g.stops.length}</td>
+                <td className="pi-num">{g.trucks.length}</td>
+                <td className="pi-num">
+                  <ChevronRight size={16} aria-hidden="true" className="pi-row-go" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

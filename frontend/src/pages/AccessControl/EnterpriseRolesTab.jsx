@@ -202,8 +202,8 @@ const EnterpriseRolesTab = () => {
         </span>
         <div className="ac-toolbar__actions">
           {canManageRoles && (
-            <button type="button" className="ff-btn ff-btn--secondary" onClick={openCreate}>
-              <Plus size={16} /> New role
+            <button type="button" className="ff-btn ff-btn--primary" onClick={openCreate}>
+              <Plus size={16} /> New Role
             </button>
           )}
           <button
@@ -211,7 +211,7 @@ const EnterpriseRolesTab = () => {
             className="ff-btn ff-btn--secondary"
             onClick={() => navigate('/access-control/assigned-employees')}
           >
-            <Users size={16} /> Assigned employees
+            <Users size={16} /> Assigned Employees
           </button>
           <button
             type="button"
@@ -219,7 +219,7 @@ const EnterpriseRolesTab = () => {
             onClick={() => setDrawerOpen(true)}
             disabled={!roles.length}
           >
-            <UserPlus size={16} /> Assign role
+            <UserPlus size={16} /> Assign Role
           </button>
         </div>
       </div>
@@ -249,7 +249,7 @@ const EnterpriseRolesTab = () => {
                 style={{ marginTop: 12 }}
                 onClick={openCreate}
               >
-                <Plus size={16} /> New role
+                <Plus size={16} /> New Role
               </button>
             )}
           </div>
@@ -357,7 +357,7 @@ const EnterpriseRolesTab = () => {
             <div className="form-footer-actions">
               <button
                 type="button"
-                className="ff-btn ff-btn--secondary"
+                className="ff-btn ff-btn--cancel"
                 onClick={cancelPermissionEdits}
                 disabled={!dirty || savingPerms}
               >

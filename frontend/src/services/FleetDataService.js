@@ -41,12 +41,6 @@ export const FleetDataService = {
   /** Alert counts grouped by type for filter chips. */
   getFleetAlertSummary: (params = {}, signal) => get('/api/fleet-alerts/summary', params, signal),
 
-  /** ₹ fuel spend rollup: totals, daily series, per-pump rates, per-vehicle. */
-  getFuelSpendSummary: (params = {}, signal) => get('/api/fuel-spend/summary', params, signal),
-
-  /** Paginated fuel-log records behind the rollup. */
-  getFuelSpendRecords: (params = {}, signal) => get('/api/fuel-spend/records', params, signal),
-
   /** AdBlue/DEF claimed-vs-consumed ledger per vehicle. */
   getDefLedger: (signal) => get('/api/def-ledger', {}, signal),
 

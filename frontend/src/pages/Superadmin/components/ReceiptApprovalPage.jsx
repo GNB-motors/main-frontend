@@ -533,13 +533,13 @@ const ReceiptApprovalPage = () => {
             <span className="ra-kpi-card__title">Missing Odometer</span>
             <AlertTriangle
               size={16}
-              color={kpis.missingOdoCount > 0 ? 'var(--amber-500, #F59E0B)' : 'currentColor'}
+              color={kpis.missingOdoCount > 0 ? '#2563eb' : 'currentColor'}
             />
           </div>
           <div className="ra-kpi-card__val font-mono">{kpis.missingOdoCount}</div>
           <div className="ra-kpi-card__sub">
             {odoFilter === 'MISSING' ? (
-              <span style={{ color: 'var(--amber-500, #F59E0B)' }}>Active Filter Applied ✓</span>
+              <span style={{ color: '#2563eb', fontWeight: 600 }}>Active Filter Applied ✓</span>
             ) : (
               'Slips without dash photo or telematics reading'
             )}
@@ -664,7 +664,13 @@ const ReceiptApprovalPage = () => {
 
       {/* ── Main Receipts Table ── */}
       <div className="ra-card">
-        <div className="ra-table-wrap">
+        <div
+          className="ra-table-wrap"
+          style={{
+            paddingBottom: selectedIds.size > 0 ? 80 : 0,
+            transition: 'padding-bottom 0.2s',
+          }}
+        >
           <table className="ra-table">
             <thead>
               <tr>

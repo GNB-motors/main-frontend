@@ -4,29 +4,68 @@ import { HealthStatusBadge, AvgMileageCell, ViewLogsButton } from './mileageTrac
 /** Column defs for the Mileage Tracking fleet-overview table. */
 export function buildMileageTrackingColumns({ onOpenVehicle }) {
   return [
-    { key: 'vehicle', label: 'Vehicle Number', render: (v) => v.vehicleNumber || 'Unknown' },
-    { key: 'trips', label: 'Completed Trips', render: (v) => v.completedTrips },
+    {
+      key: 'vehicle',
+      label: 'Vehicle Plate',
+      width: '20%',
+      render: (v) => (
+        <div className="mt-veh-cell">
+          <span className="mt-plate-badge mt-mono">{v.vehicleNumber || 'Unknown'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'trips',
+      label: 'Completed Trips',
+      width: '14%',
+      align: 'center',
+      render: (v) => (
+        <span className="font-semibold text-slate-700 dark:text-slate-300 text-[13.5px]">
+          {v.completedTrips ?? 0}
+        </span>
+      ),
+    },
     {
       key: 'avgMileage',
-      label: 'Average Mileage (km/L)',
+      label: 'Average Mileage',
+      width: '16%',
+      align: 'center',
       render: (v) => <AvgMileageCell value={v.avgMileage} />,
     },
-    { key: 'lastOdometer', label: 'Last Odometer', render: (v) => v.lastOdometer || '-' },
+    {
+      key: 'lastOdometer',
+      label: 'Last Odometer',
+      width: '16%',
+      align: 'center',
+      render: (v) => (
+        <span className="text-slate-700 dark:text-slate-300 text-[13.5px]">
+          {v.lastOdometer != null ? `${Number(v.lastOdometer).toLocaleString()} km` : '—'}
+        </span>
+      ),
+    },
     {
       key: 'lastRefuel',
       label: 'Last Refuel Date',
-      render: (v) => <span className="date-text">{formatMileageDate(v.lastRefuelDate)}</span>,
+      width: '16%',
+      align: 'center',
+      render: (v) => (
+        <span className="text-slate-600 dark:text-slate-400 text-[13px]">
+          {formatMileageDate(v.lastRefuelDate)}
+        </span>
+      ),
     },
     {
       key: 'status',
-      label: 'Status',
+      label: 'Telemetry Status',
+      width: '14%',
+      align: 'center',
       render: (v) => <HealthStatusBadge status={v.healthStatus} />,
     },
     {
       key: 'actions',
-      label: '',
-      align: 'right',
-      width: '132px',
+      label: 'Action',
+      align: 'center',
+      width: '10%',
       render: (v) => (
         <ViewLogsButton
           onClick={(e) => {

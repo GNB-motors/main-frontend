@@ -19,7 +19,6 @@ describe('axiosConfig — request budget', () => {
     '/api/reports/trip-ledger',
     '/api/admin/dashboard-stats',
     '/api/mileage/model-comparison',
-    '/api/fuel-spend/summary',
     '/api/lemu/warehouse',
     '/api/livetracking/positions',
   ])('widens the budget for the heavy read %s', async (url) => {
