@@ -1,6 +1,7 @@
 import { toISTDateString, toISTTimeString, formatDateIST } from '../../utils/dateUtils';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import dayjs from 'dayjs';
 import {
   PlusCircle,
   Pencil,
@@ -10,6 +11,11 @@ import {
   IndianRupee,
   Gauge,
   FileWarning,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  FileText,
+  Check,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
@@ -17,7 +23,6 @@ import './RefuelLogsPage.css';
 import '../../components/JourneySetupModal/modal.css';
 import apiClient from '../../utils/axiosConfig';
 import useApi from '../../hooks/useApi';
-import ChevronIcon from './assets/ChevronIcon.jsx';
 import DocumentService from './services/DocumentService';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import PageShell from '../../components/ui/PageShell';
@@ -27,6 +32,15 @@ import ExportButton from '../../components/ui/ExportButton';
 import RefuelLogModals from './RefuelLogModals.jsx';
 import KpiCard from '../../components/ui/KpiCard';
 import ReportDataNotice from '../../components/ui/ReportDataNotice';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from '../../components/ui/pagination';
 import { toStartOfDayIso, toEndOfDayIso } from '../Reports/reports/mileageIntervalReportUtils';
 import { formatINR, formatLitres, formatNum } from '../../utils/formatters';
 import { REFUEL_EXPORT_COLUMNS, buildExportRow } from './refuelLogExport';
@@ -254,12 +268,58 @@ const fromDatetimeLocal = (localString) => {
 };
 
 const filterTabs = [
-  { id: 'all', label: 'All' },
-  { id: 'verified', label: 'Verified' },
-  { id: 'unverified', label: 'Unverified' },
-  { id: 'slip_only', label: 'Slip Only' },
-  { id: 'flagged', label: 'Flagged' },
+  { id: 'all', label: 'All Refuels', countKey: 'total' },
+  { id: 'verified', label: 'Verified', countKey: 'verified' },
+  { id: 'unverified', label: 'Unverified', countKey: 'unverified' },
+  { id: 'slip_only', label: 'Slip Only', countKey: 'slipOnly' },
+  { id: 'flagged', label: 'Flagged', countKey: 'flagged' },
 ];
+
+const DATE_PRESETS = [
+  { key: 'ALL', label: 'All Dates' },
+  { key: 'TODAY', label: 'Today' },
+  { key: 'YESTERDAY', label: 'Yesterday' },
+  { key: '7DAYS', label: 'Last 7 Days' },
+  { key: 'THIS_MONTH', label: 'This Month' },
+  { key: '30DAYS', label: 'Last 30 Days' },
+];
+
+const getPresetRange = (presetKey) => {
+  const now = dayjs();
+  switch (presetKey) {
+    case 'ALL':
+      return { from: '', to: '' };
+    case 'TODAY':
+      return {
+        from: now.format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    case 'YESTERDAY': {
+      const y = now.subtract(1, 'day');
+      return {
+        from: y.format('YYYY-MM-DD'),
+        to: y.format('YYYY-MM-DD'),
+      };
+    }
+    case '7DAYS':
+      return {
+        from: now.subtract(6, 'day').format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    case 'THIS_MONTH':
+      return {
+        from: now.startOf('month').format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    case '30DAYS':
+      return {
+        from: now.subtract(29, 'day').format('YYYY-MM-DD'),
+        to: now.format('YYYY-MM-DD'),
+      };
+    default:
+      return null;
+  }
+};
 
 const formatDate = (dateStr) => formatDateIST(dateStr);
 
@@ -334,20 +394,34 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     };
   }, []);
 
-  // Fetch vehicles for the filter dropdown if this is a report page
-  const { data: vehiclesData } = useApi(
-    async () => {
-      const token = getToken();
-      const orgId = getProfileField('business_ref_id') || null;
-      if (!token) return null;
-      return VehicleService.getAllVehicles(orgId, token, 1, 1000);
-    },
-    [],
-    { enabled: isFixedFuelType },
-  );
+  // Fetch vehicles for the filter dropdown
+  const { data: vehiclesData } = useApi(async () => {
+    const token = getToken();
+    const orgId = getProfileField('business_ref_id') || null;
+    if (!token) return null;
+    return VehicleService.getAllVehicles(orgId, token, 1, 1000);
+  }, []);
   useEffect(() => {
     if (vehiclesData?.data) setVehicles(vehiclesData.data);
   }, [vehiclesData]);
+
+  // Active date preset & handler
+  const activeDatePreset = useMemo(() => {
+    if (!range.from && !range.to) return 'ALL';
+    for (const preset of ['TODAY', 'YESTERDAY', '7DAYS', 'THIS_MONTH', '30DAYS']) {
+      const p = getPresetRange(preset);
+      if (p && p.from === range.from && p.to === range.to) return preset;
+    }
+    return 'CUSTOM';
+  }, [range]);
+
+  const handlePresetClick = (presetKey) => {
+    const next = getPresetRange(presetKey);
+    if (next) {
+      setRange(next);
+      setPagination((p) => ({ ...p, page: 1 }));
+    }
+  };
 
   // Debounce the search box, then snap back to page 1 so results start at the top.
   useEffect(() => {
@@ -689,8 +763,26 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
                 ? log.verificationStatus.toLowerCase()
                 : 'unknown';
               let label = log.verificationStatus;
-              if (log.verificationStatus === 'SLIP_ONLY') label = 'Slip Only';
-              return <span className={`refuel-status-badge ${statusClass}`}>{label}</span>;
+              let icon = null;
+              if (log.verificationStatus === 'VERIFIED') {
+                label = 'Verified';
+                icon = <Check size={12} />;
+              } else if (log.verificationStatus === 'UNVERIFIED') {
+                label = 'Unverified';
+                icon = <AlertCircle size={12} />;
+              } else if (log.verificationStatus === 'FLAGGED') {
+                label = 'Flagged';
+                icon = <AlertTriangle size={12} />;
+              } else if (log.verificationStatus === 'SLIP_ONLY') {
+                label = 'Slip Only';
+                icon = <FileText size={12} />;
+              }
+              return (
+                <span className={`refuel-status-badge ${statusClass}`}>
+                  {icon}
+                  <span>{label}</span>
+                </span>
+              );
             },
           },
         ]
@@ -700,20 +792,42 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       label: 'Quantity (L)',
       render: (log) => (
         <>
-          <div className="cell-primary">{log.quantity || '-'}</div>
-          <div className="cell-secondary">Litres</div>
+          <div className="cell-primary font-mono">
+            {log.quantity != null && log.quantity !== '-' ? `${log.quantity} L` : '-'}
+          </div>
+          <div className="cell-secondary">
+            {log.verificationStatus === 'UNVERIFIED' ? 'Sensor Jump' : 'Billed Volume'}
+          </div>
         </>
       ),
     },
     {
       key: 'unitPrice',
-      label: 'Unit Price',
-      render: (log) => formatCurrency(log.unitPrice),
+      label: 'Rate / L',
+      render: (log) => {
+        if (log.verificationStatus === 'UNVERIFIED') {
+          return (
+            <span style={{ color: 'var(--cluster-text-dim, #94a3b8)', fontSize: 12 }}>
+              Pending Bill
+            </span>
+          );
+        }
+        return formatCurrency(log.unitPrice);
+      },
     },
     {
       key: 'totalAmount',
       label: 'Total Amount',
-      render: (log) => formatCurrency(log.totalAmount === '-' ? null : log.totalAmount),
+      render: (log) => {
+        if (log.verificationStatus === 'UNVERIFIED') {
+          return (
+            <span style={{ color: 'var(--cluster-text-dim, #94a3b8)', fontSize: 12 }}>
+              Pending Bill
+            </span>
+          );
+        }
+        return formatCurrency(log.totalAmount === '-' ? null : log.totalAmount);
+      },
     },
     {
       key: 'odometer',
@@ -845,30 +959,54 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         />
       }
       filters={
-        <FilterBar
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder="Search vehicle, driver, or location"
-          chips={
-            isFixedFuelType ? [] : filterTabs.map((tab) => ({ key: tab.id, label: tab.label }))
-          }
-          selectedKeys={[activeTab]}
-          onToggleChip={handleTabChange}
-          from={range.from}
-          to={range.to}
-          onRangeChange={(patch) => {
-            setRange((prev) => ({ ...prev, ...patch }));
-            setPagination((p) => ({ ...p, page: 1 }));
-          }}
-          activeCount={activeFilterCount}
-          onClear={() => {
-            setSearchTerm('');
-            setSelectedVehicleId('');
-            setRange({ from: '', to: '' });
-            handleTabChange('all');
-          }}
-          right={
-            isFixedFuelType ? (
+        <div className="refuel-filters-chassis">
+          <div className="refuel-presets-bar">
+            <span className="refuel-presets-label">Quick Range:</span>
+            <div className="refuel-presets-list">
+              {DATE_PRESETS.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  className={`refuel-preset-chip ${activeDatePreset === p.key ? 'active' : ''}`}
+                  onClick={() => handlePresetClick(p.key)}
+                >
+                  {p.label}
+                </button>
+              ))}
+              {activeDatePreset === 'CUSTOM' && (
+                <span className="refuel-preset-chip active custom">Custom Range</span>
+              )}
+            </div>
+          </div>
+          <FilterBar
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search vehicle, driver, or location"
+            chips={
+              isFixedFuelType
+                ? []
+                : filterTabs.map((tab) => ({
+                    key: tab.id,
+                    label: tab.label,
+                    count: totals ? totals[tab.countKey] : undefined,
+                  }))
+            }
+            selectedKeys={[activeTab]}
+            onToggleChip={handleTabChange}
+            from={range.from}
+            to={range.to}
+            onRangeChange={(patch) => {
+              setRange((prev) => ({ ...prev, ...patch }));
+              setPagination((p) => ({ ...p, page: 1 }));
+            }}
+            activeCount={activeFilterCount}
+            onClear={() => {
+              setSearchTerm('');
+              setSelectedVehicleId('');
+              setRange({ from: '', to: '' });
+              handleTabChange('all');
+            }}
+            right={
               <select
                 className="refuel-filter-select"
                 value={selectedVehicleId}
@@ -876,12 +1014,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
                   setSelectedVehicleId(e.target.value);
                   setPagination((p) => ({ ...p, page: 1 }));
                 }}
-                style={{
-                  padding: '0.4rem 0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  outline: 'none',
-                }}
+                aria-label="Filter by vehicle"
               >
                 <option value="">All Vehicles</option>
                 {vehicles.map((v) => (
@@ -890,9 +1023,9 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
                   </option>
                 ))}
               </select>
-            ) : null
-          }
-        />
+            }
+          />
+        </div>
       }
       footer={
         pagination.total > 0
@@ -940,23 +1073,111 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
           ) : null}
         </div>
       ) : !isFixedFuelType && totals ? (
-        <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
-          <div className="flex flex-wrap gap-3">
-            <KpiCard title="Verified" value={formatNum(totals.verified)} accent="#10b981" />
-            <KpiCard
-              title="Unverified"
-              value={formatNum(totals.unverified)}
-              accent="#f59e0b"
-              icon={<FileWarning size={18} />}
-            />
-            <KpiCard title="Slip Only" value={formatNum(totals.slipOnly)} accent="#6b7280" />
-            <KpiCard
-              title="Flagged"
-              value={formatNum(totals.flagged)}
-              accent="#ef4444"
-              icon={<FileWarning size={18} />}
-            />
-            <KpiCard title="Total Spend" value={formatINR(totals.totalSpendInr)} accent="#2563eb" />
+        <div className="refuel-kpi-grid">
+          <div
+            className={`refuel-kpi-card ${activeTab === 'verified' ? 'selected' : ''}`}
+            onClick={() => handleTabChange(activeTab === 'verified' ? 'all' : 'verified')}
+            title="Filter by Verified"
+          >
+            <div
+              className="refuel-kpi-icon"
+              style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}
+            >
+              <CheckCircle size={18} />
+            </div>
+            <div className="refuel-kpi-content">
+              <span className="refuel-kpi-title">Verified</span>
+              <span className="refuel-kpi-value">{formatNum(totals.verified)}</span>
+              <span className="refuel-kpi-hint">Matched with sensor</span>
+            </div>
+          </div>
+
+          <div
+            className={`refuel-kpi-card ${activeTab === 'unverified' ? 'selected' : ''}`}
+            onClick={() => handleTabChange(activeTab === 'unverified' ? 'all' : 'unverified')}
+            title="Filter by Unverified (Needs Slip)"
+          >
+            <div
+              className="refuel-kpi-icon"
+              style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#d97706' }}
+            >
+              <AlertCircle size={18} />
+            </div>
+            <div className="refuel-kpi-content">
+              <span className="refuel-kpi-title">Unverified</span>
+              <span className="refuel-kpi-value" style={{ color: '#b45309' }}>
+                {formatNum(totals.unverified)}
+              </span>
+              <span className="refuel-kpi-hint">Needs driver slip</span>
+            </div>
+          </div>
+
+          <div
+            className={`refuel-kpi-card ${activeTab === 'flagged' ? 'selected' : ''}`}
+            onClick={() => handleTabChange(activeTab === 'flagged' ? 'all' : 'flagged')}
+            title="Filter by High Variance"
+          >
+            <div
+              className="refuel-kpi-icon"
+              style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#dc2626' }}
+            >
+              <AlertTriangle size={18} />
+            </div>
+            <div className="refuel-kpi-content">
+              <span className="refuel-kpi-title">Flagged</span>
+              <span className="refuel-kpi-value" style={{ color: '#dc2626' }}>
+                {formatNum(totals.flagged)}
+              </span>
+              <span className="refuel-kpi-hint">Variance flagged</span>
+            </div>
+          </div>
+
+          <div
+            className={`refuel-kpi-card ${activeTab === 'slip_only' ? 'selected' : ''}`}
+            onClick={() => handleTabChange(activeTab === 'slip_only' ? 'all' : 'slip_only')}
+            title="Filter by Slip Only"
+          >
+            <div
+              className="refuel-kpi-icon"
+              style={{ background: 'rgba(100, 116, 139, 0.12)', color: '#475569' }}
+            >
+              <FileText size={18} />
+            </div>
+            <div className="refuel-kpi-content">
+              <span className="refuel-kpi-title">Slip Only</span>
+              <span className="refuel-kpi-value">{formatNum(totals.slipOnly)}</span>
+              <span className="refuel-kpi-hint">No sensor jump</span>
+            </div>
+          </div>
+
+          <div className="refuel-kpi-card stat-only">
+            <div
+              className="refuel-kpi-icon"
+              style={{ background: 'rgba(13, 148, 136, 0.12)', color: '#0d9488' }}
+            >
+              <Fuel size={18} />
+            </div>
+            <div className="refuel-kpi-content">
+              <span className="refuel-kpi-title">Total Litres</span>
+              <span className="refuel-kpi-value mono">
+                {formatLitres(totals.totalLitres, { decimals: 0 })}
+              </span>
+              <span className="refuel-kpi-hint">Fuel volume</span>
+            </div>
+          </div>
+
+          <div className="refuel-kpi-card stat-only">
+            <div
+              className="refuel-kpi-icon"
+              style={{ background: 'rgba(37, 99, 235, 0.12)', color: '#2563eb' }}
+            >
+              <IndianRupee size={18} />
+            </div>
+            <div className="refuel-kpi-content">
+              <span className="refuel-kpi-title">Verified Spend</span>
+              <span className="refuel-kpi-value mono">{formatINR(totals.totalSpendInr)}</span>
+              <span className="refuel-kpi-hint">From verified slips</span>
+            </div>
           </div>
         </div>
       ) : null}
@@ -989,44 +1210,41 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         }
       />
 
-      {/* Pagination Footer */}
-      {!loading && !error && pagination.total > 0 && (
-        <div className="refuel-pagination-controls">
-          <button
-            className="refuel-pagination-btn"
-            onClick={() => handlePageChange(pagination.page - 1)}
-            disabled={pagination.page === 1 || totalPages <= 1}
-          >
-            <ChevronIcon size={12} style={{ transform: 'rotate(90deg)' }} />
-          </button>
-
-          {generatePageNumbers().map((page, index) => {
-            if (page === '...') {
-              return (
-                <div key={`overflow-${index}`} className="refuel-page-overflow">
-                  <span>...</span>
-                </div>
-              );
-            }
-            return (
-              <button
-                key={page}
-                className={`refuel-page-number ${pagination.page === page ? 'refuel-page-number-current' : ''}`}
-                onClick={() => handlePageChange(page)}
-                disabled={totalPages <= 1}
-              >
-                <span>{page}</span>
-              </button>
-            );
-          })}
-
-          <button
-            className="refuel-pagination-btn"
-            onClick={() => handlePageChange(pagination.page + 1)}
-            disabled={pagination.page === totalPages || totalPages <= 1}
-          >
-            <ChevronIcon size={12} style={{ transform: 'rotate(-90deg)' }} />
-          </button>
+      {/* Modern Pagination Footer */}
+      {!loading && !error && pagination.total > PAGE_SIZE && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          <Pagination className="justify-end">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                />
+              </PaginationItem>
+              {generatePageNumbers().map((p, index) =>
+                p === '...' ? (
+                  <PaginationItem key={`ellipsis-${index}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={`page-${p}`}>
+                    <PaginationLink
+                      isActive={pagination.page === p}
+                      onClick={() => handlePageChange(p)}
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                ),
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page >= totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 
