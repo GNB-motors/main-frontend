@@ -32,6 +32,12 @@ const ALERT_ITEMS = [
     description: 'High-priority alerts flagged for owners',
     counted: true, // the unread badge comes from this feed
   },
+  {
+    to: '/refuel-logs',
+    key: 'fuelIntegrity',
+    label: 'Refuel Alerts',
+    description: 'Recent refuels detected across the fleet',
+  },
 ];
 
 const NotificationBell = () => {
@@ -168,7 +174,7 @@ const NotificationBell = () => {
         </nav>
 
         {unread > 0 && (
-          <div className="border-t border-[var(--ds-line)] p-3">
+          <div className="mt-auto border-t border-[var(--ds-line)] p-3">
             <button
               type="button"
               onClick={markAllRead}
