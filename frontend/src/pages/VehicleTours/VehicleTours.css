@@ -1,5 +1,19 @@
 /* Vehicle Tours — warehouse-to-warehouse cycles list + detail drawer. */
 
+/* The global --border (oklch 0.931) is too faint for white cards/table on the
+   grey canvas, so scope a stronger, clearly-visible border token to the page. */
+.vtour-page {
+  --border: #cbd5e1;
+}
+
+/* Empty state shown inside the table body when there are no tours yet. */
+.vtour-empty-cell {
+  text-align: center;
+  padding: 48px 24px !important;
+  color: #64748b;
+  font-size: 13px;
+}
+
 /* ─── Executive 5-KPI Strip ──────────────────────────────────────────────── */
 
 .vtour-kpi-grid {

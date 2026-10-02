@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Radio,
-  ShieldCheck,
   Eye,
   Sparkles,
   ArrowRight,
@@ -302,6 +301,7 @@ export default function VehicleToursPage() {
 
   return (
     <PageShell
+      className="vtour-page"
       title="Vehicle Tours"
       count={totalCycles}
       subtitle="One warehouse-to-warehouse cycle per row. ERP trips that ran inside a cycle are its side trips."
@@ -439,85 +439,6 @@ export default function VehicleToursPage() {
 
       {loading && !totalCycles ? (
         <p className="vtour-empty">Loading cycles…</p>
-      ) : !visible.length ? (
-        <div className="vtour-empty-state-card">
-          <div className="vtour-empty-header">
-            <div className="vtour-empty-icon-wrap">
-              <RouteIcon size={26} />
-            </div>
-            <div>
-              <h3>No Active Vehicle Tours Recorded</h3>
-              <p>
-                In GNB Motors, a <strong>Vehicle Tour</strong> is an automated operational cycle
-                bounded by yard geofences. It starts when a vehicle departs its home yard and closes
-                upon entering any recognized base.
-              </p>
-            </div>
-          </div>
-
-          <div className="vtour-lifecycle-grid">
-            <div className="vtour-step-card">
-              <div className="vtour-step-badge">Phase 1</div>
-              <div className="vtour-step-header">
-                <Home size={15} className="vtour-step-icon" />
-                <strong>Yard Departure</strong>
-              </div>
-              <p>
-                When an assigned vehicle drives beyond its base warehouse geofence, the telemetry
-                engine auto-initiates a new Tour Cycle.
-              </p>
-            </div>
-
-            <div className="vtour-step-card">
-              <div className="vtour-step-badge">Phase 2</div>
-              <div className="vtour-step-header">
-                <Truck size={15} className="vtour-step-icon" />
-                <strong>Highway Side Trips</strong>
-              </div>
-              <p>
-                Multi-leg consignments, halts, and toll crossings are linked as sub-trips. Odometer
-                deltas and fuel consumption are tracked continuously.
-              </p>
-            </div>
-
-            <div className="vtour-step-card">
-              <div className="vtour-step-badge">Phase 3</div>
-              <div className="vtour-step-header">
-                <MapPin size={15} className="vtour-step-icon" />
-                <strong>Yard Arrival</strong>
-              </div>
-              <p>
-                When the vehicle enters ANY warehouse geofence, the cycle closes. If it enters a
-                different yard, a mismatch flag is logged.
-              </p>
-            </div>
-
-            <div className="vtour-step-card">
-              <div className="vtour-step-badge">Phase 4</div>
-              <div className="vtour-step-header">
-                <ShieldCheck size={15} className="vtour-step-icon" />
-                <strong>Audit Rollup</strong>
-              </div>
-              <p>
-                Actual odometer km, fuel meter sink readings, and unattributed gap km are computed
-                and reconciled with high confidence.
-              </p>
-            </div>
-          </div>
-
-          <div className="vtour-empty-actions">
-            <button
-              type="button"
-              className="vwh-btn vwh-btn--primary"
-              onClick={() => setDemoMode(true)}
-            >
-              <Sparkles size={15} /> Preview Sample Tour Cycles (Demo)
-            </button>
-            <a href="/warehouses" className="vwh-btn">
-              <Warehouse size={15} /> Configure Base Yards First
-            </a>
-          </div>
-        </div>
       ) : (
         <div className="vtour-table-wrap">
           <table className="vtour-table">
@@ -533,6 +454,15 @@ export default function VehicleToursPage() {
               </tr>
             </thead>
             <tbody>
+              {!visible.length && (
+                <tr>
+                  <td colSpan={7} className="vtour-empty-cell">
+                    No vehicle tours yet. A tour opens automatically when a vehicle leaves its home
+                    yard and closes when it returns — try <strong>Preview Sample Tours</strong>{' '}
+                    above.
+                  </td>
+                </tr>
+              )}
               {visible.map((t) => {
                 const isOpen = t.status === 'OPEN';
                 const kind = t.closeKind ? CLOSE_KIND_LABEL[t.closeKind] : null;
