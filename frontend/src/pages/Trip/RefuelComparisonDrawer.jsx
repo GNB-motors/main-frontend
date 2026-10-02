@@ -7,6 +7,7 @@ import {
   PlusCircle,
   ExternalLink,
   Info,
+  MapPin,
 } from 'lucide-react';
 import SlideOver from '../../components/cluster/SlideOver';
 import { formatINR } from '../../utils/formatters';
@@ -31,6 +32,8 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
             billVarianceL: log.sensorBillVarianceL,
             billFlag: log.sensorBillFlag,
             fuelPumpName: log.location && log.source === 'SENSOR' ? log.location : null,
+            lat: log.lat ?? log.sensorLat ?? null,
+            lng: log.lng ?? log.sensorLng ?? null,
           }
         : log.source === 'SENSOR'
           ? {
@@ -38,6 +41,8 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
               litres: log.quantity != null && log.quantity !== '-' ? log.quantity : log.rawLitres,
               confirmationStatus: 'ESTIMATED',
               fuelPumpName: log.location && log.location !== '-' ? log.location : 'Highway Refuel',
+              lat: log.lat ?? log.sensorLat ?? null,
+              lng: log.lng ?? log.sensorLng ?? null,
             }
           : null));
 
@@ -278,11 +283,24 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
                   </div>
                   <div className="rc-stat-row">
                     <span className="rc-stat-label">Coordinates</span>
-                    <span className="rc-stat-value mono" style={{ fontSize: 12 }}>
-                      {sensor.lat && sensor.lng
-                        ? `${Number(sensor.lat).toFixed(4)}, ${Number(sensor.lng).toFixed(4)}`
-                        : '—'}
-                    </span>
+                    {sensor.lat != null && sensor.lng != null ? (
+                      <a
+                        href={`https://www.google.com/maps?q=${sensor.lat},${sensor.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline mono"
+                        style={{ fontSize: 12 }}
+                        title={`Open coordinates in Google Maps (${sensor.lat}, ${sensor.lng})`}
+                      >
+                        <MapPin size={11} className="shrink-0 text-blue-500" />
+                        <span>{`${Number(sensor.lat).toFixed(4)}, ${Number(sensor.lng).toFixed(4)}`}</span>
+                        <ExternalLink size={10} className="shrink-0 opacity-70" />
+                      </a>
+                    ) : (
+                      <span className="rc-stat-value mono" style={{ fontSize: 12 }}>
+                        —
+                      </span>
+                    )}
                   </div>
                   <div className="rc-stat-row">
                     <span className="rc-stat-label">Sensor Timestamp</span>

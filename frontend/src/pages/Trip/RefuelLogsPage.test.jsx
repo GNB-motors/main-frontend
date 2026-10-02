@@ -191,4 +191,49 @@ describe('RefuelLogsPage', () => {
       );
     });
   });
+
+  it('renders Google Maps coordinates link for fuel integrity sensor rows without slip location', async () => {
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        status: 'success',
+        data: [
+          {
+            id: 'fill_geo_1',
+            source: 'SENSOR',
+            verificationStatus: 'UNVERIFIED',
+            vehicleNumber: 'WB99A9999',
+            vehicleModel: 'Tata Prima',
+            at: '2026-10-02T08:30:00.000Z',
+            litres: 150,
+            slip: null,
+            sensor: {
+              id: 'sensor_geo_1',
+              litres: 150,
+              lat: 22.5726,
+              lng: 88.3639,
+              fuelPumpName: null,
+              confirmationStatus: 'ESTIMATED',
+            },
+          },
+        ],
+        meta: { total: 1, unverified: 1 },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <RefuelLogsPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('WB99A9999')).toBeInTheDocument();
+    });
+
+    // Check that coordinates are rendered and linked to Google Maps
+    const coordLink = screen.getByRole('link', { name: /22\.5726,\s*88\.3639/i });
+    expect(coordLink).toBeInTheDocument();
+    expect(coordLink).toHaveAttribute('href', 'https://www.google.com/maps?q=22.5726,88.3639');
+    expect(coordLink).toHaveAttribute('target', '_blank');
+  });
 });

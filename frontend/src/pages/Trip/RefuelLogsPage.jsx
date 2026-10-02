@@ -21,6 +21,8 @@ import {
   Calendar,
   Truck,
   RotateCcw,
+  MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
@@ -178,6 +180,35 @@ const fetchUnifiedLogs = async (
       const slip = row.slip || {};
       const sensor = row.sensor || {};
       const effectiveLitres = slip.litres != null ? slip.litres : row.litres;
+
+      const lat =
+        sensor.lat != null && !isNaN(Number(sensor.lat))
+          ? Number(sensor.lat)
+          : row.lat != null && !isNaN(Number(row.lat))
+            ? Number(row.lat)
+            : null;
+      const lng =
+        sensor.lng != null && !isNaN(Number(sensor.lng))
+          ? Number(sensor.lng)
+          : row.lng != null && !isNaN(Number(row.lng))
+            ? Number(row.lng)
+            : null;
+      const hasCoords = lat != null && lng != null;
+      const coordString = hasCoords ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : null;
+
+      const slipLoc =
+        slip.location && String(slip.location).trim() !== '' && String(slip.location).trim() !== '-'
+          ? String(slip.location).trim()
+          : null;
+      const pumpName =
+        sensor.fuelPumpName &&
+        String(sensor.fuelPumpName).trim() !== '' &&
+        String(sensor.fuelPumpName).trim() !== '-'
+          ? String(sensor.fuelPumpName).trim()
+          : null;
+
+      const resolvedLocation = slipLoc || pumpName || coordString || '-';
+
       return {
         id: row.id,
         slipId:
@@ -194,7 +225,7 @@ const fetchUnifiedLogs = async (
         vehicleId: row.vehicleId,
         driverName: slip.driverName || '-',
         driverPhone: '-',
-        location: slip.location || (sensor.fuelPumpName ? sensor.fuelPumpName : '-'),
+        location: resolvedLocation,
         vendor: '-',
         fuelType: slip.fuelType ? slip.fuelType.toLowerCase() : 'diesel',
         quantity: row.litres != null ? row.litres : '-',
@@ -223,7 +254,7 @@ const fetchUnifiedLogs = async (
         rawRate: slip.rate || null,
         rawTotalAmount: slip.totalAmount ?? null,
         rawOdometer: slip.odometerReading || null,
-        rawLocation: slip.location || null,
+        rawLocation: slipLoc || pumpName || coordString || null,
         reviewStatus: slip.reviewStatus || null,
         submissionChannel: slip.submissionChannel || null,
         sensorId: sensor.id || null,
@@ -231,6 +262,10 @@ const fetchUnifiedLogs = async (
         sensorBillVarianceL: sensor.billVarianceL || null,
         sensorBillFlag: sensor.billFlag || false,
         sensorConfirmationStatus: sensor.confirmationStatus || null,
+        lat,
+        lng,
+        sensorLat: lat,
+        sensorLng: lng,
       };
     });
     return { logs: mapped, total: meta.total, totals: meta };
@@ -744,12 +779,51 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
     {
       key: 'location',
       label: 'Location',
-      render: (log) => (
-        <>
-          <div className="cell-primary">{log.location || '-'}</div>
-          <div className="cell-secondary">{log.vendor || '--'}</div>
-        </>
-      ),
+      render: (log) => {
+        const hasCoords = log.lat != null && log.lng != null && !isNaN(log.lat) && !isNaN(log.lng);
+        const mapUrl = hasCoords ? `https://www.google.com/maps?q=${log.lat},${log.lng}` : null;
+        const isCoordsLocation =
+          hasCoords &&
+          (!log.location ||
+            log.location === '-' ||
+            /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(String(log.location).trim()));
+
+        return (
+          <>
+            <div className="cell-primary flex items-center gap-1.5">
+              {hasCoords ? (
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer group"
+                  title={`Open Google Maps coordinates (${log.lat}, ${log.lng})`}
+                >
+                  <MapPin size={12} className="shrink-0 text-blue-500 group-hover:text-blue-700" />
+                  <span>
+                    {isCoordsLocation
+                      ? `${Number(log.lat).toFixed(4)}, ${Number(log.lng).toFixed(4)}`
+                      : log.location}
+                  </span>
+                  <ExternalLink size={10} className="shrink-0 opacity-60 group-hover:opacity-100" />
+                </a>
+              ) : (
+                <span>{log.location || '-'}</span>
+              )}
+            </div>
+            <div className="cell-secondary">
+              {hasCoords && !isCoordsLocation ? (
+                <span className="font-mono text-[11px] text-slate-500">
+                  {`${Number(log.lat).toFixed(4)}, ${Number(log.lng).toFixed(4)}`}
+                </span>
+              ) : (
+                log.vendor || '--'
+              )}
+            </div>
+          </>
+        );
+      },
     },
     ...(!isFixedFuelType
       ? [
