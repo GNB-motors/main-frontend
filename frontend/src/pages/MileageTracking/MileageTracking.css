@@ -1419,7 +1419,7 @@
 }
 
 .mid-vc-sub {
-  font-size: 10px;
+  font-size: 11.5px;
   color: #9ca3af;
   font-weight: 600;
   text-transform: uppercase;
@@ -1839,7 +1839,7 @@
 }
 
 .mid2-vb-sub {
-  font-size: 10px;
+  font-size: 11.5px;
   color: #94a3b8;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -1854,7 +1854,7 @@
 }
 
 .mid2-vb-vs {
-  font-size: 10px;
+  font-size: 11.5px;
   color: #94a3b8;
   font-weight: 600;
   text-transform: uppercase;
@@ -3332,7 +3332,7 @@
   color: var(--mt-primary, #2563eb);
   font-weight: 700;
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3744,6 +3744,39 @@
 .mt-anomaly-dropdown.is-open {
   border-color: #f59e0b;
   box-shadow: 0 4px 12px rgba(217, 119, 6, 0.1);
+}
+
+.mt-anomaly-dropdown--baseline {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.06);
+}
+
+.mt-anomaly-dropdown--baseline.is-open {
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.mt-anomaly-dropdown--baseline .mt-anomaly-dropdown__bar:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.mt-anomaly-dropdown--baseline .mt-anomaly-dropdown__icon-wrap {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.mt-anomaly-dropdown--baseline .mt-anomaly-dropdown__heading {
+  color: #1e40af;
+}
+
+.mt-anomaly-dropdown--baseline .mt-anomaly-dropdown__badge {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.mt-anomaly-dropdown--baseline .mt-anomaly-dropdown__preview {
+  color: #1d4ed8;
 }
 
 .mt-anomaly-dropdown__bar {

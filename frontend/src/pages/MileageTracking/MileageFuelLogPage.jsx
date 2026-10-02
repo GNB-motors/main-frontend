@@ -24,7 +24,11 @@ const MileageFuelLogPage = () => {
         subtitle="Fill in the fuel details and upload supporting documents."
         actions={
           <>
-            <button className="mileage-back-circle" onClick={() => navigate('/mileage-tracking')}>
+            <button
+              className="mileage-back-circle"
+              onClick={() => navigate('/refuel-logs')}
+              aria-label="Back to refuel logs"
+            >
               <ArrowLeft size={18} />
             </button>
             <div className="mileage-header-icon-badge">
@@ -38,8 +42,8 @@ const MileageFuelLogPage = () => {
           initialVehicleId={searchParams.get('vehicleId')}
           initialLitres={searchParams.get('litres')}
           initialRefuelTime={searchParams.get('refuelTime')}
-          onSuccess={() => navigate(-1)}
-          onCancel={() => navigate(-1)}
+          onSuccess={() => navigate('/refuel-logs')}
+          onCancel={() => navigate('/refuel-logs')}
         />
       </PageShell>
     </div>

@@ -175,15 +175,6 @@ const MileageTrackingPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               type="button"
-              className="pshell-btn pshell-btn--primary"
-              onClick={() => navigate('/mileage-tracking/new')}
-              title="Record a new refuel log entry"
-            >
-              <Plus size={15} />
-              <span>Log Fuel</span>
-            </button>
-            <button
-              type="button"
               className="pshell-btn"
               onClick={() => refetch?.()}
               title="Refresh telemetry overview"
