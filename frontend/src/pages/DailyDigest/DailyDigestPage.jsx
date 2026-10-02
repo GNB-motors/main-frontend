@@ -1,15 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Download,
-  RefreshCw,
-  Sun,
-  Moon,
-  Truck,
-  Fuel,
-  Calendar,
-  Activity,
-  Droplet,
-} from 'lucide-react';
+import { Download, RefreshCw, Truck, Fuel, Calendar, Activity, Droplet } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import ExportButton from '../../components/ui/ExportButton';
 import OwnerValueService from '../../services/OwnerValueService';
@@ -18,7 +8,7 @@ import { VehicleService } from '../Profile/VehicleService.jsx';
 import { getToken } from '../../utils/session.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
-import { useTheme } from '../../hooks/useTheme.js';
+
 import { formatNum } from '../../utils/formatters';
 import { formatDateLongIST } from '../../utils/dateUtils';
 import {
@@ -52,7 +42,6 @@ import '../../styles/nova/novaDesignSystem.css';
 export default function DailyDigestPage() {
   const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const from = startOfTodayIST();
-  const { isDark, toggleTheme } = useTheme();
 
   const money$ = useApi((s) => OwnerValueService.getMoney({ from }, s), [from]);
   const fleetDashboard$ = useApi(() => VehicleService.getFleetDashboard(getToken()), []);
@@ -339,14 +328,6 @@ export default function DailyDigestPage() {
                 <RefreshCw size={15} />
               </span>
               <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
-            </button>
-            <button
-              type="button"
-              className="nd-btn nd-btn--icon"
-              aria-label="Toggle theme"
-              onClick={toggleTheme}
-            >
-              {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </div>
         </header>

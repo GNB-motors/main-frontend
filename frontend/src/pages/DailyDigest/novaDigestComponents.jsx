@@ -731,7 +731,7 @@ export function NdCalendarCard({ vehicles, days = 14, onOpenVehicle, selectedVeh
           {tripCount > 0 && <b>{tripCount}</b>}
         </span>
         <span className="nd-legend-chip">
-          <i style={{ background: '#f59e0b' }} />
+          <i style={{ background: '#2563eb' }} />
           <span>Service due/overdue</span>
           {serviceCount > 0 && <b>{serviceCount}</b>}
         </span>
