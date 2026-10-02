@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { RefreshCw, AlertTriangle, Route as RouteIcon } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 import dayjs from 'dayjs';
 import PageShell from '../../components/ui/PageShell';
+import DataTable from '../../components/ui/DataTable';
+import FilterBar from '../../components/ui/FilterBar';
 import { useApi } from '../../hooks/useApi';
 import { formatKm, formatLitres } from '../../utils/formatters';
 import TripDashboardService from './TripDashboardService';
@@ -14,7 +16,7 @@ import TripDashboardService from './TripDashboardService';
  */
 const STATUS_LABEL = {
   COMPUTED: { text: 'Verified', color: 'var(--positive, #16a34a)' },
-  PENDING: { text: 'Pending Rollup', color: 'var(--caution)' },
+  PENDING: { text: 'Pending Rollup', color: '#2563eb' },
   NO_DATA: { text: 'No Telematics', color: 'var(--text-dim, #94a3b8)' },
   NO_TELEMATICS: { text: 'No GPS Device', color: 'var(--text-dim, #94a3b8)' },
   FAILED: { text: 'Failed', color: 'var(--critical)' },
@@ -37,8 +39,6 @@ const FUEL_SOURCE_TITLE = {
 };
 
 export default function TripWindowsPage() {
-  const [inputFrom, setInputFrom] = useState('');
-  const [inputTo, setInputTo] = useState('');
   const [applied, setApplied] = useState({ from: '', to: '' });
 
   const params = useMemo(() => {
@@ -59,6 +59,141 @@ export default function TripWindowsPage() {
   const fmtLeg = (key, value) =>
     key === 'fuelConsumedL' ? formatLitres(value || 0) : formatKm(value || 0);
 
+  const columns = [
+    {
+      key: 'tripNumber',
+      label: 'Trip',
+      render: (w) => (
+        <div>
+          <div className="font-semibold text-slate-800">{w.tripNumber}</div>
+          <div className="text-dim text-xs">
+            {w.tripDate ? dayjs(w.tripDate).format('DD MMM YYYY') : '—'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'route',
+      label: 'Route',
+      render: (w) => (
+        <div>
+          <div className="text-xs font-medium text-slate-800">
+            {w.route?.from || '—'} → {w.route?.to || '—'}
+          </div>
+          <div className="text-dim text-xs">
+            {w.vehicleNumber || (w.vehicleType === 'HIRE' ? 'Hire' : '—')}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'plannedKm',
+      label: 'Planned',
+      align: 'right',
+      render: (w) => (
+        <span className="num">{w.plannedKm != null ? formatKm(w.plannedKm) : '—'}</span>
+      ),
+    },
+    {
+      key: 'ladenKm',
+      label: 'Laden',
+      align: 'right',
+      render: (w) => (
+        <span className="num">{w.actual?.ladenKm != null ? formatKm(w.actual.ladenKm) : '—'}</span>
+      ),
+    },
+    {
+      key: 'approachKm',
+      label: 'Approach',
+      align: 'right',
+      render: (w) => (
+        <span className="num">
+          {w.actual?.approachKm != null ? formatKm(w.actual.approachKm) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'returnKm',
+      label: 'Return',
+      align: 'right',
+      render: (w) => (
+        <span className="num">
+          {w.actual?.returnKm != null ? formatKm(w.actual.returnKm) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'fuelConsumedL',
+      label: 'Fuel Used',
+      align: 'right',
+      render: (w) => (
+        <span
+          className="num"
+          title={
+            w.actual?.fuelConsumedL != null ? FUEL_SOURCE_TITLE[w.actual.fuelSource] : undefined
+          }
+        >
+          {w.actual?.fuelConsumedL != null ? formatLitres(w.actual.fuelConsumedL) : '—'}
+          {w.actual?.fuelConsumedL != null && w.actual.fuelSource === 'SNAPSHOT' && (
+            <span className="text-dim text-xs ml-1">(est.)</span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'telematicsStatus',
+      label: 'Status',
+      render: (w) => {
+        const status = STATUS_LABEL[w.telematicsStatus] || {
+          text: w.telematicsStatus || '—',
+          color: 'var(--text-dim, #94a3b8)',
+        };
+        return (
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold"
+            style={{
+              color: status.color,
+              backgroundColor: 'rgba(37, 99, 235, 0.08)',
+              border: `1px solid ${status.color}33`,
+            }}
+          >
+            {status.text}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'flags',
+      label: 'Flags',
+      render: (w) => {
+        const flags = w.flags || [];
+        return flags.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {flags.map((f) => {
+              const isExtraKm = f === 'EXTRA_KM';
+              const label = isExtraKm ? 'Extra Distance' : f;
+              return (
+                <span
+                  key={f}
+                  className="rounded-full px-2 py-0.5 text-xs font-bold tracking-wide"
+                  style={{
+                    background: 'rgba(37, 99, 235, 0.12)',
+                    color: '#1d4ed8',
+                    border: '1px solid rgba(37, 99, 235, 0.25)',
+                  }}
+                >
+                  {label}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <span className="text-dim text-xs">—</span>
+        );
+      },
+    },
+  ];
+
   return (
     <PageShell
       title="Trip Windows"
@@ -70,37 +205,13 @@ export default function TripWindowsPage() {
         </button>
       }
       filters={
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-col text-xs">
-            <span className="text-dim mb-1">From</span>
-            <input
-              type="date"
-              aria-label="From date"
-              value={inputFrom}
-              onChange={(e) => setInputFrom(e.target.value)}
-              className="rounded-md border px-2 py-1 text-sm"
-              style={{ borderColor: 'var(--border)' }}
-            />
-          </label>
-          <label className="flex flex-col text-xs">
-            <span className="text-dim mb-1">To</span>
-            <input
-              type="date"
-              aria-label="To date"
-              value={inputTo}
-              onChange={(e) => setInputTo(e.target.value)}
-              className="rounded-md border px-2 py-1 text-sm"
-              style={{ borderColor: 'var(--border)' }}
-            />
-          </label>
-          <button
-            className="ov-btn ov-btn--primary"
-            onClick={() => setApplied({ from: inputFrom, to: inputTo })}
-          >
-            Apply
-          </button>
-          <span className="text-dim self-center text-xs">Defaults to the last 90 days.</span>
-        </div>
+        <FilterBar
+          from={applied.from}
+          to={applied.to}
+          onRangeChange={(range) => setApplied(range)}
+          activeCount={applied.from || applied.to ? 1 : 0}
+          onClear={() => setApplied({ from: '', to: '' })}
+        />
       }
     >
       {error && (
@@ -116,122 +227,23 @@ export default function TripWindowsPage() {
         {LEG_TILES.map((t) => (
           <div key={t.key} className="ov-inset flex flex-col items-center gap-0.5 py-3">
             <span className="num text-lg font-bold">{fmtLeg(t.key, legTotals[t.key])}</span>
-            <span className="text-dim text-[10px] uppercase tracking-wide">{t.label}</span>
+            <span className="text-dim text-xs uppercase tracking-wide">{t.label}</span>
           </div>
         ))}
       </div>
 
-      {!loading && windows.length === 0 ? (
-        <div className="text-dim flex flex-col items-center gap-2 py-10 text-center text-sm">
-          <RouteIcon size={20} className="opacity-60" />
-          <span>No trips in this window.</span>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-dim text-left text-[11px] uppercase tracking-wide">
-                <th className="py-2 pr-2">Trip</th>
-                <th className="py-2 px-2">Route</th>
-                <th className="py-2 px-2 text-right">Planned</th>
-                <th className="py-2 px-2 text-right">Laden</th>
-                <th className="py-2 px-2 text-right">Approach</th>
-                <th className="py-2 px-2 text-right">Return</th>
-                <th className="py-2 px-2 text-right">Fuel Used</th>
-                <th className="py-2 px-2">Status</th>
-                <th className="py-2 pl-2">Flags</th>
-              </tr>
-            </thead>
-            <tbody>
-              {windows.map((w) => {
-                const a = w.actual || {};
-                const status = STATUS_LABEL[w.telematicsStatus] || {
-                  text: w.telematicsStatus || '—',
-                  color: 'var(--text-dim, #94a3b8)',
-                };
-                return (
-                  <tr
-                    key={w.erpTripId}
-                    className="border-t"
-                    style={{ borderColor: 'var(--border)' }}
-                  >
-                    <td className="py-2 pr-2">
-                      <div className="font-semibold">{w.tripNumber}</div>
-                      <div className="text-dim text-[11px]">
-                        {dayjs(w.tripDate).format('DD MMM YYYY')}
-                      </div>
-                    </td>
-                    <td className="py-2 px-2">
-                      <div className="text-xs">
-                        {w.route?.from || '—'} → {w.route?.to || '—'}
-                      </div>
-                      <div className="text-dim text-[11px]">
-                        {w.vehicleNumber || (w.vehicleType === 'HIRE' ? 'Hire' : '—')}
-                      </div>
-                    </td>
-                    <td className="num py-2 px-2 text-right">
-                      {w.plannedKm != null ? formatKm(w.plannedKm) : '—'}
-                    </td>
-                    <td className="num py-2 px-2 text-right">
-                      {a.ladenKm != null ? formatKm(a.ladenKm) : '—'}
-                    </td>
-                    <td className="num py-2 px-2 text-right">
-                      {a.approachKm != null ? formatKm(a.approachKm) : '—'}
-                    </td>
-                    <td className="num py-2 px-2 text-right">
-                      {a.returnKm != null ? formatKm(a.returnKm) : '—'}
-                    </td>
-                    <td
-                      className="num py-2 px-2 text-right"
-                      title={a.fuelConsumedL != null ? FUEL_SOURCE_TITLE[a.fuelSource] : undefined}
-                    >
-                      {a.fuelConsumedL != null ? formatLitres(a.fuelConsumedL) : '—'}
-                      {a.fuelConsumedL != null && a.fuelSource === 'SNAPSHOT' && (
-                        <div className="text-dim text-[10px]">est.</div>
-                      )}
-                    </td>
-                    <td className="py-2 px-2">
-                      <span className="text-xs font-semibold" style={{ color: status.color }}>
-                        {status.text}
-                      </span>
-                    </td>
-                    <td className="py-2 pl-2">
-                      {w.flags?.length ? (
-                        <div className="flex flex-wrap gap-1">
-                          {w.flags.map((f) => {
-                            const isExtraKm = f === 'EXTRA_KM';
-                            const label = isExtraKm ? 'Extra Distance' : f;
-                            const title = isExtraKm
-                              ? 'Trip actual distance exceeded planned route corridor'
-                              : f;
-                            return (
-                              <span
-                                key={f}
-                                title={title}
-                                className="rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
-                                style={{
-                                  background: 'color-mix(in srgb, var(--caution) 16%, transparent)',
-                                  color: 'var(--caution)',
-                                  border:
-                                    '1px solid color-mix(in srgb, var(--caution) 30%, transparent)',
-                                }}
-                              >
-                                {label}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <span className="text-dim text-xs">—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        rows={windows}
+        rowKey={(w) => w.erpTripId || w.tripNumber}
+        loading={loading}
+        error={error}
+        onRetry={refetch}
+        showing={windows.length}
+        total={data?.count ?? windows.length}
+        emptyTitle="No trips in this window"
+        emptyHint="Planned vs verified GPS telematics kilometres and fuel consumption for each trip leg will appear here."
+      />
     </PageShell>
   );
 }

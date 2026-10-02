@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import {
+  Plus,
   PlusCircle,
   Pencil,
   Trash2,
@@ -33,9 +34,9 @@ import useApi from '../../hooks/useApi';
 import DocumentService from './services/DocumentService';
 import { VehicleService } from '../Profile/VehicleService.jsx';
 import PageShell from '../../components/ui/PageShell';
-import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
+import NewButton from '../../components/ui/NewButton/NewButton';
 import RefuelLogModals from './RefuelLogModals.jsx';
 import KpiCard from '../../components/ui/KpiCard';
 import ReportDataNotice from '../../components/ui/ReportDataNotice';
@@ -384,7 +385,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
   const isAdBluePage = fixedFuelType === 'ADBLUE';
   const reportTitle = title || (isAdBluePage ? 'AdBlue Report' : 'Diesel Report');
   const newLogPath = isAdBluePage ? '/adblue-tracking/new' : '/mileage-tracking/new';
-  const emptyActionLabel = isAdBluePage ? 'Log AdBlue' : 'Add Refuel Log';
+  const emptyActionLabel = isAdBluePage ? 'Log AdBlue' : 'Log Fuel';
   const tabParam = searchParams.get('tab');
   const activeTab = isFixedFuelType
     ? fixedFuelType.toLowerCase()
@@ -951,7 +952,20 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
               <>
                 <div className="cell-primary">
                   {log.reviewStatus === 'NEEDS_REVIEW' ? (
-                    <span style={{ color: '#b45309', fontWeight: 600 }}>Needs review</span>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: 'rgba(37, 99, 235, 0.1)',
+                        color: '#1d4ed8',
+                        border: '1px solid rgba(37, 99, 235, 0.25)',
+                      }}
+                    >
+                      Needs review
+                    </span>
                   ) : log.reviewStatus === 'AUTO_OK' ? (
                     'Accepted'
                   ) : (
@@ -1046,17 +1060,27 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
       }
       count={pagination.total}
       actions={
-        <ExportButton
-          rows={logs.map(buildExportRow)}
-          columns={REFUEL_EXPORT_COLUMNS}
-          filename={
-            isAdBluePage ? 'adblue-report' : isFixedFuelType ? 'diesel-report' : 'refuel-logs'
-          }
-          fetchAll={fetchAllLogsForExport}
-          disabled={!logs.length}
-          meta={{ filters: exportFilters }}
-        />
+        <>
+          <ExportButton
+            rows={logs.map(buildExportRow)}
+            columns={REFUEL_EXPORT_COLUMNS}
+            filename={
+              isAdBluePage ? 'adblue-report' : isFixedFuelType ? 'diesel-report' : 'refuel-logs'
+            }
+            fetchAll={fetchAllLogsForExport}
+            disabled={!logs.length}
+            meta={{ filters: exportFilters }}
+          />
+          <NewButton
+            variant="primary"
+            size="md"
+            text={isAdBluePage ? 'Log AdBlue' : 'Log Fuel'}
+            prependIcon={<Plus size={16} />}
+            onClick={() => navigate(newLogPath)}
+          />
+        </>
       }
+
       footer={
         pagination.total > 0
           ? `Showing ${logs.length} of ${pagination.total} logs${activeFilterCount ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}` : ''}`
@@ -1097,7 +1121,7 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
               <KpiCard
                 title="Needs review"
                 value={formatNum(totals.needsReviewCount)}
-                accent="#b45309"
+                accent="#2563eb"
                 icon={<FileWarning size={18} />}
               />
             </div>
@@ -1365,6 +1389,8 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
           rowClassName={(log) => {
             if (log.verificationStatus === 'UNVERIFIED') return 'refuel-row-unverified';
             if (log.verificationStatus === 'FLAGGED') return 'refuel-row-flagged';
+            if (log.verificationStatus === 'VERIFIED') return 'refuel-row-verified';
+            if (log.verificationStatus === 'SLIP_ONLY') return 'refuel-row-slip-only';
             return '';
           }}
           loading={loading}
@@ -1445,6 +1471,11 @@ const RefuelLogsPage = ({ fuelType: fixedFuelType, title }) => {
         onClose={() => setComparisonLog(null)}
         log={comparisonLog}
         onViewPhoto={handleViewDocument}
+        onUploadBill={(log) => {
+          navigate(
+            `/mileage-tracking/new?vehicleId=${log.vehicleId || ''}&refuelTime=${log.refuelTime || ''}&litres=${log.sensorLitres || ''}`,
+          );
+        }}
       />
     </PageShell>
   );
