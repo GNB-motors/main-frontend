@@ -12,9 +12,7 @@ import {
   Radio,
   ShieldCheck,
   CheckCircle2,
-  Layers,
   ChevronRight,
-  Info,
   Navigation,
 } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -203,6 +201,7 @@ export default function VehicleWarehousesPage() {
 
   return (
     <PageShell
+      className="vwh-page"
       title="Warehouses"
       count={warehouses.length}
       subtitle="Declared yards your vehicles are based at. Each yard's geofence anchors trip start and end."
@@ -532,75 +531,22 @@ export default function VehicleWarehousesPage() {
               </div>
             </div>
           ) : (
-            <div className="vwh-overview-card">
-              <div className="vwh-overview-head">
-                <div className="vwh-overview-title">
-                  <div className="vwh-overview-icon-wrap">
-                    <Layers size={18} />
-                  </div>
-                  <div>
-                    <h4>Operating Bases & Geofence Intelligence</h4>
-                    <p>How warehouses anchor trip lifecycles and validate fleet telemetry</p>
-                  </div>
-                </div>
-                <span className="vwh-status-badge vwh-status-badge--info">
-                  <Radio size={12} /> Telemetry Active
-                </span>
+            <div className="vwh-overview-card vwh-overview-card--compact">
+              <div className="vwh-overview-icon-wrap">
+                <Warehouse size={20} />
               </div>
-
-              <div className="vwh-overview-body">
-                <p className="vwh-overview-desc">
-                  In GNB Motors, <strong>Warehouses</strong> are physical operating bases (yards,
-                  hubs, or depots) with defined GPS coordinates and circular geofences. When an
-                  assigned vehicle leaves its home yard, the system automatically detects the
-                  geofence departure and begins a <strong>Vehicle Tour</strong> cycle.
-                </p>
-
-                <div className="vwh-flow-grid">
-                  <div className="vwh-flow-step">
-                    <div className="vwh-step-num">1</div>
-                    <div className="vwh-step-info">
-                      <strong>Register Base Yard</strong>
-                      <span>Drop a pin on the map and set geofence radius (minimum 100m).</span>
-                    </div>
-                  </div>
-                  <div className="vwh-flow-step">
-                    <div className="vwh-step-num">2</div>
-                    <div className="vwh-step-info">
-                      <strong>Assign Fleet Vehicles</strong>
-                      <span>
-                        Designate vehicles to their home warehouse to monitor yard returns.
-                      </span>
-                    </div>
-                  </div>
-                  <div className="vwh-flow-step">
-                    <div className="vwh-step-num">3</div>
-                    <div className="vwh-step-info">
-                      <strong>Automated Trip Cycles</strong>
-                      <span>
-                        Boundary crossings auto-open and close full-circuit tours & audits.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="vwh-overview-footer">
-                  <div className="vwh-overview-tip">
-                    <Info size={14} />
-                    <span>
-                      Select any yard on the left list or map to view real-time presence, assigned
-                      trucks, or reassign fleet.
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="vwh-btn vwh-btn--primary vwh-btn--sm"
-                    onClick={() => setDrawer({ open: true, mode: 'create', initial: null })}
-                  >
-                    <Plus size={14} /> Add New Yard
-                  </button>
-                </div>
-              </div>
+              <h4>Select a yard to view details</h4>
+              <p>
+                Pick a yard from the list or the map to see its assigned trucks, live presence and
+                geofence.
+              </p>
+              <button
+                type="button"
+                className="vwh-btn vwh-btn--primary vwh-btn--sm"
+                onClick={() => setDrawer({ open: true, mode: 'create', initial: null })}
+              >
+                <Plus size={14} /> Add New Yard
+              </button>
             </div>
           )}
         </section>

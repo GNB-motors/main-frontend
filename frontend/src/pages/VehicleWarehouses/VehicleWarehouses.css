@@ -1,5 +1,12 @@
 /* Vehicle Warehouses — list + map, drawers for create/edit and assignment. */
 
+/* The global --border (oklch 0.931) is too faint for white cards on the grey
+   canvas, so every card on this page reads as borderless. Scope a stronger,
+   clearly-visible border token to the whole page in one place. */
+.vwh-page {
+  --border: #cbd5e1;
+}
+
 /* ─── Executive KPI Strip ────────────────────────────────────────────────── */
 
 .vwh-kpi-grid {
@@ -594,6 +601,40 @@
   background: #ffffff;
   padding: 20px 22px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Compact empty state shown when no yard is selected — a short prompt instead
+   of the full onboarding explainer. */
+.vwh-overview-card--compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  min-height: 300px;
+  padding: 40px 28px;
+}
+
+.vwh-overview-card--compact .vwh-overview-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.vwh-overview-card--compact h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.vwh-overview-card--compact p {
+  margin: 0;
+  max-width: 320px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
 }
 
 .vwh-overview-head {
