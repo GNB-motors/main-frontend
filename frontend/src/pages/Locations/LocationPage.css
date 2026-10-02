@@ -8,7 +8,9 @@
   display: flex;
   flex-direction: column;
   padding: 32px;
-  background: #ffffff;
+  /* Match the inner PageShell canvas so the whole page is one grey, not a grey
+     panel floating on white. */
+  background: var(--canvas, #f4f6fb);
   min-height: 100vh;
   margin: -24px;
   /* Remove the 24px page-content padding */
