@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/live/(.*)",
-      "destination": "https://43.205.43.18.nip.io/v1/api/live/$1"
+      "destination": "https://api.app.gnbedge.in/v1/api/live/$1"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
