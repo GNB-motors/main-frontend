@@ -5,32 +5,42 @@ import GoogleMapsSearch from './GoogleMapsSearch';
 import './GoogleMapsModal.css';
 
 // Static libraries array to prevent performance warnings
-const GOOGLE_MAPS_LIBRARIES = ['places'];
+const GOOGLE_MAPS_LIBRARIES = ['places', 'geometry'];
+const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
+  .replace(/['"]/g, '')
+  .trim();
 
 const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) => {
-  const [selectedLocation, setSelectedLocation] = useState(initialLocation || {
-    lat: 22.5726,
-    lng: 88.3639,
-    address: 'Kolkata, West Bengal, India'
-  });
-  const [searchValue, setSearchValue] = useState(initialLocation?.address || 'Kolkata, West Bengal, India');
+  const [selectedLocation, setSelectedLocation] = useState(
+    initialLocation || {
+      lat: 22.5726,
+      lng: 88.3639,
+      address: 'Kolkata, West Bengal, India',
+    },
+  );
+  const [searchValue, setSearchValue] = useState(
+    initialLocation?.address || 'Kolkata, West Bengal, India',
+  );
   const [mapCenter, setMapCenter] = useState({
     lat: initialLocation?.lat || 22.5726, // Kolkata latitude
-    lng: initialLocation?.lng || 88.3639  // Kolkata longitude
+    lng: initialLocation?.lng || 88.3639, // Kolkata longitude
   });
   const mapRef = useRef(null);
   const markerRef = useRef(null);
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
+
+  const isMapsReady =
+    isLoaded || (typeof window !== 'undefined' && Boolean(window.google?.maps?.Map));
 
   // Debug logging
   useEffect(() => {
     if (loadError) {
       console.error('Google Maps Load Error:', loadError);
-      console.log('API Key being used:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+      console.log('API Key being used:', GOOGLE_MAPS_API_KEY);
     }
   }, [loadError]);
 
@@ -65,7 +75,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
         // Update position
         markerRef.current.setPosition({
           lat: selectedLocation.lat,
-          lng: selectedLocation.lng
+          lng: selectedLocation.lng,
         });
       } else {
         // Create SVG string for the icon
@@ -81,7 +91,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
           map: mapRef.current,
           position: {
             lat: selectedLocation.lat,
-            lng: selectedLocation.lng
+            lng: selectedLocation.lng,
           },
           draggable: true,
           icon: {
@@ -110,9 +120,8 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
 
   const mapContainerStyle = {
     width: '100%',
-    height: '100%'
+    height: '100%',
   };
-
 
   // Helper to extract location details including pincode
   const extractLocationDetails = (result) => {
@@ -125,7 +134,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
     let state = '';
     let pincode = '';
 
-    addressComponents.forEach(component => {
+    addressComponents.forEach((component) => {
       if (component.types.includes('locality')) {
         city = component.long_name;
       }
@@ -187,20 +196,21 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
         setSelectedLocation({
           ...details,
           lat, // use clicked lat
-          lng  // use clicked lng
+          lng, // use clicked lng
         });
         setSearchValue(details.address);
       }
     });
-  }, []); // extractLocationDetails is defined inside component but depends on nothing, but better to move it out or useRef? 
+  }, []); // extractLocationDetails is defined inside component but depends on nothing, but better to move it out or useRef?
   // actually extractLocationDetails doesn't depend on state, so it can be defined outside or inside without deps.
-  // BUT handleMapClick uses it, so it needs to be available. 
+  // BUT handleMapClick uses it, so it needs to be available.
   // I will duplicate the helper or put it outside component in the same file to avoid dependency issues in useCallback.
 
   const handleApply = async () => {
     if (!selectedLocation) return;
 
-    const needsGeocode = !selectedLocation.place_id || !selectedLocation.city || !selectedLocation.state;
+    const needsGeocode =
+      !selectedLocation.place_id || !selectedLocation.city || !selectedLocation.state;
 
     if (needsGeocode && searchValue && window.google) {
       try {
@@ -268,34 +278,74 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
         <div className="google-maps-modal-content">
           <div className="google-maps-modal-header">
             <h2>Error Loading Google Maps</h2>
-            <button className="close-button" onClick={handleClose}>
+            <button
+              className="close-button"
+              onClick={handleClose}
+              type="button"
+              aria-label="Close modal"
+            >
               <X size={24} />
             </button>
           </div>
           <div className="google-maps-modal-body">
             <div style={{ padding: '20px', textAlign: 'center' }}>
               <p>Failed to load Google Maps. Please check your API key configuration.</p>
-              <p><strong>Error:</strong> {loadError.message}</p>
-              <p><strong>API Key:</strong> {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? 'Set' : 'Not Set'}</p>
+              <p>
+                <strong>Error:</strong> {loadError.message}
+              </p>
+              <p>
+                <strong>API Key:</strong> {GOOGLE_MAPS_API_KEY ? 'Set' : 'Not Set'}
+              </p>
               <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-                Make sure the Google Maps JavaScript API is enabled in your Google Cloud Console
-                and the API key has no domain restrictions or the correct domains are allowed.
+                Make sure the Google Maps JavaScript API is enabled in your Google Cloud Console and
+                the API key has no domain restrictions or the correct domains are allowed.
               </p>
             </div>
+          </div>
+          <div className="google-maps-modal-footer">
+            <button className="btn btn-secondary" onClick={handleClose} type="button">
+              Close
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!isLoaded) {
+  if (!isMapsReady) {
     return (
       <div className="google-maps-modal-overlay">
         <div className="google-maps-modal-content">
-          <div className="google-maps-modal-body">
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              Loading Google Maps...
+          <div className="google-maps-modal-header">
+            <h2>Select Location</h2>
+            <button
+              className="close-button"
+              onClick={handleClose}
+              type="button"
+              aria-label="Close modal"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          <div
+            className="google-maps-modal-body"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <p
+                style={{ fontSize: '16px', color: '#475569', marginBottom: '8px', fontWeight: 500 }}
+              >
+                Loading Google Maps...
+              </p>
+              <p style={{ fontSize: '12px', color: '#94a3b8' }}>
+                Please wait while the map initializes.
+              </p>
             </div>
+          </div>
+          <div className="google-maps-modal-footer">
+            <button className="btn btn-secondary" onClick={handleClose} type="button">
+              Cancel
+            </button>
           </div>
         </div>
       </div>
@@ -306,6 +356,15 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
     <div className="google-maps-modal-overlay">
       <div className="google-maps-modal-content">
         <div className="google-maps-modal-body">
+          <button
+            className="map-close-btn"
+            onClick={handleClose}
+            type="button"
+            aria-label="Close map"
+            title="Close"
+          >
+            <X size={20} />
+          </button>
           <div className="map-container">
             <GoogleMap
               mapContainerStyle={mapContainerStyle}
@@ -321,7 +380,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
               }}
             >
               <GoogleMapsSearch
-                isLoaded={isLoaded}
+                isLoaded={isMapsReady}
                 searchValue={searchValue}
                 setSearchValue={setSearchValue}
                 onSuggestionSelect={handleSuggestionSelect}
@@ -332,13 +391,14 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
         </div>
 
         <div className="google-maps-modal-footer">
-          <button className="btn btn-secondary" onClick={handleClose}>
+          <button className="btn btn-secondary" onClick={handleClose} type="button">
             Cancel
           </button>
           <button
             className="btn btn-primary"
             onClick={handleApply}
             disabled={!selectedLocation?.lat || !selectedLocation?.lng}
+            type="button"
           >
             <Check size={18} />
             Apply Location

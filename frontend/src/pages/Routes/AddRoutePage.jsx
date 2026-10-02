@@ -11,7 +11,10 @@ import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import FormFooter from './Component/FormFooter.jsx';
 import './RoutesPage.css';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
+  .replace(/['"]/g, '')
+  .trim();
+const GOOGLE_MAPS_LIBRARIES = ['places', 'geometry'];
 
 const AddRoutePage = () => {
   const navigate = useNavigate();
@@ -26,7 +29,12 @@ const AddRoutePage = () => {
   const [geometry, setGeometry] = useState(null);
   const endpointsTouchedRef = useRef(false);
 
-  const { isLoaded: isMapsLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  const { isLoaded: isScriptLoaded } = useLoadScript({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
+  const isMapsLoaded =
+    isScriptLoaded || (typeof window !== 'undefined' && Boolean(window.google?.maps));
 
   // Location data state
   const [locationData, setLocationData] = useState({

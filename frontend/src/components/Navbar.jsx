@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Menu, Search, Sun, Moon } from 'lucide-react';
+import { Plus, Menu, Search } from 'lucide-react';
 import { applyThemeToRoot } from '../utils/colorTheme';
-import { useTheme } from '../hooks/useTheme';
 import { useTripCreationContext } from '../contexts/TripCreationContext';
 import LocationSwitcher from './LocationSwitcher.jsx';
 import NotificationBell from './NotificationBell.jsx';
@@ -115,7 +114,6 @@ const Navbar = ({ toggleSidebar }) => {
   const isMileageListPage = location.pathname === '/mileage-tracking';
   const isAdBlueListPage = location.pathname === '/adblue-tracking';
   const isTripListPage = location.pathname === '/trip-management';
-  const { isDark, toggleTheme } = useTheme();
 
   return (
     <header className="navbar">
@@ -131,15 +129,6 @@ const Navbar = ({ toggleSidebar }) => {
                     Renders only when the business has more than one location. */}
         <LocationSwitcher />
         <NotificationBell />
-        <button
-          type="button"
-          className="theme-toggle"
-          onClick={toggleTheme}
-          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {isDark ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
         {isMileageListPage && (
           <div className="navbar-search">
             <Search size={16} color="#94a3b8" />
