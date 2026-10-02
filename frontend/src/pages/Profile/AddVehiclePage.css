@@ -258,23 +258,23 @@
 
 .add-vehicle-page .basic-info-outer-container,
 .add-vehicle-page .document-upload-outer-container {
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
+  background: transparent !important;
+  border: none !important;
   border-radius: 20px !important;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    0 10px 25px -5px rgba(0, 0, 0, 0.03) !important;
+  box-shadow: none !important;
   padding: 8px !important;
   outline: none !important;
   transition: all 0.2s ease;
 }
 
+/* Single flat surface: the inner panel shares the outer card's white so there is
+   no nested "card-in-a-card" grey/white seam. */
 .add-vehicle-page .basic-info-container,
 .add-vehicle-page .document-upload-container {
-  background: #ffffff !important;
+  background: transparent !important;
   border-radius: 14px !important;
   padding: 28px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  box-shadow: none !important;
 }
 
 /* Card Headers */
@@ -762,39 +762,12 @@
 }
 
 .add-vehicle-footer-inner {
-  max-width: 1240px;
   width: 100%;
-  margin: 0 auto;
   padding: 0 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   box-sizing: border-box;
-}
-
-.add-vehicle-footer-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.footer-status-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.footer-status-plate {
-  font-family: 'SF Pro Display', 'Inter', monospace;
-  font-weight: 700;
-  color: #0f172a;
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
 }
 
 .add-vehicle-footer-actions {
@@ -892,10 +865,6 @@
   .add-vehicle-page .basic-info-form-row {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
-  }
-
-  .add-vehicle-footer-status {
-    display: none;
   }
 
   .add-vehicle-footer-actions {
