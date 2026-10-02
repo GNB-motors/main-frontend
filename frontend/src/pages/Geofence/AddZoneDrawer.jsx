@@ -612,7 +612,30 @@ const AddZoneDrawer = ({
           </div>
 
           {/* Right map */}
-          <div className="azd-map-col">
+          <div className="azd-map-col" style={{ position: 'relative' }}>
+            {geofenceType === 'polygon' && polygonPath.length === 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 20,
+                  background: 'rgba(15, 23, 42, 0.88)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#ffffff',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+                  pointerEvents: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                📍 Click on map to place polygon points. Click &quot;Finish Drawing&quot; when done.
+              </div>
+            )}
             <ZoneMapPreview
               isLoaded={isLoaded}
               locationLatLng={locationLatLng}

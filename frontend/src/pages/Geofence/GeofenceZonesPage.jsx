@@ -81,21 +81,21 @@ const ZONE_CFG = {
     label: 'Accident Prone',
     color: '#ef4444',
     fill: '#ef444426',
-    pin: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+    pin: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
     badgeCls: 'gfz-badge-danger',
   },
   PARKING: {
     label: 'Parking / Rest',
-    color: '#f59e0b',
-    fill: '#f59e0b26',
-    pin: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-    badgeCls: 'gfz-badge-warning',
+    color: '#0d9488',
+    fill: '#0d948826',
+    pin: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+    badgeCls: 'gfz-badge-success',
   },
   CUSTOM: {
     label: 'Custom Zone',
-    color: '#6366f1',
-    fill: '#6366f126',
-    pin: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+    color: '#2563eb',
+    fill: '#2563eb26',
+    pin: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
     badgeCls: 'gfz-badge-info',
   },
 };
@@ -696,7 +696,7 @@ const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
               >
                 <Compass size={14} /> Unknown Territory
                 {pendingTerritoryCount > 0 && (
-                  <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                  <span className="ml-1 rounded-full bg-blue-600 px-1.5 py-0.2 text-[10px] font-bold text-white">
                     {pendingTerritoryCount}
                   </span>
                 )}

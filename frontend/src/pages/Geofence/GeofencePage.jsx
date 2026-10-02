@@ -85,11 +85,11 @@ const VEHICLE_STATUS_COLOR = {
   Idling: '#f59e0b', // yellowish-orange
   Offline: '#94a3b8', // grey
   Breakdown: '#ef4444', // red
-  Faulty: '#84cc16', // sieve green
+  Faulty: '#4d7c0f', // darker green for high contrast (WCAG AA compliant)
 };
 
 const PROVENANCE_META = {
-  'own-learned': { label: 'Learned from your fleet', color: '#D98E13', text: '#1F2937' },
+  'own-learned': { label: 'Learned from your fleet', color: '#6366F1', text: '#FFFFFF' },
   network: { label: 'Learned across network', color: '#2563EB', text: '#FFFFFF' },
   'own-manual': { label: 'Added manually', color: '#64748B', text: '#FFFFFF' },
 };
@@ -218,9 +218,9 @@ const LocationRow = ({ location, onResolve, resolvingId, onCreateZone }) => {
 };
 
 const PIN = {
-  HIGH: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
-  MEDIUM: 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png',
-  LOW: 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+  HIGH: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+  MEDIUM: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
+  LOW: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
 };
 
 // Export shape for the anomaly location table
@@ -747,7 +747,7 @@ const GeofencePage = () => {
                   <span>Medium Risk</span>
                 </span>
                 <span className="hs-legend-pill">
-                  <span className="hs-legend-dot" style={{ background: '#D98E13' }} />
+                  <span className="hs-legend-dot" style={{ background: '#6366F1' }} />
                   <span>Learned Hotspot</span>
                 </span>
                 <span className="hs-legend-pill">
@@ -837,8 +837,8 @@ const GeofencePage = () => {
                         icon={{
                           url:
                             h.meta.color === '#2563EB'
-                              ? 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                              : 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png',
+                              ? 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                              : 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
                         }}
                         zIndex={5}
                         title={`Fuel Risk Hotspot: ${h.name}`}
