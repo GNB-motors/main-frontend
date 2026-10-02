@@ -13,6 +13,7 @@ const BulkUploadResultsSidePanel = ({
   if (!isOpen || !uploadResult) return null;
 
   const createdCount = uploadResult.createdCount || 0;
+  const updatedCount = uploadResult.updatedCount || 0;
   const errorCount = uploadResult.errorCount || uploadResult.errors?.length || 0;
 
   return (
@@ -36,8 +37,13 @@ const BulkUploadResultsSidePanel = ({
                   fontFamily: 'Inter',
                 }}
               >
-                <strong>{createdCount}</strong> employees created, <strong>{errorCount}</strong>{' '}
-                errors
+                <strong>{createdCount}</strong> created
+                {updatedCount > 0 && (
+                  <>
+                    , <strong>{updatedCount}</strong> updated
+                  </>
+                )}
+                , <strong>{errorCount}</strong> errors
               </p>
             </div>
 

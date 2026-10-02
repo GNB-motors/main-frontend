@@ -187,6 +187,7 @@ const BulkUploadDriversPage = () => {
 
       const chunkSize = 50;
       let totalCreatedCount = 0;
+      let totalUpdatedCount = 0;
       let totalErrorCount = 0;
       let totalCreated = [];
       let totalErrors = [];
@@ -198,6 +199,7 @@ const BulkUploadDriversPage = () => {
         const respData = resp && resp.data ? resp.data : resp;
 
         totalCreatedCount += respData?.createdCount ?? 0;
+        totalUpdatedCount += respData?.updatedCount ?? 0;
         totalErrorCount += respData?.errorCount ?? respData?.errors?.length ?? 0;
         totalCreated = [...totalCreated, ...(respData?.created || [])];
         totalErrors = [...totalErrors, ...(respData?.errors || [])];
@@ -210,6 +212,7 @@ const BulkUploadDriversPage = () => {
 
       const combinedResult = {
         createdCount: totalCreatedCount,
+        updatedCount: totalUpdatedCount,
         errorCount: totalErrorCount,
         created: totalCreated,
         errors: totalErrors,
@@ -218,7 +221,9 @@ const BulkUploadDriversPage = () => {
       setUploadResult(combinedResult);
       setShowResultsModal(true);
 
-      toast.success(`Upload completed: ${totalCreatedCount} created, ${totalErrorCount} error(s)`);
+      toast.success(
+        `Upload completed: ${totalCreatedCount} created, ${totalUpdatedCount} updated, ${totalErrorCount} error(s)`,
+      );
     } catch (error) {
       console.error('Submission error:', error);
 

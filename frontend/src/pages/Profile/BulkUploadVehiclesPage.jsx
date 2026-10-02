@@ -188,6 +188,7 @@ const BulkUploadVehiclesPage = () => {
       let totalCreated = 0;
       let totalErrors = [];
 
+      let totalUpdated = 0;
       for (let i = 0; i < rows.length; i += chunkSize) {
         const chunk = rows.slice(i, i + chunkSize);
         const resp = await VehicleService.addBulkVehicles(businessRefId, chunk, options, token);
@@ -195,18 +196,23 @@ const BulkUploadVehiclesPage = () => {
 
         totalCreated +=
           respData?.createdCount ?? respData?.data?.createdCount ?? respData?.summary?.created ?? 0;
+        totalUpdated += respData?.updatedCount ?? respData?.data?.updatedCount ?? 0;
         const chunkErrors = respData?.errors ?? respData?.data?.errors ?? [];
         totalErrors = [...totalErrors, ...chunkErrors];
 
         setUploadProgress({ processed: Math.min(i + chunkSize, rows.length), total: rows.length });
       }
 
-      setUploadResult({ createdCount: totalCreated, errors: totalErrors });
+      setUploadResult({
+        createdCount: totalCreated,
+        updatedCount: totalUpdated,
+        errors: totalErrors,
+      });
 
       toast.success(
         dryRun
-          ? `Dry run completed: ${totalCreated} created, ${totalErrors.length} error(s)`
-          : `Vehicles uploaded: ${totalCreated} created, ${totalErrors.length} error(s)`,
+          ? `Dry run completed: ${totalCreated} to create, ${totalErrors.length} error(s)`
+          : `Vehicles uploaded: ${totalCreated} created, ${totalUpdated} updated, ${totalErrors.length} error(s)`,
       );
 
       if (!dryRun && totalErrors.length === 0) {
