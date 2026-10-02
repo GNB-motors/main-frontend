@@ -20,7 +20,7 @@ const COLUMNS = [
   {
     key: 'startAt',
     label: 'Idling since',
-    render: (row) => <span title={formatDateTimeIST(row.startAt)}>{timeAgo(row.startAt)} ago</span>,
+    render: (row) => <span title={formatDateTimeIST(row.startAt)}>{timeAgo(row.startAt)}</span>,
   },
   {
     key: 'durationMin',
@@ -40,7 +40,7 @@ const COLUMNS = [
       <span className="flex items-center gap-1.5">
         <StatusChip group="legitimacy" value={row.legitimacy} />
         {row.legitimacy === 'legit' && row.zoneName ? (
-          <span className="text-dim text-[11px]">{row.zoneName}</span>
+          <span className="text-dim text-xs">{row.zoneName}</span>
         ) : null}
       </span>
     ),
@@ -52,7 +52,7 @@ const COLUMNS = [
     render: (row) => (
       <span className="num">
         {formatINR(row.rupees)}
-        <span className="text-dim ml-1 text-[11px]">({formatLitres(row.litres)})</span>
+        <span className="text-dim ml-1 text-xs">({formatLitres(row.litres)})</span>
       </span>
     ),
   },
