@@ -151,7 +151,7 @@ const DriversPage = () => {
   useEffect(() => {
     const handle = setTimeout(() => {
       setSearchTerm(searchInput.trim());
-    }, 300);
+    }, 400);
     return () => clearTimeout(handle);
   }, [searchInput]);
 
@@ -295,25 +295,8 @@ const DriversPage = () => {
     };
   }, [isFilterDropdownOpen]);
 
-  // --- Render Logic ---
-  // Full-page loader only on the very first mount. Subsequent refetches
-  // (search / filter / pagination) keep the page shell mounted and show an
-  // in-table shimmer skeleton instead, so the page no longer flickers.
-  if (isLoading && !hasLoadedOnce) {
-    return (
-      <div className="drivers-container" style={themeColors}>
-        <LottieLoader
-          isLoading={true}
-          size="medium"
-          message="Loading drivers data..."
-          overlay={false}
-        />
-      </div>
-    );
-  }
-
   // Show general page error first
-  if (error) {
+  if (error && !hasLoadedOnce) {
     return <div className="drivers-error-message">{error}</div>;
   }
 
@@ -333,16 +316,16 @@ const DriversPage = () => {
               onClick={() => setShowTrendsDrawer(true)}
             />
             <NewButton
-              variant="primary"
-              text="Add Employee"
-              prependIcon={<Plus size={16} />}
-              onClick={() => navigate('/drivers/add')}
-            />
-            <NewButton
               variant="secondary"
               text="Bulk Upload"
               prependIcon={<Upload size={16} />}
               onClick={() => setShowBulkPanel(true)}
+            />
+            <NewButton
+              variant="primary"
+              text="Add Employee"
+              prependIcon={<Plus size={16} />}
+              onClick={() => navigate('/drivers/add')}
             />
           </>
         }
@@ -355,7 +338,7 @@ const DriversPage = () => {
           columns={columns}
           rows={paginatedDrivers}
           rowKey={(driver) => driver.id}
-          loading={isLoading && !hasLoadedOnce}
+          loading={isLoading}
           error={error}
           onRetry={fetchDrivers}
           showing={paginatedDrivers.length}
