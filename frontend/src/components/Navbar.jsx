@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Menu, Search, Sun, Moon } from 'lucide-react';
+import { Plus, Menu, Search } from 'lucide-react';
 import { applyThemeToRoot } from '../utils/colorTheme';
-import { useTheme } from '../hooks/useTheme';
 import { useTripCreationContext } from '../contexts/TripCreationContext';
 import LocationSwitcher from './LocationSwitcher.jsx';
 import NotificationBell from './NotificationBell.jsx';
@@ -13,9 +12,13 @@ const Navbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const { stepName } = useTripCreationContext();
   const [activeTripsCount, setActiveTripsCount] = useState(0);
+  const [mileageCount, setMileageCount] = useState(0);
+  const [mileageSearch, setMileageSearch] = useState('');
   const [tripSearch, setTripSearch] = useState('');
 
-  // Re-apply the CSS theme variables to :root whenever the theme changes
+  // Re-apply the CSS theme variables to :root whenever the theme changes,
+  // instead of holding a local style copy (which can desync vs :root and
+  // override descendant cascade with stale values).
   useEffect(() => {
     applyThemeToRoot();
     const handleThemeChange = () => applyThemeToRoot();
@@ -26,7 +29,7 @@ const Navbar = ({ toggleSidebar }) => {
   // Listen for active trips count updates
   useEffect(() => {
     const handleTripsUpdate = (event) => {
-      setActiveTripsCount(event.detail?.count || 0);
+      setActiveTripsCount(event.detail.count);
     };
 
     window.addEventListener('activeTripsUpdate', handleTripsUpdate);
@@ -35,6 +38,24 @@ const Navbar = ({ toggleSidebar }) => {
       window.removeEventListener('activeTripsUpdate', handleTripsUpdate);
     };
   }, []);
+
+  // Listen for mileage tracking count + search reset updates
+  useEffect(() => {
+    const handleCount = (e) => setMileageCount(e.detail?.count ?? 0);
+    const handleSearchReset = (e) => setMileageSearch(e.detail?.value ?? '');
+    window.addEventListener('mileageCountUpdate', handleCount);
+    window.addEventListener('mileageSearchReset', handleSearchReset);
+    return () => {
+      window.removeEventListener('mileageCountUpdate', handleCount);
+      window.removeEventListener('mileageSearchReset', handleSearchReset);
+    };
+  }, []);
+
+  const handleMileageSearch = (e) => {
+    const value = e.target.value;
+    setMileageSearch(value);
+    window.dispatchEvent(new CustomEvent('mileageSearchChange', { detail: { value } }));
+  };
 
   // Listen for trip search reset (e.g. when switching tabs)
   useEffect(() => {
@@ -57,7 +78,10 @@ const Navbar = ({ toggleSidebar }) => {
     if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
       return '';
     }
-    if (location.pathname.startsWith('/mileage-tracking')) {
+    if (location.pathname.match(/^\/mileage-tracking\/vehicle\/[a-f0-9]+$/)) {
+      return 'Mileage Tracking';
+    }
+    if (location.pathname.match(/^\/mileage-tracking\/[a-f0-9]+$/)) {
       return 'Mileage Tracking';
     }
     if (location.pathname.startsWith('/adblue-tracking')) {
@@ -87,9 +111,9 @@ const Navbar = ({ toggleSidebar }) => {
 
   const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
   const isMileagePage = location.pathname.startsWith('/mileage-tracking');
+  const isMileageListPage = location.pathname === '/mileage-tracking';
   const isAdBlueListPage = location.pathname === '/adblue-tracking';
   const isTripListPage = location.pathname === '/trip-management';
-  const { isDark, toggleTheme } = useTheme();
 
   return (
     <header className="navbar">
@@ -98,77 +122,87 @@ const Navbar = ({ toggleSidebar }) => {
           <Menu />
         </button>
         <h2>{getPageTitle()}</h2>
+        {isMileageListPage && <span className="navbar-count-badge">{mileageCount}</span>}
       </div>
-      {!isMileagePage && (
-        <div className="navbar-right">
-          {/* Active location switcher — always first in the action bar.
-                      Renders only when the business has more than one location. */}
-          <LocationSwitcher />
-          <NotificationBell />
-          <button
-            type="button"
-            className="theme-toggle"
-            onClick={toggleTheme}
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          {isTripListPage && (
-            <div className="navbar-search">
-              <Search size={16} color="#94a3b8" />
-              <input
-                type="text"
-                placeholder="Search trips or refuel journeys..."
-                value={tripSearch}
-                onChange={handleTripSearch}
-              />
-            </div>
-          )}
-          {isTripsPage && (
-            <>
-              {activeTripsCount > 0 && (
-                <div className="active-trips-badge">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="1" y="3" width="15" height="13" />
-                    <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
-                    <circle cx="5.5" cy="18.5" r="2.5" />
-                    <circle cx="18.5" cy="18.5" r="2.5" />
-                  </svg>
-                  <span>
-                    {activeTripsCount} Active Trip{activeTripsCount !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              )}
-              <button
-                className="btn btn-primary trip-action-btn"
-                onClick={() => window.dispatchEvent(new CustomEvent('startNewTrip'))}
-              >
-                <Plus size={16} />
-                <span>Start New Trip</span>
-              </button>
-            </>
-          )}
-          {isAdBlueListPage && (
+      <div className="navbar-right">
+        {/* Active location switcher — always first in the action bar.
+                    Renders only when the business has more than one location. */}
+        <LocationSwitcher />
+        <NotificationBell />
+        {isMileageListPage && (
+          <div className="navbar-search">
+            <Search size={16} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Search by vehicle or status..."
+              value={mileageSearch}
+              onChange={handleMileageSearch}
+            />
+          </div>
+        )}
+        {isTripListPage && (
+          <div className="navbar-search">
+            <Search size={16} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Search trips or refuel journeys..."
+              value={tripSearch}
+              onChange={handleTripSearch}
+            />
+          </div>
+        )}
+        {isTripsPage && (
+          <>
+            {activeTripsCount > 0 && (
+              <div className="active-trips-badge">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="1" y="3" width="15" height="13" />
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                  <circle cx="5.5" cy="18.5" r="2.5" />
+                  <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+                <span>
+                  {activeTripsCount} Active Trip{activeTripsCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
             <button
               className="btn btn-primary trip-action-btn"
-              onClick={() => navigate('/adblue-tracking/new')}
+              onClick={() => window.dispatchEvent(new CustomEvent('startNewTrip'))}
             >
               <Plus size={16} />
-              <span>Log AdBlue</span>
+              <span>Start New Trip</span>
             </button>
-          )}
-        </div>
-      )}
+          </>
+        )}
+        {isMileagePage && (
+          <button
+            className="btn btn-primary trip-action-btn"
+            onClick={() => navigate('/mileage-tracking/new')}
+          >
+            <Plus size={16} />
+            <span>Log Fuel</span>
+          </button>
+        )}
+        {isAdBlueListPage && (
+          <button
+            className="btn btn-primary trip-action-btn"
+            onClick={() => navigate('/adblue-tracking/new')}
+          >
+            <Plus size={16} />
+            <span>Log AdBlue</span>
+          </button>
+        )}
+      </div>
     </header>
   );
 };

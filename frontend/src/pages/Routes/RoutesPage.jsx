@@ -15,9 +15,12 @@ import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 import RoutesMapPanel from './Component/RoutesMapPanel';
 import { useConfirm } from '../../components/ui/confirmContext';
+import { getUserRole } from '../../utils/session';
 import './RoutesPage.css';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
+  .replace(/['"]/g, '')
+  .trim();
 const GMAPS_LIBS = ['places', 'geometry'];
 
 const EXPORT_COLUMNS = [
@@ -32,20 +35,27 @@ const RoutesPage = () => {
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [updatingRouteId, setUpdatingRouteId] = useState(null);
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
   const [hoveredRouteId, setHoveredRouteId] = useState(null);
 
-  const { isLoaded: isMapLoaded } = useLoadScript({
+  const userRole = (getUserRole() || '').toUpperCase();
+  const canEditStatus = ['OWNER', 'MANAGER', 'ADMIN', 'SUPER_ADMIN'].includes(userRole);
+
+  const { isLoaded: isScriptLoaded } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: GMAPS_LIBS,
   });
+  const isMapLoaded =
+    isScriptLoaded || (typeof window !== 'undefined' && Boolean(window.google?.maps));
 
-  const fetchRoutes = useCallback(async (page = 1, search = '') => {
+  const fetchRoutes = useCallback(async (page = 1, search = '', status = 'ALL') => {
     setLoading(true);
     try {
-      const response = await RouteService.getRoutes({ page, limit: 10, search });
+      const response = await RouteService.getRoutes({ page, limit: 10, search, status });
       setRoutes(response.data || []);
       setMeta(response.meta || { total: 0, page: 1, limit: 10, totalPages: 0 });
     } catch (error) {
@@ -58,15 +68,23 @@ const RoutesPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchRoutes(1, '');
+    fetchRoutes(1, '', 'ALL');
   }, [fetchRoutes]);
 
   const handleSearchChange = useCallback(
     (value) => {
       setSearchTerm(value);
-      fetchRoutes(1, value);
+      fetchRoutes(1, value, statusFilter);
     },
-    [fetchRoutes],
+    [fetchRoutes, statusFilter],
+  );
+
+  const handleStatusFilterChange = useCallback(
+    (value) => {
+      setStatusFilter(value);
+      fetchRoutes(1, searchTerm, value);
+    },
+    [fetchRoutes, searchTerm],
   );
 
   const openEditPage = useCallback(
@@ -88,26 +106,44 @@ const RoutesPage = () => {
       try {
         await RouteService.deleteRoute(route._id);
         toast.success('Route deleted successfully');
-        fetchRoutes(meta.page, searchTerm);
+        fetchRoutes(meta.page, searchTerm, statusFilter);
       } catch (error) {
         toast.error(error?.message || 'Failed to delete route');
       }
     },
-    [confirm, fetchRoutes, meta.page, searchTerm],
+    [confirm, fetchRoutes, meta.page, searchTerm, statusFilter],
   );
 
   const handleToggleStatus = useCallback(
     async (route) => {
+      if (!canEditStatus) {
+        toast.error('You do not have permission to modify route status');
+        return;
+      }
       const newStatus = route.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      const prevStatus = route.status;
+      setUpdatingRouteId(route._id);
+
+      // Optimistically update local component state smoothly
+      setRoutes((prev) => prev.map((r) => (r._id === route._id ? { ...r, status: newStatus } : r)));
+
       try {
         await RouteService.updateRouteStatus(route._id, newStatus);
-        toast.success(`Route marked as ${newStatus}`);
-        fetchRoutes(meta.page, searchTerm);
+        toast.success(`Route "${route.name}" marked as ${newStatus}`);
+        if (statusFilter !== 'ALL' && statusFilter !== newStatus) {
+          fetchRoutes(meta.page, searchTerm, statusFilter);
+        }
       } catch (error) {
-        toast.error(error?.message || 'Failed to update status');
+        // Revert local state on failure
+        setRoutes((prev) =>
+          prev.map((r) => (r._id === route._id ? { ...r, status: prevStatus } : r)),
+        );
+        toast.error(error?.message || error?.detail || 'Failed to update route status');
+      } finally {
+        setUpdatingRouteId(null);
       }
     },
-    [fetchRoutes, meta.page, searchTerm],
+    [canEditStatus, fetchRoutes, meta.page, searchTerm, statusFilter],
   );
 
   const handleDeriveGeometry = useCallback(
@@ -118,7 +154,7 @@ const RoutesPage = () => {
         toast.success(
           `Geometry derived successfully from ${response.data?.geometry?.pointCount || ''} GPS fixes!`,
         );
-        fetchRoutes(meta.page, searchTerm);
+        fetchRoutes(meta.page, searchTerm, statusFilter);
       } catch (error) {
         toast.error(
           error?.message ||
@@ -127,7 +163,7 @@ const RoutesPage = () => {
         );
       }
     },
-    [fetchRoutes, meta.page, searchTerm],
+    [fetchRoutes, meta.page, searchTerm, statusFilter],
   );
 
   const exportRows = routes.map((r) => ({
@@ -190,17 +226,41 @@ const RoutesPage = () => {
     {
       key: 'status',
       label: 'Status',
-      render: (route) => (
-        <button
-          type="button"
-          className={`status-badge ${route.status.toLowerCase()}`}
-          onClick={() => handleToggleStatus(route)}
-          title={`Click to ${route.status === 'ACTIVE' ? 'deactivate' : 'activate'}`}
-        >
-          <Activity size={14} />
-          {route.status}
-        </button>
-      ),
+      render: (route) => {
+        const isActive = route.status === 'ACTIVE';
+        const isUpdating = updatingRouteId === route._id;
+
+        return (
+          <div className="route-status-cell">
+            <label
+              className={`route-status-switch ${!canEditStatus ? 'disabled' : ''} ${
+                isUpdating ? 'loading' : ''
+              }`}
+              title={
+                canEditStatus
+                  ? `Toggle status to ${isActive ? 'INACTIVE' : 'ACTIVE'}`
+                  : 'Administrative permissions required to change route status'
+              }
+            >
+              <input
+                type="checkbox"
+                checked={isActive}
+                disabled={!canEditStatus || isUpdating}
+                onChange={() => handleToggleStatus(route)}
+                aria-label={`Toggle status for route ${route.name}`}
+              />
+              <span className="route-status-slider" />
+            </label>
+            <span
+              className={`status-badge ${route.status.toLowerCase()}`}
+              title={canEditStatus ? `Route is ${route.status}` : 'Status (read-only)'}
+            >
+              <Activity size={12} />
+              {route.status}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'actions',
@@ -266,6 +326,23 @@ const RoutesPage = () => {
             searchValue={searchTerm}
             onSearchChange={handleSearchChange}
             searchPlaceholder="Search routes by name, source, or destination…"
+            right={
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Status:
+                </span>
+                <select
+                  className="fbar-select font-medium text-slate-700 cursor-pointer min-w-[130px]"
+                  value={statusFilter}
+                  onChange={(e) => handleStatusFilterChange(e.target.value)}
+                  aria-label="Filter routes by status"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
+            }
           />
         }
         footer={
@@ -302,7 +379,7 @@ const RoutesPage = () => {
             <button
               type="button"
               disabled={meta.page === 1}
-              onClick={() => fetchRoutes(meta.page - 1, searchTerm)}
+              onClick={() => fetchRoutes(meta.page - 1, searchTerm, statusFilter)}
             >
               Previous
             </button>
@@ -312,7 +389,7 @@ const RoutesPage = () => {
             <button
               type="button"
               disabled={meta.page === meta.totalPages}
-              onClick={() => fetchRoutes(meta.page + 1, searchTerm)}
+              onClick={() => fetchRoutes(meta.page + 1, searchTerm, statusFilter)}
             >
               Next
             </button>

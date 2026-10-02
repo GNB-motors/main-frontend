@@ -242,6 +242,81 @@
   background: #cbd5e0;
 }
 
+.route-status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.route-status-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.route-status-switch.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.route-status-switch.loading {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.route-status-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.route-status-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px;
+}
+
+.route-status-switch.disabled .route-status-slider {
+  cursor: not-allowed;
+}
+
+.route-status-slider:before {
+  position: absolute;
+  content: '';
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.route-status-switch input:checked + .route-status-slider {
+  background-color: #10b981;
+}
+
+.route-status-switch input:checked + .route-status-slider:before {
+  transform: translateX(16px);
+}
+
+.route-status-switch input:focus-visible + .route-status-slider {
+  outline: 2px solid var(--color-primary-500, #2563eb);
+  outline-offset: 2px;
+}
+
 .actions-cell {
   display: flex;
   gap: 8px;

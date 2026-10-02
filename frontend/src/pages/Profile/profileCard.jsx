@@ -79,6 +79,9 @@ export const ProfileCard = ({ user, organization }) => {
       <div className="px-6 pb-6 pt-2">
         <div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3.5">
           <AlertCircle size={13} className="mt-0.5 shrink-0 text-amber-500" />
+          <p className="text-[11px] leading-relaxed text-amber-700">
+            Read-only. Contact your administrator to make changes.
+          </p>
         </div>
       </div>
     </div>
