@@ -434,7 +434,10 @@ function App() {
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
             <Route path="/geofence" element={<GeofencePage />} />
             <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
-            <Route path="/geofence/alerts" element={<Navigate to="/geofence/zones" replace />} />
+            <Route
+              path="/geofence/alerts"
+              element={<Navigate to="/geofence/zones?tab=alerts" replace />}
+            />
             <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
             <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
             <Route path="/drivers" element={<DriversPage />} />

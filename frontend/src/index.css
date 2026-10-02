@@ -2371,7 +2371,7 @@ a.ov-action:hover {
 
 /* Event table: flagged rows stand out with a coloured left edge */
 .ov-table tbody tr.fi-row-flag td:first-child {
-  box-shadow: inset 3px 0 0 var(--caution);
+  box-shadow: inset 3px 0 0 #2563eb;
 }
 .ov-table tbody tr.fi-row-crit td:first-child {
   box-shadow: inset 3px 0 0 var(--critical);
