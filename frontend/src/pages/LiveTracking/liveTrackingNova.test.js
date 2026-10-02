@@ -171,21 +171,21 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
 
       const veh = { status: 'moving', plate: 'WB19A1234' };
 
-      // Zoom 16 (scale 1.50): scaledW = 52 * 1.50 = 78
+      // Zoom 16 (scale 1.50): scaledW = 60 * 1.50 = 90
       const iconClose = createVehicleMarkerIcon(veh, false, true, 16);
-      expect(iconClose.scaledSize.width).toBe(78);
+      expect(iconClose.scaledSize.width).toBe(90);
 
-      // Zoom 14 (scale 1.20): scaledW = 52 * 1.20 = 62
+      // Zoom 14 (scale 1.30): scaledW = 60 * 1.30 = 78
       const iconNormal = createVehicleMarkerIcon(veh, false, true, 14);
-      expect(iconNormal.scaledSize.width).toBe(62);
+      expect(iconNormal.scaledSize.width).toBe(78);
 
-      // Zoom 10 (scale 0.78): scaledW = 52 * 0.78 = 41
+      // Zoom 10 (scale 0.96): scaledW = round(60 * 0.96) = 58
       const iconRegional = createVehicleMarkerIcon(veh, false, true, 10);
-      expect(iconRegional.scaledSize.width).toBe(41);
+      expect(iconRegional.scaledSize.width).toBe(58);
 
-      // Zoom 5 (scale 0.48): scaledW = 52 * 0.48 = 25
+      // Zoom 5 (scale 0.64): scaledW = round(60 * 0.64) = 38
       const iconNational = createVehicleMarkerIcon(veh, false, true, 5);
-      expect(iconNational.scaledSize.width).toBe(25);
+      expect(iconNational.scaledSize.width).toBe(38);
 
       // Verify strictly monotonic growth as user zooms in
       expect(iconClose.scaledSize.width).toBeGreaterThan(iconNormal.scaledSize.width);

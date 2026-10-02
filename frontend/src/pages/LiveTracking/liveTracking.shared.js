@@ -312,20 +312,23 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
   const effectiveZoom =
     typeof zoom === 'number' && !isNaN(zoom) ? Math.max(4, Math.min(20, zoom)) : 12;
 
-  // Continuous, responsive scale curve from zoom 4 (national overview) to zoom 20 (street level):
+  // Responsive scale curve from zoom 4 (national overview) to zoom 20 (street level).
+  // The zoomed-out / page-open range (<=13) is deliberately kept large so trucks
+  // read clearly on first load, when the map is fitted out to the whole fleet;
+  // high zoom is left near its original size (the view was never too small there).
   let scale = 1.0;
   if (effectiveZoom >= 17) scale = 1.65;
   else if (effectiveZoom === 16) scale = 1.5;
-  else if (effectiveZoom === 15) scale = 1.35;
-  else if (effectiveZoom === 14) scale = 1.2;
-  else if (effectiveZoom === 13) scale = 1.08;
-  else if (effectiveZoom === 12) scale = 0.98;
-  else if (effectiveZoom === 11) scale = 0.88;
-  else if (effectiveZoom === 10) scale = 0.78;
-  else if (effectiveZoom === 9) scale = 0.68;
-  else if (effectiveZoom === 8) scale = 0.6;
-  else if (effectiveZoom === 7) scale = 0.54;
-  else scale = 0.48;
+  else if (effectiveZoom === 15) scale = 1.4;
+  else if (effectiveZoom === 14) scale = 1.3;
+  else if (effectiveZoom === 13) scale = 1.2;
+  else if (effectiveZoom === 12) scale = 1.12;
+  else if (effectiveZoom === 11) scale = 1.04;
+  else if (effectiveZoom === 10) scale = 0.96;
+  else if (effectiveZoom === 9) scale = 0.88;
+  else if (effectiveZoom === 8) scale = 0.8;
+  else if (effectiveZoom === 7) scale = 0.72;
+  else scale = 0.64;
 
   if (isSelected) {
     scale = Math.max(1.25, Number((scale * 1.18).toFixed(2)));
@@ -451,12 +454,14 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
     }
   </svg>`;
 
-  const baseW = 52;
-  const baseH = hasLabel ? 68 : 52;
+  // Truck footprint, bumped ~15% for better on-map visibility. Anchor stays at
+  // half the base so the marker point sits at the truck's centre.
+  const baseW = 60;
+  const baseH = hasLabel ? 76 : 60;
   const scaledW = Math.round(baseW * scale);
   const scaledH = Math.round(baseH * scale);
-  const anchorX = Math.round(26 * scale);
-  const anchorY = Math.round(26 * scale);
+  const anchorX = Math.round(30 * scale);
+  const anchorY = Math.round(30 * scale);
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,

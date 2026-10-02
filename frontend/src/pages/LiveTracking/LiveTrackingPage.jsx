@@ -21,9 +21,9 @@ import {
   LIGHT_MAP_STYLE,
   DARK_MAP_STYLE,
   trailArrowIcons,
-  createVehicleMarkerIcon,
   computeMapVehicles,
 } from './liveTracking.shared.js';
+import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import './LiveTracking.css';
 
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
@@ -220,6 +220,9 @@ const LiveTrackingPage = () => {
   // Map & interaction refs
   const mapRef = useRef(null);
   const didAutoFitRef = useRef(false);
+  // Tracks the last vehicle we zoomed to, so the gentle select-zoom fires once
+  // per new pick — not on every live position update of the followed vehicle.
+  const zoomedSelectionRef = useRef(null);
   const lastReplayTimeRef = useRef(0);
   const searchInputRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -475,7 +478,10 @@ const LiveTrackingPage = () => {
       live.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
       map.fitBounds(bounds, { top: 80, right: 80, bottom: 80, left: 80 });
       window.google.maps.event.addListenerOnce(map, 'idle', () => {
-        if ((map.getZoom() || 5) > 12) map.setZoom(12);
+        // Land a little closer than a bare fit — one notch in, capped so a tight
+        // cluster doesn't rocket to street level and a spread fleet still nudges in.
+        const z = map.getZoom() || 6;
+        map.setZoom(Math.min(z + 1, 13));
       });
       return true;
     },
@@ -516,11 +522,22 @@ const LiveTrackingPage = () => {
   // Pan / focus when selected vehicle changes
   useEffect(() => {
     if (!selectedVehicle || !selectedVehicle.hasFix || !mapRef.current) return;
-    mapRef.current.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
-    if ((mapRef.current.getZoom() || 5) < 12) {
-      mapRef.current.setZoom(12);
+    const map = mapRef.current;
+    map.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
+    // Gentle zoom-in only when a NEW vehicle is picked — not on every live
+    // update of the one we're already following (that would fight the user's
+    // own zoom/pan). Never zoom back out if they're already closer in.
+    if (zoomedSelectionRef.current !== selectedVehicle.id) {
+      if ((map.getZoom() || 5) < 14) map.setZoom(14);
+      zoomedSelectionRef.current = selectedVehicle.id;
     }
   }, [selectedVehicle]);
+
+  // Clearing the selection re-arms the gentle zoom, so re-picking the same
+  // vehicle later zooms in again.
+  useEffect(() => {
+    if (!selectedId) zoomedSelectionRef.current = null;
+  }, [selectedId]);
 
   const selectedStatusColor = useMemo(() => {
     if (!selectedVehicle) return '#187A32';
@@ -986,24 +1003,17 @@ const LiveTrackingPage = () => {
                   }}
                   options={mapOptions}
                 >
-                  {/* Fleet Vehicle Markers */}
-                  {mapVehicles.map((v) => {
-                    const isSelected = v.id === selectedId;
-                    if (!v.hasFix) return null;
-                    const icon = createVehicleMarkerIcon(v, isSelected, false, mapZoom);
-                    return (
-                      <MarkerF
-                        key={v.id}
-                        position={{ lat: v.lat, lng: v.lng }}
-                        icon={icon}
-                        zIndex={isSelected ? 1000 : v.live ? 500 : 100}
-                        onClick={() => {
-                          setSelectedId(v.id);
-                          setIsRailOpen(true);
-                        }}
-                      />
-                    );
-                  })}
+                  {/* Fleet Vehicle Markers — imperative markers that glide between
+                      SSE fixes instead of teleporting (see AnimatedVehicleMarkers). */}
+                  <AnimatedVehicleMarkers
+                    vehicles={mapVehicles}
+                    selectedId={selectedId}
+                    mapZoom={mapZoom}
+                    onSelect={(id) => {
+                      setSelectedId(id);
+                      setIsRailOpen(true);
+                    }}
+                  />
 
                   {/* Breadcrumb Trail (real recorded path from the trail API) */}
                   {isTrailVisible && trailCoords.length > 1 && (
