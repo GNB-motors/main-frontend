@@ -851,7 +851,7 @@ function NdGantt({ vehicles, days, onOpenVehicle, selectedVehicleId }) {
             const s = Math.max(0, e.start);
             const end = Math.min(days, e.start + e.len);
             const span = Math.max(1, end - s);
-            const isOngoing = e.state === 'ONGOING';
+            const isOngoing = e.state === 'OPEN';
             // An event that covers today or future is not past/done
             const isDone = e.type === 'trip' && e.start + e.len < 0;
             const EvIcon = EVT_ICON[e.type] || RouteIcon;

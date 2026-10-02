@@ -149,12 +149,12 @@ export default function DailyDigestPage() {
   const upcoming = buildUpcomingItems({ serviceVehicles, documents });
 
   // Counts fleet-calendar "trip" events that cover today — both ErpTrip rows
-  // (single-day, dated to tripDate) and ONGOING VehicleMileageInterval rows
-  // (telemetry-detected trips with no ERP record, "automatic" trips; dated to
-  // when they started, with `len` spanning through today). A same-day equality
-  // check on `date` alone would miss a multi-day automatic trip that started
-  // before today and is still running — this checks today falls inside
-  // [date, date + len) instead, same span math the Gantt bars use.
+  // (single-day, dated to tripDate) and VehicleTour rows (GPS-detected
+  // warehouse-to-warehouse "automatic" trips; an OPEN tour is dated to when it
+  // started, with `len` spanning through today). A same-day equality check on
+  // `date` alone would miss a multi-day automatic trip that started before
+  // today and is still running — this checks today falls inside [date, date +
+  // len) instead, same span math the Gantt bars use.
   const DAY_MS = 24 * 60 * 60 * 1000;
   const dayOffset = (d) => {
     const day = new Date(d);
