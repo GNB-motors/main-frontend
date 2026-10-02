@@ -15,32 +15,51 @@ import './RefuelComparisonDrawer.css';
 const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill }) => {
   if (!log) return null;
 
-  const slip = log.slip || (log.source === 'SLIP' || log.rawLitres ? log : null);
+  const isUnverified = log.verificationStatus === 'UNVERIFIED';
+  const isSlipOnly = log.verificationStatus === 'SLIP_ONLY';
+
+  // Slip only exists when explicitly present or when log source is a standalone SLIP
+  const slip = !isUnverified && (log.slip || (log.source === 'SLIP' ? log : null));
   const sensor =
-    log.sensor ||
-    (log.sensorId || log.sensorLitres
-      ? {
-          id: log.sensorId,
-          litres: log.sensorLitres,
-          confirmationStatus: log.sensorConfirmationStatus,
-          billVarianceL: log.sensorBillVarianceL,
-          billFlag: log.sensorBillFlag,
-        }
-      : null);
+    !isSlipOnly &&
+    (log.sensor ||
+      (log.sensorId || log.sensorLitres
+        ? {
+            id: log.sensorId,
+            litres: log.sensorLitres,
+            confirmationStatus: log.sensorConfirmationStatus,
+            billVarianceL: log.sensorBillVarianceL,
+            billFlag: log.sensorBillFlag,
+            fuelPumpName: log.location && log.source === 'SENSOR' ? log.location : null,
+          }
+        : log.source === 'SENSOR'
+          ? {
+              id: log.id,
+              litres: log.quantity != null && log.quantity !== '-' ? log.quantity : log.rawLitres,
+              confirmationStatus: 'ESTIMATED',
+              fuelPumpName: log.location && log.location !== '-' ? log.location : 'Highway Refuel',
+            }
+          : null));
 
-  const slipLitres = slip?.litres ?? log.rawLitres ?? null;
-  const slipAmount = slip?.totalAmount ?? log.rawTotalAmount ?? null;
-  const slipRate = slip?.rate ?? log.rawRate ?? null;
-  const slipLocation = slip?.location || log.location || null;
-  const docId = slip?.documentId || log.documentId;
+  const slipLitres = slip ? (slip.litres ?? (log.source === 'SLIP' ? log.rawLitres : null)) : null;
+  const slipAmount = slip
+    ? (slip.totalAmount ?? (log.source === 'SLIP' ? log.rawTotalAmount : null))
+    : null;
+  const slipRate = slip ? (slip.rate ?? (log.source === 'SLIP' ? log.rawRate : null)) : null;
+  const slipLocation = slip ? slip.location || (log.source === 'SLIP' ? log.location : null) : null;
+  const docId = slip ? slip.documentId || (log.source === 'SLIP' ? log.documentId : null) : null;
 
-  const sensorLitres = sensor?.litres ?? log.sensorLitres ?? null;
-  const varianceL =
-    sensor?.billVarianceL ??
-    log.sensorBillVarianceL ??
-    (slipLitres != null && sensorLitres != null
-      ? Math.round(Math.abs(slipLitres - sensorLitres) * 10) / 10
-      : null);
+  const sensorLitres = sensor
+    ? (sensor.litres ??
+      (log.source === 'SENSOR' ? (log.sensorLitres ?? log.rawLitres ?? log.quantity) : null))
+    : null;
+
+  const hasBoth = Boolean(slip && sensor && slipLitres != null && sensorLitres != null);
+  const varianceL = hasBoth
+    ? (sensor?.billVarianceL ??
+      log.sensorBillVarianceL ??
+      Math.round(Math.abs(slipLitres - sensorLitres) * 10) / 10)
+    : null;
 
   const handleUploadBillClick = () => {
     onClose();
@@ -129,8 +148,12 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
               <span className="rc-card-title">
                 <FileText size={15} style={{ color: 'var(--gnb-400, #2563eb)' }} /> Uploaded Bill
               </span>
-              {slip && (
+              {slip ? (
                 <span className="rc-card-badge channel">{slip.submissionChannel || 'APP'}</span>
+              ) : (
+                <span className="rc-card-badge" style={{ background: '#fef3c7', color: '#b45309' }}>
+                  AWAITING SLIP
+                </span>
               )}
             </div>
             <div className="rc-card-body">
@@ -188,7 +211,27 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
               ) : (
                 <div className="rc-empty-state">
                   <FileText size={28} className="rc-empty-icon" />
-                  <span>No bill uploaded yet.</span>
+                  <span style={{ fontWeight: 600, color: 'var(--cluster-text, #334155)' }}>
+                    No bill uploaded yet.
+                  </span>
+                  <p
+                    style={{
+                      margin: '2px 0 10px 0',
+                      fontSize: 12,
+                      color: 'var(--cluster-text-dim, #64748b)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Awaiting driver receipt submission via mobile app or WhatsApp.
+                  </p>
+                  <button
+                    type="button"
+                    className="rc-btn-secondary"
+                    style={{ fontSize: 12, padding: '6px 12px' }}
+                    onClick={handleUploadBillClick}
+                  >
+                    <PlusCircle size={14} /> Upload Bill Now
+                  </button>
                 </div>
               )}
             </div>
@@ -200,13 +243,17 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
               <span className="rc-card-title">
                 <Activity size={15} style={{ color: 'var(--signal-ok, #10b981)' }} /> Tank Sensor
               </span>
-              {sensor?.confirmationStatus && (
+              {sensor ? (
                 <span
                   className={`rc-card-badge ${
                     sensor.confirmationStatus === 'CONFIRMED' ? 'confirmed' : 'estimated'
                   }`}
                 >
-                  {sensor.confirmationStatus}
+                  {sensor.confirmationStatus || 'ESTIMATED'}
+                </span>
+              ) : (
+                <span className="rc-card-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>
+                  NO TELEMETRY
                 </span>
               )}
             </div>
@@ -233,7 +280,7 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
                     <span className="rc-stat-label">Coordinates</span>
                     <span className="rc-stat-value mono" style={{ fontSize: 12 }}>
                       {sensor.lat && sensor.lng
-                        ? `${sensor.lat.toFixed(4)}, ${sensor.lng.toFixed(4)}`
+                        ? `${Number(sensor.lat).toFixed(4)}, ${Number(sensor.lng).toFixed(4)}`
                         : '—'}
                     </span>
                   </div>
@@ -247,15 +294,27 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
               ) : (
                 <div className="rc-empty-state">
                   <Activity size={28} className="rc-empty-icon" />
-                  <span>No sensor telemetry match.</span>
+                  <span style={{ fontWeight: 600, color: 'var(--cluster-text, #334155)' }}>
+                    No sensor telemetry match.
+                  </span>
+                  <p
+                    style={{
+                      margin: '2px 0 0 0',
+                      fontSize: 12,
+                      color: 'var(--cluster-text-dim, #64748b)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    No fuel level spike recorded by telematics for this refill time.
+                  </p>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Variance Summary Footer if both present */}
-        {slip && sensor && varianceL != null && (
+        {/* Variance Summary Footer */}
+        {hasBoth && varianceL != null ? (
           <div className="rc-variance-box">
             <span className="rc-variance-label">Reconciliation Variance</span>
             <span
@@ -266,7 +325,30 @@ const RefuelComparisonDrawer = ({ open, onClose, log, onViewPhoto, onUploadBill 
               {varianceL > 0 ? `+${varianceL} L` : `${varianceL} L`}
             </span>
           </div>
-        )}
+        ) : isUnverified ? (
+          <div
+            className="rc-variance-box"
+            style={{ background: '#fffbeb', borderColor: '#fef3c7' }}
+          >
+            <span className="rc-variance-label">Reconciliation Variance</span>
+            <span
+              className="rc-variance-val"
+              style={{ color: '#b45309', fontSize: 13, fontWeight: 600 }}
+            >
+              Pending Slip Upload
+            </span>
+          </div>
+        ) : isSlipOnly ? (
+          <div className="rc-variance-box">
+            <span className="rc-variance-label">Reconciliation Variance</span>
+            <span
+              className="rc-variance-val"
+              style={{ color: 'var(--cluster-text-dim, #64748b)', fontSize: 13, fontWeight: 500 }}
+            >
+              No Sensor Telemetry
+            </span>
+          </div>
+        ) : null}
 
         {/* Diesel Rate / Pricing Transparency Notice */}
         <div className="rc-rate-notice">

@@ -69,11 +69,13 @@ describe('RefuelComparisonDrawer', () => {
   it('renders unverified refill state when sensor-only', () => {
     const unverifiedLog = {
       id: 'fill_1',
+      source: 'SENSOR',
       verificationStatus: 'UNVERIFIED',
       vehicleNo: 'KA01AB1234',
       date: '2026-10-01',
       time: '11:00 AM',
       quantity: 85,
+      rawLitres: 85,
       slip: null,
       sensor: {
         litres: 85,
@@ -84,6 +86,11 @@ describe('RefuelComparisonDrawer', () => {
     render(<RefuelComparisonDrawer open={true} log={unverifiedLog} onClose={() => {}} />);
     expect(screen.getByText(/Unverified Refill/i)).toBeInTheDocument();
     expect(screen.getByText(/No bill uploaded yet/i)).toBeInTheDocument();
+    expect(screen.getByText('AWAITING SLIP')).toBeInTheDocument();
+    expect(screen.getByText('Pending Slip Upload')).toBeInTheDocument();
+    expect(screen.queryByText('0 L')).toBeNull();
+    expect(screen.queryByText('APP')).toBeNull();
+    expect(screen.queryByText(/Billed Volume/i)).toBeNull();
     expect(screen.getByText('85 L')).toBeInTheDocument();
   });
 
