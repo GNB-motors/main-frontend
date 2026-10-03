@@ -77,7 +77,6 @@ export default function FuelIntegrityTables({
   fills = [],
 }) {
   const [activeTab, setActiveTab] = useState('events');
-  const [viewMode, setViewMode] = useState('split'); // 'split' | 'table'
 
   return (
     <div className="fi-workspace-card" id="fi-workspace">
@@ -213,8 +212,6 @@ export default function FuelIntegrityTables({
             onPageChange={onPageChange}
             selectedEventId={selectedEventId}
             onSelectEvent={onSelectEvent}
-            viewMode={viewMode}
-            onToggleViewMode={setViewMode}
             onMarkReviewed={onMarkReviewed}
             pricePerL={pricePerL}
             fills={fills}

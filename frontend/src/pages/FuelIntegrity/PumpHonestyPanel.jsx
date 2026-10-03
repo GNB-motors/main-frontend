@@ -13,7 +13,7 @@ import {
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
-import KaaranService from '../../services/KaaranService';
+import { FuelIntegrityService } from './FuelIntegrityService.jsx';
 import { cleanStationName } from './fiData.js';
 
 const PAGE_SIZE = 10;
@@ -27,6 +27,16 @@ const STATUS_MAP = {
   CHRONIC_DEFICIT: { tone: 'critical', label: 'Chronic Deficit' },
   INSUFFICIENT_DATA: { tone: 'inert', label: 'Needs More Fills' },
 };
+
+/** Derive a honesty status from shortfall percentage and fill count. */
+function derivePumpStatus(shortfallPct, fills) {
+  if (fills < 3) return 'INSUFFICIENT_DATA';
+  if (shortfallPct <= 1) return 'HONEST';
+  if (shortfallPct <= 3) return 'RELIABLE';
+  if (shortfallPct <= 6) return 'SUSPICIOUS';
+  if (shortfallPct <= 10) return 'UNRELIABLE';
+  return 'CHRONIC_SHORTAGE';
+}
 
 export default function PumpHonestyPanel() {
   const [summary, setSummary] = useState(null);
@@ -42,16 +52,36 @@ export default function PumpHonestyPanel() {
       setLoading(true);
       setError(null);
       try {
-        const [sum, list] = await Promise.all([
-          KaaranService.getPumpSummary().catch(() => ({})),
-          KaaranService.getPumpLedger().catch(() => []),
-        ]);
-        if (active) {
-          setSummary(sum);
-          setPumps(list || []);
-        }
+        const ledger = await FuelIntegrityService.getPumpLedger();
+        if (!active) return;
+        const pumpList = (ledger.pumps || []).map((p) => ({
+          pumpName: p.pump,
+          fillCount: p.fills,
+          totalBilledLitres: p.claimedLitres,
+          totalShortageLitres: p.shortfallLitres,
+          totalRupeeLoss: p.estimatedLossInr,
+          shortfallPct: p.shortfallPct,
+          status: derivePumpStatus(p.shortfallPct, p.fills),
+          lat: p.lat,
+          lng: p.lng,
+          lastFillAt: p.lastFillAt,
+          _id: p.pump,
+        }));
+        const totalShort = pumpList.reduce((s, p) => s + (p.totalShortageLitres || 0), 0);
+        const totalLoss = pumpList.reduce((s, p) => s + (p.totalRupeeLoss || 0), 0);
+        const totalFills = pumpList.reduce((s, p) => s + (p.fillCount || 0), 0);
+        const chronicCount = pumpList.filter(
+          (p) => p.status === 'CHRONIC_SHORTAGE' || p.status === 'CHRONIC_DEFICIT',
+        ).length;
+        setSummary({
+          totalAuditedFills: totalFills,
+          totalShortLitres: totalShort,
+          totalRupeeLoss: totalLoss,
+          chronicPumpsCount: chronicCount,
+        });
+        setPumps(pumpList);
       } catch (err) {
-        if (active) setError(err.message || 'Failed to load pump ledger');
+        if (active) setError(err.message || err.detail || 'Failed to load pump ledger');
       } finally {
         if (active) setLoading(false);
       }

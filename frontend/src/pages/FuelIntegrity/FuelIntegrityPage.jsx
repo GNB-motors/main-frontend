@@ -54,6 +54,7 @@ const FuelIntegrityPage = () => {
   const [fills, setFills] = useState([]);
   const [windows, setWindows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
 
@@ -127,8 +128,24 @@ const FuelIntegrityPage = () => {
     }
   }, [buildParams]);
 
+  const handleSyncIoT = useCallback(async () => {
+    setIsSyncing(true);
+    setError(null);
+    try {
+      await FuelIntegrityService.triggerSync();
+      await fetchData();
+    } catch (err) {
+      setError(err.detail || 'Could not reconcile FleetEdge telemetry.');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [fetchData]);
+
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 45 seconds for live telemetry sync
+    const pollInterval = setInterval(fetchData, 45000);
+    return () => clearInterval(pollInterval);
   }, [fetchData]);
 
   useEffect(() => {
@@ -174,8 +191,9 @@ const FuelIntegrityPage = () => {
     ? dayjs(summary.window?.to).diff(dayjs(summary.window?.from), 'day')
     : null;
 
-  const totalFillsLitres = totals?.totalFillsLitres || 1516.9;
-  const estimatedBurnedL = Math.max(0, totalFillsLitres - lossL - 36.7);
+  const totalFillsLitres = totals?.totalFillsLitres ?? totals?.fillsLitres ?? 0;
+  const totalEngineBurnL = totals?.totalEngineBurnL ?? 0;
+  const totalNetTankDeltaL = totals?.totalNetTankDeltaL ?? 0;
 
   const events = useMemo(() => buildEvents(fills, windows, pricePerL), [fills, windows, pricePerL]);
 
@@ -301,9 +319,19 @@ const FuelIntegrityPage = () => {
           />
           <button
             type="button"
+            className="pshell-btn text-indigo-600 dark:text-indigo-400 font-medium"
+            onClick={handleSyncIoT}
+            disabled={isSyncing || isLoading}
+            title="Trigger on-demand reconciliation of recent FleetEdge telemetry"
+          >
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            <span>{isSyncing ? 'Reconciling...' : 'Reconcile IoT'}</span>
+          </button>
+          <button
+            type="button"
             className="pshell-btn"
             onClick={fetchData}
-            disabled={isLoading}
+            disabled={isLoading || isSyncing}
             title="Refresh telemetry stream"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
@@ -370,9 +398,11 @@ const FuelIntegrityPage = () => {
                 <Activity size={14} className="text-emerald-500" />
               </div>
               <div className="fi-step-val text-slate-800 dark:text-slate-100">
-                {formatLitres(estimatedBurnedL)}
+                {formatLitres(totalEngineBurnL)}
               </div>
-              <div className="fi-step-sub">Optimal BS-VI duty cycles</div>
+              <div className="fi-step-sub">
+                {totalEngineBurnL > 0 ? 'CAN bus engine burn' : 'Awaiting CAN data'}
+              </div>
             </div>
 
             <div className="fi-step-arrow">
@@ -385,7 +415,10 @@ const FuelIntegrityPage = () => {
                 <span className="fi-step-label">3. Net Tank Reserve</span>
                 <Gauge size={14} className="text-indigo-500" />
               </div>
-              <div className="fi-step-val text-indigo-600 dark:text-indigo-400">+36.7 L</div>
+              <div className="fi-step-val text-indigo-600 dark:text-indigo-400">
+                {totalNetTankDeltaL >= 0 ? '+' : ''}
+                {formatLitres(totalNetTankDeltaL)}
+              </div>
               <div className="fi-step-sub">Fleet tank level balance</div>
             </div>
 
@@ -439,9 +472,7 @@ const FuelIntegrityPage = () => {
             <div className="fi-bento-body">
               <div className="fi-bento-val-row">
                 <span className="fi-bento-val">
-                  {totals?.totalFillsLitres != null
-                    ? totals.totalFillsLitres.toLocaleString('en-IN', { maximumFractionDigits: 1 })
-                    : '1,516.9'}
+                  {totalFillsLitres.toLocaleString('en-IN', { maximumFractionDigits: 1 })}
                 </span>
                 <span className="fi-bento-unit">L</span>
               </div>
@@ -449,9 +480,9 @@ const FuelIntegrityPage = () => {
             <div className="fi-bento-foot">
               <span className="fi-bento-sub">
                 {windowDays ? `${windowDays} days` : 'Over 7 days'} · ~
-                {totals?.totalFillsLitres && windowDays
-                  ? (totals.totalFillsLitres / windowDays).toFixed(0)
-                  : '217'}{' '}
+                {windowDays && totalFillsLitres > 0
+                  ? (totalFillsLitres / windowDays).toFixed(0)
+                  : '0'}{' '}
                 L/day
               </span>
               <span className="fi-bento-pill fi-bento-pill--ok">Audited</span>
@@ -608,8 +639,8 @@ const FuelIntegrityPage = () => {
         <EvidenceDrawer
           open={!!evidenceWindow}
           onClose={() => setEvidenceWindow(null)}
-          windowData={evidenceWindow}
-          fuelPriceInrPerL={pricePerL}
+          window={evidenceWindow}
+          context={{ fuelPriceInrPerL: pricePerL }}
         />
 
         <EventInvestigationDrawer
