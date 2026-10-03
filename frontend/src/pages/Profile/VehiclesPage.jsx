@@ -123,6 +123,13 @@ const VehiclesPage = () => {
       );
       setIsDeleteModalOpen(false);
       setDeletingVehicle(null);
+      // Re-sync paginated counts/pages with the server after removal. If that was the
+      // only row on a page past the first, step back a page; otherwise refetch in place.
+      if (originalVehicles.length === 1 && currentPage > 1) {
+        setCurrentPage((p) => p - 1);
+      } else {
+        setRefreshKey((k) => k + 1);
+      }
     } catch (apiError) {
       console.error('Failed to remove vehicle:', apiError);
       const errorMessage = apiError?.detail || 'Could not remove vehicle.';

@@ -185,6 +185,8 @@ const DriversPage = () => {
     drivers,
     setDrivers,
     fetchDrivers,
+    currentPage,
+    setCurrentPage,
     setActionError,
   });
 

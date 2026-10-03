@@ -15,6 +15,8 @@ export function useDriverActions({
   drivers,
   setDrivers,
   fetchDrivers,
+  currentPage,
+  setCurrentPage,
   setActionError,
 }) {
   // Modal States
@@ -146,6 +148,14 @@ export function useDriverActions({
       setIsDeleteModalOpen(false); // Close modal on success
       setDeletingDriver(null);
       toast.success('Employee deleted successfully!');
+      // Re-sync with the server so paginated counts/pages aren't stale. If we just
+      // removed the only row on a page past the first, step back a page (that change
+      // triggers a refetch); otherwise refetch the current page in place.
+      if (drivers.length === 1 && currentPage > 1) {
+        setCurrentPage((p) => p - 1);
+      } else {
+        fetchDrivers();
+      }
     } catch (err) {
       console.error('Failed to delete employee:', err);
       const errorMessage = err.detail || err.message || 'Failed to delete employee.';
