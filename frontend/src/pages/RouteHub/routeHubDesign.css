@@ -93,7 +93,7 @@
 
   /* ---- semantic: light ---- */
   --bg-app: #ffffff;
-  --bg-canvas: var(--morning-fog-800);
+  --bg-canvas: var(--canvas, #f4f6fb);
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
   --bg-subtle: var(--morning-fog-900);

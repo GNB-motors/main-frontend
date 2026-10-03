@@ -38,6 +38,7 @@ import FilterBar from '../../components/ui/FilterBar';
 import ExportButton from '../../components/ui/ExportButton';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { useLivePositions } from '../../hooks/useLivePositions';
+import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { toGeofenceLiveVehicle } from './geofenceLive.shared.js';
 import AddZoneDrawer from './AddZoneDrawer.jsx';
 import DrainHotspotMap from '../Hotspots/DrainHotspotMap.jsx';
@@ -246,6 +247,7 @@ const locationExportRows = (records) =>
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofencePage = () => {
+  useFullPageLayout();
   const confirm = useConfirm();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(

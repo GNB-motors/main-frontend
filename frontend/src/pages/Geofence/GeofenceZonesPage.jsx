@@ -51,6 +51,7 @@ import FilterBar from '../../components/ui/FilterBar';
 import ExportButton from '../../components/ui/ExportButton';
 import { useConfirm } from '../../components/ui/confirmContext';
 import { useLivePositions } from '../../hooks/useLivePositions';
+import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { toGeofenceLiveVehicle } from './geofenceLive.shared.js';
 import { toast } from 'react-toastify';
 import '../Hotspots/Hotspots.css';
@@ -297,6 +298,7 @@ const MapLegend = () => (
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofenceZonesPage = ({ defaultTab = 'zones' }) => {
+  useFullPageLayout();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const initialTab =

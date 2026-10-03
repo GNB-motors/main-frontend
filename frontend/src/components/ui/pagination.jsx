@@ -71,7 +71,10 @@ function PaginationEllipsis({ className, ...props }) {
   return (
     <span
       aria-hidden
-      className={cn('flex h-8 w-8 items-center justify-center text-[var(--ds-ink3)]', className)}
+      className={cn(
+        'relative flex h-8 w-8 items-center justify-center text-[var(--ds-ink3)]',
+        className,
+      )}
       {...props}
     >
       <MoreHorizontal className="h-4 w-4" />

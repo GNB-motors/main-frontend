@@ -4,9 +4,6 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 .gf-page {
-  padding: 24px;
-  background-color: var(--background-color, #ffffff);
-  min-height: 100vh;
   font-family:
     'Inter',
     -apple-system,

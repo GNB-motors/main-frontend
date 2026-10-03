@@ -3,13 +3,12 @@
  * Professional, responsive design for routes management
  */
 
-.routes-page {
+.routes-page,
+.routes-pshell {
   display: flex;
   flex-direction: column;
-  padding: 32px;
-  background: #f8fafc;
-  min-height: 100vh;
-  margin: -24px; /* Remove the 24px page-content padding */
+  background: var(--canvas, #f4f6fb);
+  min-height: 100%;
 }
 
 /* Header */
@@ -27,7 +26,8 @@
   margin: 0;
 }
 
-.routes-page .btn {
+.routes-page .btn,
+.routes-pshell .btn {
   height: 40px;
   min-height: 40px;
   padding: 0 18px;
@@ -45,14 +45,16 @@
   white-space: nowrap;
 }
 
-.routes-page .btn-primary {
+.routes-page .btn-primary,
+.routes-pshell .btn-primary {
   background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
   border: 1.5px solid #1d4ed8 !important;
   color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28) !important;
 }
 
-.routes-page .btn-primary:hover {
+.routes-page .btn-primary:hover,
+.routes-pshell .btn-primary:hover {
   background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
   border-color: #1e40af !important;
   color: #ffffff !important;
@@ -60,19 +62,22 @@
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38) !important;
 }
 
-.routes-page .btn-primary:active {
+.routes-page .btn-primary:active,
+.routes-pshell .btn-primary:active {
   background: #1e40af !important;
   transform: translateY(0) !important;
 }
 
-.routes-page .btn-secondary {
+.routes-page .btn-secondary,
+.routes-pshell .btn-secondary {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
   border: 1.5px solid #3b82f6 !important;
   color: #2563eb !important;
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08) !important;
 }
 
-.routes-page .btn-secondary:hover {
+.routes-page .btn-secondary:hover,
+.routes-pshell .btn-secondary:hover {
   background: #eff6ff !important;
   border-color: #1d4ed8 !important;
   color: #1d4ed8 !important;
@@ -80,18 +85,21 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
 }
 
-.routes-page .btn-secondary:active {
+.routes-page .btn-secondary:active,
+.routes-pshell .btn-secondary:active {
   background: #dbeafe !important;
   transform: translateY(0) !important;
 }
 
-.routes-page .btn-danger {
+.routes-page .btn-danger,
+.routes-pshell .btn-danger {
   background: #ffffff !important;
   border: 1.5px solid #ef4444 !important;
   color: #dc2626 !important;
 }
 
-.routes-page .btn-danger:hover {
+.routes-page .btn-danger:hover,
+.routes-pshell .btn-danger:hover {
   background: #fef2f2 !important;
   border-color: #dc2626 !important;
   color: #b91c1c !important;

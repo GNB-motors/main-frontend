@@ -16,6 +16,7 @@ import ExportButton from '../../components/ui/ExportButton';
 import RoutesMapPanel from './Component/RoutesMapPanel';
 import { useConfirm } from '../../components/ui/confirmContext';
 import { getUserRole } from '../../utils/session';
+import { useFullPageLayout } from '../../hooks/usePageLayout';
 import './RoutesPage.css';
 
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
@@ -32,6 +33,7 @@ const EXPORT_COLUMNS = [
 ];
 
 const RoutesPage = () => {
+  useFullPageLayout();
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -299,104 +301,95 @@ const RoutesPage = () => {
   ];
 
   return (
-    <div className="routes-page">
-      <PageShell
-        title="Routes Management"
-        count={meta.total}
-        actions={
-          <div className="flex items-center gap-2">
-            <ExportButton
-              rows={exportRows}
-              columns={EXPORT_COLUMNS}
-              filename="routes"
-              disabled={!routes.length}
-            />
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={() => navigate('/routes/add')}
-            >
-              <Plus size={18} />
-              Add Route
-            </button>
-          </div>
-        }
-        filters={
-          <FilterBar
-            searchValue={searchTerm}
-            onSearchChange={handleSearchChange}
-            searchPlaceholder="Search routes by name, source, or destination…"
-            right={
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Status:
-                </span>
-                <select
-                  className="fbar-select font-medium text-slate-700 cursor-pointer min-w-[130px]"
-                  value={statusFilter}
-                  onChange={(e) => handleStatusFilterChange(e.target.value)}
-                  aria-label="Filter routes by status"
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
-              </div>
-            }
+    <PageShell
+      className="routes-pshell"
+      title="Routes Management"
+      count={meta.total}
+      actions={
+        <div className="flex items-center gap-2">
+          <ExportButton
+            rows={exportRows}
+            columns={EXPORT_COLUMNS}
+            filename="routes"
+            disabled={!routes.length}
           />
-        }
-        footer={
-          meta.totalPages > 1
-            ? `Page ${meta.page} of ${meta.totalPages} · ${meta.total} routes`
-            : null
-        }
-      >
-        <RoutesMapPanel routes={routes} highlightedId={hoveredRouteId} isLoaded={isMapLoaded} />
-
-        <DataTable
-          columns={columns}
-          rows={routes}
-          rowKey={(route) => route._id}
-          loading={loading}
-          showing={routes.length}
-          total={meta.total}
-          onRowMouseEnter={(route) => setHoveredRouteId(route._id)}
-          onRowMouseLeave={() => setHoveredRouteId(null)}
-          emptyTitle="No routes found"
-          emptyAction={
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={() => navigate('/routes/add')}
-            >
-              Create your first route
-            </button>
+          <button className="btn btn-primary" type="button" onClick={() => navigate('/routes/add')}>
+            <Plus size={18} />
+            Add Route
+          </button>
+        </div>
+      }
+      filters={
+        <FilterBar
+          searchValue={searchTerm}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Search routes by name, source, or destination…"
+          right={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Status:
+              </span>
+              <select
+                className="fbar-select font-medium text-slate-700 cursor-pointer min-w-[130px]"
+                value={statusFilter}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
+                aria-label="Filter routes by status"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
           }
         />
+      }
+      footer={
+        meta.totalPages > 1
+          ? `Page ${meta.page} of ${meta.totalPages} · ${meta.total} routes`
+          : null
+      }
+    >
+      <RoutesMapPanel routes={routes} highlightedId={hoveredRouteId} isLoaded={isMapLoaded} />
 
-        {meta.totalPages > 1 && (
-          <div className="pagination">
-            <button
-              type="button"
-              disabled={meta.page === 1}
-              onClick={() => fetchRoutes(meta.page - 1, searchTerm, statusFilter)}
-            >
-              Previous
-            </button>
-            <span>
-              {meta.page} of {meta.totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={meta.page === meta.totalPages}
-              onClick={() => fetchRoutes(meta.page + 1, searchTerm, statusFilter)}
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </PageShell>
-    </div>
+      <DataTable
+        columns={columns}
+        rows={routes}
+        rowKey={(route) => route._id}
+        loading={loading}
+        showing={routes.length}
+        total={meta.total}
+        onRowMouseEnter={(route) => setHoveredRouteId(route._id)}
+        onRowMouseLeave={() => setHoveredRouteId(null)}
+        emptyTitle="No routes found"
+        emptyAction={
+          <button className="btn btn-primary" type="button" onClick={() => navigate('/routes/add')}>
+            Create your first route
+          </button>
+        }
+      />
+
+      {meta.totalPages > 1 && (
+        <div className="pagination">
+          <button
+            type="button"
+            disabled={meta.page === 1}
+            onClick={() => fetchRoutes(meta.page - 1, searchTerm, statusFilter)}
+          >
+            Previous
+          </button>
+          <span>
+            {meta.page} of {meta.totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={meta.page === meta.totalPages}
+            onClick={() => fetchRoutes(meta.page + 1, searchTerm, statusFilter)}
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </PageShell>
   );
 };
 

@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from './useRouteHubToast.jsx';
+import { useFullPageLayout } from '../../hooks/usePageLayout';
 import './routeHubDesign.css';
 
 const OverviewView = lazy(() => import('./views/OverviewView.jsx'));
@@ -27,6 +28,7 @@ const VIEWS = [
  * behave like the rest of the app.
  */
 export default function RouteHubPage() {
+  useFullPageLayout();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast, toastNode } = useToast();
 
