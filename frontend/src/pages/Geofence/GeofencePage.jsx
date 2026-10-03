@@ -519,7 +519,7 @@ const GeofencePage = () => {
           <button className="gf-btn gf-btn-primary" onClick={() => handleCreateZone()}>
             <Plus size={14} /> Add Custom Zone
           </button>
-          <Link to="/geofence-zones" className="gf-btn gf-btn-ghost">
+          <Link to="/geofence/zones" className="gf-btn gf-btn-ghost">
             <MapPin size={14} /> Risk Zones
           </Link>
           <Link to="/fleet-alerts" className="gf-btn gf-btn-ghost">
