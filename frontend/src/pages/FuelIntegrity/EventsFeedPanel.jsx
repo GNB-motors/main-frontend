@@ -390,51 +390,88 @@ export default function EventsFeedPanel({
                   </div>
                 )}
 
-                {isFill && (
-                  <div className="fi-reconciliation-meter">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-700 dark:text-slate-300">
-                        Sensor Rise vs Invoice Billed
-                      </span>
-                      <span
-                        className={
-                          activeEvent.billFlag
-                            ? 'text-amber-600 font-bold'
-                            : 'text-emerald-600 font-bold'
-                        }
-                      >
-                        {activeEvent.billFlag
-                          ? `${activeEvent.billVarianceL ?? '—'} L Variance`
-                          : '100% Reconciled'}
-                      </span>
-                    </div>
+                {isFill &&
+                  (() => {
+                    const hasBill = activeEvent.claimedLitres != null;
+                    const sensorL = activeEvent.litres ?? 0;
+                    const billedL = activeEvent.claimedLitres;
+                    const varianceL =
+                      activeEvent.billVarianceL ?? (hasBill ? Math.abs(sensorL - billedL) : null);
+                    const isEstimated = activeEvent.confirmationStatus === 'ESTIMATED';
+                    const isConfirmed = activeEvent.confirmationStatus === 'CONFIRMED';
 
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden flex">
-                      <div
-                        className="bg-emerald-500 h-full rounded-full transition-all"
-                        style={{ width: activeEvent.billFlag ? '88%' : '100%' }}
-                      />
-                      {activeEvent.billFlag && (
-                        <div
-                          className="bg-amber-500 h-full rounded-r-full"
-                          style={{ width: '12%' }}
-                        />
-                      )}
-                    </div>
+                    let statusText;
+                    let statusColor;
+                    let barWidthPct = 0;
+                    let barColor = 'bg-slate-300 dark:bg-slate-600';
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                      <span>Sensor: +{formatLitres(activeEvent.litres ?? 0)}</span>
-                      <span>
-                        Billed:{' '}
-                        {activeEvent.claimedLitres != null
-                          ? `${activeEvent.claimedLitres} L`
-                          : activeEvent.litres != null
-                            ? `${activeEvent.litres} L`
-                            : '—'}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                    if (hasBill) {
+                      if (activeEvent.billFlag) {
+                        const displayVar =
+                          typeof varianceL === 'number' ? varianceL.toFixed(1) : (varianceL ?? '—');
+                        statusText = `${displayVar} L Variance`;
+                        statusColor = 'text-amber-600 dark:text-amber-400 font-bold';
+                        barWidthPct = Math.max(
+                          10,
+                          Math.min(
+                            100,
+                            Math.round(((billedL - (varianceL || 0)) / (billedL || 1)) * 100),
+                          ),
+                        );
+                        barColor = 'bg-amber-500';
+                      } else {
+                        statusText = '100% Reconciled';
+                        statusColor = 'text-emerald-600 dark:text-emerald-400 font-bold';
+                        barWidthPct = 100;
+                        barColor = 'bg-emerald-500';
+                      }
+                    } else {
+                      statusText = isEstimated
+                        ? 'Estimated · No Bill on File'
+                        : isConfirmed
+                          ? 'Confirmed · Awaiting Bill'
+                          : 'No Bill on File';
+                      statusColor = isEstimated
+                        ? 'text-amber-600 dark:text-amber-400 font-semibold'
+                        : 'text-blue-600 dark:text-blue-400 font-semibold';
+                      barWidthPct = isConfirmed ? 50 : 25;
+                      barColor = isEstimated
+                        ? 'bg-amber-400/80 dark:bg-amber-500/70'
+                        : 'bg-blue-400/80 dark:bg-blue-500/70';
+                    }
+
+                    return (
+                      <div className="fi-reconciliation-meter">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-700 dark:text-slate-300">
+                            Sensor Rise vs Invoice Billed
+                          </span>
+                          <span className={statusColor}>{statusText}</span>
+                        </div>
+
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden flex relative">
+                          <div
+                            className={`${barColor} h-full rounded-full transition-all`}
+                            style={{ width: `${barWidthPct}%` }}
+                          />
+                          {hasBill && activeEvent.billFlag && (
+                            <div
+                              className="bg-red-500/80 h-full rounded-r-full"
+                              style={{ width: `${100 - barWidthPct}%` }}
+                              title="Unreconciled invoice variance"
+                            />
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                          <span>Sensor: +{formatLitres(sensorL)}</span>
+                          <span>
+                            Billed: {hasBill ? `${formatLitres(billedL)}` : 'No bill linked'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                 {/* Telematics Metrics Grid */}
                 <div className="fi-telematics-grid">
