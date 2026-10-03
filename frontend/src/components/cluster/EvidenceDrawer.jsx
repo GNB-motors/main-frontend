@@ -17,7 +17,8 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
   if (!w) return null;
 
   const pricePerL = context.fuelPriceInrPerL ?? 95;
-  const unaccountedInr = w.unaccountedLossL != null ? Math.max(0, w.unaccountedLossL) * pricePerL : null;
+  const unaccountedInr =
+    w.unaccountedLossL != null ? Math.max(0, w.unaccountedLossL) * pricePerL : null;
   const isLoss = (w.unaccountedLossL || 0) > 0.5;
   const confidence = (w.siphonConfidence || '').toLowerCase();
 
@@ -26,13 +27,16 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
       className="flex items-center justify-between py-2.5"
       style={{ borderBottom: '1px dashed var(--hairline)' }}
     >
-      <span className="text-sm" style={{ color: 'var(--cluster-text-dim)' }}>{label}</span>
+      <span className="text-sm" style={{ color: 'var(--cluster-text-dim)' }}>
+        {label}
+      </span>
       <div className="text-right">
         <span
           className={`font-mono text-sm tabular-nums ${highlight ? 'font-semibold' : ''}`}
           style={{ color: highlight ? 'var(--cluster-text)' : 'var(--cluster-text)' }}
         >
-          {sign ? `${sign} ` : ''}{value}
+          {sign ? `${sign} ` : ''}
+          {value}
         </span>
         {note && <div className="text-xs text-dim mt-0.5">{note}</div>}
       </div>
@@ -40,6 +44,18 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
   );
 
   const SummaryLine = () => {
+    if (w.defRatioFlag) {
+      return (
+        <div className="flex items-start gap-2 rounded-lg p-3 signal-bg-caution">
+          <AlertTriangle size={16} className="mt-0.5 signal-caution" />
+          <p className="text-sm signal-caution">
+            DEF dosing anomaly ({w.defRatioFlag}): measured ratio is {w.defToFuelRatioPct ?? '—'}%
+            of diesel consumption. Expected BS-VI corridor is 4.0% – 7.0%. Review for SCR tampering,
+            leakage, or sensor drift.
+          </p>
+        </div>
+      );
+    }
     if (!isLoss) {
       return (
         <div className="flex items-start gap-2 rounded-lg p-3 signal-bg-ok">
@@ -54,8 +70,8 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
       <div className="flex items-start gap-2 rounded-lg p-3 signal-bg-caution">
         <AlertTriangle size={16} className="mt-0.5 signal-caution" />
         <p className="text-sm signal-caution">
-          Unaccounted fuel: the tank dropped more than fills + burn can explain.
-          This can also be sensor drift, a missed fill, or a unit mismatch — please review.
+          Unaccounted fuel: the tank dropped more than fills + burn can explain. This can also be
+          sensor drift, a missed fill, or a unit mismatch — please review.
           {confidence && ` Confidence: ${confidence}.`}
         </p>
       </div>
@@ -68,7 +84,7 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
     <SlideOver
       open={open}
       onClose={onClose}
-      title="Fuel mass-balance working"
+      title={w.defRatioFlag ? 'DEF & Fuel Telematics Working' : 'Fuel mass-balance working'}
       subtitle={`${w.registrationNumber || 'Vehicle'} · ${windowDates(w)}`}
       width={480}
     >
@@ -94,10 +110,19 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
             sign={w.tankDeltaL > 0 ? '+' : '−'}
             note={tankDeltaNote(w)}
           />
-          <div
-            className="my-2"
-            style={{ borderTop: '1px solid var(--hairline)' }}
-          />
+          {w.defToFuelRatioPct != null && (
+            <Row
+              label="DEF to fuel ratio"
+              value={`${w.defToFuelRatioPct}%`}
+              note={
+                w.defRatioFlag
+                  ? `Flagged: ${w.defRatioFlag} (Normal BS-VI: 4% – 7%)`
+                  : 'Normal range'
+              }
+              highlight={!!w.defRatioFlag}
+            />
+          )}
+          <div className="my-2" style={{ borderTop: '1px solid var(--hairline)' }} />
           <Row
             label="Unaccounted volume"
             value={formatLitres(w.unaccountedLossL, { decimals: 1 })}
@@ -118,14 +143,15 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
           <ul className="space-y-2 text-sm" style={{ color: 'var(--cluster-text-dim)' }}>
             <li>
               Tank-level unit: <span className="font-mono">{w.tankLevelUnit || 'unknown'}</span>
-              {w.capacityL && <span> · tank capacity {formatLitres(w.capacityL, { decimals: 0 })}</span>}
+              {w.capacityL && (
+                <span> · tank capacity {formatLitres(w.capacityL, { decimals: 0 })}</span>
+              )}
             </li>
             <li>
-              Fuel price used: <span className="font-mono">₹{pricePerL}/L</span> (estimate from summary)
+              Fuel price used: <span className="font-mono">₹{pricePerL}/L</span> (estimate from
+              summary)
             </li>
-            <li>
-              Mass balance: fills − engine burn − Δtank = unaccounted.
-            </li>
+            <li>Mass balance: fills − engine burn − Δtank = unaccounted.</li>
           </ul>
         </div>
 
@@ -135,7 +161,8 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
             <p className="text-sm" style={{ color: 'var(--cluster-text)' }}>
               Stopped {context.hotspot.durationMin} min at{' '}
               <PlaceLabel lat={context.hotspot.lat} lng={context.hotspot.lng} showMap={false} />
-              {' — '}{context.hotspot.name || 'known hotspot'}
+              {' — '}
+              {context.hotspot.name || 'known hotspot'}
             </p>
             <a
               href={mapsLink(context.hotspot.lat, context.hotspot.lng)}
@@ -161,12 +188,15 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
           </a>
         )}
 
-        <div className="flex items-start gap-2 rounded-lg p-3" style={{ background: 'var(--glass)' }}>
+        <div
+          className="flex items-start gap-2 rounded-lg p-3"
+          style={{ background: 'var(--glass)' }}
+        >
           <FlaskConical size={16} className="mt-0.5 text-dim" />
           <p className="text-xs text-dim leading-relaxed">
-            This is an estimate produced from tank-sensor telemetry. A positive unexplained loss
-            is a flag, not proof. Please cross-check with pump bills, video logs and driver
-            statements before acting.
+            This is an estimate produced from tank-sensor telemetry. A positive unexplained loss is
+            a flag, not proof. Please cross-check with pump bills, video logs and driver statements
+            before acting.
           </p>
         </div>
       </div>
@@ -178,7 +208,13 @@ function windowDates(w) {
   const from = w.windowFrom ? new Date(w.windowFrom) : null;
   const to = w.windowTo ? new Date(w.windowTo) : null;
   if (!from && !to) return 'window dates unavailable';
-  const fmt = (d) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const fmt = (d) =>
+    d.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   if (!to) return fmt(from);
   if (!from) return fmt(to);
   return `${fmt(from)} → ${fmt(to)}`;

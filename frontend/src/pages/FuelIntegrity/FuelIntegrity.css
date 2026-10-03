@@ -88,6 +88,162 @@
   color: #fca5a5;
 }
 
+/* ─── Hero Mass-Balance Flow Reconciliation Pipeline ──────────────────────── */
+.fi-flow-pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark .fi-flow-pipeline {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+.fi-pipeline-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dark .fi-pipeline-header {
+  border-bottom-color: #1e293b;
+}
+
+.fi-pipeline-title-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fi-pipeline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dark .fi-pipeline-title {
+  color: #f8fafc;
+}
+
+.fi-pipeline-formula {
+  font-size: 11px;
+  font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.dark .fi-pipeline-formula {
+  background: #1e293b;
+  color: #94a3b8;
+  border-color: #334155;
+}
+
+.fi-pipeline-steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .fi-pipeline-steps {
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1.15fr;
+  }
+}
+
+.fi-step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease-in-out;
+}
+
+.dark .fi-step-card {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: #334155;
+}
+
+.fi-step-card:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.dark .fi-step-card:hover {
+  border-color: #475569;
+  background: #1e293b;
+}
+
+.fi-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.fi-step-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.dark .fi-step-label {
+  color: #94a3b8;
+}
+
+.fi-step-val {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
+  color: #0f172a;
+}
+
+.dark .fi-step-val {
+  color: #f8fafc;
+}
+
+.fi-step-sub {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.dark .fi-step-sub {
+  color: #94a3b8;
+}
+
+.fi-step-arrow {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+@media (min-width: 768px) {
+  .fi-step-arrow {
+    display: flex;
+  }
+}
+
 /* ─── Bento KPI Grid ──────────────────────────────────────────────────────── */
 .fi-bento-grid {
   display: grid;
@@ -1208,24 +1364,76 @@
 .fi-split-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 12px;
 }
 
 @media (min-width: 1024px) {
   .fi-split-layout {
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 305px;
+    align-items: start;
   }
+}
+
+@media (min-width: 1400px) {
+  .fi-split-layout {
+    grid-template-columns: minmax(0, 1fr) 325px;
+    align-items: start;
+  }
+}
+
+.fi-full-table-layout {
+  display: block;
+  padding: 12px;
+}
+
+.fi-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fi-row-click {
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.fi-row-click td {
+  padding-top: 13px;
+  padding-bottom: 13px;
+  vertical-align: middle;
+}
+
+.fi-row-click:hover {
+  background-color: rgba(241, 245, 249, 0.7);
+}
+
+.dark .fi-row-click:hover {
+  background-color: rgba(30, 41, 59, 0.5);
+}
+
+.fi-row-click.is-active {
+  background-color: rgba(238, 242, 255, 0.85) !important;
+  border-left: 4px solid #4f46e5 !important;
+}
+
+.dark .fi-row-click.is-active {
+  background-color: rgba(49, 46, 129, 0.35) !important;
+  border-left: 4px solid #818cf8 !important;
 }
 
 .fi-feed-col {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
+  width: 100%;
 }
 
 .fi-inspector-col {
   position: relative;
+  min-width: 0;
+  width: 100%;
 }
 
 @media (min-width: 1024px) {
@@ -1402,8 +1610,8 @@
 .fi-inspector-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px 20px;
+  gap: 11px;
+  padding: 14px 15px;
   border-radius: 12px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid #cbd5e1;
@@ -1420,9 +1628,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
 }
 
 .dark .fi-inspector-header {
@@ -1432,8 +1640,8 @@
 .fi-reconciliation-meter {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 6px;
+  padding: 10px 12px;
   border-radius: 8px;
   background: rgba(241, 245, 249, 0.7);
   border: 1px solid rgba(203, 213, 225, 0.6);
@@ -1448,20 +1656,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .fi-telematics-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .fi-tele-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -1473,10 +1681,11 @@
 }
 
 .fi-tele-label {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
   color: #64748b;
+  letter-spacing: 0.02em;
 }
 
 .dark .fi-tele-label {
@@ -1484,7 +1693,7 @@
 }
 
 .fi-tele-val {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
   color: #0f172a;
