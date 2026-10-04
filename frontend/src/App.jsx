@@ -145,6 +145,9 @@ const VehicleWarehousesPage = lazy(
   () => import('./pages/VehicleWarehouses/VehicleWarehousesPage.jsx'),
 );
 const VehicleToursPage = lazy(() => import('./pages/VehicleTours/VehicleToursPage.jsx'));
+const AutoTripsPage = lazy(() => import('./pages/AutoTrips/AutoTripsPage.jsx'));
+const AutoTripDetailPage = lazy(() => import('./pages/AutoTrips/AutoTripDetailPage.jsx'));
+const OilAverageReportPage = lazy(() => import('./pages/AutoTrips/OilAverageReportPage.jsx'));
 const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const PlaceIntelligencePage = lazy(
   () => import('./pages/PlaceIntelligence/PlaceIntelligencePage.jsx'),
@@ -481,6 +484,9 @@ function App() {
             <Route path="/warehouses" element={<VehicleWarehousesPage />} />
             <Route path="/vehicle-tours" element={<VehicleToursPage />} />
             <Route path="/fleet/vehicle-tours" element={<VehicleToursPage />} />
+            <Route path="/auto-trips" element={<AutoTripsPage />} />
+            <Route path="/auto-trips/oil-average" element={<OilAverageReportPage />} />
+            <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
             <Route path="/routes/add" element={<AddRoutePage />} />
             <Route path="/khata-ledger" element={<KhataLedgerPage />} />
             {/* ISOCL ERP — five workspaces (CRM / Operations / Finance / Approval Center) */}
