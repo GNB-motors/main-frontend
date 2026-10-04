@@ -86,4 +86,20 @@ export const FuelIntegrityService = {
       throw error.response?.data || { detail: 'Could not fetch the refuel advisory.' };
     }
   },
+
+  /**
+   * On-demand trigger to reconcile recent FleetEdge telemetry.
+   */
+  triggerSync: async () => {
+    try {
+      const response = await apiClient.post(`/api/fuel-integrity/sync`);
+      return response.data?.data || {};
+    } catch (error) {
+      console.error(
+        'API Error triggering fuel integrity sync:',
+        error.response?.data || error.message,
+      );
+      throw error.response?.data || { detail: 'Could not sync fuel integrity data.' };
+    }
+  },
 };
