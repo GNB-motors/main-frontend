@@ -332,6 +332,14 @@ export const SIDE_NAV_ITEMS = [
     icon: Route,
   },
   {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/auto-trips',
+    label: 'Auto Trips',
+    icon: Navigation,
+  },
+  {
     type: 'group',
     groupId: 'geofence',
     key: null,
