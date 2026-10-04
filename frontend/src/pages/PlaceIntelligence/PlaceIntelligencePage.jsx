@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { MapPin, Hourglass, Route, ShieldCheck } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
@@ -29,10 +30,13 @@ const TILE_TARGET = {
  * the numbers, lists and map all refresh together.
  */
 export default function PlaceIntelligencePage() {
+  // `?place=<id>` opens that place (links from Auto Trips: a drop to answer, a plant to confirm).
+  const [searchParams] = useSearchParams();
+  const linkedPlace = searchParams.get('place');
   const [view, setView] = useState('places');
-  const [filter, setFilter] = useState('review');
+  const [filter, setFilter] = useState(linkedPlace ? 'all' : 'review');
   const [version, setVersion] = useState(0);
-  const [focusId, setFocusId] = useState(null);
+  const [focusId, setFocusId] = useState(linkedPlace);
   const isSuperAdmin = getUserRole() === 'SUPER_ADMIN';
   const { data: summary } = useApi(
     (signal) => PlaceIntelligenceService.summary({ signal }),

@@ -74,7 +74,20 @@ export const REASON_LABEL = {
   PROPOSED: 'Needs an answer',
   CONFLICT: 'Evidence disagrees',
   AUDIT: 'Spot check',
+  TRIP_DROP: 'Trips turned around here',
 };
+
+/**
+ * The question an auto-trip drop puts to a person: trucks loaded somewhere, drove out
+ * and turned around here, so it is probably a drop place. Null when no trip did.
+ */
+export function tripDropNote(site) {
+  const t = site?.tripDrops;
+  if (!t?.trips) return null;
+  const from = (t.from || []).filter(Boolean);
+  const where = from.length ? ` from ${from.join(', ')}` : '';
+  return `${t.trips} trip${t.trips === 1 ? '' : 's'}${where} turned around here — is this a drop?`;
+}
 
 const MEANINGFUL = (t) => Boolean(t) && t !== 'UNKNOWN' && t !== 'UNEXPLAINED';
 

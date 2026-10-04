@@ -1048,6 +1048,13 @@
 .pi-rowwhere {
   color: var(--ds-ink3);
 }
+/* An auto-trip question under the place's town: why it is at the top of the queue. */
+.pi-rowwhere-note {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ds-warn, #b45309);
+}
 .pi-row-go {
   color: var(--ds-ink3);
   vertical-align: middle;
