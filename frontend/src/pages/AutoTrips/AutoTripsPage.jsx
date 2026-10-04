@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, FileSpreadsheet, MapPinned, TriangleAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileSpreadsheet, MapPinned } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
+import AutoTripCoverage from './AutoTripCoverage';
+import { DROP_SOURCE_LABEL } from './autoTripModel';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -54,7 +56,8 @@ function fmtKm(v) {
 
 function routeOf(trip) {
   const from = trip.pickup?.name || '—';
-  const to = trip.drop?.name || (trip.drop?.source === 'UNKNOWN' ? 'unknown' : 'inferred');
+  const to =
+    trip.drop?.name || (trip.drop?.source === 'UNKNOWN' ? 'drop not found' : 'unnamed place');
   return `${from} → ${to}`;
 }
 
@@ -73,8 +76,6 @@ export default function AutoTripsPage() {
     [JSON.stringify(params)],
   );
 
-  const { data: coverage } = useApi((signal) => AutoTripService.coverage({ signal }), []);
-
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const tabCounts = data?.tabCounts ?? {};
@@ -92,14 +93,7 @@ export default function AutoTripsPage() {
       {
         key: 'drop',
         label: 'Drop',
-        render: (r) =>
-          r.drop?.source === 'LABELLED_PLACE'
-            ? 'Labelled'
-            : r.drop?.source === 'HUMAN'
-              ? 'Confirmed'
-              : r.drop?.source === 'INFERRED_TURNAROUND'
-                ? 'Inferred'
-                : 'Unknown',
+        render: (r) => DROP_SOURCE_LABEL[r.drop?.source] || '—',
       },
       {
         key: 'status',
@@ -130,26 +124,7 @@ export default function AutoTripsPage() {
         </Button>
       }
     >
-      {coverage?.trucksMissing > 0 ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '8px 12px',
-            marginBottom: 12,
-            borderRadius: 8,
-            background: 'var(--muted, #f6f7f9)',
-            fontSize: 13,
-          }}
-        >
-          <TriangleAlert size={16} aria-hidden="true" />
-          <span>
-            {coverage.trucksMissing} trucks have no trips yet — usually their plant isn&apos;t a
-            confirmed pickup place.
-          </span>
-        </div>
-      ) : null}
+      <AutoTripCoverage />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         {TABS.map((t) => (

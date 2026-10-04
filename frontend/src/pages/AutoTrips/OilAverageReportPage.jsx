@@ -35,7 +35,8 @@ const COLUMNS = [
   ['odometerEnd', 'Odo End', (r) => n0(r.odometerEnd)],
   ['distanceKm', 'Distance', (r) => n0(r.distanceKm)],
   ['refuelLitres', 'Refuel (L)', (r) => n2(r.refuelLitres)],
-  ['mileageKmPerL', 'Milage (F.E.)', (r) => n2(r.mileageKmPerL)],
+  ['fuelUsedLitres', 'Fuel Used (L)', (r) => n2(r.fuelUsedLitres)],
+  ['mileageKmPerL', 'Mileage (F.E.)', (r) => n2(r.mileageKmPerL)],
   ['fuelCost', 'Fuel Cost', (r) => n0(r.fuelCost)],
   ['fuelStation', 'Fuel Station', (r) => r.fuelStation || ''],
 ];
@@ -67,7 +68,11 @@ export default function OilAverageReportPage() {
   const [from, setFrom] = useState(daysAgoISO(30));
   const [to, setTo] = useState(todayISO());
 
-  const params = useMemo(() => ({ from, to }), [from, to]);
+  // Whole IST days: a bare "to" date would be read as its midnight and drop that day.
+  const params = useMemo(
+    () => ({ from: `${from}T00:00:00+05:30`, to: `${to}T23:59:59.999+05:30` }),
+    [from, to],
+  );
   const { data, loading, error, refetch } = useApi(
     (signal) => AutoTripService.oilAverage(params, { signal }),
     [JSON.stringify(params)],
@@ -85,6 +90,7 @@ export default function OilAverageReportPage() {
           'odometerEnd',
           'distanceKm',
           'refuelLitres',
+          'fuelUsedLitres',
           'mileageKmPerL',
           'fuelCost',
         ].includes(key)
@@ -99,7 +105,7 @@ export default function OilAverageReportPage() {
     <PageShell
       title="Oil & Average Report"
       count={rows.length}
-      subtitle="Trip-wise — each trip with its fuel, mileage and odometer where available. Blank columns fill in as fuel logs and driver assignments arrive."
+      subtitle="Trip-wise — each trip with its fuel, mileage and odometer where available. Mileage is laden distance ÷ fuel used on the run (not litres bought). Blank columns fill in as fuel data and driver assignments arrive."
       actions={
         <div style={{ display: 'flex', gap: 8 }}>
           <Button variant="outline" size="sm" onClick={() => navigate('/auto-trips')}>
@@ -137,7 +143,11 @@ export default function OilAverageReportPage() {
           </span>
         </div>
       }
-      footer={`${rows.length} trips · ${from} → ${to}`}
+      footer={
+        data?.truncated
+          ? `First ${rows.length} trips only — narrow the dates to see the rest · ${from} → ${to}`
+          : `${rows.length} trips · ${from} → ${to}`
+      }
     >
       <DataTable
         columns={columns}

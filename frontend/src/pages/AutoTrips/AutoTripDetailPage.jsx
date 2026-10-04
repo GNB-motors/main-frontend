@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, Check, X, MapPin } from 'lucide-react';
+import { ArrowLeft, Check, X, HelpCircle } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
@@ -10,6 +10,8 @@ import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import AutoTripService from '../../services/AutoTripService';
 import AutoTripMap from './AutoTripMap';
+import AutoTripRouteStops from './AutoTripRouteStops';
+import { FLAG_LABEL, DROP_SOURCE_LABEL, answerPlaceHref, stopLabel } from './autoTripModel';
 
 const STATUS_VARIANT = {
   COMPLETE: 'default',
@@ -86,30 +88,20 @@ export default function AutoTripDetailPage() {
   }
 
   const frozen = Boolean(trip.frozenAt);
-  const stopColumns = [
+  const answerHref = answerPlaceHref(trip);
+  const summary = trip.stopsSummary;
+  const plantColumns = [
     { key: 'startAt', label: 'Arrived', render: (s) => fmt(s.startAt) },
-    { key: 'dwell', label: 'Dwell', align: 'right', render: (s) => mins(s.dwellMinutes) },
-    { key: 'purpose', label: 'Purpose', render: (s) => s.purpose?.top || '—' },
-    {
-      key: 'action',
-      label: '',
-      align: 'right',
-      render: (s) =>
-        frozen ? null : (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={(e) => {
-              e.stopPropagation();
-              act(dropM.mutate, { id, stopId: s._id }, 'Drop updated');
-            }}
-          >
-            <MapPin size={14} /> Set as drop
-          </Button>
-        ),
-    },
+    { key: 'place', label: 'Where', render: (s) => stopLabel(s) },
+    { key: 'dwell', label: 'Stayed', align: 'right', render: (s) => mins(s.dwellMinutes) },
+    { key: 'purpose', label: 'Looks like', render: (s) => s.purpose?.top || '—' },
   ];
+  const setDrop = (stop, markPlaceAsDrop) =>
+    act(
+      dropM.mutate,
+      { id, stopId: stop._id, ...(markPlaceAsDrop ? { markPlaceAsDrop: true } : {}) },
+      markPlaceAsDrop ? 'Drop set and place marked as a drop' : 'Drop updated',
+    );
 
   return (
     <PageShell
@@ -147,9 +139,15 @@ export default function AutoTripDetailPage() {
         {frozen ? <Badge variant="outline">Frozen</Badge> : null}
         {(trip.flags || []).map((f) => (
           <Badge key={f} variant="secondary">
-            {f}
+            {FLAG_LABEL[f] || f}
           </Badge>
         ))}
+        {answerHref && !frozen ? (
+          <Link to={answerHref} style={{ marginLeft: 'auto', fontSize: 13 }}>
+            <HelpCircle size={14} style={{ verticalAlign: 'middle' }} aria-hidden="true" /> Is this
+            place a drop? Answer it on the Places page
+          </Link>
+        ) : null}
       </div>
 
       <div
@@ -158,7 +156,12 @@ export default function AutoTripDetailPage() {
         <div
           style={{ height: 320, borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb' }}
         >
-          <AutoTripMap pickup={trip.pickup} drop={trip.drop} />
+          <AutoTripMap
+            pickup={trip.pickup}
+            drop={trip.drop}
+            extraDrops={trip.extraDrops}
+            routeStops={trip.routeStops}
+          />
         </div>
 
         <div
@@ -173,7 +176,9 @@ export default function AutoTripDetailPage() {
           <Field label="Drop">
             {trip.drop?.name || '—'}{' '}
             {trip.drop?.source ? (
-              <span style={{ fontWeight: 400, color: '#888' }}>({trip.drop.source})</span>
+              <span style={{ fontWeight: 400, color: '#888' }}>
+                ({DROP_SOURCE_LABEL[trip.drop.source] || trip.drop.source})
+              </span>
             ) : null}
           </Field>
           <Field label="Left pickup">{fmt(trip.pickup?.departedAt)}</Field>
@@ -182,6 +187,17 @@ export default function AutoTripDetailPage() {
           <Field label="Approach">{km(trip.km?.approach)}</Field>
           <Field label="Fuel detour">{km(trip.km?.fuelDetour)}</Field>
           <Field label="Transit">{mins(trip.durations?.transitMin)}</Field>
+          <Field label="Empty before pickup">{mins(trip.durations?.approachMin)}</Field>
+          <Field label="At the plant">{mins(trip.durations?.plantMin)}</Field>
+          {trip.extraDrops?.length ? (
+            <Field label="Further drops">{trip.extraDrops.length}</Field>
+          ) : null}
+          {summary ? (
+            <Field label="Stops on the way">
+              {summary.fuel} fuel · {summary.rest} rest · {summary.overnight} overnight ·{' '}
+              {summary.unexplained} unexplained
+            </Field>
+          ) : null}
           {trip.erpTripId ? (
             <Field label="ERP trip">
               <Link to={`/erp/trips/${trip.erpTripId}`}>{String(trip.erpTripId).slice(-6)}</Link>
@@ -190,9 +206,14 @@ export default function AutoTripDetailPage() {
         </div>
       </div>
 
-      <h2 style={{ fontSize: 15, fontWeight: 600, margin: '24px 0 10px' }}>Pickup stops</h2>
+      <h2 style={{ fontSize: 15, fontWeight: 600, margin: '24px 0 10px' }}>
+        Stops after leaving the plant
+      </h2>
+      <AutoTripRouteStops trip={trip} frozen={frozen} busy={busy} onSetDrop={setDrop} />
+
+      <h2 style={{ fontSize: 15, fontWeight: 600, margin: '24px 0 10px' }}>At the plant</h2>
       <DataTable
-        columns={stopColumns}
+        columns={plantColumns}
         rows={trip.stops || []}
         rowKey={(s) => s._id}
         emptyTitle="No stops linked"

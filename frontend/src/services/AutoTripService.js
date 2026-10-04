@@ -8,9 +8,9 @@ const unwrap = (response) => response.data?.data ?? response.data;
 const parsed = async (name, response) => parseSafe(name, schemas, unwrap(response));
 
 /**
- * Auto Trips API. Behind the per-org `autoTrips` flag; with the flag off the calls
- * 404 and the page shows a calm empty state. Trips are detected from GPS stops and
- * confirmed pickup/drop places — never declared.
+ * Auto Trips API. Open to every org user (no per-org flag); trips exist once the
+ * server's nightly detection has run. Trips are detected from GPS stops and confirmed
+ * pickup/drop places — never declared.
  */
 export const AutoTripService = {
   list: async (params = {}, { signal } = {}) =>

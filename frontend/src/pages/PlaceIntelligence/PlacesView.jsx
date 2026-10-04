@@ -20,6 +20,7 @@ import {
   placeStats,
   placeSubtitle,
   placeTitle,
+  tripDropNote,
 } from './placeIntelligenceModel';
 
 /**
@@ -45,7 +46,7 @@ export default function PlacesView({ filter, onFilter, version, onChanged, initi
   const list =
     filter === 'review'
       ? filterPlaces(
-          queue.map((i) => i.site),
+          queue.map((i) => (i.tripDrops ? { ...i.site, tripDrops: i.tripDrops } : i.site)),
           'all',
           q,
         )
@@ -189,7 +190,12 @@ export default function PlacesView({ filter, onFilter, version, onChanged, initi
                       </span>
                     </span>
                   </td>
-                  <td className="pi-rowwhere">{placeSubtitle(s)}</td>
+                  <td className="pi-rowwhere">
+                    {placeSubtitle(s)}
+                    {tripDropNote(s) ? (
+                      <span className="pi-rowwhere-note">{tripDropNote(s)}</span>
+                    ) : null}
+                  </td>
                   <td>
                     <StateChip site={s} />
                   </td>

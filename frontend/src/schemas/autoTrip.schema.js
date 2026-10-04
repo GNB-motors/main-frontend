@@ -40,6 +40,10 @@ export const autoTripSchema = z
       .passthrough()
       .nullish(),
     fuelLadenL: num,
+    stopsSummary: z
+      .object({ fuel: num, rest: num, overnight: num, unexplained: num })
+      .passthrough()
+      .nullish(),
     erpTripId: str,
     frozenAt: str,
     completedAt: str,
@@ -67,24 +71,25 @@ export const autoTripListSchema = z
   })
   .passthrough();
 
+const tripStop = z
+  .object({
+    _id: str,
+    startAt: str,
+    endAt: str,
+    dwellMinutes: num,
+    lat: num,
+    lng: num,
+    orgSiteId: str,
+    purpose: z.object({ top: str }).passthrough().nullish(),
+    humanReason: z.object({ purpose: str }).passthrough().nullish(),
+    place: z.object({ name: str, siteType: str, status: str }).passthrough().nullish(),
+  })
+  .passthrough();
+
 export const autoTripDetailSchema = autoTripSchema
   .extend({
-    stops: z
-      .array(
-        z
-          .object({
-            _id: str,
-            startAt: str,
-            endAt: str,
-            dwellMinutes: num,
-            lat: num,
-            lng: num,
-            orgSiteId: str,
-            purpose: z.object({ top: str }).passthrough().nullish(),
-          })
-          .passthrough(),
-      )
-      .nullish(),
+    stops: z.array(tripStop).nullish(), // the plant visit
+    routeStops: z.array(tripStop).nullish(), // every stop after leaving the plant
   })
   .passthrough();
 
@@ -103,6 +108,7 @@ export const autoTripOilAverageSchema = z
           odometerEnd: num,
           distanceKm: num,
           refuelLitres: num,
+          fuelUsedLitres: num,
           mileageKmPerL: num,
           fuelCost: num,
           fuelStation: str,
@@ -112,6 +118,7 @@ export const autoTripOilAverageSchema = z
         .passthrough(),
     ),
     total: num,
+    truncated: z.boolean().nullish(),
   })
   .passthrough();
 
@@ -120,6 +127,20 @@ export const autoTripCoverageSchema = z
     trucksMissing: num,
     missing: z
       .array(z.object({ registrationNumber: str, vehicleId: str, reason: str }).passthrough())
+      .nullish(),
+    candidatePlaces: z
+      .array(
+        z
+          .object({
+            orgSiteId: str,
+            name: str,
+            siteType: str,
+            status: str,
+            trucks: num,
+            stops: num,
+          })
+          .passthrough(),
+      )
       .nullish(),
   })
   .passthrough();

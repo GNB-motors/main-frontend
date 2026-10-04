@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  tripDropNote,
   typeLabel,
   suggestion,
   impactSummary,
@@ -285,5 +286,17 @@ describe('placeIntelligenceModel', () => {
     expect(kmLabel(null)).toBe('—');
     expect(kmLabel(48.3)).toBe('48 km');
     expect(kmLabel(4.25)).toBe('4.3 km');
+  });
+});
+
+describe('tripDropNote', () => {
+  it('asks about the place auto trips turned around at', () => {
+    expect(tripDropNote({ tripDrops: { trips: 9, from: ['AMBUJA SANKRAIL'] } })).toBe(
+      '9 trips from AMBUJA SANKRAIL turned around here — is this a drop?',
+    );
+    expect(tripDropNote({ tripDrops: { trips: 1, from: [] } })).toBe(
+      '1 trip turned around here — is this a drop?',
+    );
+    expect(tripDropNote({})).toBeNull();
   });
 });
