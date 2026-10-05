@@ -8,6 +8,7 @@ export const FLAG_LABEL = {
   PICKUP_TO_PICKUP: 'Loaded again without a known drop',
   STALE_OPEN: 'On the road for over 10 days',
   GPS_GAP: 'GPS went quiet on the way',
+  KM_ESTIMATED: 'Distance partly estimated (GPS gap)',
   NO_ERP_TRIP: 'No ERP trip',
   ERP_DROP_MISMATCH: 'Drop differs from the order',
 };
