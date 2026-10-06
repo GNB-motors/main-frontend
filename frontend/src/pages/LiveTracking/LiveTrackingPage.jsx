@@ -24,6 +24,7 @@ import {
   computeMapVehicles,
 } from './liveTracking.shared.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
+import DestinationIntentSection from './DestinationIntentSection.jsx';
 import './LiveTracking.css';
 
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
@@ -1592,6 +1593,9 @@ const LiveTrackingPage = () => {
 
                     {/* Deep Details Accordion Sections */}
                     <div className="sections">
+                      <DestinationIntentSection
+                        registrationNumber={selectedVehicle.registrationNumber}
+                      />
                       <details className="sec" open>
                         <summary>
                           {renderIconSvg('trip', 16)}

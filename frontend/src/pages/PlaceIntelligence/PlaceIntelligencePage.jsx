@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MapPin, Hourglass, Route, ShieldCheck } from 'lucide-react';
+import { MapPin, Hourglass, Route, ShieldCheck, Layers, Home } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import useApi from '../../hooks/useApi';
@@ -10,6 +10,8 @@ import SummaryStrip from './SummaryStrip';
 import PlacesView from './PlacesView';
 import BreaksView from './BreaksView';
 import RoutesTab from './RoutesTab';
+import RegionsView from './RegionsView';
+import DriverHomesView from './DriverHomesView';
 import ShadowReportTab from './ShadowReportTab';
 import './placeIntelligence.css';
 
@@ -65,6 +67,8 @@ export default function PlaceIntelligencePage() {
       badge: idleHours ? `${idleHours} h` : null,
     },
     { key: 'routes', label: 'Routes', Icon: Route },
+    { key: 'regions', label: 'Regions', Icon: Layers },
+    { key: 'homes', label: 'Driver homes', Icon: Home },
     ...(isSuperAdmin ? [{ key: 'shadow', label: 'Shadow report', Icon: ShieldCheck }] : []),
   ];
   const activeTile = view === 'stops' ? 'stops' : view === 'places' ? filter : null;
@@ -92,7 +96,11 @@ export default function PlaceIntelligencePage() {
           </button>
         ))}
       </div>
-      <div className={`pi-view${view === 'routes' || view === 'shadow' ? ' pi-view--scroll' : ''}`}>
+      <div
+        className={`pi-view${
+          ['routes', 'shadow', 'regions', 'homes'].includes(view) ? ' pi-view--scroll' : ''
+        }`}
+      >
         <PanelErrorBoundary name={`place-intelligence-${view}`}>
           {view === 'places' ? (
             <PlacesView
@@ -107,6 +115,8 @@ export default function PlaceIntelligencePage() {
             <BreaksView version={version} onChanged={bump} onOpenPlace={openPlace} />
           ) : null}
           {view === 'routes' ? <RoutesTab version={version} /> : null}
+          {view === 'regions' ? <RegionsView version={version} onChanged={bump} /> : null}
+          {view === 'homes' ? <DriverHomesView version={version} onChanged={bump} /> : null}
           {view === 'shadow' ? <ShadowReportTab /> : null}
         </PanelErrorBoundary>
       </div>

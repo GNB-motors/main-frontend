@@ -59,4 +59,10 @@ export const ALERT_TYPE_LABELS = {
   FLEETEDGE_ALERT_GEOFENCE_EXITED: 'Geofence exited',
   FLEETEDGE_ALERT_OVERSPEED: 'Overspeed alert',
   FLEETEDGE_REAUTH_REQUIRED: 'FleetEdge re-auth needed',
+  // Trip Economics (movement) alerts
+  DEVIATION_DETECTED: 'Deviation detected',
+  DEVIATION_IN_PROGRESS: 'Deviation in progress',
+  WATCHED_PLACE_VISIT: 'Watched place visit',
+  UNAPPROVED_SERVICE_VISIT: 'Unapproved service visit',
+  RECONCILE_GAP: 'Fuel reconcile gap',
 };

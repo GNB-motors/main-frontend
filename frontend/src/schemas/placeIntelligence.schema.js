@@ -174,3 +174,56 @@ export const shadowReportListSchema = z.array(
     })
     .passthrough(),
 );
+
+export const regionListSchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          _id: str,
+          kind: str,
+          status: str,
+          name: str,
+          memberIds: z.array(str).nullish(),
+          memberCount: num,
+          centroidLat: num,
+          centroidLng: num,
+          diameterM: num,
+          radiusM: num,
+          roleSet: z.array(str).nullish(),
+          coVisitScore: num,
+        })
+        .passthrough(),
+    ),
+    total: num,
+    page: num,
+    limit: num,
+  })
+  .passthrough();
+
+export const homeListSchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          _id: str,
+          driverId: ref,
+          placeKey: str,
+          orgSiteId: str,
+          lat: num,
+          lng: num,
+          nights: num,
+          totalNights: num,
+          share: num,
+          q10: num,
+          distinctWeeks: num,
+          windowDays: num,
+          status: str,
+        })
+        .passthrough(),
+    ),
+    total: num,
+    page: num,
+    limit: num,
+  })
+  .passthrough();
