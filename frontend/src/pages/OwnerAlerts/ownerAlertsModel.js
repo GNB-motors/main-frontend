@@ -36,6 +36,12 @@ const SEVERITY_BY_TYPE = {
   FLEETEDGE_ALERT_REFUEL: 'INFO',
   FLEETEDGE_ALERT_GEOFENCE_ENTERED: 'INFO',
   FLEETEDGE_ALERT_GEOFENCE_EXITED: 'INFO',
+  // Trip Economics (movement)
+  DEVIATION_DETECTED: 'WARNING',
+  DEVIATION_IN_PROGRESS: 'WARNING',
+  UNAPPROVED_SERVICE_VISIT: 'WARNING',
+  RECONCILE_GAP: 'WARNING',
+  WATCHED_PLACE_VISIT: 'INFO',
 };
 const ALERT_TITLE = {
   FLEETEDGE_SUBSCRIPTION_EXPIRED: 'Subscription expired',
@@ -51,6 +57,11 @@ const ALERT_TITLE = {
   FLEETEDGE_ALERT_GEOFENCE_ENTERED: 'Geofence entered',
   FLEETEDGE_ALERT_GEOFENCE_EXITED: 'Geofence exited',
   FLEETEDGE_ALERT_OVERSPEED: 'Overspeed alert',
+  DEVIATION_DETECTED: 'Deviation detected',
+  DEVIATION_IN_PROGRESS: 'Deviation in progress',
+  UNAPPROVED_SERVICE_VISIT: 'Unapproved service visit',
+  WATCHED_PLACE_VISIT: 'Watched place visit',
+  RECONCILE_GAP: 'Fuel reconcile gap',
 };
 const CATEGORY_BY_TYPE = {
   FLEETEDGE_SUBSCRIPTION_EXPIRED: 'subscription',
@@ -58,6 +69,11 @@ const CATEGORY_BY_TYPE = {
   FLEETEDGE_REAUTH_REQUIRED: 'data',
   REFUEL_ESTIMATED: 'data',
   ADBLUE_BALANCE_FLAG: 'data',
+  RECONCILE_GAP: 'data',
+  DEVIATION_DETECTED: 'movement',
+  DEVIATION_IN_PROGRESS: 'movement',
+  UNAPPROVED_SERVICE_VISIT: 'movement',
+  WATCHED_PLACE_VISIT: 'movement',
 };
 
 export const SEV_RANK = { CRITICAL: 3, WARNING: 2, INFO: 1 };
@@ -72,6 +88,7 @@ export const CHIPS = [
   { key: 'critical', label: 'Critical' },
   { key: 'warning', label: 'Warning' },
   { key: 'subscription', label: 'Subscription' },
+  { key: 'movement', label: 'Movement' },
   { key: 'data', label: 'Data issues' },
   { key: 'acknowledged', label: 'Acknowledged' },
 ];
@@ -102,6 +119,7 @@ export function computeView(alerts, refine, sort) {
   if (refine === 'critical') list = list.filter((a) => a.severity === 'CRITICAL');
   else if (refine === 'warning') list = list.filter((a) => a.severity === 'WARNING');
   else if (refine === 'subscription') list = list.filter((a) => a.category === 'subscription');
+  else if (refine === 'movement') list = list.filter((a) => a.category === 'movement');
   else if (refine === 'data') list = list.filter((a) => a.category === 'data');
 
   const byDateDesc = (a, b) => new Date(b.at) - new Date(a.at);

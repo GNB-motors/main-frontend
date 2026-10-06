@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, FileSpreadsheet, MapPinned } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  FileSpreadsheet,
+  MapPinned,
+  TriangleAlert,
+  ShieldCheck,
+} from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
@@ -119,9 +126,17 @@ export default function AutoTripsPage() {
       count={total}
       subtitle="Trips detected from GPS stops and your confirmed pickup / drop places — no ERP needed."
       actions={
-        <Button size="sm" variant="outline" onClick={() => navigate('/auto-trips/oil-average')}>
-          <FileSpreadsheet size={16} /> Oil &amp; Average report
-        </Button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button size="sm" variant="outline" onClick={() => navigate('/auto-trips/excursions')}>
+            <TriangleAlert size={16} /> Deviations
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => navigate('/auto-trips/approvals')}>
+            <ShieldCheck size={16} /> Approvals
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => navigate('/auto-trips/oil-average')}>
+            <FileSpreadsheet size={16} /> Oil &amp; Average report
+          </Button>
+        </div>
       }
     >
       <AutoTripCoverage />

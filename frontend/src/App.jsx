@@ -109,6 +109,9 @@ const LemuGraphPage = lazy(
 );
 const WarehousePage = lazy(() => import('./pages/Superadmin/components/WarehousePage.jsx'));
 const WhatsAppAuditPage = lazy(() => import('./pages/Superadmin/components/WhatsAppAuditPage.jsx'));
+const SuperAdminLearningPage = lazy(
+  () => import('./pages/Superadmin/components/SuperAdminLearningPage.jsx'),
+);
 const ReceiptApprovalPage = lazy(
   () => import('./pages/Superadmin/components/ReceiptApprovalPage.jsx'),
 );
@@ -148,6 +151,9 @@ const VehicleToursPage = lazy(() => import('./pages/VehicleTours/VehicleToursPag
 const AutoTripsPage = lazy(() => import('./pages/AutoTrips/AutoTripsPage.jsx'));
 const AutoTripDetailPage = lazy(() => import('./pages/AutoTrips/AutoTripDetailPage.jsx'));
 const OilAverageReportPage = lazy(() => import('./pages/AutoTrips/OilAverageReportPage.jsx'));
+const ExcursionsPage = lazy(() => import('./pages/AutoTrips/ExcursionsPage.jsx'));
+const ExcursionDetailPage = lazy(() => import('./pages/AutoTrips/ExcursionDetailPage.jsx'));
+const MovementApprovalsPage = lazy(() => import('./pages/AutoTrips/MovementApprovalsPage.jsx'));
 const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const PlaceIntelligencePage = lazy(
   () => import('./pages/PlaceIntelligence/PlaceIntelligencePage.jsx'),
@@ -268,6 +274,14 @@ function App() {
               element={
                 <Suspense fallback={null}>
                   <OrgFeatureFlagsDetailPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="learning"
+              element={
+                <Suspense fallback={null}>
+                  <SuperAdminLearningPage />
                 </Suspense>
               }
             />
@@ -487,6 +501,9 @@ function App() {
             <Route path="/fleet/vehicle-tours" element={<VehicleToursPage />} />
             <Route path="/auto-trips" element={<AutoTripsPage />} />
             <Route path="/auto-trips/oil-average" element={<OilAverageReportPage />} />
+            <Route path="/auto-trips/excursions" element={<ExcursionsPage />} />
+            <Route path="/auto-trips/excursions/:id" element={<ExcursionDetailPage />} />
+            <Route path="/auto-trips/approvals" element={<MovementApprovalsPage />} />
             <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
             <Route path="/routes/add" element={<AddRoutePage />} />
             <Route path="/khata-ledger" element={<KhataLedgerPage />} />

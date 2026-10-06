@@ -82,6 +82,41 @@ export const ReportsService = {
   },
 
   /**
+   * Trip Economics reports (API contract §6). These are NOT paginated — they
+   * return `data = { rows, total, truncated?, totals? }` capped at 5,000 rows,
+   * so do not send page/limit (unknown params are rejected). `totals` surfaces
+   * as `summary` for the footer.
+   * @returns {Promise<{ data: Array, total: number, truncated: boolean, summary: Object|null }>}
+   */
+  _getTripReport: async (endpoint, params = {}, label = 'report') => {
+    try {
+      const response = await apiClient.get(endpoint, { params });
+      const body = response.data?.data ?? response.data ?? {};
+      const rows = Array.isArray(body.rows) ? body.rows : Array.isArray(body) ? body : [];
+      return {
+        data: rows,
+        total: typeof body.total === 'number' ? body.total : rows.length,
+        truncated: Boolean(body.truncated),
+        summary: body.totals || null,
+      };
+    } catch (error) {
+      console.error(`API Error fetching ${label}:`, error.response?.data || error.message);
+      throw (
+        error.response?.data || {
+          detail: `Network error or server unavailable while fetching ${label}.`,
+        }
+      );
+    }
+  },
+
+  getFuelCycles: (params = {}) =>
+    ReportsService._getTripReport('api/reports/fuel-cycles', params, 'fuel cycles'),
+  getNonBusiness: (params = {}) =>
+    ReportsService._getTripReport('api/reports/non-business', params, 'non-business report'),
+  getRunningCost: (params = {}) =>
+    ReportsService._getTripReport('api/reports/running-cost', params, 'running-cost report'),
+
+  /**
    * Generic filtered CSV export — call any report `/export` endpoint with the
    * same filters used by the table. Reuse from Mileage, Driver, etc.
    * @param {string} endpoint - e.g. 'api/reports/mileage-intervals/export'

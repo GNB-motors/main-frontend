@@ -63,6 +63,20 @@ export const PlaceIntelligenceService = {
       'shadowReportListSchema',
       await apiClient.get(`${BASE}/admin/shadow-reports`, { params: { orgId }, signal }),
     ),
+
+  // ─── Regions (grouped sites a truck treats as one place) ───────────────────
+  listRegions: async (params = {}, { signal } = {}) =>
+    parsed('regionListSchema', await apiClient.get(`${BASE}/regions`, { params, signal })),
+
+  decideRegion: async ({ id, decision }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/regions/${id}/decide`, { decision }, { signal })),
+
+  // ─── Driver homes (inferred overnight base per driver) ─────────────────────
+  listHomes: async (params = {}, { signal } = {}) =>
+    parsed('homeListSchema', await apiClient.get(`${BASE}/homes`, { params, signal })),
+
+  decideHome: async ({ id, decision }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/homes/${id}/decide`, { decision }, { signal })),
 };
 
 export default PlaceIntelligenceService;

@@ -1,7 +1,14 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Check, X, HelpCircle } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
@@ -54,14 +61,24 @@ export default function AutoTripDetailPage() {
   const dismissM = useMutation(AutoTripService.dismiss);
   const busy = confirmM.loading || dropM.loading || dismissM.loading;
 
+  // Where a dismissed trip's km go (contract: never dropped). Default UNATTRIBUTED.
+  const [reallocateAs, setReallocateAs] = useState('UNATTRIBUTED');
+
   const act = useCallback(
     async (fn, payload, okMsg) => {
       try {
-        await fn(payload);
+        const res = await fn(payload);
         toast.success(okMsg);
+        // The structure-changing actions queue a background recompute (contract §1).
+        if (res?.recompute?.queued) toast.info('Recalculating the affected trucks…');
         refetch();
       } catch (e) {
-        toast.error(e?.message || 'Action failed');
+        const raw = `${e?.message || e?.detail || ''} ${e?.code || ''}`;
+        toast.error(
+          /NO_STOP_IN_TRIP/i.test(raw)
+            ? 'That place has no stop inside this trip — pick a stop on the route below instead.'
+            : e?.message || e?.detail || 'Action failed',
+        );
       }
     },
     [refetch],
@@ -122,14 +139,29 @@ export default function AutoTripDetailPage() {
             </Button>
           ) : null}
           {!frozen && trip.status !== 'DISMISSED' ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={busy}
-              onClick={() => act(dismissM.mutate, { id }, 'Trip dismissed')}
-            >
-              <X size={16} /> Not a trip
-            </Button>
+            <>
+              <Select value={reallocateAs} onValueChange={setReallocateAs}>
+                <SelectTrigger
+                  className="h-9 w-[150px] text-sm"
+                  title="Where this trip's km go when dismissed"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="UNATTRIBUTED">Unattributed</SelectItem>
+                  <SelectItem value="REPOSITION">Reposition</SelectItem>
+                  <SelectItem value="PERSONAL">Personal</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={busy}
+                onClick={() => act(dismissM.mutate, { id, reallocateAs }, 'Trip dismissed')}
+              >
+                <X size={16} /> Not a trip
+              </Button>
+            </>
           ) : null}
         </div>
       }

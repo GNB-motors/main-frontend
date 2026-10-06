@@ -22,6 +22,15 @@ export const REPORT_GROUPS = [
       { id: 'adblueReport', label: 'AdBlue Report', flag: 'fuelIntegrity' },
     ],
   },
+  {
+    id: 'tripEconomics',
+    label: 'TRIP ECONOMICS',
+    children: [
+      { id: 'fuelCycles', label: 'Fuel Cycles', flag: 'autoTrips' },
+      { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
+      { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },
+    ],
+  },
 ];
 
 /** Groups with only the reports this org can open; empty groups are dropped. */

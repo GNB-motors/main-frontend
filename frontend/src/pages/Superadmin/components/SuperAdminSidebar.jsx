@@ -12,6 +12,7 @@ import {
   Network,
   Satellite,
   MessageSquareWarning,
+  GraduationCap,
 } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import { clearSession } from '../../../utils/session';
@@ -67,6 +68,15 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
           >
             <ToggleRight size={20} />
             <span>Feature Flags</span>
+          </NavLink>
+
+          <NavLink
+            to="/superadmin/learning"
+            className="superadmin-nav-link"
+            onClick={closeSidebarOnMobile}
+          >
+            <GraduationCap size={20} />
+            <span>Learning &amp; Audit</span>
           </NavLink>
 
           <NavLink

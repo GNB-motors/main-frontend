@@ -31,11 +31,24 @@ export const AutoTripService = {
   confirm: async ({ id }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/${id}/confirm`, {}, { signal })),
 
+  // Returns { trip, recompute } once the backend ships the contract shape; the
+  // caller reads `.trip` with a fallback so it works before and after.
   drop: async ({ id, ...body }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/${id}/drop`, body, { signal })),
 
-  dismiss: async ({ id, reason }, { signal } = {}) =>
-    unwrap(await apiClient.post(`${BASE}/${id}/dismiss`, reason ? { reason } : {}, { signal })),
+  // reallocateAs (UNATTRIBUTED | REPOSITION | PERSONAL) is optional; the trip's km
+  // are re-allocated, never dropped. Omitted → backend default (UNATTRIBUTED).
+  dismiss: async ({ id, reason, reallocateAs }, { signal } = {}) =>
+    unwrap(
+      await apiClient.post(
+        `${BASE}/${id}/dismiss`,
+        {
+          ...(reason ? { reason } : {}),
+          ...(reallocateAs ? { reallocateAs } : {}),
+        },
+        { signal },
+      ),
+    ),
 };
 
 export default AutoTripService;
