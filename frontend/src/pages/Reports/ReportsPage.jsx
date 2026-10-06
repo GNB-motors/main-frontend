@@ -13,6 +13,9 @@ import MileageIntervalReport from './reports/MileageIntervalReport.jsx';
 import RefuelLogsPage from '../Trip/RefuelLogsPage.jsx';
 import AdBlueComparisonReport from './reports/AdBlueComparisonReport.jsx';
 import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
+import FuelCyclesReport from './reports/FuelCyclesReport.jsx';
+import NonBusinessReport from './reports/NonBusinessReport.jsx';
+import RunningCostReport from './reports/RunningCostReport.jsx';
 
 const REPORT_COMPONENTS = {
   driver: () => <DriverReport />,
@@ -21,6 +24,9 @@ const REPORT_COMPONENTS = {
   modelComparison: () => <ModelComparisonPage />,
   dieselReport: () => <RefuelLogsPage fuelType="DIESEL" />,
   adblueReport: () => <AdBlueComparisonReport />,
+  fuelCycles: () => <FuelCyclesReport />,
+  nonBusiness: () => <NonBusinessReport />,
+  runningCost: () => <RunningCostReport />,
 };
 
 const ReportsPage = () => {

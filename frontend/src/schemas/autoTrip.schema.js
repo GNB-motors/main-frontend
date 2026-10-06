@@ -107,13 +107,27 @@ export const autoTripOilAverageSchema = z
           odometerStart: num,
           odometerEnd: num,
           distanceKm: num,
+          // Contract renames refuelLitres→refuelL, fuelUsedLitres→fuelUsedL (V-69);
+          // both kept so the page reads either shape during the migration.
+          refuelL: num,
           refuelLitres: num,
+          fuelUsedL: num,
           fuelUsedLitres: num,
           mileageKmPerL: num,
           fuelCost: num,
           fuelStation: str,
           status: str,
           dropSource: str,
+          // Role / cost columns (v2) — null until the backend ships them.
+          kmApproach: num,
+          kmLaden: num,
+          kmReturn: num,
+          ladenFuelL: num,
+          ladenFuelInr: num,
+          ladenWearInr: num,
+          ladenTotalInr: num,
+          emptySharePct: num,
+          totalCostInr: num,
         })
         .passthrough(),
     ),

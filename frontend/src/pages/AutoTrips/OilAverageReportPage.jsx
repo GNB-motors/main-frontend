@@ -24,7 +24,13 @@ function fmtDate(v) {
 }
 const n0 = (v) => (v == null ? '' : Math.round(v));
 const n2 = (v) => (v == null ? '' : (Math.round(v * 100) / 100).toFixed(2));
+const inr = (v) => (v == null ? '' : `₹${Math.round(v).toLocaleString('en-IN')}`);
+const pct = (v) => (v == null ? '' : `${(Math.round(v * 10) / 10).toFixed(1)}%`);
 
+// Field fallbacks: the API contract renames refuelLitres→refuelL and
+// fuelUsedLitres→fuelUsedL (V-69); read both so the page works before and after
+// the backend ships the renamed shape. The role/cost columns (v2) stay blank
+// until the backend sends them.
 const COLUMNS = [
   ['date', 'Date', (r) => fmtDate(r.date)],
   ['vehicleNumber', 'Vehicle', (r) => r.vehicleNumber || ''],
@@ -34,12 +40,41 @@ const COLUMNS = [
   ['odometerStart', 'Odo Start', (r) => n0(r.odometerStart)],
   ['odometerEnd', 'Odo End', (r) => n0(r.odometerEnd)],
   ['distanceKm', 'Distance', (r) => n0(r.distanceKm)],
-  ['refuelLitres', 'Refuel (L)', (r) => n2(r.refuelLitres)],
-  ['fuelUsedLitres', 'Fuel Used (L)', (r) => n2(r.fuelUsedLitres)],
+  ['refuel', 'Refuel (L)', (r) => n2(r.refuelL ?? r.refuelLitres)],
+  ['fuelUsed', 'Fuel Used (L)', (r) => n2(r.fuelUsedL ?? r.fuelUsedLitres)],
   ['mileageKmPerL', 'Mileage (F.E.)', (r) => n2(r.mileageKmPerL)],
   ['fuelCost', 'Fuel Cost', (r) => n0(r.fuelCost)],
   ['fuelStation', 'Fuel Station', (r) => r.fuelStation || ''],
+  // Role / cost columns (contract OilRow, v2) — appended after the station.
+  ['kmApproach', 'Approach km', (r) => n0(r.kmApproach)],
+  ['kmLaden', 'Laden km', (r) => n0(r.kmLaden)],
+  ['kmReturn', 'Return km', (r) => n0(r.kmReturn)],
+  ['ladenFuelL', 'Laden Fuel (L)', (r) => n2(r.ladenFuelL)],
+  ['ladenFuelInr', 'Laden Fuel ₹', (r) => inr(r.ladenFuelInr)],
+  ['ladenWearInr', 'Laden Wear ₹', (r) => inr(r.ladenWearInr)],
+  ['ladenTotalInr', 'Laden Total ₹', (r) => inr(r.ladenTotalInr)],
+  ['emptySharePct', 'Empty %', (r) => pct(r.emptySharePct)],
+  ['totalCostInr', 'Total Cost ₹', (r) => inr(r.totalCostInr)],
 ];
+
+const RIGHT_ALIGNED = new Set([
+  'odometerStart',
+  'odometerEnd',
+  'distanceKm',
+  'refuel',
+  'fuelUsed',
+  'mileageKmPerL',
+  'fuelCost',
+  'kmApproach',
+  'kmLaden',
+  'kmReturn',
+  'ladenFuelL',
+  'ladenFuelInr',
+  'ladenWearInr',
+  'ladenTotalInr',
+  'emptySharePct',
+  'totalCostInr',
+]);
 
 function toCsv(rows) {
   const esc = (s) => {
@@ -85,17 +120,7 @@ export default function OilAverageReportPage() {
       COLUMNS.map(([key, label, render]) => ({
         key,
         label,
-        align: [
-          'odometerStart',
-          'odometerEnd',
-          'distanceKm',
-          'refuelLitres',
-          'fuelUsedLitres',
-          'mileageKmPerL',
-          'fuelCost',
-        ].includes(key)
-          ? 'right'
-          : 'left',
+        align: RIGHT_ALIGNED.has(key) ? 'right' : 'left',
         render,
       })),
     [],

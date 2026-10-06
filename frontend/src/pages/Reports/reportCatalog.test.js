@@ -6,14 +6,26 @@ const ids = (groups) => groups.flatMap((g) => g.children.map((c) => c.id));
 
 describe('visibleReportGroups', () => {
   it('shows every report when the org has all sub-flags', () => {
-    expect(ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity'])))).toEqual([
+    expect(
+      ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity', 'autoTrips']))),
+    ).toEqual([
       'driver',
       'vehicle',
       'mileageIntervals',
       'modelComparison',
       'dieselReport',
       'adblueReport',
+      'fuelCycles',
+      'nonBusiness',
+      'runningCost',
     ]);
+  });
+
+  it('hides the Trip Economics reports for an org without autoTrips', () => {
+    const visible = ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity'])));
+    expect(visible).not.toContain('fuelCycles');
+    expect(visible).not.toContain('nonBusiness');
+    expect(visible).not.toContain('runningCost');
   });
 
   it('hides AdBlue for an org without fuelIntegrity (its API would 404)', () => {
