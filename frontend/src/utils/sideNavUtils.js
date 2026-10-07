@@ -347,7 +347,7 @@ export const SIDE_NAV_ITEMS = [
     label: 'Geofence',
     icon: Navigation,
     children: [
-      { to: '/geofence', label: 'Anomalies' },
+      { to: '/geofence', label: 'Fuel Hotspots' },
       { to: '/geofence/zones', label: 'Zones & Alerts' },
     ],
     matchRoutes: ['/geofence', '/geofence/zones'],

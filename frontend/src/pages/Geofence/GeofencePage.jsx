@@ -2,17 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   MapPin,
-  AlertTriangle,
   CheckCircle2,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Fuel,
-  Clock,
   Truck,
   ShieldAlert,
-  ShieldCheck,
-  XCircle,
   Wifi,
   WifiOff,
   Plus,
@@ -30,13 +23,9 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useConfirm } from '../../components/ui/confirmContext';
 import { GeofenceService } from '../../services/GeofenceService.jsx';
 import { toast } from 'react-toastify';
-import { humanise } from '../../lib/vocabulary';
-import { footerSummary } from '../../lib/tableState';
 import { formatNum, formatLitres } from '../../utils/formatters';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
-import ExportButton from '../../components/ui/ExportButton';
-import PlaceLabel from '../../components/ui/PlaceLabel';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { toGeofenceLiveVehicle } from './geofenceLive.shared.js';
@@ -50,7 +39,6 @@ dayjs.extend(timezone);
 dayjs.extend(relativeTime);
 
 const IST = 'Asia/Kolkata';
-const formatIST = (d) => (d ? dayjs.utc(d).tz(IST).format('DD MMM YYYY, hh:mm A') : '—');
 const fromNow = (d) => (d ? dayjs.utc(d).tz(IST).fromNow() : '—');
 const formatLastIncident = (date) =>
   date ? dayjs.utc(date).tz(IST).fromNow() : 'No recent incidents';
@@ -95,182 +83,18 @@ const PROVENANCE_META = {
   'own-manual': { label: 'Added manually', color: '#64748B', text: '#FFFFFF' },
 };
 
-// ─── Severity Badge ────────────────────────────────────────────────────────────
-const SeverityBadge = ({ severity }) => {
-  const map = {
-    HIGH: { cls: 'gf-badge gf-badge-high', label: 'High' },
-    MEDIUM: { cls: 'gf-badge gf-badge-medium', label: 'Medium' },
-    LOW: { cls: 'gf-badge gf-badge-low', label: 'Low' },
-  };
-  const cfg = map[severity] || map.LOW;
-  return <span className={cfg.cls}>{cfg.label}</span>;
-};
-
-// ─── Event Row ─────────────────────────────────────────────────────────────────
-const EventRow = ({ event, idx }) => (
-  <div className="gf-event-row">
-    <span className="gf-event-num">{idx + 1}</span>
-    <div className="gf-event-details">
-      <div className="gf-event-top">
-        <Truck size={12} className="gf-event-icon" />
-        <span className="gf-event-vehicle">
-          {event.vehicleId?.registrationNumber || event.vehicleNumber || '—'}
-        </span>
-        {event.driverId?.name && <span className="gf-event-driver">· {event.driverId.name}</span>}
-      </div>
-      <div className="gf-event-meta">
-        <Clock size={11} />
-        <span>
-          {formatIST(event.stoppedAt)} → {formatIST(event.departedAt)}
-        </span>
-        <span className="gf-sep">·</span>
-        <span>{event.durationMinutes?.toFixed(0)} min stop</span>
-        <span className="gf-sep">·</span>
-        <span className="gf-fuel-drop">
-          <Fuel size={11} /> −{event.fuelDropLitres?.toFixed(1)} L
-        </span>
-      </div>
-    </div>
-  </div>
-);
-
-// ─── Location Row ──────────────────────────────────────────────────────────────
-const LocationRow = ({ location, onResolve, resolvingId, onCreateZone }) => {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <>
-      <tr className={`gf-row ${location.severity === 'HIGH' ? 'gf-row-high' : ''}`}>
-        <td className="gf-td">
-          <div className="gf-location-cell">
-            <MapPin size={13} className="gf-pin-icon" />
-            <span className="gf-address">
-              {location.address || (
-                <PlaceLabel lat={location.lat} lng={location.lng} showMap={false} />
-              )}
-            </span>
-          </div>
-        </td>
-        <td className="gf-td gf-td-c">
-          <SeverityBadge severity={location.severity} />
-        </td>
-        <td className="gf-td gf-td-c">{location.occurrenceCount}</td>
-        <td className="gf-td gf-td-r">{location.totalFuelDropLitres?.toFixed(1)} L</td>
-        <td className="gf-td gf-td-c">{(location.vehiclesAffected || []).length}</td>
-        <td className="gf-td gf-td-c">{formatIST(location.lastSeenAt)}</td>
-        <td className="gf-td gf-td-actions">
-          {onCreateZone && (
-            <button
-              className="gf-btn gf-btn-icon"
-              onClick={() =>
-                onCreateZone({
-                  lat: location.lat,
-                  lng: location.lng,
-                  name: location.address
-                    ? `Zone - ${location.address.split(',')[0]}`
-                    : 'Risk Anomaly Zone',
-                })
-              }
-              title="Create Custom Geofence Zone around this location"
-            >
-              <Plus size={14} />
-            </button>
-          )}
-          <button
-            className="gf-btn gf-btn-icon"
-            onClick={() => setExpanded((p) => !p)}
-            title="Show stop events"
-          >
-            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          </button>
-          {!location.isResolved && (
-            <button
-              className="gf-btn gf-btn-resolve"
-              onClick={() => onResolve(location._id)}
-              disabled={resolvingId === location._id}
-            >
-              {resolvingId === location._id ? (
-                <RefreshCw size={12} className="gf-spin" />
-              ) : (
-                <CheckCircle2 size={12} />
-              )}
-              Resolve
-            </button>
-          )}
-        </td>
-      </tr>
-      {expanded && (
-        <tr className="gf-events-row">
-          <td colSpan={7} className="gf-events-cell">
-            <div className="gf-events-panel">
-              <p className="gf-events-heading">
-                <ShieldAlert size={13} />
-                &nbsp;{(location.events || []).length} suspicious stop
-                {(location.events || []).length !== 1 ? 's' : ''} at this location
-              </p>
-              {(location.events || []).map((ev, i) => (
-                <EventRow key={i} event={ev} idx={i} />
-              ))}
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
-  );
-};
-
-const PIN = {
-  HIGH: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-  MEDIUM: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
-  LOW: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-};
-
-// Export shape for the anomaly location table
-const LOCATION_EXPORT_COLUMNS = [
-  { key: 'address', label: 'Location' },
-  { key: 'severity', label: 'Severity' },
-  { key: 'occurrenceCount', label: 'Occurrences', type: 'number' },
-  { key: 'totalFuelDropLitres', label: 'Total fuel drop (L)', type: 'number' },
-  { key: 'vehiclesAffected', label: 'Vehicles affected', type: 'number' },
-  { key: 'lastSeenAt', label: 'Last seen' },
-  { key: 'status', label: 'Status' },
-];
-const locationExportRows = (records) =>
-  records.map((loc) => ({
-    address: loc.address || 'Unresolved location',
-    severity: humanise(loc.severity),
-    occurrenceCount: loc.occurrenceCount,
-    totalFuelDropLitres: loc.totalFuelDropLitres,
-    vehiclesAffected: (loc.vehiclesAffected || []).length,
-    lastSeenAt: loc.lastSeenAt ? formatIST(loc.lastSeenAt) : '—',
-    status: loc.isResolved ? 'Resolved' : 'Open',
-  }));
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const GeofencePage = () => {
   useFullPageLayout();
   const confirm = useConfirm();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(
-    searchParams.get('tab') === 'drain'
-      ? 'drain'
-      : searchParams.get('tab') === 'hotspots'
-        ? 'hotspots'
-        : 'anomalies',
+    searchParams.get('tab') === 'drain' ? 'drain' : 'hotspots',
   );
 
-  const [locations, setLocations] = useState([]);
   const [hotspots, setHotspots] = useState([]);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [severityFilter, setSeverityFilter] = useState('');
-  const [showResolved, setShowResolved] = useState(false);
-  const [locationQuery, setLocationQuery] = useState('');
   const [hotspotQuery, setHotspotQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [resolvingId, setResolvingId] = useState(null);
-  const [selectedLoc, setSelectedLoc] = useState(null);
   const [selectedHotspot, setSelectedHotspot] = useState(null);
   const [busyHotspotId, setBusyHotspotId] = useState(null);
   const [showZoneDrawer, setShowZoneDrawer] = useState(false);
@@ -314,33 +138,19 @@ const GeofencePage = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const mapRef = useRef(null);
 
-  const LIMIT = 20;
-
   const { isLoaded: mapLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
   });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const params = { page, limit: LIMIT, isResolved: showResolved };
-      if (severityFilter) params.severity = severityFilter;
-      const [locData, statsData, hotspotsData] = await Promise.all([
-        GeofenceService.getAnomalyLocations(params),
-        GeofenceService.getAnomalyStats(),
-        GeofenceService.getHotspots(),
-      ]);
-      setLocations(locData.locations || []);
-      setTotalPages(locData.totalPages || 1);
-      setStats(statsData);
+      const hotspotsData = await GeofenceService.getHotspots();
       setHotspots(Array.isArray(hotspotsData) ? hotspotsData : []);
-    } catch (err) {
-      setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [page, severityFilter, showResolved]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -387,18 +197,10 @@ const GeofencePage = () => {
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
 
-    if (locations.length === 0 && activeHotspots.length === 0 && validLiveVehicles.length === 0)
-      return;
+    if (activeHotspots.length === 0 && validLiveVehicles.length === 0) return;
 
     const bounds = new window.google.maps.LatLngBounds();
     let hasPoints = false;
-
-    locations.forEach((loc) => {
-      if (Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
-        bounds.extend({ lat: loc.lat, lng: loc.lng });
-        hasPoints = true;
-      }
-    });
 
     activeHotspots.forEach((h) => {
       const lat = h.centerLat ?? h.lat;
@@ -423,39 +225,7 @@ const GeofencePage = () => {
         window.google.maps.event.removeListener(listener);
       });
     }
-  }, [locations, activeHotspots, validLiveVehicles, mapLoaded]);
-
-  const handleResolve = async (id) => {
-    const note = window.prompt('Resolution note (optional):');
-    if (note === null) return;
-    setResolvingId(id);
-    try {
-      await GeofenceService.resolveAnomalyLocation(id, note || null);
-      fetchData();
-    } catch (err) {
-      toast.error(err.message || 'Failed to resolve');
-    } finally {
-      setResolvingId(null);
-    }
-  };
-
-  // Client-side search over the loaded page
-  const locationNeedle = locationQuery.trim().toLowerCase();
-  const filteredLocations = locationNeedle
-    ? locations.filter((loc) =>
-        [
-          loc.address,
-          loc.severity,
-          ...(loc.vehiclesAffected || []).map((v) => v.registrationNumber),
-        ].some((f) =>
-          String(f ?? '')
-            .toLowerCase()
-            .includes(locationNeedle),
-        ),
-      )
-    : locations;
-  const locationFilterCount =
-    (severityFilter ? 1 : 0) + (showResolved ? 1 : 0) + (locationNeedle ? 1 : 0);
+  }, [activeHotspots, validLiveVehicles, mapLoaded]);
 
   const hotspotNeedle = hotspotQuery.trim().toLowerCase();
   const filteredActiveHotspots = hotspotNeedle
@@ -467,16 +237,6 @@ const GeofencePage = () => {
         ),
       )
     : activeHotspots;
-
-  const locationsWithPos = useMemo(() => {
-    return filteredLocations
-      .filter((loc) => Number.isFinite(loc.lat) && Number.isFinite(loc.lng))
-      .map((loc) => ({
-        ...loc,
-        position: { lat: loc.lat, lng: loc.lng },
-        icon: { url: PIN[loc.severity] || PIN.LOW },
-      }));
-  }, [filteredLocations]);
 
   const hotspotsWithPos = useMemo(() => {
     return activeHotspots
@@ -511,16 +271,16 @@ const GeofencePage = () => {
   return (
     <PageShell
       className="gf-page"
-      title="Geofence & Fuel Risk Hotspots"
-      subtitle="Surveillance map tracking live fleet telemetry, fuel loss anomalies, and high-risk siphoning hotspots"
-      count={activeTab === 'hotspots' ? activeHotspots.length : (stats?.total ?? null)}
+      title="Fuel Risk Hotspots"
+      subtitle="Siphoning hotspots, the fuel drain map and live fleet positions"
+      count={activeTab === 'hotspots' ? activeHotspots.length : null}
       actions={
         <>
           <button className="gf-btn gf-btn-primary" onClick={() => handleCreateZone()}>
-            <Plus size={14} /> Add Custom Zone
+            <Plus size={14} /> Draw Zone
           </button>
           <Link to="/geofence/zones" className="gf-btn gf-btn-ghost">
-            <MapPin size={14} /> Risk Zones
+            <MapPin size={14} /> Zones &amp; Alerts
           </Link>
           <Link to="/fleet-alerts" className="gf-btn gf-btn-ghost">
             <BellRing size={14} /> Fleet Alerts
@@ -566,44 +326,7 @@ const GeofencePage = () => {
         </>
       }
       filters={
-        activeTab === 'anomalies' ? (
-          <FilterBar
-            searchValue={locationQuery}
-            onSearchChange={(v) => {
-              setLocationQuery(v);
-              setPage(1);
-            }}
-            searchPlaceholder="Search location or vehicle…"
-            activeCount={locationFilterCount}
-            onClear={() => {
-              setLocationQuery('');
-              setSeverityFilter('');
-              setShowResolved(false);
-              setPage(1);
-            }}
-            right={
-              <ExportButton
-                rows={locationExportRows(filteredLocations)}
-                columns={LOCATION_EXPORT_COLUMNS}
-                filename="geofence-anomalies"
-                disabled={loading || !!error}
-                meta={{
-                  generatedAt: new Date(),
-                  filters: [
-                    ...(locationNeedle
-                      ? [{ label: 'Search (this page)', value: locationQuery.trim() }]
-                      : []),
-                    {
-                      label: 'Severity',
-                      value: severityFilter ? humanise(severityFilter) : 'All severities',
-                    },
-                    { label: 'Status', value: showResolved ? 'Open + resolved' : 'Open only' },
-                  ],
-                }}
-              />
-            }
-          />
-        ) : activeTab === 'hotspots' ? (
+        activeTab === 'hotspots' ? (
           <FilterBar
             searchValue={hotspotQuery}
             onSearchChange={(v) => setHotspotQuery(v)}
@@ -614,31 +337,13 @@ const GeofencePage = () => {
         ) : null
       }
       footer={
-        activeTab === 'anomalies'
-          ? footerSummary({
-              showing: filteredLocations.length,
-              total: locations.length,
-              activeFilters: locationFilterCount,
-            }) + ' on this page'
-          : activeTab === 'hotspots'
-            ? `${filteredActiveHotspots.length} active fuel risk hotspots monitored`
-            : null
+        activeTab === 'hotspots'
+          ? `${filteredActiveHotspots.length} active fuel risk hotspots monitored`
+          : null
       }
     >
-      {/* View Switcher: Anomalies vs Hotspots vs Fuel Drain Map */}
+      {/* View Switcher: Hotspots vs Fuel Drain Map */}
       <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('anomalies')}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
-            activeTab === 'anomalies'
-              ? 'bg-white text-indigo-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <ShieldAlert size={13} />
-          <span>Anomaly Incidents ({stats?.total ?? locations.length})</span>
-        </button>
         <button
           type="button"
           onClick={() => setActiveTab('hotspots')}
@@ -669,7 +374,7 @@ const GeofencePage = () => {
         <DrainHotspotMap mapLoaded={mapLoaded} onCreateZone={handleCreateZone} />
       )}
 
-      {(activeTab === 'anomalies' || activeTab === 'hotspots') && (
+      {activeTab === 'hotspots' && (
         <>
           {/* Framed Google Map Card with Enclosed KPI Strip & Legend */}
           <div className="hs-map-card">
@@ -677,22 +382,12 @@ const GeofencePage = () => {
               <div className="flex items-center gap-2">
                 <ShieldAlert size={16} className="text-amber-600" />
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  Geofence Anomalies, Hotspots &amp; Live Fleet Watch
+                  Fuel Risk Hotspots &amp; Live Fleet Watch
                 </span>
               </div>
 
               {/* Enclosed KPI Rail */}
               <div className="hs-kpi-strip">
-                <div className="hs-kpi-pill">
-                  <span className="hs-kpi-pill-icon bg-amber-50 text-amber-600 border border-amber-200">
-                    <AlertTriangle size={12} />
-                  </span>
-                  <div className="hs-kpi-pill-meta">
-                    <span className="hs-kpi-pill-label">Open Anomalies</span>
-                    <span className="hs-kpi-pill-value">{formatNum(stats?.total ?? 0)}</span>
-                  </div>
-                </div>
-
                 <div className="hs-kpi-pill">
                   <span className="hs-kpi-pill-icon bg-orange-50 text-orange-600 border border-orange-200">
                     <MapPin size={12} />
@@ -716,18 +411,6 @@ const GeofencePage = () => {
                 </div>
 
                 <div className="hs-kpi-pill">
-                  <span className="hs-kpi-pill-icon bg-emerald-50 text-emerald-600 border border-emerald-200">
-                    <CheckCircle2 size={12} />
-                  </span>
-                  <div className="hs-kpi-pill-meta">
-                    <span className="hs-kpi-pill-label">Resolved</span>
-                    <span className="hs-kpi-pill-value text-emerald-700">
-                      {formatNum(stats?.resolved ?? 0)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="hs-kpi-pill">
                   <span className="hs-kpi-pill-icon bg-slate-100 text-slate-600 border border-slate-200">
                     <Truck size={12} />
                   </span>
@@ -740,14 +423,6 @@ const GeofencePage = () => {
 
               {/* Legend */}
               <div className="hs-legend-group">
-                <span className="hs-legend-pill">
-                  <span className="hs-legend-dot" style={{ background: '#ef4444' }} />
-                  <span>High Risk</span>
-                </span>
-                <span className="hs-legend-pill">
-                  <span className="hs-legend-dot" style={{ background: '#f59e0b' }} />
-                  <span>Medium Risk</span>
-                </span>
                 <span className="hs-legend-pill">
                   <span className="hs-legend-dot" style={{ background: '#6366F1' }} />
                   <span>Learned Hotspot</span>
@@ -776,33 +451,17 @@ const GeofencePage = () => {
             </div>
 
             {/* Ambient status ribbon bar */}
-            {stats?.high > 0 ? (
-              <div className="hs-status-strip hs-status-strip--rose">
-                <div
-                  className="hs-status-strip-badge"
-                  style={{ borderColor: '#ef4444', color: '#991b1b' }}
-                >
-                  <AlertTriangle size={15} className="text-rose-600" />
-                  <span>
-                    {stats.high} Critical Fuel Drain Incident{stats.high !== 1 ? 's' : ''} Flagged
-                  </span>
-                </div>
-                <span className="rounded-md bg-white border border-rose-300 px-2.5 py-1 text-[11px] font-bold text-rose-800 shadow-xs">
-                  High Risk Anomaly Detected
-                </span>
-              </div>
-            ) : stats?.total === 0 && activeHotspots.length === 0 ? (
+            {activeHotspots.length === 0 ? (
               <div className="hs-status-strip hs-status-strip--emerald">
                 <div
                   className="hs-status-strip-badge"
                   style={{ borderColor: '#10b981', color: '#065f46' }}
                 >
                   <CheckCircle2 size={15} className="text-emerald-600" />
-                  <span>Corridors Clear · No Unexplained Fuel Losses Recorded</span>
+                  <span>No active fuel risk hotspots</span>
                 </div>
               </div>
             ) : null}
-
             {/* Map */}
             <div className="gf-map-wrap" style={{ border: 'none', borderRadius: 0, margin: 0 }}>
               {mapLoaded ? (
@@ -815,23 +474,7 @@ const GeofencePage = () => {
                     mapRef.current = map;
                   }}
                 >
-                  {/* 1. Anomaly Flagged Locations */}
-                  {locationsWithPos.map((loc) => (
-                    <MarkerF
-                      key={loc._id}
-                      position={loc.position}
-                      icon={loc.icon}
-                      zIndex={4}
-                      title={`Anomaly: ${loc.address || 'Flagged Location'}`}
-                      onClick={() => {
-                        setSelectedLoc(loc);
-                        setSelectedHotspot(null);
-                        setSelectedVehicle(null);
-                      }}
-                    />
-                  ))}
-
-                  {/* 2. Fuel Risk Hotspots (Circles + Pins) */}
+                  {/* 1. Fuel Risk Hotspots (Circles + Pins) */}
                   {hotspotsWithPos.map((h) => (
                     <React.Fragment key={h._id}>
                       <MarkerF
@@ -846,7 +489,6 @@ const GeofencePage = () => {
                         title={`Fuel Risk Hotspot: ${h.name}`}
                         onClick={() => {
                           setSelectedHotspot(h);
-                          setSelectedLoc(null);
                           setSelectedVehicle(null);
                         }}
                       />
@@ -864,7 +506,7 @@ const GeofencePage = () => {
                     </React.Fragment>
                   ))}
 
-                  {/* 3. Live Fleet Vehicle Pins */}
+                  {/* 2. Live Fleet Vehicle Pins */}
                   {validLiveVehicles.map((v) => {
                     const iconObj = vehicleIcons[v.status] || vehicleIcons.Offline;
                     return (
@@ -876,63 +518,11 @@ const GeofencePage = () => {
                         title={`${v.registrationNumber} (${v.status})`}
                         onClick={() => {
                           setSelectedVehicle(v);
-                          setSelectedLoc(null);
                           setSelectedHotspot(null);
                         }}
                       />
                     );
                   })}
-
-                  {/* InfoWindow: Anomaly Location */}
-                  {selectedLoc && (
-                    <InfoWindowF
-                      position={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}
-                      onCloseClick={() => setSelectedLoc(null)}
-                    >
-                      <div className="gf-infowindow">
-                        <p className="gf-iw-title">
-                          {selectedLoc.address || (
-                            <PlaceLabel
-                              lat={selectedLoc.lat}
-                              lng={selectedLoc.lng}
-                              showMap={false}
-                            />
-                          )}
-                        </p>
-                        <p className="gf-iw-stat">
-                          <strong>{selectedLoc.occurrenceCount}</strong> occurrence
-                          {selectedLoc.occurrenceCount !== 1 ? 's' : ''}
-                          &nbsp;·&nbsp;
-                          <strong>{selectedLoc.totalFuelDropLitres?.toFixed(1)} L</strong> total
-                          drop
-                        </p>
-                        <div style={{ marginTop: 4, marginBottom: 8 }}>
-                          <SeverityBadge severity={selectedLoc.severity} />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleCreateZone({
-                              lat: selectedLoc.lat,
-                              lng: selectedLoc.lng,
-                              name: selectedLoc.address
-                                ? `Zone - ${selectedLoc.address.split(',')[0]}`
-                                : 'Risk Anomaly Zone',
-                            })
-                          }
-                          className="gf-btn gf-btn-primary"
-                          style={{
-                            width: '100%',
-                            justifyContent: 'center',
-                            fontSize: '11px',
-                            padding: '6px 8px',
-                          }}
-                        >
-                          <Plus size={12} /> Create Geofence Zone
-                        </button>
-                      </div>
-                    </InfoWindowF>
-                  )}
 
                   {/* InfoWindow: Fuel Risk Hotspot */}
                   {selectedHotspot && (
@@ -1091,120 +681,7 @@ const GeofencePage = () => {
             </div>
           </div>
 
-          {/* TAB 1: Anomaly Incidents List & Filters */}
-          {activeTab === 'anomalies' && (
-            <>
-              <div className="gf-filter-bar">
-                <select
-                  className="gf-select"
-                  value={severityFilter}
-                  onChange={(e) => {
-                    setSeverityFilter(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  <option value="">All severities</option>
-                  <option value="HIGH">High</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="LOW">Low</option>
-                </select>
-                <label className="gf-check-label">
-                  <input
-                    type="checkbox"
-                    checked={showResolved}
-                    onChange={(e) => {
-                      setShowResolved(e.target.checked);
-                      setPage(1);
-                    }}
-                  />
-                  Show resolved
-                </label>
-                <span className="gf-count-label">
-                  {stats ? `${stats.total} open location${stats.total !== 1 ? 's' : ''}` : ''}
-                </span>
-              </div>
-
-              {error && (
-                <div className="gf-error-banner">
-                  <AlertTriangle size={15} /> {error}
-                </div>
-              )}
-
-              {loading ? (
-                <div className="gf-loading">
-                  <RefreshCw size={20} className="gf-spin" />
-                  <span>Analysing locations…</span>
-                </div>
-              ) : locations.length === 0 ? (
-                <div className="gf-empty">
-                  <CheckCircle2 size={40} color="#22c55e" />
-                  <p>No suspicious locations detected.</p>
-                  <span>
-                    Anomalies appear here after mileage intervals are computed from FleetEdge data.
-                  </span>
-                </div>
-              ) : filteredLocations.length === 0 ? (
-                <div className="gf-empty">
-                  <AlertTriangle size={40} color="#f59e0b" />
-                  <p>No locations on this page match “{locationQuery.trim()}”.</p>
-                  <span>
-                    Search narrows the loaded page only — try another term or clear the search.
-                  </span>
-                </div>
-              ) : (
-                <div className="gf-table-wrap">
-                  <table className="gf-table">
-                    <thead>
-                      <tr>
-                        <th className="gf-th">Location</th>
-                        <th className="gf-th gf-th-c">Severity</th>
-                        <th className="gf-th gf-th-c">Occurrences</th>
-                        <th className="gf-th gf-th-r">Total Fuel Drop</th>
-                        <th className="gf-th gf-th-c">Vehicles</th>
-                        <th className="gf-th gf-th-c">Last Seen</th>
-                        <th className="gf-th gf-th-c">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredLocations.map((loc) => (
-                        <LocationRow
-                          key={loc._id}
-                          location={loc}
-                          onResolve={handleResolve}
-                          resolvingId={resolvingId}
-                          onCreateZone={handleCreateZone}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {totalPages > 1 && (
-                <div className="gf-pagination">
-                  <button
-                    className="gf-btn gf-btn-page"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    Previous
-                  </button>
-                  <span className="gf-page-label">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    className="gf-btn gf-btn-page"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* TAB 2: Fuel Risk Hotspots List */}
+          {/* Fuel Risk Hotspots List */}
           {activeTab === 'hotspots' && (
             <div className="space-y-6 mt-4">
               {/* Active Monitored Hotspots */}
@@ -1391,7 +868,7 @@ const GeofencePage = () => {
         </>
       )}
 
-      {/* Add Custom Zone Drawer */}
+      {/* Draw Zone Drawer */}
       {showZoneDrawer && (
         <AddZoneDrawer
           prefillLatLng={zonePrefillLatLng}
@@ -1406,7 +883,7 @@ const GeofencePage = () => {
             setShowZoneDrawer(false);
             setZonePrefillLatLng(null);
             setZonePrefillName('');
-            toast.success('Custom geofence zone created successfully');
+            toast.success('Zone created');
           }}
         />
       )}

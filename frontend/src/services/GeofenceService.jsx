@@ -4,52 +4,15 @@
  * Single source of truth for all geofence-related API calls.
  * Follows the same pattern as ReportsService.jsx (apiClient + try/catch).
  *
- * Covers three sub-features:
- *   1. Geofence Anomalies  — fuel drop at suspicious stops (GeofencePage)
- *   2. Geofence Zones      — accident blackspots, parking, custom (GeofenceZonesPage)
- *   3. Live Locations      — vehicle positions from FleetEdge snapshots
+ * Covers:
+ *   1. Geofence Zones   — confirmed Places sites + drawn zones, entry/exit alerts (GeofenceZonesPage)
+ *   2. Fuel hotspots    — siphoning hotspots and the fuel drain map (GeofencePage)
+ *   3. Live Locations   — vehicle positions from the live tracking feed
  */
 
 import apiClient from '../utils/axiosConfig';
 
 export const GeofenceService = {
-  // ─── Anomaly API (GeofencePage) ──────────────────────────────────────────
-
-  getAnomalyLocations: async (params = {}) => {
-    try {
-      const response = await apiClient.get('/api/geofence/locations', { params });
-      return response.data || { locations: [], total: 0, page: 1, totalPages: 1 };
-    } catch (error) {
-      console.error('GeofenceService.getAnomalyLocations:', error.response?.data || error.message);
-      throw error.response?.data || { message: 'Failed to load anomaly locations' };
-    }
-  },
-
-  getAnomalyStats: async () => {
-    try {
-      const response = await apiClient.get('/api/geofence/stats');
-      return response.data || { total: 0, high: 0, medium: 0, low: 0, resolved: 0 };
-    } catch (error) {
-      console.error('GeofenceService.getAnomalyStats:', error.response?.data || error.message);
-      return { total: 0, high: 0, medium: 0, low: 0, resolved: 0 };
-    }
-  },
-
-  resolveAnomalyLocation: async (locationId, resolutionNote = null) => {
-    try {
-      const response = await apiClient.put(`/api/geofence/locations/${locationId}/resolve`, {
-        resolutionNote,
-      });
-      return response.data;
-    } catch (error) {
-      console.error(
-        'GeofenceService.resolveAnomalyLocation:',
-        error.response?.data || error.message,
-      );
-      throw error.response?.data || { message: 'Failed to resolve location' };
-    }
-  },
-
   // ─── Zone API (GeofenceZonesPage) ────────────────────────────────────────
 
   getZones: async (params = {}) => {
@@ -127,33 +90,22 @@ export const GeofenceService = {
       return response.data;
     } catch (error) {
       console.error('GeofenceService.markAllAlertsRead:', error.response?.data || error.message);
+      throw error.response?.data || { message: 'Failed to mark alerts read' };
     }
   },
 
   // ─── Live Locations ───────────────────────────────────────────────────────
 
   /**
-   * GET /api/geofence/live-locations with fallback to /api/livetracking/positions
-   * Returns current active live telemetry for all vehicles in the org.
+   * GET /api/livetracking/positions — current live position of every vehicle in the org.
    */
   getLiveLocations: async () => {
-    try {
-      const response = await apiClient.get('/api/geofence/live-locations');
-      const vehicles = response.data?.vehicles;
-      if (Array.isArray(vehicles) && vehicles.length > 0) {
-        return vehicles;
-      }
-    } catch (error) {
-      console.warn('GeofenceService.getLiveLocations primary call error:', error.message);
-    }
-
-    // Direct fallback to livetracking positions endpoint which is verified in telemetry
     try {
       const posRes = await apiClient.get('/api/livetracking/positions');
       const records = posRes.data?.data?.records || posRes.data?.data || [];
       return Array.isArray(records) ? records : [];
     } catch (error) {
-      console.error('GeofenceService.getLiveLocations fallback error:', error.message);
+      console.error('GeofenceService.getLiveLocations:', error.message);
       return [];
     }
   },

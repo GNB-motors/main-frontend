@@ -15,6 +15,20 @@ import './AddZoneDrawer.css';
 // Polygon is drawn using plain map click events (no DrawingManager).
 const GMAPS_LIBS = ['places'];
 
+// A zone is a Places site; its type is the site type (warehouses are declared on the
+// Warehouses page, so they are not offered here).
+const PLACE_TYPES = [
+  ['UNKNOWN', 'Other'],
+  ['LOADING', 'Loading'],
+  ['UNLOADING', 'Unloading'],
+  ['PLANT', 'Plant'],
+  ['YARD', 'Yard'],
+  ['PARKING', 'Parking'],
+  ['FUEL_PUMP', 'Fuel pump'],
+  ['WORKSHOP', 'Workshop'],
+  ['SERVICE', 'Service point'],
+];
+
 // ─── Location Search ────────────────────────────────────────────────────────────
 const LocationSearch = ({ isLoaded, value, onChange, onSelect, hasError }) => {
   const [suggestions, setSuggestions] = useState([]);
@@ -348,7 +362,10 @@ const AddZoneDrawer = ({
   const [geofenceType, setGeofenceType] = useState(
     isEdit ? editZone.geofenceType : prefillLatLng ? 'circular' : 'circular',
   );
-  const [radiusMetres, setRadiusMetres] = useState(isEdit ? editZone.radiusMetres : 500);
+  const [radiusMetres, setRadiusMetres] = useState(
+    isEdit ? Math.min(editZone.radiusMetres, 5000) : 500,
+  );
+  const [siteType, setSiteType] = useState(isEdit ? editZone.zoneType || 'UNKNOWN' : 'UNKNOWN');
   const [alertOnEntry, setAlertOnEntry] = useState(
     isEdit ? editZone.alertConfig?.alertOnEntry : true,
   );
@@ -460,8 +477,10 @@ const AddZoneDrawer = ({
         polygonPath: geofenceType === 'polygon' ? polygonPath : [],
         alertOnEntry,
         alertOnExit,
-        cooldownMinutes: 0,
+        cooldownMinutes: isEdit ? (editZone.alertConfig?.cooldownMinutes ?? 30) : 30,
       };
+      // A warehouse's type is owned by the Warehouses page.
+      if (!(isEdit && editZone.zoneType === 'WAREHOUSE')) payload.siteType = siteType;
 
       if (isEdit) {
         await GeofenceService.updateZone(editZone._id, payload);
@@ -498,7 +517,7 @@ const AddZoneDrawer = ({
       <div className="azd-modal">
         {/* ── Header ── */}
         <div className="azd-header">
-          <h3 className="azd-title">{mode === 'edit' ? 'Edit Place' : 'Add Custom Zone'}</h3>
+          <h3 className="azd-title">{mode === 'edit' ? 'Edit Zone' : 'Draw Zone'}</h3>
           <button className="azd-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
@@ -538,6 +557,26 @@ const AddZoneDrawer = ({
               }}
             />
             {nameError && <p className="azd-error-msg">Name is required</p>}
+
+            {!(isEdit && editZone.zoneType === 'WAREHOUSE') && (
+              <>
+                <label className="azd-label" htmlFor="azd-place-type">
+                  Place type
+                </label>
+                <select
+                  id="azd-place-type"
+                  className="azd-input"
+                  value={siteType}
+                  onChange={(e) => setSiteType(e.target.value)}
+                >
+                  {PLACE_TYPES.map(([value, text]) => (
+                    <option key={value} value={value}>
+                      {text}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
 
             <label className="azd-label">Geofence Type</label>
             <GeoTypeSelect value={geofenceType} onChange={handleTypeChange} />
@@ -580,7 +619,7 @@ const AddZoneDrawer = ({
                   className="azd-slider"
                   type="range"
                   min="50"
-                  max="10000"
+                  max="5000"
                   step="50"
                   value={radiusMetres}
                   onChange={(e) => setRadiusMetres(parseInt(e.target.value, 10))}
