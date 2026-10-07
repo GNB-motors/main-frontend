@@ -25,6 +25,7 @@ export function normalizeVehicle(v) {
     // Branch membership state (present only in a branch view).
     branchStatus: v.branchStatus,
     isImported: v.isImported,
+    averageMileage: v.averageMileage ?? v.avgMileage ?? v.mileage ?? null,
   };
 }
 

@@ -19,6 +19,7 @@ import {
   Radar,
   Route,
   Warehouse,
+  SunMedium,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -65,6 +66,14 @@ export const SIDE_NAV_ITEMS = [
     to: '/digest',
     label: 'Daily Digest',
     icon: CalendarClock,
+  },
+  {
+    type: 'link',
+    key: 'dailyBrief',
+    access: 'fleet',
+    to: '/daily-brief',
+    label: 'Morning Brief',
+    icon: SunMedium,
   },
 
   // ─── Shared master data ────────────────────────────────────────────────────
@@ -235,21 +244,17 @@ export const SIDE_NAV_ITEMS = [
     label: 'Fuel Management',
     icon: Fuel,
     children: [
-      { to: '/refuel-logs', label: 'Refuel Logs', key: 'fuelIntegrity' },
-      { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
-      { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
-      // Live-map-refresh / warehouse branch additions.
+      { to: '/mileage', label: 'Mileage', key: 'fuelIntegrity' },
       { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
       { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
-      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: 'fuelIntegrity' },
     ],
     matchRoutes: [
+      '/mileage',
       '/refuel-logs',
       '/mileage-tracking',
       '/fuel-comparison',
       '/fuel-integrity',
       '/def-ledger',
-      '/field-agent-fuel',
       '/trip-management',
     ],
   },
@@ -265,7 +270,6 @@ export const SIDE_NAV_ITEMS = [
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
-      { to: '/daily-brief', label: 'Morning Brief', key: 'dailyBrief' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
       { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
       { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
@@ -278,7 +282,6 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: [
       '/idling-console',
-      '/daily-brief',
       '/fleet-coverage',
       '/optimal-speed',
       '/refuel-advisory',
@@ -359,6 +362,8 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },
+  // Settings hub for fleet and vehicle configs
+  { type: 'link', key: null, to: '/settings', label: 'Settings', icon: Settings },
   // Always visible (no feature flag) — guaranteed fallback page. Profile must
   // stay reachable for every authenticated user regardless of plan; gating it
   // can lock users out with no recovery path, so `key` stays null on purpose.
