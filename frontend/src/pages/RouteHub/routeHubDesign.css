@@ -275,6 +275,7 @@ html.dark .nova-rh {
   height: 60px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-4);
 }
 .nova-rh .appbar h1 {
@@ -283,6 +284,138 @@ html.dark .nova-rh {
   font-weight: 600;
   letter-spacing: var(--tracking-compact);
   white-space: nowrap;
+}
+
+/* Universal Search Bar */
+.nova-rh .rh-search-wrapper {
+  position: relative;
+  min-width: 280px;
+  max-width: 440px;
+  width: 100%;
+}
+.nova-rh .rh-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+.nova-rh .rh-search-bar:focus-within,
+.nova-rh .rh-search-bar.active {
+  border-color: #3b82f6;
+  background: var(--bg-canvas);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.nova-rh .rh-search-icon {
+  color: var(--fg-secondary);
+  flex-shrink: 0;
+}
+.nova-rh .rh-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+.nova-rh .rh-search-clear {
+  color: var(--fg-secondary);
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 50%;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.nova-rh .rh-search-clear:hover {
+  color: var(--fg-primary);
+}
+.nova-rh .rh-search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-l);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  z-index: 1000;
+  overflow: hidden;
+}
+.nova-rh .rh-search-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--fg-secondary);
+}
+.nova-rh .rh-search-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.nova-rh .rh-search-item:last-child {
+  border-bottom: none;
+}
+.nova-rh .rh-search-item:hover,
+.nova-rh .rh-search-item.selected {
+  background: rgba(37, 99, 235, 0.08);
+}
+.nova-rh .rh-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+.nova-rh .rh-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.nova-rh .rh-item-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.nova-rh .rh-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nova-rh .rh-item-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+.nova-rh .rh-item-sub {
+  font-size: 11px;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
 }
 /* No track behind the tabs — the active pill and the hover state are enough
    to say which is which, and they read against the page just as well. */
