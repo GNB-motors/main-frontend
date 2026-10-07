@@ -26,6 +26,24 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Global Input Focus Reset ────────────────────────────── */
+/* Eliminates browser default harsh blue outline ring on input focus */
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--color-primary-500, #4f46e5);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeSlideUp {
   from {
