@@ -16,6 +16,10 @@ export const AutoTripService = {
   list: async (params = {}, { signal } = {}) =>
     parsed('autoTripListSchema', await apiClient.get(BASE, { params, signal })),
 
+  /** Our trips vs the org's own trip register (latest per algorithm + daily series). */
+  registerMatch: async ({ signal } = {}) =>
+    unwrap(await apiClient.get('/api/reports/register-match', { signal })),
+
   coverage: async ({ signal } = {}) =>
     parsed('autoTripCoverageSchema', await apiClient.get(`${BASE}/coverage`, { signal })),
 

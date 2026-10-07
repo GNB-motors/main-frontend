@@ -19,6 +19,7 @@ import AutoTripService from '../../services/AutoTripService';
 import AutoTripMap from './AutoTripMap';
 import AutoTripRouteStops from './AutoTripRouteStops';
 import { FLAG_LABEL, DROP_SOURCE_LABEL, answerPlaceHref, stopLabel } from './autoTripModel';
+import { dropLabel } from '../PlaceIntelligence/facilityText';
 
 const STATUS_VARIANT = {
   COMPLETE: 'default',
@@ -123,7 +124,7 @@ export default function AutoTripDetailPage() {
   return (
     <PageShell
       title={`${trip.registrationNumber || 'Trip'}`}
-      subtitle={`${trip.pickup?.name || 'pickup'} → ${trip.drop?.name || trip.drop?.source || 'drop'}`}
+      subtitle={`${trip.pickup?.name || 'pickup'} → ${dropLabel(trip.drop)}`}
       actions={
         <div style={{ display: 'flex', gap: 8 }}>
           <Button variant="outline" size="sm" onClick={() => navigate('/auto-trips')}>
@@ -206,7 +207,7 @@ export default function AutoTripDetailPage() {
         >
           <Field label="Pickup">{trip.pickup?.name || '—'}</Field>
           <Field label="Drop">
-            {trip.drop?.name || '—'}{' '}
+            {dropLabel(trip.drop)}{' '}
             {trip.drop?.source ? (
               <span style={{ fontWeight: 400, color: '#888' }}>
                 ({DROP_SOURCE_LABEL[trip.drop.source] || trip.drop.source})

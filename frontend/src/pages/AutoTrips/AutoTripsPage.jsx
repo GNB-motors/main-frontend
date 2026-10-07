@@ -15,6 +15,8 @@ import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
 import AutoTripCoverage from './AutoTripCoverage';
+import RegisterMatchCard from './RegisterMatchCard';
+import { dropLabel } from '../PlaceIntelligence/facilityText';
 import { DROP_SOURCE_LABEL } from './autoTripModel';
 
 const TABS = [
@@ -63,9 +65,7 @@ function fmtKm(v) {
 
 function routeOf(trip) {
   const from = trip.pickup?.name || '—';
-  const to =
-    trip.drop?.name || (trip.drop?.source === 'UNKNOWN' ? 'drop not found' : 'unnamed place');
-  return `${from} → ${to}`;
+  return `${from} → ${dropLabel(trip.drop)}`;
 }
 
 export default function AutoTripsPage() {
@@ -139,6 +139,7 @@ export default function AutoTripsPage() {
         </div>
       }
     >
+      <RegisterMatchCard />
       <AutoTripCoverage />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>

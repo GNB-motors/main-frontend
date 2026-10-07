@@ -8,11 +8,46 @@ import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';
 import { messageOf } from './placeIntelligenceModel';
 
+// SYSTEM-confirmed regions are ones the learned model was sure of; they are
+// re-checked nightly and a person can keep or reject them. Zones are the
+// market areas drops are named after.
 const STATUSES = [
-  { key: 'PROPOSED', label: 'To review' },
-  { key: 'CONFIRMED', label: 'Confirmed' },
-  { key: 'REJECTED', label: 'Rejected' },
+  {
+    key: 'PROPOSED',
+    label: 'To review',
+    params: { status: 'PROPOSED' },
+    actions: ['CONFIRM', 'REJECT'],
+  },
+  {
+    key: 'SYSTEM',
+    label: 'Auto-confirmed',
+    params: { status: 'CONFIRMED', decidedBy: 'SYSTEM' },
+    actions: ['CONFIRM', 'REJECT'],
+  },
+  {
+    key: 'CONFIRMED',
+    label: 'Confirmed by you',
+    params: { status: 'CONFIRMED', decidedBy: 'MANAGER' },
+  },
+  { key: 'REJECTED', label: 'Rejected', params: { status: 'REJECTED' } },
+  { key: 'ZONES', label: 'Drop areas', params: { kind: 'ZONE', status: 'PROPOSED' }, zones: true },
 ];
+const ACTION_LABEL = {
+  CONFIRM: { PROPOSED: 'Confirm', SYSTEM: 'Keep' },
+  REJECT: { PROPOSED: 'Reject', SYSTEM: 'Reject' },
+};
+const EVIDENCE_LABEL = {
+  SHARED_POI: 'same plant on the map',
+  COVISIT: 'trucks move between them',
+  SPATIAL: 'close together',
+};
+const NAME_SOURCE = {
+  REGISTER: 'your register',
+  FACILITY: 'a confirmed drop place',
+  OSM: 'map',
+  GOOGLE: 'Google',
+  MANAGER: 'you',
+};
 
 /**
  * Facility regions — nearby sites a truck treats as one place (e.g. a plant's
@@ -21,8 +56,9 @@ const STATUSES = [
  */
 export default function RegionsView({ version, onChanged }) {
   const [status, setStatus] = useState('PROPOSED');
+  const tab = STATUSES.find((s) => s.key === status);
   const { data, loading, error, refetch } = useApi(
-    (signal) => PlaceIntelligenceService.listRegions({ status, limit: 200 }, { signal }),
+    (signal) => PlaceIntelligenceService.listRegions({ ...tab.params, limit: 200 }, { signal }),
     [status, version],
   );
   const decideM = useMutation(PlaceIntelligenceService.decideRegion);
@@ -66,7 +102,33 @@ export default function RegionsView({ version, onChanged }) {
         ))}
       </div>
 
-      {!items.length ? (
+      {tab.zones && items.length ? (
+        <div className="pi-table-wrap">
+          <table className="pi-table">
+            <thead>
+              <tr>
+                <th>Drop area</th>
+                <th>Named from</th>
+                <th className="pi-num">Drops</th>
+                <th className="pi-num">Radius</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((z) => (
+                <tr key={z._id}>
+                  <td>{z.name || 'Unnamed area'}</td>
+                  <td>{NAME_SOURCE[z.nameSource] || '—'}</td>
+                  <td className="pi-num">{z.memberCount ?? '—'}</td>
+                  <td className="pi-num">
+                    {z.radiusM != null ? `${(z.radiusM / 1000).toFixed(1)} km` : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {tab.zones && items.length ? null : !items.length ? (
         <EmptyPanel
           Icon={Layers}
           title="No regions here"
@@ -81,8 +143,8 @@ export default function RegionsView({ version, onChanged }) {
                 <th className="pi-num">Sites</th>
                 <th className="pi-num">Spread</th>
                 <th>Roles</th>
-                <th className="pi-num">Co-visit</th>
-                {status === 'PROPOSED' ? <th>Actions</th> : null}
+                <th>Why one place</th>
+                {tab.actions ? <th>Actions</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -94,10 +156,15 @@ export default function RegionsView({ version, onChanged }) {
                     {r.diameterM != null ? `${Math.round(r.diameterM)} m` : '—'}
                   </td>
                   <td>{(r.roleSet || []).join(', ') || '—'}</td>
-                  <td className="pi-num">
-                    {r.coVisitScore != null ? r.coVisitScore.toFixed(2) : '—'}
+                  <td style={{ fontSize: 12 }}>
+                    {EVIDENCE_LABEL[r.autoEvidence?.evidenceClass] ||
+                      (r.coVisitScore != null ? `co-visit ${r.coVisitScore.toFixed(2)}` : '—')}
+                    {r.autoEvidence?.p != null
+                      ? ` · ${Math.round(r.autoEvidence.p * 100)}% sure`
+                      : ''}
+                    {r.poi?.match?.name ? ` · ${r.poi.match.name}` : ''}
                   </td>
-                  {status === 'PROPOSED' ? (
+                  {tab.actions ? (
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         <button
@@ -106,7 +173,7 @@ export default function RegionsView({ version, onChanged }) {
                           disabled={decideM.loading}
                           onClick={() => decide(r._id, 'CONFIRM')}
                         >
-                          Confirm
+                          {ACTION_LABEL.CONFIRM[status] || 'Confirm'}
                         </button>
                         <button
                           type="button"
