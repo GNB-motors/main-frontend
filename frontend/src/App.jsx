@@ -127,6 +127,7 @@ const ServiceIntelligencePage = lazy(
 const AddMaintenancePage = lazy(() => import('./pages/Maintenance/AddMaintenancePage.jsx'));
 const RoutesPage = lazy(() => import('./pages/Routes/RoutesPage.jsx'));
 const AddRoutePage = lazy(() => import('./pages/Routes/AddRoutePage.jsx'));
+const MileagePage = lazy(() => import('./pages/Mileage/MileagePage.jsx'));
 const MileageTrackingPage = lazy(() => import('./pages/MileageTracking/MileageTrackingPage.jsx'));
 const MileageTrackingVehicleDetail = lazy(
   () => import('./pages/MileageTracking/MileageTrackingVehicleDetail.jsx'),
@@ -455,8 +456,20 @@ function App() {
               path="/geofence/alerts"
               element={<Navigate to="/geofence/zones?tab=alerts" replace />}
             />
-            <Route path="/field-agent-fuel" element={<FieldAgentFuelPage />} />
-            <Route path="/field-agent-fuel/new" element={<FieldAgentFuelUploadPage />} />
+            {/* Field Agent Fuel deprecated -> redirects to WhatsApp Approvals */}
+            <Route
+              path="/field-agent-fuel"
+              element={<Navigate to="/whatsapp-approvals" replace />}
+            />
+            <Route
+              path="/field-agent-fuel/new"
+              element={<Navigate to="/whatsapp-approvals" replace />}
+            />
+            {/* Fleet Intelligence Routes */}
+            <Route path="/route-hub" element={<RouteHubPage />} />
+            <Route path="/idling-console" element={<IdlingConsolePage />} />
+            <Route path="/daily-brief" element={<DailyBriefPage />} />
+            <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
             <Route path="/drivers" element={<DriversPage />} />
             <Route path="/access-control" element={<AccessControlPage />} />
             <Route path="/access-control/assigned-employees" element={<AssignedEmployeesPage />} />
@@ -466,21 +479,33 @@ function App() {
             <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />
             <Route path="/trip/new" element={<TripCreationFlow />} />
             <Route path="/trip/:tripId" element={<TripManagementPage />} />
-            <Route path="/refuel-logs" element={<RefuelLogsPage />} />
-            <Route path="/mileage-tracking" element={<MileageTrackingPage />} />
+            {/* Fuel Management Routes */}
+            <Route path="/mileage" element={<MileagePage />} />
+            <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
+            <Route path="/def-ledger" element={<DefLedgerPage />} />
+            {/* Backward-compatibility redirects for unified Mileage */}
+            <Route path="/refuel-logs" element={<Navigate to="/mileage?tab=live" replace />} />
             <Route
-              path="/mileage-tracking/vehicle/:vehicleId"
-              element={<MileageTrackingVehicleDetail />}
+              path="/mileage-tracking"
+              element={<Navigate to="/mileage?tab=performance" replace />}
             />
-            <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
-            <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
-            <Route path="/adblue-tracking" element={<AdBlueTrackingPage />} />
-            <Route path="/adblue-tracking/new" element={<AdBlueLogPage />} />
-            <Route path="/model-comparison" element={<ModelComparisonPage />} />
-            <Route path="/expected-mileage" element={<ModelComparisonPage />} />
-            <Route path="/def-tracking" element={<Navigate to="/adblue-tracking" replace />} />
-            <Route path="/fuel-bills" element={<Navigate to="/refuel-logs" replace />} />
-            <Route path="/fuel-spend" element={<Navigate to="/refuel-logs" replace />} />
+            <Route
+              path="/fuel-comparison"
+              element={<Navigate to="/mileage?tab=reconciliation" replace />}
+            />
+            <Route path="/adblue-tracking" element={<Navigate to="/def-ledger" replace />} />
+            <Route path="/adblue-tracking/new" element={<Navigate to="/def-ledger" replace />} />
+            <Route
+              path="/model-comparison"
+              element={<Navigate to="/mileage?tab=performance" replace />}
+            />
+            <Route
+              path="/expected-mileage"
+              element={<Navigate to="/mileage?tab=performance" replace />}
+            />
+            <Route path="/def-tracking" element={<Navigate to="/def-ledger" replace />} />
+            <Route path="/fuel-bills" element={<Navigate to="/mileage?tab=live" replace />} />
+            <Route path="/fuel-spend" element={<Navigate to="/mileage?tab=live" replace />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
