@@ -71,6 +71,22 @@ export const PlaceIntelligenceService = {
   decideRegion: async ({ id, decision }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/regions/${id}/decide`, { decision }, { signal })),
 
+  // ─── Facilities (one row per physical place; what trip detection sees) ────
+  listFacilities: async (params = {}, { signal } = {}) =>
+    unwrap(await apiClient.get(`${BASE}/facilities`, { params, signal })),
+
+  // ─── Map knowledge (plants, pumps, sidings, towns …) learned from OSM/Google
+  listPoi: async ({ south, west, north, east, categories }, { signal } = {}) =>
+    unwrap(
+      await apiClient.get(`${BASE}/poi`, {
+        params: { south, west, north, east, ...(categories ? { categories } : {}) },
+        signal,
+      }),
+    ),
+
+  poiStatus: async ({ signal } = {}) =>
+    unwrap(await apiClient.get(`${BASE}/poi/status`, { signal })),
+
   // ─── Driver homes (inferred overnight base per driver) ─────────────────────
   listHomes: async (params = {}, { signal } = {}) =>
     parsed('homeListSchema', await apiClient.get(`${BASE}/homes`, { params, signal })),

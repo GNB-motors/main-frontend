@@ -8,6 +8,7 @@ import EvidenceList from './EvidenceList';
 import PurposeBar from './PurposeBar';
 import ReviewActions from './ReviewActions';
 import PlaceVerdict from './PlaceVerdict';
+import FacilityCard from './FacilityCard';
 import {
   effectiveType,
   minutesLabel,
@@ -64,6 +65,7 @@ export default function PlaceDetail({ siteId, fallback, version, answer }) {
           </div>
         ) : null}
       </div>
+      <FacilityCard site={site} />
       {/* The decision sits right under the verdict so it is in view without
           scrolling; the evidence behind it follows. */}
       <ReviewActions key={site._id} site={site} answer={answer} />

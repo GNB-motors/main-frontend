@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MapPin, Hourglass, Route, ShieldCheck, Layers, Home } from 'lucide-react';
+import { MapPin, Hourglass, Route, ShieldCheck, Layers, Home, Factory } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import useApi from '../../hooks/useApi';
@@ -11,6 +11,7 @@ import PlacesView from './PlacesView';
 import BreaksView from './BreaksView';
 import RoutesTab from './RoutesTab';
 import RegionsView from './RegionsView';
+import FacilitiesView from './FacilitiesView';
 import DriverHomesView from './DriverHomesView';
 import ShadowReportTab from './ShadowReportTab';
 import './placeIntelligence.css';
@@ -67,6 +68,7 @@ export default function PlaceIntelligencePage() {
       badge: idleHours ? `${idleHours} h` : null,
     },
     { key: 'routes', label: 'Routes', Icon: Route },
+    { key: 'facilities', label: 'Facilities', Icon: Factory },
     { key: 'regions', label: 'Regions', Icon: Layers },
     { key: 'homes', label: 'Driver homes', Icon: Home },
     ...(isSuperAdmin ? [{ key: 'shadow', label: 'Shadow report', Icon: ShieldCheck }] : []),
@@ -98,7 +100,9 @@ export default function PlaceIntelligencePage() {
       </div>
       <div
         className={`pi-view${
-          ['routes', 'shadow', 'regions', 'homes'].includes(view) ? ' pi-view--scroll' : ''
+          ['routes', 'shadow', 'regions', 'homes', 'facilities'].includes(view)
+            ? ' pi-view--scroll'
+            : ''
         }`}
       >
         <PanelErrorBoundary name={`place-intelligence-${view}`}>
@@ -115,6 +119,9 @@ export default function PlaceIntelligencePage() {
             <BreaksView version={version} onChanged={bump} onOpenPlace={openPlace} />
           ) : null}
           {view === 'routes' ? <RoutesTab version={version} /> : null}
+          {view === 'facilities' ? (
+            <FacilitiesView version={version} onChanged={bump} onOpenPlace={openPlace} />
+          ) : null}
           {view === 'regions' ? <RegionsView version={version} onChanged={bump} /> : null}
           {view === 'homes' ? <DriverHomesView version={version} onChanged={bump} /> : null}
           {view === 'shadow' ? <ShadowReportTab /> : null}
