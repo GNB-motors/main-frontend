@@ -12,6 +12,32 @@ const WINDOWS = [
 ];
 
 const minsOf = (sec) => Math.round((sec || 0) / 60);
+/** Peak this far above the limit draws red; anything less, amber. */
+const SEVERE_OVER_KMH = 15;
+const hasCoords = (e) => e.startLat != null && e.startLng != null;
+const esc = (s) =>
+  String(s ?? '').replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
+
+function MapLegend({ limit }) {
+  return (
+    <div className="ov chipcard ovs-legend">
+      <div className="legend">
+        <span>
+          <i className="dot" style={{ background: '#C2323A' }} />
+          Peak over {limit + SEVERE_OVER_KMH} km/h
+        </span>
+        <span>
+          <i className="dot" style={{ background: '#F0AA48' }} />
+          {limit}–{limit + SEVERE_OVER_KMH} km/h
+        </span>
+        <span>Bigger dot = longer event</span>
+      </div>
+    </div>
+  );
+}
 
 /** Speed trace — the design's SVG chart, re-plotted against real timestamps. */
 function SpeedChart({ fixes, events, threshold, from, to }) {
@@ -115,6 +141,8 @@ export default function OverspeedView({ params, toast, setBadge }) {
   const [vehicles, setVehicles] = useState([]);
   const [selected, setSelected] = useState(params.get('v') || '');
   const [thr, setThr] = useState(60);
+  // The limit the shown results were computed with (thr is the unsubmitted input).
+  const [appliedThr, setAppliedThr] = useState(60);
   const [dur, setDur] = useState(3);
   const [win, setWin] = useState(24);
 
@@ -139,6 +167,7 @@ export default function OverspeedView({ params, toast, setBadge }) {
     windowRef.current = { from, to };
     setLoading(true);
     setError(null);
+    setAppliedThr(thr);
     try {
       if (!selected) {
         const data = await RouteHubService.getFleetOverspeed({
@@ -183,9 +212,10 @@ export default function OverspeedView({ params, toast, setBadge }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, win]);
 
-  const events = detail?.events || [];
-  const rank = fleet?.vehicles || [];
-  const totals = fleet?.totals || {};
+  // Stable references: the map redraws (and re-fits) only when these change.
+  const events = useMemo(() => detail?.events || [], [detail]);
+  const rank = useMemo(() => fleet?.vehicles || [], [fleet]);
+  const totals = useMemo(() => fleet?.totals || {}, [fleet]);
 
   const kpis = useMemo(() => {
     if (detail) {
@@ -272,36 +302,80 @@ export default function OverspeedView({ params, toast, setBadge }) {
 
   const { containerRef, mapRef } = useLeafletMap({ scrollWheelZoom: false }, [Boolean(detail)]);
 
-  const mapEvents = detail
-    ? events.map((e) => ({ ...e, plate: detail.registrationNumber }))
-    : rank.flatMap((r) => (r.events || []).map((e) => ({ ...e, plate: r.registrationNumber })));
+  const mapEvents = useMemo(
+    () =>
+      detail
+        ? events.map((e) => ({ ...e, plate: detail.registrationNumber, vehicleId: selected }))
+        : rank.flatMap((r) =>
+            (r.events || []).map((e) => ({
+              ...e,
+              plate: r.registrationNumber,
+              vehicleId: r.vehicleId,
+            })),
+          ),
+    [detail, events, rank, selected],
+  );
+  const located = useMemo(() => mapEvents.filter(hasCoords), [mapEvents]);
+  const unlocated = mapEvents.length - located.length;
+  const vehiclesOnMap = useMemo(() => new Set(located.map((e) => e.plate)).size, [located]);
 
+  const openVehicle = useCallback((vehicleId) => {
+    setSelected(vehicleId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Redraws only when the located events change. The fit is not animated: an
+  // animated fitBounds interrupted by the next render leaves tiles half-scaled
+  // (white seams, grey holes) and the markers drawn against a stale view.
   useLayerGroup(
     mapRef,
     (group, map) => {
-      const pts = mapEvents.filter((e) => e.startLat != null && e.startLng != null);
-      pts.forEach((e) => {
+      const biggestFirst = [...located].sort((a, b) => (b.durationSec || 0) - (a.durationSec || 0));
+      biggestFirst.forEach((e) => {
+        const mins = minsOf(e.durationSec);
         L.circleMarker([e.startLat, e.startLng], {
-          radius: 5 + Math.min(6, minsOf(e.durationSec)),
+          radius: 5 + Math.min(7, Math.round(mins / 3)),
           color: '#fff',
           weight: 2,
-          fillColor: e.maxSpeedKmh > thr + 15 ? '#C2323A' : '#F0AA48',
-          fillOpacity: 0.95,
+          fillColor: e.maxSpeedKmh > appliedThr + SEVERE_OVER_KMH ? '#C2323A' : '#F0AA48',
+          fillOpacity: 0.92,
         })
           .bindTooltip(
-            `${e.plate} · ${e.maxSpeedKmh} km/h · ${minsOf(e.durationSec)} min · ${fmtT(new Date(e.startAt))}`,
-            { className: 'tag', direction: 'top' },
+            `<b>${esc(e.plate)}</b> · ${esc(e.maxSpeedKmh)} km/h peak · ${mins} min<br>${esc(
+              fmtDT(new Date(e.startAt)),
+            )}${detail ? '' : '<br>Click to audit this vehicle'}`,
+            { className: 'tag', direction: 'top', offset: [0, -6] },
           )
+          .on('click', () => {
+            if (!detail && e.vehicleId) openVehicle(e.vehicleId);
+          })
           .addTo(group);
       });
-      if (pts.length) {
-        map.fitBounds(L.latLngBounds(pts.map((e) => [e.startLat, e.startLng])), {
-          padding: [40, 40],
+      map.invalidateSize({ animate: false });
+      if (located.length) {
+        map.fitBounds(L.latLngBounds(located.map((e) => [e.startLat, e.startLng])), {
+          padding: [48, 48],
+          maxZoom: 11,
+          animate: false,
         });
       }
     },
-    [mapEvents, thr],
+    [located, appliedThr, Boolean(detail)],
   );
+
+  let mapNotice = null;
+  if (!located.length) {
+    if (loading) mapNotice = 'Running audit…';
+    else if (unlocated) mapNotice = 'These events have no GPS position to plot';
+    else mapNotice = `No sustained overspeed in the last ${win} h`;
+  }
+  const mapHint = [
+    `${located.length} event${located.length === 1 ? '' : 's'}`,
+    detail ? null : `${vehiclesOnMap} vehicle${vehiclesOnMap === 1 ? '' : 's'}`,
+    unlocated ? `${unlocated} without a location` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   const exportCsv = () => {
     const rows = [
@@ -425,7 +499,7 @@ export default function OverspeedView({ params, toast, setBadge }) {
       <div className="bento">
         {!detail ? (
           <>
-            <div className="card s7">
+            <div className="card s7 ovs-pane">
               <div className="card-head">
                 <h3>Fleet ranking</h3>
                 <span className="hint">Select a vehicle to audit its speed trace</span>
@@ -448,10 +522,7 @@ export default function OverspeedView({ params, toast, setBadge }) {
                         <tr
                           key={r.vehicleId}
                           className="click"
-                          onClick={() => {
-                            setSelected(r.vehicleId);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
+                          onClick={() => openVehicle(r.vehicleId)}
                         >
                           <td>
                             <span className="plate">{r.registrationNumber}</span>
@@ -499,13 +570,21 @@ export default function OverspeedView({ params, toast, setBadge }) {
                 </table>
               </div>
             </div>
-            <div className="card s5" style={{ minHeight: 460 }}>
+            <div className="card s5 ovs-pane">
               <div className="card-head">
                 <h3>Where it happened</h3>
-                <span className="hint">{mapEvents.length} events</span>
+                <span className="hint">{mapHint}</span>
+                {located.length ? (
+                  <>
+                    <span className="sp" />
+                    <span className="hint">Click a dot to audit that vehicle</span>
+                  </>
+                ) : null}
               </div>
               <div className="mapbox">
                 <div className="lmap" ref={containerRef} />
+                {located.length ? <MapLegend limit={appliedThr} /> : null}
+                {mapNotice ? <div className="ov ovs-notice">{mapNotice}</div> : null}
               </div>
             </div>
           </>
@@ -554,7 +633,7 @@ export default function OverspeedView({ params, toast, setBadge }) {
               </div>
             </div>
 
-            <div className="card s7">
+            <div className="card s7 ovs-pane">
               <div className="card-head">
                 <h3>Events</h3>
                 <span className="count-pill">{events.length}</span>
@@ -597,12 +676,15 @@ export default function OverspeedView({ params, toast, setBadge }) {
               </div>
             </div>
 
-            <div className="card s5" style={{ minHeight: 380 }}>
+            <div className="card s5 ovs-pane">
               <div className="card-head">
                 <h3>Event locations</h3>
+                <span className="hint">{mapHint}</span>
               </div>
               <div className="mapbox">
                 <div className="lmap" ref={containerRef} />
+                {located.length ? <MapLegend limit={appliedThr} /> : null}
+                {mapNotice ? <div className="ov ovs-notice">{mapNotice}</div> : null}
               </div>
             </div>
           </>

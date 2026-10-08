@@ -866,6 +866,52 @@ html.dark .nova-rh {
   position: absolute;
   z-index: 800;
 }
+
+/* Overspeed audit — the ranking/events table and the map share one fixed
+   height. The table scrolls inside its card with the header row pinned,
+   instead of stretching the page (and the map) to its full length. */
+.nova-rh .ovs-pane {
+  height: clamp(460px, calc(100vh - 160px), 640px);
+}
+.nova-rh .ovs-pane .tblwrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.nova-rh .ovs-pane .tbl thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-surface);
+  box-shadow: inset 0 -1px 0 var(--border-subtle);
+}
+.nova-rh .ovs-pane .mapbox {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.nova-rh .ovs-legend {
+  top: 12px;
+  left: 12px;
+  padding: 8px 12px;
+}
+.nova-rh .ovs-legend .legend {
+  gap: 6px 14px;
+}
+.nova-rh .ovs-notice {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 10px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-l);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+}
 .nova-rh .chipcard {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
@@ -1798,6 +1844,9 @@ html.dark .nova-rh .persp::before {
   .nova-rh .s5,
   .nova-rh .s6 {
     grid-column: span 12;
+  }
+  .nova-rh .ovs-pane {
+    height: 520px;
   }
   .nova-rh .split {
     grid-template-columns: minmax(0, 1fr);
