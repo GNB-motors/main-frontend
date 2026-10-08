@@ -1,22 +1,39 @@
 import React, { useState } from 'react';
 import {
   RotateCw,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   SunMedium,
-  TrendingDown,
-  Fuel,
-  Clock,
-  Gauge,
-  CheckCircle2,
-  Calendar,
   Sparkles,
+  Clock,
+  CheckCircle2,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { DailyBriefService } from './DailyBriefService';
 import { dailyBriefSchema } from '../../schemas/dailyBrief.schema';
-import { formatINR } from '../../utils/formatters';
+import { formatINR, formatInrCompact, formatNum } from '../../utils/formatters';
+import './DailyBrief.css';
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Distinct, direct-labelled composition-bar hues (not status-coded).
+const SEG_COLORS = [
+  'var(--critical)',
+  'var(--caution)',
+  'var(--gnb-400)',
+  '#7c3aed',
+  '#0e8c8c',
+  'var(--inert)',
+];
+
+function longDate(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${WEEKDAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 export default function DailyBriefPage() {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -38,184 +55,254 @@ export default function DailyBriefPage() {
     setSelectedDate(cur.toISOString().slice(0, 10));
   };
 
-  // Compute total financial leak
-  const totalRupeeImpact = sections.reduce((acc, s) => acc + (s.rupees ?? 0), 0);
+  // Money leaks, biggest first; clean checks; and sections not live yet.
+  const losses = sections
+    .filter((s) => s.status === 'ok' && (s.rupees ?? 0) > 0)
+    .sort((a, b) => (b.rupees ?? 0) - (a.rupees ?? 0));
+  const clean = sections.filter((s) => s.status === 'empty');
+  const soon = sections.filter((s) => s.status === 'not_available_yet');
+
+  const lossTotal = losses.reduce((acc, s) => acc + (s.rupees ?? 0), 0);
+  const total = data?.totalRupees ?? lossTotal;
+  const top = losses[0];
+  const segTotal = lossTotal || 1;
+  const hasAnything = losses.length || clean.length || soon.length;
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
-      {/* ── Page Header ────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div className="db-page">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <header className="db-head">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="p-1 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
+          <div className="db-eyebrow">
+            <span className="db-dot" aria-hidden="true">
               <SunMedium className="w-4 h-4" />
             </span>
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-              Executive Morning Dispatch
-            </span>
+            <span className="k">Morning briefing</span>
+            <span className="db-date">{longDate(selectedDate)}</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Daily Operational Morning Brief
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            The day's most economically-significant fleet events, quantified in ₹ impact with
-            recommended operational remedies.
+          <h1 className="db-h1">Today&apos;s Fleet Brief</h1>
+          <p className="db-sub">
+            Where the fleet lost money today, how much in rupees, and the one thing worth doing
+            about it first.
           </p>
         </div>
 
-        {/* Date Selector */}
-        <div className="flex items-center gap-2 self-start md:self-auto">
-          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-2xs">
+        <div className="db-ctrls">
+          <div className="db-stepper" role="group" aria-label="Brief date">
             <button
               type="button"
+              className="db-ico-btn"
               onClick={() => changeDay(-1)}
-              className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition"
-              title="Previous Day"
+              aria-label="Previous day"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <input
               type="date"
+              className="db-date-input"
               value={selectedDate}
               max={todayStr}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-2 py-1 text-xs font-bold font-mono text-slate-800 dark:text-slate-200 bg-transparent border-none outline-none cursor-pointer"
+              aria-label="Pick brief date"
             />
             <button
               type="button"
+              className="db-ico-btn"
               onClick={() => changeDay(1)}
               disabled={selectedDate >= todayStr}
-              className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition"
-              title="Next Day"
+              aria-label="Next day"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={refetch}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition"
-            title="Refresh Brief"
-          >
-            <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <button type="button" className="db-ico-btn" onClick={refetch} aria-label="Refresh brief">
+            <RotateCw className={`w-4 h-4 ${loading ? 'db-spin' : ''}`} />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* ── Top Rupee Impact Card ───────────────────────────────────── */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-xl p-6 text-white mb-6 shadow-sm border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-300 block mb-1">
-            Fleet Economic Drain & Leakage
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold font-mono text-amber-400">
-              {totalRupeeImpact > 0 ? formatINR(totalRupeeImpact) : '₹0'}
-            </span>
-            <span className="text-xs text-slate-400">
-              recoverable operational cost for this date
-            </span>
+      {/* ── Hero summary ───────────────────────────────────── */}
+      <section className="db-hero" aria-label="Leakage summary">
+        <div className="db-hero-top">
+          <div>
+            <div className="db-label">Identified leakage today</div>
+            <div className={`db-big ${total > 0 ? '' : 'is-clear'}`}>
+              {total > 0 ? formatINR(total) : '₹0'}
+            </div>
+            <p className="db-hero-note">
+              {losses.length > 0
+                ? `Across ${formatNum(losses.length)} ${
+                    losses.length === 1 ? 'issue' : 'issues'
+                  } worth acting on. Clean checks are listed below.`
+                : 'No money leaks flagged for this day. Clean checks are listed below.'}
+            </p>
           </div>
-          <p className="text-xs text-slate-300 mt-2 max-w-xl">
-            Derived from unnecessary engine idling, fuel receipt overbilling, detour excess
-            kilometers, and suboptimal engine RPM bands.
+          <div className="db-splits">
+            <div className="db-split a">
+              <div className="cap">
+                <span className="tag" />
+                Biggest leak
+              </div>
+              <div className="v">{top ? formatINR(top.rupees) : '₹0'}</div>
+              <div className="d">{top ? top.label : 'Nothing flagged today'}</div>
+            </div>
+            <div className="db-split b">
+              <div className="cap">
+                <span className="tag" />
+                Clean today
+              </div>
+              <div className="v">{formatNum(clean.length)}</div>
+              <div className="d">{clean.length === 1 ? 'check all clear' : 'checks all clear'}</div>
+            </div>
+          </div>
+        </div>
+
+        {losses.length > 0 && (
+          <div className="db-comp">
+            <div className="hd">
+              <span>Where the {formatINR(lossTotal)} went</span>
+              <span className="num">
+                {formatNum(losses.length)} {losses.length === 1 ? 'category' : 'categories'}
+              </span>
+            </div>
+            <div
+              className="db-bar"
+              role="img"
+              aria-label={losses
+                .map((s) => `${s.label} ${Math.round(((s.rupees ?? 0) / segTotal) * 100)} percent`)
+                .join(', ')}
+            >
+              {losses.map((s, i) => {
+                const pct = Math.round(((s.rupees ?? 0) / segTotal) * 100);
+                return (
+                  <div
+                    key={s.key}
+                    className="db-seg"
+                    style={{ flex: s.rupees ?? 0, background: SEG_COLORS[i % SEG_COLORS.length] }}
+                    title={`${s.label} — ${formatINR(s.rupees)} (${pct}%)`}
+                  >
+                    <span className="n">
+                      {s.label} {formatInrCompact(s.rupees)}
+                    </span>
+                    <span className="p">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── Start here ─────────────────────────────────────── */}
+      {top?.suggestedAction && (
+        <section className="db-start" aria-label="Priority action">
+          <span className="ic" aria-hidden="true">
+            <Sparkles className="w-5 h-5" />
+          </span>
+          <div className="tx">
+            <span className="k">Start here</span>
+            <span className="m">{top.suggestedAction}</span>
+          </div>
+        </section>
+      )}
+
+      {/* ── Losses ─────────────────────────────────────────── */}
+      {losses.length > 0 && (
+        <>
+          <div className="db-sec">
+            <h2>Where money leaked</h2>
+            <span className="hint">ranked by rupees lost</span>
+            <span className="rule" />
+          </div>
+          <div className="db-losses">
+            {losses.map((s, i) => (
+              <article className="db-loss" key={s.key}>
+                <div className="row1">
+                  <span className="db-rank">
+                    <span className="num">{i + 1}</span>
+                    {i === 0 ? 'Biggest loss' : `Loss #${i + 1}`}
+                  </span>
+                  <span className="db-amt">{formatINR(s.rupees)}</span>
+                </div>
+                <h3>{s.label}</h3>
+                {(s.suggestedAction || s.reason) && (
+                  <p className="lead">{s.suggestedAction || s.reason}</p>
+                )}
+                {s.events?.length > 0 && (
+                  <div className="db-events">
+                    {s.events.slice(0, 5).map((ev) => (
+                      <div className="db-event" key={ev.vehicleId}>
+                        <span className="plate">{ev.registrationNumber || 'Unknown'}</span>
+                        <span className="dur">
+                          <Clock className="w-3 h-3 inline -mt-0.5 mr-1" />
+                          {formatNum(ev.durationMin)} min
+                        </span>
+                        <span className="r">{formatInrCompact(ev.rupees)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Clean / coming soon ────────────────────────────── */}
+      {(clean.length > 0 || soon.length > 0) && (
+        <>
+          <div className="db-sec">
+            <h2>Clean today</h2>
+            <span className="hint">checked, nothing to act on</span>
+            <span className="rule" />
+          </div>
+          <div className="db-healthy">
+            {clean.map((s) => (
+              <div className="db-hc" key={s.key}>
+                <span className="ic" aria-hidden="true">
+                  <CheckCircle2 className="w-4 h-4" />
+                </span>
+                <div>
+                  <div className="t">{s.label}</div>
+                  <div className="d">{s.reason || 'Nothing to report today.'}</div>
+                </div>
+              </div>
+            ))}
+            {soon.map((s) => (
+              <div className="db-hc soon" key={s.key}>
+                <span className="ic" aria-hidden="true">
+                  <Clock className="w-4 h-4" />
+                </span>
+                <div>
+                  <div className="t">{s.label}</div>
+                  <div className="d">{s.reason || 'Coming soon.'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Nothing at all ─────────────────────────────────── */}
+      {!hasAnything && (
+        <div className="db-empty">
+          <span className="ic" aria-hidden="true">
+            <ShieldCheck className="w-6 h-6" />
+          </span>
+          <h3>{loading ? 'Loading the brief…' : 'No money leaks flagged today'}</h3>
+          <p>
+            {loading
+              ? 'Pulling the day’s most economically-significant events.'
+              : 'Nothing economically significant turned up for this date. Pick another day above.'}
           </p>
         </div>
+      )}
 
-        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xs px-4 py-3 rounded-lg border border-white/10 shrink-0">
-          <Sparkles className="w-5 h-5 text-amber-300 shrink-0" />
-          <div className="text-xs">
-            <span className="font-bold text-white block">Automated Dispatch Advice</span>
-            <span className="text-slate-300 text-[11px]">
-              Audit 3 highest-variance fuel slips today
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Operational Issue Cards Grid ────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* Card 1: Idling Drain */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="p-2 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400">
-                <Clock className="w-4 h-4" />
-              </span>
-              <span className="font-mono text-xs font-bold text-rose-600 dark:text-rose-400">
-                ₹8,420 Waste
-              </span>
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-              Excessive Engine Idling Drain
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-              14 vehicles spent &gt;10 minutes stationary with engines running outside recognized
-              plant queues.
-            </p>
-          </div>
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-400 font-mono">89 L Diesel Burned</span>
-            <span className="text-indigo-600 dark:text-indigo-400 font-semibold cursor-pointer hover:underline">
-              View Idling Console →
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2: Refuel Reconciliation Discrepancies */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="p-2 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
-                <Fuel className="w-4 h-4" />
-              </span>
-              <span className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400">
-                ₹5,180 Variance
-              </span>
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-              Fuel Receipt Overbilling Discrepancy
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-              2 fuel receipts exhibit &gt;8% quantity shortfall against telematics tank capacitance
-              jumps.
-            </p>
-          </div>
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-400 font-mono">54.8 L Unaccounted</span>
-            <span className="text-indigo-600 dark:text-indigo-400 font-semibold cursor-pointer hover:underline">
-              Inspect in Mileage Hub →
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3: AdBlue SCR Compliance */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="p-2 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
-                <Gauge className="w-4 h-4" />
-              </span>
-              <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                98.2% Compliant
-              </span>
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-              AdBlue Dosing Corridor Status
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-              Fleet SCR systems dosing within the normal 4.5%–6.5% corridor with zero active tamper
-              dongles detected.
-            </p>
-          </div>
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-emerald-600 font-semibold">Corridor Verified</span>
-            <span className="text-indigo-600 dark:text-indigo-400 font-semibold cursor-pointer hover:underline">
-              Open DEF Ledger →
-            </span>
-          </div>
-        </div>
+      <div className="db-foot-note">
+        <span>
+          <ArrowRight className="w-3 h-3 inline -mt-0.5 mr-1" />
+          Figures are for the IST day and recompute on refresh.
+        </span>
       </div>
     </div>
   );
