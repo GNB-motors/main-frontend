@@ -698,6 +698,10 @@ export default function ReplayView({ params, toast }) {
               <i className="dot" style={{ background: EVC.dev }} />
               Deviation
             </span>
+            <span>
+              <i className="dot" style={{ background: '#f59e0b', border: '1px dashed #d97706' }} />
+              GSM Dead-Zone Bridge
+            </span>
           </div>
         </div>
 
@@ -733,6 +737,16 @@ export default function ReplayView({ params, toast }) {
                     </span>
                   </div>
                 </div>
+                {Boolean(frame?.gapType || (frame?.speed === 0 && erpTripId)) && (
+                  <div>
+                    <div className="k" style={{ color: '#d97706' }}>
+                      Signal Bridge
+                    </div>
+                    <div className="v" style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>
+                      📡 GSM Cell-Tower
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

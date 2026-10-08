@@ -214,6 +214,41 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
       },
     },
     {
+      key: 'avgMileage',
+      label: 'Avg Mileage',
+      render: (vehicle) => {
+        const val = vehicle.averageMileage != null ? Number(vehicle.averageMileage) : null;
+        if (val == null || isNaN(val) || val <= 0) {
+          return <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 12 }}>—</span>;
+        }
+        const isGood = val >= 4.0;
+        const isFair = val >= 3.5 && val < 4.0;
+        return (
+          <Link
+            to={`/mileage?tab=performance&search=${encodeURIComponent(vehicle.registration_no || '')}`}
+            onClick={(e) => e.stopPropagation()}
+            title="View vehicle mileage details in Mileage Hub"
+            style={{ textDecoration: 'none' }}
+          >
+            <span
+              className="vehicle-badge"
+              style={{
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                fontSize: 12,
+                cursor: 'pointer',
+                background: isGood ? '#ecfdf5' : isFair ? '#fefce8' : '#fef2f2',
+                color: isGood ? '#047857' : isFair ? '#a16207' : '#b91c1c',
+                border: `1px solid ${isGood ? '#a7f3d0' : isFair ? '#fef08a' : '#fecaca'}`,
+              }}
+            >
+              {val.toFixed(2)} km/L
+            </span>
+          </Link>
+        );
+      },
+    },
+    {
       key: 'actions',
       label: 'Actions',
       align: 'center',

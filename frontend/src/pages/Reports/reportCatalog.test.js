@@ -15,6 +15,7 @@ describe('visibleReportGroups', () => {
       'modelComparison',
       'dieselReport',
       'adblueReport',
+      'oilAverage',
       'fuelCycles',
       'nonBusiness',
       'runningCost',
@@ -26,6 +27,11 @@ describe('visibleReportGroups', () => {
     expect(visible).not.toContain('fuelCycles');
     expect(visible).not.toContain('nonBusiness');
     expect(visible).not.toContain('runningCost');
+  });
+
+  it('keeps the Oil & Average report for every org (its API has no sub-flag)', () => {
+    expect(ids(visibleReportGroups(flags([])))).toContain('oilAverage');
+    expect(resolveReport('oilAverage', flags([]))).toBe('oilAverage');
   });
 
   it('hides AdBlue for an org without fuelIntegrity (its API would 404)', () => {

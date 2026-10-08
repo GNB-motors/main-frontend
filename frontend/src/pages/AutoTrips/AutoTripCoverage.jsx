@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react';
-import { Button } from '../../components/ui/button';
+import { TriangleAlert } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { getUserRole } from '../../utils/session.js';
 import AutoTripService from '../../services/AutoTripService';
+import { formatNum } from '../../utils/formatters';
 import { COVERAGE_REASON_LABEL } from './autoTripModel';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
@@ -24,35 +24,36 @@ export default function AutoTripCoverage() {
 
   if (!data?.trucksMissing) return null;
   const places = data.candidatePlaces || [];
+  const n = data.trucksMissing;
 
   return (
-    <div
-      style={{
-        padding: '8px 12px',
-        marginBottom: 12,
-        borderRadius: 8,
-        background: 'var(--muted, #f6f7f9)',
-        fontSize: 13,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <TriangleAlert size={16} aria-hidden="true" />
-        <span style={{ flex: 1 }}>
-          {data.trucksMissing} trucks have no trips yet — usually their plant isn&apos;t a confirmed
-          pickup place.
-        </span>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen((o) => !o)}>
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          {open ? 'Hide' : 'Show which'}
-        </Button>
+    <div className="atx-banner atx-banner--warn">
+      <div className="atx-banner-row">
+        <div className="atx-banner-msg">
+          <TriangleAlert size={18} strokeWidth={2} aria-hidden="true" />
+          <p>
+            <strong>
+              {formatNum(n)} {n === 1 ? 'truck has' : 'trucks have'} no trips yet.
+            </strong>{' '}
+            Usually their loading plant hasn&apos;t been added as a pickup place.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="atx-link"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? 'Hide these trucks' : 'See these trucks →'}
+        </button>
       </div>
 
       {open ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 10 }}>
+        <div className="atx-banner-more atx-cols">
           <div>
-            <strong>Places to confirm as a pickup</strong>
+            <h4>Places to confirm as a pickup</h4>
             {places.length ? (
-              <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              <ul>
                 {places.map((p) => (
                   <li key={p.orgSiteId}>
                     <Link to={`/places?place=${p.orgSiteId}`}>{p.name || 'Unconfirmed place'}</Link>{' '}
@@ -61,17 +62,16 @@ export default function AutoTripCoverage() {
                 ))}
               </ul>
             ) : (
-              <p style={{ margin: '6px 0 0' }}>
-                No long stops at a known place in the last 30 days.
-              </p>
+              <p style={{ margin: 0 }}>No long stops at a known place in the last 30 days.</p>
             )}
           </div>
           <div>
-            <strong>Trucks without trips</strong>
-            <ul style={{ margin: '6px 0 0', paddingLeft: 18, maxHeight: 220, overflowY: 'auto' }}>
+            <h4>Trucks without trips</h4>
+            <ul className="atx-scroll">
               {(data.missing || []).map((m) => (
                 <li key={m.vehicleId}>
-                  {m.registrationNumber} — {COVERAGE_REASON_LABEL[m.reason] || m.reason}
+                  <span className="atx-plate">{m.registrationNumber}</span> —{' '}
+                  {COVERAGE_REASON_LABEL[m.reason] || m.reason}
                 </li>
               ))}
             </ul>

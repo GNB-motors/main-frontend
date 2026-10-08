@@ -1,6 +1,7 @@
 /**
  * Auto Trips — pure helpers for the list, detail and map. No React, no I/O.
  */
+import { dropLabel } from '../PlaceIntelligence/facilityText';
 
 export const FLAG_LABEL = {
   DROP_INFERRED: 'Drop guessed from the turnaround',
@@ -88,4 +89,249 @@ export function answerPlaceHref(trip) {
   const drop = trip?.drop;
   if (!drop?.orgSiteId || drop.source !== 'INFERRED_TURNAROUND') return null;
   return `/places?place=${drop.orgSiteId}`;
+}
+
+// ─── Status ──────────────────────────────────────────────────────────────────
+
+export const STATUS_LABEL = {
+  COMPLETE: 'Delivered',
+  CONFIRMED: 'Confirmed',
+  NEEDS_REVIEW: 'Needs a check',
+  OPEN: 'On the road',
+  DISMISSED: 'Rejected',
+};
+
+export const STATUS_CLASS = {
+  COMPLETE: 'atx-status--delivered',
+  CONFIRMED: 'atx-status--confirmed',
+  NEEDS_REVIEW: 'atx-status--review',
+  OPEN: 'atx-status--open',
+  DISMISSED: 'atx-status--rejected',
+};
+
+/** The truck has left the plant and not reached a drop yet. */
+export const notReachedYet = (trip) => trip?.status === 'OPEN' && !trip?.drop?.arrivedAt;
+
+// ─── Formatting (local time, the way the trip pages print it) ───────────────
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function toDate(v) {
+  if (v == null || v === '') return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "8:30 pm" */
+export function fmtClock(v) {
+  const d = toDate(v);
+  if (!d) return '—';
+  const h = d.getHours();
+  return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+/** "7 Oct, 8:30 pm" — or "07 Oct, 8:30 pm" with padDay, as in the trip list. */
+export function fmtDayTime(v, { padDay = false } = {}) {
+  const d = toDate(v);
+  if (!d) return '—';
+  const day = padDay ? String(d.getDate()).padStart(2, '0') : String(d.getDate());
+  return `${day} ${MONTHS[d.getMonth()]}, ${fmtClock(d)}`;
+}
+
+const dayText = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+
+/** "7–8 Oct 2026", "30 Sep – 1 Oct 2026", "7 Oct 2026". Empty when neither end is known. */
+export function fmtDateRange(a, b) {
+  const s = toDate(a);
+  const e = toDate(b);
+  if (!s || !e) return s || e ? dayText(s || e) : '';
+  if (s.getFullYear() !== e.getFullYear()) return `${dayText(s)} – ${dayText(e)}`;
+  if (s.getMonth() !== e.getMonth()) {
+    return `${s.getDate()} ${MONTHS[s.getMonth()]} – ${dayText(e)}`;
+  }
+  if (s.getDate() !== e.getDate()) {
+    return `${s.getDate()}–${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
+  }
+  return dayText(s);
+}
+
+/** "15 h 3 min", "45 min", "2 h". */
+export function fmtDuration(min) {
+  if (min == null || Number.isNaN(Number(min))) return '—';
+  const total = Math.max(0, Math.round(Number(min)));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (!h) return `${m} min`;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+/** "1,270 km" */
+export function fmtKm(v) {
+  if (v == null || Number.isNaN(Number(v))) return '—';
+  return `${Math.round(Number(v)).toLocaleString('en-IN')} km`;
+}
+
+/** The days a trip spans, from reaching the plant to its last drop. */
+export function tripDateRange(trip) {
+  const start = trip?.pickup?.arrivedAt || trip?.pickup?.departedAt;
+  const arrivals = [trip?.drop, ...(trip?.extraDrops || [])]
+    .map((d) => toDate(d?.arrivedAt))
+    .filter(Boolean);
+  if (!arrivals.length) {
+    const since = fmtDateRange(start);
+    return since ? `${since} · on the road` : 'On the road';
+  }
+  return fmtDateRange(start, new Date(Math.max(...arrivals.map((d) => d.getTime()))));
+}
+
+// ─── Stops on the way ────────────────────────────────────────────────────────
+
+function joinOr(words) {
+  if (words.length <= 1) return words.join('');
+  return `${words.slice(0, -1).join(', ')} or ${words[words.length - 1]}`;
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** "1 unknown stop · no fuel, rest or overnight stops" */
+export function stopsOnWayText(summary) {
+  if (!summary) return '—';
+  const n = (k) => Number(summary[k]) || 0;
+  const kinds = ['fuel', 'rest', 'overnight'];
+  const parts = [];
+  if (n('unexplained')) parts.push(plural(n('unexplained'), 'unknown stop'));
+  kinds.filter((k) => n(k)).forEach((k) => parts.push(plural(n(k), `${k} stop`)));
+  const none = kinds.filter((k) => !n(k));
+  if (none.length) parts.push(`no ${joinOr(none)} stops`);
+  return parts.join(' · ');
+}
+
+// ─── Trip timeline ───────────────────────────────────────────────────────────
+
+const STOP_KIND_LABEL = {
+  FUEL: 'Fuel stop',
+  REST: 'Rest stop',
+  OVERNIGHT: 'Overnight stop',
+  DHABA: 'Food stop',
+  FOOD: 'Food stop',
+  TOLL: 'Toll',
+  PARKING: 'Parking',
+  SERVICE: 'Service stop',
+  REPAIR: 'Repair stop',
+  BREAKDOWN: 'Breakdown',
+  WEIGHBRIDGE: 'Weighbridge',
+  LOADING: 'Possible loading',
+  UNLOADING: 'Possible unloading',
+  UNKNOWN: 'Unknown stop',
+};
+
+const DROP_NOTE = {
+  LABELLED_PLACE: 'drop place',
+  HUMAN: 'set by a person',
+  INFERRED_TURNAROUND: 'guessed',
+};
+
+/** What a stop after the plant was: a person's answer wins over the engine's guess. */
+export function stopKind(stop) {
+  const answer = stop?.humanReason?.purpose;
+  if (answer) return STOP_KIND_LABEL[answer.toUpperCase()] ? answer.toUpperCase() : 'UNKNOWN';
+  if (stop?.purpose?.unexplained) return 'UNKNOWN';
+  const top = (stop?.purpose?.top || '').toUpperCase();
+  return STOP_KIND_LABEL[top] ? top : 'UNKNOWN';
+}
+
+function stopPlace(stop) {
+  if (stop?.place?.name) return stop.place.name;
+  if (stop?.place) return 'Unconfirmed place';
+  if (stop?.lat != null && stop?.lng != null) {
+    return `Unnamed place · ${Number(stop.lat).toFixed(3)}, ${Number(stop.lng).toFixed(3)}`;
+  }
+  return 'Unnamed place';
+}
+
+/**
+ * One row per step of the trip, in time order: loading at the plant, every stop after
+ * it, and each drop. Row kinds: loading | drop | stop | unknown.
+ */
+export function timelineRows(trip) {
+  if (!trip) return [];
+  const rows = [];
+  const pickup = trip.pickup || {};
+  const pickupAt = pickup.arrivedAt || pickup.departedAt;
+  if (pickupAt) {
+    rows.push({
+      id: 'pickup',
+      kind: 'loading',
+      label: 'Loading',
+      place: pickup.name || 'Pickup place',
+      placeNote: 'plant',
+      at: pickupAt,
+      stayMin: trip.durations?.plantMin ?? pickup.dwellMin ?? null,
+      playAt: pickup.departedAt || pickupAt,
+      stop: null,
+    });
+  }
+
+  const drops = [trip.drop, ...(trip.extraDrops || [])].filter((d) => d && toDate(d.arrivedAt));
+  const dropAt = new Map(drops.map((d) => [toDate(d.arrivedAt).getTime(), d]));
+  const shown = new Set();
+
+  (trip.routeStops || []).forEach((s) => {
+    const t = toDate(s.startAt)?.getTime();
+    const drop = t == null ? null : dropAt.get(t);
+    if (drop) {
+      shown.add(t);
+      rows.push({
+        id: s._id,
+        kind: 'drop',
+        label: 'Unloading',
+        place: dropLabel(drop),
+        placeNote: DROP_NOTE[drop.source] || null,
+        at: s.startAt,
+        stayMin: s.dwellMinutes ?? drop.dwellMin ?? null,
+        playAt: s.startAt,
+        stop: s,
+      });
+      return;
+    }
+    const kind = stopKind(s);
+    rows.push({
+      id: s._id,
+      kind: kind === 'UNKNOWN' ? 'unknown' : 'stop',
+      label: STOP_KIND_LABEL[kind],
+      place: stopPlace(s),
+      placeNote: null,
+      at: s.startAt,
+      stayMin: s.dwellMinutes ?? null,
+      playAt: s.startAt,
+      stop: s,
+    });
+  });
+
+  drops.forEach((d, i) => {
+    const t = toDate(d.arrivedAt).getTime();
+    if (shown.has(t)) return;
+    rows.push({
+      id: `drop-${i}`,
+      kind: 'drop',
+      label: 'Unloading',
+      place: dropLabel(d),
+      placeNote: DROP_NOTE[d.source] || null,
+      at: d.arrivedAt,
+      stayMin: d.dwellMin ?? (i === 0 ? trip.durations?.dropMin : null) ?? null,
+      playAt: d.arrivedAt,
+      stop: null,
+    });
+  });
+
+  return rows.sort((a, b) => toDate(a.at).getTime() - toDate(b.at).getTime());
+}
+
+/** Whether a time falls inside the replay window, so "play from here" can jump to it. */
+export function inWindow(at, track) {
+  const t = toDate(at)?.getTime();
+  const from = toDate(track?.from)?.getTime();
+  const to = toDate(track?.to)?.getTime();
+  if (t == null || from == null || to == null) return false;
+  return t >= from && t <= to;
 }

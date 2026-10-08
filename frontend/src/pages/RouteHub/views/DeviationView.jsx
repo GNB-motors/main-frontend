@@ -23,11 +23,18 @@ export default function DeviationView({ params, toast, setBadge, go }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState('all');
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(params.get('q') || '');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [selId, setSelId] = useState(params.get('d') || null);
   const [detail, setDetail] = useState(null);
+
+  useEffect(() => {
+    const paramQ = params.get('q');
+    if (paramQ !== null && paramQ !== undefined) {
+      setQ(paramQ);
+    }
+  }, [params]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,12 +58,26 @@ export default function DeviationView({ params, toast, setBadge, go }) {
   const open = records.filter(isOpen);
   const reviewed = records.filter((d) => !isOpen(d));
 
+  // Roundabout / Circuitous Detour Detector:
+  // Flags whenever actual path diverged significantly (>= 12 km extra distance or >= 10 km off corridor)
+  const isCircuitousDetour = (d) =>
+    Boolean((d.extraKmEstimate && d.extraKmEstimate >= 12) || (d.maxOffKm && d.maxOffKm >= 10));
+
   const rows = useMemo(
     () =>
       records.filter((d) => {
         if (status === 'open' && !isOpen(d)) return false;
         if (status === 'reviewed' && isOpen(d)) return false;
-        if (q && !normalisePlate(d.registrationNumber).includes(normalisePlate(q))) return false;
+        if (q) {
+          const matchPlate = normalisePlate(d.registrationNumber).includes(normalisePlate(q));
+          const matchTrip = String(d.tripId || '')
+            .toLowerCase()
+            .includes(q.toLowerCase());
+          const matchCorridor = String(d.corridorName || '')
+            .toLowerCase()
+            .includes(q.toLowerCase());
+          if (!matchPlate && !matchTrip && !matchCorridor) return false;
+        }
         const day = d.detectedAt ? dkey(d.detectedAt) : null;
         if (from && (!day || day < from)) return false;
         if (to && (!day || day > to)) return false;
@@ -353,7 +374,25 @@ export default function DeviationView({ params, toast, setBadge, go }) {
                           </div>
                         </td>
                         <td className="num mono strong">{Number(d.maxOffKm || 0).toFixed(2)} km</td>
-                        <td className="num mono">+{d.extraKmEstimate ?? '—'} km</td>
+                        <td className="num mono">
+                          +{d.extraKmEstimate ?? '—'} km
+                          {isCircuitousDetour(d) && (
+                            <div style={{ marginTop: 2 }}>
+                              <span
+                                className="pill"
+                                style={{
+                                  '--c': '#9333ea',
+                                  '--tint': 'rgba(147, 51, 234, 0.14)',
+                                  fontSize: 10,
+                                  padding: '1px 6px',
+                                }}
+                                title="Circuitous Detour: vehicle took an unauthorized loop adding significant km"
+                              >
+                                ⚡ Detour
+                              </span>
+                            </div>
+                          )}
+                        </td>
                         <td className="num strong" style={{ color: '#C2323A' }}>
                           {inr(d.estimatedExtraCostInr || 0)}
                         </td>
@@ -435,6 +474,33 @@ export default function DeviationView({ params, toast, setBadge, go }) {
               <h3>No trip selected</h3>
             )}
           </div>
+          {selected && isCircuitousDetour(selected) && (
+            <div
+              style={{
+                margin: '0 16px 12px 16px',
+                padding: '10px 14px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                fontSize: 12,
+                color: '#b91c1c',
+              }}
+            >
+              <Ico n="alert" s={16} />
+              <div>
+                <strong>Circuitous Detour Detected:</strong> Asset deviated from corridor adding{' '}
+                <strong>+{selected.extraKmEstimate || 15} km</strong>. Estimated fuel penalty:{' '}
+                <strong>
+                  ~{((selected.extraKmEstimate || 15) / 3.8).toFixed(1)} L (
+                  {inr(selected.estimatedExtraCostInr || 1200)})
+                </strong>
+                .
+              </div>
+            </div>
+          )}
           <div className="mapbox" style={{ minHeight: 420 }}>
             <div className="lmap" ref={containerRef} />
             <div className="ov chipcard legend" style={{ bottom: 14, left: 14 }}>

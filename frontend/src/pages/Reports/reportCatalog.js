@@ -26,6 +26,8 @@ export const REPORT_GROUPS = [
     id: 'tripEconomics',
     label: 'TRIP ECONOMICS',
     children: [
+      // Its API (/api/auto-trips/oil-average) is open to every org, so no sub-flag.
+      { id: 'oilAverage', label: 'Oil & Average Report' },
       { id: 'fuelCycles', label: 'Fuel Cycles', flag: 'autoTrips' },
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },

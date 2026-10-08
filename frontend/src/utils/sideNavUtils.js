@@ -3,7 +3,7 @@ import {
   Users,
   User,
   Truck,
-  MapPin,
+  MapPinned,
   Fuel,
   BookOpen,
   Navigation,
@@ -19,6 +19,7 @@ import {
   Radar,
   Route,
   Warehouse,
+  SunMedium,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -65,6 +66,14 @@ export const SIDE_NAV_ITEMS = [
     to: '/digest',
     label: 'Daily Digest',
     icon: CalendarClock,
+  },
+  {
+    type: 'link',
+    key: 'dailyBrief',
+    access: 'fleet',
+    to: '/daily-brief',
+    label: 'Morning Brief',
+    icon: SunMedium,
   },
 
   // ─── Shared master data ────────────────────────────────────────────────────
@@ -223,6 +232,34 @@ export const SIDE_NAV_ITEMS = [
   },
   {
     type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/auto-trips',
+    label: 'Trip',
+    icon: Navigation,
+  },
+  // Yards trips start and end at. `key: null` on purpose — this is master data the
+  // anchoring depends on, so it must not be behind its own flag: an org with FMS
+  // that never sees this page has no way to make trip start/end correct.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/warehouses',
+    label: 'Warehouses',
+    icon: Warehouse,
+  },
+  // Moved out of Fleet Intelligence to sit with Trip and Warehouses; same flag.
+  {
+    type: 'link',
+    key: 'fleetIntelligence',
+    access: 'fleet',
+    to: '/places',
+    label: 'Place Intelligence',
+    icon: MapPinned,
+  },
+  {
+    type: 'link',
     access: 'fleet',
     to: '/whatsapp-approvals',
     label: 'WhatsApp Approvals',
@@ -235,21 +272,17 @@ export const SIDE_NAV_ITEMS = [
     label: 'Fuel Management',
     icon: Fuel,
     children: [
-      { to: '/refuel-logs', label: 'Refuel Logs', key: 'fuelIntegrity' },
-      { to: '/mileage-tracking', label: 'Mileage Tracking', key: 'vehicleActivity' },
-      { to: '/fuel-comparison', label: 'Fuel Comparison', key: 'fuelComparison' },
-      // Live-map-refresh / warehouse branch additions.
+      { to: '/mileage', label: 'Mileage', key: 'fuelIntegrity' },
       { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
       { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
-      { to: '/field-agent-fuel', label: 'Field Fuel Entries', key: 'fuelIntegrity' },
     ],
     matchRoutes: [
+      '/mileage',
       '/refuel-logs',
       '/mileage-tracking',
       '/fuel-comparison',
       '/fuel-integrity',
       '/def-ledger',
-      '/field-agent-fuel',
       '/trip-management',
     ],
   },
@@ -265,7 +298,6 @@ export const SIDE_NAV_ITEMS = [
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
-      { to: '/daily-brief', label: 'Morning Brief', key: 'dailyBrief' },
       { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
       { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
       { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
@@ -274,11 +306,9 @@ export const SIDE_NAV_ITEMS = [
       // used to be five separate entries — now one card-based hub page.
       { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
       { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
-      { to: '/places', label: 'Place Intelligence', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
       '/idling-console',
-      '/daily-brief',
       '/fleet-coverage',
       '/optimal-speed',
       '/refuel-advisory',
@@ -290,17 +320,10 @@ export const SIDE_NAV_ITEMS = [
       '/route-profitability',
       '/overspeed',
       '/hotspots',
-      '/places',
     ],
   },
-  {
-    type: 'link',
-    key: 'locations',
-    access: 'fleet',
-    to: '/locations',
-    label: 'Locations',
-    icon: MapPin,
-  },
+  // Locations (/locations) is hidden from the sidebar on purpose; the page and its
+  // add-location flow still work from direct links.
   {
     type: 'link',
     key: null,
@@ -308,36 +331,6 @@ export const SIDE_NAV_ITEMS = [
     to: '/routes',
     label: 'Routes',
     icon: Route,
-  },
-  // Yards trips start and end at. `key: null` on purpose — this is master data the
-  // anchoring depends on, so it must not be behind its own flag: an org with FMS
-  // that never sees this page has no way to make trip start/end correct.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/warehouses',
-    label: 'Warehouses',
-    icon: Warehouse,
-  },
-  // The warehouse-to-warehouse cycle list. Same reasoning as Warehouses above:
-  // `key: null` because it reads the data the yards produce, and hiding it behind
-  // its own flag would leave an FMS org unable to see why its distances look wrong.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/vehicle-tours',
-    label: 'Vehicle Tours',
-    icon: Route,
-  },
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/auto-trips',
-    label: 'Auto Trips',
-    icon: Navigation,
   },
   {
     type: 'group',
@@ -359,6 +352,8 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },
+  // Settings hub for fleet and vehicle configs
+  { type: 'link', key: null, to: '/settings', label: 'Settings', icon: Settings },
   // Always visible (no feature flag) — guaranteed fallback page. Profile must
   // stay reachable for every authenticated user regardless of plan; gating it
   // can lock users out with no recovery path, so `key` stays null on purpose.

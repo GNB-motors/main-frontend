@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download } from 'lucide-react';
-import PageShell from '../../components/ui/PageShell';
-import DataTable from '../../components/ui/DataTable';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { useApi } from '../../hooks/useApi';
-import AutoTripService from '../../services/AutoTripService';
+import PageShell from '../../../components/ui/PageShell';
+import FilterBar from '../../../components/ui/FilterBar';
+import DataTable from '../../../components/ui/DataTable';
+import { CsvIcon } from '../../../components/Icons';
+import useApi from '../../../hooks/useApi';
+import AutoTripService from '../../../services/AutoTripService';
 
 function daysAgoISO(n) {
   const d = new Date();
@@ -14,6 +13,7 @@ function daysAgoISO(n) {
   return d.toISOString().slice(0, 10);
 }
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const DEFAULT_DAYS = 30;
 
 function fmtDate(v) {
   if (!v) return '';
@@ -28,7 +28,7 @@ const inr = (v) => (v == null ? '' : `₹${Math.round(v).toLocaleString('en-IN')
 const pct = (v) => (v == null ? '' : `${(Math.round(v * 10) / 10).toFixed(1)}%`);
 
 // Field fallbacks: the API contract renames refuelLitres→refuelL and
-// fuelUsedLitres→fuelUsedL (V-69); read both so the page works before and after
+// fuelUsedLitres→fuelUsedL (V-69); read both so the report works before and after
 // the backend ships the renamed shape. The role/cost columns (v2) stay blank
 // until the backend sends them.
 const COLUMNS = [
@@ -98,14 +98,20 @@ function downloadCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
-export default function OilAverageReportPage() {
+/** Trip-wise Oil & Average report, shown on the Reports page (?report=oilAverage). */
+export default function OilAverageReport() {
   const navigate = useNavigate();
-  const [from, setFrom] = useState(daysAgoISO(30));
-  const [to, setTo] = useState(todayISO());
+  const defaultFrom = daysAgoISO(DEFAULT_DAYS);
+  const defaultTo = todayISO();
+  const [from, setFrom] = useState(defaultFrom);
+  const [to, setTo] = useState(defaultTo);
 
   // Whole IST days: a bare "to" date would be read as its midnight and drop that day.
   const params = useMemo(
-    () => ({ from: `${from}T00:00:00+05:30`, to: `${to}T23:59:59.999+05:30` }),
+    () => ({
+      ...(from ? { from: `${from}T00:00:00+05:30` } : {}),
+      ...(to ? { to: `${to}T23:59:59.999+05:30` } : {}),
+    }),
     [from, to],
   );
   const { data, loading, error, refetch } = useApi(
@@ -126,52 +132,48 @@ export default function OilAverageReportPage() {
     [],
   );
 
+  const activeCount = (from !== defaultFrom ? 1 : 0) + (to !== defaultTo ? 1 : 0);
+  const range = from || to ? `${from || '…'} → ${to || '…'}` : 'last 31 days';
+
   return (
     <PageShell
+      className="p-6"
       title="Oil & Average Report"
       count={rows.length}
-      subtitle="Trip-wise — each trip with its fuel, mileage and odometer where available. Mileage is laden distance ÷ fuel used on the run (not litres bought). Blank columns fill in as fuel data and driver assignments arrive."
+      subtitle="Trip-wise — each trip with its fuel, mileage and odometer where available. Mileage is laden distance ÷ fuel used on the run (not litres bought)."
       actions={
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="outline" size="sm" onClick={() => navigate('/auto-trips')}>
-            <ArrowLeft size={16} /> Trips
-          </Button>
-          <Button size="sm" disabled={!rows.length} onClick={() => downloadCsv(rows)}>
-            <Download size={16} /> Export CSV
-          </Button>
-        </div>
+        <button
+          type="button"
+          onClick={() => downloadCsv(rows)}
+          disabled={rows.length === 0}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
+          title="Export these rows to CSV"
+          aria-label="Export to CSV"
+        >
+          <CsvIcon width={20} height={20} />
+        </button>
       }
       filters={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-            From
-            <Input
-              type="date"
-              aria-label="From date"
-              value={from}
-              max={to}
-              onChange={(e) => setFrom(e.target.value)}
-              style={{ width: 160 }}
-            />
-          </span>
-          <span style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-            To
-            <Input
-              type="date"
-              aria-label="To date"
-              value={to}
-              min={from}
-              max={todayISO()}
-              onChange={(e) => setTo(e.target.value)}
-              style={{ width: 160 }}
-            />
-          </span>
-        </div>
+        <FilterBar
+          from={from}
+          to={to}
+          onRangeChange={(patch) => {
+            if ('from' in patch) setFrom(patch.from);
+            if ('to' in patch) setTo(patch.to);
+          }}
+          activeCount={activeCount}
+          onClear={() => {
+            setFrom(defaultFrom);
+            setTo(defaultTo);
+          }}
+        />
       }
       footer={
-        data?.truncated
-          ? `First ${rows.length} trips only — narrow the dates to see the rest · ${from} → ${to}`
-          : `${rows.length} trips · ${from} → ${to}`
+        <span className="text-dim text-xs">
+          {data?.truncated
+            ? `First ${rows.length} trips only — narrow the dates to see the rest · ${range}`
+            : `${rows.length} trips · ${range}`}
+        </span>
       }
     >
       <DataTable
@@ -181,9 +183,11 @@ export default function OilAverageReportPage() {
         loading={loading}
         error={error}
         onRetry={refetch}
+        showing={rows.length}
+        total={rows.length}
         onRowClick={(r) => navigate(`/auto-trips/${r.autoTripId}`)}
         emptyTitle="No trips in this range"
-        emptyHint="Widen the date range, or detect trips first from the Auto Trips page."
+        emptyHint="Widen the date range, or confirm pickup / drop places so more trips are detected."
       />
     </PageShell>
   );
