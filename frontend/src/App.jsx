@@ -396,7 +396,7 @@ function App() {
           >
             <Route path="/digest" element={<DailyDigestPage />} />
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
-            <Route path="/idling-console" element={<IdlingConsolePage />} />
+            <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
             <Route path="/daily-brief" element={<DailyBriefPage />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
