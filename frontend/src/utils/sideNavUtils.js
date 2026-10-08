@@ -20,6 +20,7 @@ import {
   Radar,
   Warehouse,
   SunMedium,
+  Route,
 } from 'lucide-react';
 
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
@@ -251,9 +252,8 @@ export const SIDE_NAV_ITEMS = [
     label: 'Place Hub',
     icon: MapIcon,
   },
-  // Yards trips start and end at. `key: null` on purpose — this is master data the
-  // anchoring depends on, so it must not be behind its own flag: an org with FMS
-  // that never sees this page has no way to make trip start/end correct.
+  // Yards trips start and end at. Hidden from sidebar per request.
+  /*
   {
     type: 'link',
     key: null,
@@ -262,6 +262,7 @@ export const SIDE_NAV_ITEMS = [
     label: 'Warehouses',
     icon: Warehouse,
   },
+  */
   // Moved out of Fleet Intelligence to sit with Trip and Warehouses; same flag.
   {
     type: 'link',
@@ -305,7 +306,17 @@ export const SIDE_NAV_ITEMS = [
       '/trip-management',
     ],
   },
-  // Fleet Intelligence surfaces
+  // Route Hub — direct link (replaces the Fleet Intelligence dropdown)
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/route-hub',
+    label: 'Route Hub',
+    icon: Route,
+  },
+  /*
+  // Fleet Intelligence surfaces (commented out: Idling Console and Hotspots removed; Route Hub displayed directly)
   {
     type: 'group',
     groupId: 'fleetIntelligence',
@@ -339,8 +350,9 @@ export const SIDE_NAV_ITEMS = [
       '/hotspots',
     ],
   },
-  // Locations (/locations) is hidden from the sidebar on purpose; the page and its
-  // add-location flow still work from direct links.
+  */
+  // Geofence group (commented out per request)
+  /*
   {
     type: 'group',
     groupId: 'geofence',
@@ -354,6 +366,7 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: ['/geofence', '/geofence/zones'],
   },
+  */
 
   // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
   { type: 'section', label: 'Insights' },

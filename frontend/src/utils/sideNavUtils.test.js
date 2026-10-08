@@ -48,10 +48,14 @@ describe('Trip Windows nav access', () => {
     ).toBe(false);
   });
 
-  it('is never a child of Fleet Intelligence group', () => {
-    const fleetIntelGroup = SIDE_NAV_ITEMS.find((item) => item.groupId === 'fleetIntelligence');
-    expect(fleetIntelGroup.children.some((c) => c.to === '/erp/trip-windows')).toBe(false);
-    expect(fleetIntelGroup.matchRoutes.includes('/erp/trip-windows')).toBe(false);
+  it('is never a child of Fleet Intelligence', () => {
+    const fleetIntelItem = SIDE_NAV_ITEMS.find(
+      (item) => item.groupId === 'fleetIntelligence' || item.to === '/route-hub',
+    );
+    if (fleetIntelItem?.children) {
+      expect(fleetIntelItem.children.some((c) => c.to === '/erp/trip-windows')).toBe(false);
+      expect(fleetIntelItem.matchRoutes?.includes('/erp/trip-windows')).toBe(false);
+    }
   });
 
   it('shows under Operations when both erpOperations and erpTripClose are enabled', () => {

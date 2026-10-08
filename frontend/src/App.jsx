@@ -145,15 +145,15 @@ const LocationPage = lazy(() => import('./pages/Locations/LocationPage.jsx'));
 const AddLocationPage = lazy(() => import('./pages/Locations/AddLocationPage.jsx'));
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
 const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
-const VehicleWarehousesPage = lazy(
-  () => import('./pages/VehicleWarehouses/VehicleWarehousesPage.jsx'),
-);
+// const VehicleWarehousesPage = lazy(
+//   () => import('./pages/VehicleWarehouses/VehicleWarehousesPage.jsx'),
+// );
 const AutoTripsPage = lazy(() => import('./pages/AutoTrips/AutoTripsPage.jsx'));
 const AutoTripDetailPage = lazy(() => import('./pages/AutoTrips/AutoTripDetailPage.jsx'));
 const ExcursionsPage = lazy(() => import('./pages/AutoTrips/ExcursionsPage.jsx'));
 const ExcursionDetailPage = lazy(() => import('./pages/AutoTrips/ExcursionDetailPage.jsx'));
 const MovementApprovalsPage = lazy(() => import('./pages/AutoTrips/MovementApprovalsPage.jsx'));
-const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
+// const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const PlaceIntelligencePage = lazy(
   () => import('./pages/PlaceIntelligence/PlaceIntelligencePage.jsx'),
 );
@@ -161,8 +161,8 @@ const PlaceHubPage = lazy(() => import('./pages/PlaceHub/PlaceHubPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('./pages/OwnerAlerts/OwnerAlertsPage.jsx'));
-const GeofencePage = lazy(() => import('./pages/Geofence/GeofencePage.jsx'));
-const GeofenceZonesPage = lazy(() => import('./pages/Geofence/GeofenceZonesPage.jsx'));
+// const GeofencePage = lazy(() => import('./pages/Geofence/GeofencePage.jsx'));
+// const GeofenceZonesPage = lazy(() => import('./pages/Geofence/GeofenceZonesPage.jsx'));
 const FieldAgentFuelPage = lazy(() => import('./pages/FieldAgentFuel/FieldAgentFuelPage.jsx'));
 const FieldAgentFuelUploadPage = lazy(
   () => import('./pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx'),
@@ -198,7 +198,7 @@ const Account360Page = lazy(() => import('./pages/ErpAccounts/Account360Page.jsx
 const DocumentDetailPage = lazy(() => import('./pages/ErpAccounts/DocumentDetailPage.jsx'));
 const DailyDigestPage = lazy(() => import('./pages/DailyDigest/DailyDigestPage.jsx'));
 const FleetAlertsPage = lazy(() => import('./pages/FleetAlerts/FleetAlertsPage.jsx'));
-const IdlingConsolePage = lazy(() => import('./pages/IdlingConsole/IdlingConsolePage.jsx'));
+// const IdlingConsolePage = lazy(() => import('./pages/IdlingConsole/IdlingConsolePage.jsx'));
 const DailyBriefPage = lazy(() => import('./pages/DailyBrief/DailyBriefPage.jsx'));
 const OptimalSpeedPage = lazy(() => import('./pages/OptimalSpeed/OptimalSpeedPage.jsx'));
 const RefuelAdvisoryPage = lazy(() => import('./pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
@@ -449,18 +449,17 @@ function App() {
               path="/overspeed"
               element={<RedirectWithState to="/route-hub?tab=overspeed" />}
             />
-            <Route path="/hotspots" element={<HotspotsPage />} />
+            {/* Deprecated / hidden routes redirect cleanly so no blank screens appear */}
+            <Route path="/hotspots" element={<Navigate to="/route-hub" replace />} />
+            <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
             <Route path="/places" element={<PlaceIntelligencePage />} />
             <Route path="/place-hub" element={<PlaceHubPage />} />
             <Route path="/live-tracking" element={<LiveTrackingPage />} />
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
-            <Route path="/geofence" element={<GeofencePage />} />
-            <Route path="/geofence/zones" element={<GeofenceZonesPage />} />
-            <Route path="/geofence-zones" element={<Navigate to="/geofence/zones" replace />} />
-            <Route
-              path="/geofence/alerts"
-              element={<Navigate to="/geofence/zones?tab=alerts" replace />}
-            />
+            <Route path="/geofence" element={<Navigate to="/live-tracking" replace />} />
+            <Route path="/geofence/zones" element={<Navigate to="/live-tracking" replace />} />
+            <Route path="/geofence-zones" element={<Navigate to="/live-tracking" replace />} />
+            <Route path="/geofence/alerts" element={<Navigate to="/live-tracking" replace />} />
             {/* Field Agent Fuel deprecated -> the Field agent tab of Approvals */}
             <Route
               path="/field-agent-fuel"
@@ -472,7 +471,6 @@ function App() {
             />
             {/* Fleet Intelligence Routes */}
             <Route path="/route-hub" element={<RouteHubPage />} />
-            <Route path="/idling-console" element={<IdlingConsolePage />} />
             <Route path="/drivers" element={<DriversPage />} />
             <Route path="/access-control" element={<AccessControlPage />} />
             <Route path="/access-control/assigned-employees" element={<AssignedEmployeesPage />} />
@@ -530,7 +528,7 @@ function App() {
             />
             <Route path="/vehicles/add" element={<AddVehiclePage />} />
             <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
-            <Route path="/warehouses" element={<VehicleWarehousesPage />} />
+            <Route path="/warehouses" element={<Navigate to="/auto-trips" replace />} />
             <Route path="/auto-trips" element={<AutoTripsPage />} />
             {/* The Oil & Average report lives on the Reports page now. */}
             <Route
