@@ -24,6 +24,7 @@ vi.mock('./PlaceHubService.js', () => {
     loadWarehouses: vi.fn(),
     loadZones: vi.fn(),
     loadSites: vi.fn(),
+    loadSite: vi.fn(),
     loadHotspots: vi.fn(),
     loadDrainMap: vi.fn(),
     loadLiveIdling: vi.fn(),
@@ -163,6 +164,27 @@ describe('PlaceHubPage', () => {
     const drawer = screen.getByRole('complementary', { name: 'Maybe a dhaba' });
     expect(within(drawer).getByText('Is this a real place?')).toBeInTheDocument();
     expect(within(drawer).queryByRole('button', { name: /Edit/ })).not.toBeInTheDocument();
+  });
+
+  it('opens the place a link names, under the list it belongs to', async () => {
+    renderPage('/place-hub?place=site%3As1');
+    expect(await screen.findByRole('complementary', { name: 'Maybe a dhaba' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /To review/ })).toHaveAttribute('aria-selected', 'true');
+    expect(PlaceHubService.loadSite).not.toHaveBeenCalled();
+  });
+
+  it('fetches a linked suggestion that is not among those loaded', async () => {
+    PlaceHubService.loadSite.mockResolvedValue({
+      _id: 's9',
+      siteType: 'UNKNOWN',
+      status: 'PROPOSED',
+      centroidLat: 22.6,
+      centroidLng: 88.2,
+      radiusM: 100,
+    });
+    renderPage('/place-hub?place=site%3As9');
+    expect(await screen.findByRole('complementary', { name: 'Unknown' })).toBeInTheDocument();
+    expect(PlaceHubService.loadSite).toHaveBeenCalledWith('s9');
   });
 
   it('adds a zone only once it has a name and a pin', async () => {

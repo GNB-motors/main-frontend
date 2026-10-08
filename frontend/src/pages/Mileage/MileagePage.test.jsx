@@ -252,6 +252,30 @@ describe('MileagePage', () => {
     expect(opts.params.to).toMatch(/T18:29:59\.999Z$/); // end of an IST day
   });
 
+  it('links a fill made at a saved place to that place in Place Hub', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['fuelIntegrity']));
+    const placed = {
+      ...feed,
+      data: [
+        { ...feed.data[0], place: { id: 's1', hubId: 'site:s1', name: 'Dankuni pump' } },
+        { ...feed.data[1], place: { id: 's2', hubId: 'site:s2', name: null } },
+      ],
+    };
+    apiClient.get.mockImplementation((url) =>
+      url === '/api/fuel-logs/unified'
+        ? Promise.resolve({ data: placed })
+        : Promise.resolve({ data: { status: 'success', data: [] } }),
+    );
+    renderAt('/mileage');
+
+    const named = await screen.findByRole('link', { name: /Dankuni pump/ });
+    expect(named).toHaveAttribute('href', '/place-hub?place=site%3As1');
+    expect(named).toHaveAttribute('title', 'Bill: IOCL Dankuni · Open in Place Hub');
+    const unnamed = screen.getByRole('link', { name: /Unnamed place/ });
+    expect(unnamed).toHaveAttribute('href', '/place-hub?place=site%3As2');
+    expect(within(unnamed).getByText('22.570, 88.360')).toBeInTheDocument();
+  });
+
   it('keeps gauge glitches out of the list, behind their own chip', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['fuelIntegrity']));
     renderAt('/mileage');
