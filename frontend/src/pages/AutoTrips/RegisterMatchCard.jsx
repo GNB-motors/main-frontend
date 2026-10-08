@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, ClipboardCheck } from 'lucide-react';
-import { Button } from '../../components/ui/button';
+import { ClipboardCheck } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { getUserRole } from '../../utils/session.js';
 import AutoTripService from '../../services/AutoTripService';
+import { formatNum } from '../../utils/formatters';
+import { fmtDateRange } from './autoTripModel';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`);
@@ -25,56 +26,65 @@ export default function RegisterMatchCard() {
   if (!r?.totals?.cycles) return null;
   const t = r.totals;
   const plants = Object.entries(r.byFrom || {}).slice(0, 8);
-  const from = r.window?.from ? new Date(r.window.from).toLocaleDateString('en-IN') : '';
-  const to = r.window?.to ? new Date(r.window.to).toLocaleDateString('en-IN') : '';
+  const range = fmtDateRange(r.window?.from, r.window?.to);
+  const gpsMissed = t.detectable != null && t.detectable < t.cycles;
 
   return (
-    <div
-      style={{
-        padding: '8px 12px',
-        marginBottom: 12,
-        borderRadius: 8,
-        background: 'var(--muted, #f6f7f9)',
-        fontSize: 13,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <ClipboardCheck size={16} aria-hidden="true" />
-        <span style={{ flex: 1 }}>
-          Matches your trip register: <strong>{pct(t.recall)}</strong> of {t.cycles} trips (
-          {pct(t.recallDetectable)} of the {t.detectable} the GPS could see), {from} – {to}.{' '}
-          {r.trips?.namedDropShare != null ? `${pct(r.trips.namedDropShare)} of drops named.` : ''}
-        </span>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen((o) => !o)}>
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          {open ? 'Hide' : 'By plant'}
-        </Button>
+    <div className="atx-banner">
+      <div className="atx-banner-row">
+        <div className="atx-banner-msg">
+          <ClipboardCheck size={18} strokeWidth={2} aria-hidden="true" />
+          <p>
+            <strong>{pct(t.recall)} of your trip register is found here</strong> (
+            {formatNum(t.cycles)} trips{range ? `, ${range}` : ''}).
+            {t.detectable != null
+              ? ` GPS could track ${gpsMissed ? 'only ' : ''}${formatNum(t.detectable)} of those trips, and ${pct(t.recallDetectable)} of them matched.`
+              : ''}
+            {r.trips?.namedDropShare != null
+              ? ` Unloading place is known for ${pct(r.trips.namedDropShare)} of trips.`
+              : ''}
+          </p>
+        </div>
+        {plants.length ? (
+          <button
+            type="button"
+            className="atx-link"
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+          >
+            {open ? 'Hide plant-wise' : 'See plant-wise →'}
+          </button>
+        ) : null}
       </div>
+
       {open ? (
-        <table style={{ marginTop: 8, width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left' }}>
-              <th>Register plant</th>
-              <th style={{ textAlign: 'right' }}>Trips</th>
-              <th style={{ textAlign: 'right' }}>Found</th>
-              <th style={{ textAlign: 'right' }}>Found where GPS was live</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plants.map(([label, b]) => (
-              <tr key={label}>
-                <td>{label}</td>
-                <td style={{ textAlign: 'right' }}>{b.cycles}</td>
-                <td style={{ textAlign: 'right' }}>
-                  {b.found} ({pct(b.recall)})
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  {b.foundDetectable}/{b.detectable} ({pct(b.recallDetectable)})
-                </td>
+        <div className="atx-banner-more">
+          <table className="atx-mini-table">
+            <thead>
+              <tr>
+                <th>Plant in your register</th>
+                <th className="num">Trips</th>
+                <th className="num">Found here</th>
+                <th className="num">Found while GPS was live</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {plants.map(([label, b]) => (
+                <tr key={label}>
+                  <td>{label}</td>
+                  <td className="num">{formatNum(b.cycles)}</td>
+                  <td className="num">
+                    {formatNum(b.found)} ({pct(b.recall)})
+                  </td>
+                  <td className="num">
+                    {formatNum(b.foundDetectable)}/{formatNum(b.detectable)} (
+                    {pct(b.recallDetectable)})
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
     </div>
   );

@@ -1,71 +1,33 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileSpreadsheet,
-  MapPinned,
-  TriangleAlert,
-  ShieldCheck,
-} from 'lucide-react';
-import PageShell from '../../components/ui/PageShell';
+import { Link, useNavigate } from 'react-router-dom';
+import { FileText, ShieldCheck, TriangleAlert } from 'lucide-react';
 import DataTable from '../../components/ui/DataTable';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
+import { formatNum } from '../../utils/formatters';
+import { dropLabel } from '../PlaceIntelligence/facilityText';
 import AutoTripCoverage from './AutoTripCoverage';
 import RegisterMatchCard from './RegisterMatchCard';
-import { dropLabel } from '../PlaceIntelligence/facilityText';
-import { DROP_SOURCE_LABEL } from './autoTripModel';
+import { STATUS_CLASS, STATUS_LABEL, fmtDayTime, fmtKm, notReachedYet } from './autoTripModel';
+import './AutoTrips.css';
 
 const TABS = [
   { key: '', label: 'All' },
-  { key: 'COMPLETE', label: 'Complete' },
-  { key: 'NEEDS_REVIEW', label: 'Needs review' },
+  { key: 'COMPLETE', label: 'Delivered' },
+  { key: 'NEEDS_REVIEW', label: 'Needs a check' },
   { key: 'OPEN', label: 'On the road' },
   { key: 'CONFIRMED', label: 'Confirmed' },
-  { key: 'DISMISSED', label: 'Dismissed' },
+  { key: 'DISMISSED', label: 'Rejected' },
 ];
-
-const STATUS_VARIANT = {
-  COMPLETE: 'default',
-  CONFIRMED: 'default',
-  NEEDS_REVIEW: 'secondary',
-  OPEN: 'outline',
-  DISMISSED: 'destructive',
-};
-
-const STATUS_LABEL = {
-  COMPLETE: 'Complete',
-  CONFIRMED: 'Confirmed',
-  NEEDS_REVIEW: 'Needs review',
-  OPEN: 'On the road',
-  DISMISSED: 'Dismissed',
-};
 
 const PAGE_SIZE = 50;
 
-function fmtDate(v) {
-  if (!v) return '—';
-  const d = new Date(v);
-  return Number.isNaN(d.getTime())
-    ? '—'
-    : d.toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-}
-
-function fmtKm(v) {
-  return v == null ? '—' : `${Math.round(v)} km`;
-}
-
-function routeOf(trip) {
-  const from = trip.pickup?.name || '—';
-  return `${from} → ${dropLabel(trip.drop)}`;
+function StatusPill({ status }) {
+  return (
+    <span className={`atx-status ${STATUS_CLASS[status] || 'atx-status--open'}`}>
+      {STATUS_LABEL[status] || status}
+    </span>
+  );
 }
 
 export default function AutoTripsPage() {
@@ -86,29 +48,56 @@ export default function AutoTripsPage() {
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const tabCounts = data?.tabCounts ?? {};
-  const allCount = Object.values(tabCounts).reduce((a, b) => a + (b || 0), 0);
+  const allCount = Object.values(tabCounts).reduce((a, b) => a + (b || 0), 0) || total;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
   const countFor = (key) => (key === '' ? allCount : (tabCounts[key] ?? 0));
 
   const columns = useMemo(
     () => [
-      { key: 'registrationNumber', label: 'Truck', render: (r) => r.registrationNumber || '—' },
-      { key: 'route', label: 'Route', render: (r) => routeOf(r) },
-      { key: 'departedAt', label: 'Left pickup', render: (r) => fmtDate(r.pickup?.departedAt) },
-      { key: 'laden', label: 'Laden', align: 'right', render: (r) => fmtKm(r.km?.laden) },
       {
-        key: 'drop',
-        label: 'Drop',
-        render: (r) => DROP_SOURCE_LABEL[r.drop?.source] || '—',
+        key: 'registrationNumber',
+        label: 'Truck',
+        render: (r) => <span className="atx-plate">{r.registrationNumber || '—'}</span>,
       },
       {
-        key: 'status',
-        label: 'Status',
+        key: 'route',
+        label: 'Loaded at → Unloaded at',
         render: (r) => (
-          <Badge variant={STATUS_VARIANT[r.status] || 'outline'}>
-            {STATUS_LABEL[r.status] || r.status}
-          </Badge>
+          <>
+            {r.pickup?.name || '—'} →{' '}
+            {notReachedYet(r) ? (
+              <span className="atx-muted">not reached yet</span>
+            ) : (
+              dropLabel(r.drop)
+            )}
+          </>
+        ),
+      },
+      {
+        key: 'departedAt',
+        label: 'Left plant',
+        render: (r) => fmtDayTime(r.pickup?.departedAt, { padDay: true }),
+      },
+      {
+        key: 'laden',
+        label: 'Loaded km',
+        align: 'right',
+        render: (r) =>
+          r.km?.laden == null ? <span className="atx-muted">—</span> : fmtKm(r.km.laden),
+      },
+      { key: 'status', label: 'Status', render: (r) => <StatusPill status={r.status} /> },
+      {
+        key: 'actions',
+        label: '',
+        align: 'right',
+        render: (r) => (
+          <Link
+            to={`/auto-trips/${r._id}?play=1`}
+            className="atx-replay-link"
+            onClick={(e) => e.stopPropagation()}
+          >
+            ▶ Replay
+          </Link>
         ),
       },
     ],
@@ -120,97 +109,111 @@ export default function AutoTripsPage() {
     setPage(1);
   };
 
-  return (
-    <PageShell
-      title="Auto Trips"
-      count={total}
-      subtitle="Trips detected from GPS stops and your confirmed pickup / drop places — no ERP needed."
-      actions={
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Button size="sm" variant="outline" onClick={() => navigate('/auto-trips/excursions')}>
-            <TriangleAlert size={16} /> Deviations
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate('/auto-trips/approvals')}>
-            <ShieldCheck size={16} /> Approvals
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate('/auto-trips/oil-average')}>
-            <FileSpreadsheet size={16} /> Oil &amp; Average report
-          </Button>
-        </div>
-      }
-    >
-      <RegisterMatchCard />
-      <AutoTripCoverage />
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        {TABS.map((t) => (
-          <Button
-            key={t.key || 'all'}
-            type="button"
-            size="sm"
-            variant={statusTab === t.key ? 'default' : 'outline'}
-            onClick={() => changeTab(t.key)}
-          >
-            {t.label}
-            <Badge variant="secondary" style={{ marginLeft: 6 }}>
-              {countFor(t.key)}
-            </Badge>
-          </Button>
-        ))}
-      </div>
-
-      <DataTable
-        columns={columns}
-        rows={items}
-        rowKey={(r) => r._id}
-        loading={loading}
-        error={error}
-        onRetry={refetch}
-        onRowClick={(r) => navigate(`/auto-trips/${r._id}`)}
-        emptyTitle="No trips in this view"
-        emptyHint={
-          statusTab
-            ? 'Try another tab, or confirm pickup / drop places so more trips are detected.'
-            : 'Trips appear once GPS stops are detected at confirmed pickup places.'
-        }
-      />
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: 12,
-          marginTop: 12,
-        }}
-      >
-        <span style={{ fontSize: 13, color: 'var(--muted-foreground, #666)' }}>
-          <MapPinned
-            size={14}
-            style={{ verticalAlign: 'middle', marginRight: 4 }}
-            aria-hidden="true"
-          />
-          Page {page} / {totalPages}
+  const pagination =
+    totalPages > 1 ? (
+      <div className="atx-pager">
+        <span>
+          Page {page} of {totalPages}
         </span>
-        <Button
+        <button
           type="button"
-          size="sm"
-          variant="outline"
+          className="atx-btn atx-btn--sm"
           disabled={page <= 1 || loading}
           onClick={() => setPage((p) => Math.max(1, p - 1))}
         >
-          <ChevronLeft size={16} /> Prev
-        </Button>
-        <Button
+          Previous
+        </button>
+        <button
           type="button"
-          size="sm"
-          variant="outline"
+          className="atx-btn atx-btn--sm"
           disabled={page >= totalPages || loading}
           onClick={() => setPage((p) => p + 1)}
         >
-          Next <ChevronRight size={16} />
-        </Button>
+          Next
+        </button>
       </div>
-    </PageShell>
+    ) : null;
+
+  return (
+    <div className="atx-page atx-list">
+      <div className="atx-wrap">
+        <div className="atx-head">
+          <div className="atx-head-main">
+            <div className="atx-title-row">
+              <h1 className="atx-title">Trip</h1>
+              <span className="atx-count">{formatNum(allCount)} trips</span>
+            </div>
+            <p className="atx-sub">
+              Every trip rebuilt from GPS — where the truck loaded, where it unloaded, and how long
+              each part took. No ERP needed.
+            </p>
+          </div>
+          <div className="atx-actions">
+            <button
+              type="button"
+              className="atx-btn"
+              onClick={() => navigate('/auto-trips/excursions')}
+            >
+              <TriangleAlert size={16} strokeWidth={2} aria-hidden="true" />
+              Route deviations
+            </button>
+            <button
+              type="button"
+              className="atx-btn"
+              onClick={() => navigate('/auto-trips/approvals')}
+            >
+              <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
+              Pending approvals
+            </button>
+            <button
+              type="button"
+              className="atx-btn"
+              onClick={() => navigate('/reports?report=oilAverage')}
+            >
+              <FileText size={16} strokeWidth={2} aria-hidden="true" />
+              Fuel &amp; mileage report
+            </button>
+          </div>
+        </div>
+
+        <RegisterMatchCard />
+        <AutoTripCoverage />
+
+        <div role="tablist" aria-label="Filter trips" className="atx-tabs">
+          {TABS.map((t) => (
+            <button
+              key={t.key || 'all'}
+              type="button"
+              role="tab"
+              aria-selected={statusTab === t.key}
+              className="atx-tab"
+              onClick={() => changeTab(t.key)}
+            >
+              {t.label}
+              <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
+            </button>
+          ))}
+        </div>
+
+        <DataTable
+          columns={columns}
+          rows={items}
+          rowKey={(r) => r._id}
+          loading={loading}
+          error={error}
+          onRetry={refetch}
+          showing={items.length}
+          total={total}
+          pagination={pagination}
+          onRowClick={(r) => navigate(`/auto-trips/${r._id}`)}
+          emptyTitle="No trips in this view"
+          emptyHint={
+            statusTab
+              ? 'Try another tab, or confirm pickup / drop places so more trips are detected.'
+              : 'Trips appear once GPS stops are detected at confirmed pickup places.'
+          }
+        />
+      </div>
+    </div>
   );
 }

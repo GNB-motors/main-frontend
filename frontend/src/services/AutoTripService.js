@@ -32,6 +32,10 @@ export const AutoTripService = {
   get: async (id, { signal } = {}) =>
     parsed('autoTripDetailSchema', await apiClient.get(`${BASE}/${id}`, { signal })),
 
+  /** GPS track to replay a trip: left plant → last drop (next pickup / now while open). */
+  track: async (id, { signal } = {}) =>
+    parsed('autoTripTrackSchema', await apiClient.get(`${BASE}/${id}/track`, { signal })),
+
   confirm: async ({ id }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/${id}/confirm`, {}, { signal })),
 

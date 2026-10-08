@@ -5,6 +5,15 @@ import {
   canMarkPlace,
   stopLabel,
   answerPlaceHref,
+  fmtDuration,
+  fmtKm,
+  fmtDateRange,
+  tripDateRange,
+  stopsOnWayText,
+  stopKind,
+  timelineRows,
+  inWindow,
+  notReachedYet,
 } from './autoTripModel';
 
 const pickup = { lat: 22.5, lng: 88.2, name: 'AMBUJA' };
@@ -66,5 +75,140 @@ describe('stop helpers', () => {
     );
     expect(answerPlaceHref({ drop: { orgSiteId: 's1', source: 'LABELLED_PLACE' } })).toBeNull();
     expect(answerPlaceHref({ drop: { source: 'INFERRED_TURNAROUND' } })).toBeNull();
+  });
+});
+
+describe('fmtDuration / fmtKm', () => {
+  it('prints hours and minutes the way the trip page reads', () => {
+    expect(fmtDuration(903)).toBe('15 h 3 min');
+    expect(fmtDuration(470)).toBe('7 h 50 min');
+    expect(fmtDuration(120)).toBe('2 h');
+    expect(fmtDuration(3)).toBe('3 min');
+    expect(fmtDuration(null)).toBe('—');
+  });
+
+  it('prints whole km with Indian grouping', () => {
+    expect(fmtKm(269.6)).toBe('270 km');
+    expect(fmtKm(123456)).toBe('1,23,456 km');
+    expect(fmtKm(null)).toBe('—');
+  });
+});
+
+describe('fmtDateRange / tripDateRange', () => {
+  // Midday UTC so the local date is the same in every Indian / European timezone.
+  const day = (d, m) =>
+    `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T06:00:00Z`;
+
+  it('collapses a range to the shortest form', () => {
+    expect(fmtDateRange(day(7, 10), day(8, 10))).toBe('7–8 Oct 2026');
+    expect(fmtDateRange(day(30, 9), day(1, 10))).toBe('30 Sep – 1 Oct 2026');
+    expect(fmtDateRange(day(7, 10), day(7, 10))).toBe('7 Oct 2026');
+    expect(fmtDateRange(day(6, 9), null)).toBe('6 Sep 2026');
+    expect(fmtDateRange(null, null)).toBe('');
+  });
+
+  it('spans plant arrival to the last drop, or says the truck is still out', () => {
+    const pickup = { arrivedAt: day(7, 10), departedAt: day(7, 10) };
+    expect(
+      tripDateRange({
+        pickup,
+        drop: { arrivedAt: day(8, 10) },
+        extraDrops: [{ arrivedAt: day(9, 10) }],
+      }),
+    ).toBe('7–9 Oct 2026');
+    expect(tripDateRange({ pickup, drop: {} })).toBe('7 Oct 2026 · on the road');
+  });
+});
+
+describe('stopsOnWayText', () => {
+  it('names the unknown stops and the kinds that did not happen', () => {
+    expect(stopsOnWayText({ fuel: 0, rest: 0, overnight: 0, unexplained: 1 })).toBe(
+      '1 unknown stop · no fuel, rest or overnight stops',
+    );
+    expect(stopsOnWayText({ fuel: 2, rest: 1, overnight: 0, unexplained: 0 })).toBe(
+      '2 fuel stops · 1 rest stop · no overnight stops',
+    );
+    expect(stopsOnWayText({ fuel: 1, rest: 1, overnight: 1, unexplained: 0 })).toBe(
+      '1 fuel stop · 1 rest stop · 1 overnight stop',
+    );
+    expect(stopsOnWayText(null)).toBe('—');
+  });
+});
+
+describe('stopKind', () => {
+  it('takes a person’s answer over the engine’s guess', () => {
+    expect(stopKind({ purpose: { top: 'UNKNOWN' }, humanReason: { purpose: 'fuel' } })).toBe(
+      'FUEL',
+    );
+  });
+  it('treats unexplained or unrecognised purposes as unknown', () => {
+    expect(stopKind({ purpose: { top: 'REST', unexplained: true } })).toBe('UNKNOWN');
+    expect(stopKind({ purpose: { top: 'UNEXPLAINED' } })).toBe('UNKNOWN');
+    expect(stopKind({ purpose: { top: 'FUEL' } })).toBe('FUEL');
+    expect(stopKind({})).toBe('UNKNOWN');
+  });
+});
+
+describe('timelineRows', () => {
+  const trip = {
+    pickup: {
+      name: 'Dalmia Salbani',
+      arrivedAt: '2026-10-07T00:00:00Z',
+      departedAt: '2026-10-07T15:00:00Z',
+    },
+    drop: { name: 'Mamudpur', arrivedAt: '2026-10-07T22:50:00Z', source: 'LABELLED_PLACE' },
+    durations: { plantMin: 903 },
+    routeStops: [
+      {
+        _id: 's1',
+        startAt: '2026-10-07T15:19:00Z',
+        dwellMinutes: 3,
+        purpose: { top: 'UNEXPLAINED' },
+        place: { name: 'Gabru Pump, Salbani' },
+      },
+      { _id: 's2', startAt: '2026-10-07T22:50:00Z', dwellMinutes: 151 },
+      { _id: 's3', startAt: '2026-10-08T02:00:00Z', dwellMinutes: 40, purpose: { top: 'FUEL' } },
+    ],
+  };
+
+  it('runs loading → stops → unloading in time order', () => {
+    const rows = timelineRows(trip);
+    expect(rows.map((r) => r.kind)).toEqual(['loading', 'unknown', 'drop', 'stop']);
+    expect(rows[0]).toMatchObject({ place: 'Dalmia Salbani', placeNote: 'plant', stayMin: 903 });
+    expect(rows[0].playAt).toBe(trip.pickup.departedAt);
+    expect(rows[1]).toMatchObject({ label: 'Unknown stop', place: 'Gabru Pump, Salbani' });
+    expect(rows[2]).toMatchObject({
+      label: 'Unloading',
+      place: 'Mamudpur',
+      placeNote: 'drop place',
+    });
+    expect(rows[3].label).toBe('Fuel stop');
+  });
+
+  it('adds the drop when no stop sits on it', () => {
+    const rows = timelineRows({ ...trip, routeStops: [] });
+    expect(rows.map((r) => r.kind)).toEqual(['loading', 'drop']);
+    expect(rows[1].stop).toBeNull();
+  });
+
+  it('is empty without a trip', () => {
+    expect(timelineRows(null)).toEqual([]);
+  });
+});
+
+describe('inWindow / notReachedYet', () => {
+  const track = { from: '2026-10-07T15:00:00Z', to: '2026-10-07T22:50:00Z' };
+  it('allows play only inside the replay window', () => {
+    expect(inWindow('2026-10-07T15:00:00Z', track)).toBe(true);
+    expect(inWindow('2026-10-07T22:50:00Z', track)).toBe(true);
+    expect(inWindow('2026-10-08T02:00:00Z', track)).toBe(false);
+    expect(inWindow('2026-10-07T16:00:00Z', null)).toBe(false);
+  });
+  it('flags an open trip that has not reached a drop', () => {
+    expect(notReachedYet({ status: 'OPEN', drop: {} })).toBe(true);
+    expect(notReachedYet({ status: 'OPEN', drop: { arrivedAt: '2026-10-07T22:50:00Z' } })).toBe(
+      false,
+    );
+    expect(notReachedYet({ status: 'COMPLETE', drop: {} })).toBe(false);
   });
 });

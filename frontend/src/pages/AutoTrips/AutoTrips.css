@@ -1,0 +1,830 @@
+/*
+ * AutoTrips.css — the Auto Trips list and trip page, matched to the trips-list and
+ * trip-detail mockups. Tables stay on the shared DataTable chassis; the rules under
+ * `.atx-page .dt` only restyle it on these two pages. Light values are the
+ * mockup's; `.dark` swaps the tokens.
+ */
+
+.atx-page {
+  --atx-bg: #f7f8fa;
+  --atx-surface: #ffffff;
+  --atx-ink: #0f172a;
+  --atx-ink-2: #334155;
+  --atx-ink-3: #475569;
+  --atx-ink-4: #64748b;
+  --atx-line: #e5e7eb;
+  --atx-line-2: #e2e8f0;
+  --atx-line-3: #f1f5f9;
+  --atx-hover: #f8fafc;
+  --atx-chip: #f1f5f9;
+  --atx-blue: #1d4ed8;
+  --atx-blue-hover: #1e3a8a;
+  --atx-blue-bg: #eff6ff;
+  --atx-blue-line: #bfdbfe;
+  --atx-green: #15803d;
+  --atx-green-bg: #f0fdf4;
+  --atx-green-line: #bbf7d0;
+  --atx-teal: #0f766e;
+  --atx-teal-bg: #f0fdfa;
+  --atx-teal-line: #99f6e4;
+  --atx-amber: #b45309;
+  --atx-amber-ink: #78350f;
+  --atx-amber-link: #92400e;
+  --atx-amber-bg: #fffbeb;
+  --atx-amber-line: #fde68a;
+  --atx-red: #b91c1c;
+  --atx-red-bg: #fef2f2;
+  --atx-red-line: #fecaca;
+  --atx-solid: #0f172a;
+  --atx-on-solid: #ffffff;
+  --atx-map: #eef2ec;
+  --atx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  min-height: 100%;
+  padding: 36px 24px;
+  background: var(--atx-bg);
+  color: var(--atx-ink);
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+.dark .atx-page {
+  --atx-bg: #0b1220;
+  --atx-surface: #111a2b;
+  --atx-ink: #e8eef7;
+  --atx-ink-2: #cbd5e1;
+  --atx-ink-3: #94a3b8;
+  --atx-ink-4: #8193ab;
+  --atx-line: #223049;
+  --atx-line-2: #2a3a55;
+  --atx-line-3: #1a2539;
+  --atx-hover: #152036;
+  --atx-chip: #1a2539;
+  --atx-blue: #3b82f6;
+  --atx-blue-hover: #60a5fa;
+  --atx-blue-bg: rgba(59, 130, 246, 0.14);
+  --atx-blue-line: rgba(96, 165, 250, 0.38);
+  --atx-green: #4ade80;
+  --atx-green-bg: rgba(34, 197, 94, 0.12);
+  --atx-green-line: rgba(74, 222, 128, 0.34);
+  --atx-teal: #2dd4bf;
+  --atx-teal-bg: rgba(45, 212, 191, 0.12);
+  --atx-teal-line: rgba(45, 212, 191, 0.34);
+  --atx-amber: #f59e0b;
+  --atx-amber-ink: #fcd34d;
+  --atx-amber-link: #fbbf24;
+  --atx-amber-bg: rgba(245, 158, 11, 0.1);
+  --atx-amber-line: rgba(245, 158, 11, 0.34);
+  --atx-red: #f87171;
+  --atx-red-bg: rgba(248, 113, 113, 0.1);
+  --atx-red-line: rgba(248, 113, 113, 0.38);
+  --atx-solid: #e8eef7;
+  --atx-on-solid: #0b1220;
+  --atx-map: #1a2332;
+}
+
+.atx-page--detail {
+  padding: 32px 24px;
+}
+
+.atx-wrap {
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.atx-page--detail .atx-wrap {
+  gap: 24px;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────── */
+
+.atx-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.atx-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.atx-page--detail .atx-head-main {
+  gap: 8px;
+}
+.atx-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.atx-title {
+  margin: 0;
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: normal;
+  color: var(--atx-ink);
+}
+.atx-count {
+  font-family: var(--atx-mono);
+  font-size: 16px;
+  color: var(--atx-ink-4);
+}
+.atx-sub {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--atx-ink-3);
+}
+
+/* detail header */
+.atx-back {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--atx-ink-3);
+  text-decoration: none;
+}
+.atx-back:hover {
+  color: var(--atx-ink);
+}
+.atx-plate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.atx-plate-title {
+  margin: 0;
+  font-family: var(--atx-mono);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: normal;
+  color: var(--atx-ink);
+}
+.atx-route-sub {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--atx-ink-2);
+}
+.atx-answer {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--atx-blue);
+  text-decoration: none;
+}
+.atx-answer:hover {
+  color: var(--atx-blue-hover);
+}
+
+/* ─── Buttons & links ───────────────────────────────────────────────── */
+
+.atx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.atx-btn {
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--atx-line-2);
+  border-radius: 10px;
+  background: var(--atx-surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--atx-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.atx-btn:hover:not(:disabled) {
+  background: var(--atx-hover);
+}
+.atx-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.atx-btn svg {
+  flex: none;
+}
+.atx-btn--primary {
+  padding: 0 18px;
+  border-color: var(--atx-blue);
+  background: var(--atx-blue);
+  color: #ffffff;
+  font-weight: 700;
+}
+.atx-btn--primary:hover:not(:disabled) {
+  border-color: var(--atx-blue-hover);
+  background: var(--atx-blue-hover);
+}
+.atx-btn--danger {
+  border-color: var(--atx-red-line);
+  color: var(--atx-red);
+  font-weight: 700;
+}
+.atx-btn--danger:hover:not(:disabled) {
+  background: var(--atx-red-bg);
+}
+.atx-btn--sm {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.atx-btn--sm.atx-btn--primary {
+  padding: 0 12px;
+  font-weight: 600;
+}
+.atx-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--atx-blue);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.atx-link:hover {
+  color: var(--atx-blue-hover);
+}
+.atx-page :where(.atx-btn, .atx-link, .atx-tab, .atx-play, .atx-speeds button):focus-visible {
+  outline: 2px solid var(--atx-blue);
+  outline-offset: 2px;
+}
+
+/* ─── Banners (register match, trucks without trips) ───────────────── */
+
+.atx-banner {
+  padding: 16px 20px;
+  border: 1px solid var(--atx-line);
+  border-radius: 14px;
+  background: var(--atx-surface);
+}
+.atx-banner-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.atx-banner-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 1000px;
+}
+.atx-banner-msg svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--atx-ink-3);
+}
+.atx-banner-msg p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--atx-ink-2);
+}
+.atx-banner-msg strong {
+  font-weight: 700;
+}
+.atx-banner--warn {
+  border-color: var(--atx-amber-line);
+  background: var(--atx-amber-bg);
+}
+.atx-banner--warn .atx-banner-msg {
+  align-items: center;
+}
+.atx-banner--warn .atx-banner-msg svg {
+  margin-top: 0;
+  color: var(--atx-amber);
+}
+.atx-banner--warn .atx-banner-msg p {
+  color: var(--atx-amber-ink);
+}
+.atx-banner--warn .atx-link {
+  color: var(--atx-amber-link);
+}
+.atx-banner-more {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--atx-line-3);
+  font-size: 14px;
+  color: var(--atx-ink-2);
+  overflow-x: auto;
+}
+.atx-banner--warn .atx-banner-more {
+  border-top-color: var(--atx-amber-line);
+  color: var(--atx-amber-ink);
+}
+.atx-banner-more a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.atx-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.atx-mini-table th {
+  padding: 6px 16px 8px 0;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--atx-ink-3);
+  white-space: nowrap;
+}
+.atx-mini-table td {
+  padding: 8px 16px 8px 0;
+  border-top: 1px solid var(--atx-line-3);
+}
+.atx-mini-table .num {
+  text-align: right;
+  font-family: var(--atx-mono);
+  font-size: 13px;
+}
+.atx-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.atx-cols h4 {
+  margin: 0 0 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+.atx-cols ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  line-height: 1.7;
+}
+.atx-cols ul.atx-scroll {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* ─── Status tabs ───────────────────────────────────────────────────── */
+
+.atx-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.atx-tab {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--atx-line-2);
+  border-radius: 10px;
+  background: var(--atx-surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--atx-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.atx-tab:hover {
+  background: var(--atx-hover);
+}
+.atx-tab-count {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--atx-chip);
+  font-size: 13px;
+  color: var(--atx-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.atx-tab[aria-selected='true'] {
+  border-color: var(--atx-blue);
+  background: var(--atx-blue);
+  color: #ffffff;
+}
+.atx-tab[aria-selected='true'] .atx-tab-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* ─── Status pills & small bits ─────────────────────────────────────── */
+
+.atx-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.atx-status--strong {
+  font-weight: 700;
+}
+.atx-status--open {
+  border-color: var(--atx-blue-line);
+  background: var(--atx-blue-bg);
+  color: var(--atx-blue);
+}
+.atx-status--delivered {
+  border-color: var(--atx-green-line);
+  background: var(--atx-green-bg);
+  color: var(--atx-green);
+}
+.atx-status--confirmed {
+  border-color: var(--atx-teal-line);
+  background: var(--atx-teal-bg);
+  color: var(--atx-teal);
+}
+.atx-status--review {
+  border-color: var(--atx-amber-line);
+  background: var(--atx-amber-bg);
+  color: var(--atx-amber);
+}
+.atx-status--rejected {
+  border-color: var(--atx-red-line);
+  background: var(--atx-red-bg);
+  color: var(--atx-red);
+}
+.atx-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--atx-chip);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--atx-ink-3);
+  white-space: nowrap;
+}
+.atx-plate {
+  font-family: var(--atx-mono);
+  font-size: 14px;
+}
+.atx-mono {
+  font-family: var(--atx-mono);
+}
+.atx-muted {
+  color: var(--atx-ink-4);
+}
+.atx-replay-link {
+  font-weight: 700;
+  color: var(--atx-blue);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.atx-replay-link:hover {
+  color: var(--atx-blue-hover);
+}
+.atx-pager {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--atx-ink-3);
+}
+.atx-state {
+  padding: 48px 24px;
+  border: 1px solid var(--atx-line);
+  border-radius: 16px;
+  background: var(--atx-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 15px;
+  color: var(--atx-ink-3);
+}
+
+/* ─── DataTable chassis, restyled on these pages ────────────────────── */
+
+.atx-page .dt {
+  border: 1px solid var(--atx-line);
+  border-radius: 16px;
+  background: var(--atx-surface);
+  box-shadow: none;
+}
+.atx-page .dt .dt-tools {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--atx-line-3);
+  background: var(--atx-surface);
+}
+.atx-page .dt .dt-summary {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--atx-ink-3);
+}
+.atx-page .dt .dt-table {
+  font-size: 15px;
+}
+.atx-page .dt .dt-table thead th {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--atx-line-3);
+  background: var(--atx-surface);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--atx-ink-3);
+}
+.atx-page .dt .dt-table tbody td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--atx-line-3);
+  background: var(--atx-surface);
+  font-size: 15px;
+  color: var(--atx-ink);
+}
+.atx-page .dt .dt-row:hover td {
+  background: var(--atx-hover);
+}
+.atx-page .dt .dt-foot {
+  padding: 12px 20px;
+  border-top: 1px solid var(--atx-line-3);
+  background: var(--atx-surface);
+}
+.atx-list .dt .dt-table {
+  min-width: 980px;
+}
+
+/* ─── Trip page grid & cards ────────────────────────────────────────── */
+
+.atx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+.atx-span-2 {
+  grid-column: span 2;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .atx-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+.atx-card {
+  border: 1px solid var(--atx-line);
+  border-radius: 16px;
+  background: var(--atx-surface);
+}
+.atx-card--clip {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.atx-card-title {
+  margin: 0;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: normal;
+  color: var(--atx-ink);
+}
+
+/* replay */
+.atx-map {
+  position: relative;
+  height: 380px;
+  background: var(--atx-map);
+}
+.atx-map-chip {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--atx-solid);
+  font-family: var(--atx-mono);
+  font-size: 13px;
+  color: var(--atx-on-solid);
+  pointer-events: none;
+}
+.atx-map-label {
+  text-shadow:
+    0 0 3px #ffffff,
+    0 0 3px #ffffff,
+    0 0 2px #ffffff;
+}
+.atx-map-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--atx-ink-3);
+}
+.atx-player {
+  padding: 16px 20px;
+  border-top: 1px solid var(--atx-line-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.atx-play {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 22px;
+  background: var(--atx-blue);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.atx-play:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.atx-scrub {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.atx-scrub input[type='range'] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--atx-blue);
+}
+.atx-scrub-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--atx-mono);
+  font-size: 12px;
+  color: var(--atx-ink-3);
+}
+.atx-speeds {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--atx-line-2);
+  border-radius: 10px;
+}
+.atx-speeds button {
+  height: 40px;
+  min-width: 48px;
+  border: 0;
+  background: var(--atx-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--atx-ink);
+  cursor: pointer;
+}
+.atx-speeds button + button {
+  border-left: 1px solid var(--atx-line-2);
+}
+.atx-speeds button[aria-pressed='true'] {
+  background: var(--atx-solid);
+  color: var(--atx-on-solid);
+}
+.atx-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* summary */
+.atx-summary {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.atx-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+}
+.atx-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.atx-field-label {
+  font-size: 13px;
+  color: var(--atx-ink-3);
+}
+.atx-field-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--atx-ink);
+  overflow-wrap: anywhere;
+}
+.atx-field-value.is-mono {
+  font-family: var(--atx-mono);
+}
+.atx-field-value.is-warn {
+  color: var(--atx-amber);
+}
+.atx-rule {
+  height: 1px;
+  background: var(--atx-line-3);
+}
+
+/* timeline */
+.atx-timeline-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--atx-line-3);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.atx-hint {
+  font-size: 13px;
+  color: var(--atx-ink-3);
+}
+.atx-timeline .dt {
+  border: 0;
+  border-radius: 0;
+}
+.atx-timeline .dt .dt-tools {
+  display: none;
+}
+.atx-timeline .dt .dt-table {
+  min-width: 900px;
+}
+.atx-timeline .dt .dt-table thead th {
+  padding: 12px 20px;
+}
+.atx-timeline .dt .dt-table tbody td {
+  padding: 14px 20px;
+}
+.atx-page .dt .dt-row.atx-row--unknown td {
+  background: var(--atx-amber-bg);
+}
+.atx-what {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.atx-dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 5px;
+  background: var(--atx-ink);
+}
+.atx-what--drop {
+  color: var(--atx-green);
+}
+.atx-what--drop .atx-dot {
+  background: var(--atx-green);
+}
+.atx-what--unknown {
+  color: var(--atx-amber-link);
+}
+.atx-what--unknown .atx-dot,
+.atx-what--stop .atx-dot {
+  border: 2px solid var(--atx-amber);
+  background: transparent;
+}
+.atx-what--stop .atx-dot {
+  border-color: var(--atx-ink-4);
+}
+.atx-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

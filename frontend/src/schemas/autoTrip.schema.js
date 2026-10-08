@@ -93,6 +93,31 @@ export const autoTripDetailSchema = autoTripSchema
   })
   .passthrough();
 
+const trackPoint = z
+  .object({
+    eventDateTime: str,
+    latitude: num,
+    longitude: num,
+    speed: num,
+    ignition: z.boolean().nullish(),
+    break: z.boolean().nullish(),
+  })
+  .passthrough();
+
+export const autoTripTrackSchema = z
+  .object({
+    tripId: str,
+    registrationNumber: str,
+    from: str,
+    to: str,
+    open: z.boolean().nullish(),
+    source: str, // LIVE | INSIGHTS
+    totalCount: num,
+    sampled: z.boolean().nullish(),
+    points: z.array(trackPoint).nullish(),
+  })
+  .passthrough();
+
 export const autoTripOilAverageSchema = z
   .object({
     rows: z.array(
