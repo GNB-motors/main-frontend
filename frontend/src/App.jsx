@@ -125,8 +125,6 @@ const ServiceIntelligencePage = lazy(
   () => import('./pages/Maintenance/ServiceIntelligencePage.jsx'),
 );
 const AddMaintenancePage = lazy(() => import('./pages/Maintenance/AddMaintenancePage.jsx'));
-const RoutesPage = lazy(() => import('./pages/Routes/RoutesPage.jsx'));
-const AddRoutePage = lazy(() => import('./pages/Routes/AddRoutePage.jsx'));
 const MileagePage = lazy(() => import('./pages/Mileage/MileagePage.jsx'));
 const MileageTrackingVehicleDetail = lazy(
   () => import('./pages/MileageTracking/MileageTrackingVehicleDetail.jsx'),
@@ -520,7 +518,6 @@ function App() {
             />
             <Route path="/vehicles/add" element={<AddVehiclePage />} />
             <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
-            <Route path="/routes" element={<RoutesPage />} />
             <Route path="/warehouses" element={<VehicleWarehousesPage />} />
             <Route path="/auto-trips" element={<AutoTripsPage />} />
             {/* The Oil & Average report lives on the Reports page now. */}
@@ -532,7 +529,6 @@ function App() {
             <Route path="/auto-trips/excursions/:id" element={<ExcursionDetailPage />} />
             <Route path="/auto-trips/approvals" element={<MovementApprovalsPage />} />
             <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
-            <Route path="/routes/add" element={<AddRoutePage />} />
             <Route path="/khata-ledger" element={<KhataLedgerPage />} />
             {/* ISOCL ERP — five workspaces (CRM / Operations / Finance / Approval Center) */}
             <Route path="/erp" element={<ErpHomePage />} />

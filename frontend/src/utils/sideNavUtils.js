@@ -17,7 +17,6 @@ import {
   CalendarClock,
   ReceiptText,
   Radar,
-  Route,
   Warehouse,
   SunMedium,
 } from 'lucide-react';
@@ -333,14 +332,6 @@ export const SIDE_NAV_ITEMS = [
   },
   // Locations (/locations) is hidden from the sidebar on purpose; the page and its
   // add-location flow still work from direct links.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/routes',
-    label: 'Routes',
-    icon: Route,
-  },
   {
     type: 'group',
     groupId: 'geofence',

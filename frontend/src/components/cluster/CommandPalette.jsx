@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Command, Search, Truck, IdCard, Compass, Route, Activity, X, Loader2, CloudOff } from 'lucide-react';
+import {
+  Command,
+  Search,
+  Truck,
+  IdCard,
+  Compass,
+  Activity,
+  X,
+  Loader2,
+  CloudOff,
+} from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { FleetDataService } from '../../services/FleetDataService';
 import { VehicleService } from '../../pages/Profile/VehicleService';
@@ -12,7 +22,7 @@ import { label as vocabLabel } from '../../lib/vocabulary';
  *
  * Empty query  : fleet health strip (instant, client-side).
  * 1 char       : local vehicle filter on the same strip.
- * 2+ chars     : live search across vehicles, drivers, trips, routes
+ * 2+ chars     : live search across vehicles, drivers, trips
  *                (GET /api/search, debounced 200 ms, abortable). If the
  *                search call fails, falls back to the local vehicle list
  *                and says so — it never renders failure as "no results".
@@ -24,7 +34,6 @@ const TYPE_ICON = {
   VEHICLE: Truck,
   DRIVER: IdCard,
   TRIP: Compass,
-  ROUTE: Route,
 };
 
 const SEARCH_MIN_CHARS = 2;
@@ -210,7 +219,7 @@ export default function CommandPalette() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search vehicles, drivers, trips, routes…"
+            placeholder="Search vehicles, drivers, trips…"
             className="flex-1 bg-transparent text-sm outline-none"
             style={{ color: 'var(--cluster-text)' }}
             autoComplete="off"
@@ -242,7 +251,10 @@ export default function CommandPalette() {
         )}
 
         {!pending && serverError && (
-          <div className="flex items-center justify-center gap-2 p-4 text-xs" style={{ color: 'var(--caution)' }}>
+          <div
+            className="flex items-center justify-center gap-2 p-4 text-xs"
+            style={{ color: 'var(--caution)' }}
+          >
             <CloudOff size={14} />
             Live search unavailable — showing fleet vehicles only.
           </div>
@@ -250,7 +262,9 @@ export default function CommandPalette() {
 
         {!pending && !localLoading && items.length === 0 && !serverError && (
           <div className="p-8 text-center text-sm text-dim">
-            {inServerMode ? 'Nothing found across vehicles, drivers, trips or routes.' : 'No vehicles found.'}
+            {inServerMode
+              ? 'Nothing found across vehicles, drivers or trips.'
+              : 'No vehicles found.'}
           </div>
         )}
 
@@ -279,9 +293,7 @@ export default function CommandPalette() {
                     <div className="flex items-center gap-3">
                       <Icon size={16} className="text-dim" />
                       <div>
-                        <div className="text-sm font-medium">
-                          {item.title}
-                        </div>
+                        <div className="text-sm font-medium">{item.title}</div>
                         <div className="text-xs text-dim">
                           {item.sub || item.type.charAt(0) + item.type.slice(1).toLowerCase()}
                         </div>
@@ -292,7 +304,9 @@ export default function CommandPalette() {
                         <div className="flex items-center gap-1 text-xs text-dim">
                           <Activity size={12} />
                           {Math.round(item.fuelLevel)}%
-                          {item.isStale && <span className="text-[10px] signal-caution">stale</span>}
+                          {item.isStale && (
+                            <span className="text-[10px] signal-caution">stale</span>
+                          )}
                         </div>
                       )}
                       <Command size={14} className="text-dim opacity-50" />
@@ -310,7 +324,7 @@ export default function CommandPalette() {
         >
           <span>
             {inServerMode
-              ? `${items.length} result${items.length === 1 ? '' : 's'} · vehicles, drivers, trips, routes`
+              ? `${items.length} result${items.length === 1 ? '' : 's'} · vehicles, drivers, trips`
               : `${items.length} vehicle${items.length === 1 ? '' : 's'}`}
           </span>
           <span className="flex items-center gap-2">

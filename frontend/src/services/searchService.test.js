@@ -2,14 +2,26 @@ import { describe, it, expect } from 'vitest';
 import { normaliseResults, TYPE_ORDER } from './searchService';
 
 describe('normaliseResults', () => {
-  it('groups results by type order: vehicles first, routes last', () => {
+  it('groups results by type order (vehicles, drivers, trips) and drops routes', () => {
     const out = normaliseResults([
       { type: 'ROUTE', id: 'r1', label: 'Jamshedpur–Ranchi', sub: '', url: '/routes' },
-      { type: 'TRIP', id: 't1', label: 'JSR → RNC', sub: 'IN_TRANSIT', url: '/trip-management/trip/t1' },
-      { type: 'VEHICLE', id: 'v1', label: 'WB25W1040', sub: 'Tata Signa', url: '/vehicles/WB25W1040' },
+      {
+        type: 'TRIP',
+        id: 't1',
+        label: 'JSR → RNC',
+        sub: 'IN_TRANSIT',
+        url: '/trip-management/trip/t1',
+      },
+      {
+        type: 'VEHICLE',
+        id: 'v1',
+        label: 'WB25W1040',
+        sub: 'Tata Signa',
+        url: '/vehicles/WB25W1040',
+      },
       { type: 'DRIVER', id: 'd1', label: 'Ramesh Yadav', sub: '9876543210', url: '/drivers' },
     ]);
-    expect(out.map((r) => r.type)).toEqual(['VEHICLE', 'DRIVER', 'TRIP', 'ROUTE']);
+    expect(out.map((r) => r.type)).toEqual(['VEHICLE', 'DRIVER', 'TRIP']);
   });
 
   it('keeps stable order within a type group', () => {
@@ -35,7 +47,11 @@ describe('normaliseResults', () => {
 
   it('caps the result count', () => {
     const many = Array.from({ length: 60 }, (_, i) => ({
-      type: 'VEHICLE', id: `v${i}`, label: `REG${i}`, sub: '', url: `/vehicles/REG${i}`,
+      type: 'VEHICLE',
+      id: `v${i}`,
+      label: `REG${i}`,
+      sub: '',
+      url: `/vehicles/REG${i}`,
     }));
     expect(normaliseResults(many)).toHaveLength(40);
   });
@@ -47,6 +63,6 @@ describe('normaliseResults', () => {
   });
 
   it('exposes the documented type order', () => {
-    expect(TYPE_ORDER).toEqual(['VEHICLE', 'DRIVER', 'TRIP', 'ROUTE']);
+    expect(TYPE_ORDER).toEqual(['VEHICLE', 'DRIVER', 'TRIP']);
   });
 });

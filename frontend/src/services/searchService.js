@@ -4,10 +4,11 @@ import apiClient from '../utils/axiosConfig';
  * searchService — global command-palette search over FMS entities.
  * Backed by GET /api/search?q= returning { results: [{ type, id, label, sub, url }] }
  * over vehicles, drivers, trips and routes. Parties are intentionally absent
- * (the only party model is ERP, out of FMS scope).
+ * (the only party model is ERP, out of FMS scope). ROUTE results are dropped:
+ * they linked to the Routes Management page, which is gone.
  */
 
-export const TYPE_ORDER = ['VEHICLE', 'DRIVER', 'TRIP', 'ROUTE'];
+export const TYPE_ORDER = ['VEHICLE', 'DRIVER', 'TRIP'];
 
 const VALID_TYPES = new Set(TYPE_ORDER);
 const MAX_RESULTS = 40;
@@ -16,7 +17,13 @@ const MAX_RESULTS = 40;
 export function normaliseResults(raw) {
   if (!Array.isArray(raw)) return [];
   const clean = raw.filter(
-    (r) => r && VALID_TYPES.has(r.type) && typeof r.label === 'string' && r.label.trim() !== '' && typeof r.url === 'string' && r.url.startsWith('/'),
+    (r) =>
+      r &&
+      VALID_TYPES.has(r.type) &&
+      typeof r.label === 'string' &&
+      r.label.trim() !== '' &&
+      typeof r.url === 'string' &&
+      r.url.startsWith('/'),
   );
   const rank = new Map(TYPE_ORDER.map((t, i) => [t, i]));
   // Array.prototype.sort is stable (spec-guaranteed): original order is kept
